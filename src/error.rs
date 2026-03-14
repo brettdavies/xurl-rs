@@ -98,15 +98,5 @@ impl From<url::ParseError> for XurlError {
     }
 }
 
-/// Returns true if the error is an API error.
-pub fn is_api_error(err: &XurlError) -> bool {
-    matches!(err, XurlError::Api(_))
-}
-
-/// Returns true if the error is an auth error.
-pub fn is_auth_error(err: &XurlError) -> bool {
-    matches!(err, XurlError::Auth(_))
-}
-
 /// Convenience alias used throughout the crate.
 pub type Result<T> = std::result::Result<T, XurlError>;

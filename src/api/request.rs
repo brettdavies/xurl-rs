@@ -347,21 +347,19 @@ impl<'a> ApiClient<'a> {
             };
         }
 
-        // Try OAuth2 first
-        if self.auth.token_store.get_first_oauth2_token().is_some()
-            && let Ok(header) = self.auth.get_oauth2_header(username) {
-                return Ok(header);
-            }
+        // Try OAuth2 first — propagate errors if a token exists
+        if self.auth.token_store.get_first_oauth2_token().is_some() {
+            return self.auth.get_oauth2_header(username);
+        }
 
-        // Try OAuth1
-        if self.auth.token_store.get_oauth1_tokens().is_some()
-            && let Ok(header) = self.auth.get_oauth1_header(method, url, None) {
-                return Ok(header);
-            }
+        // Try OAuth1 — propagate errors if a token exists
+        if self.auth.token_store.get_oauth1_tokens().is_some() {
+            return self.auth.get_oauth1_header(method, url, None);
+        }
 
         // Try Bearer
-        if let Ok(header) = self.auth.get_bearer_token_header() {
-            return Ok(header);
+        if self.auth.token_store.has_bearer_token() {
+            return self.auth.get_bearer_token_header();
         }
 
         Err(XurlError::auth("NoAuthMethod: no authentication method available"))

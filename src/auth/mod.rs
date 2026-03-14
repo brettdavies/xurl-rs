@@ -147,13 +147,15 @@ impl Auth {
             })
     }
 
-    /// Replaces the token store (used in tests).
+    /// Replaces the token store (used in integration tests).
+    #[allow(dead_code)]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
         self.token_store = token_store;
         self
     }
 
     /// Returns a reference to the token store.
+    #[allow(dead_code)]
     pub fn token_store(&self) -> Option<&TokenStore> {
         Some(&self.token_store)
     }

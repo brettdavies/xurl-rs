@@ -146,6 +146,13 @@ pub struct TokenStore {
 }
 
 #[allow(dead_code)]
+impl Default for TokenStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
 impl TokenStore {
     /// Creates a new `TokenStore`, loading from `~/.xurl` (auto-migrating legacy JSON).
     pub fn new() -> Self {

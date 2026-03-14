@@ -442,11 +442,11 @@ pub fn send_dm(
     text: &str,
     opts: &RequestOptions,
 ) -> Result<serde_json::Value> {
-    let escaped_text = text.replace('"', "\\\"");
+    let body = serde_json::json!({"text": text});
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/dm_conversations/with/{participant_id}/messages");
-    opts.data = format!(r#"{{"text":"{escaped_text}"}}"#);
+    opts.data = serde_json::to_string(&body)?;
 
     client.send_request(&opts)
 }
