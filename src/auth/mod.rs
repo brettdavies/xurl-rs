@@ -1,0 +1,166 @@
+/// Authentication orchestration — OAuth2 PKCE, OAuth1 HMAC-SHA1, Bearer.
+///
+/// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
+/// env-var config -> active app in `.xurl` store.
+mod callback;
+mod oauth1;
+mod oauth2;
+
+use crate::config::Config;
+use crate::error::{Result, XurlError};
+use crate::store::TokenStore;
+
+/// Manages authentication for X API requests.
+pub struct Auth {
+    pub token_store: TokenStore,
+    info_url: String,
+    client_id: String,
+    client_secret: String,
+    auth_url: String,
+    token_url: String,
+    redirect_uri: String,
+    app_name: String,
+}
+
+impl Auth {
+    /// Creates a new `Auth` object. Credentials are resolved: env vars -> active app.
+    pub fn new(cfg: &Config) -> Self {
+        let ts = TokenStore::with_credentials(&cfg.client_id, &cfg.client_secret);
+
+        let mut client_id = cfg.client_id.clone();
+        let mut client_secret = cfg.client_secret.clone();
+        let app_name = cfg.app_name.clone();
+
+        let app = ts.resolve_app(&app_name);
+        if client_id.is_empty() {
+            client_id = app.client_id.clone();
+        }
+        if client_secret.is_empty() {
+            client_secret = app.client_secret.clone();
+        }
+
+        Self {
+            token_store: ts,
+            info_url: cfg.info_url.clone(),
+            client_id,
+            client_secret,
+            auth_url: cfg.auth_url.clone(),
+            token_url: cfg.token_url.clone(),
+            redirect_uri: cfg.redirect_uri.clone(),
+            app_name,
+        }
+    }
+
+    /// Sets the explicit app name override.
+    pub fn with_app_name(&mut self, app_name: &str) {
+        self.app_name = app_name.to_string();
+        let app = self.token_store.resolve_app(app_name);
+        if self.client_id.is_empty() {
+            self.client_id = app.client_id.clone();
+        }
+        if self.client_secret.is_empty() {
+            self.client_secret = app.client_secret.clone();
+        }
+    }
+
+    /// Gets the OAuth1 Authorization header for a request.
+    pub fn get_oauth1_header(
+        &self,
+        method: &str,
+        url_str: &str,
+        additional_params: Option<&std::collections::BTreeMap<String, String>>,
+    ) -> Result<String> {
+        let token = self
+            .token_store
+            .get_oauth1_tokens()
+            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+
+        let oauth1_token = token
+            .oauth1
+            .as_ref()
+            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+
+        oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
+    }
+
+    /// Gets or refreshes an OAuth2 token and returns the Authorization header.
+    pub fn get_oauth2_header(&mut self, username: &str) -> Result<String> {
+        let token = if !username.is_empty() {
+            self.token_store.get_oauth2_token(username).cloned()
+        } else {
+            self.token_store.get_first_oauth2_token().cloned()
+        };
+
+        if token.is_none() {
+            let access_token = self.oauth2_flow(username)?;
+            return Ok(format!("Bearer {access_token}"));
+        }
+
+        let access_token = self.refresh_oauth2_token(username)?;
+        Ok(format!("Bearer {access_token}"))
+    }
+
+    /// Starts the OAuth2 PKCE flow.
+    pub fn oauth2_flow(&mut self, username: &str) -> Result<String> {
+        oauth2::run_oauth2_flow(self, username)
+    }
+
+    /// Validates and refreshes an OAuth2 token if needed.
+    pub fn refresh_oauth2_token(&mut self, username: &str) -> Result<String> {
+        oauth2::refresh_oauth2_token(self, username)
+    }
+
+    /// Gets the bearer token Authorization header.
+    pub fn get_bearer_token_header(&self) -> Result<String> {
+        let token = self
+            .token_store
+            .get_bearer_token()
+            .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+
+        let bearer = token
+            .bearer
+            .as_ref()
+            .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+
+        Ok(format!("Bearer {bearer}"))
+    }
+
+    /// Fetches the username for an access token from the /2/users/me endpoint.
+    pub(crate) fn fetch_username(&self, access_token: &str) -> Result<String> {
+        let client = reqwest::blocking::Client::new();
+        let resp = client
+            .get(&self.info_url)
+            .header("Authorization", format!("Bearer {access_token}"))
+            .send()
+            .map_err(|e| XurlError::auth_with_cause("NetworkError", &e))?;
+
+        let body: serde_json::Value = resp
+            .json()
+            .map_err(|e| XurlError::auth_with_cause("JSONDeserializationError", &e))?;
+
+        body.get("data")
+            .and_then(|d| d.get("username"))
+            .and_then(|u| u.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| {
+                XurlError::auth("UsernameNotFound: username not found when fetching username")
+            })
+    }
+
+    // Accessors for sub-modules
+    pub(crate) fn client_id(&self) -> &str {
+        &self.client_id
+    }
+    pub(crate) fn client_secret(&self) -> &str {
+        &self.client_secret
+    }
+    pub(crate) fn auth_url(&self) -> &str {
+        &self.auth_url
+    }
+    pub(crate) fn token_url(&self) -> &str {
+        &self.token_url
+    }
+    pub(crate) fn redirect_uri(&self) -> &str {
+        &self.redirect_uri
+    }
+}

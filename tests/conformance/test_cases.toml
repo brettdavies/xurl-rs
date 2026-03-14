@@ -1,0 +1,283 @@
+# Differential conformance test cases for xurl vs xurl-rs.
+#
+# Each [[test]] defines a command to run against both binaries.
+# Fields:
+#   name             — unique test identifier
+#   args             — CLI arguments
+#   compare          — what to compare: exit_code, stdout, stderr, stdout_json
+#   normalize        — normalization pipeline: timestamps, ids, paths, all
+#   expect_failure   — if true, both binaries should fail
+#   stdout_contains  — check that port stdout contains this string
+#   json_ignore_fields — fields to strip before JSON comparison
+#   json_ignore_order  — ignore array ordering in JSON comparison
+#   timeout_secs     — per-test timeout (default: 30)
+#   skip_reason      — skip this test with explanation
+#   tags             — labels for filtering (basic, api, auth, etc.)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Basic CLI tests (Level 0)
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "help-flag"
+args = ["--help"]
+compare = ["exit_code"]
+tags = ["basic", "help"]
+# Don't compare stdout — help text format may differ between Go/Rust
+
+[[test]]
+name = "version-flag"
+args = ["--version"]
+compare = ["exit_code"]
+stdout_contains = "version"
+tags = ["basic", "version"]
+
+[[test]]
+name = "invalid-flag"
+args = ["--definitely-not-a-real-flag"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["basic", "error"]
+
+[[test]]
+name = "no-args"
+args = []
+compare = ["exit_code"]
+expect_failure = true
+tags = ["basic", "error"]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Subcommand help tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "post-help"
+args = ["post", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "search-help"
+args = ["search", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "delete-help"
+args = ["delete", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "reply-help"
+args = ["reply", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "quote-help"
+args = ["quote", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "like-help"
+args = ["like", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "unlike-help"
+args = ["unlike", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "repost-help"
+args = ["repost", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "bookmark-help"
+args = ["bookmark", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "follow-help"
+args = ["follow", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "unfollow-help"
+args = ["unfollow", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "block-help"
+args = ["block", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "mute-help"
+args = ["mute", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "dm-help"
+args = ["dm", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "whoami-help"
+args = ["whoami", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "lookup-help"
+args = ["lookup", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "timeline-help"
+args = ["timeline", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "mentions-help"
+args = ["mentions", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+[[test]]
+name = "read-help"
+args = ["read", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "subcommand-help"]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Error handling — missing required args
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "post-no-text"
+args = ["post"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+[[test]]
+name = "search-no-query"
+args = ["search"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+[[test]]
+name = "delete-no-id"
+args = ["delete"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+[[test]]
+name = "reply-no-args"
+args = ["reply"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+[[test]]
+name = "read-no-id"
+args = ["read"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+[[test]]
+name = "lookup-no-username"
+args = ["lookup"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["error"]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Auth management subcommands
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "auth-help"
+args = ["auth", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "auth"]
+
+[[test]]
+name = "apps-help"
+args = ["apps", "--help"]
+compare = ["exit_code"]
+tags = ["basic", "auth"]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API tests (require auth — will be skipped in CI without credentials)
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "whoami-api"
+args = ["whoami"]
+compare = ["exit_code", "stdout_json"]
+json_ignore_fields = ["created_at", "profile_image_url"]
+normalize = ["timestamps"]
+tags = ["api", "auth-required"]
+skip_reason = "Requires live API credentials"
+
+[[test]]
+name = "search-api"
+args = ["search", "rust programming", "--max-results", "5"]
+compare = ["exit_code", "stdout_json"]
+json_ignore_fields = ["created_at", "id", "edit_history_tweet_ids", "newest_id", "oldest_id", "next_token"]
+json_ignore_order = true
+normalize = ["timestamps", "ids"]
+tags = ["api", "auth-required"]
+skip_reason = "Requires live API credentials"
+
+[[test]]
+name = "lookup-api"
+args = ["lookup", "XDev"]
+compare = ["exit_code", "stdout_json"]
+json_ignore_fields = ["created_at", "profile_image_url"]
+normalize = ["timestamps"]
+tags = ["api", "auth-required"]
+skip_reason = "Requires live API credentials"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Edge case tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+[[test]]
+name = "invalid-subcommand"
+args = ["notacommand"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["edge-case"]
+
+[[test]]
+name = "post-invalid-flag"
+args = ["post", "--nonexistent-flag"]
+compare = ["exit_code"]
+expect_failure = true
+tags = ["edge-case"]
+
+[[test]]
+name = "double-dash-separator"
+args = ["--", "--help"]
+compare = ["exit_code"]
+tags = ["edge-case"]
