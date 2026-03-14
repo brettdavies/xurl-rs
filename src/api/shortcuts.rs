@@ -37,8 +37,8 @@ struct PostMedia {
 pub fn resolve_post_id(input: &str) -> String {
     let input = input.trim();
 
-    if input.starts_with("http://") || input.starts_with("https://") {
-        if let Ok(parsed) = url::Url::parse(input) {
+    if (input.starts_with("http://") || input.starts_with("https://"))
+        && let Ok(parsed) = url::Url::parse(input) {
             let parts: Vec<&str> = parsed.path().trim_matches('/').split('/').collect();
             for (i, p) in parts.iter().enumerate() {
                 if *p == "status" && i + 1 < parts.len() {
@@ -46,7 +46,6 @@ pub fn resolve_post_id(input: &str) -> String {
                 }
             }
         }
-    }
     input.to_string()
 }
 

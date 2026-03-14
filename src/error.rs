@@ -37,6 +37,7 @@ pub enum XurlError {
     TokenStore(String),
 }
 
+#[allow(dead_code)]
 impl XurlError {
     /// Create an API error from a raw JSON response body.
     ///

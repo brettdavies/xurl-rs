@@ -121,8 +121,8 @@ struct LegacyStore {
 // ── Twurlrc structures ──────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct TwurlrcProfile {
-    #[allow(dead_code)]
     username: Option<String>,
     consumer_key: Option<String>,
     consumer_secret: Option<String>,
@@ -145,6 +145,7 @@ pub struct TokenStore {
     file_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl TokenStore {
     /// Creates a new `TokenStore`, loading from `~/.xurl` (auto-migrating legacy JSON).
     pub fn new() -> Self {
@@ -194,11 +195,10 @@ impl TokenStore {
         };
         if needs_import {
             let twurlrc_path = home_dir.join(".twurlrc");
-            if twurlrc_path.exists() {
-                if let Err(e) = store.import_from_twurlrc(&twurlrc_path) {
+            if twurlrc_path.exists()
+                && let Err(e) = store.import_from_twurlrc(&twurlrc_path) {
                     eprintln!("Error importing from .twurlrc: {e}");
                 }
-            }
         }
 
         store
@@ -207,13 +207,12 @@ impl TokenStore {
     /// Tries YAML first, then falls back to legacy JSON migration.
     fn load_from_data(&mut self, data: &[u8]) {
         // Try new YAML format first
-        if let Ok(sf) = serde_yaml::from_slice::<StoreFile>(data) {
-            if !sf.apps.is_empty() {
+        if let Ok(sf) = serde_yaml::from_slice::<StoreFile>(data)
+            && !sf.apps.is_empty() {
                 self.apps = sf.apps;
                 self.default_app = sf.default_app;
                 return;
             }
-        }
 
         // Fall back to legacy JSON
         if let Ok(legacy) = serde_json::from_slice::<LegacyStore>(data) {
@@ -317,7 +316,7 @@ impl TokenStore {
     }
 
     /// Returns the name of the active app (explicit or default).
-    pub fn get_active_app_name(&self, explicit: &str) -> &str {
+    pub fn get_active_app_name<'a>(&'a self, explicit: &'a str) -> &'a str {
         if !explicit.is_empty() {
             explicit
         } else {
@@ -348,11 +347,10 @@ impl TokenStore {
 
     /// Returns the app for the given name, or the default app.
     pub fn resolve_app(&self, name: &str) -> &App {
-        if !name.is_empty() {
-            if let Some(app) = self.apps.get(name) {
+        if !name.is_empty()
+            && let Some(app) = self.apps.get(name) {
                 return app;
             }
-        }
         // Fall back to default app, or a static empty app
         self.apps
             .get(&self.default_app)
@@ -383,7 +381,7 @@ impl TokenStore {
         // Import the first OAuth1 tokens from twurlrc
         if let Some(profiles) = &twurlrc.profiles {
             'outer: for consumer_keys in profiles.values() {
-                for (consumer_key, profile) in consumer_keys {
+                if let Some((consumer_key, profile)) = consumer_keys.iter().next() {
                     if app.oauth1_token.is_none() {
                         app.oauth1_token = Some(Token {
                             token_type: TokenType::Oauth1,
@@ -406,16 +404,15 @@ impl TokenStore {
         }
 
         // Import the first bearer token from twurlrc
-        if let Some(bearer_tokens) = &twurlrc.bearer_tokens {
-            for bearer_token in bearer_tokens.values() {
-                app.bearer_token = Some(Token {
-                    token_type: TokenType::Bearer,
-                    bearer: Some(bearer_token.clone()),
-                    oauth2: None,
-                    oauth1: None,
-                });
-                break;
-            }
+        if let Some(bearer_tokens) = &twurlrc.bearer_tokens
+            && let Some(bearer_token) = bearer_tokens.values().next()
+        {
+            app.bearer_token = Some(Token {
+                token_type: TokenType::Bearer,
+                bearer: Some(bearer_token.clone()),
+                oauth2: None,
+                oauth1: None,
+            });
         }
 
         self.save_to_file()
@@ -532,11 +529,10 @@ impl TokenStore {
     pub fn get_first_oauth2_token_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         // Prefer the default user if one is set and still has a token
-        if !app.default_user.is_empty() {
-            if let Some(token) = app.oauth2_tokens.get(&app.default_user) {
+        if !app.default_user.is_empty()
+            && let Some(token) = app.oauth2_tokens.get(&app.default_user) {
                 return Some(token);
             }
-        }
         app.oauth2_tokens.values().next()
     }
 

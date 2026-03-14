@@ -48,7 +48,7 @@ fn colorize_and_print_json(json_str: &str) {
             {
                 // Find the last bracket position
                 let last_bracket = value
-                    .rfind(|c: char| c == '}' || c == ']')
+                    .rfind(['}', ']'])
                     .unwrap_or(value.len());
 
                 if last_bracket > 0 {

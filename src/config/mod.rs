@@ -2,7 +2,7 @@
 ///
 /// Mirrors the Go `config.Config` struct — all fields come from env vars
 /// with sensible defaults for the X API.
-
+///
 /// Holds the application configuration.
 #[derive(Debug, Clone)]
 pub struct Config {

@@ -67,8 +67,8 @@ impl<'a> ApiClient<'a> {
         if !url.ends_with('/') {
             url.push('/');
         }
-        if endpoint.starts_with('/') {
-            url.push_str(&endpoint[1..]);
+        if let Some(stripped) = endpoint.strip_prefix('/') {
+            url.push_str(stripped);
         } else {
             url.push_str(endpoint);
         }
@@ -348,18 +348,16 @@ impl<'a> ApiClient<'a> {
         }
 
         // Try OAuth2 first
-        if self.auth.token_store.get_first_oauth2_token().is_some() {
-            if let Ok(header) = self.auth.get_oauth2_header(username) {
+        if self.auth.token_store.get_first_oauth2_token().is_some()
+            && let Ok(header) = self.auth.get_oauth2_header(username) {
                 return Ok(header);
             }
-        }
 
         // Try OAuth1
-        if self.auth.token_store.get_oauth1_tokens().is_some() {
-            if let Ok(header) = self.auth.get_oauth1_header(method, url, None) {
+        if self.auth.token_store.get_oauth1_tokens().is_some()
+            && let Ok(header) = self.auth.get_oauth1_header(method, url, None) {
                 return Ok(header);
             }
-        }
 
         // Try Bearer
         if let Ok(header) = self.auth.get_bearer_token_header() {

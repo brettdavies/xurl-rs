@@ -15,6 +15,7 @@ use crate::error::{Result, XurlError};
 const MEDIA_ENDPOINT: &str = "/2/media/upload";
 
 /// Handles the full media upload lifecycle.
+#[allow(clippy::too_many_arguments)]
 pub fn execute_media_upload(
     file_path: &str,
     media_type: &str,
@@ -161,6 +162,7 @@ pub fn execute_media_upload(
 }
 
 /// Checks or waits for media upload status.
+#[allow(clippy::too_many_arguments)]
 pub fn execute_media_status(
     media_id: &str,
     auth_type: &str,
