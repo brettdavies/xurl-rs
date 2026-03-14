@@ -151,10 +151,10 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
             let opts = common.to_request_options();
             print_result(api::get_me(&mut client, &opts));
         }
-        Commands::User { username, common } => {
+        Commands::User { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::lookup_user(&mut client, &username, &opts));
+            print_result(api::lookup_user(&mut client, &target_username, &opts));
         }
 
         // ── Timeline & Mentions ──────────────────────────────────────
@@ -234,18 +234,18 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
         }
 
         // ── Social Graph ─────────────────────────────────────────────
-        Commands::Follow { username, common } => {
+        Commands::Follow { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::follow_user(&mut client, &my_id, &target_id, &opts));
         }
-        Commands::Unfollow { username, common } => {
+        Commands::Unfollow { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::unfollow_user(&mut client, &my_id, &target_id, &opts));
         }
         Commands::Following {
@@ -274,44 +274,44 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
             };
             print_result(api::get_followers(&mut client, &user_id, max_results, &opts));
         }
-        Commands::Block { username, common } => {
+        Commands::Block { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::block_user(&mut client, &my_id, &target_id, &opts));
         }
-        Commands::Unblock { username, common } => {
+        Commands::Unblock { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::unblock_user(&mut client, &my_id, &target_id, &opts));
         }
-        Commands::Mute { username, common } => {
+        Commands::Mute { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::mute_user(&mut client, &my_id, &target_id, &opts));
         }
-        Commands::Unmute { username, common } => {
+        Commands::Unmute { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::unmute_user(&mut client, &my_id, &target_id, &opts));
         }
 
         // ── Direct Messages ──────────────────────────────────────────
         Commands::Dm {
-            username,
+            target_username,
             text,
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let target_id = resolve_user_id(&mut client, &username, &opts);
+            let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::send_dm(&mut client, &target_id, &text, &opts));
         }
         Commands::Dms {

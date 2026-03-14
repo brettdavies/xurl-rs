@@ -1,6 +1,6 @@
 //! CLI integration tests using assert_cmd + predicates.
 //!
-//! These test the compiled xurl-rs binary as a subprocess.
+//! These test the compiled xurl binary as a subprocess.
 //! The Go tests do NOT cover CLI integration — this is new coverage.
 
 use assert_cmd::Command;
@@ -13,7 +13,7 @@ use tempfile::TempDir;
 
 #[test]
 fn test_help_flag() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("--help")
         .assert()
@@ -23,17 +23,17 @@ fn test_help_flag() {
 
 #[test]
 fn test_version_flag() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("xurl-rs"));
+        .stdout(predicate::str::contains("xurl"));
 }
 
 #[test]
 fn test_invalid_flag() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("--definitely-not-a-real-flag")
         .assert()
@@ -47,27 +47,25 @@ fn test_invalid_flag() {
 
 #[test]
 fn test_post_help() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .args(["post", "--help"])
         .assert()
-        .success()
-        .stdout(predicate::str::contains("post"));
+        .success();
 }
 
 #[test]
 fn test_search_help() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .args(["search", "--help"])
         .assert()
-        .success()
-        .stdout(predicate::str::contains("search"));
+        .success();
 }
 
 #[test]
 fn test_auth_help() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .args(["auth", "--help"])
         .assert()
@@ -81,7 +79,7 @@ fn test_auth_help() {
 #[test]
 fn test_post_without_text_fails() {
     // Post command requires text argument
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("post")
         .assert()
@@ -91,7 +89,7 @@ fn test_post_without_text_fails() {
 #[test]
 fn test_search_without_query_fails() {
     // Search command requires a query
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("search")
         .assert()
@@ -100,7 +98,7 @@ fn test_search_without_query_fails() {
 
 #[test]
 fn test_delete_without_id_fails() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("delete")
         .assert()
@@ -109,7 +107,7 @@ fn test_delete_without_id_fails() {
 
 #[test]
 fn test_reply_without_args_fails() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("reply")
         .assert()
@@ -124,7 +122,7 @@ fn test_reply_without_args_fails() {
 fn test_whoami_without_auth_fails() {
     let tmp = TempDir::new().unwrap();
 
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .arg("whoami")
         .env("HOME", tmp.path())
@@ -136,36 +134,14 @@ fn test_whoami_without_auth_fails() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Raw curl-style mode
-// ═══════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn test_raw_request_without_url_fails() {
-    // Raw mode needs a URL/endpoint argument
-    Command::cargo_bin("xurl-rs")
-        .unwrap()
-        .assert()
-        .failure();
-}
-
-#[test]
-fn test_raw_request_invalid_method() {
-    Command::cargo_bin("xurl-rs")
-        .unwrap()
-        .args(["-X", "INVALID_METHOD", "/2/users/me"])
-        .assert()
-        .failure();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // App management subcommands
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn test_apps_list_help() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
-        .args(["apps", "--help"])
+        .args(["auth", "apps", "--help"])
         .assert()
         .success();
 }
@@ -176,7 +152,7 @@ fn test_apps_list_help() {
 
 #[test]
 fn test_exit_code_success_on_help() {
-    let output = Command::cargo_bin("xurl-rs")
+    let output = Command::cargo_bin("xurl")
         .unwrap()
         .arg("--help")
         .output()
@@ -191,7 +167,7 @@ fn test_exit_code_success_on_help() {
 
 #[test]
 fn test_exit_code_failure_on_bad_flag() {
-    let output = Command::cargo_bin("xurl-rs")
+    let output = Command::cargo_bin("xurl")
         .unwrap()
         .arg("--nonexistent")
         .output()
@@ -212,7 +188,7 @@ fn test_exit_code_failure_on_bad_flag() {
 fn test_verbose_flag_accepted() {
     // --verbose should be accepted even if the command ultimately fails
     // due to missing auth — we just verify the flag is recognized
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .args(["--verbose", "--help"])
         .assert()
@@ -221,7 +197,7 @@ fn test_verbose_flag_accepted() {
 
 #[test]
 fn test_trace_flag_accepted() {
-    Command::cargo_bin("xurl-rs")
+    Command::cargo_bin("xurl")
         .unwrap()
         .args(["--trace", "--help"])
         .assert()

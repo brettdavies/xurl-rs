@@ -142,7 +142,7 @@ struct TwurlrcConfig {
 pub struct TokenStore {
     pub apps: BTreeMap<String, App>,
     pub default_app: String,
-    file_path: PathBuf,
+    pub file_path: PathBuf,
 }
 
 #[allow(dead_code)]
@@ -202,6 +202,82 @@ impl TokenStore {
         }
 
         store
+    }
+
+    /// Creates a `TokenStore` from a specific file path (no auto-import).
+    pub fn new_with_path(path: String) -> Self {
+        let file_path = PathBuf::from(&path);
+        let mut store = TokenStore {
+            apps: BTreeMap::new(),
+            default_app: String::new(),
+            file_path,
+        };
+        if let Ok(data) = fs::read(&store.file_path) {
+            store.load_from_data(&data);
+        }
+        if store.apps.is_empty() {
+            store.apps.insert("default".to_string(), App::new());
+            store.default_app = "default".to_string();
+        }
+        store
+    }
+
+    /// Creates a `TokenStore` from a specific file path with credential backfill.
+    pub fn new_with_credentials_and_path(
+        client_id: &str,
+        client_secret: &str,
+        path: String,
+    ) -> Self {
+        let mut store = Self::new_with_path(path);
+        if !client_id.is_empty() || !client_secret.is_empty() {
+            for app in store.apps.values_mut() {
+                if app.has_tokens() || app.client_id.is_empty() {
+                    if app.client_id.is_empty() && !client_id.is_empty() {
+                        app.client_id = client_id.to_string();
+                    }
+                    if app.client_secret.is_empty() && !client_secret.is_empty() {
+                        app.client_secret = client_secret.to_string();
+                    }
+                }
+            }
+            let _ = store.save_to_file();
+        }
+        store
+    }
+
+    /// Creates a `TokenStore` using a custom home directory (for testing).
+    pub fn new_with_home(home: String) -> Self {
+        let home_path = PathBuf::from(&home);
+        let file_path = home_path.join(".xurl");
+        let mut store = TokenStore {
+            apps: BTreeMap::new(),
+            default_app: String::new(),
+            file_path,
+        };
+        if let Ok(data) = fs::read(&store.file_path) {
+            store.load_from_data(&data);
+        }
+        if store.apps.is_empty() {
+            store.apps.insert("default".to_string(), App::new());
+            store.default_app = "default".to_string();
+        }
+        // Auto-import from .twurlrc if needed
+        let needs_import = match store.active_app() {
+            None => true,
+            Some(app) => app.oauth1_token.is_none(),
+        };
+        if needs_import {
+            let twurlrc_path = home_path.join(".twurlrc");
+            if twurlrc_path.exists() {
+                let _ = store.import_from_twurlrc(&twurlrc_path);
+            }
+        }
+        store
+    }
+
+    /// Loads a `TokenStore` from a specific file path (alias for `new_with_path`).
+    pub fn load_from_path(path: String) -> Self {
+        Self::new_with_path(path)
     }
 
     /// Tries YAML first, then falls back to legacy JSON migration.
@@ -372,7 +448,7 @@ impl TokenStore {
     // ── Twurlrc import ───────────────────────────────────────────────
 
     /// Imports tokens from a `.twurlrc` file into the active app.
-    fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
+    pub fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
         let data = fs::read(file_path)?;
         let twurlrc: TwurlrcConfig = serde_yaml::from_slice(&data)?;
 

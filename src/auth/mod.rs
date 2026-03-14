@@ -2,9 +2,9 @@
 ///
 /// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
 /// env-var config -> active app in `.xurl` store.
-mod callback;
-mod oauth1;
-mod oauth2;
+pub(crate) mod callback;
+pub mod oauth1;
+pub mod oauth2;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
@@ -147,20 +147,31 @@ impl Auth {
             })
     }
 
-    // Accessors for sub-modules
-    pub(crate) fn client_id(&self) -> &str {
+    /// Replaces the token store (used in tests).
+    pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
+        self.token_store = token_store;
+        self
+    }
+
+    /// Returns a reference to the token store.
+    pub fn token_store(&self) -> Option<&TokenStore> {
+        Some(&self.token_store)
+    }
+
+    // Accessors
+    pub fn client_id(&self) -> &str {
         &self.client_id
     }
-    pub(crate) fn client_secret(&self) -> &str {
+    pub fn client_secret(&self) -> &str {
         &self.client_secret
     }
-    pub(crate) fn auth_url(&self) -> &str {
+    pub fn auth_url(&self) -> &str {
         &self.auth_url
     }
-    pub(crate) fn token_url(&self) -> &str {
+    pub fn token_url(&self) -> &str {
         &self.token_url
     }
-    pub(crate) fn redirect_uri(&self) -> &str {
+    pub fn redirect_uri(&self) -> &str {
         &self.redirect_uri
     }
 }

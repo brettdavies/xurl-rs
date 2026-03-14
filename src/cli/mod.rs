@@ -167,7 +167,8 @@ pub enum Commands {
     /// Look up a user by username
     User {
         /// Username to look up
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -254,14 +255,16 @@ pub enum Commands {
     /// Follow a user
     Follow {
         /// Username to follow
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Unfollow a user
     Unfollow {
         /// Username to unfollow
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -290,28 +293,32 @@ pub enum Commands {
     /// Block a user
     Block {
         /// Username to block
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Unblock a user
     Unblock {
         /// Username to unblock
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Mute a user
     Mute {
         /// Username to mute
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Unmute a user
     Unmute {
         /// Username to unmute
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -320,7 +327,8 @@ pub enum Commands {
     /// Send a direct message
     Dm {
         /// Username to DM
-        username: String,
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         /// Message text
         text: String,
         #[command(flatten)]

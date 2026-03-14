@@ -119,13 +119,13 @@ fn generate_signature(
 }
 
 /// Generates a random nonce.
-fn generate_nonce() -> String {
+pub fn generate_nonce() -> String {
     let n: u64 = rand::rng().random_range(0..1_000_000_000);
     n.to_string()
 }
 
 /// Generates the current Unix timestamp as a string.
-fn generate_timestamp() -> String {
+pub fn generate_timestamp() -> String {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -134,7 +134,7 @@ fn generate_timestamp() -> String {
 }
 
 /// Percent-encodes a string (matching Go's `url.QueryEscape`).
-fn encode(s: &str) -> String {
+pub fn encode(s: &str) -> String {
     // url::form_urlencoded::byte_serialize matches Go's url.QueryEscape
     url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
 }

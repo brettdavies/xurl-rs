@@ -12,7 +12,7 @@ use super::request::{ApiClient, MultipartOptions, RequestOptions};
 use super::response::format_and_print_response;
 use crate::error::{Result, XurlError};
 
-const MEDIA_ENDPOINT: &str = "/2/media/upload";
+pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
 
 /// Handles the full media upload lifecycle.
 #[allow(clippy::too_many_arguments)]

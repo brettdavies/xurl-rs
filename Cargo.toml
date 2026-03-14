@@ -37,8 +37,21 @@ anyhow = "1"
 dirs = "6"
 percent-encoding = "2"
 
+[[bin]]
+name = "xurl"
+path = "src/main.rs"
+
+[lib]
+name = "xurl"
+path = "src/lib.rs"
+
 [dev-dependencies]
 tempfile = "3"
 pretty_assertions = "1"
 assert_cmd = "2"
 predicates = "3"
+rstest = "0.23"
+wiremock = "0.6"
+toml = "0.8"
+regex = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

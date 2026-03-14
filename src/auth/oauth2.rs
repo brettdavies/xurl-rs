@@ -14,7 +14,7 @@ use super::callback;
 use crate::error::{Result, XurlError};
 
 /// OAuth2 scopes requested for xurl.
-fn get_oauth2_scopes() -> Vec<&'static str> {
+pub fn get_oauth2_scopes() -> Vec<&'static str> {
     vec![
         // Read scopes
         "tweet.read",
@@ -45,7 +45,7 @@ fn get_oauth2_scopes() -> Vec<&'static str> {
 }
 
 /// Generates a PKCE code verifier and its S256 challenge.
-fn generate_code_verifier_and_challenge() -> (String, String) {
+pub fn generate_code_verifier_and_challenge() -> (String, String) {
     let b: [u8; 32] = rand::random();
     let verifier = URL_SAFE_NO_PAD.encode(b);
     let mut hasher = Sha256::new();
