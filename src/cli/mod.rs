@@ -88,6 +88,10 @@ pub struct Cli {
     #[arg(long = "app", global = true)]
     pub app: Option<String>,
 
+    /// Generate shell completion script and exit
+    #[arg(long = "generate-completion", value_name = "SHELL", hide = true)]
+    pub generate_completion: Option<clap_complete::Shell>,
+
     /// Subcommand to run
     #[command(subcommand)]
     pub command: Option<Commands>,

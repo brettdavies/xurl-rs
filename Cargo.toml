@@ -8,6 +8,7 @@ license = "MIT"
 [dependencies]
 # CLI
 clap = { version = "4", features = ["derive", "string"] }
+clap_complete = "4"
 dialoguer = "0.11"
 
 # HTTP
