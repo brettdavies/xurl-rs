@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-03-16
+
+### Changed
+
+- Switch to Trusted Publishing (OIDC) for crates.io authentication
+- Pin all GitHub Actions by SHA for supply-chain security
+- Switch to rustls-tls and fix macOS CI runner
+- Opt into Node.js 24 for GitHub Actions
+
 ## [1.0.3] - 2026-03-16
 
 ### Added
