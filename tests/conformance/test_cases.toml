@@ -5,7 +5,7 @@
 #   name             — unique test identifier
 #   args             — CLI arguments
 #   compare          — what to compare: exit_code, stdout, stderr, stdout_json
-#   normalize        — normalization pipeline: timestamps, ids, paths, all
+#   normalize        — normalization pipeline: timestamps, ids, paths, all, help_text
 #   expect_failure   — if true, both binaries should fail
 #   stdout_contains  — check that port stdout contains this string
 #   json_ignore_fields — fields to strip before JSON comparison
@@ -22,14 +22,15 @@
 name = "help-flag"
 args = ["--help"]
 compare = ["exit_code"]
+stdout_contains = "xurl"
 tags = ["basic", "help"]
-# Don't compare stdout — help text format may differ between Go/Rust
+# Help text format differs between Go cobra and Rust clap — only compare exit code
 
 [[test]]
-name = "version-flag"
-args = ["--version"]
-compare = ["exit_code"]
-stdout_contains = "version"
+name = "version-subcommand"
+args = ["version"]
+compare = ["exit_code", "stdout"]
+normalize = ["version_string"]
 tags = ["basic", "version"]
 
 [[test]]
@@ -42,130 +43,150 @@ tags = ["basic", "error"]
 [[test]]
 name = "no-args"
 args = []
-compare = ["exit_code"]
-expect_failure = true
+compare = ["exit_code", "stdout"]
+normalize = ["help_text"]
 tags = ["basic", "error"]
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Subcommand help tests
+# Subcommand help tests — exit_code only (Go cobra vs Rust clap format)
 # ═══════════════════════════════════════════════════════════════════════════
 
 [[test]]
 name = "post-help"
 args = ["post", "--help"]
 compare = ["exit_code"]
+stdout_contains = "post"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "search-help"
 args = ["search", "--help"]
 compare = ["exit_code"]
+stdout_contains = "search"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "delete-help"
 args = ["delete", "--help"]
 compare = ["exit_code"]
+stdout_contains = "delete"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "reply-help"
 args = ["reply", "--help"]
 compare = ["exit_code"]
+stdout_contains = "reply"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "quote-help"
 args = ["quote", "--help"]
 compare = ["exit_code"]
+stdout_contains = "quote"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "like-help"
 args = ["like", "--help"]
 compare = ["exit_code"]
+stdout_contains = "like"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "unlike-help"
 args = ["unlike", "--help"]
 compare = ["exit_code"]
+stdout_contains = "unlike"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "repost-help"
 args = ["repost", "--help"]
 compare = ["exit_code"]
+stdout_contains = "repost"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "bookmark-help"
 args = ["bookmark", "--help"]
 compare = ["exit_code"]
+stdout_contains = "bookmark"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "follow-help"
 args = ["follow", "--help"]
 compare = ["exit_code"]
+stdout_contains = "follow"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "unfollow-help"
 args = ["unfollow", "--help"]
 compare = ["exit_code"]
+stdout_contains = "unfollow"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "block-help"
 args = ["block", "--help"]
 compare = ["exit_code"]
+stdout_contains = "block"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "mute-help"
 args = ["mute", "--help"]
 compare = ["exit_code"]
+stdout_contains = "mute"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "dm-help"
 args = ["dm", "--help"]
 compare = ["exit_code"]
+stdout_contains = "dm"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "whoami-help"
 args = ["whoami", "--help"]
 compare = ["exit_code"]
+stdout_contains = "whoami"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "lookup-help"
-args = ["lookup", "--help"]
+args = ["user", "--help"]
 compare = ["exit_code"]
+stdout_contains = "user"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "timeline-help"
 args = ["timeline", "--help"]
 compare = ["exit_code"]
+stdout_contains = "timeline"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "mentions-help"
 args = ["mentions", "--help"]
 compare = ["exit_code"]
+stdout_contains = "mentions"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
 name = "read-help"
 args = ["read", "--help"]
 compare = ["exit_code"]
+stdout_contains = "read"
 tags = ["basic", "subcommand-help"]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Error handling — missing required args
+# Both Go and Rust should exit non-zero for these.
 # ═══════════════════════════════════════════════════════════════════════════
 
 [[test]]
@@ -205,7 +226,7 @@ tags = ["error"]
 
 [[test]]
 name = "lookup-no-username"
-args = ["lookup"]
+args = ["user"]
 compare = ["exit_code"]
 expect_failure = true
 tags = ["error"]
@@ -218,11 +239,12 @@ tags = ["error"]
 name = "auth-help"
 args = ["auth", "--help"]
 compare = ["exit_code"]
+stdout_contains = "auth"
 tags = ["basic", "auth"]
 
 [[test]]
 name = "apps-help"
-args = ["apps", "--help"]
+args = ["auth", "apps", "--help"]
 compare = ["exit_code"]
 tags = ["basic", "auth"]
 
@@ -251,7 +273,7 @@ skip_reason = "Requires live API credentials"
 
 [[test]]
 name = "lookup-api"
-args = ["lookup", "XDev"]
+args = ["user", "XDev"]
 compare = ["exit_code", "stdout_json"]
 json_ignore_fields = ["created_at", "profile_image_url"]
 normalize = ["timestamps"]

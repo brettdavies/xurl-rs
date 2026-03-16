@@ -90,6 +90,31 @@ pub fn normalize_line_endings(input: &str) -> String {
     input.replace('\r', "")
 }
 
+static VERSION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"xurl \d+\.\d+\.\d+").unwrap()
+});
+
+/// Normalize version strings so "xurl 1.0.3" and "xurl 0.1.0" compare equal.
+pub fn normalize_version_string(input: &str) -> String {
+    VERSION_RE.replace_all(input, "xurl VERSION").to_string()
+}
+
+/// Normalize help text — collapse whitespace and remove framework-specific
+/// formatting differences between Go cobra and Rust clap.
+pub fn normalize_help_text(input: &str) -> String {
+    // Strip ANSI escape codes
+    let ansi_re = Regex::new(r"\x1b\[[0-9;]*m").unwrap();
+    let s = ansi_re.replace_all(input, "").to_string();
+    // Collapse runs of whitespace to single space per line, trim lines
+    s.lines()
+        .map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            parts.join(" ")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// Apply a named normalization to the input.
 fn apply_normalization(input: &str, name: &str) -> String {
     match name {
@@ -102,6 +127,8 @@ fn apply_normalization(input: &str, name: &str) -> String {
         "relative_time" => normalize_relative_time(input),
         "paths" => normalize_paths(input),
         "line_endings" => normalize_line_endings(input),
+        "version_string" => normalize_version_string(input),
+        "help_text" => normalize_help_text(input),
         "all" => {
             let s = normalize_line_endings(input);
             let s = normalize_paths(&s);
