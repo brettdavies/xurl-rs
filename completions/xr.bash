@@ -1,4 +1,4 @@
-_xurl() {
+_xr() {
     local i cur prev opts cmd
     COMPREPLY=()
     if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
@@ -14,346 +14,346 @@ _xurl() {
     do
         case "${cmd},${i}" in
             ",$1")
-                cmd="xurl"
+                cmd="xr"
                 ;;
-            xurl,auth)
-                cmd="xurl__auth"
+            xr,auth)
+                cmd="xr__auth"
                 ;;
-            xurl,block)
-                cmd="xurl__block"
+            xr,block)
+                cmd="xr__block"
                 ;;
-            xurl,bookmark)
-                cmd="xurl__bookmark"
+            xr,bookmark)
+                cmd="xr__bookmark"
                 ;;
-            xurl,bookmarks)
-                cmd="xurl__bookmarks"
+            xr,bookmarks)
+                cmd="xr__bookmarks"
                 ;;
-            xurl,delete)
-                cmd="xurl__delete"
+            xr,delete)
+                cmd="xr__delete"
                 ;;
-            xurl,dm)
-                cmd="xurl__dm"
+            xr,dm)
+                cmd="xr__dm"
                 ;;
-            xurl,dms)
-                cmd="xurl__dms"
+            xr,dms)
+                cmd="xr__dms"
                 ;;
-            xurl,follow)
-                cmd="xurl__follow"
+            xr,follow)
+                cmd="xr__follow"
                 ;;
-            xurl,followers)
-                cmd="xurl__followers"
+            xr,followers)
+                cmd="xr__followers"
                 ;;
-            xurl,following)
-                cmd="xurl__following"
+            xr,following)
+                cmd="xr__following"
                 ;;
-            xurl,help)
-                cmd="xurl__help"
+            xr,help)
+                cmd="xr__help"
                 ;;
-            xurl,like)
-                cmd="xurl__like"
+            xr,like)
+                cmd="xr__like"
                 ;;
-            xurl,likes)
-                cmd="xurl__likes"
+            xr,likes)
+                cmd="xr__likes"
                 ;;
-            xurl,media)
-                cmd="xurl__media"
+            xr,media)
+                cmd="xr__media"
                 ;;
-            xurl,mentions)
-                cmd="xurl__mentions"
+            xr,mentions)
+                cmd="xr__mentions"
                 ;;
-            xurl,mute)
-                cmd="xurl__mute"
+            xr,mute)
+                cmd="xr__mute"
                 ;;
-            xurl,post)
-                cmd="xurl__post"
+            xr,post)
+                cmd="xr__post"
                 ;;
-            xurl,quote)
-                cmd="xurl__quote"
+            xr,quote)
+                cmd="xr__quote"
                 ;;
-            xurl,read)
-                cmd="xurl__read"
+            xr,read)
+                cmd="xr__read"
                 ;;
-            xurl,reply)
-                cmd="xurl__reply"
+            xr,reply)
+                cmd="xr__reply"
                 ;;
-            xurl,repost)
-                cmd="xurl__repost"
+            xr,repost)
+                cmd="xr__repost"
                 ;;
-            xurl,search)
-                cmd="xurl__search"
+            xr,search)
+                cmd="xr__search"
                 ;;
-            xurl,timeline)
-                cmd="xurl__timeline"
+            xr,timeline)
+                cmd="xr__timeline"
                 ;;
-            xurl,unblock)
-                cmd="xurl__unblock"
+            xr,unblock)
+                cmd="xr__unblock"
                 ;;
-            xurl,unbookmark)
-                cmd="xurl__unbookmark"
+            xr,unbookmark)
+                cmd="xr__unbookmark"
                 ;;
-            xurl,unfollow)
-                cmd="xurl__unfollow"
+            xr,unfollow)
+                cmd="xr__unfollow"
                 ;;
-            xurl,unlike)
-                cmd="xurl__unlike"
+            xr,unlike)
+                cmd="xr__unlike"
                 ;;
-            xurl,unmute)
-                cmd="xurl__unmute"
+            xr,unmute)
+                cmd="xr__unmute"
                 ;;
-            xurl,unrepost)
-                cmd="xurl__unrepost"
+            xr,unrepost)
+                cmd="xr__unrepost"
                 ;;
-            xurl,user)
-                cmd="xurl__user"
+            xr,user)
+                cmd="xr__user"
                 ;;
-            xurl,version)
-                cmd="xurl__version"
+            xr,version)
+                cmd="xr__version"
                 ;;
-            xurl,whoami)
-                cmd="xurl__whoami"
+            xr,whoami)
+                cmd="xr__whoami"
                 ;;
-            xurl__auth,app)
-                cmd="xurl__auth__app"
+            xr__auth,app)
+                cmd="xr__auth__app"
                 ;;
-            xurl__auth,apps)
-                cmd="xurl__auth__apps"
+            xr__auth,apps)
+                cmd="xr__auth__apps"
                 ;;
-            xurl__auth,clear)
-                cmd="xurl__auth__clear"
+            xr__auth,clear)
+                cmd="xr__auth__clear"
                 ;;
-            xurl__auth,default)
-                cmd="xurl__auth__default"
+            xr__auth,default)
+                cmd="xr__auth__default"
                 ;;
-            xurl__auth,help)
-                cmd="xurl__auth__help"
+            xr__auth,help)
+                cmd="xr__auth__help"
                 ;;
-            xurl__auth,oauth1)
-                cmd="xurl__auth__oauth1"
+            xr__auth,oauth1)
+                cmd="xr__auth__oauth1"
                 ;;
-            xurl__auth,oauth2)
-                cmd="xurl__auth__oauth2"
+            xr__auth,oauth2)
+                cmd="xr__auth__oauth2"
                 ;;
-            xurl__auth,status)
-                cmd="xurl__auth__status"
+            xr__auth,status)
+                cmd="xr__auth__status"
                 ;;
-            xurl__auth__apps,add)
-                cmd="xurl__auth__apps__add"
+            xr__auth__apps,add)
+                cmd="xr__auth__apps__add"
                 ;;
-            xurl__auth__apps,help)
-                cmd="xurl__auth__apps__help"
+            xr__auth__apps,help)
+                cmd="xr__auth__apps__help"
                 ;;
-            xurl__auth__apps,list)
-                cmd="xurl__auth__apps__list"
+            xr__auth__apps,list)
+                cmd="xr__auth__apps__list"
                 ;;
-            xurl__auth__apps,remove)
-                cmd="xurl__auth__apps__remove"
+            xr__auth__apps,remove)
+                cmd="xr__auth__apps__remove"
                 ;;
-            xurl__auth__apps,update)
-                cmd="xurl__auth__apps__update"
+            xr__auth__apps,update)
+                cmd="xr__auth__apps__update"
                 ;;
-            xurl__auth__apps__help,add)
-                cmd="xurl__auth__apps__help__add"
+            xr__auth__apps__help,add)
+                cmd="xr__auth__apps__help__add"
                 ;;
-            xurl__auth__apps__help,help)
-                cmd="xurl__auth__apps__help__help"
+            xr__auth__apps__help,help)
+                cmd="xr__auth__apps__help__help"
                 ;;
-            xurl__auth__apps__help,list)
-                cmd="xurl__auth__apps__help__list"
+            xr__auth__apps__help,list)
+                cmd="xr__auth__apps__help__list"
                 ;;
-            xurl__auth__apps__help,remove)
-                cmd="xurl__auth__apps__help__remove"
+            xr__auth__apps__help,remove)
+                cmd="xr__auth__apps__help__remove"
                 ;;
-            xurl__auth__apps__help,update)
-                cmd="xurl__auth__apps__help__update"
+            xr__auth__apps__help,update)
+                cmd="xr__auth__apps__help__update"
                 ;;
-            xurl__auth__help,app)
-                cmd="xurl__auth__help__app"
+            xr__auth__help,app)
+                cmd="xr__auth__help__app"
                 ;;
-            xurl__auth__help,apps)
-                cmd="xurl__auth__help__apps"
+            xr__auth__help,apps)
+                cmd="xr__auth__help__apps"
                 ;;
-            xurl__auth__help,clear)
-                cmd="xurl__auth__help__clear"
+            xr__auth__help,clear)
+                cmd="xr__auth__help__clear"
                 ;;
-            xurl__auth__help,default)
-                cmd="xurl__auth__help__default"
+            xr__auth__help,default)
+                cmd="xr__auth__help__default"
                 ;;
-            xurl__auth__help,help)
-                cmd="xurl__auth__help__help"
+            xr__auth__help,help)
+                cmd="xr__auth__help__help"
                 ;;
-            xurl__auth__help,oauth1)
-                cmd="xurl__auth__help__oauth1"
+            xr__auth__help,oauth1)
+                cmd="xr__auth__help__oauth1"
                 ;;
-            xurl__auth__help,oauth2)
-                cmd="xurl__auth__help__oauth2"
+            xr__auth__help,oauth2)
+                cmd="xr__auth__help__oauth2"
                 ;;
-            xurl__auth__help,status)
-                cmd="xurl__auth__help__status"
+            xr__auth__help,status)
+                cmd="xr__auth__help__status"
                 ;;
-            xurl__auth__help__apps,add)
-                cmd="xurl__auth__help__apps__add"
+            xr__auth__help__apps,add)
+                cmd="xr__auth__help__apps__add"
                 ;;
-            xurl__auth__help__apps,list)
-                cmd="xurl__auth__help__apps__list"
+            xr__auth__help__apps,list)
+                cmd="xr__auth__help__apps__list"
                 ;;
-            xurl__auth__help__apps,remove)
-                cmd="xurl__auth__help__apps__remove"
+            xr__auth__help__apps,remove)
+                cmd="xr__auth__help__apps__remove"
                 ;;
-            xurl__auth__help__apps,update)
-                cmd="xurl__auth__help__apps__update"
+            xr__auth__help__apps,update)
+                cmd="xr__auth__help__apps__update"
                 ;;
-            xurl__help,auth)
-                cmd="xurl__help__auth"
+            xr__help,auth)
+                cmd="xr__help__auth"
                 ;;
-            xurl__help,block)
-                cmd="xurl__help__block"
+            xr__help,block)
+                cmd="xr__help__block"
                 ;;
-            xurl__help,bookmark)
-                cmd="xurl__help__bookmark"
+            xr__help,bookmark)
+                cmd="xr__help__bookmark"
                 ;;
-            xurl__help,bookmarks)
-                cmd="xurl__help__bookmarks"
+            xr__help,bookmarks)
+                cmd="xr__help__bookmarks"
                 ;;
-            xurl__help,delete)
-                cmd="xurl__help__delete"
+            xr__help,delete)
+                cmd="xr__help__delete"
                 ;;
-            xurl__help,dm)
-                cmd="xurl__help__dm"
+            xr__help,dm)
+                cmd="xr__help__dm"
                 ;;
-            xurl__help,dms)
-                cmd="xurl__help__dms"
+            xr__help,dms)
+                cmd="xr__help__dms"
                 ;;
-            xurl__help,follow)
-                cmd="xurl__help__follow"
+            xr__help,follow)
+                cmd="xr__help__follow"
                 ;;
-            xurl__help,followers)
-                cmd="xurl__help__followers"
+            xr__help,followers)
+                cmd="xr__help__followers"
                 ;;
-            xurl__help,following)
-                cmd="xurl__help__following"
+            xr__help,following)
+                cmd="xr__help__following"
                 ;;
-            xurl__help,help)
-                cmd="xurl__help__help"
+            xr__help,help)
+                cmd="xr__help__help"
                 ;;
-            xurl__help,like)
-                cmd="xurl__help__like"
+            xr__help,like)
+                cmd="xr__help__like"
                 ;;
-            xurl__help,likes)
-                cmd="xurl__help__likes"
+            xr__help,likes)
+                cmd="xr__help__likes"
                 ;;
-            xurl__help,media)
-                cmd="xurl__help__media"
+            xr__help,media)
+                cmd="xr__help__media"
                 ;;
-            xurl__help,mentions)
-                cmd="xurl__help__mentions"
+            xr__help,mentions)
+                cmd="xr__help__mentions"
                 ;;
-            xurl__help,mute)
-                cmd="xurl__help__mute"
+            xr__help,mute)
+                cmd="xr__help__mute"
                 ;;
-            xurl__help,post)
-                cmd="xurl__help__post"
+            xr__help,post)
+                cmd="xr__help__post"
                 ;;
-            xurl__help,quote)
-                cmd="xurl__help__quote"
+            xr__help,quote)
+                cmd="xr__help__quote"
                 ;;
-            xurl__help,read)
-                cmd="xurl__help__read"
+            xr__help,read)
+                cmd="xr__help__read"
                 ;;
-            xurl__help,reply)
-                cmd="xurl__help__reply"
+            xr__help,reply)
+                cmd="xr__help__reply"
                 ;;
-            xurl__help,repost)
-                cmd="xurl__help__repost"
+            xr__help,repost)
+                cmd="xr__help__repost"
                 ;;
-            xurl__help,search)
-                cmd="xurl__help__search"
+            xr__help,search)
+                cmd="xr__help__search"
                 ;;
-            xurl__help,timeline)
-                cmd="xurl__help__timeline"
+            xr__help,timeline)
+                cmd="xr__help__timeline"
                 ;;
-            xurl__help,unblock)
-                cmd="xurl__help__unblock"
+            xr__help,unblock)
+                cmd="xr__help__unblock"
                 ;;
-            xurl__help,unbookmark)
-                cmd="xurl__help__unbookmark"
+            xr__help,unbookmark)
+                cmd="xr__help__unbookmark"
                 ;;
-            xurl__help,unfollow)
-                cmd="xurl__help__unfollow"
+            xr__help,unfollow)
+                cmd="xr__help__unfollow"
                 ;;
-            xurl__help,unlike)
-                cmd="xurl__help__unlike"
+            xr__help,unlike)
+                cmd="xr__help__unlike"
                 ;;
-            xurl__help,unmute)
-                cmd="xurl__help__unmute"
+            xr__help,unmute)
+                cmd="xr__help__unmute"
                 ;;
-            xurl__help,unrepost)
-                cmd="xurl__help__unrepost"
+            xr__help,unrepost)
+                cmd="xr__help__unrepost"
                 ;;
-            xurl__help,user)
-                cmd="xurl__help__user"
+            xr__help,user)
+                cmd="xr__help__user"
                 ;;
-            xurl__help,version)
-                cmd="xurl__help__version"
+            xr__help,version)
+                cmd="xr__help__version"
                 ;;
-            xurl__help,whoami)
-                cmd="xurl__help__whoami"
+            xr__help,whoami)
+                cmd="xr__help__whoami"
                 ;;
-            xurl__help__auth,app)
-                cmd="xurl__help__auth__app"
+            xr__help__auth,app)
+                cmd="xr__help__auth__app"
                 ;;
-            xurl__help__auth,apps)
-                cmd="xurl__help__auth__apps"
+            xr__help__auth,apps)
+                cmd="xr__help__auth__apps"
                 ;;
-            xurl__help__auth,clear)
-                cmd="xurl__help__auth__clear"
+            xr__help__auth,clear)
+                cmd="xr__help__auth__clear"
                 ;;
-            xurl__help__auth,default)
-                cmd="xurl__help__auth__default"
+            xr__help__auth,default)
+                cmd="xr__help__auth__default"
                 ;;
-            xurl__help__auth,oauth1)
-                cmd="xurl__help__auth__oauth1"
+            xr__help__auth,oauth1)
+                cmd="xr__help__auth__oauth1"
                 ;;
-            xurl__help__auth,oauth2)
-                cmd="xurl__help__auth__oauth2"
+            xr__help__auth,oauth2)
+                cmd="xr__help__auth__oauth2"
                 ;;
-            xurl__help__auth,status)
-                cmd="xurl__help__auth__status"
+            xr__help__auth,status)
+                cmd="xr__help__auth__status"
                 ;;
-            xurl__help__auth__apps,add)
-                cmd="xurl__help__auth__apps__add"
+            xr__help__auth__apps,add)
+                cmd="xr__help__auth__apps__add"
                 ;;
-            xurl__help__auth__apps,list)
-                cmd="xurl__help__auth__apps__list"
+            xr__help__auth__apps,list)
+                cmd="xr__help__auth__apps__list"
                 ;;
-            xurl__help__auth__apps,remove)
-                cmd="xurl__help__auth__apps__remove"
+            xr__help__auth__apps,remove)
+                cmd="xr__help__auth__apps__remove"
                 ;;
-            xurl__help__auth__apps,update)
-                cmd="xurl__help__auth__apps__update"
+            xr__help__auth__apps,update)
+                cmd="xr__help__auth__apps__update"
                 ;;
-            xurl__help__media,status)
-                cmd="xurl__help__media__status"
+            xr__help__media,status)
+                cmd="xr__help__media__status"
                 ;;
-            xurl__help__media,upload)
-                cmd="xurl__help__media__upload"
+            xr__help__media,upload)
+                cmd="xr__help__media__upload"
                 ;;
-            xurl__media,help)
-                cmd="xurl__media__help"
+            xr__media,help)
+                cmd="xr__media__help"
                 ;;
-            xurl__media,status)
-                cmd="xurl__media__status"
+            xr__media,status)
+                cmd="xr__media__status"
                 ;;
-            xurl__media,upload)
-                cmd="xurl__media__upload"
+            xr__media,upload)
+                cmd="xr__media__upload"
                 ;;
-            xurl__media__help,help)
-                cmd="xurl__media__help__help"
+            xr__media__help,help)
+                cmd="xr__media__help__help"
                 ;;
-            xurl__media__help,status)
-                cmd="xurl__media__help__status"
+            xr__media__help,status)
+                cmd="xr__media__help__status"
                 ;;
-            xurl__media__help,upload)
-                cmd="xurl__media__help__upload"
+            xr__media__help,upload)
+                cmd="xr__media__help__upload"
                 ;;
             *)
                 ;;
@@ -361,8 +361,8 @@ _xurl() {
     done
 
     case "${cmd}" in
-        xurl)
-            opts="-X -H -d -u -v -t -s -F -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --generate-completion --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media version help"
+        xr)
+            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --generate-completion --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -416,6 +416,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --generate-completion)
                     COMPREPLY=($(compgen -W "bash elvish fish powershell zsh" -- "${cur}"))
                     return 0
@@ -427,14 +435,22 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth)
-            opts="-h --app --help oauth2 oauth1 app status clear apps default help"
+        xr__auth)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help oauth2 oauth1 app status clear apps default help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -445,8 +461,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__app)
-            opts="-h --bearer-token --app --help"
+        xr__auth__app)
+            opts="-q -h --bearer-token --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -460,21 +476,11 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                *)
-                    COMPREPLY=()
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
                     ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        xurl__auth__apps)
-            opts="-h --app --help add update remove list help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --app)
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -485,8 +491,34 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__add)
-            opts="-h --client-id --client-secret --app --help <NAME>"
+        xr__auth__apps)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help add update remove list help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__add)
+            opts="-q -h --client-id --client-secret --app --output --quiet --no-interactive --timeout --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -504,6 +536,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -511,7 +551,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help)
+        xr__auth__apps__help)
             opts="add update remove list help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -525,7 +565,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help__add)
+        xr__auth__apps__help__add)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -539,7 +579,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help__help)
+        xr__auth__apps__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -553,7 +593,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help__list)
+        xr__auth__apps__help__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -567,7 +607,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help__remove)
+        xr__auth__apps__help__remove)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -581,7 +621,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__help__update)
+        xr__auth__apps__help__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -595,14 +635,22 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__list)
-            opts="-h --app --help"
+        xr__auth__apps__list)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -613,14 +661,22 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__remove)
-            opts="-h --app --help <NAME>"
+        xr__auth__apps__remove)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -631,8 +687,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__apps__update)
-            opts="-h --client-id --client-secret --app --help <NAME>"
+        xr__auth__apps__update)
+            opts="-q -h --client-id --client-secret --app --output --quiet --no-interactive --timeout --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -650,6 +706,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -657,8 +721,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__clear)
-            opts="-h --all --oauth1 --oauth2-username --bearer --app --help"
+        xr__auth__clear)
+            opts="-q -h --all --oauth1 --oauth2-username --bearer --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -672,21 +736,11 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                *)
-                    COMPREPLY=()
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
                     ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        xurl__auth__default)
-            opts="-h --app --help [APP_NAME] [USERNAME]"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --app)
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -697,7 +751,33 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help)
+        xr__auth__default)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help [APP_NAME] [USERNAME]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__help)
             opts="oauth2 oauth1 app status clear apps default help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -711,7 +791,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__app)
+        xr__auth__help__app)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -725,7 +805,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__apps)
+        xr__auth__help__apps)
             opts="add update remove list"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -739,7 +819,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__apps__add)
+        xr__auth__help__apps__add)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -753,7 +833,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__apps__list)
+        xr__auth__help__apps__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -767,7 +847,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__apps__remove)
+        xr__auth__help__apps__remove)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -781,7 +861,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__apps__update)
+        xr__auth__help__apps__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -795,7 +875,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__clear)
+        xr__auth__help__clear)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -809,7 +889,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__default)
+        xr__auth__help__default)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -823,7 +903,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__help)
+        xr__auth__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -837,7 +917,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__oauth1)
+        xr__auth__help__oauth1)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -851,7 +931,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__oauth2)
+        xr__auth__help__oauth2)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -865,7 +945,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__help__status)
+        xr__auth__help__status)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -879,8 +959,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__oauth1)
-            opts="-h --consumer-key --consumer-secret --access-token --token-secret --app --help"
+        xr__auth__oauth1)
+            opts="-q -h --consumer-key --consumer-secret --access-token --token-secret --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -906,21 +986,11 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                *)
-                    COMPREPLY=()
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
                     ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        xurl__auth__oauth2)
-            opts="-h --app --help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --app)
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -931,14 +1001,22 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__auth__status)
-            opts="-h --app --help"
+        xr__auth__oauth2)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -949,8 +1027,34 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__block)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__auth__status)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__block)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -972,6 +1076,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -979,8 +1091,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__bookmark)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__bookmark)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1002,6 +1114,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1009,8 +1129,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__bookmarks)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help"
+        xr__bookmarks)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1040,6 +1160,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1047,8 +1175,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__delete)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__delete)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1070,6 +1198,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1077,8 +1213,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__dm)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME> <TEXT>"
+        xr__dm)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1100,6 +1236,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1107,8 +1251,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__dms)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help"
+        xr__dms)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1138,6 +1282,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1145,8 +1297,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__follow)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__follow)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1168,6 +1320,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1175,8 +1335,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__followers)
-            opts="-n -u -v -t -h --max-results --of --auth --username --verbose --trace --app --help"
+        xr__followers)
+            opts="-n -u -v -t -q -h --max-results --of --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1210,6 +1370,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1217,8 +1385,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__following)
-            opts="-n -u -v -t -h --max-results --of --auth --username --verbose --trace --app --help"
+        xr__following)
+            opts="-n -u -v -t -q -h --max-results --of --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1252,6 +1420,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1259,7 +1435,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help)
+        xr__help)
             opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1273,7 +1449,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth)
+        xr__help__auth)
             opts="oauth2 oauth1 app status clear apps default"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1287,7 +1463,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__app)
+        xr__help__auth__app)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1301,7 +1477,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__apps)
+        xr__help__auth__apps)
             opts="add update remove list"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1315,7 +1491,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__apps__add)
+        xr__help__auth__apps__add)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1329,7 +1505,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__apps__list)
+        xr__help__auth__apps__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1343,7 +1519,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__apps__remove)
+        xr__help__auth__apps__remove)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1357,7 +1533,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__apps__update)
+        xr__help__auth__apps__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1371,7 +1547,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__clear)
+        xr__help__auth__clear)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1385,7 +1561,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__default)
+        xr__help__auth__default)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1399,7 +1575,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__oauth1)
+        xr__help__auth__oauth1)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1413,7 +1589,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__oauth2)
+        xr__help__auth__oauth2)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1427,7 +1603,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__auth__status)
+        xr__help__auth__status)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1441,7 +1617,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__block)
+        xr__help__block)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1455,7 +1631,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__bookmark)
+        xr__help__bookmark)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1469,7 +1645,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__bookmarks)
+        xr__help__bookmarks)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1483,7 +1659,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__delete)
+        xr__help__delete)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1497,7 +1673,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__dm)
+        xr__help__dm)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1511,7 +1687,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__dms)
+        xr__help__dms)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1525,7 +1701,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__follow)
+        xr__help__follow)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1539,7 +1715,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__followers)
+        xr__help__followers)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1553,7 +1729,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__following)
+        xr__help__following)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1567,7 +1743,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__help)
+        xr__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1581,7 +1757,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__like)
+        xr__help__like)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1595,7 +1771,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__likes)
+        xr__help__likes)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1609,7 +1785,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__media)
+        xr__help__media)
             opts="upload status"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1623,7 +1799,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__media__status)
+        xr__help__media__status)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1637,7 +1813,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__media__upload)
+        xr__help__media__upload)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1651,7 +1827,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__mentions)
+        xr__help__mentions)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1665,7 +1841,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__mute)
+        xr__help__mute)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1679,7 +1855,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__post)
+        xr__help__post)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1693,7 +1869,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__quote)
+        xr__help__quote)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1707,7 +1883,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__read)
+        xr__help__read)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1721,7 +1897,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__reply)
+        xr__help__reply)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1735,7 +1911,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__repost)
+        xr__help__repost)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1749,7 +1925,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__search)
+        xr__help__search)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1763,7 +1939,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__timeline)
+        xr__help__timeline)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1777,7 +1953,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unblock)
+        xr__help__unblock)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1791,7 +1967,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unbookmark)
+        xr__help__unbookmark)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1805,7 +1981,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unfollow)
+        xr__help__unfollow)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1819,7 +1995,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unlike)
+        xr__help__unlike)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1833,7 +2009,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unmute)
+        xr__help__unmute)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1847,7 +2023,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__unrepost)
+        xr__help__unrepost)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1861,7 +2037,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__user)
+        xr__help__user)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1875,7 +2051,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__version)
+        xr__help__version)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1889,7 +2065,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__help__whoami)
+        xr__help__whoami)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1903,8 +2079,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__like)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__like)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1926,6 +2102,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1933,8 +2117,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__likes)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help"
+        xr__likes)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1964,21 +2148,11 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                *)
-                    COMPREPLY=()
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
                     ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        xurl__media)
-            opts="-h --app --help upload status help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --app)
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1989,7 +2163,33 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__help)
+        xr__media)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help upload status help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__media__help)
             opts="upload status help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2003,7 +2203,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__help__help)
+        xr__media__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2017,7 +2217,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__help__status)
+        xr__media__help__status)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2031,7 +2231,7 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__help__upload)
+        xr__media__help__upload)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2045,8 +2245,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__status)
-            opts="-u -v -w -t -H -h --auth --username --verbose --wait --trace --header --app --help <MEDIA_ID>"
+        xr__media__status)
+            opts="-u -v -w -t -H -q -h --auth --username --verbose --wait --trace --header --app --output --quiet --no-interactive --timeout --help <MEDIA_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2076,6 +2276,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2083,8 +2291,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__media__upload)
-            opts="-u -v -t -H -h --media-type --category --wait --auth --username --verbose --trace --header --app --help <FILE>"
+        xr__media__upload)
+            opts="-u -v -t -H -q -h --media-type --category --wait --auth --username --verbose --trace --header --app --output --quiet --no-interactive --timeout --help <FILE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2122,6 +2330,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2129,8 +2345,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__mentions)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help"
+        xr__mentions)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2160,6 +2376,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2167,8 +2391,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__mute)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__mute)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2190,6 +2414,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2197,8 +2429,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__post)
-            opts="-u -v -t -h --media-id --auth --username --verbose --trace --app --help <TEXT>"
+        xr__post)
+            opts="-u -v -t -q -h --media-id --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2224,6 +2456,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2231,8 +2471,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__quote)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID> <TEXT>"
+        xr__quote)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2254,6 +2494,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2261,8 +2509,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__read)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__read)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2284,6 +2532,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2291,8 +2547,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__reply)
-            opts="-u -v -t -h --media-id --auth --username --verbose --trace --app --help <POST_ID> <TEXT>"
+        xr__reply)
+            opts="-u -v -t -q -h --media-id --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2318,6 +2574,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2325,8 +2589,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__repost)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__repost)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2348,6 +2612,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2355,8 +2627,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__search)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help <QUERY>"
+        xr__search)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <QUERY>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2386,6 +2658,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2393,8 +2673,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__timeline)
-            opts="-n -u -v -t -h --max-results --auth --username --verbose --trace --app --help"
+        xr__timeline)
+            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2424,6 +2704,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2431,8 +2719,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unblock)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__unblock)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2454,6 +2742,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2461,8 +2757,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unbookmark)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__unbookmark)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2484,6 +2780,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2491,8 +2795,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unfollow)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__unfollow)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2514,6 +2818,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2521,8 +2833,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unlike)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__unlike)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2544,6 +2856,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2551,8 +2871,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unmute)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__unmute)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2574,6 +2894,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2581,8 +2909,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__unrepost)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <POST_ID>"
+        xr__unrepost)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2604,6 +2932,14 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -2611,8 +2947,8 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__user)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help <USERNAME>"
+        xr__user)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2634,21 +2970,11 @@ _xurl() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                *)
-                    COMPREPLY=()
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
                     ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        xurl__version)
-            opts="-h --app --help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --app)
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2659,8 +2985,34 @@ _xurl() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xurl__whoami)
-            opts="-u -v -t -h --auth --username --verbose --trace --app --help"
+        xr__version)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__whoami)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2679,6 +3031,14 @@ _xurl() {
                     return 0
                     ;;
                 --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2693,7 +3053,7 @@ _xurl() {
 }
 
 if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
-    complete -F _xurl -o nosort -o bashdefault -o default xurl
+    complete -F _xr -o nosort -o bashdefault -o default xr
 else
-    complete -F _xurl -o bashdefault -o default xurl
+    complete -F _xr -o bashdefault -o default xr
 fi

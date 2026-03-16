@@ -1,25 +1,31 @@
 # xurl-rs
 
-Rust port of xurl — CLI for authenticated X/Twitter API requests.
+A fast, ergonomic CLI for the X (Twitter) API. Rust port of [xurl](https://github.com/xdevplatform/xurl).
 
-## Porting Skill
-The rust-porting skill is available at .claude/skills/rust-port/
-Follow its 7-phase workflow.
+## Binary & Library
 
-## Source
-Original xurl (Go): ~/github-stars/xdevplatform/xurl/
-
-## go2rust Scaffold
-Run: ~/dev/go2rust/target/debug/go2rust ~/github-stars/xdevplatform/xurl -o ./scaffold --report
-The scaffold is a starting point — it needs idiomification and fixing.
-
-## Research
-- Source analysis: ~/obsidian-vault/OpenClaw/research/rust-porting/xurl-case-study/
-- Go patterns: ~/dev/rust-porting-skill/references/go-patterns.md
-- Crate selection: ~/dev/rust-porting-skill/references/crate-selection.md
+- Binary: `xr` (installed via `cargo install xurl-rs`)
+- Library: `xurl` (import as `use xurl::...`)
+- Package: `xurl-rs` (crates.io)
 
 ## Quality Bar
-- Absolute Parity with xurl (identical outputs for identical inputs)
-- Clippy clean, edition 2024
+
+- Clippy clean, edition 2024 (`cargo clippy -- -D warnings`)
+- Formatted with rustfmt (`cargo fmt --check`)
 - No unwrap() in production code
-- Comprehensive tests (unit + integration + differential conformance)
+- Comprehensive tests (`cargo test` — unit + integration + differential conformance)
+- Zero broken tests policy
+
+## Architecture
+
+- `src/api/` — HTTP client, endpoints, shortcuts (28 commands), media upload
+- `src/auth/` — OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 (PKCE), Bearer token
+- `src/cli/` — clap-based CLI with commands/mod.rs handler layer
+- `src/config/` — Environment variable based configuration
+- `src/store/` — YAML token store (~/.xurl), multi-app support
+- `src/output.rs` — OutputConfig for text/json/jsonl formatting
+- `src/error.rs` — XurlError with thiserror
+
+## Known Differences from Go Original
+
+See [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) for intentional deviations.
