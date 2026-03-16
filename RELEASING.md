@@ -1,58 +1,41 @@
-# Releasing xurl
+# Releasing xurl-rs
 
-## Release Process
+## Automated (preferred)
 
-### 1. Bump Version
-
-Update `Cargo.toml`:
-
-```toml
-[package]
-version = "0.2.0"
-```
-
-### 2. Run Tests
+Tag a version and push — CI handles everything:
 
 ```bash
-cargo test
-cargo clippy -- -W clippy::all -W clippy::pedantic
-cargo build --release
-```
-
-### 3. Publish to crates.io
-
-```bash
-cargo publish --dry-run    # Verify first
-cargo publish              # Publish
-```
-
-### 4. Tag the Release
-
-```bash
-git tag v0.2.0
+# 1. Bump version in Cargo.toml
+# 2. Commit and tag
+git add Cargo.toml
+git commit -m "chore: bump version to 1.0.4"
+git tag v1.0.4
 git push origin main --tags
 ```
 
-### 5. GitHub Release
+This triggers `.github/workflows/release.yml` which:
 
-Create a release on GitHub with:
+- Builds binaries for 5 targets (linux x86_64/aarch64, macos x86_64/aarch64, windows x86_64)
+- Creates a GitHub Release with all binaries attached
+- Publishes to crates.io
+- Dispatches a `repository_dispatch` event to `brettdavies/homebrew-tap`, which automatically updates the formula's version and SHA256
 
-- Tag: v0.2.0
-- Title: xurl v0.2.0
-- Release notes from CHANGELOG
+Changelog is auto-generated on every push to main via git-cliff.
 
-### 6. Update Homebrew Formula
+## Required GitHub Secrets
 
-Update `Formula/xurl.rb`:
+| Secret | Purpose |
+|--------|---------|
+| `CARGO_REGISTRY_TOKEN` | crates.io API token for `cargo publish` |
+| `HOMEBREW_TAP_TOKEN` | Fine-grained PAT with `contents:write` on `brettdavies/homebrew-tap` |
 
-1. Change the `url` to the new tag
-2. Update the `sha256` hash:
+`GITHUB_TOKEN` is provided automatically by GitHub Actions.
 
-   ```bash
-   curl -sL https://github.com/brettdavies/xurl-rs/archive/refs/tags/v0.2.0.tar.gz | shasum -a 256
-   ```
+Both secrets are stored in 1Password (`secrets-dev` vault).
 
-### 7. Regenerate Completions
+## Manual Steps (post-release)
+
+### Regenerate Completions (if CLI flags changed)
 
 ```bash
 cargo build --release
@@ -61,11 +44,11 @@ cargo build --release
 ./target/release/xr --generate-completion fish > completions/xr.fish
 ```
 
-## CI (Future)
+## Distribution Channels
 
-GitHub Actions will automate:
-
-- `cargo test` on every PR
-- `cargo publish` on tag push
-- Binary builds for Linux, macOS, Windows
-- Homebrew formula auto-update
+| Channel | How |
+|---------|-----|
+| Homebrew | `brew tap brettdavies/tap && brew install xurl-rs` |
+| Pre-built binary | Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) |
+| Rust crate | `cargo install xurl-rs` |
+| From source | `git clone && cargo build --release` |

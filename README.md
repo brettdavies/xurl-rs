@@ -6,15 +6,30 @@ Rust port of [xurl](https://github.com/xdevplatform/xurl) — faster, type-safe,
 
 ## Install
 
-```bash
-cargo install xurl-rs
-```
-
-Or via Homebrew:
+### Homebrew
 
 ```bash
 brew tap brettdavies/tap
 brew install xurl-rs
+```
+
+### Pre-built Binary
+
+Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) for Linux, macOS, and Windows.
+
+### Cargo
+
+```bash
+cargo install xurl-rs
+```
+
+### From Source
+
+```bash
+git clone https://github.com/brettdavies/xurl-rs
+cd xurl-rs
+cargo build --release
+# Binary at ./target/release/xr
 ```
 
 ## Quick Start
@@ -233,4 +248,4 @@ See [RELEASING.md](RELEASING.md) for release procedures.
 
 ## License
 
-MIT
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT) at your option.

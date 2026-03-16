@@ -3,15 +3,24 @@ name = "xurl-rs"
 version = "1.0.3"
 edition = "2024"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/brettdavies/xurl-rs"
 homepage = "https://github.com/brettdavies/xurl-rs"
 documentation = "https://docs.rs/xurl-rs"
 keywords = ["twitter", "x", "api", "cli", "oauth"]
 categories = ["command-line-utilities", "web-programming", "api-bindings"]
-authors = ["Brett Davies <brett@brettdavies.me>"]
+authors = ["Brett Davies <pm8fp22mbg@privaterelay.appleid.com>"]
 readme = "README.md"
-exclude = ["tests/fixtures/*", ".github/*", "scaffold/*"]
+rust-version = "1.85"
+exclude = [
+    ".claude/",
+    ".github/",
+    "benches/",
+    "cliff.toml",
+    "completions/",
+    "docs/",
+    "tests/",
+]
 
 [dependencies]
 # CLI
@@ -65,3 +74,7 @@ toml = "0.8"
 regex = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serial_test = "3"
+
+[profile.release]
+strip = true
+lto = true
