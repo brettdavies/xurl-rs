@@ -34,24 +34,25 @@ struct PostMedia {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /// Extracts a post ID from a full URL or returns the input as-is.
-#[must_use] 
+#[must_use]
 pub fn resolve_post_id(input: &str) -> String {
     let input = input.trim();
 
     if (input.starts_with("http://") || input.starts_with("https://"))
-        && let Ok(parsed) = url::Url::parse(input) {
-            let parts: Vec<&str> = parsed.path().trim_matches('/').split('/').collect();
-            for (i, p) in parts.iter().enumerate() {
-                if *p == "status" && i + 1 < parts.len() {
-                    return parts[i + 1].to_string();
-                }
+        && let Ok(parsed) = url::Url::parse(input)
+    {
+        let parts: Vec<&str> = parsed.path().trim_matches('/').split('/').collect();
+        for (i, p) in parts.iter().enumerate() {
+            if *p == "status" && i + 1 < parts.len() {
+                return parts[i + 1].to_string();
             }
         }
+    }
     input.to_string()
 }
 
-/// Normalises a username — strips a leading "@" if present.
-#[must_use] 
+/// Normalizes a username — strips a leading "@" if present.
+#[must_use]
 pub fn resolve_username(input: &str) -> String {
     input.trim().trim_start_matches('@').to_string()
 }
@@ -223,10 +224,7 @@ pub fn search_posts(
 /// # Errors
 ///
 /// Returns an error if the request fails or the API returns an error.
-pub fn get_me(
-    client: &mut ApiClient,
-    opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+pub fn get_me(client: &mut ApiClient, opts: &RequestOptions) -> Result<serde_json::Value> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint =

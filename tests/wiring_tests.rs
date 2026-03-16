@@ -59,7 +59,10 @@ fn test_json_output_error_format() {
 
     // Should be valid JSON with error, kind, and code fields
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
-    assert!(parsed["error"].is_string(), "error field should be a string");
+    assert!(
+        parsed["error"].is_string(),
+        "error field should be a string"
+    );
     assert!(parsed["kind"].is_string(), "kind field should be a string");
     assert!(parsed["code"].is_number(), "code field should be a number");
 }
@@ -153,7 +156,10 @@ fn test_quiet_suppresses_version_output() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("xurl"), "Version output should still appear with --quiet");
+    assert!(
+        stdout.contains("xurl"),
+        "Version output should still appear with --quiet"
+    );
 }
 
 #[test]
@@ -262,10 +268,7 @@ fn test_exit_code_json_error_includes_code() {
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
     assert_eq!(parsed["code"].as_i64().unwrap(), 2);
     // kind reflects the error variant (api for HTTP 401), code reflects semantic meaning
-    assert!(
-        parsed["kind"].is_string(),
-        "kind should be a string"
-    );
+    assert!(parsed["kind"].is_string(), "kind should be a string");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -294,10 +297,12 @@ fn test_all_agentic_flags_wired_correctly() {
         .unwrap()
         .args([
             "version",
-            "--output", "json",
+            "--output",
+            "json",
             "--quiet",
             "--no-interactive",
-            "--timeout", "5",
+            "--timeout",
+            "5",
         ])
         .output()
         .unwrap();
@@ -313,7 +318,7 @@ fn test_all_agentic_flags_wired_correctly() {
 
 #[test]
 fn test_auth_status_json_output() {
-    // `xurl auth status --output json` with no apps should output JSON
+    // `xurl auth status --output json` should output JSON with default app info
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -325,13 +330,15 @@ fn test_auth_status_json_output() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    assert!(parsed["message"].as_str().unwrap().contains("No apps registered"));
+    // Output is JSONL (one JSON object per line) — parse the first line
+    let first_line = stdout.lines().next().unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
+    assert!(parsed["message"].as_str().unwrap().contains("default"));
 }
 
 #[test]
 fn test_auth_apps_list_json_output() {
-    // `xurl auth apps list --output json` with no apps should output JSON
+    // `xurl auth apps list --output json` should list the default app as JSON
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -344,5 +351,5 @@ fn test_auth_apps_list_json_output() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    assert!(parsed["message"].as_str().unwrap().contains("No apps registered"));
+    assert!(parsed["message"].as_str().unwrap().contains("default"));
 }

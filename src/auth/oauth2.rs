@@ -14,7 +14,7 @@ use super::callback;
 use crate::error::{Result, XurlError};
 
 /// `OAuth2` scopes requested for xurl.
-#[must_use] 
+#[must_use]
 pub fn get_oauth2_scopes() -> Vec<&'static str> {
     vec![
         // Read scopes
@@ -46,7 +46,7 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
 }
 
 /// Generates a PKCE code verifier and its S256 challenge.
-#[must_use] 
+#[must_use]
 pub fn generate_code_verifier_and_challenge() -> (String, String) {
     let b: [u8; 32] = rand::random();
     let verifier = URL_SAFE_NO_PAD.encode(b);
@@ -71,8 +71,8 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 
     // Build authorization URL
     let scopes = get_oauth2_scopes().join(" ");
-    let mut auth_url = Url::parse(auth.auth_url())
-        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+    let mut auth_url =
+        Url::parse(auth.auth_url()).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")

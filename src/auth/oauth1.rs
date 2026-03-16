@@ -64,12 +64,18 @@ pub fn build_oauth1_header_with_nonce_ts(
 
     // Add OAuth parameters
     params.insert("oauth_consumer_key".to_string(), token.consumer_key.clone());
-    params.insert("oauth_nonce".to_string(), fixed_nonce.map_or_else(generate_nonce, str::to_string));
+    params.insert(
+        "oauth_nonce".to_string(),
+        fixed_nonce.map_or_else(generate_nonce, str::to_string),
+    );
     params.insert(
         "oauth_signature_method".to_string(),
         "HMAC-SHA1".to_string(),
     );
-    params.insert("oauth_timestamp".to_string(), fixed_timestamp.map_or_else(generate_timestamp, str::to_string));
+    params.insert(
+        "oauth_timestamp".to_string(),
+        fixed_timestamp.map_or_else(generate_timestamp, str::to_string),
+    );
     params.insert("oauth_token".to_string(), token.access_token.clone());
     params.insert("oauth_version".to_string(), "1.0".to_string());
 
@@ -82,20 +88,11 @@ pub fn build_oauth1_header_with_nonce_ts(
     )?;
 
     let oauth_params = [
-        format!(
-            "oauth_consumer_key=\"{}\"",
-            encode(&token.consumer_key)
-        ),
+        format!("oauth_consumer_key=\"{}\"", encode(&token.consumer_key)),
         format!("oauth_nonce=\"{}\"", encode(&params["oauth_nonce"])),
         format!("oauth_signature=\"{}\"", encode(&signature)),
-        format!(
-            "oauth_signature_method=\"{}\"",
-            encode("HMAC-SHA1")
-        ),
-        format!(
-            "oauth_timestamp=\"{}\"",
-            encode(&params["oauth_timestamp"])
-        ),
+        format!("oauth_signature_method=\"{}\"", encode("HMAC-SHA1")),
+        format!("oauth_timestamp=\"{}\"", encode(&params["oauth_timestamp"])),
         format!("oauth_token=\"{}\"", encode(&token.access_token)),
         format!("oauth_version=\"{}\"", encode("1.0")),
     ];
@@ -114,7 +111,12 @@ fn generate_signature(
     let parsed_url =
         Url::parse(url_str).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
 
-    let base_url = format!("{}://{}{}", parsed_url.scheme(), parsed_url.host_str().unwrap_or(""), parsed_url.path());
+    let base_url = format!(
+        "{}://{}{}",
+        parsed_url.scheme(),
+        parsed_url.host_str().unwrap_or(""),
+        parsed_url.path()
+    );
 
     let param_pairs: Vec<String> = params
         .iter()
@@ -140,14 +142,14 @@ fn generate_signature(
 }
 
 /// Generates a random nonce.
-#[must_use] 
+#[must_use]
 pub fn generate_nonce() -> String {
     let n: u64 = rand::rng().random_range(0..1_000_000_000);
     n.to_string()
 }
 
 /// Generates the current Unix timestamp as a string.
-#[must_use] 
+#[must_use]
 pub fn generate_timestamp() -> String {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -157,7 +159,7 @@ pub fn generate_timestamp() -> String {
 }
 
 /// Percent-encodes a string (matching Go's `url.QueryEscape`).
-#[must_use] 
+#[must_use]
 pub fn encode(s: &str) -> String {
     // url::form_urlencoded::byte_serialize matches Go's url.QueryEscape
     url::form_urlencoded::byte_serialize(s.as_bytes()).collect()

@@ -45,7 +45,10 @@ fn test_new_token_store() {
     let store = TokenStore::new();
 
     assert!(!store.apps.is_empty(), "Expected non-nil Apps map");
-    assert!(!store.file_path.as_os_str().is_empty(), "Expected non-empty FilePath");
+    assert!(
+        !store.file_path.as_os_str().is_empty(),
+        "Expected non-empty FilePath"
+    );
 }
 
 // ── TestTokenOperations ────────────────────────────────────────────────────
@@ -89,7 +92,10 @@ fn test_oauth2_token_operations() {
     let token = token.unwrap();
 
     assert_eq!(token.token_type, TokenType::Oauth2);
-    let oauth2 = token.oauth2.as_ref().expect("Expected non-nil OAuth2 token");
+    let oauth2 = token
+        .oauth2
+        .as_ref()
+        .expect("Expected non-nil OAuth2 token");
     assert_eq!(oauth2.access_token, "access-token");
     assert_eq!(oauth2.refresh_token, "refresh-token");
     assert_eq!(oauth2.expiration_time, 1234567890);
@@ -115,7 +121,12 @@ fn test_oauth1_token_operations() {
     let (mut store, _tmp) = create_temp_token_store();
 
     store
-        .save_oauth1_tokens("access-token", "token-secret", "consumer-key", "consumer-secret")
+        .save_oauth1_tokens(
+            "access-token",
+            "token-secret",
+            "consumer-key",
+            "consumer-secret",
+        )
         .expect("Failed to save OAuth1 tokens");
 
     let token = store.get_oauth1_tokens();
@@ -123,7 +134,10 @@ fn test_oauth1_token_operations() {
     let token = token.unwrap();
 
     assert_eq!(token.token_type, TokenType::Oauth1);
-    let oauth1 = token.oauth1.as_ref().expect("Expected non-nil OAuth1 token");
+    let oauth1 = token
+        .oauth1
+        .as_ref()
+        .expect("Expected non-nil OAuth1 token");
     assert_eq!(oauth1.access_token, "access-token");
     assert_eq!(oauth1.token_secret, "token-secret");
     assert_eq!(oauth1.consumer_key, "consumer-key");
@@ -152,7 +166,12 @@ fn test_clear_all() {
         .save_oauth2_token("testuser", "access-token", "refresh-token", 1234567890)
         .unwrap();
     store
-        .save_oauth1_tokens("access-token", "token-secret", "consumer-key", "consumer-secret")
+        .save_oauth1_tokens(
+            "access-token",
+            "token-secret",
+            "consumer-key",
+            "consumer-secret",
+        )
         .unwrap();
 
     store.clear_all().expect("Failed to clear all tokens");
@@ -214,15 +233,9 @@ fn test_multi_app_per_app_token_isolation() {
         .unwrap();
 
     // app1 should only have alice
-    assert_eq!(
-        store.get_oauth2_usernames_for_app("app1"),
-        vec!["alice"]
-    );
+    assert_eq!(store.get_oauth2_usernames_for_app("app1"), vec!["alice"]);
     // app2 should only have bob
-    assert_eq!(
-        store.get_oauth2_usernames_for_app("app2"),
-        vec!["bob"]
-    );
+    assert_eq!(store.get_oauth2_usernames_for_app("app2"), vec!["bob"]);
 }
 
 #[test]
@@ -579,7 +592,9 @@ fn test_remove_default_app_reassigns() {
     store.remove_app("app1").unwrap();
     assert_ne!(store.get_default_app(), "app1");
     assert!(
-        store.list_apps().contains(&store.get_default_app().to_string())
+        store
+            .list_apps()
+            .contains(&store.get_default_app().to_string())
     );
 }
 
@@ -753,7 +768,10 @@ configuration:
     let store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
 
     let oauth1_token = store.get_oauth1_tokens();
-    assert!(oauth1_token.is_some(), "OAuth1Token is nil after auto-import");
+    assert!(
+        oauth1_token.is_some(),
+        "OAuth1Token is nil after auto-import"
+    );
 
     let oauth1 = oauth1_token.unwrap().oauth1.as_ref().unwrap();
     assert_eq!(oauth1.access_token, "test_access_token");
@@ -860,10 +878,7 @@ fn test_unicode_username_in_oauth2_token() {
         .unwrap();
     let tok = store.get_oauth2_token("用户名");
     assert!(tok.is_some());
-    assert_eq!(
-        tok.unwrap().oauth2.as_ref().unwrap().access_token,
-        "access"
-    );
+    assert_eq!(tok.unwrap().oauth2.as_ref().unwrap().access_token, "access");
 }
 
 #[test]

@@ -99,9 +99,7 @@ impl<'a> ApiClient<'a> {
         let mut builder = self.client.request(req_method.clone(), &url);
 
         // Add body for POST/PUT/PATCH
-        if !options.data.is_empty()
-            && (method == "POST" || method == "PUT" || method == "PATCH")
-        {
+        if !options.data.is_empty() && (method == "POST" || method == "PUT" || method == "PATCH") {
             // Detect content type
             if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
                 builder = builder
@@ -122,7 +120,9 @@ impl<'a> ApiClient<'a> {
         }
 
         // Add auth header
-        if let Ok(auth_header) = self.get_auth_header(method, &url, &options.auth_type, &options.username) {
+        if let Ok(auth_header) =
+            self.get_auth_header(method, &url, &options.auth_type, &options.username)
+        {
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -156,7 +156,9 @@ impl<'a> ApiClient<'a> {
 
         let json: serde_json::Value = if body.is_empty() {
             serde_json::json!({})
-        } else if let Ok(v) = serde_json::from_str(&body) { v } else {
+        } else if let Ok(v) = serde_json::from_str(&body) {
+            v
+        } else {
             if status.as_u16() >= 400 {
                 return Err(XurlError::Http(format!("HTTP error: {status}")));
             }
@@ -176,7 +178,10 @@ impl<'a> ApiClient<'a> {
     ///
     /// Returns an error if the HTTP method is invalid, file I/O fails,
     /// the request fails, or the API returns an error status (>= 400).
-    pub fn send_multipart_request(&mut self, options: &MultipartOptions) -> Result<serde_json::Value> {
+    pub fn send_multipart_request(
+        &mut self,
+        options: &MultipartOptions,
+    ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
         let url = self.build_url(&options.request.endpoint);
@@ -258,7 +263,7 @@ impl<'a> ApiClient<'a> {
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// the API returns an error status (>= 400), or a read error occurs.
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Public library API — used by consumers and integration tests
     pub fn stream_request(&mut self, options: &RequestOptions) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
@@ -291,7 +296,9 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        if let Ok(auth_header) = self.get_auth_header(method, &url, &options.auth_type, &options.username) {
+        if let Ok(auth_header) =
+            self.get_auth_header(method, &url, &options.auth_type, &options.username)
+        {
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -398,6 +405,8 @@ impl<'a> ApiClient<'a> {
             return self.auth.get_bearer_token_header();
         }
 
-        Err(XurlError::auth("NoAuthMethod: no authentication method available"))
+        Err(XurlError::auth(
+            "NoAuthMethod: no authentication method available",
+        ))
     }
 }

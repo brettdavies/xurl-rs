@@ -42,7 +42,10 @@ fn test_xurl_error_token_store_is_not_api() {
 fn test_xurl_error_display_http() {
     let err = XurlError::Http("connection refused".to_string());
     let msg = format!("{err}");
-    assert!(msg.contains("HTTP Error"), "Expected 'HTTP Error' in: {msg}");
+    assert!(
+        msg.contains("HTTP Error"),
+        "Expected 'HTTP Error' in: {msg}"
+    );
     assert!(msg.contains("connection refused"));
 }
 
@@ -57,7 +60,10 @@ fn test_xurl_error_display_api() {
 fn test_xurl_error_display_auth() {
     let err = XurlError::auth("token expired");
     let msg = format!("{err}");
-    assert!(msg.contains("Auth Error"), "Expected 'Auth Error' in: {msg}");
+    assert!(
+        msg.contains("Auth Error"),
+        "Expected 'Auth Error' in: {msg}"
+    );
     assert!(msg.contains("token expired"));
 }
 
@@ -72,14 +78,20 @@ fn test_xurl_error_display_io() {
 fn test_xurl_error_display_json() {
     let err = XurlError::Json("unexpected token".to_string());
     let msg = format!("{err}");
-    assert!(msg.contains("JSON Error"), "Expected 'JSON Error' in: {msg}");
+    assert!(
+        msg.contains("JSON Error"),
+        "Expected 'JSON Error' in: {msg}"
+    );
 }
 
 #[test]
 fn test_xurl_error_display_invalid_method() {
     let err = XurlError::InvalidMethod("FROBNICATE".to_string());
     let msg = format!("{err}");
-    assert!(msg.contains("Invalid Method"), "Expected 'Invalid Method' in: {msg}");
+    assert!(
+        msg.contains("Invalid Method"),
+        "Expected 'Invalid Method' in: {msg}"
+    );
     assert!(msg.contains("FROBNICATE"));
 }
 
@@ -87,7 +99,10 @@ fn test_xurl_error_display_invalid_method() {
 fn test_xurl_error_display_token_store() {
     let err = XurlError::token_store("corrupt yaml");
     let msg = format!("{err}");
-    assert!(msg.contains("Token Store Error"), "Expected 'Token Store Error' in: {msg}");
+    assert!(
+        msg.contains("Token Store Error"),
+        "Expected 'Token Store Error' in: {msg}"
+    );
 }
 
 #[test]
@@ -101,12 +116,10 @@ fn test_xurl_error_auth_with_cause() {
 #[test]
 fn test_xurl_error_from_reqwest() {
     // Create a reqwest error by trying to build an invalid request
-    let result = reqwest::blocking::Client::new()
-        .get("not-a-url")
-        .send();
+    let result = reqwest::blocking::Client::new().get("not-a-url").send();
     if let Err(reqwest_err) = result {
         let xurl_err: XurlError = reqwest_err.into();
-        matches!(xurl_err, XurlError::Http(_));
+        assert!(matches!(xurl_err, XurlError::Http(_)));
     }
 }
 
@@ -114,7 +127,7 @@ fn test_xurl_error_from_reqwest() {
 fn test_xurl_error_from_io() {
     let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "gone");
     let xurl_err: XurlError = io_err.into();
-    matches!(xurl_err, XurlError::Io(_));
+    assert!(matches!(xurl_err, XurlError::Io(_)));
     assert!(format!("{xurl_err}").contains("gone"));
 }
 
@@ -122,5 +135,5 @@ fn test_xurl_error_from_io() {
 fn test_xurl_error_from_serde_json() {
     let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
     let xurl_err: XurlError = json_err.into();
-    matches!(xurl_err, XurlError::Json(_));
+    assert!(matches!(xurl_err, XurlError::Json(_)));
 }

@@ -9,39 +9,23 @@ use std::sync::LazyLock;
 
 // ── Compiled regexes ───────────────────────────────────────────────────────
 
-static TIMESTAMP_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^\s]*"
-    ).unwrap()
-});
+static TIMESTAMP_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^\s]*").unwrap());
 
-static UNIX_EPOCH_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\b\d{10,13}\b").unwrap()
-});
+static UNIX_EPOCH_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b\d{10,13}\b").unwrap());
 
 static UUID_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-    ).unwrap()
+    Regex::new(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap()
 });
 
-static SNOWFLAKE_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\b\d{17,19}\b").unwrap()
-});
+static SNOWFLAKE_ID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b\d{17,19}\b").unwrap());
 
-static HEX_HASH_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[0-9a-f]{32,64}").unwrap()
-});
+static HEX_HASH_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9a-f]{32,64}").unwrap());
 
-static PID_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"pid[= ]\d+").unwrap()
-});
+static PID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"pid[= ]\d+").unwrap());
 
-static RELATIVE_TIME_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"\d+ (?:second|minute|hour|day|week|month|year)s? ago"
-    ).unwrap()
-});
+static RELATIVE_TIME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\d+ (?:second|minute|hour|day|week|month|year)s? ago").unwrap());
 
 // ── Normalization functions ────────────────────────────────────────────────
 
@@ -62,7 +46,9 @@ pub fn normalize_uuids(input: &str) -> String {
 
 /// Normalize Twitter/X snowflake IDs (17-19 digit numbers).
 pub fn normalize_snowflake_ids(input: &str) -> String {
-    SNOWFLAKE_ID_RE.replace_all(input, "SNOWFLAKE_ID").to_string()
+    SNOWFLAKE_ID_RE
+        .replace_all(input, "SNOWFLAKE_ID")
+        .to_string()
 }
 
 /// Normalize hex hashes (32-64 character hex strings).
@@ -90,9 +76,8 @@ pub fn normalize_line_endings(input: &str) -> String {
     input.replace('\r', "")
 }
 
-static VERSION_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:xurl|xr) \d+\.\d+\.\d+").unwrap()
-});
+static VERSION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:xurl|xr) \d+\.\d+\.\d+").unwrap());
 
 /// Normalize version strings so "xurl 1.0.3" and "xr 1.0.3" compare equal.
 pub fn normalize_version_string(input: &str) -> String {
@@ -115,9 +100,7 @@ pub fn normalize_help_text(input: &str) -> String {
         .join("\n")
 }
 
-static BINARY_NAME_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\bxurl\b|\bxr\b").unwrap()
-});
+static BINARY_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\bxurl\b|\bxr\b").unwrap());
 
 /// Normalize binary name references so "xurl" and "xr" compare equal.
 pub fn normalize_binary_name(input: &str) -> String {
@@ -230,16 +213,14 @@ mod tests {
     #[test]
     fn test_normalize_output_pipeline() {
         let input = "Created at 2024-01-15T10:30:45Z id=550e8400-e29b-41d4-a716-446655440000";
-        let result = normalize_output(
-            input,
-            &["timestamps".to_string(), "uuids".to_string()],
-        );
+        let result = normalize_output(input, &["timestamps".to_string(), "uuids".to_string()]);
         assert_eq!(result, "Created at TIMESTAMP id=UUID");
     }
 
     #[test]
     fn test_normalize_all() {
-        let input = "Created 2024-01-15T10:30:45Z pid=123 550e8400-e29b-41d4-a716-446655440000 3 days ago";
+        let input =
+            "Created 2024-01-15T10:30:45Z pid=123 550e8400-e29b-41d4-a716-446655440000 3 days ago";
         let result = normalize_output(input, &["all".to_string()]);
         assert!(result.contains("TIMESTAMP"));
         assert!(result.contains("pid=PID"));

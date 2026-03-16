@@ -26,7 +26,7 @@ pub struct Config {
 
 impl Config {
     /// Creates a new `Config` from environment variables, falling back to defaults.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         let client_id = env_or_default("CLIENT_ID", "");
         let client_secret = env_or_default("CLIENT_SECRET", "");
@@ -34,10 +34,7 @@ impl Config {
         let auth_url = env_or_default("AUTH_URL", "https://x.com/i/oauth2/authorize");
         let token_url = env_or_default("TOKEN_URL", "https://api.x.com/2/oauth2/token");
         let api_base_url = env_or_default("API_BASE_URL", "https://api.x.com");
-        let info_url = env_or_default(
-            "INFO_URL",
-            &format!("{api_base_url}/2/users/me"),
-        );
+        let info_url = env_or_default("INFO_URL", &format!("{api_base_url}/2/users/me"));
 
         Self {
             client_id,

@@ -60,10 +60,8 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
 
                 // Parse query parameters
                 let query = path.split('?').nth(1).unwrap_or("");
-                let params: std::collections::HashMap<&str, &str> = query
-                    .split('&')
-                    .filter_map(|p| p.split_once('='))
-                    .collect();
+                let params: std::collections::HashMap<&str, &str> =
+                    query.split('&').filter_map(|p| p.split_once('=')).collect();
 
                 let code = params.get("code").unwrap_or(&"");
                 let received_state = params.get("state").unwrap_or(&"");
@@ -76,7 +74,11 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                     );
                     let _ = stream.writable().await;
                     let _ = stream.try_write(response.as_bytes());
-                    if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
+                    if let Some(tx) = tx_ref
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .take()
+                    {
                         let _ = tx.send(Err("invalid state parameter".to_string()));
                     }
                     break;
@@ -90,7 +92,11 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                     );
                     let _ = stream.writable().await;
                     let _ = stream.try_write(response.as_bytes());
-                    if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
+                    if let Some(tx) = tx_ref
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .take()
+                    {
                         let _ = tx.send(Err("empty authorization code".to_string()));
                     }
                     break;
@@ -104,7 +110,11 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                 let _ = stream.writable().await;
                 let _ = stream.try_write(response.as_bytes());
 
-                if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
+                if let Some(tx) = tx_ref
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .take()
+                {
                     let _ = tx.send(Ok(code.to_string()));
                 }
                 break;

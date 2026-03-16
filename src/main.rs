@@ -41,7 +41,11 @@ fn main() {
 fn exit_code_for_error(e: &XurlError) -> i32 {
     match e {
         XurlError::Auth(_) | XurlError::TokenStore(_) => EXIT_AUTH_REQUIRED,
-        XurlError::Http(msg) | XurlError::Api(msg) if msg.contains("401") || msg.contains("Unauthorized") => EXIT_AUTH_REQUIRED,
+        XurlError::Http(msg) | XurlError::Api(msg)
+            if msg.contains("401") || msg.contains("Unauthorized") =>
+        {
+            EXIT_AUTH_REQUIRED
+        }
         XurlError::Http(msg) | XurlError::Api(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
         XurlError::Http(msg) | XurlError::Api(msg) if msg.contains("404") => EXIT_NOT_FOUND,
         XurlError::Io(_) => EXIT_NETWORK_ERROR,

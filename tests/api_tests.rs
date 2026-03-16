@@ -16,8 +16,8 @@ use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::api::{
-    self, is_streaming_endpoint, extract_media_id, extract_segment_index,
-    is_media_append_request, ApiClient, RequestOptions,
+    self, ApiClient, RequestOptions, extract_media_id, extract_segment_index,
+    is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
 use xurl::config::Config;
@@ -42,7 +42,11 @@ impl TestServer {
             Box::leak(Box::new(s))
         });
         let uri = server.uri();
-        Self { _rt: rt, server, uri }
+        Self {
+            _rt: rt,
+            server,
+            uri,
+        }
     }
 
     fn mount(&self, mock: Mock) {
@@ -219,7 +223,10 @@ fn base_opts() -> RequestOptions {
 #[case("", false)]
 fn test_is_streaming_endpoint(#[case] endpoint: &str, #[case] expected: bool) {
     let result = is_streaming_endpoint(endpoint);
-    assert_eq!(result, expected, "is_streaming_endpoint({endpoint:?}) should return {expected}");
+    assert_eq!(
+        result, expected,
+        "is_streaming_endpoint({endpoint:?}) should return {expected}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -268,9 +275,11 @@ fn test_build_request_get() {
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data":{"id":"12345","username":"testuser"}}),
-            )),
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(
+                    serde_json::json!({"data":{"id":"12345","username":"testuser"}}),
+                ),
+            ),
     );
 
     let cfg = create_test_config(ts.uri());
@@ -293,9 +302,11 @@ fn test_build_request_post() {
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
-            .respond_with(ResponseTemplate::new(201).set_body_json(
-                serde_json::json!({"data":{"id":"67890","text":"Hello world!"}}),
-            )),
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(
+                    serde_json::json!({"data":{"id":"67890","text":"Hello world!"}}),
+                ),
+            ),
     );
 
     let cfg = create_test_config(ts.uri());
@@ -323,9 +334,9 @@ fn test_build_request_with_auth_bearer() {
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data":{"id":"1"}}),
-            )),
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
+            ),
     );
 
     let cfg = create_test_config(ts.uri());
@@ -349,9 +360,9 @@ fn test_build_request_with_auth_oauth1() {
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data":{"id":"1"}}),
-            )),
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
+            ),
     );
 
     let cfg = create_test_config(ts.uri());
@@ -375,9 +386,9 @@ fn test_build_request_with_auth_oauth2() {
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data":{"id":"1"}}),
-            )),
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
+            ),
     );
 
     let cfg = create_test_config(ts.uri());
@@ -415,11 +426,13 @@ fn test_send_request_success() {
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let resp = client.send_request(&RequestOptions {
-        method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/users/me".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
     assert_eq!(resp["data"]["username"], "testuser");
     assert_eq!(resp["data"]["id"], "12345");
@@ -440,11 +453,13 @@ fn test_send_request_http_error() {
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let err = client.send_request(&RequestOptions {
-        method: "GET".to_string(),
-        endpoint: "/2/tweets/search/recent".to_string(),
-        ..Default::default()
-    }).unwrap_err();
+    let err = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/tweets/search/recent".to_string(),
+            ..Default::default()
+        })
+        .unwrap_err();
 
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
@@ -463,11 +478,13 @@ fn test_send_request_json_parse_error() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     // Non-JSON 200 response returns empty JSON object
-    let resp = client.send_request(&RequestOptions {
-        method: "GET".to_string(),
-        endpoint: "/2/bad-json".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/bad-json".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
     assert_eq!(resp, serde_json::json!({}));
 }
 
@@ -478,7 +495,9 @@ fn test_send_request_json_parse_error() {
 #[test]
 fn test_get_auth_header_oauth1() {
     let (auth, _tmp) = create_mock_auth_with_oauth1("https://api.x.com");
-    let header = auth.get_oauth1_header("GET", "https://api.x.com/2/users/me", None).unwrap();
+    let header = auth
+        .get_oauth1_header("GET", "https://api.x.com/2/users/me", None)
+        .unwrap();
     assert!(header.starts_with("OAuth "));
     assert!(header.contains("oauth_consumer_key"));
 }
@@ -487,7 +506,10 @@ fn test_get_auth_header_oauth1() {
 fn test_get_auth_header_oauth2() {
     let (mut auth, _tmp) = create_mock_auth_with_oauth2("https://api.x.com");
     let header = auth.get_oauth2_header("testuser").unwrap();
-    assert!(header.starts_with("Bearer "), "Expected Bearer header, got: {header}");
+    assert!(
+        header.starts_with("Bearer "),
+        "Expected Bearer header, got: {header}"
+    );
 }
 
 #[test]
@@ -505,9 +527,12 @@ fn test_get_auth_header_bearer() {
 fn test_create_post() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/tweets")).respond_with(
-            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data":{"id":"99999","text":"Hello!"}})),
-        ),
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data":{"id":"99999","text":"Hello!"}})),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -522,9 +547,12 @@ fn test_create_post() {
 fn test_reply_to_post() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/tweets")).respond_with(
-            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data":{"id":"88888","text":"nice!"}})),
-        ),
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data":{"id":"88888","text":"nice!"}})),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -538,15 +566,26 @@ fn test_reply_to_post() {
 fn test_reply_to_post_with_url() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/tweets")).respond_with(
-            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data":{"id":"77777","text":"reply via URL"}})),
-        ),
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(
+                    serde_json::json!({"data":{"id":"77777","text":"reply via URL"}}),
+                ),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let resp = api::reply_to_post(&mut client, "https://x.com/u/status/123", "reply via URL", &[], &base_opts()).unwrap();
+    let resp = api::reply_to_post(
+        &mut client,
+        "https://x.com/u/status/123",
+        "reply via URL",
+        &[],
+        &base_opts(),
+    )
+    .unwrap();
     assert_eq!(resp["data"]["id"], "77777");
 }
 
@@ -554,9 +593,12 @@ fn test_reply_to_post_with_url() {
 fn test_quote_post() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/tweets")).respond_with(
-            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data":{"id":"66666","text":"my take"}})),
-        ),
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data":{"id":"66666","text":"my take"}})),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -570,9 +612,12 @@ fn test_quote_post() {
 fn test_delete_post() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("DELETE")).and(path("/2/tweets/123")).respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"deleted":true}})),
-        ),
+        Mock::given(method("DELETE"))
+            .and(path("/2/tweets/123"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data":{"deleted":true}})),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -619,9 +664,11 @@ fn test_search_posts() {
 fn test_get_me() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("GET")).and(path("/2/users/me")).respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"42","username":"testbot","name":"Test Bot"}})),
-        ),
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":{"id":"42","username":"testbot","name":"Test Bot"}}),
+            )),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -636,9 +683,11 @@ fn test_get_me() {
 fn test_lookup_user() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("GET")).and(path_regex(r"/2/users/by/username/someuser.*")).respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"100","username":"lookedup","name":"Looked Up"}})),
-        ),
+        Mock::given(method("GET"))
+            .and(path_regex(r"/2/users/by/username/someuser.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":{"id":"100","username":"lookedup","name":"Looked Up"}}),
+            )),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -653,9 +702,12 @@ fn test_lookup_user() {
 fn test_create_post_with_media() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/tweets")).respond_with(
-            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data":{"id":"55555","text":"With media"}})),
-        ),
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data":{"id":"55555","text":"With media"}})),
+            ),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
@@ -697,7 +749,11 @@ fn test_extract_segment_index(#[case] data: &str, #[case] expected: Option<&str>
 #[case("/2/media/upload/123/append", "", false)]
 #[case("/2/users/me", "file.jpg", false)]
 #[case("", "", false)]
-fn test_is_media_append_request(#[case] url: &str, #[case] media_file: &str, #[case] expected: bool) {
+fn test_is_media_append_request(
+    #[case] url: &str,
+    #[case] media_file: &str,
+    #[case] expected: bool,
+) {
     assert_eq!(is_media_append_request(url, media_file), expected);
 }
 
@@ -728,21 +784,23 @@ fn test_media_upload_init() {
 fn test_media_upload_finalize() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("POST")).and(path("/2/media/upload/test_media_id/finalize")).respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload/test_media_id/finalize"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "test_media_id", "media_key": "test_media_key"}
-            })),
-        ),
+            }))),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let resp = client.send_request(&RequestOptions {
-        method: "POST".to_string(),
-        endpoint: "/2/media/upload/test_media_id/finalize".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            endpoint: "/2/media/upload/test_media_id/finalize".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
     assert_eq!(resp["data"]["id"], "test_media_id");
 }
 
@@ -762,11 +820,13 @@ fn test_media_upload_check_status() {
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let resp = client.send_request(&RequestOptions {
-        method: "GET".to_string(),
-        endpoint: "/2/media/upload?command=STATUS&media_id=test_media_id".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/media/upload?command=STATUS&media_id=test_media_id".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
     assert_eq!(resp["data"]["processing_info"]["state"], "succeeded");
 }
 
@@ -774,19 +834,23 @@ fn test_media_upload_check_status() {
 fn test_stream_request_error() {
     let ts = TestServer::new();
     ts.mount(
-        Mock::given(method("GET")).and(path("/2/tweets/search/stream/error")).respond_with(
-            ResponseTemplate::new(400).set_body_json(serde_json::json!({"errors":[{"message":"Invalid rule","code":400}]})),
-        ),
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/stream/error"))
+            .respond_with(ResponseTemplate::new(400).set_body_json(
+                serde_json::json!({"errors":[{"message":"Invalid rule","code":400}]}),
+            )),
     );
     let cfg = create_test_config(ts.uri());
     let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, &mut auth);
 
-    let err = client.stream_request(&RequestOptions {
-        method: "GET".to_string(),
-        endpoint: "/2/tweets/search/stream/error".to_string(),
-        ..Default::default()
-    }).unwrap_err();
+    let err = client
+        .stream_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/tweets/search/stream/error".to_string(),
+            ..Default::default()
+        })
+        .unwrap_err();
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
 
@@ -795,7 +859,10 @@ fn test_stream_request_error() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[rstest]
-#[case("https://twitter.com/user/status/123456789012345678", "123456789012345678")]
+#[case(
+    "https://twitter.com/user/status/123456789012345678",
+    "123456789012345678"
+)]
 #[case("https://x.com/user/status/1", "1")]
 fn test_resolve_post_id_edge_cases(#[case] input: &str, #[case] expected: &str) {
     assert_eq!(api::resolve_post_id(input), expected);
@@ -821,5 +888,5 @@ fn test_is_streaming_endpoint_rules_not_streaming(#[case] endpoint: &str, #[case
 #[test]
 fn test_extract_media_id_with_extra_path() {
     let result = extract_media_id("/2/media/upload/999/append/extra");
-    assert!(!result.is_empty() || result.is_empty()); // graceful handling
+    assert_eq!(result, "999");
 }

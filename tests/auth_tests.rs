@@ -395,7 +395,12 @@ fn test_encode_edge_cases(#[case] input: &str, #[case] expected: &str) {
 fn test_oauth1_header_format() {
     let (mut token_store, _tmp) = create_temp_token_store();
     token_store
-        .save_oauth1_tokens("access-token", "token-secret", "consumer-key", "consumer-secret")
+        .save_oauth1_tokens(
+            "access-token",
+            "token-secret",
+            "consumer-key",
+            "consumer-secret",
+        )
         .unwrap();
 
     let cfg = Config {

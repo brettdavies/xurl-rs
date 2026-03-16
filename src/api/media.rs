@@ -78,13 +78,7 @@ pub fn execute_media_upload(
 
     // APPEND — upload in 4MB chunks
     upload_chunks(
-        file_path,
-        &media_id,
-        &base_opts,
-        verbose,
-        file_size,
-        client,
-        out,
+        file_path, &media_id, &base_opts, verbose, file_size, client, out,
     )?;
 
     // FINALIZE
@@ -107,7 +101,9 @@ pub fn execute_media_upload(
         out.print_response(&processing_response);
     }
 
-    out.status(&format!("Media uploaded successfully! Media ID: {media_id}"));
+    out.status(&format!(
+        "Media uploaded successfully! Media ID: {media_id}"
+    ));
     Ok(())
 }
 
@@ -297,7 +293,8 @@ pub fn handle_media_append_request(
     };
 
     let file_name = Path::new(media_file)
-        .file_name().map_or_else(|| "file".to_string(), |n| n.to_string_lossy().to_string());
+        .file_name()
+        .map_or_else(|| "file".to_string(), |n| n.to_string_lossy().to_string());
 
     let mut form_fields = HashMap::new();
     form_fields.insert("segment_index".to_string(), segment_index);
@@ -350,8 +347,11 @@ pub fn extract_media_id(url: &str) -> String {
 #[must_use]
 pub fn extract_segment_index(data: &str) -> Option<String> {
     let json: serde_json::Value = serde_json::from_str(data).ok()?;
-    json.get("segment_index")
-        .and_then(|v| v.as_str().map(std::string::ToString::to_string).or_else(|| Some(v.to_string())))
+    json.get("segment_index").and_then(|v| {
+        v.as_str()
+            .map(std::string::ToString::to_string)
+            .or_else(|| Some(v.to_string()))
+    })
 }
 
 /// Checks if the request is a media append request.

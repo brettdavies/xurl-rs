@@ -21,8 +21,14 @@ use xurl::store::OAuth1Token;
 #[test]
 fn test_percent_encoding_unreserved_chars() {
     // Letters and digits are never encoded
-    assert_eq!(encode("abcdefghijklmnopqrstuvwxyz"), "abcdefghijklmnopqrstuvwxyz");
-    assert_eq!(encode("ABCDEFGHIJKLMNOPQRSTUVWXYZ"), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    assert_eq!(
+        encode("abcdefghijklmnopqrstuvwxyz"),
+        "abcdefghijklmnopqrstuvwxyz"
+    );
+    assert_eq!(
+        encode("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    );
     assert_eq!(encode("0123456789"), "0123456789");
     // encode() uses form_urlencoded::byte_serialize (matching Go's url.QueryEscape):
     // - hyphen and period are unreserved
@@ -103,10 +109,16 @@ fn test_oauth1_deterministic_signature() {
     .unwrap();
 
     // Same inputs → same output
-    assert_eq!(header1, header2, "Deterministic: same inputs should produce identical headers");
+    assert_eq!(
+        header1, header2,
+        "Deterministic: same inputs should produce identical headers"
+    );
 
     // Verify the header format
-    assert!(header1.starts_with("OAuth "), "Header should start with 'OAuth '");
+    assert!(
+        header1.starts_with("OAuth "),
+        "Header should start with 'OAuth '"
+    );
     assert!(header1.contains("oauth_consumer_key=\"dpf43f3p2l4k3l03\""));
     assert!(header1.contains("oauth_token=\"nnch734d00sl2jdk\""));
     assert!(header1.contains(&format!("oauth_nonce=\"{fixed_nonce}\"")));
@@ -146,7 +158,10 @@ fn test_oauth1_signature_changes_with_nonce() {
     .unwrap();
 
     // Different nonce → different signature
-    assert_ne!(header1, header2, "Different nonces should produce different headers");
+    assert_ne!(
+        header1, header2,
+        "Different nonces should produce different headers"
+    );
 }
 
 #[test]
@@ -178,7 +193,10 @@ fn test_oauth1_signature_changes_with_method() {
     )
     .unwrap();
 
-    assert_ne!(header_get, header_post, "Different methods should produce different signatures");
+    assert_ne!(
+        header_get, header_post,
+        "Different methods should produce different signatures"
+    );
 }
 
 #[test]
@@ -214,7 +232,10 @@ fn test_oauth1_signature_with_query_params() {
     )
     .unwrap();
 
-    assert_ne!(header, header_no_params, "Query params should affect the signature");
+    assert_ne!(
+        header, header_no_params,
+        "Query params should affect the signature"
+    );
 }
 
 #[test]
@@ -249,7 +270,10 @@ fn test_oauth1_signature_with_additional_params() {
     )
     .unwrap();
 
-    assert_ne!(header_with, header_without, "Additional params should affect the signature");
+    assert_ne!(
+        header_with, header_without,
+        "Additional params should affect the signature"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -309,7 +333,10 @@ fn test_oauth1_known_vector_signature() {
     // This was computed by running the test once and capturing the output.
     // If the algorithm changes, this test will catch it.
     let expected_sig = "tR3%2BTy81lMeYAr%2FFid0kMTYa%2FWM%3D";
-    assert_eq!(signature, expected_sig, "Signature should match known value");
+    assert_eq!(
+        signature, expected_sig,
+        "Signature should match known value"
+    );
 }
 
 /// Percent-decode a string (reverse of encode).

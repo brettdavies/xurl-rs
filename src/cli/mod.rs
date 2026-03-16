@@ -92,7 +92,13 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format: text (default), json (machine-readable), jsonl (streaming)
-    #[arg(long, global = true, default_value = "text", value_enum, env = "XURL_OUTPUT")]
+    #[arg(
+        long,
+        global = true,
+        default_value = "text",
+        value_enum,
+        env = "XURL_OUTPUT"
+    )]
     pub output: OutputFormat,
 
     /// Suppress all non-essential output (errors still go to stderr)

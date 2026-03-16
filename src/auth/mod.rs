@@ -25,7 +25,7 @@ pub struct Auth {
 
 impl Auth {
     /// Creates a new `Auth` object. Credentials are resolved: env vars -> active app.
-    #[must_use] 
+    #[must_use]
     pub fn new(cfg: &Config) -> Self {
         let ts = TokenStore::with_credentials(&cfg.client_id, &cfg.client_secret);
 
@@ -171,38 +171,38 @@ impl Auth {
     }
 
     /// Replaces the token store (used in integration tests).
-    #[allow(dead_code)]
-    #[must_use] 
+    #[allow(dead_code)] // Public library API — used by consumers and integration tests
+    #[must_use]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
         self.token_store = token_store;
         self
     }
 
     /// Returns a reference to the token store.
-    #[allow(dead_code)]
-    #[must_use] 
+    #[allow(dead_code)] // Public library API — used by consumers and integration tests
+    #[must_use]
     pub fn token_store(&self) -> &TokenStore {
         &self.token_store
     }
 
     // Accessors
-    #[must_use] 
+    #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id
     }
-    #[must_use] 
+    #[must_use]
     pub fn client_secret(&self) -> &str {
         &self.client_secret
     }
-    #[must_use] 
+    #[must_use]
     pub fn auth_url(&self) -> &str {
         &self.auth_url
     }
-    #[must_use] 
+    #[must_use]
     pub fn token_url(&self) -> &str {
         &self.token_url
     }
-    #[must_use] 
+    #[must_use]
     pub fn redirect_uri(&self) -> &str {
         &self.redirect_uri
     }

@@ -47,9 +47,7 @@ fn colorize_and_print_json(json_str: &str) {
                 || value.ends_with("],")
             {
                 // Find the last bracket position
-                let last_bracket = value
-                    .rfind(['}', ']'])
-                    .unwrap_or(value.len());
+                let last_bracket = value.rfind(['}', ']']).unwrap_or(value.len());
 
                 if last_bracket > 0 {
                     let before = &value[..last_bracket];
@@ -85,10 +83,7 @@ fn print_colorized_value(value: &str) {
     {
         // String value
         print!("{}", value.green());
-    } else if matches!(
-        trimmed,
-        "true" | "false" | "true," | "false,"
-    ) {
+    } else if matches!(trimmed, "true" | "false" | "true," | "false,") {
         // Boolean value
         print!("{}", value.magenta());
     } else if matches!(trimmed, "null" | "null,") {

@@ -98,3 +98,19 @@ jobs:
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Homebrew formula update
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh api repos/brettdavies/homebrew-tap/dispatches \
+            --method POST \
+            -f event_type=update-formula \
+            -f 'client_payload[formula]=xurl-rs' \
+            -f "client_payload[version]=${VERSION#v}" \
+            -f 'client_payload[repo]=brettdavies/xurl-rs'

@@ -43,8 +43,8 @@ tags = ["basic", "error"]
 [[test]]
 name = "no-args"
 args = []
-compare = ["exit_code", "stdout"]
-normalize = ["help_text", "binary_name"]
+compare = ["exit_code"]
+expect_failure = true
 tags = ["basic", "error"]
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -46,6 +46,7 @@ pub struct TestCase {
     #[serde(default)]
     pub skip_reason: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub tags: Vec<String>,
 }
 
@@ -83,10 +84,9 @@ pub struct DifferentialRunner {
 
 impl DifferentialRunner {
     pub fn new() -> Self {
-        let original_bin = env::var("XURL_ORIGINAL_BIN")
-            .unwrap_or_else(|_| "xurl".to_string());
-        let port_bin = env::var("XURL_PORT_BIN")
-            .unwrap_or_else(|_| env!("CARGO_BIN_EXE_xr").to_string());
+        let original_bin = env::var("XURL_ORIGINAL_BIN").unwrap_or_else(|_| "xurl".to_string());
+        let port_bin =
+            env::var("XURL_PORT_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_xr").to_string());
 
         Self {
             original_bin,
@@ -182,9 +182,8 @@ impl DifferentialRunner {
             let port_stdout = String::from_utf8_lossy(&port_output.stdout);
             if !port_stdout.contains(expected.as_str()) {
                 stdout_match = false;
-                stdout_diff = format!(
-                    "Expected stdout to contain: {expected:?}\nGot: {port_stdout}"
-                );
+                stdout_diff =
+                    format!("Expected stdout to contain: {expected:?}\nGot: {port_stdout}");
             }
         }
 
@@ -197,7 +196,7 @@ impl DifferentialRunner {
             stdout_match,
             stderr_match,
             original_exit: orig_exit,
-            port_exit: port_exit,
+            port_exit,
             stdout_diff,
             skipped: false,
             skip_reason: String::new(),
@@ -321,7 +320,10 @@ mod tests {
             .join("test_cases.toml");
 
         if !toml_path.exists() {
-            eprintln!("Skipping: test_cases.toml not found at {}", toml_path.display());
+            eprintln!(
+                "Skipping: test_cases.toml not found at {}",
+                toml_path.display()
+            );
             return;
         }
 

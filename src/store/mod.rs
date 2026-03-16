@@ -94,9 +94,7 @@ impl App {
     }
 
     fn has_tokens(&self) -> bool {
-        !self.oauth2_tokens.is_empty()
-            || self.oauth1_token.is_some()
-            || self.bearer_token.is_some()
+        !self.oauth2_tokens.is_empty() || self.oauth1_token.is_some() || self.bearer_token.is_some()
     }
 }
 
@@ -122,7 +120,7 @@ struct LegacyStore {
 // ── Twurlrc structures ──────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields populated by serde deserialization
 struct TwurlrcProfile {
     username: Option<String>,
     consumer_key: Option<String>,
@@ -146,24 +144,23 @@ pub struct TokenStore {
     pub file_path: PathBuf,
 }
 
-#[allow(dead_code)]
 impl Default for TokenStore {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl TokenStore {
     /// Creates a new `TokenStore`, loading from `~/.xurl` (auto-migrating legacy JSON).
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::with_credentials("", "")
     }
 
     /// Creates a `TokenStore` and backfills the given client credentials into any
     /// app that was migrated without them.
-    #[must_use] 
+    #[must_use]
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
         let file_path = home_dir.join(".xurl");
@@ -198,6 +195,12 @@ impl TokenStore {
             }
         }
 
+        // Ensure a default app exists (matches Go: NewTokenStore always returns a usable store)
+        if store.apps.is_empty() {
+            store.default_app = "default".to_string();
+            store.apps.insert("default".to_string(), App::new());
+        }
+
         // Import from .twurlrc if we have no apps or the default app is missing OAuth1/Bearer
         let needs_import = match store.active_app() {
             None => true,
@@ -206,16 +209,17 @@ impl TokenStore {
         if needs_import {
             let twurlrc_path = home_dir.join(".twurlrc");
             if twurlrc_path.exists()
-                && let Err(e) = store.import_from_twurlrc(&twurlrc_path) {
-                    eprintln!("Error importing from .twurlrc: {e}");
-                }
+                && let Err(e) = store.import_from_twurlrc(&twurlrc_path)
+            {
+                eprintln!("Error importing from .twurlrc: {e}");
+            }
         }
 
         store
     }
 
     /// Creates a `TokenStore` from a specific file path (no auto-import).
-    #[must_use] 
+    #[must_use]
     pub fn new_with_path(path: &str) -> Self {
         let file_path = PathBuf::from(path);
         let mut store = TokenStore {
@@ -234,12 +238,8 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` from a specific file path with credential backfill.
-    #[must_use] 
-    pub fn new_with_credentials_and_path(
-        client_id: &str,
-        client_secret: &str,
-        path: &str,
-    ) -> Self {
+    #[must_use]
+    pub fn new_with_credentials_and_path(client_id: &str, client_secret: &str, path: &str) -> Self {
         let mut store = Self::new_with_path(path);
         if !client_id.is_empty() || !client_secret.is_empty() {
             for app in store.apps.values_mut() {
@@ -258,7 +258,7 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` using a custom home directory (for testing).
-    #[must_use] 
+    #[must_use]
     pub fn new_with_home(home: &str) -> Self {
         let home_path = PathBuf::from(home);
         let file_path = home_path.join(".xurl");
@@ -289,7 +289,7 @@ impl TokenStore {
     }
 
     /// Loads a `TokenStore` from a specific file path (alias for `new_with_path`).
-    #[must_use] 
+    #[must_use]
     pub fn load_from_path(path: &str) -> Self {
         Self::new_with_path(path)
     }
@@ -298,11 +298,12 @@ impl TokenStore {
     fn load_from_data(&mut self, data: &[u8]) {
         // Try new YAML format first
         if let Ok(sf) = serde_yaml::from_slice::<StoreFile>(data)
-            && !sf.apps.is_empty() {
-                self.apps = sf.apps;
-                self.default_app = sf.default_app;
-                return;
-            }
+            && !sf.apps.is_empty()
+        {
+            self.apps = sf.apps;
+            self.default_app = sf.default_app;
+            return;
+        }
 
         // Fall back to legacy JSON
         if let Ok(legacy) = serde_json::from_slice::<LegacyStore>(data) {
@@ -330,10 +331,14 @@ impl TokenStore {
     /// Returns an error if the app name already exists or the store cannot be saved.
     pub fn add_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
         if self.apps.contains_key(name) {
-            return Err(XurlError::token_store(format!("app {name:?} already exists")));
+            return Err(XurlError::token_store(format!(
+                "app {name:?} already exists"
+            )));
         }
-        self.apps
-            .insert(name.to_string(), App::with_credentials(client_id, client_secret));
+        self.apps.insert(
+            name.to_string(),
+            App::with_credentials(client_id, client_secret),
+        );
         if self.apps.len() == 1 {
             self.default_app = name.to_string();
         }
@@ -389,13 +394,13 @@ impl TokenStore {
     }
 
     /// Returns sorted app names.
-    #[must_use] 
+    #[must_use]
     pub fn list_apps(&self) -> Vec<String> {
         self.apps.keys().cloned().collect()
     }
 
     /// Returns an app by name.
-    #[must_use] 
+    #[must_use]
     pub fn get_app(&self, name: &str) -> Option<&App> {
         self.apps.get(name)
     }
@@ -417,20 +422,20 @@ impl TokenStore {
     }
 
     /// Returns the default `OAuth2` user for the named (or default) app.
-    #[must_use] 
+    #[must_use]
     pub fn get_default_user(&self, app_name: &str) -> &str {
         let app = self.resolve_app(app_name);
         &app.default_user
     }
 
     /// Returns the default app name.
-    #[must_use] 
+    #[must_use]
     pub fn get_default_app(&self) -> &str {
         &self.default_app
     }
 
     /// Returns the name of the active app (explicit or default).
-    #[must_use] 
+    #[must_use]
     pub fn get_active_app_name<'a>(&'a self, explicit: &'a str) -> &'a str {
         if explicit.is_empty() {
             &self.default_app
@@ -461,20 +466,19 @@ impl TokenStore {
     }
 
     /// Returns the app for the given name, or the default app.
-    #[must_use] 
+    #[must_use]
     pub fn resolve_app(&self, name: &str) -> &App {
         if !name.is_empty()
-            && let Some(app) = self.apps.get(name) {
-                return app;
-            }
+            && let Some(app) = self.apps.get(name)
+        {
+            return app;
+        }
         // Fall back to default app, or a static empty app
-        self.apps
-            .get(&self.default_app)
-            .unwrap_or_else(|| {
-                // This is a fallback — should rarely happen
-                static EMPTY: std::sync::LazyLock<App> = std::sync::LazyLock::new(App::new);
-                &EMPTY
-            })
+        self.apps.get(&self.default_app).unwrap_or_else(|| {
+            // This is a fallback — should rarely happen
+            static EMPTY: std::sync::LazyLock<App> = std::sync::LazyLock::new(App::new);
+            &EMPTY
+        })
     }
 
     /// Returns the app for the given name (mutable), or the default app.
@@ -627,7 +631,13 @@ impl TokenStore {
         consumer_key: &str,
         consumer_secret: &str,
     ) -> Result<()> {
-        self.save_oauth1_tokens_for_app("", access_token, token_secret, consumer_key, consumer_secret)
+        self.save_oauth1_tokens_for_app(
+            "",
+            access_token,
+            token_secret,
+            consumer_key,
+            consumer_secret,
+        )
     }
 
     /// Saves `OAuth1` tokens into the named app.
@@ -659,57 +669,58 @@ impl TokenStore {
     }
 
     /// Gets an `OAuth2` token for a username from the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth2_token(&self, username: &str) -> Option<&Token> {
         self.get_oauth2_token_for_app("", username)
     }
 
     /// Gets an `OAuth2` token for a username from the named app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth2_token_for_app(&self, app_name: &str, username: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.oauth2_tokens.get(username)
     }
 
     /// Gets the first `OAuth2` token from the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn get_first_oauth2_token(&self) -> Option<&Token> {
         self.get_first_oauth2_token_for_app("")
     }
 
     /// Gets the default user's token, or the first `OAuth2` token from the named app.
-    #[must_use] 
+    #[must_use]
     pub fn get_first_oauth2_token_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         // Prefer the default user if one is set and still has a token
         if !app.default_user.is_empty()
-            && let Some(token) = app.oauth2_tokens.get(&app.default_user) {
-                return Some(token);
-            }
+            && let Some(token) = app.oauth2_tokens.get(&app.default_user)
+        {
+            return Some(token);
+        }
         app.oauth2_tokens.values().next()
     }
 
     /// Gets `OAuth1` tokens from the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth1_tokens(&self) -> Option<&Token> {
         self.get_oauth1_tokens_for_app("")
     }
 
     /// Gets `OAuth1` tokens from the named app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth1_tokens_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.oauth1_token.as_ref()
     }
 
     /// Gets the bearer token from the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn get_bearer_token(&self) -> Option<&Token> {
         self.get_bearer_token_for_app("")
     }
 
     /// Gets the bearer token from the named app.
-    #[must_use] 
+    #[must_use]
     pub fn get_bearer_token_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.bearer_token.as_ref()
@@ -798,27 +809,27 @@ impl TokenStore {
     }
 
     /// Gets all `OAuth2` usernames from the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth2_usernames(&self) -> Vec<String> {
         self.get_oauth2_usernames_for_app("")
     }
 
     /// Gets all `OAuth2` usernames from the named app.
-    #[must_use] 
+    #[must_use]
     pub fn get_oauth2_usernames_for_app(&self, app_name: &str) -> Vec<String> {
         let app = self.resolve_app(app_name);
         app.oauth2_tokens.keys().cloned().collect()
     }
 
     /// Checks if `OAuth1` tokens exist in the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn has_oauth1_tokens(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.oauth1_token.is_some())
     }
 
     /// Checks if a bearer token exists in the resolved app.
-    #[must_use] 
+    #[must_use]
     pub fn has_bearer_token(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.bearer_token.is_some())

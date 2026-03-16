@@ -37,7 +37,7 @@ pub enum XurlError {
     TokenStore(String),
 }
 
-#[allow(dead_code)]
+#[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl XurlError {
     /// Create an API error from a raw JSON response body.
     ///
@@ -63,7 +63,7 @@ impl XurlError {
     }
 
     /// Returns true if this is an API error.
-    #[must_use] 
+    #[must_use]
     pub fn is_api(&self) -> bool {
         matches!(self, Self::Api(_))
     }

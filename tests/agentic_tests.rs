@@ -106,7 +106,15 @@ fn test_combined_agentic_flags() {
     // All agentic flags can be used together
     Command::cargo_bin("xr")
         .unwrap()
-        .args(["--output", "json", "--quiet", "--no-interactive", "--timeout", "10", "--help"])
+        .args([
+            "--output",
+            "json",
+            "--quiet",
+            "--no-interactive",
+            "--timeout",
+            "10",
+            "--help",
+        ])
         .assert()
         .success();
 }
