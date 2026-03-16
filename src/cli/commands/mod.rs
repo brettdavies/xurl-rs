@@ -28,14 +28,11 @@ pub fn run(cli: Cli) {
 
 /// Runs raw curl-style mode.
 fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth) {
-    let url = match &cli.url {
-        Some(u) => u.clone(),
-        None => {
-            println!("No URL provided");
-            println!("Usage: xurl [OPTIONS] [URL] [COMMAND]");
-            println!("Try 'xurl --help' for more information.");
-            process::exit(1);
-        }
+    let url = if let Some(u) = &cli.url { u.clone() } else {
+        println!("No URL provided");
+        println!("Usage: xurl [OPTIONS] [URL] [COMMAND]");
+        println!("Try 'xurl --help' for more information.");
+        process::exit(1);
     };
 
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
@@ -86,39 +83,21 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth) {
 }
 
 /// Runs a subcommand.
+#[allow(clippy::too_many_lines)]
 fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
-        Commands::Post {
-            text,
-            media_ids,
-            common,
-        } => {
+        Commands::Post { text, media_ids, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             print_result(api::create_post(&mut client, &text, &media_ids, &opts));
         }
-        Commands::Reply {
-            post_id,
-            text,
-            media_ids,
-            common,
-        } => {
+        Commands::Reply { post_id, text, media_ids, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::reply_to_post(
-                &mut client,
-                &post_id,
-                &text,
-                &media_ids,
-                &opts,
-            ));
+            print_result(api::reply_to_post(&mut client, &post_id, &text, &media_ids, &opts));
         }
-        Commands::Quote {
-            post_id,
-            text,
-            common,
-        } => {
+        Commands::Quote { post_id, text, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             print_result(api::quote_post(&mut client, &post_id, &text, &opts));
@@ -135,11 +114,7 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
             let opts = common.to_request_options();
             print_result(api::read_post(&mut client, &post_id, &opts));
         }
-        Commands::Search {
-            query,
-            max_results,
-            common,
-        } => {
+        Commands::Search { query, max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             print_result(api::search_posts(&mut client, &query, max_results, &opts));
@@ -158,19 +133,13 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
         }
 
         // ── Timeline & Mentions ──────────────────────────────────────
-        Commands::Timeline {
-            max_results,
-            common,
-        } => {
+        Commands::Timeline { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = resolve_my_user_id(&mut client, &opts);
             print_result(api::get_timeline(&mut client, &user_id, max_results, &opts));
         }
-        Commands::Mentions {
-            max_results,
-            common,
-        } => {
+        Commands::Mentions { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = resolve_my_user_id(&mut client, &opts);
@@ -214,19 +183,13 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
             let user_id = resolve_my_user_id(&mut client, &opts);
             print_result(api::unbookmark(&mut client, &user_id, &post_id, &opts));
         }
-        Commands::Bookmarks {
-            max_results,
-            common,
-        } => {
+        Commands::Bookmarks { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = resolve_my_user_id(&mut client, &opts);
             print_result(api::get_bookmarks(&mut client, &user_id, max_results, &opts));
         }
-        Commands::Likes {
-            max_results,
-            common,
-        } => {
+        Commands::Likes { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = resolve_my_user_id(&mut client, &opts);
@@ -248,29 +211,23 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
             let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::unfollow_user(&mut client, &my_id, &target_id, &opts));
         }
-        Commands::Following {
-            max_results,
-            of,
-            common,
-        } => {
+        Commands::Following { max_results, of, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = match of {
-                Some(ref target) => resolve_user_id(&mut client, target, &opts),
-                None => resolve_my_user_id(&mut client, &opts),
+            let user_id = if let Some(ref target) = of {
+                resolve_user_id(&mut client, target, &opts)
+            } else {
+                resolve_my_user_id(&mut client, &opts)
             };
             print_result(api::get_following(&mut client, &user_id, max_results, &opts));
         }
-        Commands::Followers {
-            max_results,
-            of,
-            common,
-        } => {
+        Commands::Followers { max_results, of, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = match of {
-                Some(ref target) => resolve_user_id(&mut client, target, &opts),
-                None => resolve_my_user_id(&mut client, &opts),
+            let user_id = if let Some(ref target) = of {
+                resolve_user_id(&mut client, target, &opts)
+            } else {
+                resolve_my_user_id(&mut client, &opts)
             };
             print_result(api::get_followers(&mut client, &user_id, max_results, &opts));
         }
@@ -304,20 +261,13 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
         }
 
         // ── Direct Messages ──────────────────────────────────────────
-        Commands::Dm {
-            target_username,
-            text,
-            common,
-        } => {
+        Commands::Dm { target_username, text, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let target_id = resolve_user_id(&mut client, &target_username, &opts);
             print_result(api::send_dm(&mut client, &target_id, &text, &opts));
         }
-        Commands::Dms {
-            max_results,
-            common,
-        } => {
+        Commands::Dms { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             print_result(api::get_dm_events(&mut client, max_results, &opts));
@@ -338,6 +288,7 @@ fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
 
 // ── Auth subcommand handlers ─────────────────────────────────────────
 
+#[allow(clippy::too_many_lines)]
 fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
     match cmd {
         AuthCommands::Oauth2 => {
@@ -390,15 +341,17 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
             for (i, name) in apps.iter().enumerate() {
                 if let Some(app) = ts.get_app(name) {
                     let marker = if name == default_app { "\u{25b8}" } else { " " };
-                    let client_hint = if !app.client_id.is_empty() {
-                        format!("client_id: {}...", truncate(&app.client_id, 8))
-                    } else {
+                    let client_hint = if app.client_id.is_empty() {
                         "(no credentials)".to_string()
+                    } else {
+                        format!("client_id: {}...", truncate(&app.client_id, 8))
                     };
                     println!("{marker} {name}  [{client_hint}]");
 
                     let usernames = ts.get_oauth2_usernames_for_app(name);
-                    if !usernames.is_empty() {
+                    if usernames.is_empty() {
+                        println!("      oauth2: (none)");
+                    } else {
                         for u in &usernames {
                             if *u == app.default_user {
                                 println!("    \u{25b8} oauth2: {u}");
@@ -406,8 +359,6 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
                                 println!("      oauth2: {u}");
                             }
                         }
-                    } else {
-                        println!("      oauth2: (none)");
                     }
 
                     if app.oauth1_token.is_some() {
@@ -610,10 +561,10 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth) {
                     } else {
                         "  "
                     };
-                    let client_hint = if !app.client_id.is_empty() {
-                        format!(" (client_id: {}...)", truncate(&app.client_id, 8))
-                    } else {
+                    let client_hint = if app.client_id.is_empty() {
                         String::new()
+                    } else {
+                        format!(" (client_id: {}...)", truncate(&app.client_id, 8))
                     };
                     println!("{marker}{name}{client_hint}");
                 }

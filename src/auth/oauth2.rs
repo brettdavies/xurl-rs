@@ -1,6 +1,6 @@
-/// OAuth2 PKCE flow and token refresh.
+/// `OAuth2` PKCE flow and token refresh.
 ///
-/// Implements the browser-based OAuth2 authorization code flow with PKCE
+/// Implements the browser-based `OAuth2` authorization code flow with PKCE
 /// (Proof Key for Code Exchange) as used by the X API.
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -13,7 +13,8 @@ use super::Auth;
 use super::callback;
 use crate::error::{Result, XurlError};
 
-/// OAuth2 scopes requested for xurl.
+/// `OAuth2` scopes requested for xurl.
+#[must_use] 
 pub fn get_oauth2_scopes() -> Vec<&'static str> {
     vec![
         // Read scopes
@@ -45,6 +46,7 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
 }
 
 /// Generates a PKCE code verifier and its S256 challenge.
+#[must_use] 
 pub fn generate_code_verifier_and_challenge() -> (String, String) {
     let b: [u8; 32] = rand::random();
     let verifier = URL_SAFE_NO_PAD.encode(b);
@@ -54,7 +56,12 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
     (verifier, challenge)
 }
 
-/// Runs the full OAuth2 PKCE authorization flow.
+/// Runs the full `OAuth2` PKCE authorization flow.
+///
+/// # Errors
+///
+/// Returns an error if the authorization URL is invalid, the callback server
+/// fails, the token exchange fails, or the username cannot be resolved.
 pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
@@ -124,10 +131,10 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
     // Resolve username
-    let username_str = if !username.is_empty() {
-        username.to_string()
-    } else {
+    let username_str = if username.is_empty() {
         auth.fetch_username(&access_token)?
+    } else {
+        username.to_string()
     };
 
     let now = SystemTime::now()
@@ -146,12 +153,17 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
     Ok(access_token)
 }
 
-/// Refreshes an OAuth2 token if expired.
+/// Refreshes an `OAuth2` token if expired.
+///
+/// # Errors
+///
+/// Returns an error if no token is found, the refresh request fails, or the
+/// username cannot be resolved after refresh.
 pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
-    let token = if !username.is_empty() {
-        auth.token_store.get_oauth2_token(username).cloned()
-    } else {
+    let token = if username.is_empty() {
         auth.token_store.get_first_oauth2_token().cloned()
+    } else {
+        auth.token_store.get_oauth2_token(username).cloned()
     };
 
     let token = token.ok_or_else(|| XurlError::auth("TokenNotFound: oauth2 token not found"))?;
@@ -200,11 +212,11 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
     // Resolve username
-    let username_str = if !username.is_empty() {
-        username.to_string()
-    } else {
+    let username_str = if username.is_empty() {
         auth.fetch_username(&new_access_token)
             .map_err(|e| XurlError::auth_with_cause("UsernameFetchError", &e))?
+    } else {
+        username.to_string()
     };
 
     let new_now = SystemTime::now()

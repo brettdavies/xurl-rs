@@ -1,7 +1,7 @@
-/// OAuth2 callback server — listens for the authorization code redirect.
+/// `OAuth2` callback server — listens for the authorization code redirect.
 ///
 /// Starts a minimal HTTP server on `127.0.0.1:<port>` that handles the
-/// OAuth2 callback, validates the state parameter, and returns the code.
+/// `OAuth2` callback, validates the state parameter, and returns the code.
 /// Times out after 5 minutes, matching the Go implementation.
 use std::time::Duration;
 
@@ -32,9 +32,8 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
 
         let server_handle = tokio::spawn(async move {
             loop {
-                let (stream, _) = match listener.accept().await {
-                    Ok(conn) => conn,
-                    Err(_) => continue,
+                let Ok((stream, _)) = listener.accept().await else {
+                    continue;
                 };
 
                 let tx_ref = &tx;
@@ -42,9 +41,8 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
 
                 let mut buf = [0u8; 4096];
                 let _ = stream.readable().await;
-                let n = match stream.try_read(&mut buf) {
-                    Ok(n) => n,
-                    Err(_) => continue,
+                let Ok(n) = stream.try_read(&mut buf) else {
+                    continue;
                 };
 
                 let request = String::from_utf8_lossy(&buf[..n]);
@@ -78,7 +76,7 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                     );
                     let _ = stream.writable().await;
                     let _ = stream.try_write(response.as_bytes());
-                    if let Some(tx) = tx_ref.lock().unwrap_or_else(|e| e.into_inner()).take() {
+                    if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
                         let _ = tx.send(Err("invalid state parameter".to_string()));
                     }
                     break;
@@ -92,7 +90,7 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                     );
                     let _ = stream.writable().await;
                     let _ = stream.try_write(response.as_bytes());
-                    if let Some(tx) = tx_ref.lock().unwrap_or_else(|e| e.into_inner()).take() {
+                    if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
                         let _ = tx.send(Err("empty authorization code".to_string()));
                     }
                     break;
@@ -106,7 +104,7 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                 let _ = stream.writable().await;
                 let _ = stream.try_write(response.as_bytes());
 
-                if let Some(tx) = tx_ref.lock().unwrap_or_else(|e| e.into_inner()).take() {
+                if let Some(tx) = tx_ref.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() {
                     let _ = tx.send(Ok(code.to_string()));
                 }
                 break;
@@ -122,7 +120,7 @@ pub fn wait_for_callback(port: u16, expected_state: &str) -> Result<String> {
                     Err(_) => Err(XurlError::auth("ListenerError: oauth2 listener failed")),
                 }
             }
-            _ = tokio::time::sleep(Duration::from_secs(300)) => {
+            () = tokio::time::sleep(Duration::from_secs(300)) => {
                 Err(XurlError::auth("Timeout: authentication timed out"))
             }
         };

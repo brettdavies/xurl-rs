@@ -1,6 +1,6 @@
-/// OAuth1 HMAC-SHA1 signature generation.
+/// `OAuth1` HMAC-SHA1 signature generation.
 ///
-/// Implements the full OAuth1 signature base string construction and
+/// Implements the full `OAuth1` signature base string construction and
 /// HMAC-SHA1 signing as specified by RFC 5849.
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,7 +17,11 @@ use crate::store::OAuth1Token;
 
 type HmacSha1 = Hmac<Sha1>;
 
-/// Builds a complete OAuth1 Authorization header.
+/// Builds a complete `OAuth1` Authorization header.
+///
+/// # Errors
+///
+/// Returns an error if the URL is invalid or HMAC signature generation fails.
 pub fn build_oauth1_header(
     method: &str,
     url_str: &str,
@@ -82,7 +86,7 @@ pub fn build_oauth1_header(
     Ok(format!("OAuth {}", oauth_params.join(", ")))
 }
 
-/// Generates the OAuth1 signature.
+/// Generates the `OAuth1` signature.
 fn generate_signature(
     method: &str,
     url_str: &str,
@@ -119,12 +123,14 @@ fn generate_signature(
 }
 
 /// Generates a random nonce.
+#[must_use] 
 pub fn generate_nonce() -> String {
     let n: u64 = rand::rng().random_range(0..1_000_000_000);
     n.to_string()
 }
 
 /// Generates the current Unix timestamp as a string.
+#[must_use] 
 pub fn generate_timestamp() -> String {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -134,6 +140,7 @@ pub fn generate_timestamp() -> String {
 }
 
 /// Percent-encodes a string (matching Go's `url.QueryEscape`).
+#[must_use] 
 pub fn encode(s: &str) -> String {
     // url::form_urlencoded::byte_serialize matches Go's url.QueryEscape
     url::form_urlencoded::byte_serialize(s.as_bytes()).collect()

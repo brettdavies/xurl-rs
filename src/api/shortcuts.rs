@@ -34,6 +34,7 @@ struct PostMedia {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /// Extracts a post ID from a full URL or returns the input as-is.
+#[must_use] 
 pub fn resolve_post_id(input: &str) -> String {
     let input = input.trim();
 
@@ -50,6 +51,7 @@ pub fn resolve_post_id(input: &str) -> String {
 }
 
 /// Normalises a username — strips a leading "@" if present.
+#[must_use] 
 pub fn resolve_username(input: &str) -> String {
     input.trim().trim_start_matches('@').to_string()
 }
@@ -57,6 +59,10 @@ pub fn resolve_username(input: &str) -> String {
 // ── Shortcut executors ───────────────────────────────────────────────
 
 /// Creates a new post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn create_post(
     client: &mut ApiClient,
     text: &str,
@@ -85,6 +91,10 @@ pub fn create_post(
 }
 
 /// Replies to an existing post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn reply_to_post(
     client: &mut ApiClient,
     post_id: &str,
@@ -117,6 +127,10 @@ pub fn reply_to_post(
 }
 
 /// Quotes an existing post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn quote_post(
     client: &mut ApiClient,
     post_id: &str,
@@ -141,6 +155,10 @@ pub fn quote_post(
 }
 
 /// Deletes a post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn delete_post(
     client: &mut ApiClient,
     post_id: &str,
@@ -156,6 +174,10 @@ pub fn delete_post(
 }
 
 /// Reads a single post with expansions.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn read_post(
     client: &mut ApiClient,
     post_id: &str,
@@ -173,6 +195,10 @@ pub fn read_post(
 }
 
 /// Searches recent posts.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn search_posts(
     client: &mut ApiClient,
     query: &str,
@@ -193,6 +219,10 @@ pub fn search_posts(
 }
 
 /// Fetches the authenticated user's profile.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_me(
     client: &mut ApiClient,
     opts: &RequestOptions,
@@ -208,6 +238,10 @@ pub fn get_me(
 }
 
 /// Looks up a user by username.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn lookup_user(
     client: &mut ApiClient,
     username: &str,
@@ -225,6 +259,10 @@ pub fn lookup_user(
 }
 
 /// Fetches the home timeline.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_timeline(
     client: &mut ApiClient,
     user_id: &str,
@@ -242,6 +280,10 @@ pub fn get_timeline(
 }
 
 /// Fetches recent mentions.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_mentions(
     client: &mut ApiClient,
     user_id: &str,
@@ -259,6 +301,10 @@ pub fn get_mentions(
 }
 
 /// Likes a post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn like_post(
     client: &mut ApiClient,
     user_id: &str,
@@ -275,6 +321,10 @@ pub fn like_post(
 }
 
 /// Unlikes a post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unlike_post(
     client: &mut ApiClient,
     user_id: &str,
@@ -291,6 +341,10 @@ pub fn unlike_post(
 }
 
 /// Reposts a post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn repost(
     client: &mut ApiClient,
     user_id: &str,
@@ -307,6 +361,10 @@ pub fn repost(
 }
 
 /// Removes a repost.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unrepost(
     client: &mut ApiClient,
     user_id: &str,
@@ -323,6 +381,10 @@ pub fn unrepost(
 }
 
 /// Bookmarks a post.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn bookmark(
     client: &mut ApiClient,
     user_id: &str,
@@ -339,6 +401,10 @@ pub fn bookmark(
 }
 
 /// Removes a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unbookmark(
     client: &mut ApiClient,
     user_id: &str,
@@ -355,6 +421,10 @@ pub fn unbookmark(
 }
 
 /// Fetches bookmarks.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_bookmarks(
     client: &mut ApiClient,
     user_id: &str,
@@ -372,6 +442,10 @@ pub fn get_bookmarks(
 }
 
 /// Follows a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn follow_user(
     client: &mut ApiClient,
     source_user_id: &str,
@@ -387,6 +461,10 @@ pub fn follow_user(
 }
 
 /// Unfollows a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unfollow_user(
     client: &mut ApiClient,
     source_user_id: &str,
@@ -402,6 +480,10 @@ pub fn unfollow_user(
 }
 
 /// Fetches users that a given user follows.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_following(
     client: &mut ApiClient,
     user_id: &str,
@@ -419,6 +501,10 @@ pub fn get_following(
 }
 
 /// Fetches followers of a given user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_followers(
     client: &mut ApiClient,
     user_id: &str,
@@ -436,6 +522,10 @@ pub fn get_followers(
 }
 
 /// Sends a direct message.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn send_dm(
     client: &mut ApiClient,
     participant_id: &str,
@@ -452,6 +542,10 @@ pub fn send_dm(
 }
 
 /// Fetches recent DM events.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_dm_events(
     client: &mut ApiClient,
     max_results: i32,
@@ -468,6 +562,10 @@ pub fn get_dm_events(
 }
 
 /// Fetches posts liked by a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn get_liked_posts(
     client: &mut ApiClient,
     user_id: &str,
@@ -485,6 +583,10 @@ pub fn get_liked_posts(
 }
 
 /// Blocks a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn block_user(
     client: &mut ApiClient,
     source_user_id: &str,
@@ -500,6 +602,10 @@ pub fn block_user(
 }
 
 /// Unblocks a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unblock_user(
     client: &mut ApiClient,
     source_user_id: &str,
@@ -515,6 +621,10 @@ pub fn unblock_user(
 }
 
 /// Mutes a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn mute_user(
     client: &mut ApiClient,
     source_user_id: &str,
@@ -530,6 +640,10 @@ pub fn mute_user(
 }
 
 /// Unmutes a user.
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
 pub fn unmute_user(
     client: &mut ApiClient,
     source_user_id: &str,

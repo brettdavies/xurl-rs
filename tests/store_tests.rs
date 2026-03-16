@@ -375,7 +375,7 @@ fn test_credential_backfill() {
     fs::write(&xurl_path, serde_json::to_string_pretty(&legacy).unwrap()).unwrap();
 
     // First load without credentials — migration happens, no backfill
-    let s1 = TokenStore::new_with_path(xurl_path.to_string_lossy().to_string());
+    let s1 = TokenStore::new_with_path(&xurl_path.to_string_lossy());
     let app1 = s1.get_app("default");
     assert!(app1.is_some());
     assert!(
@@ -387,7 +387,7 @@ fn test_credential_backfill() {
     let s2 = TokenStore::new_with_credentials_and_path(
         "env-id",
         "env-secret",
-        xurl_path.to_string_lossy().to_string(),
+        &xurl_path.to_string_lossy(),
     );
     let app2 = s2.get_app("default");
     assert!(app2.is_some());
@@ -609,7 +609,7 @@ fn test_legacy_json_migration() {
     });
     fs::write(&xurl_path, serde_json::to_string_pretty(&legacy).unwrap()).unwrap();
 
-    let store = TokenStore::new_with_path(xurl_path.to_string_lossy().to_string());
+    let store = TokenStore::new_with_path(&xurl_path.to_string_lossy());
 
     // Should have migrated into a "default" app
     assert_eq!(store.get_default_app(), "default");
@@ -659,7 +659,7 @@ fn test_yaml_persistence() {
     s1.save_bearer_token("yaml-bearer").unwrap();
 
     // Reload
-    let s2 = TokenStore::load_from_path(xurl_path.to_string_lossy().to_string());
+    let s2 = TokenStore::load_from_path(&xurl_path.to_string_lossy());
 
     assert_eq!(s2.default_app, "myapp");
     let app = s2.get_app("myapp");
@@ -750,7 +750,7 @@ configuration:
     fs::write(&twurl_path, twurl_content).unwrap();
 
     // No .xurl file — should auto-import
-    let store = TokenStore::new_with_home(tmp.path().to_string_lossy().to_string());
+    let store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
 
     let oauth1_token = store.get_oauth1_tokens();
     assert!(oauth1_token.is_some(), "OAuth1Token is nil after auto-import");
@@ -782,11 +782,11 @@ configuration:
 
     fs::write(&twurl_path, twurl_content).unwrap();
 
-    let mut store = TokenStore::new_with_home(tmp.path().to_string_lossy().to_string());
+    let mut store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
     store.clear_oauth1_tokens().unwrap();
 
     // Reload — should reimport from .twurlrc
-    let store = TokenStore::new_with_home(tmp.path().to_string_lossy().to_string());
+    let store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
 
     let oauth1_token = store.get_oauth1_tokens();
     assert!(oauth1_token.is_some(), "OAuth1Token is nil after re-import");

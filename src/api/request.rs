@@ -76,6 +76,11 @@ impl<'a> ApiClient<'a> {
     }
 
     /// Sends a regular API request and returns the JSON response.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP method is invalid, the request fails,
+    /// or the API returns an error status (>= 400).
     pub fn send_request(&mut self, options: &RequestOptions) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
@@ -145,16 +150,11 @@ impl<'a> ApiClient<'a> {
 
         let json: serde_json::Value = if body.is_empty() {
             serde_json::json!({})
-        } else {
-            match serde_json::from_str(&body) {
-                Ok(v) => v,
-                Err(_) => {
-                    if status.as_u16() >= 400 {
-                        return Err(XurlError::Http(format!("HTTP error: {status}")));
-                    }
-                    serde_json::json!({})
-                }
+        } else if let Ok(v) = serde_json::from_str(&body) { v } else {
+            if status.as_u16() >= 400 {
+                return Err(XurlError::Http(format!("HTTP error: {status}")));
             }
+            serde_json::json!({})
         };
 
         if status.as_u16() >= 400 {
@@ -165,6 +165,11 @@ impl<'a> ApiClient<'a> {
     }
 
     /// Sends a multipart request (used for media upload chunks).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP method is invalid, file I/O fails,
+    /// the request fails, or the API returns an error status (>= 400).
     pub fn send_multipart_request(&mut self, options: &MultipartOptions) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
@@ -238,6 +243,11 @@ impl<'a> ApiClient<'a> {
     }
 
     /// Sends a streaming request — reads lines until EOF.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP method is invalid, the request fails,
+    /// the API returns an error status (>= 400), or a read error occurs.
     pub fn stream_request(&mut self, options: &RequestOptions) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };

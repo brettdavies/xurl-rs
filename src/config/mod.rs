@@ -6,15 +6,15 @@
 /// Holds the application configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
-    /// OAuth2 client ID (may come from env or the active app in `.xurl`).
+    /// `OAuth2` client ID (may come from env or the active app in `.xurl`).
     pub client_id: String,
-    /// OAuth2 client secret.
+    /// `OAuth2` client secret.
     pub client_secret: String,
-    /// OAuth2 PKCE redirect URI.
+    /// `OAuth2` PKCE redirect URI.
     pub redirect_uri: String,
-    /// OAuth2 authorization URL.
+    /// `OAuth2` authorization URL.
     pub auth_url: String,
-    /// OAuth2 token exchange URL.
+    /// `OAuth2` token exchange URL.
     pub token_url: String,
     /// API base URL.
     pub api_base_url: String,
@@ -26,6 +26,7 @@ pub struct Config {
 
 impl Config {
     /// Creates a new `Config` from environment variables, falling back to defaults.
+    #[must_use] 
     pub fn new() -> Self {
         let client_id = env_or_default("CLIENT_ID", "");
         let client_secret = env_or_default("CLIENT_SECRET", "");

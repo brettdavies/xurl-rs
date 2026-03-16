@@ -2,7 +2,7 @@
 ///
 /// Supports:
 /// - Multi-app credential and token management
-/// - OAuth2, OAuth1, and Bearer token types
+/// - `OAuth2`, `OAuth1`, and Bearer token types
 /// - Legacy JSON migration (auto-converts old format)
 /// - `.twurlrc` import (legacy Twitter CLI compatibility)
 /// - Credential backfill from environment variables
@@ -16,7 +16,7 @@ use crate::error::{Result, XurlError};
 
 // ── Token types ──────────────────────────────────────────────────────
 
-/// OAuth1 authentication tokens.
+/// `OAuth1` authentication tokens.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuth1Token {
     pub access_token: String,
@@ -25,7 +25,7 @@ pub struct OAuth1Token {
     pub consumer_secret: String,
 }
 
-/// OAuth2 authentication tokens.
+/// `OAuth2` authentication tokens.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuth2Token {
     pub access_token: String,
@@ -43,6 +43,7 @@ pub enum TokenType {
 }
 
 /// A token with its type and payload.
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Token {
     #[serde(rename = "type")]
@@ -155,12 +156,14 @@ impl Default for TokenStore {
 #[allow(dead_code)]
 impl TokenStore {
     /// Creates a new `TokenStore`, loading from `~/.xurl` (auto-migrating legacy JSON).
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_credentials("", "")
     }
 
     /// Creates a `TokenStore` and backfills the given client credentials into any
     /// app that was migrated without them.
+    #[must_use] 
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
         let file_path = home_dir.join(".xurl");
@@ -212,8 +215,9 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` from a specific file path (no auto-import).
-    pub fn new_with_path(path: String) -> Self {
-        let file_path = PathBuf::from(&path);
+    #[must_use] 
+    pub fn new_with_path(path: &str) -> Self {
+        let file_path = PathBuf::from(path);
         let mut store = TokenStore {
             apps: BTreeMap::new(),
             default_app: String::new(),
@@ -230,10 +234,11 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` from a specific file path with credential backfill.
+    #[must_use] 
     pub fn new_with_credentials_and_path(
         client_id: &str,
         client_secret: &str,
-        path: String,
+        path: &str,
     ) -> Self {
         let mut store = Self::new_with_path(path);
         if !client_id.is_empty() || !client_secret.is_empty() {
@@ -253,8 +258,9 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` using a custom home directory (for testing).
-    pub fn new_with_home(home: String) -> Self {
-        let home_path = PathBuf::from(&home);
+    #[must_use] 
+    pub fn new_with_home(home: &str) -> Self {
+        let home_path = PathBuf::from(home);
         let file_path = home_path.join(".xurl");
         let mut store = TokenStore {
             apps: BTreeMap::new(),
@@ -283,7 +289,8 @@ impl TokenStore {
     }
 
     /// Loads a `TokenStore` from a specific file path (alias for `new_with_path`).
-    pub fn load_from_path(path: String) -> Self {
+    #[must_use] 
+    pub fn load_from_path(path: &str) -> Self {
         Self::new_with_path(path)
     }
 
@@ -317,6 +324,10 @@ impl TokenStore {
     // ── App management ───────────────────────────────────────────────
 
     /// Registers a new application. If it's the only app it becomes default.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the app name already exists or the store cannot be saved.
     pub fn add_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
         if self.apps.contains_key(name) {
             return Err(XurlError::token_store(format!("app {name:?} already exists")));
@@ -330,6 +341,10 @@ impl TokenStore {
     }
 
     /// Updates the credentials of an existing application.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the app is not found or the store cannot be saved.
     pub fn update_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
         let app = self
             .apps
@@ -345,6 +360,10 @@ impl TokenStore {
     }
 
     /// Removes a registered application and its tokens.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the app is not found or the store cannot be saved.
     pub fn remove_app(&mut self, name: &str) -> Result<()> {
         if !self.apps.contains_key(name) {
             return Err(XurlError::token_store(format!("app {name:?} not found")));
@@ -357,6 +376,10 @@ impl TokenStore {
     }
 
     /// Sets the default application by name.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the app is not found or the store cannot be saved.
     pub fn set_default_app(&mut self, name: &str) -> Result<()> {
         if !self.apps.contains_key(name) {
             return Err(XurlError::token_store(format!("app {name:?} not found")));
@@ -366,16 +389,22 @@ impl TokenStore {
     }
 
     /// Returns sorted app names.
+    #[must_use] 
     pub fn list_apps(&self) -> Vec<String> {
         self.apps.keys().cloned().collect()
     }
 
     /// Returns an app by name.
+    #[must_use] 
     pub fn get_app(&self, name: &str) -> Option<&App> {
         self.apps.get(name)
     }
 
-    /// Sets the default OAuth2 user for the named (or default) app.
+    /// Sets the default `OAuth2` user for the named (or default) app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         if !app.oauth2_tokens.contains_key(username) {
@@ -387,23 +416,26 @@ impl TokenStore {
         self.save_to_file()
     }
 
-    /// Returns the default OAuth2 user for the named (or default) app.
+    /// Returns the default `OAuth2` user for the named (or default) app.
+    #[must_use] 
     pub fn get_default_user(&self, app_name: &str) -> &str {
         let app = self.resolve_app(app_name);
         &app.default_user
     }
 
     /// Returns the default app name.
+    #[must_use] 
     pub fn get_default_app(&self) -> &str {
         &self.default_app
     }
 
     /// Returns the name of the active app (explicit or default).
+    #[must_use] 
     pub fn get_active_app_name<'a>(&'a self, explicit: &'a str) -> &'a str {
-        if !explicit.is_empty() {
-            explicit
-        } else {
+        if explicit.is_empty() {
             &self.default_app
+        } else {
+            explicit
         }
     }
 
@@ -429,6 +461,7 @@ impl TokenStore {
     }
 
     /// Returns the app for the given name, or the default app.
+    #[must_use] 
     pub fn resolve_app(&self, name: &str) -> &App {
         if !name.is_empty()
             && let Some(app) = self.apps.get(name) {
@@ -445,6 +478,11 @@ impl TokenStore {
     }
 
     /// Returns the app for the given name (mutable), or the default app.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal app map is in an inconsistent state (should never
+    /// happen as `active_app_or_create` always inserts a default).
     pub fn resolve_app_mut(&mut self, name: &str) -> &mut App {
         if !name.is_empty() && self.apps.contains_key(name) {
             return self.apps.get_mut(name).expect("just checked");
@@ -455,6 +493,10 @@ impl TokenStore {
     // ── Twurlrc import ───────────────────────────────────────────────
 
     /// Imports tokens from a `.twurlrc` file into the active app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read, parsed, or the store cannot be saved.
     pub fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
         let data = fs::read(file_path)?;
         let twurlrc: TwurlrcConfig = serde_yaml::from_slice(&data)?;
@@ -504,11 +546,19 @@ impl TokenStore {
     // ── Token operations ─────────────────────────────────────────────
 
     /// Saves a bearer token into the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_bearer_token(&mut self, token: &str) -> Result<()> {
         self.save_bearer_token_for_app("", token)
     }
 
     /// Saves a bearer token into the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_bearer_token_for_app(&mut self, app_name: &str, token: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         app.bearer_token = Some(Token {
@@ -520,7 +570,11 @@ impl TokenStore {
         self.save_to_file()
     }
 
-    /// Saves an OAuth2 token into the resolved app.
+    /// Saves an `OAuth2` token into the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_oauth2_token(
         &mut self,
         username: &str,
@@ -531,7 +585,11 @@ impl TokenStore {
         self.save_oauth2_token_for_app("", username, access_token, refresh_token, expiration_time)
     }
 
-    /// Saves an OAuth2 token into the named app.
+    /// Saves an `OAuth2` token into the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_oauth2_token_for_app(
         &mut self,
         app_name: &str,
@@ -557,7 +615,11 @@ impl TokenStore {
         self.save_to_file()
     }
 
-    /// Saves OAuth1 tokens into the resolved app.
+    /// Saves `OAuth1` tokens into the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_oauth1_tokens(
         &mut self,
         access_token: &str,
@@ -568,7 +630,11 @@ impl TokenStore {
         self.save_oauth1_tokens_for_app("", access_token, token_secret, consumer_key, consumer_secret)
     }
 
-    /// Saves OAuth1 tokens into the named app.
+    /// Saves `OAuth1` tokens into the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn save_oauth1_tokens_for_app(
         &mut self,
         app_name: &str,
@@ -592,23 +658,27 @@ impl TokenStore {
         self.save_to_file()
     }
 
-    /// Gets an OAuth2 token for a username from the resolved app.
+    /// Gets an `OAuth2` token for a username from the resolved app.
+    #[must_use] 
     pub fn get_oauth2_token(&self, username: &str) -> Option<&Token> {
         self.get_oauth2_token_for_app("", username)
     }
 
-    /// Gets an OAuth2 token for a username from the named app.
+    /// Gets an `OAuth2` token for a username from the named app.
+    #[must_use] 
     pub fn get_oauth2_token_for_app(&self, app_name: &str, username: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.oauth2_tokens.get(username)
     }
 
-    /// Gets the first OAuth2 token from the resolved app.
+    /// Gets the first `OAuth2` token from the resolved app.
+    #[must_use] 
     pub fn get_first_oauth2_token(&self) -> Option<&Token> {
         self.get_first_oauth2_token_for_app("")
     }
 
-    /// Gets the default user's token, or the first OAuth2 token from the named app.
+    /// Gets the default user's token, or the first `OAuth2` token from the named app.
+    #[must_use] 
     pub fn get_first_oauth2_token_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         // Prefer the default user if one is set and still has a token
@@ -619,46 +689,66 @@ impl TokenStore {
         app.oauth2_tokens.values().next()
     }
 
-    /// Gets OAuth1 tokens from the resolved app.
+    /// Gets `OAuth1` tokens from the resolved app.
+    #[must_use] 
     pub fn get_oauth1_tokens(&self) -> Option<&Token> {
         self.get_oauth1_tokens_for_app("")
     }
 
-    /// Gets OAuth1 tokens from the named app.
+    /// Gets `OAuth1` tokens from the named app.
+    #[must_use] 
     pub fn get_oauth1_tokens_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.oauth1_token.as_ref()
     }
 
     /// Gets the bearer token from the resolved app.
+    #[must_use] 
     pub fn get_bearer_token(&self) -> Option<&Token> {
         self.get_bearer_token_for_app("")
     }
 
     /// Gets the bearer token from the named app.
+    #[must_use] 
     pub fn get_bearer_token_for_app(&self, app_name: &str) -> Option<&Token> {
         let app = self.resolve_app(app_name);
         app.bearer_token.as_ref()
     }
 
-    /// Clears an OAuth2 token for a username from the resolved app.
+    /// Clears an `OAuth2` token for a username from the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth2_token(&mut self, username: &str) -> Result<()> {
         self.clear_oauth2_token_for_app("", username)
     }
 
-    /// Clears an OAuth2 token for a username from the named app.
+    /// Clears an `OAuth2` token for a username from the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth2_token_for_app(&mut self, app_name: &str, username: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         app.oauth2_tokens.remove(username);
         self.save_to_file()
     }
 
-    /// Clears OAuth1 tokens from the resolved app.
+    /// Clears `OAuth1` tokens from the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth1_tokens(&mut self) -> Result<()> {
         self.clear_oauth1_tokens_for_app("")
     }
 
-    /// Clears OAuth1 tokens from the named app.
+    /// Clears `OAuth1` tokens from the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth1_tokens_for_app(&mut self, app_name: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         app.oauth1_token = None;
@@ -666,11 +756,19 @@ impl TokenStore {
     }
 
     /// Clears the bearer token from the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_bearer_token(&mut self) -> Result<()> {
         self.clear_bearer_token_for_app("")
     }
 
     /// Clears the bearer token from the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_bearer_token_for_app(&mut self, app_name: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         app.bearer_token = None;
@@ -678,11 +776,19 @@ impl TokenStore {
     }
 
     /// Clears all tokens from the resolved app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_all(&mut self) -> Result<()> {
         self.clear_all_for_app("")
     }
 
     /// Clears all tokens from the named app.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
     pub fn clear_all_for_app(&mut self, app_name: &str) -> Result<()> {
         let app = self.resolve_app_mut(app_name);
         app.oauth2_tokens.clear();
@@ -691,24 +797,28 @@ impl TokenStore {
         self.save_to_file()
     }
 
-    /// Gets all OAuth2 usernames from the resolved app.
+    /// Gets all `OAuth2` usernames from the resolved app.
+    #[must_use] 
     pub fn get_oauth2_usernames(&self) -> Vec<String> {
         self.get_oauth2_usernames_for_app("")
     }
 
-    /// Gets all OAuth2 usernames from the named app.
+    /// Gets all `OAuth2` usernames from the named app.
+    #[must_use] 
     pub fn get_oauth2_usernames_for_app(&self, app_name: &str) -> Vec<String> {
         let app = self.resolve_app(app_name);
         app.oauth2_tokens.keys().cloned().collect()
     }
 
-    /// Checks if OAuth1 tokens exist in the resolved app.
+    /// Checks if `OAuth1` tokens exist in the resolved app.
+    #[must_use] 
     pub fn has_oauth1_tokens(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.oauth1_token.is_some())
     }
 
     /// Checks if a bearer token exists in the resolved app.
+    #[must_use] 
     pub fn has_bearer_token(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.bearer_token.is_some())

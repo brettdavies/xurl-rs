@@ -1,4 +1,4 @@
-/// Authentication orchestration — OAuth2 PKCE, OAuth1 HMAC-SHA1, Bearer.
+/// Authentication orchestration — `OAuth2` PKCE, `OAuth1` HMAC-SHA1, Bearer.
 ///
 /// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
 /// env-var config -> active app in `.xurl` store.
@@ -11,6 +11,7 @@ use crate::error::{Result, XurlError};
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
+#[allow(clippy::struct_field_names)]
 pub struct Auth {
     pub token_store: TokenStore,
     info_url: String,
@@ -24,6 +25,7 @@ pub struct Auth {
 
 impl Auth {
     /// Creates a new `Auth` object. Credentials are resolved: env vars -> active app.
+    #[must_use] 
     pub fn new(cfg: &Config) -> Self {
         let ts = TokenStore::with_credentials(&cfg.client_id, &cfg.client_secret);
 
@@ -33,10 +35,10 @@ impl Auth {
 
         let app = ts.resolve_app(&app_name);
         if client_id.is_empty() {
-            client_id = app.client_id.clone();
+            client_id.clone_from(&app.client_id);
         }
         if client_secret.is_empty() {
-            client_secret = app.client_secret.clone();
+            client_secret.clone_from(&app.client_secret);
         }
 
         Self {
@@ -63,7 +65,11 @@ impl Auth {
         }
     }
 
-    /// Gets the OAuth1 Authorization header for a request.
+    /// Gets the `OAuth1` Authorization header for a request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no `OAuth1` token is found or signature generation fails.
     pub fn get_oauth1_header(
         &self,
         method: &str,
@@ -83,12 +89,16 @@ impl Auth {
         oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
     }
 
-    /// Gets or refreshes an OAuth2 token and returns the Authorization header.
+    /// Gets or refreshes an `OAuth2` token and returns the Authorization header.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the `OAuth2` flow fails or token refresh fails.
     pub fn get_oauth2_header(&mut self, username: &str) -> Result<String> {
-        let token = if !username.is_empty() {
-            self.token_store.get_oauth2_token(username).cloned()
-        } else {
+        let token = if username.is_empty() {
             self.token_store.get_first_oauth2_token().cloned()
+        } else {
+            self.token_store.get_oauth2_token(username).cloned()
         };
 
         if token.is_none() {
@@ -100,17 +110,30 @@ impl Auth {
         Ok(format!("Bearer {access_token}"))
     }
 
-    /// Starts the OAuth2 PKCE flow.
+    /// Starts the `OAuth2` PKCE flow.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization flow, token exchange, or username
+    /// resolution fails.
     pub fn oauth2_flow(&mut self, username: &str) -> Result<String> {
         oauth2::run_oauth2_flow(self, username)
     }
 
-    /// Validates and refreshes an OAuth2 token if needed.
+    /// Validates and refreshes an `OAuth2` token if needed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no token is found or the refresh request fails.
     pub fn refresh_oauth2_token(&mut self, username: &str) -> Result<String> {
         oauth2::refresh_oauth2_token(self, username)
     }
 
     /// Gets the bearer token Authorization header.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no bearer token is found in the token store.
     pub fn get_bearer_token_header(&self) -> Result<String> {
         let token = self
             .token_store
@@ -141,7 +164,7 @@ impl Auth {
         body.get("data")
             .and_then(|d| d.get("username"))
             .and_then(|u| u.as_str())
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .ok_or_else(|| {
                 XurlError::auth("UsernameNotFound: username not found when fetching username")
             })
@@ -149,6 +172,7 @@ impl Auth {
 
     /// Replaces the token store (used in integration tests).
     #[allow(dead_code)]
+    #[must_use] 
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
         self.token_store = token_store;
         self
@@ -156,23 +180,29 @@ impl Auth {
 
     /// Returns a reference to the token store.
     #[allow(dead_code)]
-    pub fn token_store(&self) -> Option<&TokenStore> {
-        Some(&self.token_store)
+    #[must_use] 
+    pub fn token_store(&self) -> &TokenStore {
+        &self.token_store
     }
 
     // Accessors
+    #[must_use] 
     pub fn client_id(&self) -> &str {
         &self.client_id
     }
+    #[must_use] 
     pub fn client_secret(&self) -> &str {
         &self.client_secret
     }
+    #[must_use] 
     pub fn auth_url(&self) -> &str {
         &self.auth_url
     }
+    #[must_use] 
     pub fn token_url(&self) -> &str {
         &self.token_url
     }
+    #[must_use] 
     pub fn redirect_uri(&self) -> &str {
         &self.redirect_uri
     }

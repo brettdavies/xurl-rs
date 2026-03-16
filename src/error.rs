@@ -63,6 +63,7 @@ impl XurlError {
     }
 
     /// Returns true if this is an API error.
+    #[must_use] 
     pub fn is_api(&self) -> bool {
         matches!(self, Self::Api(_))
     }

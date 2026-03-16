@@ -15,6 +15,11 @@ use crate::error::{Result, XurlError};
 pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
 
 /// Handles the full media upload lifecycle.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read, any upload phase (INIT, APPEND,
+/// FINALIZE) fails, or media processing times out.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_media_upload(
     file_path: &str,
@@ -73,65 +78,14 @@ pub fn execute_media_upload(
     }
 
     // APPEND — upload in 4MB chunks
-    if verbose {
-        eprintln!("\x1b[32mUploading media in chunks...\x1b[0m");
-    }
-
-    let mut file = std::fs::File::open(file_path)?;
-    let chunk_size = 4 * 1024 * 1024;
-    let mut buffer = vec![0u8; chunk_size];
-    let mut segment_index = 0;
-    let mut bytes_uploaded: u64 = 0;
-
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
-        }
-
-        let append_url = format!("{MEDIA_ENDPOINT}/{media_id}/append");
-        let file_name = Path::new(file_path)
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "file".to_string());
-
-        let mut form_fields = HashMap::new();
-        form_fields.insert("segment_index".to_string(), segment_index.to_string());
-
-        let multipart_opts = MultipartOptions {
-            request: RequestOptions {
-                method: "POST".to_string(),
-                endpoint: append_url,
-                headers: headers.to_vec(),
-                auth_type: auth_type.to_string(),
-                username: username.to_string(),
-                verbose,
-                trace,
-                ..Default::default()
-            },
-            form_fields,
-            file_field: "media".to_string(),
-            file_path: String::new(),
-            file_name,
-            file_data: buffer[..bytes_read].to_vec(),
-        };
-
-        client.send_multipart_request(&multipart_opts)?;
-
-        bytes_uploaded += bytes_read as u64;
-        segment_index += 1;
-
-        if verbose {
-            let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
-            eprintln!(
-                "\x1b[33mUploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)\x1b[0m"
-            );
-        }
-    }
-
-    if verbose {
-        eprintln!("\x1b[32mUpload complete!\x1b[0m");
-    }
+    upload_chunks(
+        file_path,
+        &media_id,
+        &base_opts,
+        verbose,
+        file_size,
+        client,
+    )?;
 
     // FINALIZE
     if verbose {
@@ -161,7 +115,83 @@ pub fn execute_media_upload(
     Ok(())
 }
 
+/// Uploads file data in 4 MB chunks via APPEND requests.
+fn upload_chunks(
+    file_path: &str,
+    media_id: &str,
+    base_opts: &RequestOptions,
+    verbose: bool,
+    file_size: u64,
+    client: &mut ApiClient,
+) -> Result<()> {
+    if verbose {
+        eprintln!("\x1b[32mUploading media in chunks...\x1b[0m");
+    }
+
+    let mut file = std::fs::File::open(file_path)?;
+    let chunk_size = 4 * 1024 * 1024;
+    let mut buffer = vec![0u8; chunk_size];
+    let mut segment_index = 0;
+    let mut bytes_uploaded: u64 = 0;
+
+    loop {
+        let bytes_read = file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+
+        let append_url = format!("{MEDIA_ENDPOINT}/{media_id}/append");
+        let file_name = Path::new(file_path)
+            .file_name()
+            .map_or_else(|| "file".to_string(), |n| n.to_string_lossy().to_string());
+
+        let mut form_fields = HashMap::new();
+        form_fields.insert("segment_index".to_string(), segment_index.to_string());
+
+        let multipart_opts = MultipartOptions {
+            request: RequestOptions {
+                method: "POST".to_string(),
+                endpoint: append_url,
+                headers: base_opts.headers.clone(),
+                auth_type: base_opts.auth_type.clone(),
+                username: base_opts.username.clone(),
+                verbose,
+                trace: base_opts.trace,
+                ..Default::default()
+            },
+            form_fields,
+            file_field: "media".to_string(),
+            file_path: String::new(),
+            file_name,
+            file_data: buffer[..bytes_read].to_vec(),
+        };
+
+        client.send_multipart_request(&multipart_opts)?;
+
+        bytes_uploaded += bytes_read as u64;
+        segment_index += 1;
+
+        if verbose {
+            #[allow(clippy::cast_precision_loss)]
+            let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
+            eprintln!(
+                "\x1b[33mUploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)\x1b[0m"
+            );
+        }
+    }
+
+    if verbose {
+        eprintln!("\x1b[32mUpload complete!\x1b[0m");
+    }
+
+    Ok(())
+}
+
 /// Checks or waits for media upload status.
+///
+/// # Errors
+///
+/// Returns an error if the status request fails or processing times out.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_media_status(
     media_id: &str,
@@ -251,6 +281,11 @@ fn wait_for_media_processing(
 }
 
 /// Handles a media append request with a file (raw mode).
+///
+/// # Errors
+///
+/// Returns an error if the `media_id` is missing, the file cannot be read,
+/// or the multipart request fails.
 pub fn handle_media_append_request(
     options: &RequestOptions,
     media_file: &str,
@@ -272,9 +307,7 @@ pub fn handle_media_append_request(
     };
 
     let file_name = Path::new(media_file)
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "file".to_string());
+        .file_name().map_or_else(|| "file".to_string(), |n| n.to_string_lossy().to_string());
 
     let mut form_fields = HashMap::new();
     form_fields.insert("segment_index".to_string(), segment_index);
@@ -291,7 +324,8 @@ pub fn handle_media_append_request(
     client.send_multipart_request(&multipart_opts)
 }
 
-/// Extracts media_id from a URL.
+/// Extracts `media_id` from a URL.
+#[must_use] 
 pub fn extract_media_id(url: &str) -> String {
     if url.is_empty() || !url.contains("/2/media/upload") {
         return String::new();
@@ -322,14 +356,16 @@ pub fn extract_media_id(url: &str) -> String {
     String::new()
 }
 
-/// Extracts segment_index from a JSON data string.
+/// Extracts `segment_index` from a JSON data string.
+#[must_use] 
 pub fn extract_segment_index(data: &str) -> Option<String> {
     let json: serde_json::Value = serde_json::from_str(data).ok()?;
     json.get("segment_index")
-        .and_then(|v| v.as_str().map(|s| s.to_string()).or_else(|| Some(v.to_string())))
+        .and_then(|v| v.as_str().map(std::string::ToString::to_string).or_else(|| Some(v.to_string())))
 }
 
 /// Checks if the request is a media append request.
+#[must_use] 
 pub fn is_media_append_request(url: &str, media_file: &str) -> bool {
     url.contains("/2/media/upload") && url.contains("append") && !media_file.is_empty()
 }

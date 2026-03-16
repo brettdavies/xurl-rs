@@ -64,7 +64,7 @@ pub struct Cli {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// Username for OAuth2 authentication
+    /// Username for `OAuth2` authentication
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -369,7 +369,7 @@ pub struct CommonFlags {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// OAuth2 username to act as
+    /// `OAuth2` username to act as
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -398,9 +398,9 @@ impl CommonFlags {
 /// Auth subcommands.
 #[derive(Subcommand, Debug)]
 pub enum AuthCommands {
-    /// Configure OAuth2 authentication
+    /// Configure `OAuth2` authentication
     Oauth2,
-    /// Configure OAuth1 authentication
+    /// Configure `OAuth1` authentication
     Oauth1 {
         /// Consumer key
         #[arg(long = "consumer-key")]
@@ -428,10 +428,10 @@ pub enum AuthCommands {
         /// Clear all authentication
         #[arg(long)]
         all: bool,
-        /// Clear OAuth1 tokens
+        /// Clear `OAuth1` tokens
         #[arg(long)]
         oauth1: bool,
-        /// Clear OAuth2 token for username
+        /// Clear `OAuth2` token for username
         #[arg(long = "oauth2-username")]
         oauth2_username: Option<String>,
         /// Clear bearer token
@@ -459,10 +459,10 @@ pub enum AppCommands {
     Add {
         /// App name
         name: String,
-        /// OAuth2 client ID
+        /// `OAuth2` client ID
         #[arg(long = "client-id")]
         client_id: String,
-        /// OAuth2 client secret
+        /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: String,
     },
@@ -470,10 +470,10 @@ pub enum AppCommands {
     Update {
         /// App name
         name: String,
-        /// OAuth2 client ID
+        /// `OAuth2` client ID
         #[arg(long = "client-id")]
         client_id: Option<String>,
-        /// OAuth2 client secret
+        /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: Option<String>,
     },
@@ -496,7 +496,7 @@ pub enum MediaCommands {
         /// Media type (e.g., video/mp4)
         #[arg(long = "media-type", default_value = "video/mp4")]
         media_type: String,
-        /// Media category (e.g., amplify_video)
+        /// Media category (e.g., `amplify_video`)
         #[arg(long = "category", default_value = "amplify_video")]
         category: String,
         /// Wait for media processing to complete

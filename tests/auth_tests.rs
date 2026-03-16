@@ -61,7 +61,8 @@ fn test_new_auth() {
     let cfg = test_config();
     let auth = Auth::new(&cfg);
 
-    assert!(auth.token_store().is_some(), "Expected non-nil TokenStore");
+    // token_store() now returns &TokenStore directly (always valid)
+    let _ = auth.token_store();
 }
 
 // ── TestWithTokenStore ─────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ fn test_with_token_store() {
     let (token_store, _tmp) = create_temp_token_store();
     let new_auth = auth.with_token_store(token_store);
 
-    assert!(new_auth.token_store().is_some());
+    let _ = new_auth.token_store();
 }
 
 // ── TestBearerToken ────────────────────────────────────────────────────────
