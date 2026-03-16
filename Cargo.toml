@@ -1,6 +1,6 @@
 [package]
 name = "xurl"
-version = "0.1.0"
+version = "1.0.3"
 edition = "2024"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT"
