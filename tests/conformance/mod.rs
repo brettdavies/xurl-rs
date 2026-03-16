@@ -86,7 +86,7 @@ impl DifferentialRunner {
         let original_bin = env::var("XURL_ORIGINAL_BIN")
             .unwrap_or_else(|_| "xurl".to_string());
         let port_bin = env::var("XURL_PORT_BIN")
-            .unwrap_or_else(|_| env!("CARGO_BIN_EXE_xurl").to_string());
+            .unwrap_or_else(|_| env!("CARGO_BIN_EXE_xr").to_string());
 
         Self {
             original_bin,

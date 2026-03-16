@@ -13,7 +13,7 @@ use tempfile::TempDir;
 
 #[test]
 fn test_help_flag() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("--help")
         .assert()
@@ -23,7 +23,7 @@ fn test_help_flag() {
 
 #[test]
 fn test_version_flag() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("--version")
         .assert()
@@ -33,7 +33,7 @@ fn test_version_flag() {
 
 #[test]
 fn test_invalid_flag() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("--definitely-not-a-real-flag")
         .assert()
@@ -47,7 +47,7 @@ fn test_invalid_flag() {
 
 #[test]
 fn test_post_help() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["post", "--help"])
         .assert()
@@ -56,7 +56,7 @@ fn test_post_help() {
 
 #[test]
 fn test_search_help() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["search", "--help"])
         .assert()
@@ -65,7 +65,7 @@ fn test_search_help() {
 
 #[test]
 fn test_auth_help() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "--help"])
         .assert()
@@ -79,7 +79,7 @@ fn test_auth_help() {
 #[test]
 fn test_post_without_text_fails() {
     // Post command requires text argument
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("post")
         .assert()
@@ -89,7 +89,7 @@ fn test_post_without_text_fails() {
 #[test]
 fn test_search_without_query_fails() {
     // Search command requires a query
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("search")
         .assert()
@@ -98,7 +98,7 @@ fn test_search_without_query_fails() {
 
 #[test]
 fn test_delete_without_id_fails() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("delete")
         .assert()
@@ -107,7 +107,7 @@ fn test_delete_without_id_fails() {
 
 #[test]
 fn test_reply_without_args_fails() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("reply")
         .assert()
@@ -122,7 +122,7 @@ fn test_reply_without_args_fails() {
 fn test_whoami_without_auth_fails() {
     let tmp = TempDir::new().unwrap();
 
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .arg("whoami")
         .env("HOME", tmp.path())
@@ -139,7 +139,7 @@ fn test_whoami_without_auth_fails() {
 
 #[test]
 fn test_apps_list_help() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "apps", "--help"])
         .assert()
@@ -152,7 +152,7 @@ fn test_apps_list_help() {
 
 #[test]
 fn test_exit_code_success_on_help() {
-    let output = Command::cargo_bin("xurl")
+    let output = Command::cargo_bin("xr")
         .unwrap()
         .arg("--help")
         .output()
@@ -167,7 +167,7 @@ fn test_exit_code_success_on_help() {
 
 #[test]
 fn test_exit_code_failure_on_bad_flag() {
-    let output = Command::cargo_bin("xurl")
+    let output = Command::cargo_bin("xr")
         .unwrap()
         .arg("--nonexistent")
         .output()
@@ -188,7 +188,7 @@ fn test_exit_code_failure_on_bad_flag() {
 fn test_verbose_flag_accepted() {
     // --verbose should be accepted even if the command ultimately fails
     // due to missing auth — we just verify the flag is recognized
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--verbose", "--help"])
         .assert()
@@ -197,7 +197,7 @@ fn test_verbose_flag_accepted() {
 
 #[test]
 fn test_trace_flag_accepted() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--trace", "--help"])
         .assert()

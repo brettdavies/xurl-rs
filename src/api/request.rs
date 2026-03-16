@@ -57,6 +57,12 @@ impl<'a> ApiClient<'a> {
         }
     }
 
+    /// Builds the full URL from an endpoint (public accessor for command layer).
+    #[must_use]
+    pub fn build_url_public(&self, endpoint: &str) -> String {
+        self.build_url(endpoint)
+    }
+
     /// Builds the full URL from an endpoint.
     fn build_url(&self, endpoint: &str) -> String {
         if endpoint.to_lowercase().starts_with("http") {
@@ -244,10 +250,15 @@ impl<'a> ApiClient<'a> {
 
     /// Sends a streaming request — reads lines until EOF.
     ///
+    /// Note: The binary uses `stream_request_with_output` in `cli::commands`
+    /// for output-format awareness. This method is retained for library usage
+    /// and tests.
+    ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// the API returns an error status (>= 400), or a read error occurs.
+    #[allow(dead_code)]
     pub fn stream_request(&mut self, options: &RequestOptions) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
@@ -294,7 +305,7 @@ impl<'a> ApiClient<'a> {
             eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
         }
 
-        println!("\x1b[1;32mConnecting to streaming endpoint: {}\x1b[0m", options.endpoint);
+        eprintln!("Connecting to streaming endpoint: {}", options.endpoint);
 
         let resp = builder.send()?;
 
@@ -318,8 +329,8 @@ impl<'a> ApiClient<'a> {
             return Err(XurlError::api(body));
         }
 
-        println!("\x1b[1;32m--- Streaming response started ---\x1b[0m");
-        println!("\x1b[1;32m--- Press Ctrl+C to stop ---\x1b[0m");
+        eprintln!("--- Streaming response started ---");
+        eprintln!("--- Press Ctrl+C to stop ---");
 
         let reader = BufReader::with_capacity(1024 * 1024, resp);
         for line in reader.lines() {
@@ -336,8 +347,23 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        println!("\x1b[1;32m--- End of stream ---\x1b[0m");
+        eprintln!("--- End of stream ---");
         Ok(())
+    }
+
+    /// Gets the authorization header for a request (public accessor for command layer).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no valid auth method is found.
+    pub fn get_auth_header_public(
+        &mut self,
+        method: &str,
+        url: &str,
+        auth_type: &str,
+        username: &str,
+    ) -> Result<String> {
+        self.get_auth_header(method, url, auth_type, username)
     }
 
     /// Gets the authorization header for a request.

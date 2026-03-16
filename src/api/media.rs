@@ -9,8 +9,8 @@ use std::thread;
 use std::time::Duration;
 
 use super::request::{ApiClient, MultipartOptions, RequestOptions};
-use super::response::format_and_print_response;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
 
@@ -32,6 +32,7 @@ pub fn execute_media_upload(
     wait_for_processing: bool,
     headers: &[String],
     client: &mut ApiClient,
+    out: &OutputConfig,
 ) -> Result<()> {
     let metadata = std::fs::metadata(file_path)
         .map_err(|e| XurlError::Io(format!("error accessing file: {e}")))?;
@@ -52,9 +53,7 @@ pub fn execute_media_upload(
     };
 
     // INIT
-    if verbose {
-        eprintln!("\x1b[32mInitializing media upload...\x1b[0m");
-    }
+    out.status("Initializing media upload...");
 
     let init_body = serde_json::json!({
         "total_bytes": file_size,
@@ -74,7 +73,7 @@ pub fn execute_media_upload(
         .to_string();
 
     if verbose {
-        format_and_print_response(&init_response);
+        out.print_response(&init_response);
     }
 
     // APPEND — upload in 4MB chunks
@@ -85,12 +84,11 @@ pub fn execute_media_upload(
         verbose,
         file_size,
         client,
+        out,
     )?;
 
     // FINALIZE
-    if verbose {
-        eprintln!("\x1b[32mFinalizing media upload...\x1b[0m");
-    }
+    out.status("Finalizing media upload...");
 
     let mut finalize_opts = base_opts.clone();
     finalize_opts.method = "POST".to_string();
@@ -98,20 +96,18 @@ pub fn execute_media_upload(
     finalize_opts.data.clear();
 
     let finalize_response = client.send_request(&finalize_opts)?;
-    format_and_print_response(&finalize_response);
+    out.print_response(&finalize_response);
 
     // Wait for processing if requested
     if wait_for_processing && media_category.contains("video") {
-        if verbose {
-            eprintln!("\x1b[32mWaiting for media processing to complete...\x1b[0m");
-        }
+        out.status("Waiting for media processing to complete...");
 
         let processing_response =
-            wait_for_media_processing(&media_id, &base_opts, verbose, client)?;
-        format_and_print_response(&processing_response);
+            wait_for_media_processing(&media_id, &base_opts, verbose, client, out)?;
+        out.print_response(&processing_response);
     }
 
-    println!("\x1b[32mMedia uploaded successfully! Media ID: {media_id}\x1b[0m");
+    out.status(&format!("Media uploaded successfully! Media ID: {media_id}"));
     Ok(())
 }
 
@@ -123,10 +119,9 @@ fn upload_chunks(
     verbose: bool,
     file_size: u64,
     client: &mut ApiClient,
+    out: &OutputConfig,
 ) -> Result<()> {
-    if verbose {
-        eprintln!("\x1b[32mUploading media in chunks...\x1b[0m");
-    }
+    out.status("Uploading media in chunks...");
 
     let mut file = std::fs::File::open(file_path)?;
     let chunk_size = 4 * 1024 * 1024;
@@ -174,16 +169,13 @@ fn upload_chunks(
         if verbose {
             #[allow(clippy::cast_precision_loss)]
             let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
-            eprintln!(
-                "\x1b[33mUploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)\x1b[0m"
-            );
+            out.info(&format!(
+                "Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"
+            ));
         }
     }
 
-    if verbose {
-        eprintln!("\x1b[32mUpload complete!\x1b[0m");
-    }
-
+    out.status("Upload complete!");
     Ok(())
 }
 
@@ -202,6 +194,7 @@ pub fn execute_media_status(
     trace: bool,
     headers: &[String],
     client: &mut ApiClient,
+    out: &OutputConfig,
 ) -> Result<()> {
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),
@@ -213,13 +206,11 @@ pub fn execute_media_status(
     };
 
     if wait {
-        let response = wait_for_media_processing(media_id, &base_opts, verbose, client)?;
-        let pretty = serde_json::to_string_pretty(&response)?;
-        println!("{pretty}");
+        let response = wait_for_media_processing(media_id, &base_opts, verbose, client, out)?;
+        out.print_response(&response);
     } else {
         let response = check_media_status(media_id, &base_opts, client)?;
-        let pretty = serde_json::to_string_pretty(&response)?;
-        println!("{pretty}");
+        out.print_response(&response);
     }
 
     Ok(())
@@ -245,6 +236,7 @@ fn wait_for_media_processing(
     base_opts: &RequestOptions,
     verbose: bool,
     client: &mut ApiClient,
+    out: &OutputConfig,
 ) -> Result<serde_json::Value> {
     loop {
         let response = check_media_status(media_id, base_opts, client)?;
@@ -254,9 +246,7 @@ fn wait_for_media_processing(
             .unwrap_or("");
 
         if state == "succeeded" {
-            if verbose {
-                eprintln!("\x1b[32mMedia processing complete!\x1b[0m");
-            }
+            out.status("Media processing complete!");
             return Ok(response);
         } else if state == "failed" {
             return Err(XurlError::Api("media processing failed".to_string()));
@@ -271,9 +261,9 @@ fn wait_for_media_processing(
             let pct = response["data"]["processing_info"]["progress_percent"]
                 .as_u64()
                 .unwrap_or(0);
-            eprintln!(
-                "\x1b[33mMedia processing in progress ({pct}%), checking again in {check_after} seconds...\x1b[0m"
-            );
+            out.info(&format!(
+                "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
+            ));
         }
 
         thread::sleep(Duration::from_secs(check_after));
@@ -325,7 +315,7 @@ pub fn handle_media_append_request(
 }
 
 /// Extracts `media_id` from a URL.
-#[must_use] 
+#[must_use]
 pub fn extract_media_id(url: &str) -> String {
     if url.is_empty() || !url.contains("/2/media/upload") {
         return String::new();
@@ -357,7 +347,7 @@ pub fn extract_media_id(url: &str) -> String {
 }
 
 /// Extracts `segment_index` from a JSON data string.
-#[must_use] 
+#[must_use]
 pub fn extract_segment_index(data: &str) -> Option<String> {
     let json: serde_json::Value = serde_json::from_str(data).ok()?;
     json.get("segment_index")
@@ -365,7 +355,7 @@ pub fn extract_segment_index(data: &str) -> Option<String> {
 }
 
 /// Checks if the request is a media append request.
-#[must_use] 
+#[must_use]
 pub fn is_media_append_request(url: &str, media_file: &str) -> bool {
     url.contains("/2/media/upload") && url.contains("append") && !media_file.is_empty()
 }

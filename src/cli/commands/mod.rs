@@ -1,17 +1,20 @@
 /// Command execution — dispatches CLI commands to API functions.
-use std::process;
-
 use crate::api::{self, ApiClient, RequestOptions};
-use crate::api::response::format_and_print_response;
 use crate::auth::Auth;
 use crate::cli::{
     AppCommands, AuthCommands, Cli, Commands, MediaCommands,
 };
 use crate::config::Config;
+use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Runs the CLI — dispatches to the appropriate handler.
-pub fn run(cli: Cli) {
+///
+/// # Errors
+///
+/// Returns an error if the command fails.
+pub fn run(cli: Cli, out: &OutputConfig) -> Result<()> {
     let cfg = Config::new();
     let mut auth = Auth::new(&cfg);
 
@@ -20,19 +23,22 @@ pub fn run(cli: Cli) {
         auth.with_app_name(app_name);
     }
 
+    let no_interactive = cli.no_interactive;
     match cli.command {
-        Some(cmd) => run_subcommand(cmd, &cfg, &mut auth),
-        None => run_raw_mode(&cli, &cfg, &mut auth),
+        Some(cmd) => run_subcommand(cmd, &cfg, &mut auth, no_interactive, out),
+        None => run_raw_mode(&cli, &cfg, &mut auth, out),
     }
 }
 
 /// Runs raw curl-style mode.
-fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth) {
-    let url = if let Some(u) = &cli.url { u.clone() } else {
+fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) -> Result<()> {
+    let url = if let Some(u) = &cli.url {
+        u.clone()
+    } else {
         println!("No URL provided");
         println!("Usage: xurl [OPTIONS] [URL] [COMMAND]");
         println!("Try 'xurl --help' for more information.");
-        process::exit(1);
+        std::process::exit(1);
     };
 
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
@@ -53,252 +59,383 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth) {
 
     // Check for media append request
     if api::is_media_append_request(&options.endpoint, &media_file) {
-        match api::handle_media_append_request(&options, &media_file, &mut client) {
-            Ok(response) => format_and_print_response(&response),
-            Err(e) => {
-                print_error(&e);
-                process::exit(1);
-            }
-        }
-        return;
+        let response = api::handle_media_append_request(&options, &media_file, &mut client)?;
+        out.print_response(&response);
+        return Ok(());
     }
 
     let should_stream =
         cli.stream || api::is_streaming_endpoint(&options.endpoint);
 
     if should_stream {
-        if let Err(e) = client.stream_request(&options) {
-            print_error(&e);
-            process::exit(1);
-        }
+        stream_request_with_output(&mut client, &options, out)
     } else {
-        match client.send_request(&options) {
-            Ok(response) => format_and_print_response(&response),
+        let response = client.send_request(&options)?;
+        out.print_response(&response);
+        Ok(())
+    }
+}
+
+/// Sends a streaming request with output-format awareness.
+fn stream_request_with_output(
+    client: &mut ApiClient,
+    options: &RequestOptions,
+    out: &OutputConfig,
+) -> Result<()> {
+    use std::io::{BufRead, BufReader};
+
+    let method = options.method.to_uppercase();
+    let method = if method.is_empty() { "GET" } else { &method };
+    let url = client.build_url_public(&options.endpoint);
+
+    let req_method = reqwest::Method::from_bytes(method.as_bytes())
+        .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
+
+    let mut builder = reqwest::blocking::Client::builder()
+        .timeout(None)
+        .build()
+        .unwrap_or_else(|_| reqwest::blocking::Client::new())
+        .request(req_method, &url);
+
+    if !options.data.is_empty() {
+        if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
+            builder = builder
+                .header("Content-Type", "application/json")
+                .body(options.data.clone());
+        } else {
+            builder = builder
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .body(options.data.clone());
+        }
+    }
+
+    for header in &options.headers {
+        if let Some((key, value)) = header.split_once(':') {
+            builder = builder.header(key.trim(), value.trim());
+        }
+    }
+
+    if let Ok(auth_header) = client.get_auth_header_public(
+        method,
+        &url,
+        &options.auth_type,
+        &options.username,
+    ) {
+        builder = builder.header("Authorization", auth_header);
+    }
+
+    builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
+
+    if options.trace {
+        builder = builder.header("X-B3-Flags", "1");
+    }
+
+    if options.verbose {
+        eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+    }
+
+    out.status(&format!("Connecting to streaming endpoint: {}", options.endpoint));
+
+    let resp = builder.send()?;
+
+    if options.verbose {
+        eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
+        for (key, value) in resp.headers() {
+            eprintln!(
+                "\x1b[1;32m< {}\x1b[0m: {}",
+                key,
+                value.to_str().unwrap_or("")
+            );
+        }
+        eprintln!();
+    }
+
+    if resp.status().as_u16() >= 400 {
+        let body = resp.text().unwrap_or_default();
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+            return Err(XurlError::api(json.to_string()));
+        }
+        return Err(XurlError::api(body));
+    }
+
+    out.status("--- Streaming response started ---");
+    out.status("--- Press Ctrl+C to stop ---");
+
+    let reader = BufReader::with_capacity(1024 * 1024, resp);
+    for line in reader.lines() {
+        match line {
+            Ok(line) => {
+                if line.is_empty() {
+                    continue;
+                }
+                out.print_stream_line(&line);
+            }
             Err(e) => {
-                handle_api_error(&e);
-                process::exit(1);
+                return Err(XurlError::Io(e.to_string()));
             }
         }
     }
+
+    out.status("--- End of stream ---");
+    Ok(())
 }
 
 /// Runs a subcommand.
 #[allow(clippy::too_many_lines)]
-fn run_subcommand(cmd: Commands, cfg: &Config, auth: &mut Auth) {
+fn run_subcommand(
+    cmd: Commands,
+    cfg: &Config,
+    auth: &mut Auth,
+    no_interactive: bool,
+    out: &OutputConfig,
+) -> Result<()> {
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
         Commands::Post { text, media_ids, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::create_post(&mut client, &text, &media_ids, &opts));
+            let response = api::create_post(&mut client, &text, &media_ids, &opts)?;
+            out.print_response(&response);
         }
         Commands::Reply { post_id, text, media_ids, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::reply_to_post(&mut client, &post_id, &text, &media_ids, &opts));
+            let response = api::reply_to_post(&mut client, &post_id, &text, &media_ids, &opts)?;
+            out.print_response(&response);
         }
         Commands::Quote { post_id, text, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::quote_post(&mut client, &post_id, &text, &opts));
+            let response = api::quote_post(&mut client, &post_id, &text, &opts)?;
+            out.print_response(&response);
         }
         Commands::Delete { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::delete_post(&mut client, &post_id, &opts));
+            let response = api::delete_post(&mut client, &post_id, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Reading ──────────────────────────────────────────────────
         Commands::Read { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::read_post(&mut client, &post_id, &opts));
+            let response = api::read_post(&mut client, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Search { query, max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::search_posts(&mut client, &query, max_results, &opts));
+            let response = api::search_posts(&mut client, &query, max_results, &opts)?;
+            out.print_response(&response);
         }
 
         // ── User Info ────────────────────────────────────────────────
         Commands::Whoami { common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::get_me(&mut client, &opts));
+            let response = api::get_me(&mut client, &opts)?;
+            out.print_response(&response);
         }
         Commands::User { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::lookup_user(&mut client, &target_username, &opts));
+            let response = api::lookup_user(&mut client, &target_username, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Timeline & Mentions ──────────────────────────────────────
         Commands::Timeline { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::get_timeline(&mut client, &user_id, max_results, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::get_timeline(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
         Commands::Mentions { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::get_mentions(&mut client, &user_id, max_results, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::get_mentions(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Engagement ───────────────────────────────────────────────
         Commands::Like { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::like_post(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::like_post(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unlike { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::unlike_post(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::unlike_post(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Repost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::repost(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::repost(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unrepost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::unrepost(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::unrepost(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Bookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::bookmark(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::bookmark(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unbookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::unbookmark(&mut client, &user_id, &post_id, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::unbookmark(&mut client, &user_id, &post_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Bookmarks { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::get_bookmarks(&mut client, &user_id, max_results, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::get_bookmarks(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
         Commands::Likes { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let user_id = resolve_my_user_id(&mut client, &opts);
-            print_result(api::get_liked_posts(&mut client, &user_id, max_results, &opts));
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = api::get_liked_posts(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Social Graph ─────────────────────────────────────────────
         Commands::Follow { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::follow_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::follow_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unfollow { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::unfollow_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::unfollow_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Following { max_results, of, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = if let Some(ref target) = of {
-                resolve_user_id(&mut client, target, &opts)
+                resolve_user_id(&mut client, target, &opts)?
             } else {
-                resolve_my_user_id(&mut client, &opts)
+                resolve_my_user_id(&mut client, &opts)?
             };
-            print_result(api::get_following(&mut client, &user_id, max_results, &opts));
+            let response = api::get_following(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
         Commands::Followers { max_results, of, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let user_id = if let Some(ref target) = of {
-                resolve_user_id(&mut client, target, &opts)
+                resolve_user_id(&mut client, target, &opts)?
             } else {
-                resolve_my_user_id(&mut client, &opts)
+                resolve_my_user_id(&mut client, &opts)?
             };
-            print_result(api::get_followers(&mut client, &user_id, max_results, &opts));
+            let response = api::get_followers(&mut client, &user_id, max_results, &opts)?;
+            out.print_response(&response);
         }
         Commands::Block { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::block_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::block_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unblock { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::unblock_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::unblock_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Mute { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::mute_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::mute_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
         Commands::Unmute { target_username, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let my_id = resolve_my_user_id(&mut client, &opts);
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::unmute_user(&mut client, &my_id, &target_id, &opts));
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::unmute_user(&mut client, &my_id, &target_id, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Direct Messages ──────────────────────────────────────────
         Commands::Dm { target_username, text, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            let target_id = resolve_user_id(&mut client, &target_username, &opts);
-            print_result(api::send_dm(&mut client, &target_id, &text, &opts));
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = api::send_dm(&mut client, &target_id, &text, &opts)?;
+            out.print_response(&response);
         }
         Commands::Dms { max_results, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
-            print_result(api::get_dm_events(&mut client, max_results, &opts));
+            let response = api::get_dm_events(&mut client, max_results, &opts)?;
+            out.print_response(&response);
         }
 
         // ── Auth ─────────────────────────────────────────────────────
-        Commands::Auth { command } => run_auth_command(command, auth),
+        Commands::Auth { command } => {
+            return run_auth_command(command, auth, no_interactive, out);
+        }
 
         // ── Media ────────────────────────────────────────────────────
-        Commands::Media { command } => run_media_command(command, cfg, auth),
+        Commands::Media { command } => {
+            return run_media_command(command, cfg, auth, out);
+        }
 
         // ── Version ──────────────────────────────────────────────────
         Commands::Version => {
-            println!("xurl {}", env!("CARGO_PKG_VERSION"));
+            out.print_message(&format!("xurl {}", env!("CARGO_PKG_VERSION")));
         }
     }
+    Ok(())
 }
 
 // ── Auth subcommand handlers ─────────────────────────────────────────
 
 #[allow(clippy::too_many_lines)]
-fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
+fn run_auth_command(
+    cmd: AuthCommands,
+    auth: &mut Auth,
+    no_interactive: bool,
+    out: &OutputConfig,
+) -> Result<()> {
     match cmd {
         AuthCommands::Oauth2 => {
-            match auth.oauth2_flow("") {
-                Ok(_) => println!("\x1b[32mOAuth2 authentication successful!\x1b[0m"),
-                Err(e) => {
-                    println!("OAuth2 authentication failed: {e}");
-                    process::exit(1);
-                }
-            }
+            auth.oauth2_flow("")?;
+            out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
         }
         AuthCommands::Oauth1 {
             consumer_key,
@@ -306,27 +443,17 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
             access_token,
             token_secret,
         } => {
-            match auth.token_store.save_oauth1_tokens(
+            auth.token_store.save_oauth1_tokens(
                 &access_token,
                 &token_secret,
                 &consumer_key,
                 &consumer_secret,
-            ) {
-                Ok(()) => println!("\x1b[32mOAuth1 credentials saved successfully!\x1b[0m"),
-                Err(e) => {
-                    println!("Error saving OAuth1 tokens: {e}");
-                    process::exit(1);
-                }
-            }
+            )?;
+            out.print_message("\x1b[32mOAuth1 credentials saved successfully!\x1b[0m");
         }
         AuthCommands::App { bearer_token } => {
-            match auth.token_store.save_bearer_token(&bearer_token) {
-                Ok(()) => println!("\x1b[32mApp authentication successful!\x1b[0m"),
-                Err(e) => {
-                    println!("Error saving bearer token: {e}");
-                    process::exit(1);
-                }
-            }
+            auth.token_store.save_bearer_token(&bearer_token)?;
+            out.print_message("\x1b[32mApp authentication successful!\x1b[0m");
         }
         AuthCommands::Status => {
             let ts = TokenStore::new();
@@ -334,8 +461,8 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                println!("No apps registered. Use 'xurl auth apps add' to register one.");
-                return;
+                out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                return Ok(());
             }
 
             for (i, name) in apps.iter().enumerate() {
@@ -346,35 +473,35 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
                     } else {
                         format!("client_id: {}...", truncate(&app.client_id, 8))
                     };
-                    println!("{marker} {name}  [{client_hint}]");
+                    out.print_message(&format!("{marker} {name}  [{client_hint}]"));
 
                     let usernames = ts.get_oauth2_usernames_for_app(name);
                     if usernames.is_empty() {
-                        println!("      oauth2: (none)");
+                        out.print_message("      oauth2: (none)");
                     } else {
                         for u in &usernames {
                             if *u == app.default_user {
-                                println!("    \u{25b8} oauth2: {u}");
+                                out.print_message(&format!("    \u{25b8} oauth2: {u}"));
                             } else {
-                                println!("      oauth2: {u}");
+                                out.print_message(&format!("      oauth2: {u}"));
                             }
                         }
                     }
 
                     if app.oauth1_token.is_some() {
-                        println!("      oauth1: \u{2713}");
+                        out.print_message("      oauth1: \u{2713}");
                     } else {
-                        println!("      oauth1: \u{2013}");
+                        out.print_message("      oauth1: \u{2013}");
                     }
 
                     if app.bearer_token.is_some() {
-                        println!("      bearer: \u{2713}");
+                        out.print_message("      bearer: \u{2713}");
                     } else {
-                        println!("      bearer: \u{2013}");
+                        out.print_message("      bearer: \u{2013}");
                     }
 
                     if i < apps.len() - 1 {
-                        println!();
+                        out.print_message("");
                     }
                 }
             }
@@ -386,70 +513,49 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
             bearer,
         } => {
             if all {
-                match auth.token_store.clear_all() {
-                    Ok(()) => println!("All authentication cleared!"),
-                    Err(e) => {
-                        println!("Error clearing all tokens: {e}");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.clear_all()?;
+                out.print_message("All authentication cleared!");
             } else if oauth1 {
-                match auth.token_store.clear_oauth1_tokens() {
-                    Ok(()) => println!("OAuth1 tokens cleared!"),
-                    Err(e) => {
-                        println!("Error clearing OAuth1 tokens: {e}");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.clear_oauth1_tokens()?;
+                out.print_message("OAuth1 tokens cleared!");
             } else if let Some(username) = oauth2_username {
-                match auth.token_store.clear_oauth2_token(&username) {
-                    Ok(()) => println!("OAuth2 token cleared for {username}!"),
-                    Err(e) => {
-                        println!("Error clearing OAuth2 token: {e}");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.clear_oauth2_token(&username)?;
+                out.print_message(&format!("OAuth2 token cleared for {username}!"));
             } else if bearer {
-                match auth.token_store.clear_bearer_token() {
-                    Ok(()) => println!("Bearer token cleared!"),
-                    Err(e) => {
-                        println!("Error clearing bearer token: {e}");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.clear_bearer_token()?;
+                out.print_message("Bearer token cleared!");
             } else {
-                println!("No authentication cleared! Use --all to clear all authentication.");
-                process::exit(1);
+                return Err(XurlError::Api(
+                    "No authentication cleared! Use --all to clear all authentication.".to_string(),
+                ));
             }
         }
-        AuthCommands::Apps { command } => run_app_command(command, auth),
+        AuthCommands::Apps { command } => {
+            return run_app_command(command, auth, out);
+        }
         AuthCommands::Default {
             app_name,
             username,
         } => {
             if let Some(app_name) = app_name {
-                match auth.token_store.set_default_app(&app_name) {
-                    Ok(()) => println!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"),
-                    Err(e) => {
-                        println!("\x1b[31mError: {e}\x1b[0m");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.set_default_app(&app_name)?;
+                out.print_message(&format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"));
                 if let Some(user) = username {
-                    match auth.token_store.set_default_user(&app_name, &user) {
-                        Ok(()) => println!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
-                        Err(e) => {
-                            println!("\x1b[31mError: {e}\x1b[0m");
-                            process::exit(1);
-                        }
-                    }
+                    auth.token_store.set_default_user(&app_name, &user)?;
+                    out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
                 }
             } else {
                 // Interactive picker
+                if no_interactive {
+                    return Err(XurlError::auth(
+                        "Interactive prompt required. Pass app name as argument: xurl auth default <app-name>",
+                    ));
+                }
+
                 let apps = auth.token_store.list_apps();
                 if apps.is_empty() {
-                    println!("No apps registered. Use 'xurl auth apps add' to register one.");
-                    return;
+                    out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                    return Ok(());
                 }
 
                 let app_choice = match dialoguer::Select::new()
@@ -458,20 +564,14 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
                     .interact_opt()
                 {
                     Ok(Some(idx)) => apps[idx].clone(),
-                    Ok(None) => return,
+                    Ok(None) => return Ok(()),
                     Err(e) => {
-                        println!("\x1b[31mError: {e}\x1b[0m");
-                        process::exit(1);
+                        return Err(XurlError::Api(format!("Selection error: {e}")));
                     }
                 };
 
-                match auth.token_store.set_default_app(&app_choice) {
-                    Ok(()) => println!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
-                    Err(e) => {
-                        println!("\x1b[31mError: {e}\x1b[0m");
-                        process::exit(1);
-                    }
-                }
+                auth.token_store.set_default_app(&app_choice)?;
+                out.print_message(&format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"));
 
                 let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
                 if !users.is_empty()
@@ -481,37 +581,26 @@ fn run_auth_command(cmd: AuthCommands, auth: &mut Auth) {
                         .interact_opt()
                     {
                         let user = &users[idx];
-                        match auth.token_store.set_default_user(&app_choice, user) {
-                            Ok(()) => println!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
-                            Err(e) => {
-                                println!("\x1b[31mError: {e}\x1b[0m");
-                                process::exit(1);
-                            }
-                        }
+                        auth.token_store.set_default_user(&app_choice, user)?;
+                        out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
                     }
             }
         }
     }
+    Ok(())
 }
 
-fn run_app_command(cmd: AppCommands, auth: &mut Auth) {
+fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Result<()> {
     match cmd {
         AppCommands::Add {
             name,
             client_id,
             client_secret,
         } => {
-            match auth.token_store.add_app(&name, &client_id, &client_secret) {
-                Ok(()) => {
-                    println!("\x1b[32mApp {name:?} registered!\x1b[0m");
-                    if auth.token_store.list_apps().len() == 1 {
-                        println!("  (set as default app)");
-                    }
-                }
-                Err(e) => {
-                    println!("\x1b[31mError: {e}\x1b[0m");
-                    process::exit(1);
-                }
+            auth.token_store.add_app(&name, &client_id, &client_secret)?;
+            out.print_message(&format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
+            if auth.token_store.list_apps().len() == 1 {
+                out.print_message("  (set as default app)");
             }
         }
         AppCommands::Update {
@@ -520,29 +609,20 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth) {
             client_secret,
         } => {
             if client_id.is_none() && client_secret.is_none() {
-                println!("Nothing to update. Provide --client-id and/or --client-secret.");
-                process::exit(1);
+                return Err(XurlError::Api(
+                    "Nothing to update. Provide --client-id and/or --client-secret.".to_string(),
+                ));
             }
-            match auth.token_store.update_app(
+            auth.token_store.update_app(
                 &name,
                 &client_id.unwrap_or_default(),
                 &client_secret.unwrap_or_default(),
-            ) {
-                Ok(()) => println!("\x1b[32mApp {name:?} updated.\x1b[0m"),
-                Err(e) => {
-                    println!("\x1b[31mError: {e}\x1b[0m");
-                    process::exit(1);
-                }
-            }
+            )?;
+            out.print_message(&format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
         }
         AppCommands::Remove { name } => {
-            match auth.token_store.remove_app(&name) {
-                Ok(()) => println!("\x1b[32mApp {name:?} removed.\x1b[0m"),
-                Err(e) => {
-                    println!("\x1b[31mError: {e}\x1b[0m");
-                    process::exit(1);
-                }
-            }
+            auth.token_store.remove_app(&name)?;
+            out.print_message(&format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
         }
         AppCommands::List => {
             let ts = TokenStore::new();
@@ -550,8 +630,8 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth) {
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                println!("No apps registered. Use 'xurl auth apps add' to register one.");
-                return;
+                out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                return Ok(());
             }
 
             for name in &apps {
@@ -566,16 +646,22 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth) {
                     } else {
                         format!(" (client_id: {}...)", truncate(&app.client_id, 8))
                     };
-                    println!("{marker}{name}{client_hint}");
+                    out.print_message(&format!("{marker}{name}{client_hint}"));
                 }
             }
         }
     }
+    Ok(())
 }
 
 // ── Media subcommand handlers ────────────────────────────────────────
 
-fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
+fn run_media_command(
+    cmd: MediaCommands,
+    cfg: &Config,
+    auth: &mut Auth,
+    out: &OutputConfig,
+) -> Result<()> {
     match cmd {
         MediaCommands::Upload {
             file,
@@ -589,7 +675,7 @@ fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
             headers,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            if let Err(e) = api::execute_media_upload(
+            api::execute_media_upload(
                 &file,
                 &media_type,
                 &category,
@@ -600,10 +686,8 @@ fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
                 wait,
                 &headers,
                 &mut client,
-            ) {
-                println!("\x1b[31m{e}\x1b[0m");
-                process::exit(1);
-            }
+                out,
+            )
         }
         MediaCommands::Status {
             media_id,
@@ -615,7 +699,7 @@ fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
             headers,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            if let Err(e) = api::execute_media_status(
+            api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),
                 &username.unwrap_or_default(),
@@ -624,10 +708,8 @@ fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
                 trace,
                 &headers,
                 &mut client,
-            ) {
-                println!("\x1b[31m{e}\x1b[0m");
-                process::exit(1);
-            }
+                out,
+            )
         }
     }
 }
@@ -635,69 +717,28 @@ fn run_media_command(cmd: MediaCommands, cfg: &Config, auth: &mut Auth) {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /// Resolves the authenticated user's ID from /2/users/me.
-fn resolve_my_user_id(client: &mut ApiClient, opts: &RequestOptions) -> String {
-    match api::get_me(client, opts) {
-        Ok(resp) => {
-            if let Some(id) = resp["data"]["id"].as_str()
-                && !id.is_empty() {
-                    return id.to_string();
-                }
-            eprintln!("\x1b[31mError: user ID was empty -- check your auth tokens\x1b[0m");
-            process::exit(1);
-        }
-        Err(e) => {
-            eprintln!(
-                "\x1b[31mError: could not resolve your user ID (are you authenticated?): {e}\x1b[0m"
-            );
-            process::exit(1);
-        }
-    }
+fn resolve_my_user_id(client: &mut ApiClient, opts: &RequestOptions) -> Result<String> {
+    let resp = api::get_me(client, opts)?;
+    resp["data"]["id"]
+        .as_str()
+        .filter(|id| !id.is_empty())
+        .map(std::string::ToString::to_string)
+        .ok_or_else(|| {
+            XurlError::auth("user ID was empty -- check your auth tokens")
+        })
 }
 
 /// Resolves a username to a user ID.
-fn resolve_user_id(client: &mut ApiClient, username: &str, opts: &RequestOptions) -> String {
-    match api::lookup_user(client, username, opts) {
-        Ok(resp) => {
-            if let Some(id) = resp["data"]["id"].as_str()
-                && !id.is_empty() {
-                    return id.to_string();
-                }
-            let clean = username.trim_start_matches('@');
-            eprintln!("\x1b[31mError: user @{clean} not found\x1b[0m");
-            process::exit(1);
-        }
-        Err(e) => {
-            let clean = username.trim_start_matches('@');
-            eprintln!("\x1b[31mError: could not look up user @{clean}: {e}\x1b[0m");
-            process::exit(1);
-        }
-    }
-}
-
-/// Pretty-prints a result or exits on error.
-fn print_result(result: crate::error::Result<serde_json::Value>) {
-    match result {
-        Ok(response) => format_and_print_response(&response),
-        Err(e) => {
-            handle_api_error(&e);
-            process::exit(1);
-        }
-    }
-}
-
-/// Handles API errors — tries to pretty-print JSON error bodies.
-fn handle_api_error(e: &crate::error::XurlError) {
-    let err_str = e.to_string();
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&err_str) {
-        format_and_print_response(&json);
-    } else {
-        eprintln!("\x1b[31mError: {e}\x1b[0m");
-    }
-}
-
-/// Prints an error in red.
-fn print_error(e: &crate::error::XurlError) {
-    eprintln!("\x1b[31mError: {e}\x1b[0m");
+fn resolve_user_id(client: &mut ApiClient, username: &str, opts: &RequestOptions) -> Result<String> {
+    let resp = api::lookup_user(client, username, opts)?;
+    let clean = username.trim_start_matches('@');
+    resp["data"]["id"]
+        .as_str()
+        .filter(|id| !id.is_empty())
+        .map(std::string::ToString::to_string)
+        .ok_or_else(|| {
+            XurlError::Api(format!("user @{clean} not found"))
+        })
 }
 
 /// Truncates a string to a maximum length.

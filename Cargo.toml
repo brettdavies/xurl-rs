@@ -51,7 +51,7 @@ name = "xr"
 path = "src/main.rs"
 
 [lib]
-name = "xurl_rs"
+name = "xurl"
 path = "src/lib.rs"
 
 [dev-dependencies]

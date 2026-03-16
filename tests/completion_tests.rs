@@ -5,7 +5,7 @@ use predicates::prelude::*;
 
 #[test]
 fn test_completion_bash_generates_output() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "bash"])
         .assert()
@@ -16,7 +16,7 @@ fn test_completion_bash_generates_output() {
 
 #[test]
 fn test_completion_zsh_generates_output() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "zsh"])
         .assert()
@@ -27,7 +27,7 @@ fn test_completion_zsh_generates_output() {
 
 #[test]
 fn test_completion_fish_generates_output() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "fish"])
         .assert()
@@ -38,7 +38,7 @@ fn test_completion_fish_generates_output() {
 
 #[test]
 fn test_completion_powershell_generates_output() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "powershell"])
         .assert()
@@ -49,7 +49,7 @@ fn test_completion_powershell_generates_output() {
 
 #[test]
 fn test_completion_elvish_generates_output() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "elvish"])
         .assert()
@@ -60,7 +60,7 @@ fn test_completion_elvish_generates_output() {
 
 #[test]
 fn test_completion_invalid_shell_fails() {
-    Command::cargo_bin("xurl")
+    Command::cargo_bin("xr")
         .unwrap()
         .args(["--generate-completion", "notashell"])
         .assert()

@@ -5,18 +5,9 @@
 pub mod commands;
 pub mod exit_codes;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 
-/// Output format for machine/human consumption.
-#[derive(Clone, Debug, ValueEnum, PartialEq, Eq)]
-pub enum OutputFormat {
-    /// Default: colored, human-readable
-    Text,
-    /// Machine-readable JSON, no color
-    Json,
-    /// JSON Lines (useful for streaming)
-    Jsonl,
-}
+pub use crate::output::OutputFormat;
 
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
