@@ -64,3 +64,4 @@ wiremock = "0.6"
 toml = "0.8"
 regex = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serial_test = "3"

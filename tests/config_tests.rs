@@ -1,8 +1,12 @@
 //! Tests for Config loading and environment variable handling.
+//!
+//! These tests mutate environment variables and must run serially.
 
+use serial_test::serial;
 use xurl::config::Config;
 
 #[test]
+#[serial]
 fn test_config_defaults() {
     // Clear any env vars that might interfere
     for key in &["CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI", "AUTH_URL", "TOKEN_URL", "API_BASE_URL", "INFO_URL"] {
@@ -22,6 +26,7 @@ fn test_config_defaults() {
 }
 
 #[test]
+#[serial]
 fn test_config_from_env_client_id() {
     unsafe { std::env::set_var("CLIENT_ID", "env-test-id"); }
     let cfg = Config::new();
@@ -30,6 +35,7 @@ fn test_config_from_env_client_id() {
 }
 
 #[test]
+#[serial]
 fn test_config_from_env_client_secret() {
     unsafe { std::env::set_var("CLIENT_SECRET", "env-test-secret"); }
     let cfg = Config::new();
@@ -38,6 +44,7 @@ fn test_config_from_env_client_secret() {
 }
 
 #[test]
+#[serial]
 fn test_config_from_env_all() {
     unsafe {
         std::env::set_var("CLIENT_ID", "all-id");
@@ -58,6 +65,7 @@ fn test_config_from_env_all() {
 }
 
 #[test]
+#[serial]
 fn test_config_from_env_api_base_url() {
     unsafe { std::env::set_var("API_BASE_URL", "https://custom.api.example.com"); }
     let cfg = Config::new();
@@ -68,6 +76,7 @@ fn test_config_from_env_api_base_url() {
 }
 
 #[test]
+#[serial]
 fn test_config_default_trait() {
     // Config implements Default (which calls new())
     let cfg = Config::default();
