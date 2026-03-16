@@ -28,6 +28,23 @@ pub fn build_oauth1_header(
     token: &OAuth1Token,
     additional_params: Option<&BTreeMap<String, String>>,
 ) -> Result<String> {
+    build_oauth1_header_with_nonce_ts(method, url_str, token, additional_params, None, None)
+}
+
+/// Builds a complete `OAuth1` Authorization header with injectable nonce and timestamp.
+/// Used for deterministic testing.
+///
+/// # Errors
+///
+/// Returns an error if the URL is invalid or HMAC signature generation fails.
+pub fn build_oauth1_header_with_nonce_ts(
+    method: &str,
+    url_str: &str,
+    token: &OAuth1Token,
+    additional_params: Option<&BTreeMap<String, String>>,
+    fixed_nonce: Option<&str>,
+    fixed_timestamp: Option<&str>,
+) -> Result<String> {
     let parsed_url =
         Url::parse(url_str).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
 
@@ -47,12 +64,12 @@ pub fn build_oauth1_header(
 
     // Add OAuth parameters
     params.insert("oauth_consumer_key".to_string(), token.consumer_key.clone());
-    params.insert("oauth_nonce".to_string(), generate_nonce());
+    params.insert("oauth_nonce".to_string(), fixed_nonce.map_or_else(generate_nonce, str::to_string));
     params.insert(
         "oauth_signature_method".to_string(),
         "HMAC-SHA1".to_string(),
     );
-    params.insert("oauth_timestamp".to_string(), generate_timestamp());
+    params.insert("oauth_timestamp".to_string(), fixed_timestamp.map_or_else(generate_timestamp, str::to_string));
     params.insert("oauth_token".to_string(), token.access_token.clone());
     params.insert("oauth_version".to_string(), "1.0".to_string());
 
