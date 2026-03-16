@@ -1,4 +1,4 @@
-# xurl
+# xurl-rs
 
 A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Agent-native.
 
