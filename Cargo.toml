@@ -1,12 +1,12 @@
 [package]
-name = "xurl"
+name = "xurl-rs"
 version = "1.0.3"
 edition = "2024"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT"
 repository = "https://github.com/brettdavies/xurl-rs"
 homepage = "https://github.com/brettdavies/xurl-rs"
-documentation = "https://docs.rs/xurl"
+documentation = "https://docs.rs/xurl-rs"
 keywords = ["twitter", "x", "api", "cli", "oauth"]
 categories = ["command-line-utilities", "web-programming", "api-bindings"]
 authors = ["Brett Davies <brett@brettdavies.me>"]
@@ -47,11 +47,11 @@ dirs = "6"
 percent-encoding = "2"
 
 [[bin]]
-name = "xurl"
+name = "xr"
 path = "src/main.rs"
 
 [lib]
-name = "xurl"
+name = "xurl_rs"
 path = "src/lib.rs"
 
 [dev-dependencies]
