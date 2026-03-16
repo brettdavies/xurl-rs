@@ -7,7 +7,7 @@ license = "MIT"
 
 [dependencies]
 # CLI
-clap = { version = "4", features = ["derive", "string"] }
+clap = { version = "4", features = ["derive", "string", "env"] }
 clap_complete = "4"
 dialoguer = "0.11"
 

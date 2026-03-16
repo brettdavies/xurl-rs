@@ -3,8 +3,20 @@
 /// Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
 /// auth/media/webhook/version subcommands.
 pub mod commands;
+pub mod exit_codes;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+
+/// Output format for machine/human consumption.
+#[derive(Clone, Debug, ValueEnum, PartialEq, Eq)]
+pub enum OutputFormat {
+    /// Default: colored, human-readable
+    Text,
+    /// Machine-readable JSON, no color
+    Json,
+    /// JSON Lines (useful for streaming)
+    Jsonl,
+}
 
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
@@ -87,6 +99,22 @@ pub struct Cli {
     /// Use a specific registered app (overrides default)
     #[arg(long = "app", global = true)]
     pub app: Option<String>,
+
+    /// Output format: text (default), json (machine-readable), jsonl (streaming)
+    #[arg(long, global = true, default_value = "text", value_enum, env = "XURL_OUTPUT")]
+    pub output: OutputFormat,
+
+    /// Suppress all non-essential output (errors still go to stderr)
+    #[arg(long, short = 'q', global = true)]
+    pub quiet: bool,
+
+    /// Disable interactive prompts; fail with error instead
+    #[arg(long, global = true)]
+    pub no_interactive: bool,
+
+    /// Request timeout in seconds
+    #[arg(long, global = true, default_value = "30")]
+    pub timeout: u64,
 
     /// Generate shell completion script and exit
     #[arg(long = "generate-completion", value_name = "SHELL", hide = true)]
