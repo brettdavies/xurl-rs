@@ -36,8 +36,8 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) ->
         u.clone()
     } else {
         println!("No URL provided");
-        println!("Usage: xurl [OPTIONS] [URL] [COMMAND]");
-        println!("Try 'xurl --help' for more information.");
+        println!("Usage: xr [OPTIONS] [URL] [COMMAND]");
+        println!("Try 'xr --help' for more information.");
         std::process::exit(1);
     };
 
@@ -461,7 +461,7 @@ fn run_auth_command(
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
                 return Ok(());
             }
 
@@ -548,13 +548,13 @@ fn run_auth_command(
                 // Interactive picker
                 if no_interactive {
                     return Err(XurlError::auth(
-                        "Interactive prompt required. Pass app name as argument: xurl auth default <app-name>",
+                        "Interactive prompt required. Pass app name as argument: xr auth default <app-name>",
                     ));
                 }
 
                 let apps = auth.token_store.list_apps();
                 if apps.is_empty() {
-                    out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                    out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
                     return Ok(());
                 }
 
@@ -630,7 +630,7 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xurl auth apps add' to register one.");
+                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
                 return Ok(());
             }
 

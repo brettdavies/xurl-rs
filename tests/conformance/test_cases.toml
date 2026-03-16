@@ -44,7 +44,7 @@ tags = ["basic", "error"]
 name = "no-args"
 args = []
 compare = ["exit_code", "stdout"]
-normalize = ["help_text"]
+normalize = ["help_text", "binary_name"]
 tags = ["basic", "error"]
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -91,10 +91,10 @@ pub fn normalize_line_endings(input: &str) -> String {
 }
 
 static VERSION_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"xurl \d+\.\d+\.\d+").unwrap()
+    Regex::new(r"(?:xurl|xr) \d+\.\d+\.\d+").unwrap()
 });
 
-/// Normalize version strings so "xurl 1.0.3" and "xurl 0.1.0" compare equal.
+/// Normalize version strings so "xurl 1.0.3" and "xr 1.0.3" compare equal.
 pub fn normalize_version_string(input: &str) -> String {
     VERSION_RE.replace_all(input, "xurl VERSION").to_string()
 }
@@ -115,6 +115,15 @@ pub fn normalize_help_text(input: &str) -> String {
         .join("\n")
 }
 
+static BINARY_NAME_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\bxurl\b|\bxr\b").unwrap()
+});
+
+/// Normalize binary name references so "xurl" and "xr" compare equal.
+pub fn normalize_binary_name(input: &str) -> String {
+    BINARY_NAME_RE.replace_all(input, "BINARY").to_string()
+}
+
 /// Apply a named normalization to the input.
 fn apply_normalization(input: &str, name: &str) -> String {
     match name {
@@ -129,6 +138,7 @@ fn apply_normalization(input: &str, name: &str) -> String {
         "line_endings" => normalize_line_endings(input),
         "version_string" => normalize_version_string(input),
         "help_text" => normalize_help_text(input),
+        "binary_name" => normalize_binary_name(input),
         "all" => {
             let s = normalize_line_endings(input);
             let s = normalize_paths(&s);

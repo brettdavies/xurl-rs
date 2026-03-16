@@ -5,6 +5,7 @@
 ### 1. Bump Version
 
 Update `Cargo.toml`:
+
 ```toml
 [package]
 version = "0.2.0"
@@ -35,6 +36,7 @@ git push origin main --tags
 ### 5. GitHub Release
 
 Create a release on GitHub with:
+
 - Tag: v0.2.0
 - Title: xurl v0.2.0
 - Release notes from CHANGELOG
@@ -42,8 +44,10 @@ Create a release on GitHub with:
 ### 6. Update Homebrew Formula
 
 Update `Formula/xurl.rb`:
+
 1. Change the `url` to the new tag
 2. Update the `sha256` hash:
+
    ```bash
    curl -sL https://github.com/brettdavies/xurl-rs/archive/refs/tags/v0.2.0.tar.gz | shasum -a 256
    ```
@@ -52,14 +56,15 @@ Update `Formula/xurl.rb`:
 
 ```bash
 cargo build --release
-./target/release/xurl --generate-completion bash > completions/xurl.bash
-./target/release/xurl --generate-completion zsh > completions/_xurl
-./target/release/xurl --generate-completion fish > completions/xurl.fish
+./target/release/xr --generate-completion bash > completions/xr.bash
+./target/release/xr --generate-completion zsh > completions/_xr
+./target/release/xr --generate-completion fish > completions/xr.fish
 ```
 
 ## CI (Future)
 
 GitHub Actions will automate:
+
 - `cargo test` on every PR
 - `cargo publish` on tag push
 - Binary builds for Linux, macOS, Windows

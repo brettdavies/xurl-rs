@@ -12,42 +12,42 @@ pub use crate::output::OutputFormat;
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
 #[command(
-    name = "xurl",
+    name = "xr",
     about = "Auth enabled curl-like interface for the X API",
     long_about = r#"A command-line tool for making authenticated requests to the X API.
 
 Shortcut commands (agent-friendly):
-  xurl post "Hello world!"                        Post to X
-  xurl reply 1234567890 "Nice!"                   Reply to a post
-  xurl read 1234567890                             Read a post
-  xurl search "golang" -n 20                       Search posts
-  xurl whoami                                      Show your profile
-  xurl like 1234567890                             Like a post
-  xurl repost 1234567890                           Repost
-  xurl follow @user                                Follow a user
-  xurl dm @user "Hey!"                             Send a DM
-  xurl timeline                                    Home timeline
-  xurl mentions                                    Your mentions
+  xr post "Hello world!"                        Post to X
+  xr reply 1234567890 "Nice!"                   Reply to a post
+  xr read 1234567890                             Read a post
+  xr search "golang" -n 20                       Search posts
+  xr whoami                                      Show your profile
+  xr like 1234567890                             Like a post
+  xr repost 1234567890                           Repost
+  xr follow @user                                Follow a user
+  xr dm @user "Hey!"                             Send a DM
+  xr timeline                                    Home timeline
+  xr mentions                                    Your mentions
 
 Raw API access (curl-style):
-  basic requests        xurl /2/users/me
-                        xurl -X POST /2/tweets -d '{"text":"Hello world!"}'
-                        xurl -H "Content-Type: application/json" /2/tweets
-  authentication        xurl --auth oauth2 /2/users/me
-                        xurl --auth oauth1 /2/users/me
-                        xurl --auth app /2/users/me
-  media and streaming   xurl media upload path/to/video.mp4
-                        xurl /2/tweets/search/stream --auth app
-                        xurl -s /2/users/me
+  basic requests        xr /2/users/me
+                        xr -X POST /2/tweets -d '{"text":"Hello world!"}'
+                        xr -H "Content-Type: application/json" /2/tweets
+  authentication        xr --auth oauth2 /2/users/me
+                        xr --auth oauth1 /2/users/me
+                        xr --auth app /2/users/me
+  media and streaming   xr media upload path/to/video.mp4
+                        xr /2/tweets/search/stream --auth app
+                        xr -s /2/users/me
 
 Multi-app management:
-  xurl auth apps add my-app --client-id ... --client-secret ...
-  xurl auth apps list
-  xurl auth default                                # interactive picker
-  xurl auth default my-app                         # set by name
-  xurl --app my-app /2/users/me                    # per-request override
+  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps list
+  xr auth default                                # interactive picker
+  xr auth default my-app                         # set by name
+  xr --app my-app /2/users/me                    # per-request override
 
-Run 'xurl --help' to see all available commands."#,
+Run 'xr --help' to see all available commands."#,
     version
 )]
 pub struct Cli {

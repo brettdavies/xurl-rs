@@ -1,6 +1,6 @@
 //! CLI integration tests using assert_cmd + predicates.
 //!
-//! These test the compiled xurl binary as a subprocess.
+//! These test the compiled xr binary as a subprocess.
 //! The Go tests do NOT cover CLI integration — this is new coverage.
 
 use assert_cmd::Command;
@@ -28,7 +28,7 @@ fn test_version_flag() {
         .arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("xurl"));
+        .stdout(predicate::str::contains("xr"));
 }
 
 #[test]

@@ -21,7 +21,7 @@ fn main() {
     // Handle --generate-completion before anything else
     if let Some(shell) = cli.generate_completion {
         let mut cmd = Cli::command();
-        clap_complete::generate(shell, &mut cmd, "xurl", &mut std::io::stdout());
+        clap_complete::generate(shell, &mut cmd, "xr", &mut std::io::stdout());
         return;
     }
 
