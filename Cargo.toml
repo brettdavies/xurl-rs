@@ -1,0 +1,80 @@
+[package]
+name = "xurl-rs"
+version = "1.0.3"
+edition = "2024"
+description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/brettdavies/xurl-rs"
+homepage = "https://github.com/brettdavies/xurl-rs"
+documentation = "https://docs.rs/xurl-rs"
+keywords = ["twitter", "x", "api", "cli", "oauth"]
+categories = ["command-line-utilities", "web-programming", "api-bindings"]
+authors = ["Brett Davies <pm8fp22mbg@privaterelay.appleid.com>"]
+readme = "README.md"
+rust-version = "1.85"
+exclude = [
+    ".claude/",
+    ".github/",
+    "benches/",
+    "cliff.toml",
+    "completions/",
+    "docs/",
+    "tests/",
+]
+
+[dependencies]
+# CLI
+clap = { version = "4", features = ["derive", "string", "env"] }
+clap_complete = "4"
+dialoguer = "0.11"
+
+# HTTP
+reqwest = { version = "0.12", features = ["json", "multipart", "blocking", "stream"] }
+tokio = { version = "1", features = ["rt", "net", "macros", "sync", "time"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Auth
+hmac = "0.12"
+sha1 = "0.10"
+sha2 = "0.10"
+base64 = "0.22"
+rand = "0.9"
+url = "2"
+
+# Terminal
+colored = "3"
+
+# Utilities
+open = "5"
+thiserror = "2"
+anyhow = "1"
+dirs = "6"
+percent-encoding = "2"
+
+[[bin]]
+name = "xr"
+path = "src/main.rs"
+
+[lib]
+name = "xurl"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = "3"
+pretty_assertions = "1"
+assert_cmd = "2"
+predicates = "3"
+rstest = "0.23"
+wiremock = "0.6"
+toml = "0.8"
+regex = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serial_test = "3"
+
+[profile.release]
+strip = true
+lto = true
