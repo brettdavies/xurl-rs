@@ -17,7 +17,7 @@ This triggers `.github/workflows/release.yml` which:
 
 - Builds binaries for 5 targets (linux x86_64/aarch64, macos x86_64/aarch64, windows x86_64)
 - Creates a GitHub Release with all binaries attached
-- Publishes to crates.io
+- Publishes to crates.io via Trusted Publishing (OIDC, no static token)
 - Dispatches a `repository_dispatch` event to `brettdavies/homebrew-tap`, which automatically updates the formula's version and SHA256
 
 Changelog is auto-generated on every push to main via git-cliff.
@@ -26,12 +26,11 @@ Changelog is auto-generated on every push to main via git-cliff.
 
 | Secret | Purpose |
 |--------|---------|
-| `CARGO_REGISTRY_TOKEN` | crates.io API token for `cargo publish` |
 | `HOMEBREW_TAP_TOKEN` | Fine-grained PAT with `contents:write` on `brettdavies/homebrew-tap` |
 
 `GITHUB_TOKEN` is provided automatically by GitHub Actions.
 
-Both secrets are stored in 1Password (`secrets-dev` vault).
+crates.io publishing uses Trusted Publishing (OIDC) — no static token needed.
 
 ## Manual Steps (post-release)
 
