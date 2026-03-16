@@ -2,8 +2,16 @@
 name = "xurl"
 version = "0.1.0"
 edition = "2024"
-description = "Auth-enabled curl-like interface for the X API"
+description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT"
+repository = "https://github.com/brettdavies/xurl-rs"
+homepage = "https://github.com/brettdavies/xurl-rs"
+documentation = "https://docs.rs/xurl"
+keywords = ["twitter", "x", "api", "cli", "oauth"]
+categories = ["command-line-utilities", "web-programming", "api-bindings"]
+authors = ["Brett Davies <brett@brettdavies.me>"]
+readme = "README.md"
+exclude = ["tests/fixtures/*", ".github/*", "scaffold/*"]
 
 [dependencies]
 # CLI
