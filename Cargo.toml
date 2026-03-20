@@ -17,8 +17,9 @@ exclude = [
     ".github/",
     "benches/",
     "cliff.toml",
-    "completions/",
+    "deny.toml",
     "docs/",
+    "rustfmt.toml",
     "tests/",
 ]
 
@@ -78,3 +79,13 @@ serial_test = "3"
 [profile.release]
 strip = true
 lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.tar.gz"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
+pkg-fmt = "zip"
