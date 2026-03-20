@@ -2,7 +2,8 @@
 
 A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Agent-native.
 
-Rust port of [xurl](https://github.com/xdevplatform/xurl) — faster, type-safe, with shell completions and machine-readable output.
+Rust port of [xurl](https://github.com/xdevplatform/xurl) — faster, type-safe, with shell completions and
+machine-readable output.
 
 ## Install
 
@@ -203,19 +204,19 @@ NO_COLOR=1 xr whoami                           # Disable color (no-color.org)
 
 ```bash
 # Bash
-xr --generate-completion bash > ~/.bash_completion.d/xr
+xr completions bash > ~/.bash_completion.d/xr
 
 # Zsh
-xr --generate-completion zsh > ~/.zfunc/_xr
+xr completions zsh > ~/.zfunc/_xr
 
 # Fish
-xr --generate-completion fish > ~/.config/fish/completions/xr.fish
+xr completions fish > ~/.config/fish/completions/xr.fish
 
 # PowerShell
-xr --generate-completion powershell > xr.ps1
+xr completions powershell > xr.ps1
 
 # Elvish
-xr --generate-completion elvish > xr.elv
+xr completions elvish > xr.elv
 ```
 
 Pre-generated scripts are also available in `completions/`.

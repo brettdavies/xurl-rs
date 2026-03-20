@@ -7,24 +7,40 @@ mod output;
 mod store;
 
 use clap::{CommandFactory, Parser};
-use cli::Cli;
 use cli::exit_codes::{
     EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND, EXIT_RATE_LIMITED,
     EXIT_SUCCESS,
 };
+use cli::{Cli, Commands};
 use error::XurlError;
 use output::OutputConfig;
 
 fn main() {
-    let cli = Cli::parse();
-
-    // Handle --generate-completion before anything else
-    if let Some(shell) = cli.generate_completion {
-        let mut cmd = Cli::command();
-        clap_complete::generate(shell, &mut cmd, "xr", &mut std::io::stdout());
-        return;
+    // Restore default SIGPIPE handling (Rust masks it, causing panics on closed pipes)
+    #[cfg(unix)]
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
 
+    let cli = Cli::parse();
+
+    // --- Tier 1: Meta-commands (need only parsed args) ---
+    if let Some(ref cmd) = cli.command {
+        match cmd {
+            Commands::Completions { shell } => {
+                let mut cmd = Cli::command();
+                clap_complete::generate(*shell, &mut cmd, "xr", &mut std::io::stdout());
+                return;
+            }
+            Commands::Version => {
+                println!("xr {}", env!("CARGO_PKG_VERSION"));
+                return;
+            }
+            _ => {}
+        }
+    }
+
+    // --- Tier 3: Everything else (needs config + auth) ---
     let out = OutputConfig::new(cli.output.clone(), cli.quiet);
 
     match cli::commands::run(cli, &out) {

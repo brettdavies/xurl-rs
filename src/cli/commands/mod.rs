@@ -476,9 +476,12 @@ fn run_subcommand(
             return run_media_command(command, cfg, auth, out);
         }
 
-        // ── Version ──────────────────────────────────────────────────
+        // ── Meta (handled before config init in main) ───────────────
+        Commands::Completions { .. } => {
+            unreachable!("completions is handled before config init in main()")
+        }
         Commands::Version => {
-            out.print_message(&format!("xurl {}", env!("CARGO_PKG_VERSION")));
+            unreachable!("version is handled before config init in main()")
         }
     }
     Ok(())

@@ -1,53 +1,129 @@
 # Releasing xurl-rs
 
-## Automated (preferred)
+## Development workflow
 
-Tag a version and push — CI handles everything:
+All changes MUST go through feature PRs to `dev`. Never commit directly to `dev` or `main`. This ensures every change
+has a PR number in its squash commit message, which git-cliff uses to generate changelog entries with PR links and
+author attribution.
+
+```text
+feature branch → PR to dev (squash merge) → cherry-pick to release branch → PR to main (squash merge)
+```
+
+## Merging dev to main
+
+Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`) live on `dev` only. `guard-main-docs.yml`
+blocks them from `main`. You MUST use the release branch pattern:
+
+**Branch naming convention:** `release/vX.Y.Z` or `release/vX.Y.Z-descriptive-title`
+
+The version prefix is required — `generate-changelog.sh` extracts it automatically. The title suffix is optional but
+encouraged for clarity (e.g., `release/v1.0.5-ci-migration`, `release/v1.1.0-completions-subcommand`).
 
 ```bash
-# 1. Bump version in Cargo.toml
-# 2. Commit and tag
-git add Cargo.toml
-git commit -m "chore: bump version to 1.0.4"
-git tag v1.0.4
+# 1. Branch from main, NOT dev
+git checkout -b release/v1.0.5-ci-migration origin/main
+
+# 2. Cherry-pick only non-docs commits from dev
+git cherry-pick <commit1> <commit2> ...
+
+# 3. Verify no docs paths leaked through
+git diff origin/main --stat
+
+# 4. Bump version in Cargo.toml
+# edit Cargo.toml version field
+git add Cargo.toml Cargo.lock
+git commit -m "chore: bump version to 1.0.5"
+
+# 5. Generate changelog (auto-detects version from branch name)
+~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh
+git add CHANGELOG.md
+git commit -m "docs: update CHANGELOG.md"
+
+# 6. Push and open a PR to main
+git push -u origin release/v1.0.5-ci-migration
+gh pr create --base main
+```
+
+**CRITICAL:** Always branch from `origin/main`. Branching from `dev` causes `add/add` merge conflicts when dev and main
+have divergent histories (e.g., after squash merges).
+
+## Changelog
+
+CHANGELOG.md is a committed artifact managed during release prep — not auto-generated in CI. The `generate-changelog.sh`
+script requires `--tag vX.Y.Z` to generate a versioned section (never `[Unreleased]`). It prepends entries while
+preserving existing content, and fetches PR body `## Changelog` sections from GitHub for rich categorized entries.
+
+CI enforces that CHANGELOG.md is modified in every PR to main (`ci / Changelog` required status check) and that it
+contains a versioned section, not `[Unreleased]`. The release workflow extracts the latest section from CHANGELOG.md for
+the GitHub Release body.
+
+## Tagging and releasing
+
+After the PR merges to main, tag and push:
+
+```bash
+git checkout main && git pull
+git tag v1.1.0
 git push origin main --tags
 ```
 
 This triggers `.github/workflows/release.yml` which:
 
+- Verifies the tag matches `Cargo.toml` version
+- Runs `cargo deny` (license + advisory + ban checking)
 - Builds binaries for 5 targets (linux x86_64/aarch64, macos x86_64/aarch64, windows x86_64)
-- Creates a GitHub Release with all binaries attached
+- Ad-hoc codesigns macOS binaries
+- Creates `.tar.gz` archives with binary + LICENSE + README + shell completions
 - Publishes to crates.io via Trusted Publishing (OIDC, no static token)
-- Dispatches a `repository_dispatch` event to `brettdavies/homebrew-tap`, which automatically updates the formula's version and SHA256
+- Creates a **draft** GitHub Release with archives and sha256sums
+- Dispatches `repository_dispatch` to `brettdavies/homebrew-tap`, which auto-updates the formula version and SHA256
+- After Homebrew bottles are built, `finalize-release.yml` publishes the draft
 
-Changelog is auto-generated on every push to main via git-cliff.
+### Pipeline order
+
+```text
+check-version + audit -> build (5 targets) -> publish-crate -> release (draft) -> homebrew -> finalize
+```
+
+`cargo publish` runs BEFORE GitHub Release creation. If publish fails, no release is advertised and no Homebrew update
+is triggered.
 
 ## Required GitHub Secrets
 
-| Secret | Purpose |
-|--------|---------|
-| `HOMEBREW_TAP_TOKEN` | Fine-grained PAT with `contents:write` on `brettdavies/homebrew-tap` |
+| Secret | Purpose | Rotation |
+|--------|---------|----------|
+| `CI_RELEASE_TOKEN` | Fine-grained PAT with `contents:write` for CI release automation (Homebrew dispatch, changelog, rulesets) | Max 1 year; renew before expiry |
 
 `GITHUB_TOKEN` is provided automatically by GitHub Actions.
 
-crates.io publishing uses Trusted Publishing (OIDC) — no static token needed.
+Secrets are stored in 1Password (`secrets-dev` vault).
 
-## Manual Steps (post-release)
+## crates.io Publishing
 
-### Regenerate Completions (if CLI flags changed)
+Publishing uses
+[Trusted Publishing](https://doc.rust-lang.org/cargo/reference/registry-authentication.html#trusted-publishing) via
+`rust-lang/crates-io-auth-action`. No static API token is needed — OIDC exchanges a short-lived GitHub Actions token for
+a ~30-minute crates.io token.
 
-```bash
-cargo build --release
-./target/release/xr --generate-completion bash > completions/xr.bash
-./target/release/xr --generate-completion zsh > completions/_xr
-./target/release/xr --generate-completion fish > completions/xr.fish
-```
+Trusted Publishing was configured after the v1.0.3 manual publish. If it ever needs reconfiguration:
+
+1. Go to `https://crates.io/settings/tokens/trusted-publishing`
+2. Add trusted publisher: owner=`brettdavies`, repo=`xurl-rs`, workflow=`release.yml`
+3. Enable "Enforce Trusted Publishing" to disable token-based publishing
+
+## Shell Completions
+
+Pre-build completions locally and commit to `completions/`. Regenerate whenever subcommands or flags change:
+
+Use the skill script: `~/.claude/skills/rust-tool-release/scripts/generate-completions.sh`
 
 ## Distribution Channels
 
 | Channel | How |
 |---------|-----|
-| Homebrew | `brew tap brettdavies/tap && brew install xurl-rs` |
+| Homebrew | `brew install brettdavies/tap/xurl-rs` |
 | Pre-built binary | Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) |
 | Rust crate | `cargo install xurl-rs` |
+| Fast binary | `cargo binstall xurl-rs` |
 | From source | `git clone && cargo build --release` |

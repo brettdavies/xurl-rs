@@ -1,58 +1,17 @@
+# Source repo CI wrapper — calls the centralized reusable workflow.
+#
+# The reusable workflow runs: fmt, clippy, test, cargo-deny audit, package check.
+# No secrets required — only needs contents: read and pull-requests: read.
 name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  CARGO_TERM_COLOR: always
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  RUSTFLAGS: "-Dwarnings"
+  pull-requests: read
 
 jobs:
-  check:
-    name: Fmt, clippy, test
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets
-
-      - name: Tests
-        run: cargo test
-
-  changelog:
-    name: Changelog
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-      - uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
-        with:
-          config: cliff.toml
-        env:
-          OUTPUT: CHANGELOG.md
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  ci:
+    uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
