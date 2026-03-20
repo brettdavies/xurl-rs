@@ -7,11 +7,11 @@ mod output;
 mod store;
 
 use clap::{CommandFactory, Parser};
-use cli::{Cli, Commands};
 use cli::exit_codes::{
     EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND, EXIT_RATE_LIMITED,
     EXIT_SUCCESS,
 };
+use cli::{Cli, Commands};
 use error::XurlError;
 use output::OutputConfig;
 
