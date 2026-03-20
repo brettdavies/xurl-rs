@@ -16,7 +16,6 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - Update RELEASING.md for reusable workflow pipeline
-- Simplify shell completions section in RELEASING.md
 
 ### Fixed
 
@@ -25,21 +24,28 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.4] - 2026-03-16
 
-### Fixed
+### Changed
 
-- Post-release CI hardening — Trusted Publishing, SHA pinning, rustls-tls (#4)
+- Switch to Trusted Publishing (OIDC) for crates.io authentication
+- Pin all GitHub Actions by SHA for supply-chain security
+- Switch to rustls-tls and fix macOS CI runner
+- Opt into Node.js 24 for GitHub Actions
 
 ## [1.0.3] - 2026-03-16
 
 ### Added
 
-- Xurl-rs v1.0.3 — Rust port of xurl (#2)
-
-### Documentation
-
-- Initial README for xurl-rs
+- Full xurl-rs implementation — Rust port of Go xurl CLI
+- Shell autocomplete for bash, zsh, fish, powershell, elvish
+- Agentic coding flags — `--output json`, `--quiet`, `--no-interactive`, exit codes
+- Wire `--output`/`--quiet`/`--no-interactive` through all handlers
 
 ### Fixed
 
-- Switch to rustls-tls and fix macOS CI runner (#3)
+- Align test imports with implementation after red/green team merge
+- Address code review findings (Default, JSON escaping, UTF-8 safety, docs)
+- Config tests use serial_test to prevent env var race conditions
 
+### Changed
+
+- Remove dead_code allows on exit code constants — all now used
