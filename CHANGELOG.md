@@ -30,20 +30,17 @@ All notable changes to this project will be documented in this file.
 
 - RELEASING.md rewritten for reusable workflow pipeline and changelog-as-committed-artifact by @brettdavies in [#7](https://github.com/brettdavies/xurl-rs/pull/7)
 
+**Full Changelog**: [v1.0.4...v1.0.5](https://github.com/brettdavies/xurl-rs/compare/v1.0.4...v1.0.5)
+
 ## [1.0.4] - 2026-03-16
 
 ### Changed
 
-- Switch to Trusted Publishing (OIDC) for crates.io authentication — no static secrets by @brettdavies in
-  [#4](https://github.com/brettdavies/xurl-rs/pull/4)
-- Pin all GitHub Actions by commit SHA for supply-chain security by @brettdavies in
-  [#4](https://github.com/brettdavies/xurl-rs/pull/4)
-- Switch reqwest from native-tls to rustls-tls for cross-compilation compatibility by @brettdavies in
-  [#3](https://github.com/brettdavies/xurl-rs/pull/3)
-- Update macOS CI runner from deprecated `macos-13` to `macos-latest` by @brettdavies in
-  [#3](https://github.com/brettdavies/xurl-rs/pull/3)
-- Opt into Node.js 24 for GitHub Actions (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`) by @brettdavies in
-  [#4](https://github.com/brettdavies/xurl-rs/pull/4)
+- Switch to Trusted Publishing (OIDC) for crates.io authentication — no static secrets by @brettdavies in [#4](https://github.com/brettdavies/xurl-rs/pull/4)
+- Pin all GitHub Actions by commit SHA for supply-chain security by @brettdavies in [#4](https://github.com/brettdavies/xurl-rs/pull/4)
+- Switch reqwest from native-tls to rustls-tls for cross-compilation compatibility by @brettdavies in [#3](https://github.com/brettdavies/xurl-rs/pull/3)
+- Update macOS CI runner from deprecated `macos-13` to `macos-latest` by @brettdavies in [#3](https://github.com/brettdavies/xurl-rs/pull/3)
+- Opt into Node.js 24 for GitHub Actions (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`) by @brettdavies in [#4](https://github.com/brettdavies/xurl-rs/pull/4)
 
 **Full Changelog**: [v1.0.3...v1.0.4](https://github.com/brettdavies/xurl-rs/compare/v1.0.3...v1.0.4)
 
@@ -51,10 +48,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Full xurl-rs implementation — Rust port of Go [xurl](https://github.com/xdevplatform/xurl) CLI by @brettdavies in
-  [#2](https://github.com/brettdavies/xurl-rs/pull/2)
-- 28 shortcut commands: post, reply, quote, delete, read, search, like, repost, bookmark, follow, block, mute, dm,
-  timeline, mentions, whoami, and more
+- Full xurl-rs implementation — Rust port of Go [xurl](https://github.com/xdevplatform/xurl) CLI by @brettdavies in [#2](https://github.com/brettdavies/xurl-rs/pull/2)
+- 28 shortcut commands: post, reply, quote, delete, read, search, like, repost, bookmark, follow, block, mute, dm, timeline, mentions, whoami, and more
 - Raw API mode: `xr /2/users/me`, `xr -X POST /2/tweets -d '{...}'`
 - OAuth2 PKCE, OAuth1 HMAC-SHA1, and Bearer token authentication
 - YAML token store with multi-app management at `~/.xurl`
@@ -66,8 +61,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Switch reqwest from native-tls to rustls-tls for cross-compilation by @brettdavies in
-  [#3](https://github.com/brettdavies/xurl-rs/pull/3)
+- Switch reqwest from native-tls to rustls-tls for cross-compilation by @brettdavies in [#3](https://github.com/brettdavies/xurl-rs/pull/3)
 
 ### New Contributors
 
