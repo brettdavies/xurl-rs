@@ -1,0 +1,16 @@
+# Source repo finalize-release wrapper — calls the centralized reusable workflow.
+#
+# Triggered by repository_dispatch from homebrew-tap's publish workflow
+# after bottles are uploaded. Publishes the draft GitHub Release.
+name: Finalize Release
+
+on:
+  repository_dispatch:
+    types: [finalize-release]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    uses: brettdavies/.github/.github/workflows/rust-finalize-release.yml@main
