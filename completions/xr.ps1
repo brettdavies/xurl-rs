@@ -1,0 +1,1131 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running `target/debug/xr completions powershell`
+
+using namespace System.Management.Automation
+using namespace System.Management.Automation.Language
+
+Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition)
+
+    $commandElements = $commandAst.CommandElements
+    $command = @(
+        'xr'
+        for ($i = 1; $i -lt $commandElements.Count; $i++) {
+            $element = $commandElements[$i]
+            if ($element -isnot [StringConstantExpressionAst] -or
+                $element.StringConstantType -ne [StringConstantType]::BareWord -or
+                $element.Value.StartsWith('-') -or
+                $element.Value -eq $wordToComplete) {
+                break
+        }
+        $element.Value
+    }) -join ';'
+
+    $completions = @(switch ($command) {
+        'xr' {
+            [CompletionResult]::new('-X', '-X ', [CompletionResultType]::ParameterName, 'HTTP method (GET by default)')
+            [CompletionResult]::new('--method', '--method', [CompletionResultType]::ParameterName, 'HTTP method (GET by default)')
+            [CompletionResult]::new('-H', '-H ', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('--header', '--header', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('-d', '-d', [CompletionResultType]::ParameterName, 'Request body data')
+            [CompletionResult]::new('--data', '--data', [CompletionResultType]::ParameterName, 'Request body data')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username for `OAuth2` authentication')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username for `OAuth2` authentication')
+            [CompletionResult]::new('-F', '-F ', [CompletionResultType]::ParameterName, 'File to upload (for multipart requests)')
+            [CompletionResult]::new('--file', '--file', [CompletionResultType]::ParameterName, 'File to upload (for multipart requests)')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose information')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose information')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add trace header to request')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add trace header to request')
+            [CompletionResult]::new('-s', '-s', [CompletionResultType]::ParameterName, 'Force streaming mode')
+            [CompletionResult]::new('--stream', '--stream', [CompletionResultType]::ParameterName, 'Force streaming mode')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-V', '-V ', [CompletionResultType]::ParameterName, 'Print version')
+            [CompletionResult]::new('--version', '--version', [CompletionResultType]::ParameterName, 'Print version')
+            [CompletionResult]::new('post', 'post', [CompletionResultType]::ParameterValue, 'Post to X')
+            [CompletionResult]::new('reply', 'reply', [CompletionResultType]::ParameterValue, 'Reply to a post')
+            [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
+            [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
+            [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
+            [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search recent posts')
+            [CompletionResult]::new('whoami', 'whoami', [CompletionResultType]::ParameterValue, 'Show the authenticated user''s profile')
+            [CompletionResult]::new('user', 'user', [CompletionResultType]::ParameterValue, 'Look up a user by username')
+            [CompletionResult]::new('timeline', 'timeline', [CompletionResultType]::ParameterValue, 'Show your home timeline')
+            [CompletionResult]::new('mentions', 'mentions', [CompletionResultType]::ParameterValue, 'Show your recent mentions')
+            [CompletionResult]::new('like', 'like', [CompletionResultType]::ParameterValue, 'Like a post')
+            [CompletionResult]::new('unlike', 'unlike', [CompletionResultType]::ParameterValue, 'Unlike a post')
+            [CompletionResult]::new('repost', 'repost', [CompletionResultType]::ParameterValue, 'Repost a post')
+            [CompletionResult]::new('unrepost', 'unrepost', [CompletionResultType]::ParameterValue, 'Undo a repost')
+            [CompletionResult]::new('bookmark', 'bookmark', [CompletionResultType]::ParameterValue, 'Bookmark a post')
+            [CompletionResult]::new('unbookmark', 'unbookmark', [CompletionResultType]::ParameterValue, 'Remove a bookmark')
+            [CompletionResult]::new('bookmarks', 'bookmarks', [CompletionResultType]::ParameterValue, 'List your bookmarks')
+            [CompletionResult]::new('likes', 'likes', [CompletionResultType]::ParameterValue, 'List your liked posts')
+            [CompletionResult]::new('follow', 'follow', [CompletionResultType]::ParameterValue, 'Follow a user')
+            [CompletionResult]::new('unfollow', 'unfollow', [CompletionResultType]::ParameterValue, 'Unfollow a user')
+            [CompletionResult]::new('following', 'following', [CompletionResultType]::ParameterValue, 'List users you follow')
+            [CompletionResult]::new('followers', 'followers', [CompletionResultType]::ParameterValue, 'List your followers')
+            [CompletionResult]::new('block', 'block', [CompletionResultType]::ParameterValue, 'Block a user')
+            [CompletionResult]::new('unblock', 'unblock', [CompletionResultType]::ParameterValue, 'Unblock a user')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
+            [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
+            [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
+            [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
+            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload operations')
+            [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
+            [CompletionResult]::new('version', 'version', [CompletionResultType]::ParameterValue, 'Show xurl version information')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;post' {
+            [CompletionResult]::new('--media-id', '--media-id', [CompletionResultType]::ParameterName, 'Media ID(s) to attach (repeatable)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;reply' {
+            [CompletionResult]::new('--media-id', '--media-id', [CompletionResultType]::ParameterName, 'Media ID(s) to attach (repeatable)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;quote' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;delete' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;read' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;search' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (min 10, max 100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (min 10, max 100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;whoami' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;user' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;timeline' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;mentions' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;like' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unlike' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;repost' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unrepost' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;bookmark' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unbookmark' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;bookmarks' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;likes' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;follow' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unfollow' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;following' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-1000)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-1000)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list following for (default: you)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;followers' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-1000)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-1000)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list followers for (default: you)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;block' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unblock' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;mute' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;unmute' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;dm' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;dms' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('oauth2', 'oauth2', [CompletionResultType]::ParameterValue, 'Configure `OAuth2` authentication')
+            [CompletionResult]::new('oauth1', 'oauth1', [CompletionResultType]::ParameterValue, 'Configure `OAuth1` authentication')
+            [CompletionResult]::new('app', 'app', [CompletionResultType]::ParameterValue, 'Configure app-auth (bearer token)')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Show authentication status')
+            [CompletionResult]::new('clear', 'clear', [CompletionResultType]::ParameterValue, 'Clear authentication tokens')
+            [CompletionResult]::new('apps', 'apps', [CompletionResultType]::ParameterValue, 'Manage registered X API apps')
+            [CompletionResult]::new('default', 'default', [CompletionResultType]::ParameterValue, 'Set default app and/or user')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;auth;oauth2' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;oauth1' {
+            [CompletionResult]::new('--consumer-key', '--consumer-key', [CompletionResultType]::ParameterName, 'Consumer key')
+            [CompletionResult]::new('--consumer-secret', '--consumer-secret', [CompletionResultType]::ParameterName, 'Consumer secret')
+            [CompletionResult]::new('--access-token', '--access-token', [CompletionResultType]::ParameterName, 'Access token')
+            [CompletionResult]::new('--token-secret', '--token-secret', [CompletionResultType]::ParameterName, 'Token secret')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;app' {
+            [CompletionResult]::new('--bearer-token', '--bearer-token', [CompletionResultType]::ParameterName, 'Bearer token')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;status' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;clear' {
+            [CompletionResult]::new('--oauth2-username', '--oauth2-username', [CompletionResultType]::ParameterName, 'Clear `OAuth2` token for username')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--all', '--all', [CompletionResultType]::ParameterName, 'Clear all authentication')
+            [CompletionResult]::new('--oauth1', '--oauth1', [CompletionResultType]::ParameterName, 'Clear `OAuth1` tokens')
+            [CompletionResult]::new('--bearer', '--bearer', [CompletionResultType]::ParameterName, 'Clear bearer token')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;apps' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Register a new X API app')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Update credentials for an existing app')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a registered app')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List registered apps')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;auth;apps;add' {
+            [CompletionResult]::new('--client-id', '--client-id', [CompletionResultType]::ParameterName, '`OAuth2` client ID')
+            [CompletionResult]::new('--client-secret', '--client-secret', [CompletionResultType]::ParameterName, '`OAuth2` client secret')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;apps;update' {
+            [CompletionResult]::new('--client-id', '--client-id', [CompletionResultType]::ParameterName, '`OAuth2` client ID')
+            [CompletionResult]::new('--client-secret', '--client-secret', [CompletionResultType]::ParameterName, '`OAuth2` client secret')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;apps;remove' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;apps;list' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;apps;help' {
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Register a new X API app')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Update credentials for an existing app')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a registered app')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List registered apps')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;auth;apps;help;add' {
+            break
+        }
+        'xr;auth;apps;help;update' {
+            break
+        }
+        'xr;auth;apps;help;remove' {
+            break
+        }
+        'xr;auth;apps;help;list' {
+            break
+        }
+        'xr;auth;apps;help;help' {
+            break
+        }
+        'xr;auth;default' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;auth;help' {
+            [CompletionResult]::new('oauth2', 'oauth2', [CompletionResultType]::ParameterValue, 'Configure `OAuth2` authentication')
+            [CompletionResult]::new('oauth1', 'oauth1', [CompletionResultType]::ParameterValue, 'Configure `OAuth1` authentication')
+            [CompletionResult]::new('app', 'app', [CompletionResultType]::ParameterValue, 'Configure app-auth (bearer token)')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Show authentication status')
+            [CompletionResult]::new('clear', 'clear', [CompletionResultType]::ParameterValue, 'Clear authentication tokens')
+            [CompletionResult]::new('apps', 'apps', [CompletionResultType]::ParameterValue, 'Manage registered X API apps')
+            [CompletionResult]::new('default', 'default', [CompletionResultType]::ParameterValue, 'Set default app and/or user')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;auth;help;oauth2' {
+            break
+        }
+        'xr;auth;help;oauth1' {
+            break
+        }
+        'xr;auth;help;app' {
+            break
+        }
+        'xr;auth;help;status' {
+            break
+        }
+        'xr;auth;help;clear' {
+            break
+        }
+        'xr;auth;help;apps' {
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Register a new X API app')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Update credentials for an existing app')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a registered app')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List registered apps')
+            break
+        }
+        'xr;auth;help;apps;add' {
+            break
+        }
+        'xr;auth;help;apps;update' {
+            break
+        }
+        'xr;auth;help;apps;remove' {
+            break
+        }
+        'xr;auth;help;apps;list' {
+            break
+        }
+        'xr;auth;help;default' {
+            break
+        }
+        'xr;auth;help;help' {
+            break
+        }
+        'xr;media' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;media;upload' {
+            [CompletionResult]::new('--media-type', '--media-type', [CompletionResultType]::ParameterName, 'Media type (e.g., video/mp4)')
+            [CompletionResult]::new('--category', '--category', [CompletionResultType]::ParameterName, 'Media category (e.g., `amplify_video`)')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('-H', '-H ', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('--header', '--header', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for media processing to complete')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Verbose output')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Verbose output')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;media;status' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('-H', '-H ', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('--header', '--header', [CompletionResultType]::ParameterName, 'Request headers')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Verbose output')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Verbose output')
+            [CompletionResult]::new('-w', '-w', [CompletionResultType]::ParameterName, 'Wait for processing')
+            [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for processing')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;media;help' {
+            [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;media;help;upload' {
+            break
+        }
+        'xr;media;help;status' {
+            break
+        }
+        'xr;media;help;help' {
+            break
+        }
+        'xr;completions' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;version' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;help' {
+            [CompletionResult]::new('post', 'post', [CompletionResultType]::ParameterValue, 'Post to X')
+            [CompletionResult]::new('reply', 'reply', [CompletionResultType]::ParameterValue, 'Reply to a post')
+            [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
+            [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
+            [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
+            [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search recent posts')
+            [CompletionResult]::new('whoami', 'whoami', [CompletionResultType]::ParameterValue, 'Show the authenticated user''s profile')
+            [CompletionResult]::new('user', 'user', [CompletionResultType]::ParameterValue, 'Look up a user by username')
+            [CompletionResult]::new('timeline', 'timeline', [CompletionResultType]::ParameterValue, 'Show your home timeline')
+            [CompletionResult]::new('mentions', 'mentions', [CompletionResultType]::ParameterValue, 'Show your recent mentions')
+            [CompletionResult]::new('like', 'like', [CompletionResultType]::ParameterValue, 'Like a post')
+            [CompletionResult]::new('unlike', 'unlike', [CompletionResultType]::ParameterValue, 'Unlike a post')
+            [CompletionResult]::new('repost', 'repost', [CompletionResultType]::ParameterValue, 'Repost a post')
+            [CompletionResult]::new('unrepost', 'unrepost', [CompletionResultType]::ParameterValue, 'Undo a repost')
+            [CompletionResult]::new('bookmark', 'bookmark', [CompletionResultType]::ParameterValue, 'Bookmark a post')
+            [CompletionResult]::new('unbookmark', 'unbookmark', [CompletionResultType]::ParameterValue, 'Remove a bookmark')
+            [CompletionResult]::new('bookmarks', 'bookmarks', [CompletionResultType]::ParameterValue, 'List your bookmarks')
+            [CompletionResult]::new('likes', 'likes', [CompletionResultType]::ParameterValue, 'List your liked posts')
+            [CompletionResult]::new('follow', 'follow', [CompletionResultType]::ParameterValue, 'Follow a user')
+            [CompletionResult]::new('unfollow', 'unfollow', [CompletionResultType]::ParameterValue, 'Unfollow a user')
+            [CompletionResult]::new('following', 'following', [CompletionResultType]::ParameterValue, 'List users you follow')
+            [CompletionResult]::new('followers', 'followers', [CompletionResultType]::ParameterValue, 'List your followers')
+            [CompletionResult]::new('block', 'block', [CompletionResultType]::ParameterValue, 'Block a user')
+            [CompletionResult]::new('unblock', 'unblock', [CompletionResultType]::ParameterValue, 'Unblock a user')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
+            [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
+            [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
+            [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
+            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload operations')
+            [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
+            [CompletionResult]::new('version', 'version', [CompletionResultType]::ParameterValue, 'Show xurl version information')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;help;post' {
+            break
+        }
+        'xr;help;reply' {
+            break
+        }
+        'xr;help;quote' {
+            break
+        }
+        'xr;help;delete' {
+            break
+        }
+        'xr;help;read' {
+            break
+        }
+        'xr;help;search' {
+            break
+        }
+        'xr;help;whoami' {
+            break
+        }
+        'xr;help;user' {
+            break
+        }
+        'xr;help;timeline' {
+            break
+        }
+        'xr;help;mentions' {
+            break
+        }
+        'xr;help;like' {
+            break
+        }
+        'xr;help;unlike' {
+            break
+        }
+        'xr;help;repost' {
+            break
+        }
+        'xr;help;unrepost' {
+            break
+        }
+        'xr;help;bookmark' {
+            break
+        }
+        'xr;help;unbookmark' {
+            break
+        }
+        'xr;help;bookmarks' {
+            break
+        }
+        'xr;help;likes' {
+            break
+        }
+        'xr;help;follow' {
+            break
+        }
+        'xr;help;unfollow' {
+            break
+        }
+        'xr;help;following' {
+            break
+        }
+        'xr;help;followers' {
+            break
+        }
+        'xr;help;block' {
+            break
+        }
+        'xr;help;unblock' {
+            break
+        }
+        'xr;help;mute' {
+            break
+        }
+        'xr;help;unmute' {
+            break
+        }
+        'xr;help;dm' {
+            break
+        }
+        'xr;help;dms' {
+            break
+        }
+        'xr;help;auth' {
+            [CompletionResult]::new('oauth2', 'oauth2', [CompletionResultType]::ParameterValue, 'Configure `OAuth2` authentication')
+            [CompletionResult]::new('oauth1', 'oauth1', [CompletionResultType]::ParameterValue, 'Configure `OAuth1` authentication')
+            [CompletionResult]::new('app', 'app', [CompletionResultType]::ParameterValue, 'Configure app-auth (bearer token)')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Show authentication status')
+            [CompletionResult]::new('clear', 'clear', [CompletionResultType]::ParameterValue, 'Clear authentication tokens')
+            [CompletionResult]::new('apps', 'apps', [CompletionResultType]::ParameterValue, 'Manage registered X API apps')
+            [CompletionResult]::new('default', 'default', [CompletionResultType]::ParameterValue, 'Set default app and/or user')
+            break
+        }
+        'xr;help;auth;oauth2' {
+            break
+        }
+        'xr;help;auth;oauth1' {
+            break
+        }
+        'xr;help;auth;app' {
+            break
+        }
+        'xr;help;auth;status' {
+            break
+        }
+        'xr;help;auth;clear' {
+            break
+        }
+        'xr;help;auth;apps' {
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Register a new X API app')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Update credentials for an existing app')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a registered app')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List registered apps')
+            break
+        }
+        'xr;help;auth;apps;add' {
+            break
+        }
+        'xr;help;auth;apps;update' {
+            break
+        }
+        'xr;help;auth;apps;remove' {
+            break
+        }
+        'xr;help;auth;apps;list' {
+            break
+        }
+        'xr;help;auth;default' {
+            break
+        }
+        'xr;help;media' {
+            [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
+            [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
+            break
+        }
+        'xr;help;media;upload' {
+            break
+        }
+        'xr;help;media;status' {
+            break
+        }
+        'xr;help;completions' {
+            break
+        }
+        'xr;help;version' {
+            break
+        }
+        'xr;help;help' {
+            break
+        }
+    })
+
+    $completions.Where{ $_.CompletionText -like "$wordToComplete*" } |
+        Sort-Object -Property ListItemText
+}

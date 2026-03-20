@@ -1,3 +1,5 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running `target/debug/xr completions bash`
 _xr() {
     local i cur prev opts cmd
     COMPREPLY=()
@@ -27,6 +29,9 @@ _xr() {
                 ;;
             xr,bookmarks)
                 cmd="xr__bookmarks"
+                ;;
+            xr,completions)
+                cmd="xr__completions"
                 ;;
             xr,delete)
                 cmd="xr__delete"
@@ -214,6 +219,9 @@ _xr() {
             xr__help,bookmarks)
                 cmd="xr__help__bookmarks"
                 ;;
+            xr__help,completions)
+                cmd="xr__help__completions"
+                ;;
             xr__help,delete)
                 cmd="xr__help__delete"
                 ;;
@@ -362,7 +370,7 @@ _xr() {
 
     case "${cmd}" in
         xr)
-            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --generate-completion --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media version help"
+            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media completions version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -422,10 +430,6 @@ _xr() {
                     ;;
                 --timeout)
                     COMPREPLY=($(compgen -f "${cur}"))
-                    return 0
-                    ;;
-                --generate-completion)
-                    COMPREPLY=($(compgen -W "bash elvish fish powershell zsh" -- "${cur}"))
                     return 0
                     ;;
                 *)
@@ -1175,6 +1179,32 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        xr__completions)
+            opts="-q -h --app --output --quiet --no-interactive --timeout --help bash elvish fish powershell zsh"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         xr__delete)
             opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -1436,7 +1466,7 @@ _xr() {
             return 0
             ;;
         xr__help)
-            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media version help"
+            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media completions version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1646,6 +1676,20 @@ _xr() {
             return 0
             ;;
         xr__help__bookmarks)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__completions)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

@@ -2502,6 +2502,7 @@ dependencies = [
  "dialoguer",
  "dirs",
  "hmac",
+ "libc",
  "open",
  "percent-encoding",
  "predicates",

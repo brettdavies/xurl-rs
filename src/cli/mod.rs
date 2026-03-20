@@ -47,6 +47,11 @@ Multi-app management:
   xr auth default my-app                         # set by name
   xr --app my-app /2/users/me                    # per-request override
 
+Shell completions:
+  xr completions bash > ~/.bash_completion.d/xr
+  xr completions zsh > ~/.zfunc/_xr
+  xr completions fish > ~/.config/fish/completions/xr.fish
+
 Run 'xr --help' to see all available commands."#,
     version
 )]
@@ -112,10 +117,6 @@ pub struct Cli {
     /// Request timeout in seconds
     #[arg(long, global = true, default_value = "30")]
     pub timeout: u64,
-
-    /// Generate shell completion script and exit
-    #[arg(long = "generate-completion", value_name = "SHELL", hide = true)]
-    pub generate_completion: Option<clap_complete::Shell>,
 
     /// Subcommand to run
     #[command(subcommand)]
@@ -386,7 +387,13 @@ pub enum Commands {
         command: MediaCommands,
     },
 
-    // ── Version ──────────────────────────────────────────────────────
+    // ── Meta ─────────────────────────────────────────────────────────
+    /// Generate shell completion script
+    Completions {
+        /// Shell to generate completions for
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
     /// Show xurl version information
     Version,
 }
