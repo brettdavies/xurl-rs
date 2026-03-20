@@ -97,17 +97,9 @@ Trusted Publishing was configured after the v1.0.3 manual publish. If it ever ne
 
 ## Shell Completions
 
-Pre-build completions locally and commit to `completions/`. Regenerate whenever
-subcommands or flags change:
+Pre-build completions locally and commit to `completions/`. Regenerate whenever subcommands or flags change:
 
-```bash
-cargo build --release
-./target/release/xr completions bash > completions/xr.bash
-./target/release/xr completions zsh > completions/_xr
-./target/release/xr completions fish > completions/xr.fish
-```
-
-Or use the skill script: `~/.claude/skills/rust-tool-release/scripts/generate-completions.sh`
+Use the skill script: `~/.claude/skills/rust-tool-release/scripts/generate-completions.sh`
 
 ## Distribution Channels
 
