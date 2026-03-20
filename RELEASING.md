@@ -1,5 +1,15 @@
 # Releasing xurl-rs
 
+## Development workflow
+
+All changes MUST go through feature PRs to `dev`. Never commit directly to `dev` or `main`. This ensures every change
+has a PR number in its squash commit message, which git-cliff uses to generate changelog entries with PR links and
+author attribution.
+
+```text
+feature branch → PR to dev (squash merge) → cherry-pick to release branch → PR to main (squash merge)
+```
+
 ## Merging dev to main
 
 Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`) live on `dev` only. `guard-main-docs.yml`
@@ -15,7 +25,12 @@ git cherry-pick <commit1> <commit2> ...
 # 3. Verify no docs paths leaked through
 git diff origin/main --stat
 
-# 4. Push and open a PR to main
+# 4. Generate changelog (REQUIRED — CI enforces this)
+~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh
+git add CHANGELOG.md
+git commit -m "docs: update CHANGELOG.md"
+
+# 5. Push and open a PR to main
 git push -u origin release/v1.1.0
 gh pr create --base main
 ```
@@ -25,21 +40,12 @@ have divergent histories (e.g., after squash merges).
 
 ## Changelog
 
-CHANGELOG.md is a committed artifact managed during release prep — not auto-generated in CI. On the release branch,
-before opening the PR:
+CHANGELOG.md is a committed artifact managed during release prep — not auto-generated in CI. The `generate-changelog.sh`
+script prepends new entries from unreleased commits while preserving existing content. It automatically fetches PR
+metadata from GitHub for author attribution and PR links.
 
-```bash
-# Generate changelog from cherry-picked commits (visible as individual commits)
-git cliff -o CHANGELOG.md
-git add CHANGELOG.md
-git commit -m "docs: update CHANGELOG.md"
-```
-
-The release workflow extracts the latest section from CHANGELOG.md for the GitHub Release body. Squash merging to main
-preserves the curated changelog.
-
-For releases that predate conventional commits on main (squash-merged history), add their content to `cliff.toml`'s
-`footer` field and use `ignore_tags` to prevent empty duplicate sections.
+CI enforces that CHANGELOG.md is modified in every PR to main (`ci / Changelog` required status check). The release
+workflow extracts the latest section from CHANGELOG.md for the GitHub Release body.
 
 ## Tagging and releasing
 
@@ -69,8 +75,8 @@ This triggers `.github/workflows/release.yml` which:
 check-version + audit -> build (5 targets) -> publish-crate -> release (draft) -> homebrew -> finalize
 ```
 
-`cargo publish` runs BEFORE GitHub Release creation. If publish fails, no release
-is advertised and no Homebrew update is triggered.
+`cargo publish` runs BEFORE GitHub Release creation. If publish fails, no release is advertised and no Homebrew update
+is triggered.
 
 ## Required GitHub Secrets
 
