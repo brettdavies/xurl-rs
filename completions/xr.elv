@@ -1,0 +1,1010 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running `target/debug/xr completions elvish`
+
+use builtin;
+use str;
+
+set edit:completion:arg-completer[xr] = {|@words|
+    fn spaces {|n|
+        builtin:repeat $n ' ' | str:join ''
+    }
+    fn cand {|text desc|
+        edit:complex-candidate $text &display=$text' '(spaces (- 14 (wcswidth $text)))$desc
+    }
+    var command = 'xr'
+    for word $words[1..-1] {
+        if (str:has-prefix $word '-') {
+            break
+        }
+        set command = $command';'$word
+    }
+    var completions = [
+        &'xr'= {
+            cand -X 'HTTP method (GET by default)'
+            cand --method 'HTTP method (GET by default)'
+            cand -H 'Request headers'
+            cand --header 'Request headers'
+            cand -d 'Request body data'
+            cand --data 'Request body data'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u 'Username for `OAuth2` authentication'
+            cand --username 'Username for `OAuth2` authentication'
+            cand -F 'File to upload (for multipart requests)'
+            cand --file 'File to upload (for multipart requests)'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand -t 'Add trace header to request'
+            cand --trace 'Add trace header to request'
+            cand -s 'Force streaming mode'
+            cand --stream 'Force streaming mode'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand -V 'Print version'
+            cand --version 'Print version'
+            cand post 'Post to X'
+            cand reply 'Reply to a post'
+            cand quote 'Quote a post'
+            cand delete 'Delete a post'
+            cand read 'Read a post'
+            cand search 'Search recent posts'
+            cand whoami 'Show the authenticated user''s profile'
+            cand user 'Look up a user by username'
+            cand timeline 'Show your home timeline'
+            cand mentions 'Show your recent mentions'
+            cand like 'Like a post'
+            cand unlike 'Unlike a post'
+            cand repost 'Repost a post'
+            cand unrepost 'Undo a repost'
+            cand bookmark 'Bookmark a post'
+            cand unbookmark 'Remove a bookmark'
+            cand bookmarks 'List your bookmarks'
+            cand likes 'List your liked posts'
+            cand follow 'Follow a user'
+            cand unfollow 'Unfollow a user'
+            cand following 'List users you follow'
+            cand followers 'List your followers'
+            cand block 'Block a user'
+            cand unblock 'Unblock a user'
+            cand mute 'Mute a user'
+            cand unmute 'Unmute a user'
+            cand dm 'Send a direct message'
+            cand dms 'List recent direct messages'
+            cand auth 'Authentication management'
+            cand media 'Media upload operations'
+            cand completions 'Generate shell completion script'
+            cand version 'Show xurl version information'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;post'= {
+            cand --media-id 'Media ID(s) to attach (repeatable)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;reply'= {
+            cand --media-id 'Media ID(s) to attach (repeatable)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;quote'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;delete'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;read'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;search'= {
+            cand -n 'Number of results (min 10, max 100)'
+            cand --max-results 'Number of results (min 10, max 100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;whoami'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;user'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;timeline'= {
+            cand -n 'Number of results (1-100)'
+            cand --max-results 'Number of results (1-100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;mentions'= {
+            cand -n 'Number of results (5-100)'
+            cand --max-results 'Number of results (5-100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;like'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unlike'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;repost'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unrepost'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;bookmark'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unbookmark'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;bookmarks'= {
+            cand -n 'Number of results (1-100)'
+            cand --max-results 'Number of results (1-100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;likes'= {
+            cand -n 'Number of results (1-100)'
+            cand --max-results 'Number of results (1-100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;follow'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unfollow'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;following'= {
+            cand -n 'Number of results (1-1000)'
+            cand --max-results 'Number of results (1-1000)'
+            cand --of 'Username to list following for (default: you)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;followers'= {
+            cand -n 'Number of results (1-1000)'
+            cand --max-results 'Number of results (1-1000)'
+            cand --of 'Username to list followers for (default: you)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;block'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unblock'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;mute'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unmute'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;dm'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;dms'= {
+            cand -n 'Number of results (1-100)'
+            cand --max-results 'Number of results (1-100)'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand oauth2 'Configure `OAuth2` authentication'
+            cand oauth1 'Configure `OAuth1` authentication'
+            cand app 'Configure app-auth (bearer token)'
+            cand status 'Show authentication status'
+            cand clear 'Clear authentication tokens'
+            cand apps 'Manage registered X API apps'
+            cand default 'Set default app and/or user'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;auth;oauth2'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;oauth1'= {
+            cand --consumer-key 'Consumer key'
+            cand --consumer-secret 'Consumer secret'
+            cand --access-token 'Access token'
+            cand --token-secret 'Token secret'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;app'= {
+            cand --bearer-token 'Bearer token'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;status'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;clear'= {
+            cand --oauth2-username 'Clear `OAuth2` token for username'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand --all 'Clear all authentication'
+            cand --oauth1 'Clear `OAuth1` tokens'
+            cand --bearer 'Clear bearer token'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;apps'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand add 'Register a new X API app'
+            cand update 'Update credentials for an existing app'
+            cand remove 'Remove a registered app'
+            cand list 'List registered apps'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;auth;apps;add'= {
+            cand --client-id '`OAuth2` client ID'
+            cand --client-secret '`OAuth2` client secret'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;apps;update'= {
+            cand --client-id '`OAuth2` client ID'
+            cand --client-secret '`OAuth2` client secret'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;apps;remove'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;apps;list'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;apps;help'= {
+            cand add 'Register a new X API app'
+            cand update 'Update credentials for an existing app'
+            cand remove 'Remove a registered app'
+            cand list 'List registered apps'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;auth;apps;help;add'= {
+        }
+        &'xr;auth;apps;help;update'= {
+        }
+        &'xr;auth;apps;help;remove'= {
+        }
+        &'xr;auth;apps;help;list'= {
+        }
+        &'xr;auth;apps;help;help'= {
+        }
+        &'xr;auth;default'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;auth;help'= {
+            cand oauth2 'Configure `OAuth2` authentication'
+            cand oauth1 'Configure `OAuth1` authentication'
+            cand app 'Configure app-auth (bearer token)'
+            cand status 'Show authentication status'
+            cand clear 'Clear authentication tokens'
+            cand apps 'Manage registered X API apps'
+            cand default 'Set default app and/or user'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;auth;help;oauth2'= {
+        }
+        &'xr;auth;help;oauth1'= {
+        }
+        &'xr;auth;help;app'= {
+        }
+        &'xr;auth;help;status'= {
+        }
+        &'xr;auth;help;clear'= {
+        }
+        &'xr;auth;help;apps'= {
+            cand add 'Register a new X API app'
+            cand update 'Update credentials for an existing app'
+            cand remove 'Remove a registered app'
+            cand list 'List registered apps'
+        }
+        &'xr;auth;help;apps;add'= {
+        }
+        &'xr;auth;help;apps;update'= {
+        }
+        &'xr;auth;help;apps;remove'= {
+        }
+        &'xr;auth;help;apps;list'= {
+        }
+        &'xr;auth;help;default'= {
+        }
+        &'xr;auth;help;help'= {
+        }
+        &'xr;media'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand upload 'Upload media file'
+            cand status 'Check media upload status'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;media;upload'= {
+            cand --media-type 'Media type (e.g., video/mp4)'
+            cand --category 'Media category (e.g., `amplify_video`)'
+            cand --auth 'Authentication type'
+            cand -u 'Username'
+            cand --username 'Username'
+            cand -H 'Request headers'
+            cand --header 'Request headers'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait 'Wait for media processing to complete'
+            cand -v 'Verbose output'
+            cand --verbose 'Verbose output'
+            cand -t 'Trace header'
+            cand --trace 'Trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;media;status'= {
+            cand --auth 'Authentication type'
+            cand -u 'Username'
+            cand --username 'Username'
+            cand -H 'Request headers'
+            cand --header 'Request headers'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Verbose output'
+            cand --verbose 'Verbose output'
+            cand -w 'Wait for processing'
+            cand --wait 'Wait for processing'
+            cand -t 'Trace header'
+            cand --trace 'Trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;media;help'= {
+            cand upload 'Upload media file'
+            cand status 'Check media upload status'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;media;help;upload'= {
+        }
+        &'xr;media;help;status'= {
+        }
+        &'xr;media;help;help'= {
+        }
+        &'xr;completions'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;version'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;help'= {
+            cand post 'Post to X'
+            cand reply 'Reply to a post'
+            cand quote 'Quote a post'
+            cand delete 'Delete a post'
+            cand read 'Read a post'
+            cand search 'Search recent posts'
+            cand whoami 'Show the authenticated user''s profile'
+            cand user 'Look up a user by username'
+            cand timeline 'Show your home timeline'
+            cand mentions 'Show your recent mentions'
+            cand like 'Like a post'
+            cand unlike 'Unlike a post'
+            cand repost 'Repost a post'
+            cand unrepost 'Undo a repost'
+            cand bookmark 'Bookmark a post'
+            cand unbookmark 'Remove a bookmark'
+            cand bookmarks 'List your bookmarks'
+            cand likes 'List your liked posts'
+            cand follow 'Follow a user'
+            cand unfollow 'Unfollow a user'
+            cand following 'List users you follow'
+            cand followers 'List your followers'
+            cand block 'Block a user'
+            cand unblock 'Unblock a user'
+            cand mute 'Mute a user'
+            cand unmute 'Unmute a user'
+            cand dm 'Send a direct message'
+            cand dms 'List recent direct messages'
+            cand auth 'Authentication management'
+            cand media 'Media upload operations'
+            cand completions 'Generate shell completion script'
+            cand version 'Show xurl version information'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;help;post'= {
+        }
+        &'xr;help;reply'= {
+        }
+        &'xr;help;quote'= {
+        }
+        &'xr;help;delete'= {
+        }
+        &'xr;help;read'= {
+        }
+        &'xr;help;search'= {
+        }
+        &'xr;help;whoami'= {
+        }
+        &'xr;help;user'= {
+        }
+        &'xr;help;timeline'= {
+        }
+        &'xr;help;mentions'= {
+        }
+        &'xr;help;like'= {
+        }
+        &'xr;help;unlike'= {
+        }
+        &'xr;help;repost'= {
+        }
+        &'xr;help;unrepost'= {
+        }
+        &'xr;help;bookmark'= {
+        }
+        &'xr;help;unbookmark'= {
+        }
+        &'xr;help;bookmarks'= {
+        }
+        &'xr;help;likes'= {
+        }
+        &'xr;help;follow'= {
+        }
+        &'xr;help;unfollow'= {
+        }
+        &'xr;help;following'= {
+        }
+        &'xr;help;followers'= {
+        }
+        &'xr;help;block'= {
+        }
+        &'xr;help;unblock'= {
+        }
+        &'xr;help;mute'= {
+        }
+        &'xr;help;unmute'= {
+        }
+        &'xr;help;dm'= {
+        }
+        &'xr;help;dms'= {
+        }
+        &'xr;help;auth'= {
+            cand oauth2 'Configure `OAuth2` authentication'
+            cand oauth1 'Configure `OAuth1` authentication'
+            cand app 'Configure app-auth (bearer token)'
+            cand status 'Show authentication status'
+            cand clear 'Clear authentication tokens'
+            cand apps 'Manage registered X API apps'
+            cand default 'Set default app and/or user'
+        }
+        &'xr;help;auth;oauth2'= {
+        }
+        &'xr;help;auth;oauth1'= {
+        }
+        &'xr;help;auth;app'= {
+        }
+        &'xr;help;auth;status'= {
+        }
+        &'xr;help;auth;clear'= {
+        }
+        &'xr;help;auth;apps'= {
+            cand add 'Register a new X API app'
+            cand update 'Update credentials for an existing app'
+            cand remove 'Remove a registered app'
+            cand list 'List registered apps'
+        }
+        &'xr;help;auth;apps;add'= {
+        }
+        &'xr;help;auth;apps;update'= {
+        }
+        &'xr;help;auth;apps;remove'= {
+        }
+        &'xr;help;auth;apps;list'= {
+        }
+        &'xr;help;auth;default'= {
+        }
+        &'xr;help;media'= {
+            cand upload 'Upload media file'
+            cand status 'Check media upload status'
+        }
+        &'xr;help;media;upload'= {
+        }
+        &'xr;help;media;status'= {
+        }
+        &'xr;help;completions'= {
+        }
+        &'xr;help;version'= {
+        }
+        &'xr;help;help'= {
+        }
+    ]
+    $completions[$command]
+}
