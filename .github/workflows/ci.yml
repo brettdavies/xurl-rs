@@ -1,7 +1,7 @@
 # Source repo CI wrapper — calls the centralized reusable workflow.
 #
 # The reusable workflow runs: fmt, clippy, test, cargo-deny audit, package check.
-# No secrets required — only needs contents: read.
+# No secrets required — only needs contents: read and pull-requests: read.
 name: CI
 
 on:
@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   ci:
