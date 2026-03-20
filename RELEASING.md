@@ -15,9 +15,14 @@ feature branch → PR to dev (squash merge) → cherry-pick to release branch �
 Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`) live on `dev` only. `guard-main-docs.yml`
 blocks them from `main`. You MUST use the release branch pattern:
 
+**Branch naming convention:** `release/vX.Y.Z` or `release/vX.Y.Z-descriptive-title`
+
+The version prefix is required — `generate-changelog.sh` extracts it automatically. The title suffix is optional but
+encouraged for clarity (e.g., `release/v1.0.5-ci-migration`, `release/v1.1.0-completions-subcommand`).
+
 ```bash
 # 1. Branch from main, NOT dev
-git checkout -b release/v1.1.0 origin/main
+git checkout -b release/v1.0.5-ci-migration origin/main
 
 # 2. Cherry-pick only non-docs commits from dev
 git cherry-pick <commit1> <commit2> ...
@@ -25,13 +30,18 @@ git cherry-pick <commit1> <commit2> ...
 # 3. Verify no docs paths leaked through
 git diff origin/main --stat
 
-# 4. Generate changelog (REQUIRED — CI enforces this)
+# 4. Bump version in Cargo.toml
+# edit Cargo.toml version field
+git add Cargo.toml Cargo.lock
+git commit -m "chore: bump version to 1.0.5"
+
+# 5. Generate changelog (auto-detects version from branch name)
 ~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh
 git add CHANGELOG.md
 git commit -m "docs: update CHANGELOG.md"
 
-# 5. Push and open a PR to main
-git push -u origin release/v1.1.0
+# 6. Push and open a PR to main
+git push -u origin release/v1.0.5-ci-migration
 gh pr create --base main
 ```
 
@@ -41,11 +51,12 @@ have divergent histories (e.g., after squash merges).
 ## Changelog
 
 CHANGELOG.md is a committed artifact managed during release prep — not auto-generated in CI. The `generate-changelog.sh`
-script prepends new entries from unreleased commits while preserving existing content. It automatically fetches PR
-metadata from GitHub for author attribution and PR links.
+script requires `--tag vX.Y.Z` to generate a versioned section (never `[Unreleased]`). It prepends entries while
+preserving existing content, and fetches PR body `## Changelog` sections from GitHub for rich categorized entries.
 
-CI enforces that CHANGELOG.md is modified in every PR to main (`ci / Changelog` required status check). The release
-workflow extracts the latest section from CHANGELOG.md for the GitHub Release body.
+CI enforces that CHANGELOG.md is modified in every PR to main (`ci / Changelog` required status check) and that it
+contains a versioned section, not `[Unreleased]`. The release workflow extracts the latest section from CHANGELOG.md for
+the GitHub Release body.
 
 ## Tagging and releasing
 
