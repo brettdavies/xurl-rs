@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - Update RELEASING.md for reusable workflow pipeline
+- Simplify shell completions section in RELEASING.md
 
 ### Fixed
 
