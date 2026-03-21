@@ -1,5 +1,3 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
-     Running `target/debug/xr completions bash`
 _xr() {
     local i cur prev opts cmd
     COMPREPLY=()

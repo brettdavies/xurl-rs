@@ -1,5 +1,3 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
-     Running `target/debug/xr completions fish`
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_xr_global_optspecs
 	string join \n X/method= H/header= d/data= auth= u/username= v/verbose t/trace s/stream F/file= app= output= q/quiet no-interactive timeout= h/help V/version
