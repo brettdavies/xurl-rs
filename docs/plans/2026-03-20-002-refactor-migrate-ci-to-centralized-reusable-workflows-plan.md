@@ -1,7 +1,7 @@
 ---
 title: "refactor: migrate CI to centralized reusable workflows"
 type: refactor
-status: active
+status: completed
 date: 2026-03-20
 ---
 
