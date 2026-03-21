@@ -1,5 +1,3 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
-     Running `target/debug/xr completions powershell`
 
 using namespace System.Management.Automation
 using namespace System.Management.Automation.Language
