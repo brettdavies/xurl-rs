@@ -1,7 +1,7 @@
 ---
 title: "xurl-rs — Rust Port of xurl (X/Twitter API CLI)"
 type: feat
-status: active
+status: completed
 date: 2026-03-14
 origin: docs/brainstorms/2026-03-14-rust-porting-skill-brainstorm.md
 ---
@@ -10,19 +10,23 @@ origin: docs/brainstorms/2026-03-14-rust-porting-skill-brainstorm.md
 
 ## Overview
 
-Port `xurl` (Go CLI for authenticated X/Twitter API requests) to Rust as `xurl-rs`. This serves as the validation case study for both the rust-porting-skill and the go2rust transpiler.
+Port `xurl` (Go CLI for authenticated X/Twitter API requests) to Rust as `xurl-rs`. This serves as the validation case
+study for both the rust-porting-skill and the go2rust transpiler.
 
-The port must achieve **Absolute Parity** — identical outputs for identical inputs — before any enhancements are considered.
+The port must achieve **Absolute Parity** — identical outputs for identical inputs — before any enhancements are
+considered.
 
 ## Problem Statement
 
 xurl is a useful Go CLI tool but:
+
 - Go binaries are larger than Rust equivalents
 - Startup time can be improved with Rust's zero-cost abstractions
 - Static linking in Rust is simpler (single binary, no runtime)
 - This port validates our porting framework end-to-end
 
-More importantly: this is the **proving ground** for the rust-porting-skill. If the skill can't port xurl successfully, the skill needs fixing.
+More importantly: this is the **proving ground** for the rust-porting-skill. If the skill can't port xurl successfully,
+  the skill needs fixing.
 
 ## Source Analysis (from research)
 
@@ -50,7 +54,7 @@ Use the rust-porting-skill workflow end-to-end:
 
 ### Target Architecture (Rust)
 
-```
+```text
 xurl-rs/
   Cargo.toml
   src/
@@ -116,18 +120,21 @@ xurl-rs/
 ## Implementation Phases
 
 ### Phase 1: Skill-Driven Analysis (30 min)
+
 - [ ] Run rust-porting-skill Phase 1 (ANALYZE) on xurl
 - [ ] Generate EXISTING_STRUCTURE.md
 - [ ] Run go2rust on xurl source for scaffold
 - [ ] Review scaffold output, note translation gaps
 
 ### Phase 2: Architecture + Spec (1 hour)
+
 - [ ] Run skill Phase 2 (ARCHITECT) — generate PROPOSED_ARCHITECTURE.md
 - [ ] Run skill Phase 3 (SPECIFY) — generate BEHAVIORAL_SPEC.md
 - [ ] Catalog all 28 commands with their flags and expected outputs
 - [ ] Run skill Phase 4 (PLAN) — generate PORT_PLAN.md
 
 ### Phase 3: Red Team — Test Porting (1.5 hours, parallel with Phase 4)
+
 - [ ] Port xurl's 2,175 LOC of Go tests to Rust
 - [ ] Build differential conformance harness
 - [ ] Create fixture recordings for API-dependent tests
@@ -135,6 +142,7 @@ xurl-rs/
 - [ ] Set up benchmark suite (hyperfine config)
 
 ### Phase 4: Green Team — Implementation (2 hours, parallel with Phase 3)
+
 - [ ] Start from go2rust scaffold + BEHAVIORAL_SPEC.md
 - [ ] Implement token store (YAML read/write, migration)
 - [ ] Implement auth flows (OAuth2 PKCE, OAuth1, Bearer)
@@ -143,18 +151,21 @@ xurl-rs/
 - [ ] Implement raw curl-style mode
 
 ### Phase 5: Merge + Validation (1 hour)
+
 - [ ] Run red team's test suite against green team's code
 - [ ] Fix failures (determine: test bug or implementation bug)
 - [ ] Run differential conformance tests against live xurl
 - [ ] All tests must pass before proceeding
 
 ### Phase 6: Benchmarking (30 min)
+
 - [ ] Benchmark vs xurl: startup time, request throughput
 - [ ] Benchmark vs curl: raw request performance
 - [ ] Generate benchmark report with tables
 - [ ] Document binary size comparison
 
 ### Phase 7: Polish (30 min)
+
 - [ ] README with usage, installation, benchmarks
 - [ ] --help text matches xurl's help text
 - [ ] CI configuration (GitHub Actions)
@@ -164,6 +175,7 @@ xurl-rs/
 ## Acceptance Criteria
 
 ### Parity (hard gates)
+
 - [ ] All 28 shortcut commands produce identical output to xurl
 - [ ] Raw curl-style mode produces identical output
 - [ ] Exit codes match for all commands (success and error cases)
@@ -172,6 +184,7 @@ xurl-rs/
 - [ ] --help output matches xurl's help output
 
 ### Quality
+
 - [ ] All original Go tests pass when ported to Rust
 - [ ] Differential conformance tests pass
 - [ ] Clippy clean (deny warnings)
@@ -180,6 +193,7 @@ xurl-rs/
 - [ ] Documentation on all public items
 
 ### Performance
+
 - [ ] Startup time faster than xurl (expected: significantly)
 - [ ] Request throughput equal or better
 - [ ] Binary size documented (expected: smaller with static linking)
@@ -189,7 +203,7 @@ xurl-rs/
 
 - **rust-porting-skill** — must be complete enough to drive Phases 1-4
 - **go2rust** — must handle xurl's patterns for scaffold generation
-- xurl source at `~/github-stars/xdevplatform/xurl/` 
+- xurl source at `~/github-stars/xdevplatform/xurl/`
 - xurl binary installed for differential testing
 - X API credentials for live testing (Brett has these configured)
 - Go toolchain for running original xurl
