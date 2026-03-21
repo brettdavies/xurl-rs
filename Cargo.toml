@@ -51,13 +51,13 @@ colored = "3"
 
 # Utilities
 open = "5"
-
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
 thiserror = "2"
 anyhow = "1"
 dirs = "6"
 percent-encoding = "2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [[bin]]
 name = "xr"

@@ -2,15 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.5] - 2026-03-20
+## [1.0.5] - 2026-03-21
 
 ### Added
 
-- `xr completions <shell>` subcommand replacing hidden `--generate-completion` flag by @brettdavies in
-  [#6](https://github.com/brettdavies/xurl-rs/pull/6)
-- PowerShell and Elvish shell completions
-- cargo-deny license and advisory auditing via `deny.toml` by @brettdavies in
-  [#7](https://github.com/brettdavies/xurl-rs/pull/7)
+- `xr completions <shell>` subcommand replacing hidden `--generate-completion` flag by @brettdavies in [#6](https://github.com/brettdavies/xurl-rs/pull/6)
+- PowerShell and Elvish shell completions by @brettdavies in [#6](https://github.com/brettdavies/xurl-rs/pull/6)
+- cargo-deny license and advisory auditing via `deny.toml` by @brettdavies in [#7](https://github.com/brettdavies/xurl-rs/pull/7)
 - Draft-then-finalize release pattern via `finalize-release.yml`
 - Commit provenance guard requiring PRs go through dev before main
 - Changelog CI enforcement — PRs to main must include CHANGELOG.md updates
@@ -18,24 +16,21 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Version and completions commands now exit before config/auth initialization by @brettdavies in
-  [#6](https://github.com/brettdavies/xurl-rs/pull/6)
-- CI/CD migrated to centralized reusable workflows from `brettdavies/.github` by @brettdavies in
-  [#7](https://github.com/brettdavies/xurl-rs/pull/7)
+- Version and completions commands now exit before config/auth initialization by @brettdavies in [#6](https://github.com/brettdavies/xurl-rs/pull/6)
+- CI/CD migrated to centralized reusable workflows from `brettdavies/.github` by @brettdavies in [#7](https://github.com/brettdavies/xurl-rs/pull/7)
 - `ci.yml`, `release.yml`, `guard-main-docs.yml` replaced with thin callers
 - Homebrew dispatch secret migrated from `HOMEBREW_TAP_TOKEN` to `CI_RELEASE_TOKEN`
 - Release archives now include completions, licenses, README, and sha256sums
 
 ### Fixed
 
-- `protect-dev.json` aligned with bird (add deletion, non_fast_forward rules, admin bypass) by @brettdavies in
-  [#7](https://github.com/brettdavies/xurl-rs/pull/7)
+- `protect-dev.json` aligned with bird (add deletion, non_fast_forward rules, admin bypass) by @brettdavies in [#7](https://github.com/brettdavies/xurl-rs/pull/7)
 - Update `rustls-webpki` to 0.103.10 to fix [RUSTSEC-2026-0049](https://rustsec.org/advisories/RUSTSEC-2026-0049)
+- Move `thiserror`, `anyhow`, `dirs`, `percent-encoding` to platform-independent `[dependencies]` — fixes Windows build by @brettdavies in [#9](https://github.com/brettdavies/xurl-rs/pull/9)
 
 ### Documentation
 
-- RELEASING.md rewritten for reusable workflow pipeline and changelog-as-committed-artifact by @brettdavies in
-  [#7](https://github.com/brettdavies/xurl-rs/pull/7)
+- RELEASING.md rewritten for reusable workflow pipeline and changelog-as-committed-artifact by @brettdavies in [#7](https://github.com/brettdavies/xurl-rs/pull/7)
 
 **Full Changelog**: [v1.0.4...v1.0.5](https://github.com/brettdavies/xurl-rs/compare/v1.0.4...v1.0.5)
 
