@@ -71,6 +71,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand unblock 'Unblock a user'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand usage 'Show API usage (tweet caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
@@ -539,6 +540,23 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
+        &'xr;usage'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
         &'xr;dm'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
@@ -890,6 +908,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand unblock 'Unblock a user'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand usage 'Show API usage (tweet caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
@@ -949,6 +968,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;mute'= {
         }
         &'xr;help;unmute'= {
+        }
+        &'xr;help;usage'= {
         }
         &'xr;help;dm'= {
         }

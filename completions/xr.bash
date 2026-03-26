@@ -106,6 +106,9 @@ _xr() {
             xr,unrepost)
                 cmd="xr__unrepost"
                 ;;
+            xr,usage)
+                cmd="xr__usage"
+                ;;
             xr,user)
                 cmd="xr__user"
                 ;;
@@ -295,6 +298,9 @@ _xr() {
             xr__help,unrepost)
                 cmd="xr__help__unrepost"
                 ;;
+            xr__help,usage)
+                cmd="xr__help__usage"
+                ;;
             xr__help,user)
                 cmd="xr__help__user"
                 ;;
@@ -368,7 +374,7 @@ _xr() {
 
     case "${cmd}" in
         xr)
-            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media completions version help"
+            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media completions version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1464,7 +1470,7 @@ _xr() {
             return 0
             ;;
         xr__help)
-            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute dm dms auth media completions version help"
+            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media completions version help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2066,6 +2072,20 @@ _xr() {
             return 0
             ;;
         xr__help__unrepost)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__usage)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2953,6 +2973,44 @@ _xr() {
             ;;
         xr__unrepost)
             opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --auth)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --username)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__usage)
+            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
