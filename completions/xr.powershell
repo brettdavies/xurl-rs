@@ -74,6 +74,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('unblock', 'unblock', [CompletionResultType]::ParameterValue, 'Unblock a user')
             [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
             [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
+            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (tweet caps, daily breakdown)')
             [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
@@ -569,6 +570,24 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
+        'xr;usage' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose request/response info')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
         'xr;dm' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
@@ -962,6 +981,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('unblock', 'unblock', [CompletionResultType]::ParameterValue, 'Unblock a user')
             [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
             [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
+            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (tweet caps, daily breakdown)')
             [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
@@ -1047,6 +1067,9 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;unmute' {
+            break
+        }
+        'xr;help;usage' {
             break
         }
         'xr;help;dm' {

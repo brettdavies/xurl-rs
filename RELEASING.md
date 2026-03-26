@@ -35,12 +35,17 @@ git diff origin/main --stat
 git add Cargo.toml Cargo.lock
 git commit -m "chore: bump version to 1.0.5"
 
-# 5. Generate changelog (auto-detects version from branch name)
+# 5. Regenerate shell completions (catches any missed during development)
+~/.claude/skills/rust-tool-release/scripts/generate-completions.sh
+git add completions/
+git diff --cached --quiet completions/ || git commit -m "chore: regenerate shell completions"
+
+# 6. Generate changelog (auto-detects version from branch name)
 ~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh
 git add CHANGELOG.md
 git commit -m "docs: update CHANGELOG.md"
 
-# 6. Push and open a PR to main
+# 7. Push and open a PR to main
 git push -u origin release/v1.0.5-ci-migration
 gh pr create --base main
 ```
