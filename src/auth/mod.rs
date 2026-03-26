@@ -171,9 +171,21 @@ impl Auth {
     }
 
     /// Replaces the token store (used in integration tests).
+    ///
+    /// Re-resolves credentials from the new store's active app when
+    /// they came from the old store (not from config/env vars), so
+    /// stale credentials from the real `~/.xurl` don't leak into tests.
     #[allow(dead_code)] // Public library API — used by consumers and integration tests
     #[must_use]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
+        let old_app = self.token_store.resolve_app(&self.app_name);
+        let new_app = token_store.resolve_app(&self.app_name);
+        if self.client_id == old_app.client_id {
+            self.client_id = new_app.client_id.clone();
+        }
+        if self.client_secret == old_app.client_secret {
+            self.client_secret = new_app.client_secret.clone();
+        }
         self.token_store = token_store;
         self
     }
