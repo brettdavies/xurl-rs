@@ -639,6 +639,27 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ':target_username -- Username to unmute:_default' \
 && ret=0
 ;;
+(usage)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"))' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'-v[Print verbose request/response info]' \
+'--verbose[Print verbose request/response info]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'-q[Suppress all non-essential output (errors still go to stderr)]' \
+'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
+'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
@@ -1259,6 +1280,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(usage)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -1413,6 +1438,7 @@ _xr_commands() {
 'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'usage:Show API usage (tweet caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
@@ -1692,6 +1718,7 @@ _xr__help_commands() {
 'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'usage:Show API usage (tweet caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
@@ -1933,6 +1960,11 @@ _xr__help__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unrepost commands' commands "$@"
 }
+(( $+functions[_xr__help__usage_commands] )) ||
+_xr__help__usage_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help usage commands' commands "$@"
+}
 (( $+functions[_xr__help__user_commands] )) ||
 _xr__help__user_commands() {
     local commands; commands=()
@@ -2075,6 +2107,11 @@ _xr__unmute_commands() {
 _xr__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr unrepost commands' commands "$@"
+}
+(( $+functions[_xr__usage_commands] )) ||
+_xr__usage_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr usage commands' commands "$@"
 }
 (( $+functions[_xr__user_commands] )) ||
 _xr__user_commands() {

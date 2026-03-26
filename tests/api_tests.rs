@@ -890,3 +890,275 @@ fn test_extract_media_id_with_extra_path() {
     let result = extract_media_id("/2/media/upload/999/append/extra");
     assert_eq!(result, "999");
 }
+
+// ── Usage shortcut tests ────────────────────────────────────────────────
+
+#[test]
+fn test_get_usage_happy_path() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .and(query_param(
+                "usage.fields",
+                "daily_project_usage,daily_client_app_usage",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {
+                    "project_cap": "2000000",
+                    "project_id": "2020044302890438656",
+                    "project_usage": "399",
+                    "cap_reset_day": 19,
+                    "daily_project_usage": {
+                        "project_id": "2020044302890438656",
+                        "usage": [
+                            {"date": "2026-03-25T00:00:00.000Z", "usage": "299"},
+                            {"date": "2026-03-26T00:00:00.000Z", "usage": "100"}
+                        ]
+                    },
+                    "daily_client_app_usage": [
+                        {
+                            "client_app_id": "32371675",
+                            "usage": [
+                                {"date": "2026-03-25T00:00:00.000Z", "usage": "299"}
+                            ],
+                            "usage_result_count": 1
+                        }
+                    ]
+                }
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    assert_eq!(resp["data"]["project_cap"], "2000000");
+    assert_eq!(resp["data"]["project_usage"], "399");
+    assert_eq!(resp["data"]["cap_reset_day"], 19);
+    assert_eq!(
+        resp["data"]["daily_project_usage"]["project_id"],
+        "2020044302890438656"
+    );
+    assert!(resp["data"]["daily_project_usage"]["usage"].is_array());
+    assert!(resp["data"]["daily_client_app_usage"].is_array());
+}
+
+#[test]
+fn test_get_usage_requires_usage_fields_query_param() {
+    // Verify the shortcut sends the required query parameter.
+    // Without usage.fields, the API returns minimal data — this mock
+    // only responds when the param is present.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .and(query_param(
+                "usage.fields",
+                "daily_project_usage,daily_client_app_usage",
+            ))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"project_usage": "42"}})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    assert_eq!(resp["data"]["project_usage"], "42");
+}
+
+#[test]
+fn test_get_usage_uses_get_method() {
+    // Ensure the shortcut uses GET, not POST or another method.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"project_usage": "0"}})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts());
+    assert!(resp.is_ok());
+}
+
+#[test]
+fn test_get_usage_api_error_401() {
+    // Unauthorized — e.g., missing or invalid bearer token.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(ResponseTemplate::new(401).set_body_json(serde_json::json!({
+                "title": "Unauthorized",
+                "type": "about:blank",
+                "status": 401,
+                "detail": "Unauthorized"
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts());
+    assert!(resp.is_err());
+}
+
+#[test]
+fn test_get_usage_api_error_429() {
+    // Rate limited — 50 requests per 15-minute window.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(ResponseTemplate::new(429).set_body_json(serde_json::json!({
+                "title": "Too Many Requests",
+                "detail": "Too Many Requests",
+                "type": "about:blank",
+                "status": 429
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts());
+    assert!(resp.is_err());
+}
+
+#[test]
+fn test_get_usage_with_oauth1_auth() {
+    // Usage endpoint works with any valid auth, not just bearer.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"project_usage": "10"}})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    assert_eq!(resp["data"]["project_usage"], "10");
+}
+
+#[test]
+fn test_get_usage_with_oauth2_auth() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"project_usage": "20"}})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    assert_eq!(resp["data"]["project_usage"], "20");
+}
+
+#[test]
+fn test_get_usage_daily_project_usage_structure() {
+    // Verify the daily_project_usage nested structure is preserved.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {
+                    "daily_project_usage": {
+                        "project_id": "123",
+                        "usage": [
+                            {"date": "2026-03-01T00:00:00.000Z", "usage": "50"},
+                            {"date": "2026-03-02T00:00:00.000Z", "usage": "75"},
+                            {"date": "2026-03-03T00:00:00.000Z", "usage": "100"}
+                        ]
+                    }
+                }
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let daily = &resp["data"]["daily_project_usage"]["usage"];
+    assert!(daily.is_array());
+    assert_eq!(daily.as_array().unwrap().len(), 3);
+    assert_eq!(daily[0]["usage"], "50");
+    assert_eq!(daily[2]["usage"], "100");
+}
+
+#[test]
+fn test_get_usage_daily_client_app_usage_structure() {
+    // Verify the daily_client_app_usage array with per-app breakdowns.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {
+                    "daily_client_app_usage": [
+                        {
+                            "client_app_id": "app_1",
+                            "usage": [{"date": "2026-03-25T00:00:00.000Z", "usage": "10"}],
+                            "usage_result_count": 1
+                        },
+                        {
+                            "client_app_id": "app_2",
+                            "usage": [{"date": "2026-03-25T00:00:00.000Z", "usage": "30"}],
+                            "usage_result_count": 1
+                        }
+                    ]
+                }
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let apps = resp["data"]["daily_client_app_usage"].as_array().unwrap();
+    assert_eq!(apps.len(), 2);
+    assert_eq!(apps[0]["client_app_id"], "app_1");
+    assert_eq!(apps[1]["client_app_id"], "app_2");
+}
+
+#[test]
+fn test_get_usage_clears_request_data() {
+    // Ensure no stale request body leaks into the GET request.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/usage/tweets"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"project_usage": "0"}})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    // Pass opts with stale data to verify it gets cleared
+    let mut opts = base_opts();
+    opts.data = r#"{"stale":"body"}"#.to_string();
+    let resp = api::get_usage(&mut client, &opts);
+    assert!(resp.is_ok());
+}

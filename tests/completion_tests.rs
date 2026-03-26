@@ -87,6 +87,7 @@ fn test_completions_bash_contains_subcommand_names() {
         .success()
         .stdout(predicate::str::contains("completions"))
         .stdout(predicate::str::contains("post"))
+        .stdout(predicate::str::contains("usage"))
         .stdout(predicate::str::contains("auth"));
 }
 
@@ -100,7 +101,7 @@ fn test_completions_bash_output_is_substantial() {
     assert!(output.status.success());
     assert!(
         output.stdout.len() > 1024,
-        "completion script should be >1KB for 28+ subcommands, got {} bytes",
+        "completion script should be >1KB for 29+ subcommands, got {} bytes",
         output.stdout.len()
     );
 }

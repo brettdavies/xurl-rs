@@ -1,6 +1,6 @@
 /// API shortcut functions — high-level X API v2 operations.
 ///
-/// Each function maps to one of the 28 shortcut commands, building the
+/// Each function maps to one of the 29 shortcut commands, building the
 /// appropriate endpoint URL and request body.
 use serde::Serialize;
 
@@ -633,6 +633,21 @@ pub fn mute_user(
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/muting");
     opts.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
+
+    client.send_request(&opts)
+}
+
+/// Fetches API usage data (tweet caps, daily breakdowns).
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
+pub fn get_usage(client: &mut ApiClient, opts: &RequestOptions) -> Result<serde_json::Value> {
+    let mut opts = opts.clone();
+    opts.method = "GET".to_string();
+    opts.endpoint =
+        "/2/usage/tweets?usage.fields=daily_project_usage,daily_client_app_usage".to_string();
+    opts.data.clear();
 
     client.send_request(&opts)
 }

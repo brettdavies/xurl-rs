@@ -444,6 +444,14 @@ fn run_subcommand(
             out.print_response(&response);
         }
 
+        // ── Usage ─────────────────────────────────────────────────────
+        Commands::Usage { common } => {
+            let mut client = ApiClient::new(cfg, auth);
+            let opts = common.to_request_options();
+            let response = api::get_usage(&mut client, &opts)?;
+            out.print_response(&response);
+        }
+
         // ── Direct Messages ──────────────────────────────────────────
         Commands::Dm {
             target_username,

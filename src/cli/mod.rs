@@ -353,6 +353,13 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Usage ─────────────────────────────────────────────────────────
+    /// Show API usage (tweet caps, daily breakdown)
+    Usage {
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+
     // ── Direct Messages ──────────────────────────────────────────────
     /// Send a direct message
     Dm {
