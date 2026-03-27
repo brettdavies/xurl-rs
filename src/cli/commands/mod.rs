@@ -505,9 +505,94 @@ fn run_auth_command(
     out: &OutputConfig,
 ) -> Result<()> {
     match cmd {
-        AuthCommands::Oauth2 => {
-            auth.oauth2_flow("")?;
-            out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+        AuthCommands::Oauth2 {
+            remote,
+            step,
+            auth_url,
+        } => {
+            if !remote {
+                // Standard interactive flow
+                auth.oauth2_flow("")?;
+                out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+            } else {
+                let pending_path = crate::auth::pending::default_pending_path()?;
+                match step {
+                    Some(1) => {
+                        if auth_url.is_some() {
+                            return Err(crate::error::XurlError::auth(
+                                "--auth-url is only used with --step 2, not --step 1",
+                            ));
+                        }
+                        let url = auth.remote_oauth2_step1(&pending_path)?;
+                        match out.format {
+                            crate::output::OutputFormat::Json
+                            | crate::output::OutputFormat::Jsonl => {
+                                let json = serde_json::json!({
+                                    "auth_url": url,
+                                    "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
+                                });
+                                println!("{json}");
+                            }
+                            crate::output::OutputFormat::Text => {
+                                out.print_message(
+                                    "Open this URL in a browser on a machine with a display:",
+                                );
+                                out.print_message("");
+                                out.print_message(&format!("  {url}"));
+                                out.print_message("");
+                                out.print_message(
+                                    "After authorizing, copy the redirect URL from your browser's address bar",
+                                );
+                                out.print_message(
+                                    "(it will show an error page — that's expected).",
+                                );
+                                out.print_message("");
+                                out.print_message("Then run:");
+                                out.print_message(
+                                    "  echo '<redirect-url>' | xr auth oauth2 --remote --step 2 --auth-url -",
+                                );
+                            }
+                        }
+                    }
+                    Some(2) => {
+                        let url_value = auth_url.ok_or_else(|| {
+                            crate::error::XurlError::auth(
+                                "--auth-url is required for step 2. Pass the redirect URL from your browser, \
+                                 or use --auth-url - to read from stdin",
+                            )
+                        })?;
+
+                        let redirect_url = if url_value == "-" {
+                            let mut line = String::new();
+                            std::io::stdin().read_line(&mut line).map_err(|e| {
+                                crate::error::XurlError::auth_with_cause(
+                                    "Failed to read redirect URL from stdin",
+                                    &e,
+                                )
+                            })?;
+                            let trimmed = line.trim().to_string();
+                            if trimmed.is_empty() {
+                                return Err(crate::error::XurlError::auth(
+                                    "No redirect URL provided on stdin. \
+                                     Pipe the URL or paste it and press Enter",
+                                ));
+                            }
+                            trimmed
+                        } else {
+                            url_value
+                        };
+
+                        auth.remote_oauth2_step2(&redirect_url, "", &pending_path)?;
+                        out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                    }
+                    None => {
+                        return Err(crate::error::XurlError::auth(
+                            "--remote requires --step 1 or --step 2",
+                        ));
+                    }
+                    _ => unreachable!("clap value_parser restricts to 1..=2"),
+                }
+            }
         }
         AuthCommands::Oauth1 {
             consumer_key,
