@@ -1,6 +1,6 @@
-//! Integration tests for the remote (headless) OAuth2 PKCE flow.
+//! Integration tests for the headless (`--no-browser`) OAuth2 PKCE flow.
 //!
-//! Tests the two-step remote flow: step 1 generates the auth URL and persists
+//! Tests the two-step no-browser flow: step 1 generates the auth URL and persists
 //! PKCE state; step 2 accepts the redirect URL, exchanges the code for a token,
 //! and saves it to the token store.
 
@@ -689,22 +689,22 @@ fn step2_username_resolution_failure_preserves_pending() {
 // ── CLI E2E tests ─────────────────────────────────────────────────────
 
 #[test]
-fn cli_remote_without_step_fails() {
+fn cli_no_browser_without_step_fails() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .args(["auth", "oauth2", "--remote"])
+        .args(["auth", "oauth2", "--no-browser"])
         .output()
         .unwrap();
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--remote requires --step"),
+        stderr.contains("--no-browser requires --step"),
         "Expected --step required error, got: {stderr}"
     );
 }
 
 #[test]
-fn cli_step_without_remote_fails() {
+fn cli_step_without_no_browser_fails() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
         .args(["auth", "oauth2", "--step", "1"])
         .output()
@@ -713,15 +713,15 @@ fn cli_step_without_remote_fails() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--remote"),
-        "Expected --remote required error, got: {stderr}"
+        stderr.contains("--no-browser"),
+        "Expected --no-browser required error, got: {stderr}"
     );
 }
 
 #[test]
 fn cli_step_3_rejected_by_value_parser() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .args(["auth", "oauth2", "--remote", "--step", "3"])
+        .args(["auth", "oauth2", "--no-browser", "--step", "3"])
         .output()
         .unwrap();
 
@@ -736,7 +736,7 @@ fn cli_step_3_rejected_by_value_parser() {
 #[test]
 fn cli_step2_without_auth_url_fails() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .args(["auth", "oauth2", "--remote", "--step", "2"])
+        .args(["auth", "oauth2", "--no-browser", "--step", "2"])
         .output()
         .unwrap();
 
@@ -780,7 +780,7 @@ fn cli_step1_with_auth_url_rejected() {
         .args([
             "auth",
             "oauth2",
-            "--remote",
+            "--no-browser",
             "--step",
             "1",
             "--auth-url",

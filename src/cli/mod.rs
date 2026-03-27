@@ -445,9 +445,9 @@ pub enum AuthCommands {
     Oauth2 {
         /// Enable manual two-step flow for headless machines (SSH, containers)
         #[arg(long)]
-        remote: bool,
+        no_browser: bool,
         /// Step number: 1 (generate auth URL) or 2 (complete exchange)
-        #[arg(long, requires = "remote", value_parser = clap::value_parser!(u8).range(1..=2))]
+        #[arg(long, requires = "no_browser", value_parser = clap::value_parser!(u8).range(1..=2))]
         step: Option<u8>,
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]
