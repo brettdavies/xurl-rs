@@ -118,12 +118,8 @@ pub(crate) fn exchange_code_for_token(
         .map_err(|e| XurlError::auth_with_cause("TokenExchangeError", &e))?;
 
     if !status.is_success() {
-        let api_error = token_data["error"]
-            .as_str()
-            .unwrap_or("unknown");
-        let api_desc = token_data["error_description"]
-            .as_str()
-            .unwrap_or("");
+        let api_error = token_data["error"].as_str().unwrap_or("unknown");
+        let api_desc = token_data["error_description"].as_str().unwrap_or("");
         return Err(XurlError::auth(format!(
             "TokenExchangeError: HTTP {status} — {api_error}: {api_desc}"
         )));
@@ -273,20 +269,17 @@ pub fn run_remote_step2(
 
     // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url).map_err(|e| {
-        XurlError::auth_with_cause(
-            "InvalidRedirectURL: failed to parse redirect URL",
-            &e,
-        )
+        XurlError::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
     })?;
 
-    let params: std::collections::HashMap<String, String> =
-        parsed.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    let params: std::collections::HashMap<String, String> = parsed
+        .query_pairs()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
 
     // Validate state first (CSRF check before revealing anything about code)
     let state = params.get("state").ok_or_else(|| {
-        XurlError::auth(
-            "MissingState: no 'state' parameter found in redirect URL",
-        )
+        XurlError::auth("MissingState: no 'state' parameter found in redirect URL")
     })?;
 
     if *state != pending_state.state {
@@ -306,8 +299,7 @@ pub fn run_remote_step2(
     })?;
 
     // Exchange code for token
-    let access_token =
-        exchange_code_for_token(auth, code, &pending_state.code_verifier, username)?;
+    let access_token = exchange_code_for_token(auth, code, &pending_state.code_verifier, username)?;
 
     // Only delete on success
     pending::delete(pending_path)?;

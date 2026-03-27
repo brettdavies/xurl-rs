@@ -236,7 +236,11 @@ fn step2_with_explicit_username_skips_resolution() {
         .unwrap();
 
     assert_eq!(access_token, "explicit-token");
-    assert!(auth.token_store().get_oauth2_token("explicituser").is_some());
+    assert!(
+        auth.token_store()
+            .get_oauth2_token("explicituser")
+            .is_some()
+    );
 }
 
 #[test]
@@ -531,9 +535,7 @@ fn step2_empty_redirect_url_returns_parse_error() {
 
     auth.remote_oauth2_step1(&pending_path).unwrap();
 
-    let err = auth
-        .remote_oauth2_step2("", "", &pending_path)
-        .unwrap_err();
+    let err = auth.remote_oauth2_step2("", "", &pending_path).unwrap_err();
 
     let msg = err.to_string();
     assert!(
@@ -776,7 +778,12 @@ fn step2_redirect_url_with_code_but_no_state() {
 fn cli_step1_with_auth_url_rejected() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
         .args([
-            "auth", "oauth2", "--remote", "--step", "1", "--auth-url",
+            "auth",
+            "oauth2",
+            "--remote",
+            "--step",
+            "1",
+            "--auth-url",
             "http://example.com",
         ])
         .output()
