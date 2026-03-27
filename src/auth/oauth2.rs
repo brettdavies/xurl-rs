@@ -179,6 +179,129 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
     exchange_code_for_token(auth, &code, &verifier, username)
 }
 
+/// Runs step 1 of the remote `OAuth2` PKCE flow (headless machines).
+///
+/// Generates the PKCE verifier/challenge and state nonce, builds the
+/// authorization URL, and persists the PKCE state to `pending_path` so
+/// that a subsequent call to [`run_remote_step2`] can complete the exchange.
+///
+/// Returns the authorization URL that the user should open in a browser
+/// on another machine.
+///
+/// # Errors
+///
+/// Returns an error if the authorization URL is invalid or the pending
+/// state file cannot be written.
+pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
+    use super::pending;
+
+    if pending::exists(pending_path) {
+        eprintln!("Warning: Overwriting previous pending auth flow");
+    }
+
+    let state_bytes: [u8; 32] = rand::random();
+    let state = BASE64_STANDARD.encode(state_bytes);
+    let (verifier, challenge) = generate_code_verifier_and_challenge();
+
+    let auth_url_str = build_auth_url(auth, &state, &challenge)?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let pending_state = pending::PendingOAuth2State {
+        code_verifier: verifier,
+        state,
+        client_id: auth.client_id().to_string(),
+        redirect_uri: auth.redirect_uri().to_string(),
+        app_name: auth.app_name().to_string(),
+        created_at: now,
+    };
+
+    pending::save(&pending_state, pending_path)?;
+
+    Ok(auth_url_str)
+}
+
+/// Runs step 2 of the remote `OAuth2` PKCE flow (headless machines).
+///
+/// Loads the pending PKCE state from `pending_path`, validates the state
+/// and client ID, extracts the authorization code from `redirect_url`,
+/// exchanges it for an access token, and saves the token to the store.
+///
+/// The pending state file is deleted only on success — on any error the
+/// file is preserved so the user can retry.
+///
+/// # Errors
+///
+/// Returns an error if the pending state is missing/expired/invalid,
+/// the client ID doesn't match, the state parameter doesn't match,
+/// the redirect URL is missing the code, or the token exchange fails.
+pub fn run_remote_step2(
+    auth: &mut Auth,
+    redirect_url: &str,
+    username: &str,
+    pending_path: &std::path::Path,
+) -> Result<String> {
+    use super::pending;
+
+    let pending_state = pending::load(pending_path)?;
+
+    // Validate client_id matches runtime context
+    if pending_state.client_id != auth.client_id() {
+        return Err(XurlError::auth(format!(
+            "AppMismatch: pending state was created for app {:?} (client_id: {}), \
+             but current context uses client_id: {}. Re-run step 1 with the correct --app",
+            pending_state.app_name,
+            pending_state.client_id,
+            auth.client_id()
+        )));
+    }
+
+    // Parse redirect URL to extract code and state
+    let parsed = Url::parse(redirect_url).map_err(|e| {
+        XurlError::auth_with_cause(
+            "MissingCode: failed to parse redirect URL",
+            &e,
+        )
+    })?;
+
+    let params: std::collections::HashMap<String, String> =
+        parsed.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+
+    let code = params.get("code").ok_or_else(|| {
+        XurlError::auth(
+            "MissingCode: no 'code' parameter found in redirect URL. \
+             Make sure you copied the full URL from your browser's address bar",
+        )
+    })?;
+
+    let state = params.get("state").ok_or_else(|| {
+        XurlError::auth(
+            "MissingCode: no 'state' parameter found in redirect URL",
+        )
+    })?;
+
+    // Validate state matches
+    if *state != pending_state.state {
+        return Err(XurlError::auth(
+            "StateMismatch: the state parameter in the redirect URL does not match \
+             the pending auth flow. This may indicate a CSRF attack or that step 1 \
+             was re-run. Please start over with step 1",
+        ));
+    }
+
+    // Exchange code for token
+    let access_token =
+        exchange_code_for_token(auth, code, &pending_state.code_verifier, username)?;
+
+    // Only delete on success
+    pending::delete(pending_path)?;
+
+    Ok(access_token)
+}
+
 /// Refreshes an `OAuth2` token if expired.
 ///
 /// # Errors

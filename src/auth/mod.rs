@@ -130,6 +130,37 @@ impl Auth {
         oauth2::refresh_oauth2_token(self, username)
     }
 
+    /// Runs step 1 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Returns the authorization URL that the user should open in a browser
+    /// on another machine.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization URL is invalid or the pending
+    /// state file cannot be written.
+    pub fn remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<String> {
+        oauth2::run_remote_step1(self, pending_path)
+    }
+
+    /// Runs step 2 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Takes the redirect URL from the browser, extracts the authorization
+    /// code, exchanges it for an access token, and saves the token.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pending state is missing/expired/invalid,
+    /// the token exchange fails, or the username cannot be resolved.
+    pub fn remote_oauth2_step2(
+        &mut self,
+        redirect_url: &str,
+        username: &str,
+        pending_path: &std::path::Path,
+    ) -> Result<String> {
+        oauth2::run_remote_step2(self, redirect_url, username, pending_path)
+    }
+
     /// Gets the bearer token Authorization header.
     ///
     /// # Errors
@@ -199,6 +230,10 @@ impl Auth {
     }
 
     // Accessors
+    #[must_use]
+    pub fn app_name(&self) -> &str {
+        &self.app_name
+    }
     #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id
