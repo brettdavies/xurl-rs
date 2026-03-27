@@ -515,9 +515,14 @@ fn run_auth_command(
                 auth.oauth2_flow("")?;
                 out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
-                let pending_path = crate::auth::pending::default_pending_path();
+                let pending_path = crate::auth::pending::default_pending_path()?;
                 match step {
                     Some(1) => {
+                        if auth_url.is_some() {
+                            return Err(crate::error::XurlError::auth(
+                                "--auth-url is only used with --step 2, not --step 1",
+                            ));
+                        }
                         let url = auth.remote_oauth2_step1(&pending_path)?;
                         match out.format {
                             crate::output::OutputFormat::Json
@@ -565,7 +570,14 @@ fn run_auth_command(
                                     &e,
                                 )
                             })?;
-                            line.trim().to_string()
+                            let trimmed = line.trim().to_string();
+                            if trimmed.is_empty() {
+                                return Err(crate::error::XurlError::auth(
+                                    "No redirect URL provided on stdin. \
+                                     Pipe the URL or paste it and press Enter",
+                                ));
+                            }
+                            trimmed
                         } else {
                             url_value
                         };

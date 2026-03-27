@@ -11,6 +11,7 @@ use url::Url;
 
 use super::Auth;
 use super::callback;
+use super::pending;
 use crate::error::{Result, XurlError};
 
 /// `OAuth2` scopes requested for xurl.
@@ -94,7 +95,10 @@ pub(crate) fn exchange_code_for_token(
     verifier: &str,
     username: &str,
 ) -> Result<String> {
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap_or_else(|_| reqwest::blocking::Client::new());
     let token_resp = client
         .post(auth.token_url())
         .form(&[
@@ -108,9 +112,22 @@ pub(crate) fn exchange_code_for_token(
         .send()
         .map_err(|e| XurlError::auth_with_cause("TokenExchangeError", &e))?;
 
+    let status = token_resp.status();
     let token_data: serde_json::Value = token_resp
         .json()
         .map_err(|e| XurlError::auth_with_cause("TokenExchangeError", &e))?;
+
+    if !status.is_success() {
+        let api_error = token_data["error"]
+            .as_str()
+            .unwrap_or("unknown");
+        let api_desc = token_data["error_description"]
+            .as_str()
+            .unwrap_or("");
+        return Err(XurlError::auth(format!(
+            "TokenExchangeError: HTTP {status} — {api_error}: {api_desc}"
+        )));
+    }
 
     let access_token = token_data["access_token"]
         .as_str()
@@ -193,9 +210,7 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 /// Returns an error if the authorization URL is invalid or the pending
 /// state file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
-    use super::pending;
-
-    if pending::exists(pending_path) {
+    if pending_path.exists() {
         eprintln!("Warning: Overwriting previous pending auth flow");
     }
 
@@ -214,7 +229,6 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         code_verifier: verifier,
         state,
         client_id: auth.client_id().to_string(),
-        redirect_uri: auth.redirect_uri().to_string(),
         app_name: auth.app_name().to_string(),
         created_at: now,
     };
@@ -244,8 +258,6 @@ pub fn run_remote_step2(
     username: &str,
     pending_path: &std::path::Path,
 ) -> Result<String> {
-    use super::pending;
-
     let pending_state = pending::load(pending_path)?;
 
     // Validate client_id matches runtime context
@@ -259,10 +271,10 @@ pub fn run_remote_step2(
         )));
     }
 
-    // Parse redirect URL to extract code and state
+    // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url).map_err(|e| {
         XurlError::auth_with_cause(
-            "MissingCode: failed to parse redirect URL",
+            "InvalidRedirectURL: failed to parse redirect URL",
             &e,
         )
     })?;
@@ -270,20 +282,13 @@ pub fn run_remote_step2(
     let params: std::collections::HashMap<String, String> =
         parsed.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
 
-    let code = params.get("code").ok_or_else(|| {
-        XurlError::auth(
-            "MissingCode: no 'code' parameter found in redirect URL. \
-             Make sure you copied the full URL from your browser's address bar",
-        )
-    })?;
-
+    // Validate state first (CSRF check before revealing anything about code)
     let state = params.get("state").ok_or_else(|| {
         XurlError::auth(
-            "MissingCode: no 'state' parameter found in redirect URL",
+            "MissingState: no 'state' parameter found in redirect URL",
         )
     })?;
 
-    // Validate state matches
     if *state != pending_state.state {
         return Err(XurlError::auth(
             "StateMismatch: the state parameter in the redirect URL does not match \
@@ -291,6 +296,14 @@ pub fn run_remote_step2(
              was re-run. Please start over with step 1",
         ));
     }
+
+    // Extract authorization code
+    let code = params.get("code").ok_or_else(|| {
+        XurlError::auth(
+            "MissingCode: no 'code' parameter found in redirect URL. \
+             Make sure you copied the full URL from your browser's address bar",
+        )
+    })?;
 
     // Exchange code for token
     let access_token =

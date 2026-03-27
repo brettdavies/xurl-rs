@@ -1,7 +1,7 @@
 //! Tests for the pending OAuth2 state persistence module.
 //!
 //! Validates save/load round-trip, TTL expiry, file permissions,
-//! and the delete/exists helpers.
+//! and the delete helper.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -23,7 +23,6 @@ fn sample_state() -> PendingOAuth2State {
         code_verifier: "test_verifier_abc123".into(),
         state: "random_state_xyz".into(),
         client_id: "client_id_001".into(),
-        redirect_uri: "http://localhost:8739/callback".into(),
         app_name: "myapp".into(),
         created_at: now_secs(),
     }
@@ -116,24 +115,29 @@ fn load_rejects_expired_state() {
     assert!(!path.exists());
 }
 
-#[test]
-fn exists_returns_false_when_no_file() {
-    let tmp = TempDir::new().unwrap();
-    let path = tmp.path().join(".xurl.pending");
-    assert!(!pending::exists(&path));
-}
+// ── Adversarial / Red Team Tests ────────────────────────────────────────
 
+#[cfg(unix)]
 #[test]
-fn exists_returns_true_after_save() {
+fn load_rejects_wrong_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
     let tmp = TempDir::new().unwrap();
     let path = tmp.path().join(".xurl.pending");
 
     let state = sample_state();
     pending::save(&state, &path).unwrap();
-    assert!(pending::exists(&path));
-}
 
-// ── Adversarial / Red Team Tests ────────────────────────────────────────
+    // Widen permissions to 0644 — load() should reject this.
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+
+    let err = pending::load(&path).unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("PendingStatePermissions"),
+        "expected PendingStatePermissions, got: {msg}"
+    );
+}
 
 #[test]
 fn load_corrupt_yaml_returns_error() {

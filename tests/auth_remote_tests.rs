@@ -392,7 +392,6 @@ fn step2_expired_pending_returns_ttl_error() {
         code_verifier: "verifier".to_string(),
         state: "state".to_string(),
         client_id: "test-client-id".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
         app_name: String::new(),
         created_at: 0, // epoch = 1970, definitely expired
     };
@@ -560,8 +559,8 @@ fn step2_garbage_redirect_url_returns_parse_error() {
 
     let msg = err.to_string();
     assert!(
-        msg.contains("MissingCode"),
-        "Expected MissingCode/parse error, got: {msg}"
+        msg.contains("InvalidRedirectURL"),
+        "Expected InvalidRedirectURL parse error, got: {msg}"
     );
     assert!(pending_path.exists());
 }
@@ -586,8 +585,8 @@ fn step2_redirect_with_error_param_returns_missing_code() {
 
     let msg = err.to_string();
     assert!(
-        msg.contains("MissingCode"),
-        "Expected MissingCode when user denies auth, got: {msg}"
+        msg.contains("MissingState"),
+        "Expected MissingState when user denies auth (no state param), got: {msg}"
     );
     assert!(pending_path.exists());
 }
@@ -744,5 +743,49 @@ fn cli_step2_without_auth_url_fails() {
     assert!(
         stderr.contains("--auth-url") || stderr.contains("auth-url"),
         "Expected --auth-url required error, got: {stderr}"
+    );
+}
+
+#[test]
+fn step2_redirect_url_with_code_but_no_state() {
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+
+    // URL has a code parameter but no state parameter
+    let redirect_url = "http://localhost:8080/callback?code=abc";
+
+    let err = auth
+        .remote_oauth2_step2(redirect_url, "", &pending_path)
+        .unwrap_err();
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("MissingState"),
+        "Expected MissingState error, got: {msg}"
+    );
+
+    // Pending file preserved for retry
+    assert!(pending_path.exists());
+}
+
+#[test]
+fn cli_step1_with_auth_url_rejected() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args([
+            "auth", "oauth2", "--remote", "--step", "1", "--auth-url",
+            "http://example.com",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--auth-url") && stderr.contains("step 2"),
+        "Expected error about --auth-url only for step 2, got: {stderr}"
     );
 }
