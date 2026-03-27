@@ -56,20 +56,12 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
     (verifier, challenge)
 }
 
-/// Runs the full `OAuth2` PKCE authorization flow.
+/// Builds the `OAuth2` authorization URL with all required query parameters.
 ///
 /// # Errors
 ///
-/// Returns an error if the authorization URL is invalid, the callback server
-/// fails, the token exchange fails, or the username cannot be resolved.
-pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
-    // Generate state parameter
-    let state_bytes: [u8; 32] = rand::random();
-    let state = BASE64_STANDARD.encode(state_bytes);
-
-    let (verifier, challenge) = generate_code_verifier_and_challenge();
-
-    // Build authorization URL
+/// Returns an error if the base authorization URL cannot be parsed.
+pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
     let scopes = get_oauth2_scopes().join(" ");
     let mut auth_url =
         Url::parse(auth.auth_url()).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
@@ -79,36 +71,38 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
         .append_pair("client_id", auth.client_id())
         .append_pair("redirect_uri", auth.redirect_uri())
         .append_pair("scope", &scopes)
-        .append_pair("state", &state)
-        .append_pair("code_challenge", &challenge)
+        .append_pair("state", state)
+        .append_pair("code_challenge", challenge)
         .append_pair("code_challenge_method", "S256");
 
-    let auth_url_str = auth_url.to_string();
+    Ok(auth_url.to_string())
+}
 
-    // Try to open browser
-    if let Err(_e) = open::that(&auth_url_str) {
-        println!("Failed to open browser automatically. Please visit this URL manually:");
-        println!("{auth_url_str}");
-    }
-
-    // Parse redirect URI to get callback port
-    let redirect_parsed = Url::parse(auth.redirect_uri())
-        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
-    let port = redirect_parsed.port().unwrap_or(8080);
-
-    // Start callback server and wait for code
-    let code = callback::wait_for_callback(port, &state)?;
-
-    // Exchange code for token
+/// Exchanges an authorization code for an access token and saves it.
+///
+/// Performs the full post-authorization pipeline: POST to token endpoint,
+/// parse response, resolve username (fetching from API if empty), compute
+/// expiration, and save to the token store.
+///
+/// # Errors
+///
+/// Returns an error if the token exchange request fails, the response is
+/// missing an access token, or the username cannot be resolved.
+pub(crate) fn exchange_code_for_token(
+    auth: &mut Auth,
+    code: &str,
+    verifier: &str,
+    username: &str,
+) -> Result<String> {
     let client = reqwest::blocking::Client::new();
     let token_resp = client
         .post(auth.token_url())
         .form(&[
             ("grant_type", "authorization_code"),
-            ("code", &code),
+            ("code", code),
             ("redirect_uri", auth.redirect_uri()),
             ("client_id", auth.client_id()),
-            ("code_verifier", &verifier),
+            ("code_verifier", verifier),
         ])
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
@@ -151,6 +145,38 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
     )?;
 
     Ok(access_token)
+}
+
+/// Runs the full `OAuth2` PKCE authorization flow.
+///
+/// # Errors
+///
+/// Returns an error if the authorization URL is invalid, the callback server
+/// fails, the token exchange fails, or the username cannot be resolved.
+pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
+    // Generate state parameter
+    let state_bytes: [u8; 32] = rand::random();
+    let state = BASE64_STANDARD.encode(state_bytes);
+
+    let (verifier, challenge) = generate_code_verifier_and_challenge();
+
+    let auth_url_str = build_auth_url(auth, &state, &challenge)?;
+
+    // Try to open browser
+    if let Err(_e) = open::that(&auth_url_str) {
+        println!("Failed to open browser automatically. Please visit this URL manually:");
+        println!("{auth_url_str}");
+    }
+
+    // Parse redirect URI to get callback port
+    let redirect_parsed = Url::parse(auth.redirect_uri())
+        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+    let port = redirect_parsed.port().unwrap_or(8080);
+
+    // Start callback server and wait for code
+    let code = callback::wait_for_callback(port, &state)?;
+
+    exchange_code_for_token(auth, &code, &verifier, username)
 }
 
 /// Refreshes an `OAuth2` token if expired.

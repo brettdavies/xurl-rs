@@ -5,6 +5,7 @@
 pub(crate) mod callback;
 pub mod oauth1;
 pub mod oauth2;
+pub mod pending;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
