@@ -506,11 +506,11 @@ fn run_auth_command(
 ) -> Result<()> {
     match cmd {
         AuthCommands::Oauth2 {
-            remote,
+            no_browser,
             step,
             auth_url,
         } => {
-            if !remote {
+            if !no_browser {
                 // Standard interactive flow
                 auth.oauth2_flow("")?;
                 out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
@@ -549,7 +549,7 @@ fn run_auth_command(
                                 out.print_message("");
                                 out.print_message("Then run:");
                                 out.print_message(
-                                    "  echo '<redirect-url>' | xr auth oauth2 --remote --step 2 --auth-url -",
+                                    "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
                                 );
                             }
                         }
@@ -587,7 +587,7 @@ fn run_auth_command(
                     }
                     None => {
                         return Err(crate::error::XurlError::auth(
-                            "--remote requires --step 1 or --step 2",
+                            "--no-browser requires --step 1 or --step 2",
                         ));
                     }
                     _ => unreachable!("clap value_parser restricts to 1..=2"),
