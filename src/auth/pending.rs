@@ -54,7 +54,11 @@ pub fn default_pending_path() -> PathBuf {
 pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
     let data = serde_yaml::to_string(state).map_err(|e| XurlError::Auth(e.to_string()))?;
 
-    let tmp_path = path.with_extension("tmp");
+    // Append ".tmp" rather than replacing the extension — with_extension("tmp")
+    // would turn ".xurl.pending" into ".xurl.tmp" instead of ".xurl.pending.tmp".
+    let mut tmp_os = path.as_os_str().to_os_string();
+    tmp_os.push(".tmp");
+    let tmp_path = std::path::PathBuf::from(tmp_os);
 
     // If a stale temp file exists from a previous interrupted save, remove it
     // so `create_new(true)` can succeed.

@@ -132,3 +132,87 @@ fn exists_returns_true_after_save() {
     pending::save(&state, &path).unwrap();
     assert!(pending::exists(&path));
 }
+
+// ── Adversarial / Red Team Tests ────────────────────────────────────────
+
+#[test]
+fn load_corrupt_yaml_returns_error() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+
+    // Write garbage that isn't valid YAML
+    std::fs::write(&path, "{{{{ not valid yaml !@#$").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+
+    let err = pending::load(&path).unwrap_err();
+    let msg = err.to_string();
+    // Should be a deserialization error, not a panic
+    assert!(
+        msg.contains("Auth Error"),
+        "Expected auth/parse error, got: {msg}"
+    );
+}
+
+#[test]
+fn load_valid_yaml_missing_fields_returns_error() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+
+    // Valid YAML but missing required fields
+    std::fs::write(&path, "code_verifier: abc\nstate: xyz\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+
+    let err = pending::load(&path).unwrap_err();
+    // Should fail deserialization, not panic
+    assert!(err.to_string().contains("Auth Error"));
+}
+
+#[test]
+fn save_creates_correct_temp_file_name() {
+    // Regression test: with_extension("tmp") was turning .xurl.pending into .xurl.tmp
+    // instead of .xurl.pending.tmp
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+
+    let state = sample_state();
+    pending::save(&state, &path).unwrap();
+
+    // The temp file should have been cleaned up (renamed to final)
+    let wrong_tmp = tmp.path().join(".xurl.tmp");
+    let correct_tmp = tmp.path().join(".xurl.pending.tmp");
+    assert!(
+        !wrong_tmp.exists(),
+        "Wrong temp path .xurl.tmp should not exist"
+    );
+    assert!(
+        !correct_tmp.exists(),
+        "Temp file should be renamed away after save"
+    );
+    assert!(path.exists(), "Final pending file should exist");
+}
+
+#[test]
+fn save_twice_overwrites_atomically() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+
+    let state1 = sample_state();
+    pending::save(&state1, &path).unwrap();
+
+    let mut state2 = sample_state();
+    state2.code_verifier = "different_verifier".into();
+    state2.state = "different_state".into();
+    pending::save(&state2, &path).unwrap();
+
+    let loaded = pending::load(&path).unwrap();
+    assert_eq!(loaded.code_verifier, "different_verifier");
+    assert_eq!(loaded.state, "different_state");
+}

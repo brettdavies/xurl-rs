@@ -520,3 +520,229 @@ fn full_round_trip_token_matches_interactive_format() {
     assert_eq!(oauth2.refresh_token, "rt-456");
     assert!(oauth2.expiration_time > 0);
 }
+
+// ── Adversarial / Red Team Tests ──────────────────────────────────────
+
+#[test]
+fn step2_empty_redirect_url_returns_parse_error() {
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+
+    let err = auth
+        .remote_oauth2_step2("", "", &pending_path)
+        .unwrap_err();
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("MissingCode") || msg.contains("failed to parse"),
+        "Expected parse error for empty URL, got: {msg}"
+    );
+    // Pending file preserved for retry
+    assert!(pending_path.exists());
+}
+
+#[test]
+fn step2_garbage_redirect_url_returns_parse_error() {
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+
+    let err = auth
+        .remote_oauth2_step2("not a url at all!!!", "", &pending_path)
+        .unwrap_err();
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("MissingCode"),
+        "Expected MissingCode/parse error, got: {msg}"
+    );
+    assert!(pending_path.exists());
+}
+
+#[test]
+fn step2_redirect_with_error_param_returns_missing_code() {
+    // When the user denies authorization, Twitter redirects with ?error=access_denied
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+
+    let err = auth
+        .remote_oauth2_step2(
+            "http://localhost:8080/callback?error=access_denied&error_description=The+user+denied+the+request",
+            "",
+            &pending_path,
+        )
+        .unwrap_err();
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("MissingCode"),
+        "Expected MissingCode when user denies auth, got: {msg}"
+    );
+    assert!(pending_path.exists());
+}
+
+#[test]
+fn step2_token_exchange_200_but_no_access_token() {
+    // Twitter returns 200 but with an error body (no access_token field)
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "error": "invalid_request",
+                "error_description": "Value passed for the authorization code was invalid."
+            }))),
+    );
+
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "bad-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let err = auth
+        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .unwrap_err();
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("TokenExchangeError") && msg.contains("no access_token"),
+        "Expected no access_token error, got: {msg}"
+    );
+    // Pending preserved for retry
+    assert!(pending_path.exists());
+}
+
+#[test]
+fn step2_username_resolution_failure_preserves_pending() {
+    // Token exchange succeeds but /2/users/me fails
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "good-token",
+                "refresh_token": "good-refresh",
+                "expires_in": 7200
+            }))),
+    );
+
+    // /2/users/me returns an error
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(401).set_body_json(serde_json::json!({
+                "title": "Unauthorized",
+                "status": 401
+            }))),
+    );
+
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "good-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let err = auth
+        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .unwrap_err();
+
+    // The error comes from username resolution failure
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Auth Error"),
+        "Expected auth error from username resolution, got: {msg}"
+    );
+    // Pending file should be preserved (exchange_code_for_token failed,
+    // so run_remote_step2 never reaches pending::delete)
+    assert!(pending_path.exists());
+}
+
+// ── CLI E2E tests ─────────────────────────────────────────────────────
+
+#[test]
+fn cli_remote_without_step_fails() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args(["auth", "oauth2", "--remote"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--remote requires --step"),
+        "Expected --step required error, got: {stderr}"
+    );
+}
+
+#[test]
+fn cli_step_without_remote_fails() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args(["auth", "oauth2", "--step", "1"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--remote"),
+        "Expected --remote required error, got: {stderr}"
+    );
+}
+
+#[test]
+fn cli_step_3_rejected_by_value_parser() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args(["auth", "oauth2", "--remote", "--step", "3"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("not in 1..=2"),
+        "Expected range error, got: {stderr}"
+    );
+}
+
+#[test]
+fn cli_step2_without_auth_url_fails() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args(["auth", "oauth2", "--remote", "--step", "2"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--auth-url") || stderr.contains("auth-url"),
+        "Expected --auth-url required error, got: {stderr}"
+    );
+}
