@@ -25,6 +25,8 @@ A fast, ergonomic CLI for the X (Twitter) API. Rust port of [xurl](https://githu
 - `src/store/` — YAML token store (~/.xurl), multi-app support
 - `src/output.rs` — OutputConfig for text/json/jsonl formatting
 - `src/error.rs` — XurlError with thiserror
+- `docs/solutions/` — documented solutions to past problems and best practices, organized by category with YAML
+  frontmatter (`module`, `tags`, `problem_type`)
 
 ## Known Differences from Go Original
 
