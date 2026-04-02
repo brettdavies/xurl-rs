@@ -5,6 +5,7 @@
 pub(crate) mod callback;
 pub mod oauth1;
 pub mod oauth2;
+pub mod pending;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
@@ -129,6 +130,37 @@ impl Auth {
         oauth2::refresh_oauth2_token(self, username)
     }
 
+    /// Runs step 1 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Returns the authorization URL that the user should open in a browser
+    /// on another machine.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization URL is invalid or the pending
+    /// state file cannot be written.
+    pub fn remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<String> {
+        oauth2::run_remote_step1(self, pending_path)
+    }
+
+    /// Runs step 2 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Takes the redirect URL from the browser, extracts the authorization
+    /// code, exchanges it for an access token, and saves the token.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pending state is missing/expired/invalid,
+    /// the token exchange fails, or the username cannot be resolved.
+    pub fn remote_oauth2_step2(
+        &mut self,
+        redirect_url: &str,
+        username: &str,
+        pending_path: &std::path::Path,
+    ) -> Result<String> {
+        oauth2::run_remote_step2(self, redirect_url, username, pending_path)
+    }
+
     /// Gets the bearer token Authorization header.
     ///
     /// # Errors
@@ -171,9 +203,21 @@ impl Auth {
     }
 
     /// Replaces the token store (used in integration tests).
+    ///
+    /// Re-resolves credentials from the new store's active app when
+    /// they came from the old store (not from config/env vars), so
+    /// stale credentials from the real `~/.xurl` don't leak into tests.
     #[allow(dead_code)] // Public library API — used by consumers and integration tests
     #[must_use]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
+        let old_app = self.token_store.resolve_app(&self.app_name);
+        let new_app = token_store.resolve_app(&self.app_name);
+        if self.client_id == old_app.client_id {
+            self.client_id = new_app.client_id.clone();
+        }
+        if self.client_secret == old_app.client_secret {
+            self.client_secret = new_app.client_secret.clone();
+        }
         self.token_store = token_store;
         self
     }
@@ -186,6 +230,10 @@ impl Auth {
     }
 
     // Accessors
+    #[must_use]
+    pub fn app_name(&self) -> &str {
+        &self.app_name
+    }
     #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id

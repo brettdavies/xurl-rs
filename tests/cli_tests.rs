@@ -115,6 +115,36 @@ fn test_reply_without_args_fails() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Usage command tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_usage_help() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["usage", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("usage"))
+        .stdout(predicate::str::contains("tweet caps"));
+}
+
+#[test]
+fn test_usage_without_auth_fails() {
+    let tmp = TempDir::new().unwrap();
+
+    Command::cargo_bin("xr")
+        .unwrap()
+        .arg("usage")
+        .env("HOME", tmp.path())
+        .env_remove("XURL_CLIENT_ID")
+        .env_remove("XURL_CLIENT_SECRET")
+        .env_remove("XURL_BEARER_TOKEN")
+        .assert()
+        .failure();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Auth-required commands should fail without credentials
 // ═══════════════════════════════════════════════════════════════════════════
 

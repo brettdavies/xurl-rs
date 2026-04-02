@@ -1,0 +1,191 @@
+{
+  "description": "Example API responses for spec-as-test validation. Derived from X API v2 documentation.",
+  "tweet_single": {
+    "data": {
+      "id": "1346889436626259968",
+      "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet\u2026 https://t.co/56a0vZUx7i",
+      "created_at": "2021-01-06T18:40:40.000Z",
+      "author_id": "2244994945",
+      "conversation_id": "1346889436626259968",
+      "public_metrics": {
+        "retweet_count": 10,
+        "reply_count": 1,
+        "like_count": 38,
+        "quote_count": 4,
+        "bookmark_count": 2,
+        "impression_count": 1500
+      },
+      "entities": {
+        "urls": [
+          {
+            "start": 114,
+            "end": 137,
+            "url": "https://t.co/56a0vZUx7i"
+          }
+        ]
+      }
+    },
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "Twitter Dev",
+          "username": "TwitterDev",
+          "verified": true
+        }
+      ]
+    }
+  },
+  "tweet_list": {
+    "data": [
+      {
+        "id": "1346889436626259968",
+        "text": "First result",
+        "created_at": "2021-01-06T18:40:40.000Z",
+        "public_metrics": {
+          "retweet_count": 5,
+          "reply_count": 0,
+          "like_count": 12,
+          "quote_count": 1,
+          "bookmark_count": 0,
+          "impression_count": 500
+        }
+      },
+      {
+        "id": "1346889436626259969",
+        "text": "Second result"
+      }
+    ],
+    "meta": {
+      "result_count": 2,
+      "next_token": "7140w"
+    }
+  },
+  "user_single": {
+    "data": {
+      "id": "2244994945",
+      "name": "Twitter Dev",
+      "username": "TwitterDev",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "description": "The voice of the #TwitterDev team and your official source for updates, news, and events, related to the #TwitterAPI.",
+      "verified": true,
+      "profile_image_url": "https://pbs.twimg.com/profile_images/880136122604507136/xHrnqf1T_normal.jpg",
+      "public_metrics": {
+        "followers_count": 571842,
+        "following_count": 2048,
+        "tweet_count": 14052,
+        "listed_count": 1672
+      }
+    }
+  },
+  "action_liked": {
+    "data": {
+      "liked": true
+    }
+  },
+  "action_following": {
+    "data": {
+      "following": true,
+      "pending_follow": false
+    }
+  },
+  "action_deleted": {
+    "data": {
+      "deleted": true
+    }
+  },
+  "action_retweeted": {
+    "data": {
+      "retweeted": true
+    }
+  },
+  "action_bookmarked": {
+    "data": {
+      "bookmarked": true
+    }
+  },
+  "action_blocking": {
+    "data": {
+      "blocking": true
+    }
+  },
+  "action_muting": {
+    "data": {
+      "muting": true
+    }
+  },
+  "dm_event": {
+    "data": {
+      "id": "1580705921830768647",
+      "text": "hello there",
+      "event_type": "MessageCreate",
+      "dm_conversation_id": "1580705921830768643",
+      "sender_id": "906948460078698496",
+      "created_at": "2022-10-14T00:00:00.000Z"
+    }
+  },
+  "dm_event_list": {
+    "data": [
+      {
+        "id": "1580705921830768647",
+        "text": "hello",
+        "event_type": "MessageCreate",
+        "dm_conversation_id": "1580705921830768643",
+        "sender_id": "906948460078698496"
+      }
+    ],
+    "includes": {
+      "users": [
+        {
+          "id": "906948460078698496",
+          "name": "Test User",
+          "username": "testuser"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "media_upload_init": {
+    "data": {
+      "id": "1455952740635586562",
+      "media_key": "7_1455952740635586562",
+      "expires_after_secs": 86400
+    }
+  },
+  "media_upload_status": {
+    "data": {
+      "id": "1455952740635586562",
+      "processing_info": {
+        "state": "in_progress",
+        "check_after_secs": 5,
+        "progress_percent": 45
+      }
+    }
+  },
+  "usage": {
+    "data": {
+      "project_cap": "2000000",
+      "project_id": "2020044302890438656",
+      "project_usage": "399",
+      "cap_reset_day": 19,
+      "daily_project_usage": {
+        "project_id": "2020044302890438656",
+        "usage": [
+          {"date": "2026-03-25T00:00:00.000Z", "usage": "299"},
+          {"date": "2026-03-26T00:00:00.000Z", "usage": "100"}
+        ]
+      },
+      "daily_client_app_usage": [
+        {
+          "client_app_id": "32371675",
+          "usage": [
+            {"date": "2026-03-25T00:00:00.000Z", "usage": "299"}
+          ],
+          "usage_result_count": 1
+        }
+      ]
+    }
+  }
+}

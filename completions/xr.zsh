@@ -1,5 +1,3 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
-     Running `target/debug/xr completions zsh`
 #compdef xr
 
 autoload -U is-at-least
@@ -641,6 +639,27 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ':target_username -- Username to unmute:_default' \
 && ret=0
 ;;
+(usage)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"))' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'-v[Print verbose request/response info]' \
+'--verbose[Print verbose request/response info]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'-q[Suppress all non-essential output (errors still go to stderr)]' \
+'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
+'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
@@ -711,11 +730,14 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
         case $line[1] in
             (oauth2)
 _arguments "${_arguments_options[@]}" : \
+'--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
+'--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"))' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--no-browser[Enable manual two-step flow for headless machines (SSH, containers)]' \
 '-q[Suppress all non-essential output (errors still go to stderr)]' \
 '--quiet[Suppress all non-essential output (errors still go to stderr)]' \
 '--no-interactive[Disable interactive prompts; fail with error instead]' \
@@ -1116,6 +1138,23 @@ esac
     ;;
 esac
 ;;
+(schema)
+_arguments "${_arguments_options[@]}" : \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"))' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--list[List all commands and their response types]' \
+'--all[Output all schemas as a single JSON document]' \
+'-q[Suppress all non-essential output (errors still go to stderr)]' \
+'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
+'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::command -- Command name to get the schema for (e.g. "post", "whoami"):_default' \
+&& ret=0
+;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -1261,6 +1300,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(usage)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -1365,6 +1408,10 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(schema)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -1415,10 +1462,12 @@ _xr_commands() {
 'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'usage:Show API usage (tweet caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
 'media:Media upload operations' \
+'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
 'version:Show xurl version information' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -1694,10 +1743,12 @@ _xr__help_commands() {
 'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'usage:Show API usage (tweet caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
 'media:Media upload operations' \
+'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
 'version:Show xurl version information' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -1895,6 +1946,11 @@ _xr__help__repost_commands() {
     local commands; commands=()
     _describe -t commands 'xr help repost commands' commands "$@"
 }
+(( $+functions[_xr__help__schema_commands] )) ||
+_xr__help__schema_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help schema commands' commands "$@"
+}
 (( $+functions[_xr__help__search_commands] )) ||
 _xr__help__search_commands() {
     local commands; commands=()
@@ -1934,6 +1990,11 @@ _xr__help__unmute_commands() {
 _xr__help__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unrepost commands' commands "$@"
+}
+(( $+functions[_xr__help__usage_commands] )) ||
+_xr__help__usage_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help usage commands' commands "$@"
 }
 (( $+functions[_xr__help__user_commands] )) ||
 _xr__help__user_commands() {
@@ -2038,6 +2099,11 @@ _xr__repost_commands() {
     local commands; commands=()
     _describe -t commands 'xr repost commands' commands "$@"
 }
+(( $+functions[_xr__schema_commands] )) ||
+_xr__schema_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr schema commands' commands "$@"
+}
 (( $+functions[_xr__search_commands] )) ||
 _xr__search_commands() {
     local commands; commands=()
@@ -2077,6 +2143,11 @@ _xr__unmute_commands() {
 _xr__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr unrepost commands' commands "$@"
+}
+(( $+functions[_xr__usage_commands] )) ||
+_xr__usage_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr usage commands' commands "$@"
 }
 (( $+functions[_xr__user_commands] )) ||
 _xr__user_commands() {

@@ -1,10 +1,14 @@
 /// API shortcut functions — high-level X API v2 operations.
 ///
-/// Each function maps to one of the 28 shortcut commands, building the
+/// Each function maps to one of the 29 shortcut commands, building the
 /// appropriate endpoint URL and request body.
 use serde::Serialize;
 
 use super::request::{ApiClient, RequestOptions};
+use super::response::types::{
+    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
+    LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User, deserialize_response,
+};
 use crate::error::Result;
 
 // ── Request body types ───────────────────────────────────────────────
@@ -69,7 +73,7 @@ pub fn create_post(
     text: &str,
     media_ids: &[String],
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Tweet>> {
     let mut body = PostBody {
         text: text.to_string(),
         reply: None,
@@ -88,7 +92,7 @@ pub fn create_post(
     opts.endpoint = "/2/tweets".to_string();
     opts.data = data;
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Replies to an existing post.
@@ -102,7 +106,7 @@ pub fn reply_to_post(
     text: &str,
     media_ids: &[String],
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Tweet>> {
     let post_id = resolve_post_id(post_id);
     let mut body = PostBody {
         text: text.to_string(),
@@ -124,7 +128,7 @@ pub fn reply_to_post(
     opts.endpoint = "/2/tweets".to_string();
     opts.data = data;
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Quotes an existing post.
@@ -137,7 +141,7 @@ pub fn quote_post(
     post_id: &str,
     text: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Tweet>> {
     let post_id = resolve_post_id(post_id);
     let body = PostBody {
         text: text.to_string(),
@@ -152,7 +156,7 @@ pub fn quote_post(
     opts.endpoint = "/2/tweets".to_string();
     opts.data = data;
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Deletes a post.
@@ -164,14 +168,14 @@ pub fn delete_post(
     client: &mut ApiClient,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<DeletedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/tweets/{post_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Reads a single post with expansions.
@@ -183,7 +187,7 @@ pub fn read_post(
     client: &mut ApiClient,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Tweet>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
@@ -192,7 +196,7 @@ pub fn read_post(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Searches recent posts.
@@ -205,7 +209,7 @@ pub fn search_posts(
     query: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<Tweet>>> {
     let q = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
     let max_results = max_results.clamp(10, 100);
 
@@ -216,7 +220,7 @@ pub fn search_posts(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches the authenticated user's profile.
@@ -224,7 +228,7 @@ pub fn search_posts(
 /// # Errors
 ///
 /// Returns an error if the request fails or the API returns an error.
-pub fn get_me(client: &mut ApiClient, opts: &RequestOptions) -> Result<serde_json::Value> {
+pub fn get_me(client: &mut ApiClient, opts: &RequestOptions) -> Result<ApiResponse<User>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint =
@@ -232,7 +236,7 @@ pub fn get_me(client: &mut ApiClient, opts: &RequestOptions) -> Result<serde_jso
             .to_string();
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Looks up a user by username.
@@ -244,7 +248,7 @@ pub fn lookup_user(
     client: &mut ApiClient,
     username: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<User>> {
     let username = resolve_username(username);
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
@@ -253,7 +257,7 @@ pub fn lookup_user(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches the home timeline.
@@ -266,7 +270,7 @@ pub fn get_timeline(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<Tweet>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -274,7 +278,7 @@ pub fn get_timeline(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches recent mentions.
@@ -287,7 +291,7 @@ pub fn get_mentions(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<Tweet>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -295,7 +299,7 @@ pub fn get_mentions(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Likes a post.
@@ -308,14 +312,14 @@ pub fn like_post(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<LikedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{user_id}/likes");
     opts.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Unlikes a post.
@@ -328,14 +332,14 @@ pub fn unlike_post(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<LikedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{user_id}/likes/{post_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Reposts a post.
@@ -348,14 +352,14 @@ pub fn repost(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<RetweetedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{user_id}/retweets");
     opts.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Removes a repost.
@@ -368,14 +372,14 @@ pub fn unrepost(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<RetweetedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{user_id}/retweets/{post_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Bookmarks a post.
@@ -388,14 +392,14 @@ pub fn bookmark(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<BookmarkedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{user_id}/bookmarks");
     opts.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Removes a bookmark.
@@ -408,14 +412,14 @@ pub fn unbookmark(
     user_id: &str,
     post_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<BookmarkedResult>> {
     let post_id = resolve_post_id(post_id);
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{user_id}/bookmarks/{post_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches bookmarks.
@@ -428,7 +432,7 @@ pub fn get_bookmarks(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<Tweet>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -436,7 +440,7 @@ pub fn get_bookmarks(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Follows a user.
@@ -449,13 +453,13 @@ pub fn follow_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<FollowingResult>> {
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/following");
     opts.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Unfollows a user.
@@ -468,13 +472,13 @@ pub fn unfollow_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<FollowingResult>> {
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/following/{target_user_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches users that a given user follows.
@@ -487,7 +491,7 @@ pub fn get_following(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<User>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -495,7 +499,7 @@ pub fn get_following(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches followers of a given user.
@@ -508,7 +512,7 @@ pub fn get_followers(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<User>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -516,7 +520,7 @@ pub fn get_followers(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Sends a direct message.
@@ -529,14 +533,14 @@ pub fn send_dm(
     participant_id: &str,
     text: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<DmEvent>> {
     let body = serde_json::json!({"text": text});
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/dm_conversations/with/{participant_id}/messages");
     opts.data = serde_json::to_string(&body)?;
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches recent DM events.
@@ -548,7 +552,7 @@ pub fn get_dm_events(
     client: &mut ApiClient,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<DmEvent>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -556,7 +560,7 @@ pub fn get_dm_events(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Fetches posts liked by a user.
@@ -569,7 +573,7 @@ pub fn get_liked_posts(
     user_id: &str,
     max_results: i32,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<Vec<Tweet>>> {
     let mut opts = opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!(
@@ -577,7 +581,7 @@ pub fn get_liked_posts(
     );
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Blocks a user.
@@ -590,13 +594,13 @@ pub fn block_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<BlockingResult>> {
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/blocking");
     opts.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Unblocks a user.
@@ -609,13 +613,13 @@ pub fn unblock_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<BlockingResult>> {
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/blocking/{target_user_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Mutes a user.
@@ -628,13 +632,28 @@ pub fn mute_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<MutingResult>> {
     let mut opts = opts.clone();
     opts.method = "POST".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/muting");
     opts.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
+}
+
+/// Fetches API usage data (tweet caps, daily breakdowns).
+///
+/// # Errors
+///
+/// Returns an error if the request fails or the API returns an error.
+pub fn get_usage(client: &mut ApiClient, opts: &RequestOptions) -> Result<ApiResponse<UsageData>> {
+    let mut opts = opts.clone();
+    opts.method = "GET".to_string();
+    opts.endpoint =
+        "/2/usage/tweets?usage.fields=daily_project_usage,daily_client_app_usage".to_string();
+    opts.data.clear();
+
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Unmutes a user.
@@ -647,11 +666,11 @@ pub fn unmute_user(
     source_user_id: &str,
     target_user_id: &str,
     opts: &RequestOptions,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<MutingResult>> {
     let mut opts = opts.clone();
     opts.method = "DELETE".to_string();
     opts.endpoint = format!("/2/users/{source_user_id}/muting/{target_user_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }

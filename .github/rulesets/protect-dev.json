@@ -13,6 +13,12 @@
   "rules": [
     {
       "type": "required_signatures"
+    },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
     }
   ],
   "bypass_actors": []

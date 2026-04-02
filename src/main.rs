@@ -36,6 +36,16 @@ fn main() {
                 println!("xr {}", env!("CARGO_PKG_VERSION"));
                 return;
             }
+            Commands::Schema { command, list, all } => {
+                let out = OutputConfig::new(cli.output.clone(), cli.quiet);
+                match cli::commands::schema::run_schema(command.as_deref(), *list, *all) {
+                    Ok(()) => return,
+                    Err(e) => {
+                        out.print_error(&e, EXIT_GENERAL_ERROR);
+                        std::process::exit(EXIT_GENERAL_ERROR);
+                    }
+                }
+            }
             _ => {}
         }
     }

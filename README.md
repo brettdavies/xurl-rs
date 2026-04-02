@@ -106,6 +106,25 @@ xr dm @user "Hey!"                             # Send DM
 xr dms                                         # List DMs
 ```
 
+### Schema Discovery
+
+```bash
+xr schema post                                 # JSON Schema for post response
+xr schema whoami                               # JSON Schema for whoami response
+xr schema --list                               # All commands and response types
+xr schema --all                                # All schemas as one JSON document
+```
+
+Generate typed clients from schema output:
+
+```bash
+# TypeScript
+xr schema post | bunx json-schema-to-typescript > types.ts
+
+# Python
+xr schema post | uvx --from datamodel-code-generator datamodel-codegen --output models.py
+```
+
 ### Raw API Access
 
 ```bash
@@ -160,6 +179,14 @@ xr --app dev whoami                             # Per-request override
 ## Agent-Native Features
 
 Built for AI agents and automation:
+
+### Response Schema Discovery
+
+```bash
+xr schema --list                               # Discover all commands + response types
+xr schema post                                 # Get JSON Schema for any command's output
+xr schema --all                                # All schemas for MCP tool definitions
+```
 
 ### Machine-Readable Output
 
@@ -221,6 +248,37 @@ xr completions elvish > xr.elv
 
 Pre-generated scripts are also available in `completions/`.
 
+## Library Usage
+
+xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+xurl-rs = "1"
+```
+
+All 29 shortcut commands return typed responses via `ApiResponse<T>`:
+
+```rust
+use xurl::api::{ApiResponse, Tweet, User, LikedResult, deserialize_response};
+
+// Typed response from deserialization
+let resp: ApiResponse<Tweet> = deserialize_response(json_value)?;
+println!("{}", resp.data.text);
+
+// List responses
+let resp: ApiResponse<Vec<Tweet>> = deserialize_response(json_value)?;
+for tweet in &resp.data {
+    println!("{}: {}", tweet.id, tweet.text);
+}
+```
+
+Available types: `Tweet`, `User`, `DmEvent`, `UsageData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
+`RetweetedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
+`ResponseMeta`, `ApiError`.
+
+All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forward compatibility with new API fields.
+
 ## vs Go Original
 
 | Feature | Go xurl | xurl-rs |
@@ -235,6 +293,8 @@ Pre-generated scripts are also available in `completions/`.
 | Structured exit codes | ❌ | ✅ |
 | `NO_COLOR` support | ❌ | ✅ |
 | `XURL_OUTPUT` env var | ❌ | ✅ |
+| Typed response structs | ❌ | ✅ |
+| `xr schema` (JSON Schema) | ❌ | ✅ |
 
 ## Contributing
 

@@ -1,5 +1,3 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
-     Running `target/debug/xr completions elvish`
 
 use builtin;
 use str;
@@ -73,10 +71,12 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand unblock 'Unblock a user'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand usage 'Show API usage (tweet caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
             cand media 'Media upload operations'
+            cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
             cand version 'Show xurl version information'
             cand help 'Print this message or the help of the given subcommand(s)'
@@ -541,6 +541,23 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
+        &'xr;usage'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand -v 'Print verbose request/response info'
+            cand --verbose 'Print verbose request/response info'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
         &'xr;dm'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
@@ -596,9 +613,12 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;auth;oauth2'= {
+            cand --step 'Step number: 1 (generate auth URL) or 2 (complete exchange)'
+            cand --auth-url 'Redirect URL from browser (step 2). Use ''-'' to read from stdin (recommended on shared machines)'
             cand --app 'Use a specific registered app (overrides default)'
             cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
             cand --timeout 'Request timeout in seconds'
+            cand --no-browser 'Enable manual two-step flow for headless machines (SSH, containers)'
             cand -q 'Suppress all non-essential output (errors still go to stderr)'
             cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
             cand --no-interactive 'Disable interactive prompts; fail with error instead'
@@ -845,6 +865,18 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;media;help;help'= {
         }
+        &'xr;schema'= {
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
+            cand --timeout 'Request timeout in seconds'
+            cand --list 'List all commands and their response types'
+            cand --all 'Output all schemas as a single JSON document'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
         &'xr;completions'= {
             cand --app 'Use a specific registered app (overrides default)'
             cand --output 'Output format: text (default), json (machine-readable), jsonl (streaming)'
@@ -892,10 +924,12 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand unblock 'Unblock a user'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand usage 'Show API usage (tweet caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
             cand media 'Media upload operations'
+            cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
             cand version 'Show xurl version information'
             cand help 'Print this message or the help of the given subcommand(s)'
@@ -952,6 +986,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;help;unmute'= {
         }
+        &'xr;help;usage'= {
+        }
         &'xr;help;dm'= {
         }
         &'xr;help;dms'= {
@@ -998,6 +1034,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;media;upload'= {
         }
         &'xr;help;media;status'= {
+        }
+        &'xr;help;schema'= {
         }
         &'xr;help;completions'= {
         }
