@@ -395,6 +395,18 @@ pub enum Commands {
     },
 
     // ── Meta ─────────────────────────────────────────────────────────
+    /// Show JSON Schema for a command's response type
+    Schema {
+        /// Command name to get the schema for (e.g. "post", "whoami")
+        command: Option<String>,
+        /// List all commands and their response types
+        #[arg(long)]
+        list: bool,
+        /// Output all schemas as a single JSON document
+        #[arg(long)]
+        all: bool,
+    },
+
     /// Generate shell completion script
     Completions {
         /// Shell to generate completions for

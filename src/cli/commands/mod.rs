@@ -1,6 +1,7 @@
 /// Command execution — dispatches CLI commands to API functions.
 mod auth;
 mod media;
+pub mod schema;
 mod streaming;
 
 use serde::Serialize;
@@ -393,6 +394,9 @@ fn run_subcommand(
         }
 
         // ── Meta (handled before config init in main) ───────────────
+        Commands::Schema { .. } => {
+            unreachable!("schema is handled before config init in main()")
+        }
         Commands::Completions { .. } => {
             unreachable!("completions is handled before config init in main()")
         }
