@@ -539,8 +539,8 @@ fn test_create_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "99999");
-    assert_eq!(resp["data"]["text"], "Hello!");
+    assert_eq!(resp.data.id, "99999");
+    assert_eq!(resp.data.text, "Hello!");
 }
 
 #[test]
@@ -559,7 +559,7 @@ fn test_reply_to_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::reply_to_post(&mut client, "123", "nice!", &[], &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "88888");
+    assert_eq!(resp.data.id, "88888");
 }
 
 #[test]
@@ -586,7 +586,7 @@ fn test_reply_to_post_with_url() {
         &base_opts(),
     )
     .unwrap();
-    assert_eq!(resp["data"]["id"], "77777");
+    assert_eq!(resp.data.id, "77777");
 }
 
 #[test]
@@ -605,7 +605,7 @@ fn test_quote_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::quote_post(&mut client, "123", "my take", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "66666");
+    assert_eq!(resp.data.id, "66666");
 }
 
 #[test]
@@ -624,7 +624,7 @@ fn test_delete_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::delete_post(&mut client, "123", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["deleted"], true);
+    assert!(resp.data.deleted);
 }
 
 #[test]
@@ -640,8 +640,8 @@ fn test_read_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::read_post(&mut client, "123", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "123");
-    assert_eq!(resp["data"]["text"], "existing post");
+    assert_eq!(resp.data.id, "123");
+    assert_eq!(resp.data.text, "existing post");
 }
 
 #[test]
@@ -657,7 +657,7 @@ fn test_search_posts() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::search_posts(&mut client, "golang", 10, &base_opts()).unwrap();
-    assert_eq!(resp["meta"]["result_count"], 1);
+    assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
 #[test]
@@ -675,8 +675,8 @@ fn test_get_me() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_me(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "42");
-    assert_eq!(resp["data"]["username"], "testbot");
+    assert_eq!(resp.data.id, "42");
+    assert_eq!(resp.data.username, "testbot");
 }
 
 #[test]
@@ -694,8 +694,8 @@ fn test_lookup_user() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::lookup_user(&mut client, "@someuser", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "100");
-    assert_eq!(resp["data"]["username"], "lookedup");
+    assert_eq!(resp.data.id, "100");
+    assert_eq!(resp.data.username, "lookedup");
 }
 
 #[test]
@@ -715,7 +715,7 @@ fn test_create_post_with_media() {
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
     let resp = api::create_post(&mut client, "With media", &media_ids, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "55555");
+    assert_eq!(resp.data.id, "55555");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -933,15 +933,19 @@ fn test_get_usage_happy_path() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_cap"], "2000000");
-    assert_eq!(resp["data"]["project_usage"], "399");
-    assert_eq!(resp["data"]["cap_reset_day"], 19);
-    assert_eq!(
-        resp["data"]["daily_project_usage"]["project_id"],
-        "2020044302890438656"
+    assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
+    assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
+    assert_eq!(resp.data.cap_reset_day, Some(19));
+    let daily = resp.data.daily_project_usage.as_ref().unwrap();
+    assert_eq!(daily["project_id"], "2020044302890438656");
+    assert!(daily["usage"].is_array());
+    assert!(
+        resp.data
+            .daily_client_app_usage
+            .as_ref()
+            .unwrap()
+            .is_array()
     );
-    assert!(resp["data"]["daily_project_usage"]["usage"].is_array());
-    assert!(resp["data"]["daily_client_app_usage"].is_array());
 }
 
 #[test]
@@ -967,7 +971,7 @@ fn test_get_usage_requires_usage_fields_query_param() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "42");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
 #[test]
@@ -1051,7 +1055,7 @@ fn test_get_usage_with_oauth1_auth() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "10");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
 #[test]
@@ -1070,7 +1074,7 @@ fn test_get_usage_with_oauth2_auth() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "20");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("20"));
 }
 
 #[test]
@@ -1098,11 +1102,12 @@ fn test_get_usage_daily_project_usage_structure() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    let daily = &resp["data"]["daily_project_usage"]["usage"];
-    assert!(daily.is_array());
-    assert_eq!(daily.as_array().unwrap().len(), 3);
-    assert_eq!(daily[0]["usage"], "50");
-    assert_eq!(daily[2]["usage"], "100");
+    let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
+    let usage = &daily_val["usage"];
+    assert!(usage.is_array());
+    assert_eq!(usage.as_array().unwrap().len(), 3);
+    assert_eq!(usage[0]["usage"], "50");
+    assert_eq!(usage[2]["usage"], "100");
 }
 
 #[test]
@@ -1134,7 +1139,13 @@ fn test_get_usage_daily_client_app_usage_structure() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    let apps = resp["data"]["daily_client_app_usage"].as_array().unwrap();
+    let apps = resp
+        .data
+        .daily_client_app_usage
+        .as_ref()
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(apps.len(), 2);
     assert_eq!(apps[0]["client_app_id"], "app_1");
     assert_eq!(apps[1]["client_app_id"], "app_2");

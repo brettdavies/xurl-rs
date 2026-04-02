@@ -9,6 +9,7 @@ use std::thread;
 use std::time::Duration;
 
 use super::request::{ApiClient, MultipartOptions, RequestOptions};
+use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
 
@@ -66,14 +67,18 @@ pub fn execute_media_upload(
     init_opts.endpoint = format!("{MEDIA_ENDPOINT}/initialize");
     init_opts.data = init_body.to_string();
 
-    let init_response = client.send_request(&init_opts)?;
-    let media_id = init_response["data"]["id"]
-        .as_str()
-        .ok_or_else(|| XurlError::Json("failed to parse media ID from init response".to_string()))?
-        .to_string();
+    let init_response: ApiResponse<MediaUploadResponse> =
+        deserialize_response(client.send_request(&init_opts)?)?;
+    let media_id = init_response.data.id.clone();
+    if media_id.is_empty() {
+        return Err(XurlError::Json(
+            "failed to parse media ID from init response".to_string(),
+        ));
+    }
 
     if verbose {
-        out.print_response(&init_response);
+        let value = serde_json::to_value(&init_response)?;
+        out.print_response(&value);
     }
 
     // APPEND — upload in 4MB chunks
@@ -89,8 +94,10 @@ pub fn execute_media_upload(
     finalize_opts.endpoint = format!("{MEDIA_ENDPOINT}/{media_id}/finalize");
     finalize_opts.data.clear();
 
-    let finalize_response = client.send_request(&finalize_opts)?;
-    out.print_response(&finalize_response);
+    let finalize_response: ApiResponse<MediaUploadResponse> =
+        deserialize_response(client.send_request(&finalize_opts)?)?;
+    let finalize_value = serde_json::to_value(&finalize_response)?;
+    out.print_response(&finalize_value);
 
     // Wait for processing if requested
     if wait_for_processing && media_category.contains("video") {
@@ -98,7 +105,8 @@ pub fn execute_media_upload(
 
         let processing_response =
             wait_for_media_processing(&media_id, &base_opts, verbose, client, out)?;
-        out.print_response(&processing_response);
+        let processing_value = serde_json::to_value(&processing_response)?;
+        out.print_response(&processing_value);
     }
 
     out.status(&format!(
@@ -203,10 +211,12 @@ pub fn execute_media_status(
 
     if wait {
         let response = wait_for_media_processing(media_id, &base_opts, verbose, client, out)?;
-        out.print_response(&response);
+        let value = serde_json::to_value(&response)?;
+        out.print_response(&value);
     } else {
         let response = check_media_status(media_id, &base_opts, client)?;
-        out.print_response(&response);
+        let value = serde_json::to_value(&response)?;
+        out.print_response(&value);
     }
 
     Ok(())
@@ -217,13 +227,13 @@ fn check_media_status(
     media_id: &str,
     base_opts: &RequestOptions,
     client: &mut ApiClient,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<MediaUploadResponse>> {
     let mut opts = base_opts.clone();
     opts.method = "GET".to_string();
     opts.endpoint = format!("{MEDIA_ENDPOINT}?command=STATUS&media_id={media_id}");
     opts.data.clear();
 
-    client.send_request(&opts)
+    deserialize_response(client.send_request(&opts)?)
 }
 
 /// Polls media processing status until completion.
@@ -233,13 +243,15 @@ fn wait_for_media_processing(
     verbose: bool,
     client: &mut ApiClient,
     out: &OutputConfig,
-) -> Result<serde_json::Value> {
+) -> Result<ApiResponse<MediaUploadResponse>> {
     loop {
         let response = check_media_status(media_id, base_opts, client)?;
 
-        let state = response["data"]["processing_info"]["state"]
-            .as_str()
-            .unwrap_or("");
+        let state = response
+            .data
+            .processing_info
+            .as_ref()
+            .map_or("", |p| p.state.as_str());
 
         if state == "succeeded" {
             out.status("Media processing complete!");
@@ -248,14 +260,20 @@ fn wait_for_media_processing(
             return Err(XurlError::Api("media processing failed".to_string()));
         }
 
-        let check_after = response["data"]["processing_info"]["check_after_secs"]
-            .as_u64()
+        let check_after = response
+            .data
+            .processing_info
+            .as_ref()
+            .and_then(|p| p.check_after_secs)
             .unwrap_or(1)
             .max(1);
 
         if verbose {
-            let pct = response["data"]["processing_info"]["progress_percent"]
-                .as_u64()
+            let pct = response
+                .data
+                .processing_info
+                .as_ref()
+                .and_then(|p| p.progress_percent)
                 .unwrap_or(0);
             out.info(&format!(
                 "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
