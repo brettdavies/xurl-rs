@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-04-02
+
+### Added
+
+- Add `xr usage` shortcut command that returns full API usage data (tweet caps, daily project breakdown, per-app breakdown) by @brettdavies in [#13](https://github.com/brettdavies/xurl-rs/pull/13)
+- Add `--remote` flag for headless OAuth2 authentication on machines without a browser by @brettdavies in [#14](https://github.com/brettdavies/xurl-rs/pull/14)
+- Add `--step` (1 or 2) and `--auth-url` (with `-` for stdin) companion flags
+- Add JSON output support for step 1 (`--output json` emits `{"auth_url": "...", "instructions": "..."}`)
+- Add typed response structs: `Tweet`, `User`, `DmEvent`, `UsageData`, 7 action confirmations, 3 wrapper/meta types, 3 nested types by @brettdavies in [#17](https://github.com/brettdavies/xurl-rs/pull/17)
+- Add `deserialize_response<T>()` helper with guards for empty and errors-only 200 responses
+- Add `ApiResponse<T>` generic wrapper with `data`, `includes`, `meta`, `errors`, and forward-compatible `extra` fields
+- Add `xr schema <command>` to output JSON Schema for any command's response type by @brettdavies in [#18](https://github.com/brettdavies/xurl-rs/pull/18)
+- Add `xr schema --list` to show all 29 commands with their response types
+- Add `xr schema --all` to output all schemas as a single JSON document
+- Add `schemars` dependency for compile-time JSON Schema generation via `#[derive(JsonSchema)]`
+
+### Changed
+
+- Rename `--remote` to `--no-browser` for the headless OAuth2 authentication flow by @brettdavies in [#15](https://github.com/brettdavies/xurl-rs/pull/15)
+- Change all 29 shortcut functions from `Value` returns to typed `ApiResponse<T>` returns (**breaking** for library consumers) by @brettdavies in [#17](https://github.com/brettdavies/xurl-rs/pull/17)
+
+### Fixed
+
+- Rename completion files to standard convention (`xr.zsh`, `xr.elvish`, `xr.powershell`) by @brettdavies in [#11](https://github.com/brettdavies/xurl-rs/pull/11)
+- Regenerate bash and fish completions for completions subcommand
+- Fix test isolation in `Auth::with_token_store()` where real `~/.xurl` credentials leaked into test assertions by @brettdavies in [#12](https://github.com/brettdavies/xurl-rs/pull/12)
+
+### Documentation
+
+- Add shell completions regeneration step to the release process as a safety net for missed completions during development by @brettdavies in [#13](https://github.com/brettdavies/xurl-rs/pull/13)
+
+**Full Changelog**: [v1.0.5...v1.1.0](https://github.com/brettdavies/xurl-rs/compare/v1.0.5...v1.1.0)
+
 ## [1.0.5] - 2026-03-21
 
 ### Added

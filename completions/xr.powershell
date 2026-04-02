@@ -79,6 +79,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
             [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload operations')
+            [CompletionResult]::new('schema', 'schema', [CompletionResultType]::ParameterValue, 'Show JSON Schema for a command''s response type')
             [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
             [CompletionResult]::new('version', 'version', [CompletionResultType]::ParameterValue, 'Show xurl version information')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
@@ -646,9 +647,12 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;auth;oauth2' {
+            [CompletionResult]::new('--step', '--step', [CompletionResultType]::ParameterName, 'Step number: 1 (generate auth URL) or 2 (complete exchange)')
+            [CompletionResult]::new('--auth-url', '--auth-url', [CompletionResultType]::ParameterName, 'Redirect URL from browser (step 2). Use ''-'' to read from stdin (recommended on shared machines)')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
             [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
             [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--no-browser', '--no-browser', [CompletionResultType]::ParameterName, 'Enable manual two-step flow for headless machines (SSH, containers)')
             [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
             [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
             [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
@@ -932,6 +936,19 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;media;help;help' {
             break
         }
+        'xr;schema' {
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--list', '--list', [CompletionResultType]::ParameterName, 'List all commands and their response types')
+            [CompletionResult]::new('--all', '--all', [CompletionResultType]::ParameterName, 'Output all schemas as a single JSON document')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
         'xr;completions' {
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
             [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format: text (default), json (machine-readable), jsonl (streaming)')
@@ -986,6 +1003,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
             [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload operations')
+            [CompletionResult]::new('schema', 'schema', [CompletionResultType]::ParameterValue, 'Show JSON Schema for a command''s response type')
             [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
             [CompletionResult]::new('version', 'version', [CompletionResultType]::ParameterValue, 'Show xurl version information')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
@@ -1134,6 +1152,9 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;media;status' {
+            break
+        }
+        'xr;help;schema' {
             break
         }
         'xr;help;completions' {
