@@ -1173,3 +1173,191 @@ fn test_get_usage_clears_request_data() {
     let resp = api::get_usage(&mut client, &opts);
     assert!(resp.is_ok());
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Red team — adversarial API responses via wiremock
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn redteam_create_post_array_where_object_expected() {
+    // API returns array in data field for a single-item shortcut
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data": [{"id": "1", "text": "oops"}]})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::create_post(&mut client, "test", &[], &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: array where single Tweet expected"
+    );
+}
+
+#[test]
+fn redteam_get_me_no_data_field() {
+    // API returns errors-only 200 with no data field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"errors": [{"message": "forbidden"}]})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::get_me(&mut client, &base_opts());
+    assert!(result.is_err(), "Should fail: no data field in response");
+}
+
+#[test]
+fn redteam_delete_post_wrong_type_in_data() {
+    // API returns string instead of object in data field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("DELETE"))
+            .and(path("/2/tweets/123"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": "unexpected string"})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::delete_post(&mut client, "123", &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: string where DeletedResult expected"
+    );
+}
+
+#[test]
+fn redteam_search_posts_null_data() {
+    // API returns null data
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": null})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::search_posts(&mut client, "test", 10, &base_opts());
+    assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
+}
+
+#[test]
+fn redteam_empty_body_returns_descriptive_error() {
+    // send_request returns empty {} for non-JSON 2xx — shortcut should give clear error
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::get_me(&mut client, &base_opts());
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("empty response body"),
+        "Expected descriptive error, got: {err}"
+    );
+}
+
+#[test]
+fn redteam_unknown_fields_survive_shortcut_round_trip() {
+    // Verify serde(flatten) preserves unknown fields through the full shortcut path
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
+                "data": {
+                    "id": "99999",
+                    "text": "Hello!",
+                    "brand_new_field": "surprise_value"
+                },
+                "top_level_extra": 42
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    assert_eq!(resp.data.id, "99999");
+    // Unknown fields preserved in extra
+    assert_eq!(resp.data.extra["brand_new_field"], "surprise_value");
+    assert_eq!(resp.extra["top_level_extra"], 42);
+    // Round-trip: serialize back to Value and verify preservation
+    let value = serde_json::to_value(&resp).unwrap();
+    assert_eq!(value["data"]["brand_new_field"], "surprise_value");
+    assert_eq!(value["top_level_extra"], 42);
+}
+
+#[test]
+fn redteam_like_post_extra_fields_on_action() {
+    // Action confirmation with extra unknown fields
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/42/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true, "pending_follow": false},
+                "rate_limit_remaining": 99
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::like_post(&mut client, "42", "123", &base_opts()).unwrap();
+    assert!(resp.data.liked);
+    // Unknown fields captured, not lost
+    assert_eq!(resp.data.extra["pending_follow"], false);
+    assert_eq!(resp.extra["rate_limit_remaining"], 99);
+}
+
+#[test]
+fn redteam_lookup_user_wrong_bool_type() {
+    // String "true" where boolean expected in a nested field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path_regex(r"/2/users/by/username/bad.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "1", "name": "Bad", "username": "bad", "verified": "true"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    // verified is Option<bool> — "true" (string) should fail deserialization
+    let result = api::lookup_user(&mut client, "bad", &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: string 'true' where bool expected"
+    );
+}
