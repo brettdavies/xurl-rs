@@ -49,6 +49,9 @@ url = "2"
 # Terminal
 colored = "3"
 
+# Schema generation
+schemars = "1"
+
 # Utilities
 open = "5"
 thiserror = "2"

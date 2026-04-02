@@ -106,6 +106,25 @@ xr dm @user "Hey!"                             # Send DM
 xr dms                                         # List DMs
 ```
 
+### Schema Discovery
+
+```bash
+xr schema post                                 # JSON Schema for post response
+xr schema whoami                               # JSON Schema for whoami response
+xr schema --list                               # All commands and response types
+xr schema --all                                # All schemas as one JSON document
+```
+
+Generate typed clients from schema output:
+
+```bash
+# TypeScript
+xr schema post | bunx json-schema-to-typescript > types.ts
+
+# Python
+xr schema post | uvx --from datamodel-code-generator datamodel-codegen --output models.py
+```
+
 ### Raw API Access
 
 ```bash
@@ -160,6 +179,14 @@ xr --app dev whoami                             # Per-request override
 ## Agent-Native Features
 
 Built for AI agents and automation:
+
+### Response Schema Discovery
+
+```bash
+xr schema --list                               # Discover all commands + response types
+xr schema post                                 # Get JSON Schema for any command's output
+xr schema --all                                # All schemas for MCP tool definitions
+```
 
 ### Machine-Readable Output
 
@@ -267,6 +294,7 @@ All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forwa
 | `NO_COLOR` support | ❌ | ✅ |
 | `XURL_OUTPUT` env var | ❌ | ✅ |
 | Typed response structs | ❌ | ✅ |
+| `xr schema` (JSON Schema) | ❌ | ✅ |
 
 ## Contributing
 
