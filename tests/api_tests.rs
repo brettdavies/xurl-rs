@@ -1218,7 +1218,11 @@ fn redteam_get_me_no_data_field() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let result = api::get_me(&mut client, &base_opts());
-    assert!(result.is_err(), "Should fail: no data field in response");
+    let err = result.unwrap_err();
+    assert!(
+        err.is_api(),
+        "Should be API error (not JSON error) for errors-only 200: {err}"
+    );
 }
 
 #[test]

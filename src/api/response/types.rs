@@ -316,6 +316,14 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
             "empty response body — expected JSON with a \"data\" field".to_string(),
         ));
     }
+    // X API v2 returns errors-only 200 responses with no `data` field
+    // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
+    // the raw JSON as an API error, matching pre-migration behavior.
+    if let Some(obj) = value.as_object() {
+        if !obj.contains_key("data") && obj.contains_key("errors") {
+            return Err(crate::error::XurlError::Api(value.to_string()));
+        }
+    }
     Ok(serde_json::from_value(value)?)
 }
 
@@ -774,12 +782,34 @@ mod tests {
     }
 
     #[test]
-    fn adversarial_errors_field_no_data() {
-        // 200 response with errors but no data — serde should error
-        // because data is required (not Option)
+    fn adversarial_errors_field_no_data_raw_serde() {
+        // Raw serde (not deserialize_response) — should fail on missing data
         let json = json!({"errors": [{"message": "forbidden"}]});
         let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
         assert!(result.is_err(), "Should fail: no data field");
+    }
+
+    #[test]
+    fn errors_only_response_returns_api_error() {
+        // X API v2 returns {"errors": [...]} with no "data" on 200 for not-found resources.
+        // deserialize_response should return XurlError::Api with the raw JSON.
+        let json = json!({
+            "errors": [{
+                "detail": "Could not find tweet with id: [123].",
+                "title": "Not Found Error",
+                "resource_type": "tweet",
+                "type": "https://api.twitter.com/2/problems/resource-not-found"
+            }]
+        });
+        let result = deserialize_response::<Tweet>(json);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.is_api(), "Expected API error, got: {err}");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Not Found Error"),
+            "Error should contain API message: {msg}"
+        );
     }
 
     #[test]
