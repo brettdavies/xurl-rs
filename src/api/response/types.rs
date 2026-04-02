@@ -5,6 +5,7 @@
 /// and re-emitted during serialization.
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -14,7 +15,7 @@ use serde_json::Value;
 ///
 /// Single-item endpoints use `ApiResponse<Tweet>`, list endpoints use
 /// `ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ApiResponse<T: Default> {
     pub data: T,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28,7 +29,7 @@ pub struct ApiResponse<T: Default> {
 }
 
 /// Expanded objects included alongside the primary data.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Includes {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
@@ -39,7 +40,7 @@ pub struct Includes {
 }
 
 /// Pagination and result count metadata.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ResponseMeta {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result_count: Option<u64>,
@@ -52,7 +53,7 @@ pub struct ResponseMeta {
 }
 
 /// Partial error returned alongside valid data in 200 responses.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ApiError {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
@@ -72,7 +73,7 @@ pub struct ApiError {
 ///
 /// Required fields: `id`, `text` (always present in API responses).
 /// Optional fields depend on which `tweet.fields` the caller requests.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Tweet {
     pub id: String,
     pub text: String,
@@ -97,7 +98,7 @@ pub struct Tweet {
 }
 
 /// Public engagement metrics for a tweet.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct TweetPublicMetrics {
     #[serde(default)]
     pub retweet_count: u64,
@@ -116,7 +117,7 @@ pub struct TweetPublicMetrics {
 }
 
 /// A referenced tweet (reply-to, quote, retweet).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ReferencedTweet {
     pub id: String,
     pub r#type: String,
@@ -130,7 +131,7 @@ pub struct ReferencedTweet {
 ///
 /// Required fields: `id`, `name`, `username`.
 /// Optional fields depend on which `user.fields` the caller requests.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct User {
     pub id: String,
     pub name: String,
@@ -150,7 +151,7 @@ pub struct User {
 }
 
 /// Public engagement metrics for a user.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UserPublicMetrics {
     #[serde(default)]
     pub followers_count: u64,
@@ -167,7 +168,7 @@ pub struct UserPublicMetrics {
 // ── DM ──────────────────────────────────────────────────────────────
 
 /// A direct message event from the X API v2.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct DmEvent {
     pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -187,7 +188,7 @@ pub struct DmEvent {
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct LikedResult {
     pub liked: bool,
     #[serde(flatten)]
@@ -195,7 +196,7 @@ pub struct LikedResult {
 }
 
 /// Confirmation for follow/unfollow actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct FollowingResult {
     pub following: bool,
     #[serde(flatten)]
@@ -203,7 +204,7 @@ pub struct FollowingResult {
 }
 
 /// Confirmation for delete actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct DeletedResult {
     pub deleted: bool,
     #[serde(flatten)]
@@ -211,7 +212,7 @@ pub struct DeletedResult {
 }
 
 /// Confirmation for repost/unrepost actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct RetweetedResult {
     pub retweeted: bool,
     #[serde(flatten)]
@@ -219,7 +220,7 @@ pub struct RetweetedResult {
 }
 
 /// Confirmation for bookmark/unbookmark actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct BookmarkedResult {
     pub bookmarked: bool,
     #[serde(flatten)]
@@ -227,7 +228,7 @@ pub struct BookmarkedResult {
 }
 
 /// Confirmation for block/unblock actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct BlockingResult {
     pub blocking: bool,
     #[serde(flatten)]
@@ -235,7 +236,7 @@ pub struct BlockingResult {
 }
 
 /// Confirmation for mute/unmute actions.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MutingResult {
     pub muting: bool,
     #[serde(flatten)]
@@ -245,7 +246,7 @@ pub struct MutingResult {
 // ── Media ───────────────────────────────────────────────────────────
 
 /// Response from media upload INIT and FINALIZE steps.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaUploadResponse {
     pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -259,7 +260,7 @@ pub struct MediaUploadResponse {
 }
 
 /// Media processing status returned during upload polling.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaProcessingInfo {
     pub state: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -278,7 +279,7 @@ pub struct MediaProcessingInfo {
 ///
 /// All fields are optional because the shape varies based on query params
 /// and the data is deeply nested with mixed types (strings for numbers).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UsageData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_cap: Option<String>,
