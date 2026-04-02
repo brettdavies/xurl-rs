@@ -18,6 +18,6 @@ pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
     ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
-    UserPublicMetrics,
+    UserPublicMetrics, deserialize_response,
 };
 pub use shortcuts::*;
