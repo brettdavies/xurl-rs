@@ -1,7 +1,7 @@
 ---
 title: "feat: Add typed API response structs for library consumers"
 type: feat
-status: active
+status: completed
 date: 2026-04-02
 origin: docs/brainstorms/2026-03-21-typed-responses-requirements.md
 deepened: 2026-04-02
@@ -240,7 +240,7 @@ T is one of:
 
 ## Implementation Units
 
-- [ ] **Unit 1: Create response types module with typed structs**
+- [x] **Unit 1: Create response types module with typed structs**
 
   **Goal:** Define all typed response structs and restructure the response module for SRP compliance.
 
@@ -314,7 +314,7 @@ T is one of:
 - `cargo doc` shows the new types in the public API surface under `xurl::api::response`
 - Module compiles with no warnings
 
-- [ ] **Unit 2: Migrate shortcut functions to typed returns + update tests**
+- [x] **Unit 2: Migrate shortcut functions to typed returns + update tests**
 
   **Goal:** Change all 29 shortcut function return types from `Result<Value>` to `Result<ApiResponse<T>>`, add
   deserialization at the shortcut boundary, and update all test assertions atomically. Return type changes and test
@@ -388,7 +388,7 @@ T is one of:
 - No remaining `resp["data"]` or `resp["data"]["id"]` style indexing in test assertions
 - Conformance runner shows no regressions
 
-- [ ] **Unit 3: Update CLI dispatch and media Value access sites**
+- [x] **Unit 3: Update CLI dispatch and media Value access sites**
 
   **Goal:** Update the 6 `serde_json::Value` field access sites to use typed struct fields, and add `to_value()`
   conversion at the CLI dispatch layer for output formatting.
@@ -441,7 +441,7 @@ T is one of:
 - Media upload flow works end-to-end in tests (including intermediate print_response calls)
 - CLI output semantically equivalent for all commands (same data, structure; field ordering may differ)
 
-- [ ] **Unit 4: Add spec-as-test validation and update script**
+- [x] **Unit 4: Add spec-as-test validation and update script**
 
   **Goal:** Create infrastructure for keeping typed response structs in sync with the X API v2 OpenAPI spec. A CI test
   catches type drift. A developer script shows what changed and helps promote new fields.
