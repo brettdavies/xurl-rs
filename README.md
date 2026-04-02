@@ -221,6 +221,37 @@ xr completions elvish > xr.elv
 
 Pre-generated scripts are also available in `completions/`.
 
+## Library Usage
+
+xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+xurl-rs = "1"
+```
+
+All 29 shortcut commands return typed responses via `ApiResponse<T>`:
+
+```rust
+use xurl::api::{ApiResponse, Tweet, User, LikedResult, deserialize_response};
+
+// Typed response from deserialization
+let resp: ApiResponse<Tweet> = deserialize_response(json_value)?;
+println!("{}", resp.data.text);
+
+// List responses
+let resp: ApiResponse<Vec<Tweet>> = deserialize_response(json_value)?;
+for tweet in &resp.data {
+    println!("{}: {}", tweet.id, tweet.text);
+}
+```
+
+Available types: `Tweet`, `User`, `DmEvent`, `UsageData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
+`RetweetedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
+`ResponseMeta`, `ApiError`.
+
+All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forward compatibility with new API fields.
+
 ## vs Go Original
 
 | Feature | Go xurl | xurl-rs |
@@ -235,6 +266,7 @@ Pre-generated scripts are also available in `completions/`.
 | Structured exit codes | ❌ | ✅ |
 | `NO_COLOR` support | ❌ | ✅ |
 | `XURL_OUTPUT` env var | ❌ | ✅ |
+| Typed response structs | ❌ | ✅ |
 
 ## Contributing
 
