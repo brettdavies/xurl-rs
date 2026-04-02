@@ -539,8 +539,8 @@ fn test_create_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "99999");
-    assert_eq!(resp["data"]["text"], "Hello!");
+    assert_eq!(resp.data.id, "99999");
+    assert_eq!(resp.data.text, "Hello!");
 }
 
 #[test]
@@ -559,7 +559,7 @@ fn test_reply_to_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::reply_to_post(&mut client, "123", "nice!", &[], &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "88888");
+    assert_eq!(resp.data.id, "88888");
 }
 
 #[test]
@@ -586,7 +586,7 @@ fn test_reply_to_post_with_url() {
         &base_opts(),
     )
     .unwrap();
-    assert_eq!(resp["data"]["id"], "77777");
+    assert_eq!(resp.data.id, "77777");
 }
 
 #[test]
@@ -605,7 +605,7 @@ fn test_quote_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::quote_post(&mut client, "123", "my take", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "66666");
+    assert_eq!(resp.data.id, "66666");
 }
 
 #[test]
@@ -624,7 +624,7 @@ fn test_delete_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::delete_post(&mut client, "123", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["deleted"], true);
+    assert!(resp.data.deleted);
 }
 
 #[test]
@@ -640,8 +640,8 @@ fn test_read_post() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::read_post(&mut client, "123", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "123");
-    assert_eq!(resp["data"]["text"], "existing post");
+    assert_eq!(resp.data.id, "123");
+    assert_eq!(resp.data.text, "existing post");
 }
 
 #[test]
@@ -657,7 +657,7 @@ fn test_search_posts() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::search_posts(&mut client, "golang", 10, &base_opts()).unwrap();
-    assert_eq!(resp["meta"]["result_count"], 1);
+    assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
 #[test]
@@ -675,8 +675,8 @@ fn test_get_me() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_me(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "42");
-    assert_eq!(resp["data"]["username"], "testbot");
+    assert_eq!(resp.data.id, "42");
+    assert_eq!(resp.data.username, "testbot");
 }
 
 #[test]
@@ -694,8 +694,8 @@ fn test_lookup_user() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::lookup_user(&mut client, "@someuser", &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "100");
-    assert_eq!(resp["data"]["username"], "lookedup");
+    assert_eq!(resp.data.id, "100");
+    assert_eq!(resp.data.username, "lookedup");
 }
 
 #[test]
@@ -715,7 +715,7 @@ fn test_create_post_with_media() {
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
     let resp = api::create_post(&mut client, "With media", &media_ids, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["id"], "55555");
+    assert_eq!(resp.data.id, "55555");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -933,15 +933,19 @@ fn test_get_usage_happy_path() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_cap"], "2000000");
-    assert_eq!(resp["data"]["project_usage"], "399");
-    assert_eq!(resp["data"]["cap_reset_day"], 19);
-    assert_eq!(
-        resp["data"]["daily_project_usage"]["project_id"],
-        "2020044302890438656"
+    assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
+    assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
+    assert_eq!(resp.data.cap_reset_day, Some(19));
+    let daily = resp.data.daily_project_usage.as_ref().unwrap();
+    assert_eq!(daily["project_id"], "2020044302890438656");
+    assert!(daily["usage"].is_array());
+    assert!(
+        resp.data
+            .daily_client_app_usage
+            .as_ref()
+            .unwrap()
+            .is_array()
     );
-    assert!(resp["data"]["daily_project_usage"]["usage"].is_array());
-    assert!(resp["data"]["daily_client_app_usage"].is_array());
 }
 
 #[test]
@@ -967,7 +971,7 @@ fn test_get_usage_requires_usage_fields_query_param() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "42");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
 #[test]
@@ -1051,7 +1055,7 @@ fn test_get_usage_with_oauth1_auth() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "10");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
 #[test]
@@ -1070,7 +1074,7 @@ fn test_get_usage_with_oauth2_auth() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    assert_eq!(resp["data"]["project_usage"], "20");
+    assert_eq!(resp.data.project_usage.as_deref(), Some("20"));
 }
 
 #[test]
@@ -1098,11 +1102,12 @@ fn test_get_usage_daily_project_usage_structure() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    let daily = &resp["data"]["daily_project_usage"]["usage"];
-    assert!(daily.is_array());
-    assert_eq!(daily.as_array().unwrap().len(), 3);
-    assert_eq!(daily[0]["usage"], "50");
-    assert_eq!(daily[2]["usage"], "100");
+    let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
+    let usage = &daily_val["usage"];
+    assert!(usage.is_array());
+    assert_eq!(usage.as_array().unwrap().len(), 3);
+    assert_eq!(usage[0]["usage"], "50");
+    assert_eq!(usage[2]["usage"], "100");
 }
 
 #[test]
@@ -1134,7 +1139,13 @@ fn test_get_usage_daily_client_app_usage_structure() {
     let mut client = ApiClient::new(&cfg, &mut auth);
 
     let resp = api::get_usage(&mut client, &base_opts()).unwrap();
-    let apps = resp["data"]["daily_client_app_usage"].as_array().unwrap();
+    let apps = resp
+        .data
+        .daily_client_app_usage
+        .as_ref()
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(apps.len(), 2);
     assert_eq!(apps[0]["client_app_id"], "app_1");
     assert_eq!(apps[1]["client_app_id"], "app_2");
@@ -1161,4 +1172,196 @@ fn test_get_usage_clears_request_data() {
     opts.data = r#"{"stale":"body"}"#.to_string();
     let resp = api::get_usage(&mut client, &opts);
     assert!(resp.is_ok());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Red team — adversarial API responses via wiremock
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn redteam_create_post_array_where_object_expected() {
+    // API returns array in data field for a single-item shortcut
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data": [{"id": "1", "text": "oops"}]})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::create_post(&mut client, "test", &[], &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: array where single Tweet expected"
+    );
+}
+
+#[test]
+fn redteam_get_me_no_data_field() {
+    // API returns errors-only 200 with no data field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"errors": [{"message": "forbidden"}]})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::get_me(&mut client, &base_opts());
+    let err = result.unwrap_err();
+    assert!(
+        err.is_api(),
+        "Should be API error (not JSON error) for errors-only 200: {err}"
+    );
+}
+
+#[test]
+fn redteam_delete_post_wrong_type_in_data() {
+    // API returns string instead of object in data field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("DELETE"))
+            .and(path("/2/tweets/123"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": "unexpected string"})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::delete_post(&mut client, "123", &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: string where DeletedResult expected"
+    );
+}
+
+#[test]
+fn redteam_search_posts_null_data() {
+    // API returns null data
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": null})),
+            ),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::search_posts(&mut client, "test", 10, &base_opts());
+    assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
+}
+
+#[test]
+fn redteam_empty_body_returns_descriptive_error() {
+    // send_request returns empty {} for non-JSON 2xx — shortcut should give clear error
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let result = api::get_me(&mut client, &base_opts());
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("empty response body"),
+        "Expected descriptive error, got: {err}"
+    );
+}
+
+#[test]
+fn redteam_unknown_fields_survive_shortcut_round_trip() {
+    // Verify serde(flatten) preserves unknown fields through the full shortcut path
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
+                "data": {
+                    "id": "99999",
+                    "text": "Hello!",
+                    "brand_new_field": "surprise_value"
+                },
+                "top_level_extra": 42
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    assert_eq!(resp.data.id, "99999");
+    // Unknown fields preserved in extra
+    assert_eq!(resp.data.extra["brand_new_field"], "surprise_value");
+    assert_eq!(resp.extra["top_level_extra"], 42);
+    // Round-trip: serialize back to Value and verify preservation
+    let value = serde_json::to_value(&resp).unwrap();
+    assert_eq!(value["data"]["brand_new_field"], "surprise_value");
+    assert_eq!(value["top_level_extra"], 42);
+}
+
+#[test]
+fn redteam_like_post_extra_fields_on_action() {
+    // Action confirmation with extra unknown fields
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/42/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true, "pending_follow": false},
+                "rate_limit_remaining": 99
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    let resp = api::like_post(&mut client, "42", "123", &base_opts()).unwrap();
+    assert!(resp.data.liked);
+    // Unknown fields captured, not lost
+    assert_eq!(resp.data.extra["pending_follow"], false);
+    assert_eq!(resp.extra["rate_limit_remaining"], 99);
+}
+
+#[test]
+fn redteam_lookup_user_wrong_bool_type() {
+    // String "true" where boolean expected in a nested field
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path_regex(r"/2/users/by/username/bad.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "1", "name": "Bad", "username": "bad", "verified": "true"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, &mut auth);
+
+    // verified is Option<bool> — "true" (string) should fail deserialization
+    let result = api::lookup_user(&mut client, "bad", &base_opts());
+    assert!(
+        result.is_err(),
+        "Should fail: string 'true' where bool expected"
+    );
 }
