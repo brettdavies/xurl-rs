@@ -10,8 +10,27 @@ fn test_xurl_error_http_is_not_api() {
 
 #[test]
 fn test_xurl_error_api_is_api() {
-    let err = XurlError::api(r#"{"errors":[{"message":"Not Found"}]}"#);
+    let err = XurlError::api(404, r#"{"errors":[{"message":"Not Found"}]}"#);
     assert!(err.is_api(), "Api error should be is_api()");
+}
+
+#[test]
+fn test_xurl_error_validation_is_validation() {
+    let err = XurlError::validation("bad input");
+    assert!(
+        err.is_validation(),
+        "Validation error should be is_validation()"
+    );
+    assert!(!err.is_api(), "Validation error should not be is_api()");
+}
+
+#[test]
+fn test_xurl_error_api_is_not_validation() {
+    let err = XurlError::api(400, "bad request");
+    assert!(
+        !err.is_validation(),
+        "Api error should not be is_validation()"
+    );
 }
 
 #[test]
@@ -51,9 +70,29 @@ fn test_xurl_error_display_http() {
 
 #[test]
 fn test_xurl_error_display_api() {
-    let err = XurlError::api("bad request");
+    let err = XurlError::api(400, "bad request");
     let msg = format!("{err}");
-    assert!(msg.contains("bad request"), "Expected error body in: {msg}");
+    // Display shows body only, not status
+    assert_eq!(msg, "bad request", "Expected body-only display, got: {msg}");
+}
+
+#[test]
+fn test_xurl_error_display_validation() {
+    let err = XurlError::validation("bad input");
+    let msg = format!("{err}");
+    assert_eq!(msg, "bad input", "Expected message display, got: {msg}");
+}
+
+#[test]
+fn test_xurl_error_api_constructor() {
+    let err = XurlError::api(401, "unauthorized");
+    match &err {
+        XurlError::Api { status, body } => {
+            assert_eq!(*status, 401);
+            assert_eq!(body, "unauthorized");
+        }
+        _ => panic!("Expected Api variant, got: {err:?}"),
+    }
 }
 
 #[test]

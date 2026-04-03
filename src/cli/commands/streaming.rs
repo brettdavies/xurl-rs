@@ -77,12 +77,13 @@ pub(super) fn stream_request_with_output(
         eprintln!();
     }
 
-    if resp.status().as_u16() >= 400 {
+    let resp_status = resp.status();
+    if resp_status.as_u16() >= 400 {
         let body = resp.text().unwrap_or_default();
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-            return Err(XurlError::api(json.to_string()));
+            return Err(XurlError::api(resp_status.as_u16(), json.to_string()));
         }
-        return Err(XurlError::api(body));
+        return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
     out.status("--- Streaming response started ---");

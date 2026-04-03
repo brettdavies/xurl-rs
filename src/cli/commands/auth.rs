@@ -190,8 +190,8 @@ pub(super) fn run_auth_command(
                 auth.token_store.clear_bearer_token()?;
                 out.print_message("Bearer token cleared!");
             } else {
-                return Err(XurlError::Api(
-                    "No authentication cleared! Use --all to clear all authentication.".to_string(),
+                return Err(XurlError::validation(
+                    "No authentication cleared! Use --all to clear all authentication.",
                 ));
             }
         }
@@ -230,7 +230,7 @@ pub(super) fn run_auth_command(
                     Ok(Some(idx)) => apps[idx].clone(),
                     Ok(None) => return Ok(()),
                     Err(e) => {
-                        return Err(XurlError::Api(format!("Selection error: {e}")));
+                        return Err(XurlError::validation(format!("Selection error: {e}")));
                     }
                 };
 
@@ -274,8 +274,8 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
             client_secret,
         } => {
             if client_id.is_none() && client_secret.is_none() {
-                return Err(XurlError::Api(
-                    "Nothing to update. Provide --client-id and/or --client-secret.".to_string(),
+                return Err(XurlError::validation(
+                    "Nothing to update. Provide --client-id and/or --client-secret.",
                 ));
             }
             auth.token_store.update_app(

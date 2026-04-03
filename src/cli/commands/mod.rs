@@ -46,8 +46,8 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) ->
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
-        return Err(XurlError::Api(
-            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.".to_string(),
+        return Err(XurlError::validation(
+            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.",
         ));
     };
 
@@ -431,7 +431,7 @@ fn resolve_user_id(
     let id = &resp.data.id;
     if id.is_empty() {
         let clean = username.trim_start_matches('@');
-        return Err(XurlError::Api(format!("user @{clean} not found")));
+        return Err(XurlError::validation(format!("user @{clean} not found")));
     }
     Ok(id.clone())
 }

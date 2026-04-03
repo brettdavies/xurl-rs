@@ -257,7 +257,7 @@ fn wait_for_media_processing(
             out.status("Media processing complete!");
             return Ok(response);
         } else if state == "failed" {
-            return Err(XurlError::Api("media processing failed".to_string()));
+            return Err(XurlError::validation("media processing failed"));
         }
 
         let check_after = response
@@ -297,8 +297,8 @@ pub fn handle_media_append_request(
 ) -> Result<serde_json::Value> {
     let media_id = extract_media_id(&options.endpoint);
     if media_id.is_empty() {
-        return Err(XurlError::Api(
-            "media_id is required for append endpoint".to_string(),
+        return Err(XurlError::validation(
+            "media_id is required for append endpoint",
         ));
     }
 

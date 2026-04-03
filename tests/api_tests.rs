@@ -1220,8 +1220,8 @@ fn redteam_get_me_no_data_field() {
     let result = api::get_me(&mut client, &base_opts());
     let err = result.unwrap_err();
     assert!(
-        err.is_api(),
-        "Should be API error (not JSON error) for errors-only 200: {err}"
+        err.is_validation(),
+        "Should be Validation error (not API or JSON error) for errors-only 200: {err}"
     );
 }
 

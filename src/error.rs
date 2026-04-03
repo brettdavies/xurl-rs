@@ -20,9 +20,18 @@ pub enum XurlError {
     #[error("Invalid Method: Invalid HTTP method: {0}")]
     InvalidMethod(String),
 
-    /// API returned an error response body (raw JSON).
+    /// API returned an HTTP error response (status >= 400).
+    #[error("{body}")]
+    Api {
+        /// HTTP status code from the API response.
+        status: u16,
+        /// Raw response body (typically JSON).
+        body: String,
+    },
+
+    /// Non-HTTP validation or logic error (e.g., missing fields, errors-only 200 responses).
     #[error("{0}")]
-    Api(String),
+    Validation(String),
 
     /// JSON serialization / deserialization error.
     #[error("JSON Error: {0}")]
@@ -39,12 +48,17 @@ pub enum XurlError {
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl XurlError {
-    /// Create an API error from a raw JSON response body.
-    ///
-    /// If the message is valid JSON, Display will emit the raw JSON (matching
-    /// the Go behaviour where `Error()` returns `json.RawMessage` directly).
-    pub fn api(body: impl Into<String>) -> Self {
-        Self::Api(body.into())
+    /// Create an API error with an HTTP status code and response body.
+    pub fn api(status: u16, body: impl Into<String>) -> Self {
+        Self::Api {
+            status,
+            body: body.into(),
+        }
+    }
+
+    /// Create a validation error for non-HTTP error conditions.
+    pub fn validation(body: impl Into<String>) -> Self {
+        Self::Validation(body.into())
     }
 
     /// Create an auth error with a descriptive message.
@@ -62,10 +76,16 @@ impl XurlError {
         Self::TokenStore(message.into())
     }
 
-    /// Returns true if this is an API error.
+    /// Returns true if this is an API error (HTTP status >= 400).
     #[must_use]
     pub fn is_api(&self) -> bool {
-        matches!(self, Self::Api(_))
+        matches!(self, Self::Api { .. })
+    }
+
+    /// Returns true if this is a validation error.
+    #[must_use]
+    pub fn is_validation(&self) -> bool {
+        matches!(self, Self::Validation(_))
     }
 }
 
