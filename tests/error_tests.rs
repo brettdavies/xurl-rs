@@ -1,6 +1,9 @@
-//! Tests for the XurlError type system.
+//! Tests for the XurlError type system and exit code mapping.
 
-use xurl::error::XurlError;
+use xurl::error::{
+    EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND, EXIT_RATE_LIMITED,
+    XurlError, exit_code_for_error,
+};
 
 #[test]
 fn test_xurl_error_http_is_not_api() {
@@ -175,4 +178,94 @@ fn test_xurl_error_from_serde_json() {
     let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
     let xurl_err: XurlError = json_err.into();
     assert!(matches!(xurl_err, XurlError::Json(_)));
+}
+
+// ── exit_code_for_error tests ──────────────────────────────────────
+
+#[test]
+fn test_exit_code_api_401() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::api(401, "unauthorized")),
+        EXIT_AUTH_REQUIRED
+    );
+}
+
+#[test]
+fn test_exit_code_api_429() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::api(429, "rate limited")),
+        EXIT_RATE_LIMITED
+    );
+}
+
+#[test]
+fn test_exit_code_api_404() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::api(404, "not found")),
+        EXIT_NOT_FOUND
+    );
+}
+
+#[test]
+fn test_exit_code_api_500() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::api(500, "server error")),
+        EXIT_GENERAL_ERROR
+    );
+}
+
+#[test]
+fn test_exit_code_api_403() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::api(403, "forbidden")),
+        EXIT_GENERAL_ERROR
+    );
+}
+
+#[test]
+fn test_exit_code_validation() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::validation("bad input")),
+        EXIT_GENERAL_ERROR
+    );
+}
+
+#[test]
+fn test_exit_code_auth() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::auth("expired")),
+        EXIT_AUTH_REQUIRED
+    );
+}
+
+#[test]
+fn test_exit_code_token_store() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::token_store("corrupt")),
+        EXIT_AUTH_REQUIRED
+    );
+}
+
+#[test]
+fn test_exit_code_io() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::Io("timeout".into())),
+        EXIT_NETWORK_ERROR
+    );
+}
+
+#[test]
+fn test_exit_code_http_401_string() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::Http("401 Unauthorized".into())),
+        EXIT_AUTH_REQUIRED
+    );
+}
+
+#[test]
+fn test_exit_code_http_generic() {
+    assert_eq!(
+        exit_code_for_error(&XurlError::Http("connection refused".into())),
+        EXIT_GENERAL_ERROR
+    );
 }
