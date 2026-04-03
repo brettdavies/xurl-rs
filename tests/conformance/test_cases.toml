@@ -303,3 +303,4 @@ name = "double-dash-separator"
 args = ["--", "--help"]
 compare = ["exit_code"]
 tags = ["edge-case"]
+skip_reason = "Known difference: Rust returns EXIT_NOT_FOUND (4) via structured Api { status: 404 } matching (R8); Go returns EXIT_GENERAL_ERROR (1) via string matching that misses 404 in JSON body"

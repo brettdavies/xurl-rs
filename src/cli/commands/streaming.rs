@@ -42,10 +42,12 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    if let Ok(auth_header) =
-        client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
-    {
-        builder = builder.header("Authorization", auth_header);
+    if !options.no_auth {
+        if let Ok(auth_header) =
+            client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
+        {
+            builder = builder.header("Authorization", auth_header);
+        }
     }
 
     builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -77,12 +79,13 @@ pub(super) fn stream_request_with_output(
         eprintln!();
     }
 
-    if resp.status().as_u16() >= 400 {
+    let resp_status = resp.status();
+    if resp_status.as_u16() >= 400 {
         let body = resp.text().unwrap_or_default();
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-            return Err(XurlError::api(json.to_string()));
+            return Err(XurlError::api(resp_status.as_u16(), json.to_string()));
         }
-        return Err(XurlError::api(body));
+        return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
     out.status("--- Streaming response started ---");
