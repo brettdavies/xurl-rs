@@ -12,7 +12,7 @@ pub use media::{
     extract_segment_index, handle_media_append_request, is_media_append_request,
 };
 #[allow(unused_imports)]
-pub use request::{ApiClient, MultipartOptions, RequestOptions};
+pub use request::{ApiClient, CallOptions, MultipartOptions, RequestOptions};
 #[allow(unused_imports)]
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
@@ -20,4 +20,5 @@ pub use response::types::{
     ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
     UserPublicMetrics, deserialize_response,
 };
-pub use shortcuts::*;
+#[allow(unused_imports)]
+pub use shortcuts::{resolve_post_id, resolve_username};

@@ -100,7 +100,7 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
         "auth" | "media" | "completions" | "version" | "schema" => {
-            return Err(XurlError::Api(format!(
+            return Err(XurlError::validation(format!(
                 "schema not available for '{command}' (no typed response)"
             )));
         }
@@ -110,7 +110,7 @@ fn schema_for_command(command: &str) -> Result<Value> {
                 .flat_map(|e| e.commands.iter())
                 .copied()
                 .collect();
-            return Err(XurlError::Api(format!(
+            return Err(XurlError::validation(format!(
                 "unknown command '{command}'. Valid commands: {}",
                 valid.join(", ")
             )));
@@ -135,8 +135,8 @@ pub fn run_schema(command: Option<&str>, list: bool, all: bool) -> Result<()> {
         }
         None => {
             // No argument: show help text (same as `xr schema --help`)
-            Err(XurlError::Api(
-                "usage: xr schema <COMMAND> | xr schema --list | xr schema --all".to_string(),
+            Err(XurlError::validation(
+                "usage: xr schema <COMMAND> | xr schema --list | xr schema --all",
             ))
         }
     }
