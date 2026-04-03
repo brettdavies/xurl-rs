@@ -36,13 +36,13 @@ pub fn run(cli: Cli, out: &OutputConfig) -> Result<()> {
 
     let no_interactive = cli.no_interactive;
     match cli.command {
-        Some(cmd) => run_subcommand(cmd, &cfg, &mut auth, no_interactive, out),
-        None => run_raw_mode(&cli, &cfg, &mut auth, out),
+        Some(cmd) => run_subcommand(cmd, &cfg, auth, no_interactive, out),
+        None => run_raw_mode(&cli, &cfg, auth, out),
     }
 }
 
 /// Runs raw curl-style mode.
-fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) -> Result<()> {
+fn run_raw_mode(cli: &Cli, cfg: &Config, auth: Auth, out: &OutputConfig) -> Result<()> {
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
@@ -55,7 +55,6 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) ->
     let media_file = cli.file.clone().unwrap_or_default();
 
     let mut client = ApiClient::new(cfg, auth);
-
     let options = RequestOptions {
         method,
         endpoint: url.clone(),
@@ -91,7 +90,7 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) ->
 fn run_subcommand(
     cmd: Commands,
     cfg: &Config,
-    auth: &mut Auth,
+    auth: Auth,
     no_interactive: bool,
     out: &OutputConfig,
 ) -> Result<()> {
@@ -105,6 +104,8 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_request_options();
             let response = api::create_post(&mut client, &text, &media_ids, &opts)?;
+            // NOTE: All match arms below follow this same pattern — auth is moved
+            // into ApiClient::new(). The compiler ensures only one arm executes.
             print_typed(out, &response)?;
         }
         Commands::Reply {

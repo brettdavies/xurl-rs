@@ -9,7 +9,7 @@ use crate::output::OutputConfig;
 pub(super) fn run_media_command(
     cmd: MediaCommands,
     cfg: &Config,
-    auth: &mut Auth,
+    auth: Auth,
     out: &OutputConfig,
 ) -> Result<()> {
     match cmd {

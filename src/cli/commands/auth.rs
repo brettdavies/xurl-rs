@@ -8,7 +8,7 @@ use crate::store::TokenStore;
 #[allow(clippy::too_many_lines)]
 pub(super) fn run_auth_command(
     cmd: AuthCommands,
-    auth: &mut Auth,
+    mut auth: Auth,
     no_interactive: bool,
     out: &OutputConfig,
 ) -> Result<()> {
@@ -196,7 +196,7 @@ pub(super) fn run_auth_command(
             }
         }
         AuthCommands::Apps { command } => {
-            return run_app_command(command, auth, out);
+            return run_app_command(command, &mut auth, out);
         }
         AuthCommands::Default { app_name, username } => {
             if let Some(app_name) = app_name {

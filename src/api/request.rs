@@ -67,15 +67,15 @@ pub struct MultipartOptions {
 }
 
 /// Handles API requests with authentication.
-pub struct ApiClient<'a> {
+pub struct ApiClient {
     base_url: String,
     client: Client,
-    auth: &'a mut Auth,
+    auth: Auth,
 }
 
-impl<'a> ApiClient<'a> {
+impl ApiClient {
     /// Creates a new `ApiClient`.
-    pub fn new(config: &Config, auth: &'a mut Auth) -> Self {
+    pub fn new(config: &Config, auth: Auth) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -86,6 +86,28 @@ impl<'a> ApiClient<'a> {
             client,
             auth,
         }
+    }
+
+    /// Creates an `ApiClient` from environment variables.
+    ///
+    /// Reads `CLIENT_ID`, `CLIENT_SECRET`, and other env vars via [`Config::new()`],
+    /// validates that `CLIENT_ID` is non-empty, and returns a ready-to-use client.
+    ///
+    /// For full control over configuration and auth, use [`ApiClient::new()`] instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns `XurlError::Validation` if `CLIENT_ID` is not set or empty.
+    #[allow(dead_code)] // Public library API — used by consumers
+    pub fn from_env() -> Result<Self> {
+        let cfg = Config::new();
+        if cfg.client_id.is_empty() {
+            return Err(XurlError::validation(
+                "CLIENT_ID not set — set the environment variable or use ApiClient::new() for manual configuration",
+            ));
+        }
+        let auth = Auth::new(&cfg);
+        Ok(Self::new(&cfg, auth))
     }
 
     /// Builds the full URL from an endpoint (public accessor for command layer).
