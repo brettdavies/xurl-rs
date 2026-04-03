@@ -20,4 +20,5 @@ pub use response::types::{
     ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
     UserPublicMetrics, deserialize_response,
 };
-pub use shortcuts::*;
+#[allow(unused_imports)]
+pub use shortcuts::{resolve_post_id, resolve_username};

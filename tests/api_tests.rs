@@ -16,7 +16,7 @@ use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::api::{
-    self, ApiClient, RequestOptions, extract_media_id, extract_segment_index,
+    self, ApiClient, CallOptions, RequestOptions, extract_media_id, extract_segment_index,
     is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
@@ -191,11 +191,8 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-fn base_opts() -> RequestOptions {
-    RequestOptions {
-        verbose: false,
-        ..Default::default()
-    }
+fn base_call_opts() -> CallOptions {
+    CallOptions::default()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -538,7 +535,9 @@ fn test_create_post() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    let resp = client
+        .create_post("Hello!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "99999");
     assert_eq!(resp.data.text, "Hello!");
 }
@@ -558,7 +557,9 @@ fn test_reply_to_post() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::reply_to_post(&mut client, "123", "nice!", &[], &base_opts()).unwrap();
+    let resp = client
+        .reply_to_post("123", "nice!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "88888");
 }
 
@@ -578,14 +579,14 @@ fn test_reply_to_post_with_url() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::reply_to_post(
-        &mut client,
-        "https://x.com/u/status/123",
-        "reply via URL",
-        &[],
-        &base_opts(),
-    )
-    .unwrap();
+    let resp = client
+        .reply_to_post(
+            "https://x.com/u/status/123",
+            "reply via URL",
+            &[],
+            &base_call_opts(),
+        )
+        .unwrap();
     assert_eq!(resp.data.id, "77777");
 }
 
@@ -604,7 +605,9 @@ fn test_quote_post() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::quote_post(&mut client, "123", "my take", &base_opts()).unwrap();
+    let resp = client
+        .quote_post("123", "my take", &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "66666");
 }
 
@@ -623,7 +626,7 @@ fn test_delete_post() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::delete_post(&mut client, "123", &base_opts()).unwrap();
+    let resp = client.delete_post("123", &base_call_opts()).unwrap();
     assert!(resp.data.deleted);
 }
 
@@ -639,7 +642,7 @@ fn test_read_post() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::read_post(&mut client, "123", &base_opts()).unwrap();
+    let resp = client.read_post("123", &base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "123");
     assert_eq!(resp.data.text, "existing post");
 }
@@ -656,7 +659,9 @@ fn test_search_posts() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::search_posts(&mut client, "golang", 10, &base_opts()).unwrap();
+    let resp = client
+        .search_posts("golang", 10, &base_call_opts())
+        .unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
@@ -674,7 +679,7 @@ fn test_get_me() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_me(&mut client, &base_opts()).unwrap();
+    let resp = client.get_me(&base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "42");
     assert_eq!(resp.data.username, "testbot");
 }
@@ -693,7 +698,7 @@ fn test_lookup_user() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::lookup_user(&mut client, "@someuser", &base_opts()).unwrap();
+    let resp = client.lookup_user("@someuser", &base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "100");
     assert_eq!(resp.data.username, "lookedup");
 }
@@ -714,7 +719,9 @@ fn test_create_post_with_media() {
     let mut client = ApiClient::new(&cfg, auth);
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
-    let resp = api::create_post(&mut client, "With media", &media_ids, &base_opts()).unwrap();
+    let resp = client
+        .create_post("With media", &media_ids, &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "55555");
 }
 
@@ -932,7 +939,7 @@ fn test_get_usage_happy_path() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
     assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
     assert_eq!(resp.data.cap_reset_day, Some(19));
@@ -970,7 +977,7 @@ fn test_get_usage_requires_usage_fields_query_param() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
@@ -990,7 +997,7 @@ fn test_get_usage_uses_get_method() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_ok());
 }
 
@@ -1012,7 +1019,7 @@ fn test_get_usage_api_error_401() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_err());
 }
 
@@ -1034,7 +1041,7 @@ fn test_get_usage_api_error_429() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_err());
 }
 
@@ -1054,7 +1061,7 @@ fn test_get_usage_with_oauth1_auth() {
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
@@ -1073,7 +1080,7 @@ fn test_get_usage_with_oauth2_auth() {
     let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("20"));
 }
 
@@ -1101,7 +1108,7 @@ fn test_get_usage_daily_project_usage_structure() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
     let usage = &daily_val["usage"];
     assert!(usage.is_array());
@@ -1138,7 +1145,7 @@ fn test_get_usage_daily_client_app_usage_structure() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     let apps = resp
         .data
         .daily_client_app_usage
@@ -1167,10 +1174,8 @@ fn test_get_usage_clears_request_data() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    // Pass opts with stale data to verify it gets cleared
-    let mut opts = base_opts();
-    opts.data = r#"{"stale":"body"}"#.to_string();
-    let resp = api::get_usage(&mut client, &opts);
+    // CallOptions has no data field, so stale data can't leak — verify the call succeeds
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_ok());
 }
 
@@ -1194,7 +1199,7 @@ fn redteam_create_post_array_where_object_expected() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::create_post(&mut client, "test", &[], &base_opts());
+    let result = client.create_post("test", &[], &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: array where single Tweet expected"
@@ -1217,7 +1222,7 @@ fn redteam_get_me_no_data_field() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::get_me(&mut client, &base_opts());
+    let result = client.get_me(&base_call_opts());
     let err = result.unwrap_err();
     assert!(
         err.is_validation(),
@@ -1241,7 +1246,7 @@ fn redteam_delete_post_wrong_type_in_data() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::delete_post(&mut client, "123", &base_opts());
+    let result = client.delete_post("123", &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: string where DeletedResult expected"
@@ -1263,7 +1268,7 @@ fn redteam_search_posts_null_data() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::search_posts(&mut client, "test", 10, &base_opts());
+    let result = client.search_posts("test", 10, &base_call_opts());
     assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
 }
 
@@ -1280,7 +1285,7 @@ fn redteam_empty_body_returns_descriptive_error() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::get_me(&mut client, &base_opts());
+    let result = client.get_me(&base_call_opts());
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(
@@ -1309,7 +1314,9 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    let resp = client
+        .create_post("Hello!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "99999");
     // Unknown fields preserved in extra
     assert_eq!(resp.data.extra["brand_new_field"], "surprise_value");
@@ -1336,7 +1343,7 @@ fn redteam_like_post_extra_fields_on_action() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::like_post(&mut client, "42", "123", &base_opts()).unwrap();
+    let resp = client.like_post("42", "123", &base_call_opts()).unwrap();
     assert!(resp.data.liked);
     // Unknown fields captured, not lost
     assert_eq!(resp.data.extra["pending_follow"], false);
@@ -1359,7 +1366,7 @@ fn redteam_lookup_user_wrong_bool_type() {
     let mut client = ApiClient::new(&cfg, auth);
 
     // verified is Option<bool> — "true" (string) should fail deserialization
-    let result = api::lookup_user(&mut client, "bad", &base_opts());
+    let result = client.lookup_user("bad", &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: string 'true' where bool expected"

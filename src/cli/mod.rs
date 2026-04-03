@@ -438,19 +438,7 @@ pub struct CommonFlags {
 }
 
 impl CommonFlags {
-    /// Converts to `RequestOptions`.
-    pub fn to_request_options(&self) -> crate::api::RequestOptions {
-        crate::api::RequestOptions {
-            auth_type: self.auth_type.clone().unwrap_or_default(),
-            username: self.username.clone().unwrap_or_default(),
-            verbose: self.verbose,
-            trace: self.trace,
-            ..Default::default()
-        }
-    }
-
     /// Converts to `CallOptions` for shortcut methods.
-    #[allow(dead_code)] // Used by shortcut command arms in Unit 5
     pub fn to_call_options(&self) -> crate::api::CallOptions {
         crate::api::CallOptions {
             auth_type: self.auth_type.clone().unwrap_or_default(),

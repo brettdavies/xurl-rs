@@ -41,7 +41,6 @@ pub struct CallOptions {
 impl CallOptions {
     /// Converts to a [`RequestOptions`] with consumer fields populated
     /// and request-specific fields (method, endpoint, data, headers) at defaults.
-    #[allow(dead_code)] // Used by shortcut methods in Unit 5
     #[must_use]
     pub(crate) fn to_request_options(&self) -> RequestOptions {
         RequestOptions {
