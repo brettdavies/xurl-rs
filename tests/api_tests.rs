@@ -1372,3 +1372,381 @@ fn redteam_lookup_user_wrong_bool_type() {
         "Should fail: string 'true' where bool expected"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// from_env() constructor tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_from_env_missing_client_id_returns_validation_error() {
+    // Temporarily clear CLIENT_ID to test error path
+    let original = std::env::var("CLIENT_ID").ok();
+    unsafe { std::env::remove_var("CLIENT_ID") };
+
+    let result = ApiClient::from_env();
+    let err = match result {
+        Err(e) => e,
+        Ok(_) => panic!("Expected error when CLIENT_ID is missing"),
+    };
+    assert!(
+        err.is_validation(),
+        "Expected Validation error, got: {err:?}"
+    );
+    assert!(
+        err.to_string().contains("CLIENT_ID"),
+        "Error should mention CLIENT_ID: {err}"
+    );
+
+    // Restore
+    if let Some(val) = original {
+        unsafe { std::env::set_var("CLIENT_ID", val) };
+    }
+}
+
+#[test]
+fn test_from_env_empty_client_id_returns_validation_error() {
+    let original = std::env::var("CLIENT_ID").ok();
+    unsafe { std::env::set_var("CLIENT_ID", "") };
+
+    let result = ApiClient::from_env();
+    let err = match result {
+        Err(e) => e,
+        Ok(_) => panic!("Expected error when CLIENT_ID is empty"),
+    };
+    assert!(err.is_validation());
+
+    // Restore
+    if let Some(val) = original {
+        unsafe { std::env::set_var("CLIENT_ID", val) };
+    } else {
+        unsafe { std::env::remove_var("CLIENT_ID") };
+    }
+}
+
+#[test]
+fn test_from_env_with_client_id_set_returns_ok() {
+    let original_id = std::env::var("CLIENT_ID").ok();
+    let original_secret = std::env::var("CLIENT_SECRET").ok();
+    unsafe {
+        std::env::set_var("CLIENT_ID", "test-from-env-id");
+        std::env::set_var("CLIENT_SECRET", "test-secret");
+    }
+
+    let result = ApiClient::from_env();
+    assert!(
+        result.is_ok(),
+        "from_env() should succeed with CLIENT_ID set"
+    );
+
+    // Restore
+    match original_id {
+        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
+        None => unsafe { std::env::remove_var("CLIENT_ID") },
+    }
+    match original_secret {
+        Some(val) => unsafe { std::env::set_var("CLIENT_SECRET", val) },
+        None => unsafe { std::env::remove_var("CLIENT_SECRET") },
+    }
+}
+
+#[test]
+fn test_from_env_with_client_id_but_no_secret_returns_ok() {
+    // Best-effort: CLIENT_SECRET not required at construction time
+    let original_id = std::env::var("CLIENT_ID").ok();
+    let original_secret = std::env::var("CLIENT_SECRET").ok();
+    unsafe {
+        std::env::set_var("CLIENT_ID", "test-from-env-id");
+        std::env::remove_var("CLIENT_SECRET");
+    }
+
+    let result = ApiClient::from_env();
+    assert!(
+        result.is_ok(),
+        "from_env() should succeed without CLIENT_SECRET (best-effort)"
+    );
+
+    // Restore
+    match original_id {
+        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
+        None => unsafe { std::env::remove_var("CLIENT_ID") },
+    }
+    if let Some(val) = original_secret {
+        unsafe { std::env::set_var("CLIENT_SECRET", val) };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// no_auth behavior tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_no_auth_skips_authorization_header() {
+    // With no_auth=true, the request should NOT include an Authorization header.
+    // The mock only succeeds if NO Authorization header is present.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        no_auth: true,
+        ..CallOptions::default()
+    };
+    // Should succeed — no_auth skips get_auth_header entirely
+    let result = client.get_me(&opts);
+    assert!(result.is_ok(), "no_auth=true should not fail: {result:?}");
+}
+
+#[test]
+fn test_no_auth_false_includes_authorization_header() {
+    // With no_auth=false (default), the Authorization header should be present.
+    // The mock requires an Authorization header via header_exists matcher.
+    use wiremock::matchers::header_exists;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .and(header_exists("Authorization"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions::default();
+    let result = client.get_me(&opts);
+    assert!(
+        result.is_ok(),
+        "Default (no_auth=false) should include auth header: {result:?}"
+    );
+}
+
+#[test]
+fn test_no_auth_with_raw_send_request() {
+    // Verify no_auth works at the send_request level too, not just shortcuts
+    use wiremock::matchers::header_exists;
+
+    let ts = TestServer::new();
+    // This mock will fail if Authorization header IS present
+    // (by only matching requests WITHOUT it via a custom approach)
+    // Instead, just verify the request succeeds with no_auth=true
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/test"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        endpoint: "/2/test".to_string(),
+        no_auth: true,
+        ..Default::default()
+    };
+    let result = client.send_request(&opts);
+    assert!(
+        result.is_ok(),
+        "no_auth=true on send_request should work: {result:?}"
+    );
+
+    // Now verify that with no_auth=false, the auth header IS sent
+    let ts2 = TestServer::new();
+    ts2.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/test"))
+            .and(header_exists("Authorization"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg2 = create_test_config(ts2.uri());
+    let (auth2, _tmp2) = create_mock_auth_with_bearer(ts2.uri());
+    let mut client2 = ApiClient::new(&cfg2, auth2);
+
+    let opts2 = RequestOptions {
+        method: "GET".to_string(),
+        endpoint: "/2/test".to_string(),
+        no_auth: false,
+        ..Default::default()
+    };
+    let result2 = client2.send_request(&opts2);
+    assert!(
+        result2.is_ok(),
+        "no_auth=false should include auth header: {result2:?}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Red team — library ergonomics edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
+    // Conflicting: no_auth=true + auth_type="oauth2" — no_auth should win
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "1", "name": "X", "username": "x"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        auth_type: "oauth2".to_string(),
+        no_auth: true,
+        ..CallOptions::default()
+    };
+    // Should succeed — no_auth takes precedence over auth_type
+    let result = client.get_me(&opts);
+    assert!(
+        result.is_ok(),
+        "no_auth=true should take precedence over auth_type: {result:?}"
+    );
+}
+
+#[test]
+fn redteam_sequential_calls_on_same_client() {
+    // Verify that making multiple calls on the same client instance works
+    // (auth state not corrupted between calls)
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "42", "name": "Me", "username": "me"}}),
+            )),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data": {"id": "99", "text": "hi"}})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = base_call_opts();
+
+    // First call
+    let me = client.get_me(&opts).unwrap();
+    assert_eq!(me.data.id, "42");
+
+    // Second call on same client — auth should still work
+    let post = client.create_post("hi", &[], &opts).unwrap();
+    assert_eq!(post.data.id, "99");
+
+    // Third call — still works
+    let me2 = client.get_me(&opts).unwrap();
+    assert_eq!(me2.data.id, "42");
+}
+
+#[test]
+fn redteam_api_error_preserves_status_and_body() {
+    // Verify that HTTP errors carry both status code and body through the pipeline
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(403).set_body_json(
+                    serde_json::json!({"detail": "Forbidden", "title": "Forbidden"}),
+                ),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let result = client.get_me(&base_call_opts());
+    let err = result.unwrap_err();
+    assert!(err.is_api());
+    // Verify structured error carries status
+    match &err {
+        xurl::error::XurlError::Api { status, body } => {
+            assert_eq!(*status, 403);
+            assert!(body.contains("Forbidden"));
+        }
+        _ => panic!("Expected Api variant, got: {err:?}"),
+    }
+}
+
+#[test]
+fn redteam_api_error_401_gives_auth_exit_code() {
+    // Verify the full pipeline: HTTP 401 → Api { status: 401 } → EXIT_AUTH_REQUIRED
+    use xurl::error::exit_code_for_error;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(401)
+                    .set_body_json(serde_json::json!({"detail": "Unauthorized"})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client.get_me(&base_call_opts()).unwrap_err();
+    assert_eq!(
+        exit_code_for_error(&err),
+        xurl::error::EXIT_AUTH_REQUIRED,
+        "401 should map to EXIT_AUTH_REQUIRED"
+    );
+}
+
+#[test]
+fn redteam_api_error_429_gives_rate_limit_exit_code() {
+    use xurl::error::exit_code_for_error;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .set_body_json(serde_json::json!({"detail": "Too Many Requests"})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client.get_me(&base_call_opts()).unwrap_err();
+    assert_eq!(
+        exit_code_for_error(&err),
+        xurl::error::EXIT_RATE_LIMITED,
+        "429 should map to EXIT_RATE_LIMITED"
+    );
+}

@@ -472,3 +472,44 @@ impl ApiClient {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn call_options_to_request_options_maps_all_fields() {
+        let opts = CallOptions {
+            auth_type: "oauth2".to_string(),
+            username: "testuser".to_string(),
+            no_auth: true,
+            verbose: true,
+            trace: true,
+        };
+
+        let req = opts.to_request_options();
+
+        assert_eq!(req.auth_type, "oauth2");
+        assert_eq!(req.username, "testuser");
+        assert!(req.no_auth);
+        assert!(req.verbose);
+        assert!(req.trace);
+        // Request-specific fields should be at defaults
+        assert!(req.method.is_empty());
+        assert!(req.endpoint.is_empty());
+        assert!(req.data.is_empty());
+        assert!(req.headers.is_empty());
+    }
+
+    #[test]
+    fn call_options_default_has_safe_values() {
+        let opts = CallOptions::default();
+        let req = opts.to_request_options();
+
+        assert!(!req.no_auth, "no_auth should default to false");
+        assert!(!req.verbose);
+        assert!(!req.trace);
+        assert!(req.auth_type.is_empty());
+        assert!(req.username.is_empty());
+    }
+}
