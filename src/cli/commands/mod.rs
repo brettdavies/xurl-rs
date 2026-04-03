@@ -63,6 +63,7 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: &mut Auth, out: &OutputConfig) ->
         data: cli.data.clone().unwrap_or_default(),
         auth_type: cli.auth_type.clone().unwrap_or_default(),
         username: cli.username.clone().unwrap_or_default(),
+        no_auth: false,
         verbose: cli.verbose,
         trace: cli.trace,
     };

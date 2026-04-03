@@ -448,6 +448,18 @@ impl CommonFlags {
             ..Default::default()
         }
     }
+
+    /// Converts to `CallOptions` for shortcut methods.
+    #[allow(dead_code)] // Used by shortcut command arms in Unit 5
+    pub fn to_call_options(&self) -> crate::api::CallOptions {
+        crate::api::CallOptions {
+            auth_type: self.auth_type.clone().unwrap_or_default(),
+            username: self.username.clone().unwrap_or_default(),
+            no_auth: false,
+            verbose: self.verbose,
+            trace: self.trace,
+        }
+    }
 }
 
 /// Auth subcommands.

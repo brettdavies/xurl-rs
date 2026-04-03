@@ -20,8 +20,39 @@ pub struct RequestOptions {
     pub data: String,
     pub auth_type: String,
     pub username: String,
+    pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+}
+
+/// Consumer-facing options for shortcut methods.
+///
+/// Exposes only the fields relevant to crate consumers, hiding internal
+/// request construction details like `method`, `endpoint`, `headers`, and `data`.
+#[derive(Debug, Clone, Default)]
+pub struct CallOptions {
+    pub auth_type: String,
+    pub username: String,
+    pub no_auth: bool,
+    pub verbose: bool,
+    pub trace: bool,
+}
+
+impl CallOptions {
+    /// Converts to a [`RequestOptions`] with consumer fields populated
+    /// and request-specific fields (method, endpoint, data, headers) at defaults.
+    #[allow(dead_code)] // Used by shortcut methods in Unit 5
+    #[must_use]
+    pub(crate) fn to_request_options(&self) -> RequestOptions {
+        RequestOptions {
+            auth_type: self.auth_type.clone(),
+            username: self.username.clone(),
+            no_auth: self.no_auth,
+            verbose: self.verbose,
+            trace: self.trace,
+            ..Default::default()
+        }
+    }
 }
 
 /// Options specific to multipart requests.
@@ -119,11 +150,13 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        // Add auth header
-        if let Ok(auth_header) =
-            self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
+        // Add auth header (skip if no_auth is set)
+        if !options.no_auth {
+            if let Ok(auth_header) =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)
+            {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         // Add common headers
@@ -219,14 +252,16 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        // Add auth header
-        if let Ok(auth_header) = self.get_auth_header(
-            method,
-            &url,
-            &options.request.auth_type,
-            &options.request.username,
-        ) {
-            builder = builder.header("Authorization", auth_header);
+        // Add auth header (skip if no_auth is set)
+        if !options.request.no_auth {
+            if let Ok(auth_header) = self.get_auth_header(
+                method,
+                &url,
+                &options.request.auth_type,
+                &options.request.username,
+            ) {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -299,10 +334,12 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        if let Ok(auth_header) =
-            self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
+        if !options.no_auth {
+            if let Ok(auth_header) =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)
+            {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
