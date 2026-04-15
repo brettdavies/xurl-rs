@@ -231,10 +231,10 @@ NO_COLOR=1 xr whoami                           # Disable color (no-color.org)
 
 ```bash
 # Bash
-xr completions bash > ~/.bash_completion.d/xr
+xr completions bash > ~/.local/share/bash-completion/completions/xr
 
-# Zsh
-xr completions zsh > ~/.zfunc/_xr
+# Zsh (writes to the first directory on your fpath)
+xr completions zsh > "${fpath[1]}/_xr"
 
 # Fish
 xr completions fish > ~/.config/fish/completions/xr.fish
