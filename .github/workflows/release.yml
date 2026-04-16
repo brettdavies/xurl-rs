@@ -1,6 +1,8 @@
 # Source repo release wrapper — calls the centralized reusable workflow.
 #
-# Pipeline: check-version -> build (5 targets) -> crates.io -> draft release -> homebrew
+# Pipeline: check-version -> build (5 targets) -> crates.io -> release (non-draft) ->
+# homebrew bottle build -> bottles upload back to release assets -> finalize-release
+# marks the release final.
 name: Release
 
 on:
