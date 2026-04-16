@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-16
+
+### Added
+
+- Add `ApiClient::from_env()` one-liner constructor that reads `CLIENT_ID`/`CLIENT_SECRET` from environment variables by @brettdavies in [#21](https://github.com/brettdavies/xurl-rs/pull/21)
+- Add `CallOptions` consumer-facing struct for shortcut methods, exposing only `auth_type`, `username`, `no_auth`, `verbose`, `trace`
+- Add `no_auth` field to skip authentication entirely on a per-request basis
+- Add `XurlError::Validation(String)` variant for non-HTTP validation errors (e.g., errors-only 200 responses)
+
+### Changed
+
+- Change `ApiClient` from borrowed `&mut Auth` to owned `Auth` — no lifetime parameter, storable in structs by @brettdavies in [#21](https://github.com/brettdavies/xurl-rs/pull/21)
+- Change 29 shortcut functions from free functions (`api::create_post(&mut client, ...)`) to methods (`client.create_post(...)`)
+- Change `XurlError::Api(String)` to `Api { status: u16, body: String }` for structured HTTP error matching
+- Change `exit_code_for_error()` to pattern-match on `Api { status, .. }` directly instead of string matching
+
+### Fixed
+
+- Bump `rustls-webpki` to 0.103.12 to clear [RUSTSEC-2026-0098](https://rustsec.org/advisories/RUSTSEC-2026-0098) and [RUSTSEC-2026-0099](https://rustsec.org/advisories/RUSTSEC-2026-0099) (name constraint validation). by @brettdavies in [#23](https://github.com/brettdavies/xurl-rs/pull/23)
+
+### Documentation
+
+- Document exit code mapping improvement as known difference from Go version in KNOWN_DIFFERENCES.md by @brettdavies in [#21](https://github.com/brettdavies/xurl-rs/pull/21)
+
+**Full Changelog**: [v1.1.0...v1.2.0](https://github.com/brettdavies/xurl-rs/compare/v1.1.0...v1.2.0)
+
 ## [1.1.0] - 2026-04-02
 
 ### Added

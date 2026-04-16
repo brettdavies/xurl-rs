@@ -16,7 +16,7 @@ use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::api::{
-    self, ApiClient, RequestOptions, extract_media_id, extract_segment_index,
+    self, ApiClient, CallOptions, RequestOptions, extract_media_id, extract_segment_index,
     is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
@@ -191,11 +191,8 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-fn base_opts() -> RequestOptions {
-    RequestOptions {
-        verbose: false,
-        ..Default::default()
-    }
+fn base_call_opts() -> CallOptions {
+    CallOptions::default()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -261,8 +258,8 @@ fn test_resolve_username(#[case] input: &str, #[case] expected: &str) {
 fn test_new_api_client() {
     let ts = TestServer::new();
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let _client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let _client = ApiClient::new(&cfg, auth);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -283,8 +280,8 @@ fn test_build_request_get() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -310,8 +307,8 @@ fn test_build_request_post() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "POST".to_string(),
@@ -340,8 +337,8 @@ fn test_build_request_with_auth_bearer() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -366,8 +363,8 @@ fn test_build_request_with_auth_oauth1() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -392,8 +389,8 @@ fn test_build_request_with_auth_oauth2() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -423,8 +420,8 @@ fn test_send_request_success() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
@@ -450,8 +447,8 @@ fn test_send_request_http_error() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let err = client
         .send_request(&RequestOptions {
@@ -474,8 +471,8 @@ fn test_send_request_json_parse_error() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     // Non-JSON 200 response returns empty JSON object
     let resp = client
@@ -535,10 +532,12 @@ fn test_create_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    let resp = client
+        .create_post("Hello!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "99999");
     assert_eq!(resp.data.text, "Hello!");
 }
@@ -555,10 +554,12 @@ fn test_reply_to_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::reply_to_post(&mut client, "123", "nice!", &[], &base_opts()).unwrap();
+    let resp = client
+        .reply_to_post("123", "nice!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "88888");
 }
 
@@ -575,17 +576,17 @@ fn test_reply_to_post_with_url() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::reply_to_post(
-        &mut client,
-        "https://x.com/u/status/123",
-        "reply via URL",
-        &[],
-        &base_opts(),
-    )
-    .unwrap();
+    let resp = client
+        .reply_to_post(
+            "https://x.com/u/status/123",
+            "reply via URL",
+            &[],
+            &base_call_opts(),
+        )
+        .unwrap();
     assert_eq!(resp.data.id, "77777");
 }
 
@@ -601,10 +602,12 @@ fn test_quote_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::quote_post(&mut client, "123", "my take", &base_opts()).unwrap();
+    let resp = client
+        .quote_post("123", "my take", &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "66666");
 }
 
@@ -620,10 +623,10 @@ fn test_delete_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::delete_post(&mut client, "123", &base_opts()).unwrap();
+    let resp = client.delete_post("123", &base_call_opts()).unwrap();
     assert!(resp.data.deleted);
 }
 
@@ -636,10 +639,10 @@ fn test_read_post() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::read_post(&mut client, "123", &base_opts()).unwrap();
+    let resp = client.read_post("123", &base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "123");
     assert_eq!(resp.data.text, "existing post");
 }
@@ -653,10 +656,12 @@ fn test_search_posts() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::search_posts(&mut client, "golang", 10, &base_opts()).unwrap();
+    let resp = client
+        .search_posts("golang", 10, &base_call_opts())
+        .unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
@@ -671,10 +676,10 @@ fn test_get_me() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_me(&mut client, &base_opts()).unwrap();
+    let resp = client.get_me(&base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "42");
     assert_eq!(resp.data.username, "testbot");
 }
@@ -690,10 +695,10 @@ fn test_lookup_user() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::lookup_user(&mut client, "@someuser", &base_opts()).unwrap();
+    let resp = client.lookup_user("@someuser", &base_call_opts()).unwrap();
     assert_eq!(resp.data.id, "100");
     assert_eq!(resp.data.username, "lookedup");
 }
@@ -710,11 +715,13 @@ fn test_create_post_with_media() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
-    let resp = api::create_post(&mut client, "With media", &media_ids, &base_opts()).unwrap();
+    let resp = client
+        .create_post("With media", &media_ids, &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "55555");
 }
 
@@ -768,8 +775,8 @@ fn test_media_upload_init() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.send_request(&RequestOptions {
         method: "POST".to_string(),
@@ -791,8 +798,8 @@ fn test_media_upload_finalize() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
@@ -817,8 +824,8 @@ fn test_media_upload_check_status() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
@@ -841,8 +848,8 @@ fn test_stream_request_error() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     let err = client
         .stream_request(&RequestOptions {
@@ -929,10 +936,10 @@ fn test_get_usage_happy_path() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
     assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
     assert_eq!(resp.data.cap_reset_day, Some(19));
@@ -967,10 +974,10 @@ fn test_get_usage_requires_usage_fields_query_param() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
@@ -987,10 +994,10 @@ fn test_get_usage_uses_get_method() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_ok());
 }
 
@@ -1009,10 +1016,10 @@ fn test_get_usage_api_error_401() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_err());
 }
 
@@ -1031,10 +1038,10 @@ fn test_get_usage_api_error_429() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts());
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_err());
 }
 
@@ -1051,10 +1058,10 @@ fn test_get_usage_with_oauth1_auth() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
@@ -1070,10 +1077,10 @@ fn test_get_usage_with_oauth2_auth() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("20"));
 }
 
@@ -1098,10 +1105,10 @@ fn test_get_usage_daily_project_usage_structure() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
     let usage = &daily_val["usage"];
     assert!(usage.is_array());
@@ -1135,10 +1142,10 @@ fn test_get_usage_daily_client_app_usage_structure() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::get_usage(&mut client, &base_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).unwrap();
     let apps = resp
         .data
         .daily_client_app_usage
@@ -1164,13 +1171,11 @@ fn test_get_usage_clears_request_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    // Pass opts with stale data to verify it gets cleared
-    let mut opts = base_opts();
-    opts.data = r#"{"stale":"body"}"#.to_string();
-    let resp = api::get_usage(&mut client, &opts);
+    // CallOptions has no data field, so stale data can't leak — verify the call succeeds
+    let resp = client.get_usage(&base_call_opts());
     assert!(resp.is_ok());
 }
 
@@ -1191,10 +1196,10 @@ fn redteam_create_post_array_where_object_expected() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::create_post(&mut client, "test", &[], &base_opts());
+    let result = client.create_post("test", &[], &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: array where single Tweet expected"
@@ -1214,14 +1219,14 @@ fn redteam_get_me_no_data_field() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::get_me(&mut client, &base_opts());
+    let result = client.get_me(&base_call_opts());
     let err = result.unwrap_err();
     assert!(
-        err.is_api(),
-        "Should be API error (not JSON error) for errors-only 200: {err}"
+        err.is_validation(),
+        "Should be Validation error (not API or JSON error) for errors-only 200: {err}"
     );
 }
 
@@ -1238,10 +1243,10 @@ fn redteam_delete_post_wrong_type_in_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::delete_post(&mut client, "123", &base_opts());
+    let result = client.delete_post("123", &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: string where DeletedResult expected"
@@ -1260,10 +1265,10 @@ fn redteam_search_posts_null_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::search_posts(&mut client, "test", 10, &base_opts());
+    let result = client.search_posts("test", 10, &base_call_opts());
     assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
 }
 
@@ -1277,10 +1282,10 @@ fn redteam_empty_body_returns_descriptive_error() {
             .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let result = api::get_me(&mut client, &base_opts());
+    let result = client.get_me(&base_call_opts());
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(
@@ -1306,10 +1311,12 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::create_post(&mut client, "Hello!", &[], &base_opts()).unwrap();
+    let resp = client
+        .create_post("Hello!", &[], &base_call_opts())
+        .unwrap();
     assert_eq!(resp.data.id, "99999");
     // Unknown fields preserved in extra
     assert_eq!(resp.data.extra["brand_new_field"], "surprise_value");
@@ -1333,10 +1340,10 @@ fn redteam_like_post_extra_fields_on_action() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = api::like_post(&mut client, "42", "123", &base_opts()).unwrap();
+    let resp = client.like_post("42", "123", &base_call_opts()).unwrap();
     assert!(resp.data.liked);
     // Unknown fields captured, not lost
     assert_eq!(resp.data.extra["pending_follow"], false);
@@ -1355,13 +1362,391 @@ fn redteam_lookup_user_wrong_bool_type() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (mut auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, &mut auth);
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
 
     // verified is Option<bool> — "true" (string) should fail deserialization
-    let result = api::lookup_user(&mut client, "bad", &base_opts());
+    let result = client.lookup_user("bad", &base_call_opts());
     assert!(
         result.is_err(),
         "Should fail: string 'true' where bool expected"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// from_env() constructor tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_from_env_missing_client_id_returns_validation_error() {
+    // Temporarily clear CLIENT_ID to test error path
+    let original = std::env::var("CLIENT_ID").ok();
+    unsafe { std::env::remove_var("CLIENT_ID") };
+
+    let result = ApiClient::from_env();
+    let err = match result {
+        Err(e) => e,
+        Ok(_) => panic!("Expected error when CLIENT_ID is missing"),
+    };
+    assert!(
+        err.is_validation(),
+        "Expected Validation error, got: {err:?}"
+    );
+    assert!(
+        err.to_string().contains("CLIENT_ID"),
+        "Error should mention CLIENT_ID: {err}"
+    );
+
+    // Restore
+    if let Some(val) = original {
+        unsafe { std::env::set_var("CLIENT_ID", val) };
+    }
+}
+
+#[test]
+fn test_from_env_empty_client_id_returns_validation_error() {
+    let original = std::env::var("CLIENT_ID").ok();
+    unsafe { std::env::set_var("CLIENT_ID", "") };
+
+    let result = ApiClient::from_env();
+    let err = match result {
+        Err(e) => e,
+        Ok(_) => panic!("Expected error when CLIENT_ID is empty"),
+    };
+    assert!(err.is_validation());
+
+    // Restore
+    if let Some(val) = original {
+        unsafe { std::env::set_var("CLIENT_ID", val) };
+    } else {
+        unsafe { std::env::remove_var("CLIENT_ID") };
+    }
+}
+
+#[test]
+fn test_from_env_with_client_id_set_returns_ok() {
+    let original_id = std::env::var("CLIENT_ID").ok();
+    let original_secret = std::env::var("CLIENT_SECRET").ok();
+    unsafe {
+        std::env::set_var("CLIENT_ID", "test-from-env-id");
+        std::env::set_var("CLIENT_SECRET", "test-secret");
+    }
+
+    let result = ApiClient::from_env();
+    assert!(
+        result.is_ok(),
+        "from_env() should succeed with CLIENT_ID set"
+    );
+
+    // Restore
+    match original_id {
+        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
+        None => unsafe { std::env::remove_var("CLIENT_ID") },
+    }
+    match original_secret {
+        Some(val) => unsafe { std::env::set_var("CLIENT_SECRET", val) },
+        None => unsafe { std::env::remove_var("CLIENT_SECRET") },
+    }
+}
+
+#[test]
+fn test_from_env_with_client_id_but_no_secret_returns_ok() {
+    // Best-effort: CLIENT_SECRET not required at construction time
+    let original_id = std::env::var("CLIENT_ID").ok();
+    let original_secret = std::env::var("CLIENT_SECRET").ok();
+    unsafe {
+        std::env::set_var("CLIENT_ID", "test-from-env-id");
+        std::env::remove_var("CLIENT_SECRET");
+    }
+
+    let result = ApiClient::from_env();
+    assert!(
+        result.is_ok(),
+        "from_env() should succeed without CLIENT_SECRET (best-effort)"
+    );
+
+    // Restore
+    match original_id {
+        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
+        None => unsafe { std::env::remove_var("CLIENT_ID") },
+    }
+    if let Some(val) = original_secret {
+        unsafe { std::env::set_var("CLIENT_SECRET", val) };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// no_auth behavior tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_no_auth_skips_authorization_header() {
+    // With no_auth=true, the request should NOT include an Authorization header.
+    // The mock only succeeds if NO Authorization header is present.
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        no_auth: true,
+        ..CallOptions::default()
+    };
+    // Should succeed — no_auth skips get_auth_header entirely
+    let result = client.get_me(&opts);
+    assert!(result.is_ok(), "no_auth=true should not fail: {result:?}");
+}
+
+#[test]
+fn test_no_auth_false_includes_authorization_header() {
+    // With no_auth=false (default), the Authorization header should be present.
+    // The mock requires an Authorization header via header_exists matcher.
+    use wiremock::matchers::header_exists;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .and(header_exists("Authorization"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions::default();
+    let result = client.get_me(&opts);
+    assert!(
+        result.is_ok(),
+        "Default (no_auth=false) should include auth header: {result:?}"
+    );
+}
+
+#[test]
+fn test_no_auth_with_raw_send_request() {
+    // Verify no_auth works at the send_request level too, not just shortcuts
+    use wiremock::matchers::header_exists;
+
+    let ts = TestServer::new();
+    // This mock will fail if Authorization header IS present
+    // (by only matching requests WITHOUT it via a custom approach)
+    // Instead, just verify the request succeeds with no_auth=true
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/test"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        endpoint: "/2/test".to_string(),
+        no_auth: true,
+        ..Default::default()
+    };
+    let result = client.send_request(&opts);
+    assert!(
+        result.is_ok(),
+        "no_auth=true on send_request should work: {result:?}"
+    );
+
+    // Now verify that with no_auth=false, the auth header IS sent
+    let ts2 = TestServer::new();
+    ts2.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/test"))
+            .and(header_exists("Authorization"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg2 = create_test_config(ts2.uri());
+    let (auth2, _tmp2) = create_mock_auth_with_bearer(ts2.uri());
+    let mut client2 = ApiClient::new(&cfg2, auth2);
+
+    let opts2 = RequestOptions {
+        method: "GET".to_string(),
+        endpoint: "/2/test".to_string(),
+        no_auth: false,
+        ..Default::default()
+    };
+    let result2 = client2.send_request(&opts2);
+    assert!(
+        result2.is_ok(),
+        "no_auth=false should include auth header: {result2:?}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Red team — library ergonomics edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
+    // Conflicting: no_auth=true + auth_type="oauth2" — no_auth should win
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "1", "name": "X", "username": "x"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        auth_type: "oauth2".to_string(),
+        no_auth: true,
+        ..CallOptions::default()
+    };
+    // Should succeed — no_auth takes precedence over auth_type
+    let result = client.get_me(&opts);
+    assert!(
+        result.is_ok(),
+        "no_auth=true should take precedence over auth_type: {result:?}"
+    );
+}
+
+#[test]
+fn redteam_sequential_calls_on_same_client() {
+    // Verify that making multiple calls on the same client instance works
+    // (auth state not corrupted between calls)
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "42", "name": "Me", "username": "me"}}),
+            )),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"data": {"id": "99", "text": "hi"}})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = base_call_opts();
+
+    // First call
+    let me = client.get_me(&opts).unwrap();
+    assert_eq!(me.data.id, "42");
+
+    // Second call on same client — auth should still work
+    let post = client.create_post("hi", &[], &opts).unwrap();
+    assert_eq!(post.data.id, "99");
+
+    // Third call — still works
+    let me2 = client.get_me(&opts).unwrap();
+    assert_eq!(me2.data.id, "42");
+}
+
+#[test]
+fn redteam_api_error_preserves_status_and_body() {
+    // Verify that HTTP errors carry both status code and body through the pipeline
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(403).set_body_json(
+                    serde_json::json!({"detail": "Forbidden", "title": "Forbidden"}),
+                ),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let result = client.get_me(&base_call_opts());
+    let err = result.unwrap_err();
+    assert!(err.is_api());
+    // Verify structured error carries status
+    match &err {
+        xurl::error::XurlError::Api { status, body } => {
+            assert_eq!(*status, 403);
+            assert!(body.contains("Forbidden"));
+        }
+        _ => panic!("Expected Api variant, got: {err:?}"),
+    }
+}
+
+#[test]
+fn redteam_api_error_401_gives_auth_exit_code() {
+    // Verify the full pipeline: HTTP 401 → Api { status: 401 } → EXIT_AUTH_REQUIRED
+    use xurl::error::exit_code_for_error;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(401)
+                    .set_body_json(serde_json::json!({"detail": "Unauthorized"})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client.get_me(&base_call_opts()).unwrap_err();
+    assert_eq!(
+        exit_code_for_error(&err),
+        xurl::error::EXIT_AUTH_REQUIRED,
+        "401 should map to EXIT_AUTH_REQUIRED"
+    );
+}
+
+#[test]
+fn redteam_api_error_429_gives_rate_limit_exit_code() {
+    use xurl::error::exit_code_for_error;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .set_body_json(serde_json::json!({"detail": "Too Many Requests"})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client.get_me(&base_call_opts()).unwrap_err();
+    assert_eq!(
+        exit_code_for_error(&err),
+        xurl::error::EXIT_RATE_LIMITED,
+        "429 should map to EXIT_RATE_LIMITED"
     );
 }

@@ -129,7 +129,8 @@ fn error_kind(e: &XurlError) -> &'static str {
     match e {
         XurlError::Auth(_) => "auth",
         XurlError::Http(_) => "http",
-        XurlError::Api(_) => "api",
+        XurlError::Api { .. } => "api",
+        XurlError::Validation(_) => "validation",
         XurlError::Io(_) => "io",
         XurlError::Json(_) => "json",
         XurlError::InvalidMethod(_) => "invalid_method",
@@ -171,7 +172,8 @@ mod tests {
     fn test_error_kind_mapping() {
         assert_eq!(error_kind(&XurlError::Auth("test".into())), "auth");
         assert_eq!(error_kind(&XurlError::Http("test".into())), "http");
-        assert_eq!(error_kind(&XurlError::Api("test".into())), "api");
+        assert_eq!(error_kind(&XurlError::api(400, "test")), "api");
+        assert_eq!(error_kind(&XurlError::validation("test")), "validation");
         assert_eq!(error_kind(&XurlError::Io("test".into())), "io");
     }
 

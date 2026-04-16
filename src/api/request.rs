@@ -20,8 +20,38 @@ pub struct RequestOptions {
     pub data: String,
     pub auth_type: String,
     pub username: String,
+    pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+}
+
+/// Consumer-facing options for shortcut methods.
+///
+/// Exposes only the fields relevant to crate consumers, hiding internal
+/// request construction details like `method`, `endpoint`, `headers`, and `data`.
+#[derive(Debug, Clone, Default)]
+pub struct CallOptions {
+    pub auth_type: String,
+    pub username: String,
+    pub no_auth: bool,
+    pub verbose: bool,
+    pub trace: bool,
+}
+
+impl CallOptions {
+    /// Converts to a [`RequestOptions`] with consumer fields populated
+    /// and request-specific fields (method, endpoint, data, headers) at defaults.
+    #[must_use]
+    pub(crate) fn to_request_options(&self) -> RequestOptions {
+        RequestOptions {
+            auth_type: self.auth_type.clone(),
+            username: self.username.clone(),
+            no_auth: self.no_auth,
+            verbose: self.verbose,
+            trace: self.trace,
+            ..Default::default()
+        }
+    }
 }
 
 /// Options specific to multipart requests.
@@ -36,15 +66,15 @@ pub struct MultipartOptions {
 }
 
 /// Handles API requests with authentication.
-pub struct ApiClient<'a> {
+pub struct ApiClient {
     base_url: String,
     client: Client,
-    auth: &'a mut Auth,
+    auth: Auth,
 }
 
-impl<'a> ApiClient<'a> {
+impl ApiClient {
     /// Creates a new `ApiClient`.
-    pub fn new(config: &Config, auth: &'a mut Auth) -> Self {
+    pub fn new(config: &Config, auth: Auth) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -55,6 +85,28 @@ impl<'a> ApiClient<'a> {
             client,
             auth,
         }
+    }
+
+    /// Creates an `ApiClient` from environment variables.
+    ///
+    /// Reads `CLIENT_ID`, `CLIENT_SECRET`, and other env vars via [`Config::new()`],
+    /// validates that `CLIENT_ID` is non-empty, and returns a ready-to-use client.
+    ///
+    /// For full control over configuration and auth, use [`ApiClient::new()`] instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns `XurlError::Validation` if `CLIENT_ID` is not set or empty.
+    #[allow(dead_code)] // Public library API — used by consumers
+    pub fn from_env() -> Result<Self> {
+        let cfg = Config::new();
+        if cfg.client_id.is_empty() {
+            return Err(XurlError::validation(
+                "CLIENT_ID not set — set the environment variable or use ApiClient::new() for manual configuration",
+            ));
+        }
+        let auth = Auth::new(&cfg);
+        Ok(Self::new(&cfg, auth))
     }
 
     /// Builds the full URL from an endpoint (public accessor for command layer).
@@ -119,11 +171,13 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        // Add auth header
-        if let Ok(auth_header) =
-            self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
+        // Add auth header (skip if no_auth is set)
+        if !options.no_auth {
+            if let Ok(auth_header) =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)
+            {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         // Add common headers
@@ -160,13 +214,16 @@ impl<'a> ApiClient<'a> {
             v
         } else {
             if status.as_u16() >= 400 {
-                return Err(XurlError::Http(format!("HTTP error: {status}")));
+                return Err(XurlError::api(
+                    status.as_u16(),
+                    format!("HTTP error: {status}"),
+                ));
             }
             serde_json::json!({})
         };
 
         if status.as_u16() >= 400 {
-            return Err(XurlError::api(json.to_string()));
+            return Err(XurlError::api(status.as_u16(), json.to_string()));
         }
 
         Ok(json)
@@ -216,14 +273,16 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        // Add auth header
-        if let Ok(auth_header) = self.get_auth_header(
-            method,
-            &url,
-            &options.request.auth_type,
-            &options.request.username,
-        ) {
-            builder = builder.header("Authorization", auth_header);
+        // Add auth header (skip if no_auth is set)
+        if !options.request.no_auth {
+            if let Ok(auth_header) = self.get_auth_header(
+                method,
+                &url,
+                &options.request.auth_type,
+                &options.request.username,
+            ) {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -247,7 +306,7 @@ impl<'a> ApiClient<'a> {
         };
 
         if status.as_u16() >= 400 {
-            return Err(XurlError::api(json.to_string()));
+            return Err(XurlError::api(status.as_u16(), json.to_string()));
         }
 
         Ok(json)
@@ -296,10 +355,12 @@ impl<'a> ApiClient<'a> {
             }
         }
 
-        if let Ok(auth_header) =
-            self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
+        if !options.no_auth {
+            if let Ok(auth_header) =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)
+            {
+                builder = builder.header("Authorization", auth_header);
+            }
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -328,12 +389,13 @@ impl<'a> ApiClient<'a> {
             eprintln!();
         }
 
-        if resp.status().as_u16() >= 400 {
+        let resp_status = resp.status();
+        if resp_status.as_u16() >= 400 {
             let body = resp.text().unwrap_or_default();
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-                return Err(XurlError::api(json.to_string()));
+                return Err(XurlError::api(resp_status.as_u16(), json.to_string()));
             }
-            return Err(XurlError::api(body));
+            return Err(XurlError::api(resp_status.as_u16(), body));
         }
 
         eprintln!("--- Streaming response started ---");
@@ -408,5 +470,46 @@ impl<'a> ApiClient<'a> {
         Err(XurlError::auth(
             "NoAuthMethod: no authentication method available",
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn call_options_to_request_options_maps_all_fields() {
+        let opts = CallOptions {
+            auth_type: "oauth2".to_string(),
+            username: "testuser".to_string(),
+            no_auth: true,
+            verbose: true,
+            trace: true,
+        };
+
+        let req = opts.to_request_options();
+
+        assert_eq!(req.auth_type, "oauth2");
+        assert_eq!(req.username, "testuser");
+        assert!(req.no_auth);
+        assert!(req.verbose);
+        assert!(req.trace);
+        // Request-specific fields should be at defaults
+        assert!(req.method.is_empty());
+        assert!(req.endpoint.is_empty());
+        assert!(req.data.is_empty());
+        assert!(req.headers.is_empty());
+    }
+
+    #[test]
+    fn call_options_default_has_safe_values() {
+        let opts = CallOptions::default();
+        let req = opts.to_request_options();
+
+        assert!(!req.no_auth, "no_auth should default to false");
+        assert!(!req.verbose);
+        assert!(!req.trace);
+        assert!(req.auth_type.is_empty());
+        assert!(req.username.is_empty());
     }
 }
