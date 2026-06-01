@@ -16,7 +16,8 @@ use crate::output::OutputConfig;
 /// Converts a typed response to Value and prints it.
 fn print_typed<T: Serialize>(out: &OutputConfig, response: &T) -> Result<()> {
     let value = serde_json::to_value(response)?;
-    out.print_response(&value);
+    // TODO(U4): replace with runner-injected writer
+    out.print_response(&mut std::io::stdout(), &value);
     Ok(())
 }
 
@@ -70,7 +71,8 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: Auth, out: &OutputConfig) -> Resu
     // Check for media append request
     if api::is_media_append_request(&options.endpoint, &media_file) {
         let response = api::handle_media_append_request(&options, &media_file, &mut client)?;
-        out.print_response(&response);
+        // TODO(U4): replace with runner-injected writer
+        out.print_response(&mut std::io::stdout(), &response);
         return Ok(());
     }
 
@@ -80,7 +82,8 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: Auth, out: &OutputConfig) -> Resu
         streaming::stream_request_with_output(&mut client, &options, out)
     } else {
         let response = client.send_request(&options)?;
-        out.print_response(&response);
+        // TODO(U4): replace with runner-injected writer
+        out.print_response(&mut std::io::stdout(), &response);
         Ok(())
     }
 }

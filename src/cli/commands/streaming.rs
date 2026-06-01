@@ -59,10 +59,14 @@ pub(super) fn stream_request_with_output(
         eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
     }
 
-    out.status(&format!(
-        "Connecting to streaming endpoint: {}",
-        options.endpoint
-    ));
+    // TODO(U4): replace these stdout/stderr stubs with runner-injected writers.
+    let mut stdout = std::io::stdout();
+    let mut stderr = std::io::stderr();
+
+    out.status(
+        &mut stderr,
+        &format!("Connecting to streaming endpoint: {}", options.endpoint),
+    );
 
     let resp = builder.send()?;
 
@@ -87,8 +91,8 @@ pub(super) fn stream_request_with_output(
         return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
-    out.status("--- Streaming response started ---");
-    out.status("--- Press Ctrl+C to stop ---");
+    out.status(&mut stderr, "--- Streaming response started ---");
+    out.status(&mut stderr, "--- Press Ctrl+C to stop ---");
 
     let reader = BufReader::with_capacity(1024 * 1024, resp);
     for line in reader.lines() {
@@ -97,7 +101,7 @@ pub(super) fn stream_request_with_output(
                 if line.is_empty() {
                     continue;
                 }
-                out.print_stream_line(&line);
+                out.print_stream_line(&mut stdout, &line);
             }
             Err(e) => {
                 return Err(XurlError::Io(e.to_string()));
@@ -105,6 +109,6 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status("--- End of stream ---");
+    out.status(&mut stderr, "--- End of stream ---");
     Ok(())
 }

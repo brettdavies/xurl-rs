@@ -12,6 +12,8 @@ pub(super) fn run_auth_command(
     no_interactive: bool,
     out: &OutputConfig,
 ) -> Result<()> {
+    // TODO(U4): replace these stdout stubs with runner-injected writers.
+    let mut stdout = std::io::stdout();
     match cmd {
         AuthCommands::Oauth2 {
             no_browser,
@@ -21,7 +23,10 @@ pub(super) fn run_auth_command(
             if !no_browser {
                 // Standard interactive flow
                 auth.oauth2_flow("")?;
-                out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                out.print_message(
+                    &mut stdout,
+                    "\x1b[32mOAuth2 authentication successful!\x1b[0m",
+                );
             } else {
                 let pending_path = crate::auth::pending::default_pending_path()?;
                 match step {
@@ -43,20 +48,24 @@ pub(super) fn run_auth_command(
                             }
                             crate::output::OutputFormat::Text => {
                                 out.print_message(
+                                    &mut stdout,
                                     "Open this URL in a browser on a machine with a display:",
                                 );
-                                out.print_message("");
-                                out.print_message(&format!("  {url}"));
-                                out.print_message("");
+                                out.print_message(&mut stdout, "");
+                                out.print_message(&mut stdout, &format!("  {url}"));
+                                out.print_message(&mut stdout, "");
                                 out.print_message(
+                                    &mut stdout,
                                     "After authorizing, copy the redirect URL from your browser's address bar",
                                 );
                                 out.print_message(
+                                    &mut stdout,
                                     "(it will show an error page — that's expected).",
                                 );
-                                out.print_message("");
-                                out.print_message("Then run:");
+                                out.print_message(&mut stdout, "");
+                                out.print_message(&mut stdout, "Then run:");
                                 out.print_message(
+                                    &mut stdout,
                                     "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
                                 );
                             }
@@ -91,7 +100,10 @@ pub(super) fn run_auth_command(
                         };
 
                         auth.remote_oauth2_step2(&redirect_url, "", &pending_path)?;
-                        out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                        out.print_message(
+                            &mut stdout,
+                            "\x1b[32mOAuth2 authentication successful!\x1b[0m",
+                        );
                     }
                     None => {
                         return Err(crate::error::XurlError::auth(
@@ -114,11 +126,14 @@ pub(super) fn run_auth_command(
                 &consumer_key,
                 &consumer_secret,
             )?;
-            out.print_message("\x1b[32mOAuth1 credentials saved successfully!\x1b[0m");
+            out.print_message(
+                &mut stdout,
+                "\x1b[32mOAuth1 credentials saved successfully!\x1b[0m",
+            );
         }
         AuthCommands::App { bearer_token } => {
             auth.token_store.save_bearer_token(&bearer_token)?;
-            out.print_message("\x1b[32mApp authentication successful!\x1b[0m");
+            out.print_message(&mut stdout, "\x1b[32mApp authentication successful!\x1b[0m");
         }
         AuthCommands::Status => {
             let ts = TokenStore::new();
@@ -126,7 +141,10 @@ pub(super) fn run_auth_command(
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
+                out.print_message(
+                    &mut stdout,
+                    "No apps registered. Use 'xr auth apps add' to register one.",
+                );
                 return Ok(());
             }
 
@@ -138,35 +156,38 @@ pub(super) fn run_auth_command(
                     } else {
                         format!("client_id: {}...", truncate(&app.client_id, 8))
                     };
-                    out.print_message(&format!("{marker} {name}  [{client_hint}]"));
+                    out.print_message(&mut stdout, &format!("{marker} {name}  [{client_hint}]"));
 
                     let usernames = ts.get_oauth2_usernames_for_app(name);
                     if usernames.is_empty() {
-                        out.print_message("      oauth2: (none)");
+                        out.print_message(&mut stdout, "      oauth2: (none)");
                     } else {
                         for u in &usernames {
                             if *u == app.default_user {
-                                out.print_message(&format!("    \u{25b8} oauth2: {u}"));
+                                out.print_message(
+                                    &mut stdout,
+                                    &format!("    \u{25b8} oauth2: {u}"),
+                                );
                             } else {
-                                out.print_message(&format!("      oauth2: {u}"));
+                                out.print_message(&mut stdout, &format!("      oauth2: {u}"));
                             }
                         }
                     }
 
                     if app.oauth1_token.is_some() {
-                        out.print_message("      oauth1: \u{2713}");
+                        out.print_message(&mut stdout, "      oauth1: \u{2713}");
                     } else {
-                        out.print_message("      oauth1: \u{2013}");
+                        out.print_message(&mut stdout, "      oauth1: \u{2013}");
                     }
 
                     if app.bearer_token.is_some() {
-                        out.print_message("      bearer: \u{2713}");
+                        out.print_message(&mut stdout, "      bearer: \u{2713}");
                     } else {
-                        out.print_message("      bearer: \u{2013}");
+                        out.print_message(&mut stdout, "      bearer: \u{2013}");
                     }
 
                     if i < apps.len() - 1 {
-                        out.print_message("");
+                        out.print_message(&mut stdout, "");
                     }
                 }
             }
@@ -179,16 +200,19 @@ pub(super) fn run_auth_command(
         } => {
             if all {
                 auth.token_store.clear_all()?;
-                out.print_message("All authentication cleared!");
+                out.print_message(&mut stdout, "All authentication cleared!");
             } else if oauth1 {
                 auth.token_store.clear_oauth1_tokens()?;
-                out.print_message("OAuth1 tokens cleared!");
+                out.print_message(&mut stdout, "OAuth1 tokens cleared!");
             } else if let Some(username) = oauth2_username {
                 auth.token_store.clear_oauth2_token(&username)?;
-                out.print_message(&format!("OAuth2 token cleared for {username}!"));
+                out.print_message(
+                    &mut stdout,
+                    &format!("OAuth2 token cleared for {username}!"),
+                );
             } else if bearer {
                 auth.token_store.clear_bearer_token()?;
-                out.print_message("Bearer token cleared!");
+                out.print_message(&mut stdout, "Bearer token cleared!");
             } else {
                 return Err(XurlError::validation(
                     "No authentication cleared! Use --all to clear all authentication.",
@@ -201,10 +225,16 @@ pub(super) fn run_auth_command(
         AuthCommands::Default { app_name, username } => {
             if let Some(app_name) = app_name {
                 auth.token_store.set_default_app(&app_name)?;
-                out.print_message(&format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"));
+                out.print_message(
+                    &mut stdout,
+                    &format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"),
+                );
                 if let Some(user) = username {
                     auth.token_store.set_default_user(&app_name, &user)?;
-                    out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
+                    out.print_message(
+                        &mut stdout,
+                        &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
+                    );
                 }
             } else {
                 // Interactive picker
@@ -217,6 +247,7 @@ pub(super) fn run_auth_command(
                 let apps = auth.token_store.list_apps();
                 if apps.is_empty() {
                     out.print_message(
+                        &mut stdout,
                         "No apps registered. Use 'xr auth apps add' to register one.",
                     );
                     return Ok(());
@@ -235,7 +266,10 @@ pub(super) fn run_auth_command(
                 };
 
                 auth.token_store.set_default_app(&app_choice)?;
-                out.print_message(&format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"));
+                out.print_message(
+                    &mut stdout,
+                    &format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
+                );
 
                 let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
                 if !users.is_empty()
@@ -246,7 +280,10 @@ pub(super) fn run_auth_command(
                 {
                     let user = &users[idx];
                     auth.token_store.set_default_user(&app_choice, user)?;
-                    out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
+                    out.print_message(
+                        &mut stdout,
+                        &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
+                    );
                 }
             }
         }
@@ -255,6 +292,8 @@ pub(super) fn run_auth_command(
 }
 
 fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Result<()> {
+    // TODO(U4): replace this stdout stub with the runner-injected writer.
+    let mut stdout = std::io::stdout();
     match cmd {
         AppCommands::Add {
             name,
@@ -263,9 +302,12 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
         } => {
             auth.token_store
                 .add_app(&name, &client_id, &client_secret)?;
-            out.print_message(&format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
+            out.print_message(
+                &mut stdout,
+                &format!("\x1b[32mApp {name:?} registered!\x1b[0m"),
+            );
             if auth.token_store.list_apps().len() == 1 {
-                out.print_message("  (set as default app)");
+                out.print_message(&mut stdout, "  (set as default app)");
             }
         }
         AppCommands::Update {
@@ -283,11 +325,17 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
                 &client_id.unwrap_or_default(),
                 &client_secret.unwrap_or_default(),
             )?;
-            out.print_message(&format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
+            out.print_message(
+                &mut stdout,
+                &format!("\x1b[32mApp {name:?} updated.\x1b[0m"),
+            );
         }
         AppCommands::Remove { name } => {
             auth.token_store.remove_app(&name)?;
-            out.print_message(&format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
+            out.print_message(
+                &mut stdout,
+                &format!("\x1b[32mApp {name:?} removed.\x1b[0m"),
+            );
         }
         AppCommands::List => {
             let ts = TokenStore::new();
@@ -295,7 +343,10 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
+                out.print_message(
+                    &mut stdout,
+                    "No apps registered. Use 'xr auth apps add' to register one.",
+                );
                 return Ok(());
             }
 
@@ -311,7 +362,7 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
                     } else {
                         format!(" (client_id: {}...)", truncate(&app.client_id, 8))
                     };
-                    out.print_message(&format!("{marker}{name}{client_hint}"));
+                    out.print_message(&mut stdout, &format!("{marker}{name}{client_hint}"));
                 }
             }
         }

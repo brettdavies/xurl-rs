@@ -53,8 +53,12 @@ pub fn execute_media_upload(
         ..Default::default()
     };
 
+    // TODO(U4): replace these stdout/stderr stubs with runner-injected writers.
+    let mut stdout = std::io::stdout();
+    let mut stderr = std::io::stderr();
+
     // INIT
-    out.status("Initializing media upload...");
+    out.status(&mut stderr, "Initializing media upload...");
 
     let init_body = serde_json::json!({
         "total_bytes": file_size,
@@ -78,7 +82,7 @@ pub fn execute_media_upload(
 
     if verbose {
         let value = serde_json::to_value(&init_response)?;
-        out.print_response(&value);
+        out.print_response(&mut stdout, &value);
     }
 
     // APPEND — upload in 4MB chunks
@@ -87,7 +91,7 @@ pub fn execute_media_upload(
     )?;
 
     // FINALIZE
-    out.status("Finalizing media upload...");
+    out.status(&mut stderr, "Finalizing media upload...");
 
     let mut finalize_opts = base_opts.clone();
     finalize_opts.method = "POST".to_string();
@@ -97,21 +101,22 @@ pub fn execute_media_upload(
     let finalize_response: ApiResponse<MediaUploadResponse> =
         deserialize_response(client.send_request(&finalize_opts)?)?;
     let finalize_value = serde_json::to_value(&finalize_response)?;
-    out.print_response(&finalize_value);
+    out.print_response(&mut stdout, &finalize_value);
 
     // Wait for processing if requested
     if wait_for_processing && media_category.contains("video") {
-        out.status("Waiting for media processing to complete...");
+        out.status(&mut stderr, "Waiting for media processing to complete...");
 
         let processing_response =
             wait_for_media_processing(&media_id, &base_opts, verbose, client, out)?;
         let processing_value = serde_json::to_value(&processing_response)?;
-        out.print_response(&processing_value);
+        out.print_response(&mut stdout, &processing_value);
     }
 
-    out.status(&format!(
-        "Media uploaded successfully! Media ID: {media_id}"
-    ));
+    out.status(
+        &mut stderr,
+        &format!("Media uploaded successfully! Media ID: {media_id}"),
+    );
     Ok(())
 }
 
@@ -125,7 +130,10 @@ fn upload_chunks(
     client: &mut ApiClient,
     out: &OutputConfig,
 ) -> Result<()> {
-    out.status("Uploading media in chunks...");
+    // TODO(U4): replace these stdout/stderr stubs with runner-injected writers.
+    let mut stderr = std::io::stderr();
+
+    out.status(&mut stderr, "Uploading media in chunks...");
 
     let mut file = std::fs::File::open(file_path)?;
     let chunk_size = 4 * 1024 * 1024;
@@ -173,13 +181,14 @@ fn upload_chunks(
         if verbose {
             #[allow(clippy::cast_precision_loss)]
             let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
-            out.info(&format!(
-                "Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"
-            ));
+            out.info(
+                &mut stderr,
+                &format!("Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"),
+            );
         }
     }
 
-    out.status("Upload complete!");
+    out.status(&mut stderr, "Upload complete!");
     Ok(())
 }
 
@@ -209,14 +218,17 @@ pub fn execute_media_status(
         ..Default::default()
     };
 
+    // TODO(U4): replace this stdout stub with the runner-injected writer.
+    let mut stdout = std::io::stdout();
+
     if wait {
         let response = wait_for_media_processing(media_id, &base_opts, verbose, client, out)?;
         let value = serde_json::to_value(&response)?;
-        out.print_response(&value);
+        out.print_response(&mut stdout, &value);
     } else {
         let response = check_media_status(media_id, &base_opts, client)?;
         let value = serde_json::to_value(&response)?;
-        out.print_response(&value);
+        out.print_response(&mut stdout, &value);
     }
 
     Ok(())
@@ -244,6 +256,9 @@ fn wait_for_media_processing(
     client: &mut ApiClient,
     out: &OutputConfig,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
+    // TODO(U4): replace this stderr stub with the runner-injected writer.
+    let mut stderr = std::io::stderr();
+
     loop {
         let response = check_media_status(media_id, base_opts, client)?;
 
@@ -254,7 +269,7 @@ fn wait_for_media_processing(
             .map_or("", |p| p.state.as_str());
 
         if state == "succeeded" {
-            out.status("Media processing complete!");
+            out.status(&mut stderr, "Media processing complete!");
             return Ok(response);
         } else if state == "failed" {
             return Err(XurlError::validation("media processing failed"));
@@ -275,9 +290,12 @@ fn wait_for_media_processing(
                 .as_ref()
                 .and_then(|p| p.progress_percent)
                 .unwrap_or(0);
-            out.info(&format!(
-                "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
-            ));
+            out.info(
+                &mut stderr,
+                &format!(
+                    "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
+                ),
+            );
         }
 
         thread::sleep(Duration::from_secs(check_after));

@@ -37,7 +37,8 @@ fn main() {
                 match cli::commands::schema::run_schema(command.as_deref(), *list, *all) {
                     Ok(()) => return,
                     Err(e) => {
-                        out.print_error(&e, EXIT_GENERAL_ERROR);
+                        // TODO(U4): replace with runner-injected writer
+                        out.print_error(&mut std::io::stderr(), &e, EXIT_GENERAL_ERROR);
                         std::process::exit(EXIT_GENERAL_ERROR);
                     }
                 }
@@ -53,7 +54,8 @@ fn main() {
         Ok(()) => std::process::exit(EXIT_SUCCESS),
         Err(e) => {
             let code = exit_code_for_error(&e);
-            out.print_error(&e, code);
+            // TODO(U4): replace with runner-injected writer
+            out.print_error(&mut std::io::stderr(), &e, code);
             std::process::exit(code);
         }
     }

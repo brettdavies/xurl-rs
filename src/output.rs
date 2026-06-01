@@ -1,7 +1,11 @@
 /// Output formatting helpers for `--output`, `--quiet`, and `NO_COLOR` support.
 ///
-/// Centralizes all output decisions so command handlers don't need to
-/// know about output formats directly.
+/// `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
+/// owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
+/// so the same config can drive real stdout, real stderr, or a captured
+/// `Vec<u8>` in library tests.
+use std::io::Write;
+
 use clap::ValueEnum;
 
 use crate::error::XurlError;
@@ -18,6 +22,10 @@ pub enum OutputFormat {
 }
 
 /// Output configuration threaded through command handlers.
+///
+/// `OutputConfig` is intentionally a pure data carrier — no I/O handles, no
+/// interior mutability. This keeps it `Send + Sync + Clone`, which is required
+/// for the planned async/concurrent `ApiClient` (see `project_async_requirement`).
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
     pub format: OutputFormat,
@@ -37,38 +45,52 @@ impl OutputConfig {
         }
     }
 
-    /// Prints an informational message to stderr (suppressed by --quiet or --output json/jsonl).
-    pub fn info(&self, msg: &str) {
+    /// Prints an informational message (suppressed by --quiet or --output json/jsonl).
+    ///
+    /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
+    pub fn info(&self, err: &mut dyn Write, msg: &str) {
         if self.quiet || self.format != OutputFormat::Text {
             return;
         }
-        eprintln!("{msg}");
+        let _ = writeln!(err, "{msg}");
     }
 
-    /// Prints a success/status message with optional color to stderr.
-    pub fn status(&self, msg: &str) {
+    /// Prints a success/status message with optional color.
+    ///
+    /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
+    pub fn status(&self, err: &mut dyn Write, msg: &str) {
         if self.quiet || self.format != OutputFormat::Text {
             return;
         }
         if self.no_color {
-            eprintln!("{msg}");
+            let _ = writeln!(err, "{msg}");
         } else {
-            eprintln!("\x1b[32m{msg}\x1b[0m");
+            let _ = writeln!(err, "\x1b[32m{msg}\x1b[0m");
         }
     }
 
     /// Prints an API response according to the configured output format.
-    pub fn print_response(&self, value: &serde_json::Value) {
+    ///
+    /// U1/U2 boundary: the Text branch with color still calls into
+    /// `crate::api::response::format_and_print_response`, which writes
+    /// directly to the real process stdout via `println!`. U2 will thread
+    /// `out` through those leaf formatters so Text-format response output is
+    /// also captured through the writer parameter.
+    pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
-                println!("{value}");
+                let pretty =
+                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
+                let _ = writeln!(out, "{pretty}");
             }
             OutputFormat::Text => {
                 if self.no_color {
                     let pretty =
                         serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
-                    println!("{pretty}");
+                    let _ = writeln!(out, "{pretty}");
                 } else {
+                    // TODO(U2): thread `out` into `format_and_print_response` so
+                    // colorized Text output is captured through this writer too.
                     crate::api::response::format_and_print_response(value);
                 }
             }
@@ -76,13 +98,13 @@ impl OutputConfig {
     }
 
     /// Prints a streaming line according to the configured output format.
-    #[allow(clippy::unused_self)]
-    pub fn print_stream_line(&self, line: &str) {
-        println!("{line}");
+    pub fn print_stream_line(&self, out: &mut dyn Write, line: &str) {
+        let _ = writeln!(out, "{line}");
     }
 
-    /// Formats and prints an error to stderr. When --output json/jsonl, emits structured JSON.
-    pub fn print_error(&self, error: &XurlError, exit_code: i32) {
+    /// Formats and prints an error to the supplied stderr writer.
+    /// When --output json/jsonl, emits structured JSON.
+    pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
                 let kind = error_kind(error);
@@ -92,32 +114,32 @@ impl OutputConfig {
                     "kind": kind,
                     "code": exit_code,
                 });
-                eprintln!("{json}");
+                let _ = writeln!(err, "{json}");
             }
             OutputFormat::Text => {
                 if self.no_color {
-                    eprintln!("Error: {error}");
+                    let _ = writeln!(err, "Error: {error}");
                 } else {
-                    eprintln!("\x1b[31mError: {error}\x1b[0m");
+                    let _ = writeln!(err, "\x1b[31mError: {error}\x1b[0m");
                 }
             }
         }
     }
 
-    /// Prints a simple text message to stdout (e.g. version, auth status).
+    /// Prints a simple text message (e.g. version, auth status) to the supplied writer.
     /// Respects --output json by wrapping in a JSON object.
-    pub fn print_message(&self, msg: &str) {
+    pub fn print_message(&self, out: &mut dyn Write, msg: &str) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
                 let clean = strip_ansi(msg);
                 let json = serde_json::json!({"message": clean});
-                println!("{json}");
+                let _ = writeln!(out, "{json}");
             }
             OutputFormat::Text => {
                 if self.no_color {
-                    println!("{}", strip_ansi(msg));
+                    let _ = writeln!(out, "{}", strip_ansi(msg));
                 } else {
-                    println!("{msg}");
+                    let _ = writeln!(out, "{msg}");
                 }
             }
         }
