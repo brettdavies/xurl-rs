@@ -51,16 +51,20 @@ impl TestServer {
 }
 
 fn create_test_config(base_url: &str) -> Config {
-    Config {
-        client_id: "test-client-id".to_string(),
-        client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
-        auth_url: "https://x.com/i/oauth2/authorize".to_string(),
-        token_url: format!("{base_url}/2/oauth2/token"),
-        api_base_url: base_url.to_string(),
-        info_url: format!("{base_url}/2/users/me"),
-        app_name: String::new(),
-    }
+    // `Config` has `pub(crate)` resolver fields that external callers cannot
+    // name in a struct literal; start from `Config::new()` and assign the
+    // public fields explicitly. The resolver fields are overwritten by
+    // `Auth::new_with_store_path` downstream.
+    let mut cfg = Config::new();
+    cfg.client_id = "test-client-id".to_string();
+    cfg.client_secret = "test-client-secret".to_string();
+    cfg.redirect_uri = "http://localhost:8080/callback".to_string();
+    cfg.auth_url = "https://x.com/i/oauth2/authorize".to_string();
+    cfg.token_url = format!("{base_url}/2/oauth2/token");
+    cfg.api_base_url = base_url.to_string();
+    cfg.info_url = format!("{base_url}/2/users/me");
+    cfg.app_name = String::new();
+    cfg
 }
 
 fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
@@ -334,16 +338,15 @@ fn step2_client_id_mismatch_returns_error() {
     let state = pending::load(&pending_path).unwrap();
 
     // Create auth with a DIFFERENT client_id
-    let cfg2 = Config {
-        client_id: "different-client-id".to_string(),
-        client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
-        auth_url: "https://x.com/i/oauth2/authorize".to_string(),
-        token_url: format!("{}/2/oauth2/token", ts.uri()),
-        api_base_url: ts.uri().to_string(),
-        info_url: format!("{}/2/users/me", ts.uri()),
-        app_name: String::new(),
-    };
+    let mut cfg2 = Config::new();
+    cfg2.client_id = "different-client-id".to_string();
+    cfg2.client_secret = "test-client-secret".to_string();
+    cfg2.redirect_uri = "http://localhost:8080/callback".to_string();
+    cfg2.auth_url = "https://x.com/i/oauth2/authorize".to_string();
+    cfg2.token_url = format!("{}/2/oauth2/token", ts.uri());
+    cfg2.api_base_url = ts.uri().to_string();
+    cfg2.info_url = format!("{}/2/users/me", ts.uri());
+    cfg2.app_name = String::new();
     let auth2 = Auth::new(&cfg2);
     let file_path2 = tmp.path().join(".xurl2");
     let mut store2 = TokenStore {

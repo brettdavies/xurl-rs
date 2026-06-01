@@ -16,12 +16,14 @@ use crate::store::TokenStore;
 #[allow(clippy::struct_field_names)]
 pub struct Auth {
     pub token_store: TokenStore,
-    info_url: String,
+    /// Owned application configuration. The redirect URI here is the
+    /// resolver output (env > app-stored > built-in default), written by
+    /// [`Auth::new_with_store_path`] and re-resolved by
+    /// [`Auth::with_app_name`]. This is the single source of truth per
+    /// KTD2 — no parallel `redirect_uri` field lives on `Auth`.
+    config: Config,
     client_id: String,
     client_secret: String,
-    auth_url: String,
-    token_url: String,
-    redirect_uri: String,
     app_name: String,
 }
 
@@ -41,6 +43,11 @@ impl Auth {
     /// touching the real `~/.xurl`; the binary calls [`Auth::new`] which
     /// resolves to [`Config::default_store_path`]. Credentials are resolved:
     /// env vars -> active app at `store_path`.
+    ///
+    /// Runs the three-level redirect URI resolver (env > app-stored >
+    /// built-in default) against the constructed token store and writes the
+    /// result back into the owned `Config`, satisfying KTD2's single source
+    /// of truth invariant.
     #[must_use]
     pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
         let path_str = store_path.to_str().unwrap_or(".");
@@ -59,19 +66,30 @@ impl Auth {
             client_secret.clone_from(&app.client_secret);
         }
 
+        let mut config = cfg.clone();
+        let resolved = crate::config::resolve_redirect_uri_from(
+            std::env::var("REDIRECT_URI").ok(),
+            ts.get_app_redirect_uri(&app_name),
+        );
+        config.redirect_uri = resolved.uri;
+        config.redirect_uri_source = resolved.source;
+        config.redirect_uri_from_env = resolved.source.is_env_var();
+
         Self {
             token_store: ts,
-            info_url: cfg.info_url.clone(),
+            config,
             client_id,
             client_secret,
-            auth_url: cfg.auth_url.clone(),
-            token_url: cfg.token_url.clone(),
-            redirect_uri: cfg.redirect_uri.clone(),
             app_name,
         }
     }
 
-    /// Sets the explicit app name override.
+    /// Sets the explicit app name override and re-resolves the redirect URI.
+    ///
+    /// Credentials follow the "preserve if non-empty" pattern (env var or
+    /// upstream-supplied values survive the switch). The redirect URI does
+    /// NOT (KTD3): env-precedence is enforced inside the resolver itself, so
+    /// re-running unconditionally produces the right value for the new app.
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
@@ -81,6 +99,14 @@ impl Auth {
         if self.client_secret.is_empty() {
             self.client_secret = app.client_secret.clone();
         }
+
+        let resolved = crate::config::resolve_redirect_uri_from(
+            std::env::var("REDIRECT_URI").ok(),
+            self.token_store.get_app_redirect_uri(app_name),
+        );
+        self.config.redirect_uri = resolved.uri;
+        self.config.redirect_uri_source = resolved.source;
+        self.config.redirect_uri_from_env = resolved.source.is_env_var();
     }
 
     /// Gets the `OAuth1` Authorization header for a request.
@@ -223,7 +249,7 @@ impl Auth {
     pub(crate) fn fetch_username(&self, access_token: &str) -> Result<String> {
         let client = reqwest::blocking::Client::new();
         let resp = client
-            .get(&self.info_url)
+            .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
             .map_err(|e| XurlError::auth_with_cause("NetworkError", &e))?;
@@ -283,15 +309,15 @@ impl Auth {
     }
     #[must_use]
     pub fn auth_url(&self) -> &str {
-        &self.auth_url
+        &self.config.auth_url
     }
     #[must_use]
     pub fn token_url(&self) -> &str {
-        &self.token_url
+        &self.config.token_url
     }
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
-        &self.redirect_uri
+        &self.config.redirect_uri
     }
 }
 

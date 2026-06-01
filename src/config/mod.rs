@@ -29,6 +29,18 @@ pub struct Config {
     pub info_url: String,
     /// Explicit `--app` override; empty means "use default".
     pub app_name: String,
+    /// Precedence level that produced the current [`Self::redirect_uri`].
+    ///
+    /// `Config::new()` cannot consult any token store, so it only ever
+    /// emits [`ResolveSource::EnvVar`] or [`ResolveSource::BuiltInDefault`].
+    /// [`Auth::new_with_store_path`](crate::auth::Auth::new_with_store_path)
+    /// overwrites this with the full three-level resolution.
+    pub(crate) redirect_uri_source: ResolveSource,
+    /// Convenience predicate mirroring `redirect_uri_source.is_env_var()`.
+    ///
+    /// Stored separately to keep `Auth`-consuming hot paths free of the
+    /// `match` on the enum variant.
+    pub(crate) redirect_uri_from_env: bool,
 }
 
 /// Built-in default `OAuth2` redirect URI used when neither the
@@ -37,11 +49,26 @@ pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";
 
 impl Config {
     /// Creates a new `Config` from environment variables, falling back to defaults.
+    ///
+    /// `redirect_uri` resolution is env-only here: `REDIRECT_URI` if set,
+    /// otherwise [`DEFAULT_REDIRECT_URI`]. The token-store-aware three-level
+    /// precedence (env > app-stored > default) is run by
+    /// [`Auth::new_with_store_path`](crate::auth::Auth::new_with_store_path),
+    /// which overwrites `redirect_uri`, `redirect_uri_source`, and
+    /// `redirect_uri_from_env` on the owned `Config`. The R12 audit confirms
+    /// no consumer reads `redirect_uri` from a pre-resolution `Config`.
     #[must_use]
     pub fn new() -> Self {
         let client_id = env_or_default("CLIENT_ID", "");
         let client_secret = env_or_default("CLIENT_SECRET", "");
-        let redirect_uri = env_or_default("REDIRECT_URI", DEFAULT_REDIRECT_URI);
+        let redirect_uri_env = std::env::var("REDIRECT_URI").ok();
+        let redirect_uri_from_env = redirect_uri_env.is_some();
+        let redirect_uri = redirect_uri_env.unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_string());
+        let redirect_uri_source = if redirect_uri_from_env {
+            ResolveSource::EnvVar
+        } else {
+            ResolveSource::BuiltInDefault
+        };
         let auth_url = env_or_default("AUTH_URL", "https://x.com/i/oauth2/authorize");
         let token_url = env_or_default("TOKEN_URL", "https://api.x.com/2/oauth2/token");
         let api_base_url = env_or_default("API_BASE_URL", "https://api.x.com");
@@ -56,6 +83,8 @@ impl Config {
             api_base_url,
             info_url,
             app_name: String::new(),
+            redirect_uri_source,
+            redirect_uri_from_env,
         }
     }
 }
