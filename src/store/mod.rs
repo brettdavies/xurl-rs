@@ -284,6 +284,47 @@ impl TokenStore {
         &app.default_user
     }
 
+    /// Sets the stored `OAuth2` redirect URI for the named (or default) app.
+    ///
+    /// An empty `uri` clears the stored value; the next serialize omits the
+    /// field thanks to `#[serde(skip_serializing_if = "String::is_empty")]`.
+    /// A non-empty `uri` is validated via [`Config::validate_redirect_uri`]
+    /// before persisting; on validation failure the store is not modified.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URI fails validation or the store cannot be saved.
+    pub fn set_app_redirect_uri(&mut self, name: &str, uri: &str) -> Result<()> {
+        if !name.is_empty() && !self.apps.contains_key(name) {
+            return Err(XurlError::token_store(format!("app {name:?} not found")));
+        }
+
+        if uri.is_empty() {
+            let app = self.resolve_app_mut(name);
+            app.redirect_uri.clear();
+            return self.save_to_file();
+        }
+
+        crate::config::Config::validate_redirect_uri(uri)?;
+
+        let app = self.resolve_app_mut(name);
+        app.redirect_uri = uri.to_string();
+        self.save_to_file()
+    }
+
+    /// Returns the stored `OAuth2` redirect URI for the named (or default) app.
+    ///
+    /// Returns `None` when the app is absent or its stored URI is empty.
+    #[must_use]
+    pub fn get_app_redirect_uri(&self, name: &str) -> Option<&str> {
+        let app = self.resolve_app(name);
+        if app.redirect_uri.is_empty() {
+            None
+        } else {
+            Some(app.redirect_uri.as_str())
+        }
+    }
+
     /// Returns the default app name.
     #[must_use]
     pub fn get_default_app(&self) -> &str {

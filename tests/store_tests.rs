@@ -29,6 +29,7 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
@@ -666,6 +667,7 @@ fn test_yaml_persistence() {
             client_id: "cid".to_string(),
             client_secret: "csec".to_string(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
@@ -722,6 +724,7 @@ configuration:
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
@@ -833,6 +836,7 @@ fn test_twurlrc_malformed_error() {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
@@ -898,4 +902,76 @@ fn test_concurrent_app_operations() {
         let app = store.get_app(&format!("app{i}")).unwrap();
         assert_eq!(app.client_id, format!("id{i}"));
     }
+}
+
+// ── TestRedirectUri ────────────────────────────────────────────────────────
+
+#[test]
+fn test_set_app_redirect_uri_happy_path_persists() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .set_app_redirect_uri("app1", "http://localhost:9090/cb")
+        .expect("set should succeed");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        Some("http://localhost:9090/cb")
+    );
+}
+
+#[test]
+fn test_get_app_redirect_uri_empty_by_default() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    assert_eq!(store.get_app_redirect_uri("app1"), None);
+}
+
+#[test]
+fn test_set_app_redirect_uri_empty_clears_value_and_omits_from_yaml() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .set_app_redirect_uri("app1", "http://localhost:9090/cb")
+        .unwrap();
+    assert_eq!(
+        store.get_app_redirect_uri("app1"),
+        Some("http://localhost:9090/cb")
+    );
+
+    store.set_app_redirect_uri("app1", "").unwrap();
+    assert_eq!(store.get_app_redirect_uri("app1"), None);
+
+    // Reload from disk and confirm the field is also absent after a round-trip.
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(reloaded.get_app_redirect_uri("app1"), None);
+
+    // Parse the on-disk YAML and confirm `app1` has no `redirect_uri` key.
+    let raw = fs::read_to_string(&store.file_path).unwrap();
+    let parsed: serde_yaml::Value = serde_yaml::from_str(&raw).unwrap();
+    let app1 = parsed
+        .get("apps")
+        .and_then(|a| a.get("app1"))
+        .expect("app1 entry missing from serialized YAML");
+    assert!(
+        app1.get("redirect_uri").is_none(),
+        "redirect_uri key should be omitted after clear, got: {app1:?}"
+    );
+}
+
+#[test]
+fn test_set_app_redirect_uri_unknown_app_errors() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    let err = store.set_app_redirect_uri("missing", "http://localhost:9090/cb");
+    assert!(
+        err.is_err(),
+        "Setting redirect_uri on unknown app should error"
+    );
 }

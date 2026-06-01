@@ -45,6 +45,7 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,

@@ -93,6 +93,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
             client_id: "test-client-id".to_string(),
             client_secret: "test-client-secret".to_string(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: Some(Token {
@@ -126,6 +127,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: Some(Token {
                 token_type: TokenType::Oauth1,
@@ -168,6 +170,7 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
         client_id: "cid".to_string(),
         client_secret: "csec".to_string(),
         default_user: "testuser".to_string(),
+        redirect_uri: String::new(),
         oauth2_tokens: BTreeMap::new(),
         oauth1_token: None,
         bearer_token: None,

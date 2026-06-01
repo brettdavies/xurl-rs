@@ -67,6 +67,20 @@ impl Config {
             .unwrap_or_else(|| std::path::PathBuf::from("."))
             .join(".xurl")
     }
+
+    /// Validates an `OAuth2` redirect URI.
+    ///
+    /// TODO(U2): replace with full validator per plan KTD10 (https-only with
+    /// loopback exception). The U1 implementation lands a no-op stub so the
+    /// crate builds while `TokenStore::set_app_redirect_uri` already wires
+    /// the validation hook.
+    ///
+    /// # Errors
+    ///
+    /// Currently never returns an error; U2 will add scheme + host enforcement.
+    pub fn validate_redirect_uri(_uri: &str) -> crate::error::Result<()> {
+        Ok(())
+    }
 }
 
 /// Returns an environment variable's value, or `default` if unset.
