@@ -1,11 +1,35 @@
-//! CLI integration tests using assert_cmd + predicates.
+//! CLI integration tests using the library entrypoint `xurl::cli::run_with_store_path`.
 //!
-//! These test the compiled xr binary as a subprocess.
-//! The Go tests do NOT cover CLI integration — this is new coverage.
+//! Parallel-safe: every test creates its own `TempDir` for token-store isolation
+//! and passes the path explicitly. No `HOME` / `XDG_CONFIG_HOME` mutation, no
+//! `#[serial]` annotations, no subprocess overhead. The binary's exit-code
+//! contract is pinned separately by `tests/binary_contract_tests.rs`.
 
-use assert_cmd::Command;
-use predicates::prelude::*;
 use tempfile::TempDir;
+
+use xurl::cli;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Test helper
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Run the library entrypoint with a fresh tempdir-rooted store path.
+///
+/// Returns `(exit_code, stdout, stderr)`. Each call gets its own `TempDir`,
+/// dropped at the end of the call — the `.xurl` path passed to the runner
+/// never collides across parallel tests.
+fn run_isolated(args: &[&str]) -> (i32, String, String) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code = cli::run_with_store_path(args, &mut stdout, &mut stderr, &store);
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Basic CLI sanity tests
@@ -13,32 +37,32 @@ use tempfile::TempDir;
 
 #[test]
 fn test_help_flag() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Usage"));
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
+    assert_eq!(code, 0, "expected 0 for --help; stderr: {stderr}");
+    assert!(
+        stdout.contains("Usage"),
+        "stdout should contain 'Usage': {stdout}"
+    );
 }
 
 #[test]
 fn test_version_flag() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--version")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("xr"));
+    let (code, stdout, stderr) = run_isolated(&["xr", "--version"]);
+    assert_eq!(code, 0, "expected 0 for --version; stderr: {stderr}");
+    assert!(
+        stdout.contains("xr"),
+        "stdout should contain 'xr': {stdout}"
+    );
 }
 
 #[test]
 fn test_invalid_flag() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--definitely-not-a-real-flag")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("error"));
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]);
+    assert_ne!(code, 0, "expected non-zero exit for invalid flag");
+    assert!(
+        stderr.contains("error"),
+        "stderr should contain 'error': {stderr}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -47,29 +71,20 @@ fn test_invalid_flag() {
 
 #[test]
 fn test_post_help() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["post", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
+    assert_eq!(code, 0, "expected 0 for post --help; stderr: {stderr}");
 }
 
 #[test]
 fn test_search_help() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["search", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
+    assert_eq!(code, 0, "expected 0 for search --help; stderr: {stderr}");
 }
 
 #[test]
 fn test_auth_help() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["auth", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "--help"]);
+    assert_eq!(code, 0, "expected 0 for auth --help; stderr: {stderr}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -79,39 +94,27 @@ fn test_auth_help() {
 #[test]
 fn test_post_without_text_fails() {
     // Post command requires text argument
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("post")
-        .assert()
-        .failure();
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "post"]);
+    assert_ne!(code, 0, "expected non-zero exit for `post` with no args");
 }
 
 #[test]
 fn test_search_without_query_fails() {
     // Search command requires a query
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("search")
-        .assert()
-        .failure();
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "search"]);
+    assert_ne!(code, 0, "expected non-zero exit for `search` with no args");
 }
 
 #[test]
 fn test_delete_without_id_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("delete")
-        .assert()
-        .failure();
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "delete"]);
+    assert_ne!(code, 0, "expected non-zero exit for `delete` with no args");
 }
 
 #[test]
 fn test_reply_without_args_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("reply")
-        .assert()
-        .failure();
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "reply"]);
+    assert_ne!(code, 0, "expected non-zero exit for `reply` with no args");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,28 +123,23 @@ fn test_reply_without_args_fails() {
 
 #[test]
 fn test_usage_help() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["usage", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("usage"))
-        .stdout(predicate::str::contains("tweet caps"));
+    let (code, stdout, stderr) = run_isolated(&["xr", "usage", "--help"]);
+    assert_eq!(code, 0, "expected 0 for usage --help; stderr: {stderr}");
+    assert!(
+        stdout.contains("usage"),
+        "stdout should contain 'usage': {stdout}"
+    );
+    assert!(
+        stdout.contains("tweet caps"),
+        "stdout should contain 'tweet caps': {stdout}"
+    );
 }
 
 #[test]
 fn test_usage_without_auth_fails() {
-    let tmp = TempDir::new().unwrap();
-
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("usage")
-        .env("HOME", tmp.path())
-        .env_remove("XURL_CLIENT_ID")
-        .env_remove("XURL_CLIENT_SECRET")
-        .env_remove("XURL_BEARER_TOKEN")
-        .assert()
-        .failure();
+    // Isolated empty token store via tempdir — no env mutation needed.
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "usage"]);
+    assert_ne!(code, 0, "expected non-zero exit for `usage` without auth");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -150,17 +148,9 @@ fn test_usage_without_auth_fails() {
 
 #[test]
 fn test_whoami_without_auth_fails() {
-    let tmp = TempDir::new().unwrap();
-
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("whoami")
-        .env("HOME", tmp.path())
-        .env_remove("XURL_CLIENT_ID")
-        .env_remove("XURL_CLIENT_SECRET")
-        .env_remove("XURL_BEARER_TOKEN")
-        .assert()
-        .failure();
+    // Isolated empty token store via tempdir — no env mutation needed.
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "whoami"]);
+    assert_ne!(code, 0, "expected non-zero exit for `whoami` without auth");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -169,11 +159,8 @@ fn test_whoami_without_auth_fails() {
 
 #[test]
 fn test_apps_list_help() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["auth", "apps", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "apps", "--help"]);
+    assert_eq!(code, 0, "expected 0 for auth apps --help; stderr: {stderr}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -182,32 +169,14 @@ fn test_apps_list_help() {
 
 #[test]
 fn test_exit_code_success_on_help() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
-
-    assert_eq!(
-        output.status.code().unwrap(),
-        0,
-        "Expected exit code 0 for --help"
-    );
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--help"]);
+    assert_eq!(code, 0, "Expected exit code 0 for --help");
 }
 
 #[test]
 fn test_exit_code_failure_on_bad_flag() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--nonexistent")
-        .output()
-        .unwrap();
-
-    assert_ne!(
-        output.status.code().unwrap(),
-        0,
-        "Expected non-zero exit code for bad flag"
-    );
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--nonexistent"]);
+    assert_ne!(code, 0, "Expected non-zero exit code for bad flag");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -218,18 +187,12 @@ fn test_exit_code_failure_on_bad_flag() {
 fn test_verbose_flag_accepted() {
     // --verbose should be accepted even if the command ultimately fails
     // due to missing auth — we just verify the flag is recognized
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["--verbose", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--verbose", "--help"]);
+    assert_eq!(code, 0, "expected 0 for --verbose --help; stderr: {stderr}");
 }
 
 #[test]
 fn test_trace_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["--trace", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--trace", "--help"]);
+    assert_eq!(code, 0, "expected 0 for --trace --help; stderr: {stderr}");
 }
