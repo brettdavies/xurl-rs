@@ -14,12 +14,15 @@ readme = "README.md"
 rust-version = "1.85"
 exclude = [
     ".claude/",
+    ".context/",
     ".github/",
+    ".markdownlint-cli2.yaml",
     "benches/",
     "cliff.toml",
     "deny.toml",
     "docs/",
     "rustfmt.toml",
+    "scripts/",
     "tests/",
 ]
 
