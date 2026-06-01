@@ -533,6 +533,9 @@ pub enum AppCommands {
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: String,
+        /// `OAuth2` redirect URI (https or http on loopback)
+        #[arg(long = "redirect-uri")]
+        redirect_uri: Option<String>,
     },
     /// Update credentials for an existing app
     Update {
@@ -544,6 +547,9 @@ pub enum AppCommands {
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: Option<String>,
+        /// `OAuth2` redirect URI (https or http on loopback); empty string clears
+        #[arg(long = "redirect-uri")]
+        redirect_uri: Option<String>,
     },
     /// Remove a registered app
     Remove {
@@ -552,6 +558,31 @@ pub enum AppCommands {
     },
     /// List registered apps
     List,
+    /// Inspect or set the stored `OAuth2` redirect URI for an app
+    RedirectUri {
+        #[command(subcommand)]
+        command: RedirectUriCommands,
+    },
+}
+
+/// `auth apps redirect-uri` subcommands.
+#[derive(Subcommand, Debug)]
+pub enum RedirectUriCommands {
+    /// Show the effective redirect URI, its source, and the stored value
+    Get {
+        /// App name (defaults to the configured default app)
+        #[arg(value_name = "NAME")]
+        name: Option<String>,
+    },
+    /// Set the stored redirect URI for an app (empty string clears)
+    Set {
+        /// App name
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Redirect URI (https or http on loopback)
+        #[arg(value_name = "URI")]
+        uri: String,
+    },
 }
 
 /// Media subcommands.

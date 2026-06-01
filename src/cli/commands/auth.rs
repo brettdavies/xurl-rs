@@ -2,7 +2,8 @@
 use std::io::Write;
 
 use crate::auth::Auth;
-use crate::cli::{AppCommands, AuthCommands};
+use crate::cli::{AppCommands, AuthCommands, RedirectUriCommands};
+use crate::config;
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
 use crate::store::TokenStore;
@@ -294,9 +295,13 @@ fn run_app_command(
             name,
             client_id,
             client_secret,
+            redirect_uri,
         } => {
             auth.token_store
                 .add_app(&name, &client_id, &client_secret)?;
+            if let Some(ref uri) = redirect_uri {
+                auth.token_store.set_app_redirect_uri(&name, uri)?;
+            }
             out.print_message(stdout, &format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
             if auth.token_store.list_apps().len() == 1 {
                 out.print_message(stdout, "  (set as default app)");
@@ -306,22 +311,31 @@ fn run_app_command(
             name,
             client_id,
             client_secret,
+            redirect_uri,
         } => {
-            if client_id.is_none() && client_secret.is_none() {
+            if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
                 return Err(XurlError::validation(
-                    "Nothing to update. Provide --client-id and/or --client-secret.",
+                    "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
                 ));
             }
-            auth.token_store.update_app(
-                &name,
-                &client_id.unwrap_or_default(),
-                &client_secret.unwrap_or_default(),
-            )?;
+            if client_id.is_some() || client_secret.is_some() {
+                auth.token_store.update_app(
+                    &name,
+                    &client_id.unwrap_or_default(),
+                    &client_secret.unwrap_or_default(),
+                )?;
+            }
+            if let Some(ref uri) = redirect_uri {
+                auth.token_store.set_app_redirect_uri(&name, uri)?;
+            }
             out.print_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
         }
         AppCommands::Remove { name } => {
             auth.token_store.remove_app(&name)?;
             out.print_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
+        }
+        AppCommands::RedirectUri { command } => {
+            return run_redirect_uri_command(command, auth, out, stdout);
         }
         AppCommands::List => {
             let ts = TokenStore::new();
@@ -366,4 +380,72 @@ fn truncate(s: &str, max_len: usize) -> &str {
             None => s,
         }
     }
+}
+
+fn run_redirect_uri_command(
+    cmd: RedirectUriCommands,
+    auth: &mut Auth,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> Result<()> {
+    match cmd {
+        RedirectUriCommands::Get { name } => {
+            let target = match name.as_deref() {
+                Some(n) => n.to_string(),
+                None => {
+                    let default = auth.token_store.get_default_app();
+                    if default.is_empty() {
+                        return Err(XurlError::validation("no default app set; specify NAME"));
+                    }
+                    default.to_string()
+                }
+            };
+
+            let env = std::env::var("REDIRECT_URI").ok();
+            let stored = auth
+                .token_store
+                .get_app_redirect_uri(&target)
+                .map(str::to_string);
+            let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
+
+            match out.format {
+                crate::output::OutputFormat::Json | crate::output::OutputFormat::Jsonl => {
+                    let value = serde_json::json!({
+                        "app": target,
+                        "effective_redirect_uri": resolved.uri,
+                        "effective_source": resolved.source,
+                        "stored_redirect_uri": stored,
+                    });
+                    out.print_response(stdout, &value);
+                }
+                crate::output::OutputFormat::Text => {
+                    out.print_message(stdout, &format!("app: {target}"));
+                    out.print_message(stdout, &format!("effective_redirect_uri: {}", resolved.uri));
+                    out.print_message(
+                        stdout,
+                        &format!("effective_source: {}", resolved.source.as_text_label()),
+                    );
+                    let stored_display = stored.as_deref().unwrap_or("(none)");
+                    out.print_message(stdout, &format!("stored_redirect_uri: {stored_display}"));
+                }
+            }
+        }
+        RedirectUriCommands::Set { name, uri } => {
+            auth.token_store.set_app_redirect_uri(&name, &uri)?;
+            match out.format {
+                crate::output::OutputFormat::Json | crate::output::OutputFormat::Jsonl => {
+                    let value = serde_json::json!({
+                        "status": "ok",
+                        "app": name,
+                        "redirect_uri": uri,
+                    });
+                    out.print_response(stdout, &value);
+                }
+                crate::output::OutputFormat::Text => {
+                    out.print_message(stdout, &format!("Set redirect URI for {name:?}"));
+                }
+            }
+        }
+    }
+    Ok(())
 }
