@@ -172,12 +172,11 @@ impl ApiClient {
         }
 
         // Add auth header (skip if no_auth is set)
-        if !options.no_auth {
-            if let Ok(auth_header) =
+        if !options.no_auth
+            && let Ok(auth_header) =
                 self.get_auth_header(method, &url, &options.auth_type, &options.username)
-            {
-                builder = builder.header("Authorization", auth_header);
-            }
+        {
+            builder = builder.header("Authorization", auth_header);
         }
 
         // Add common headers
@@ -274,15 +273,15 @@ impl ApiClient {
         }
 
         // Add auth header (skip if no_auth is set)
-        if !options.request.no_auth {
-            if let Ok(auth_header) = self.get_auth_header(
+        if !options.request.no_auth
+            && let Ok(auth_header) = self.get_auth_header(
                 method,
                 &url,
                 &options.request.auth_type,
                 &options.request.username,
-            ) {
-                builder = builder.header("Authorization", auth_header);
-            }
+            )
+        {
+            builder = builder.header("Authorization", auth_header);
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -355,12 +354,11 @@ impl ApiClient {
             }
         }
 
-        if !options.no_auth {
-            if let Ok(auth_header) =
+        if !options.no_auth
+            && let Ok(auth_header) =
                 self.get_auth_header(method, &url, &options.auth_type, &options.username)
-            {
-                builder = builder.header("Authorization", auth_header);
-            }
+        {
+            builder = builder.header("Authorization", auth_header);
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));

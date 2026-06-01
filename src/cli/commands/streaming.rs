@@ -42,12 +42,11 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    if !options.no_auth {
-        if let Ok(auth_header) =
+    if !options.no_auth
+        && let Ok(auth_header) =
             client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
-        }
+    {
+        builder = builder.header("Authorization", auth_header);
     }
 
     builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
