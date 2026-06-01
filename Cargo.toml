@@ -11,15 +11,18 @@ keywords = ["twitter", "x", "api", "cli", "oauth"]
 categories = ["command-line-utilities", "web-programming", "api-bindings"]
 authors = ["Brett Davies <pm8fp22mbg@privaterelay.appleid.com>"]
 readme = "README.md"
-rust-version = "1.85"
+rust-version = "1.94"
 exclude = [
     ".claude/",
+    ".context/",
     ".github/",
+    ".markdownlint-cli2.yaml",
     "benches/",
     "cliff.toml",
     "deny.toml",
     "docs/",
     "rustfmt.toml",
+    "scripts/",
     "tests/",
 ]
 

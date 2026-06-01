@@ -125,7 +125,7 @@ prior squash, it's a false positive (no action). Otherwise cherry-pick the commi
 
 ### Generated, never hand-written
 
-`generate-changelog.sh` (from `~/.claude/skills/rust-tool-release/scripts/`, with the repo-local `cliff.toml`) is the
+`scripts/generate-changelog.sh` (vendored from the `rust-tool-release` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. The script runs `git-cliff` to prepend a versioned entry for commits since
 the last tag, then walks each squash-merged PR's body to extract the `## Changelog → ### Added / Changed / Fixed /
 Documentation` subsections, replacing the auto-generated bullets with the curated PR-body content (with author and

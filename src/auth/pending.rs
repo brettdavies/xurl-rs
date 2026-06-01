@@ -96,7 +96,7 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
 ///
 /// 1. The file must exist and not be a symlink.
 /// 2. On Unix the file must be owned by the current user with mode `0o600`.
-/// 3. The `created_at` timestamp must be within [`PENDING_TTL_SECS`] of now.
+/// 3. The `created_at` timestamp must be within 15 minutes of now.
 ///
 /// If the file is expired it is deleted before the error is returned.
 ///

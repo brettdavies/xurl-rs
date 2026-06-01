@@ -115,11 +115,11 @@ cargo update -p xurl-rs   # refresh Cargo.lock
 git add Cargo.toml Cargo.lock && git commit -m "chore: bump version to 1.3.0"
 
 # 6. Regenerate completions (catches any subcommand/flag changes missed during dev).
-~/.claude/skills/rust-tool-release/scripts/generate-completions.sh
+./scripts/generate-completions.sh
 git add completions/ && git commit -m "chore: regenerate shell completions" || true
 
 # 7. Generate CHANGELOG.md (auto-detects version from branch name; CI enforces this).
-~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh
+./scripts/generate-changelog.sh
 
 # 8. Scrub CHANGELOG.md via Vale + LanguageTool + unslop. See § Prose scrubbing.
 #    Fix findings on upstream PR bodies, never by hand-editing CHANGELOG.md. When clean:
@@ -250,7 +250,7 @@ lt_check /tmp/body.md
 
 # 6. Apply the cleaned version.
 gh pr edit <num> --body-file /tmp/body.md     # for PR body edits
-# ~/.claude/skills/rust-tool-release/scripts/generate-changelog.sh   # for CHANGELOG.md
+# ./scripts/generate-changelog.sh   # for CHANGELOG.md
 ```
 
 For a `CHANGELOG.md` finding, fix the upstream PR body and regenerate. Hand-editing `CHANGELOG.md` directly produces
