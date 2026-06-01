@@ -25,10 +25,26 @@ pub struct Auth {
 }
 
 impl Auth {
-    /// Creates a new `Auth` object. Credentials are resolved: env vars -> active app.
+    /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
+    ///
+    /// Shim over [`Auth::new_with_store_path`] resolving to
+    /// [`Config::default_store_path`]. Credentials are resolved: env vars -> active app.
     #[must_use]
     pub fn new(cfg: &Config) -> Self {
-        let ts = TokenStore::with_credentials(&cfg.client_id, &cfg.client_secret);
+        Self::new_with_store_path(cfg, &Config::default_store_path())
+    }
+
+    /// Creates a new `Auth` object backed by an explicit token-store path.
+    ///
+    /// The canonical constructor. Tests pass a `TempDir`-rooted path to avoid
+    /// touching the real `~/.xurl`; the binary calls [`Auth::new`] which
+    /// resolves to [`Config::default_store_path`]. Credentials are resolved:
+    /// env vars -> active app at `store_path`.
+    #[must_use]
+    pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
+        let path_str = store_path.to_str().unwrap_or(".");
+        let ts =
+            TokenStore::new_with_credentials_and_path(&cfg.client_id, &cfg.client_secret, path_str);
 
         let mut client_id = cfg.client_id.clone();
         let mut client_secret = cfg.client_secret.clone();
@@ -255,3 +271,12 @@ impl Auth {
         &self.redirect_uri
     }
 }
+
+// Compile-time guarantee: `Auth` is `Send + Sync` so it can be shared across
+// threads in the planned async/concurrent `ApiClient` (see plan KTD8). Any
+// future change that introduces a `!Send` or `!Sync` field will fail this
+// assertion at compile time.
+const _: fn() = || {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    _assert_send_sync::<Auth>();
+};
