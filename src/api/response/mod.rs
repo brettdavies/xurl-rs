@@ -5,7 +5,7 @@
 mod format;
 pub mod types;
 
-pub use format::format_and_print_response;
+pub use format::format_response;
 #[allow(unused_imports)] // Re-exported for library consumers
 pub use types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,

@@ -1,4 +1,6 @@
 /// Streaming request handler — SSE / chunked transfer support.
+use std::io::Write;
+
 use crate::api::{ApiClient, RequestOptions};
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
@@ -8,6 +10,8 @@ pub(super) fn stream_request_with_output(
     client: &mut ApiClient,
     options: &RequestOptions,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     use std::io::{BufRead, BufReader};
 
@@ -59,10 +63,10 @@ pub(super) fn stream_request_with_output(
         eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
     }
 
-    out.status(&format!(
-        "Connecting to streaming endpoint: {}",
-        options.endpoint
-    ));
+    out.status(
+        stderr,
+        &format!("Connecting to streaming endpoint: {}", options.endpoint),
+    );
 
     let resp = builder.send()?;
 
@@ -87,8 +91,8 @@ pub(super) fn stream_request_with_output(
         return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
-    out.status("--- Streaming response started ---");
-    out.status("--- Press Ctrl+C to stop ---");
+    out.status(stderr, "--- Streaming response started ---");
+    out.status(stderr, "--- Press Ctrl+C to stop ---");
 
     let reader = BufReader::with_capacity(1024 * 1024, resp);
     for line in reader.lines() {
@@ -97,7 +101,7 @@ pub(super) fn stream_request_with_output(
                 if line.is_empty() {
                     continue;
                 }
-                out.print_stream_line(&line);
+                out.print_stream_line(stdout, &line);
             }
             Err(e) => {
                 return Err(XurlError::Io(e.to_string()));
@@ -105,6 +109,6 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status("--- End of stream ---");
+    out.status(stderr, "--- End of stream ---");
     Ok(())
 }

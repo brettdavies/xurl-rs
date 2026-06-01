@@ -9,6 +9,7 @@ pub mod pending;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -25,10 +26,26 @@ pub struct Auth {
 }
 
 impl Auth {
-    /// Creates a new `Auth` object. Credentials are resolved: env vars -> active app.
+    /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
+    ///
+    /// Shim over [`Auth::new_with_store_path`] resolving to
+    /// [`Config::default_store_path`]. Credentials are resolved: env vars -> active app.
     #[must_use]
     pub fn new(cfg: &Config) -> Self {
-        let ts = TokenStore::with_credentials(&cfg.client_id, &cfg.client_secret);
+        Self::new_with_store_path(cfg, &Config::default_store_path())
+    }
+
+    /// Creates a new `Auth` object backed by an explicit token-store path.
+    ///
+    /// The canonical constructor. Tests pass a `TempDir`-rooted path to avoid
+    /// touching the real `~/.xurl`; the binary calls [`Auth::new`] which
+    /// resolves to [`Config::default_store_path`]. Credentials are resolved:
+    /// env vars -> active app at `store_path`.
+    #[must_use]
+    pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
+        let path_str = store_path.to_str().unwrap_or(".");
+        let ts =
+            TokenStore::new_with_credentials_and_path(&cfg.client_id, &cfg.client_secret, path_str);
 
         let mut client_id = cfg.client_id.clone();
         let mut client_secret = cfg.client_secret.clone();
@@ -103,7 +120,21 @@ impl Auth {
         };
 
         if token.is_none() {
-            let access_token = self.oauth2_flow(username)?;
+            // Deferred per U4 / KTD6: this site is the mid-request token-refresh
+            // path inside `ApiClient::send_request`. Plumbing writers from the
+            // runner all the way through `ApiClient::send_request` →
+            // `get_auth_header` → `get_oauth2_header` would expand 6 method
+            // signatures (send_request, send_multipart_request, stream_request,
+            // get_auth_header, get_auth_header_public, get_oauth2_header) and
+            // every call site in `cli/commands/` and `api/media.rs` for a path
+            // that runs only on the first request when no token is cached.
+            //
+            // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
+            // time (which U4 wires correctly via the runner's writers). This
+            // stub is the only remaining direct-stdio site after U4.
+            let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
+            let mut stdout = std::io::stdout();
+            let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
             return Ok(format!("Bearer {access_token}"));
         }
 
@@ -113,12 +144,20 @@ impl Auth {
 
     /// Starts the `OAuth2` PKCE flow.
     ///
+    /// Browser-failure prompts are written to `stdout` via `out`'s
+    /// `print_message`, so callers can capture them in tests.
+    ///
     /// # Errors
     ///
     /// Returns an error if the authorization flow, token exchange, or username
     /// resolution fails.
-    pub fn oauth2_flow(&mut self, username: &str) -> Result<String> {
-        oauth2::run_oauth2_flow(self, username)
+    pub fn oauth2_flow(
+        &mut self,
+        username: &str,
+        out: &OutputConfig,
+        stdout: &mut dyn std::io::Write,
+    ) -> Result<String> {
+        oauth2::run_oauth2_flow(self, username, out, stdout)
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.
@@ -255,3 +294,12 @@ impl Auth {
         &self.redirect_uri
     }
 }
+
+// Compile-time guarantee: `Auth` is `Send + Sync` so it can be shared across
+// threads in the planned async/concurrent `ApiClient` (see plan KTD8). Any
+// future change that introduces a `!Send` or `!Sync` field will fail this
+// assertion at compile time.
+const _: fn() = || {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    _assert_send_sync::<Auth>();
+};

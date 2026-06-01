@@ -429,3 +429,37 @@ fn test_oauth1_header_format() {
     assert!(header.contains("oauth_token"));
     assert!(header.contains("oauth_version"));
 }
+
+// ── Explicit store-path injection (U3) ─────────────────────────────────────
+//
+// `Auth::new_with_store_path` honours an explicit `TempDir` path so library
+// tests need no `HOME` / `XDG_CONFIG_HOME` env-var mutation. Parallel-safe.
+
+#[test]
+fn test_new_with_store_path_honors_explicit_path() {
+    let tmp = TempDir::new().expect("Failed to create temp directory");
+    let store_path = tmp.path().join(".xurl");
+
+    let cfg = test_config();
+    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+
+    auth.token_store
+        .save_bearer_token("explicit-path-bearer")
+        .expect("Failed to save bearer token");
+
+    assert!(
+        store_path.exists(),
+        "Expected token store file at {store_path:?} after save"
+    );
+
+    let header = auth
+        .get_bearer_token_header()
+        .expect("Failed to read back bearer header");
+    assert_eq!(header, "Bearer explicit-path-bearer");
+
+    let reopened = Auth::new_with_store_path(&cfg, &store_path);
+    let reopened_header = reopened
+        .get_bearer_token_header()
+        .expect("Failed to read bearer token from reopened store");
+    assert_eq!(reopened_header, "Bearer explicit-path-bearer");
+}

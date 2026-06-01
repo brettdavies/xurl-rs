@@ -1,4 +1,6 @@
 /// Media subcommand handlers — upload and status.
+use std::io::Write;
+
 use crate::api::{self, ApiClient};
 use crate::auth::Auth;
 use crate::cli::MediaCommands;
@@ -11,6 +13,8 @@ pub(super) fn run_media_command(
     cfg: &Config,
     auth: Auth,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     match cmd {
         MediaCommands::Upload {
@@ -37,6 +41,8 @@ pub(super) fn run_media_command(
                 &headers,
                 &mut client,
                 out,
+                stdout,
+                stderr,
             )
         }
         MediaCommands::Status {
@@ -59,6 +65,8 @@ pub(super) fn run_media_command(
                 &headers,
                 &mut client,
                 out,
+                stdout,
+                stderr,
             )
         }
     }

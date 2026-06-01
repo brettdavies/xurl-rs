@@ -13,6 +13,7 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 /// `OAuth2` scopes requested for xurl.
 #[must_use]
@@ -162,11 +163,20 @@ pub(crate) fn exchange_code_for_token(
 
 /// Runs the full `OAuth2` PKCE authorization flow.
 ///
+/// Browser-failure prompts are written to `out`/`stdout` via
+/// `OutputConfig::print_message`, so library callers can capture them
+/// instead of seeing real-process stdout pollution.
+///
 /// # Errors
 ///
 /// Returns an error if the authorization URL is invalid, the callback server
 /// fails, the token exchange fails, or the username cannot be resolved.
-pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
+pub fn run_oauth2_flow(
+    auth: &mut Auth,
+    username: &str,
+    out: &OutputConfig,
+    stdout: &mut dyn std::io::Write,
+) -> Result<String> {
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
     let state = BASE64_STANDARD.encode(state_bytes);
@@ -177,8 +187,11 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 
     // Try to open browser
     if let Err(_e) = open::that(&auth_url_str) {
-        println!("Failed to open browser automatically. Please visit this URL manually:");
-        println!("{auth_url_str}");
+        out.print_message(
+            stdout,
+            "Failed to open browser automatically. Please visit this URL manually:",
+        );
+        out.print_message(stdout, &auth_url_str);
     }
 
     // Parse redirect URI to get callback port
@@ -207,6 +220,11 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 /// state file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
     if pending_path.exists() {
+        // Deferred per U4 / KTD6 plan task description. Plumbing a writer
+        // through `remote_oauth2_step1` (called from `cli/commands/auth.rs`)
+        // would require expanding the `Auth::remote_oauth2_step1` signature
+        // for a single warning line. Library tests covering remote OAuth2
+        // step 1 don't exercise the overwrite branch.
         eprintln!("Warning: Overwriting previous pending auth flow");
     }
 

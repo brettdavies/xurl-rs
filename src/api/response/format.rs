@@ -1,23 +1,31 @@
 /// Response formatting — JSON pretty-printing with syntax highlighting.
 ///
 /// Mirrors the Go `utils.FormatAndPrintResponse` function, producing
-/// colorized JSON output to stdout.
+/// colorized JSON output to a caller-supplied writer.
+use std::io::{self, Write};
+
 use colored::Colorize;
 
-/// Formats and prints a JSON value with syntax highlighting.
-pub fn format_and_print_response(value: &serde_json::Value) {
+/// Formats a JSON value with syntax highlighting and writes it to `out`.
+///
+/// # Errors
+///
+/// Returns any I/O error from writing to `out`. The typical caller
+/// (`OutputConfig::print_response`) treats this best-effort and ignores
+/// the error so a closed pipe doesn't abort the program.
+pub fn format_response(out: &mut dyn Write, value: &serde_json::Value) -> io::Result<()> {
     let pretty = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
-    colorize_and_print_json(&pretty);
+    colorize_json(out, &pretty)
 }
 
-/// Prints JSON string with line-by-line syntax highlighting.
-fn colorize_and_print_json(json_str: &str) {
+/// Writes a JSON string to `out` with line-by-line syntax highlighting.
+fn colorize_json(out: &mut dyn Write, json_str: &str) -> io::Result<()> {
     for line in json_str.lines() {
         let trimmed = line.trim();
 
         // Structure characters
         if matches!(trimmed, "{" | "}" | "[" | "]" | "," | "}," | "],") {
-            println!("{}", line.white().bold());
+            writeln!(out, "{}", line.white().bold())?;
             continue;
         }
 
@@ -26,17 +34,17 @@ fn colorize_and_print_json(json_str: &str) {
             let value = line[colon_pos + 1..].trim();
 
             // Key
-            print!("{}", key.cyan().bold());
-            print!(":");
+            write!(out, "{}", key.cyan().bold())?;
+            write!(out, ":")?;
 
             // Value starts a nested structure
             if value.ends_with('{') || value.ends_with('[') {
                 let without_bracket = value.trim_end_matches(['{', '[']);
                 if !without_bracket.is_empty() {
-                    print!("{without_bracket}");
+                    write!(out, "{without_bracket}")?;
                 }
                 let bracket = &value[without_bracket.len()..];
-                println!("{}", bracket.white().bold());
+                writeln!(out, "{}", bracket.white().bold())?;
                 continue;
             }
 
@@ -52,48 +60,49 @@ fn colorize_and_print_json(json_str: &str) {
                 if last_bracket > 0 {
                     let before = &value[..last_bracket];
                     let bracket_part = &value[last_bracket..];
-                    print_colorized_value(before);
-                    print!("{}", bracket_part.white().bold());
-                    println!();
+                    write_colorized_value(out, before)?;
+                    write!(out, "{}", bracket_part.white().bold())?;
+                    writeln!(out)?;
                 } else {
-                    println!("{}", value.white().bold());
+                    writeln!(out, "{}", value.white().bold())?;
                 }
                 continue;
             }
 
-            print_colorized_value_ln(value);
+            write_colorized_value_ln(out, value)?;
         } else {
-            print_colorized_value_ln(line);
+            write_colorized_value_ln(out, line)?;
         }
     }
+    Ok(())
 }
 
-/// Prints a value with color based on its JSON type, with newline.
-fn print_colorized_value_ln(value: &str) {
-    print_colorized_value(value);
-    println!();
+/// Writes a value with color based on its JSON type, with newline.
+fn write_colorized_value_ln(out: &mut dyn Write, value: &str) -> io::Result<()> {
+    write_colorized_value(out, value)?;
+    writeln!(out)
 }
 
-/// Prints a value with color based on its JSON type.
-fn print_colorized_value(value: &str) {
+/// Writes a value with color based on its JSON type.
+fn write_colorized_value(out: &mut dyn Write, value: &str) -> io::Result<()> {
     let trimmed = value.trim();
 
     if (trimmed.starts_with('"') && trimmed.ends_with('"'))
         || (trimmed.starts_with('"') && trimmed.ends_with("\","))
     {
         // String value
-        print!("{}", value.green());
+        write!(out, "{}", value.green())
     } else if matches!(trimmed, "true" | "false" | "true," | "false,") {
         // Boolean value
-        print!("{}", value.magenta());
+        write!(out, "{}", value.magenta())
     } else if matches!(trimmed, "null" | "null,") {
         // Null value
-        print!("{}", value.red());
+        write!(out, "{}", value.red())
     } else if trimmed.starts_with('{') || trimmed.starts_with('[') {
         // Structure
-        print!("{}", value.white().bold());
+        write!(out, "{}", value.white().bold())
     } else {
         // Number or other
-        print!("{}", value.yellow());
+        write!(out, "{}", value.yellow())
     }
 }
