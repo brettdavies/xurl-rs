@@ -108,3 +108,54 @@ fn test_config_default_trait() {
     assert!(!cfg.redirect_uri.is_empty());
     assert!(!cfg.auth_url.is_empty());
 }
+
+// Resolver thin-wrapper precedence tests live inline in src/config/mod.rs
+// because `ResolvedRedirectUri` is `pub(crate)` per KTD9 and integration-test
+// crates cannot reach it. The validator-only tests below use the public API.
+
+// ── validate_redirect_uri ───────────────────────────────────────────────────
+
+#[test]
+fn test_validate_redirect_uri_accepts_https() {
+    let url = Config::validate_redirect_uri("https://example.com/cb").expect("https accepted");
+    assert_eq!(url.scheme(), "https");
+}
+
+#[test]
+fn test_validate_redirect_uri_accepts_http_localhost() {
+    Config::validate_redirect_uri("http://localhost:9090/cb").expect("localhost accepted");
+}
+
+#[test]
+fn test_validate_redirect_uri_accepts_http_127_0_0_1() {
+    Config::validate_redirect_uri("http://127.0.0.1:9090/cb").expect("127.0.0.1 accepted");
+}
+
+#[test]
+fn test_validate_redirect_uri_accepts_http_ipv6_loopback() {
+    Config::validate_redirect_uri("http://[::1]:9090/cb").expect("[::1] accepted");
+}
+
+#[test]
+fn test_validate_redirect_uri_rejects_http_remote() {
+    let err = Config::validate_redirect_uri("http://example.com/cb");
+    assert!(err.is_err(), "http+remote should be rejected");
+}
+
+#[test]
+fn test_validate_redirect_uri_rejects_ftp() {
+    let err = Config::validate_redirect_uri("ftp://localhost/cb");
+    assert!(err.is_err(), "ftp scheme should be rejected");
+}
+
+#[test]
+fn test_validate_redirect_uri_rejects_unparseable() {
+    let err = Config::validate_redirect_uri("not-a-url");
+    assert!(err.is_err(), "unparseable URI should be rejected");
+}
+
+#[test]
+fn test_validate_redirect_uri_rejects_file_scheme() {
+    let err = Config::validate_redirect_uri("file:///etc/passwd");
+    assert!(err.is_err(), "file scheme should be rejected");
+}

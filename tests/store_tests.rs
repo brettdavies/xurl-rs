@@ -975,3 +975,39 @@ fn test_set_app_redirect_uri_unknown_app_errors() {
         "Setting redirect_uri on unknown app should error"
     );
 }
+
+#[test]
+fn test_set_app_redirect_uri_rejects_http_remote() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+
+    let err = store.set_app_redirect_uri("app1", "http://attacker.example.com/cb");
+    assert!(err.is_err(), "http+remote redirect URI must be rejected");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        None,
+        "rejected URI must not be persisted"
+    );
+}
+
+#[test]
+fn test_set_app_redirect_uri_rejects_malformed_url() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+
+    let err = store.set_app_redirect_uri("app1", "::not-a-url");
+    assert!(err.is_err(), "malformed URI must be rejected");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        None,
+        "rejected URI must not be persisted"
+    );
+}

@@ -305,7 +305,7 @@ impl TokenStore {
             return self.save_to_file();
         }
 
-        crate::config::Config::validate_redirect_uri(uri)?;
+        let _ = crate::config::Config::validate_redirect_uri(uri)?;
 
         let app = self.resolve_app_mut(name);
         app.redirect_uri = uri.to_string();
