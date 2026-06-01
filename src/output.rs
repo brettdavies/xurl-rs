@@ -71,11 +71,9 @@ impl OutputConfig {
 
     /// Prints an API response according to the configured output format.
     ///
-    /// U1/U2 boundary: the Text branch with color still calls into
-    /// `crate::api::response::format_and_print_response`, which writes
-    /// directly to the real process stdout via `println!`. U2 will thread
-    /// `out` through those leaf formatters so Text-format response output is
-    /// also captured through the writer parameter.
+    /// I/O errors are intentionally swallowed (best-effort posture) so a
+    /// closed downstream pipe doesn't abort the program — the SIGPIPE
+    /// restoration in `main` handles the more general case.
     pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
@@ -89,9 +87,7 @@ impl OutputConfig {
                         serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
                     let _ = writeln!(out, "{pretty}");
                 } else {
-                    // TODO(U2): thread `out` into `format_and_print_response` so
-                    // colorized Text output is captured through this writer too.
-                    crate::api::response::format_and_print_response(value);
+                    let _ = crate::api::response::format_response(out, value);
                 }
             }
         }

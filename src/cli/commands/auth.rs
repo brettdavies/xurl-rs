@@ -22,7 +22,7 @@ pub(super) fn run_auth_command(
         } => {
             if !no_browser {
                 // Standard interactive flow
-                auth.oauth2_flow("")?;
+                auth.oauth2_flow("", out, &mut stdout)?;
                 out.print_message(
                     &mut stdout,
                     "\x1b[32mOAuth2 authentication successful!\x1b[0m",
@@ -40,11 +40,11 @@ pub(super) fn run_auth_command(
                         match out.format {
                             crate::output::OutputFormat::Json
                             | crate::output::OutputFormat::Jsonl => {
-                                let json = serde_json::json!({
+                                let envelope = serde_json::json!({
                                     "auth_url": url,
                                     "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
                                 });
-                                println!("{json}");
+                                out.print_response(&mut stdout, &envelope);
                             }
                             crate::output::OutputFormat::Text => {
                                 out.print_message(

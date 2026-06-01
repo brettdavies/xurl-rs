@@ -9,6 +9,7 @@ pub mod pending;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -119,7 +120,12 @@ impl Auth {
         };
 
         if token.is_none() {
-            let access_token = self.oauth2_flow(username)?;
+            // TODO(U4): plumb the runner's OutputConfig + stdout writer here so
+            // browser-failure prompts surface through the same capture surface
+            // as the rest of the CLI rather than the real process stdio.
+            let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
+            let mut stdout = std::io::stdout();
+            let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
             return Ok(format!("Bearer {access_token}"));
         }
 
@@ -129,12 +135,20 @@ impl Auth {
 
     /// Starts the `OAuth2` PKCE flow.
     ///
+    /// Browser-failure prompts are written to `stdout` via `out`'s
+    /// `print_message`, so callers can capture them in tests.
+    ///
     /// # Errors
     ///
     /// Returns an error if the authorization flow, token exchange, or username
     /// resolution fails.
-    pub fn oauth2_flow(&mut self, username: &str) -> Result<String> {
-        oauth2::run_oauth2_flow(self, username)
+    pub fn oauth2_flow(
+        &mut self,
+        username: &str,
+        out: &OutputConfig,
+        stdout: &mut dyn std::io::Write,
+    ) -> Result<String> {
+        oauth2::run_oauth2_flow(self, username, out, stdout)
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.

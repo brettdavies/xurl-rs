@@ -1,5 +1,6 @@
 /// Schema subcommand — outputs JSON Schema for command response types.
 use std::collections::BTreeMap;
+use std::io::Write;
 
 use schemars::schema_for;
 use serde_json::Value;
@@ -9,6 +10,7 @@ use crate::api::{
     LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User,
 };
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -120,17 +122,33 @@ fn schema_for_command(command: &str) -> Result<Value> {
 }
 
 /// Runs the schema subcommand.
-pub fn run_schema(command: Option<&str>, list: bool, all: bool) -> Result<()> {
+///
+/// JSON-emitting paths route through `OutputConfig::print_response` so a
+/// schema body is not double-wrapped in `{"message": "..."}` under
+/// `--output json`. The human-readable `--list` path routes through
+/// `OutputConfig::print_message`.
+///
+/// # Errors
+///
+/// Returns an error if the requested command is unknown, has no typed
+/// response, or no argument/`--list`/`--all` is supplied.
+pub fn run_schema(
+    command: Option<&str>,
+    list: bool,
+    all: bool,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> Result<()> {
     if all {
-        return print_all_schemas();
+        return print_all_schemas(out, stdout);
     }
     if list {
-        return print_schema_list();
+        return print_schema_list(out, stdout);
     }
     match command {
         Some(cmd) => {
             let schema = schema_for_command(cmd)?;
-            println!("{}", serde_json::to_string_pretty(&schema)?);
+            out.print_response(stdout, &schema);
             Ok(())
         }
         None => {
@@ -142,8 +160,8 @@ pub fn run_schema(command: Option<&str>, list: bool, all: bool) -> Result<()> {
     }
 }
 
-/// Prints all commands and their response type names.
-fn print_schema_list() -> Result<()> {
+/// Writes all commands and their response type names to `stdout`.
+fn print_schema_list(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     let mut entries: Vec<(&str, &str)> = Vec::new();
     for entry in SCHEMA_ENTRIES {
         for &cmd in entry.commands {
@@ -155,13 +173,13 @@ fn print_schema_list() -> Result<()> {
 
     let max_cmd_len = entries.iter().map(|(cmd, _)| cmd.len()).max().unwrap_or(0);
     for (cmd, type_name) in &entries {
-        println!("{cmd:<max_cmd_len$}  {type_name}");
+        out.print_message(stdout, &format!("{cmd:<max_cmd_len$}  {type_name}"));
     }
     Ok(())
 }
 
-/// Prints all schemas as a single JSON object keyed by command name.
-fn print_all_schemas() -> Result<()> {
+/// Writes all schemas as a single JSON object keyed by command name to `stdout`.
+fn print_all_schemas(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     let mut all: BTreeMap<String, Value> = BTreeMap::new();
     for entry in SCHEMA_ENTRIES {
         for &cmd in entry.commands {
@@ -169,6 +187,7 @@ fn print_all_schemas() -> Result<()> {
             all.insert(cmd.to_string(), schema);
         }
     }
-    println!("{}", serde_json::to_string_pretty(&all)?);
+    let value = serde_json::to_value(&all)?;
+    out.print_response(stdout, &value);
     Ok(())
 }

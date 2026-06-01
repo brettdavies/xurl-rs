@@ -34,11 +34,19 @@ fn main() {
             }
             Commands::Schema { command, list, all } => {
                 let out = OutputConfig::new(cli.output.clone(), cli.quiet);
-                match cli::commands::schema::run_schema(command.as_deref(), *list, *all) {
+                // TODO(U4): replace these stdio stubs with runner-injected writers.
+                let mut stdout = std::io::stdout();
+                let mut stderr = std::io::stderr();
+                match cli::commands::schema::run_schema(
+                    command.as_deref(),
+                    *list,
+                    *all,
+                    &out,
+                    &mut stdout,
+                ) {
                     Ok(()) => return,
                     Err(e) => {
-                        // TODO(U4): replace with runner-injected writer
-                        out.print_error(&mut std::io::stderr(), &e, EXIT_GENERAL_ERROR);
+                        out.print_error(&mut stderr, &e, EXIT_GENERAL_ERROR);
                         std::process::exit(EXIT_GENERAL_ERROR);
                     }
                 }
