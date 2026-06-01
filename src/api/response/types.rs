@@ -321,10 +321,11 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
     // the raw JSON as a validation error — these are not HTTP errors
     // (status was 200) but semantic failures from the API.
-    if let Some(obj) = value.as_object() {
-        if !obj.contains_key("data") && obj.contains_key("errors") {
-            return Err(crate::error::XurlError::validation(value.to_string()));
-        }
+    if let Some(obj) = value.as_object()
+        && !obj.contains_key("data")
+        && obj.contains_key("errors")
+    {
+        return Err(crate::error::XurlError::validation(value.to_string()));
     }
     Ok(serde_json::from_value(value)?)
 }
