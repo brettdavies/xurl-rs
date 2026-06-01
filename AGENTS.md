@@ -29,3 +29,9 @@ A fast, ergonomic CLI for the X (Twitter) API. Rust port of [xurl](https://githu
 ## Known Differences from Go Original
 
 See [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) for intentional deviations.
+
+## Documented Solutions
+
+`docs/solutions/` (symlink to `~/dev/solutions-docs/`) — searchable archive of past solutions and best practices,
+organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query "<topic>"
+--collection solutions`. Relevant when implementing or debugging in documented areas.
