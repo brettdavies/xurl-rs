@@ -55,6 +55,20 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    /// Returns the legacy default token-store path: `~/.xurl`.
+    ///
+    /// Falls back to `./.xurl` when the home directory cannot be resolved.
+    /// This is the canonical legacy path resolver — the binary uses it; tests
+    /// pass explicit tempdir paths to `Auth::new_with_store_path` instead.
+    #[must_use]
+    pub fn default_store_path() -> std::path::PathBuf {
+        dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join(".xurl")
+    }
+}
+
 /// Returns an environment variable's value, or `default` if unset.
 fn env_or_default(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
