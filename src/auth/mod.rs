@@ -120,9 +120,18 @@ impl Auth {
         };
 
         if token.is_none() {
-            // TODO(U4): plumb the runner's OutputConfig + stdout writer here so
-            // browser-failure prompts surface through the same capture surface
-            // as the rest of the CLI rather than the real process stdio.
+            // Deferred per U4 / KTD6: this site is the mid-request token-refresh
+            // path inside `ApiClient::send_request`. Plumbing writers from the
+            // runner all the way through `ApiClient::send_request` →
+            // `get_auth_header` → `get_oauth2_header` would expand 6 method
+            // signatures (send_request, send_multipart_request, stream_request,
+            // get_auth_header, get_auth_header_public, get_oauth2_header) and
+            // every call site in `cli/commands/` and `api/media.rs` for a path
+            // that runs only on the first request when no token is cached.
+            //
+            // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
+            // time (which U4 wires correctly via the runner's writers). This
+            // stub is the only remaining direct-stdio site after U4.
             let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
             let mut stdout = std::io::stdout();
             let access_token = self.oauth2_flow(username, &out, &mut stdout)?;

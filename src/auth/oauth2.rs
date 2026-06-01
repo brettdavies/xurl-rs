@@ -220,8 +220,11 @@ pub fn run_oauth2_flow(
 /// state file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
     if pending_path.exists() {
-        // TODO(U4): plumb a writer here so the overwrite warning is captured
-        // by library tests instead of polluting the real process stderr.
+        // Deferred per U4 / KTD6 plan task description. Plumbing a writer
+        // through `remote_oauth2_step1` (called from `cli/commands/auth.rs`)
+        // would require expanding the `Auth::remote_oauth2_step1` signature
+        // for a single warning line. Library tests covering remote OAuth2
+        // step 1 don't exercise the overwrite branch.
         eprintln!("Warning: Overwriting previous pending auth flow");
     }
 

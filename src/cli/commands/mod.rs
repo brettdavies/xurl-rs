@@ -4,6 +4,8 @@ mod media;
 pub mod schema;
 mod streaming;
 
+use std::io::Write;
+
 use serde::Serialize;
 
 use crate::api::{self, ApiClient, CallOptions, RequestOptions};
@@ -14,21 +16,34 @@ use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
 
 /// Converts a typed response to Value and prints it.
-fn print_typed<T: Serialize>(out: &OutputConfig, response: &T) -> Result<()> {
+fn print_typed<T: Serialize>(
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    response: &T,
+) -> Result<()> {
     let value = serde_json::to_value(response)?;
-    // TODO(U4): replace with runner-injected writer
-    out.print_response(&mut std::io::stdout(), &value);
+    out.print_response(stdout, &value);
     Ok(())
 }
 
 /// Runs the CLI — dispatches to the appropriate handler.
 ///
+/// `auth` is constructed by the caller (typically `xurl::cli::runner`) so the
+/// token-store path is injected explicitly rather than resolved here. `stdout`
+/// and `stderr` are the runner's writers; passing them through every command
+/// handler lets library tests capture all output into `Vec<u8>`.
+///
 /// # Errors
 ///
 /// Returns an error if the command fails.
-pub fn run(cli: Cli, out: &OutputConfig) -> Result<()> {
+pub fn run(
+    cli: Cli,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    mut auth: Auth,
+) -> Result<()> {
     let cfg = Config::new();
-    let mut auth = Auth::new(&cfg);
 
     // Apply --app override
     if let Some(ref app_name) = cli.app {
@@ -37,13 +52,20 @@ pub fn run(cli: Cli, out: &OutputConfig) -> Result<()> {
 
     let no_interactive = cli.no_interactive;
     match cli.command {
-        Some(cmd) => run_subcommand(cmd, &cfg, auth, no_interactive, out),
-        None => run_raw_mode(&cli, &cfg, auth, out),
+        Some(cmd) => run_subcommand(cmd, &cfg, auth, no_interactive, out, stdout, stderr),
+        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr),
     }
 }
 
 /// Runs raw curl-style mode.
-fn run_raw_mode(cli: &Cli, cfg: &Config, auth: Auth, out: &OutputConfig) -> Result<()> {
+fn run_raw_mode(
+    cli: &Cli,
+    cfg: &Config,
+    auth: Auth,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Result<()> {
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
@@ -71,31 +93,31 @@ fn run_raw_mode(cli: &Cli, cfg: &Config, auth: Auth, out: &OutputConfig) -> Resu
     // Check for media append request
     if api::is_media_append_request(&options.endpoint, &media_file) {
         let response = api::handle_media_append_request(&options, &media_file, &mut client)?;
-        // TODO(U4): replace with runner-injected writer
-        out.print_response(&mut std::io::stdout(), &response);
+        out.print_response(stdout, &response);
         return Ok(());
     }
 
     let should_stream = cli.stream || api::is_streaming_endpoint(&options.endpoint);
 
     if should_stream {
-        streaming::stream_request_with_output(&mut client, &options, out)
+        streaming::stream_request_with_output(&mut client, &options, out, stdout, stderr)
     } else {
         let response = client.send_request(&options)?;
-        // TODO(U4): replace with runner-injected writer
-        out.print_response(&mut std::io::stdout(), &response);
+        out.print_response(stdout, &response);
         Ok(())
     }
 }
 
 /// Runs a subcommand.
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 fn run_subcommand(
     cmd: Commands,
     cfg: &Config,
     auth: Auth,
     no_interactive: bool,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
@@ -109,7 +131,7 @@ fn run_subcommand(
             let response = client.create_post(&text, &media_ids, &opts)?;
             // NOTE: All match arms below follow this same pattern — auth is moved
             // into ApiClient::new(). The compiler ensures only one arm executes.
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Reply {
             post_id,
@@ -120,7 +142,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.reply_to_post(&post_id, &text, &media_ids, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Quote {
             post_id,
@@ -130,13 +152,13 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.quote_post(&post_id, &text, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Delete { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.delete_post(&post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Reading ──────────────────────────────────────────────────
@@ -144,7 +166,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.read_post(&post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Search {
             query,
@@ -154,7 +176,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.search_posts(&query, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── User Info ────────────────────────────────────────────────
@@ -162,7 +184,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.get_me(&opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::User {
             target_username,
@@ -171,7 +193,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.lookup_user(&target_username, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Timeline & Mentions ──────────────────────────────────────
@@ -183,7 +205,7 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_timeline(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Mentions {
             max_results,
@@ -193,7 +215,7 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_mentions(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Engagement ───────────────────────────────────────────────
@@ -202,42 +224,42 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.like_post(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unlike { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unlike_post(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Repost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.repost(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unrepost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unrepost(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Bookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.bookmark(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unbookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unbookmark(&user_id, &post_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Bookmarks {
             max_results,
@@ -247,7 +269,7 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_bookmarks(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Likes {
             max_results,
@@ -257,7 +279,7 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_liked_posts(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Social Graph ─────────────────────────────────────────────
@@ -270,7 +292,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.follow_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unfollow {
             target_username,
@@ -281,7 +303,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unfollow_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Following {
             max_results,
@@ -296,7 +318,7 @@ fn run_subcommand(
                 resolve_my_user_id(&mut client, &opts)?
             };
             let response = client.get_following(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Followers {
             max_results,
@@ -311,7 +333,7 @@ fn run_subcommand(
                 resolve_my_user_id(&mut client, &opts)?
             };
             let response = client.get_followers(&user_id, max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Block {
             target_username,
@@ -322,7 +344,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.block_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unblock {
             target_username,
@@ -333,7 +355,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unblock_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Mute {
             target_username,
@@ -344,7 +366,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.mute_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Unmute {
             target_username,
@@ -355,7 +377,7 @@ fn run_subcommand(
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unmute_user(&my_id, &target_id, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Usage ─────────────────────────────────────────────────────
@@ -363,7 +385,7 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.get_usage(&opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Direct Messages ──────────────────────────────────────────
@@ -376,7 +398,7 @@ fn run_subcommand(
             let opts = common.to_call_options();
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.send_dm(&target_id, &text, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
         Commands::Dms {
             max_results,
@@ -385,17 +407,17 @@ fn run_subcommand(
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options();
             let response = client.get_dm_events(max_results, &opts)?;
-            print_typed(out, &response)?;
+            print_typed(out, stdout, &response)?;
         }
 
         // ── Auth ─────────────────────────────────────────────────────
         Commands::Auth { command } => {
-            return auth::run_auth_command(command, auth, no_interactive, out);
+            return auth::run_auth_command(command, auth, no_interactive, out, stdout);
         }
 
         // ── Media ────────────────────────────────────────────────────
         Commands::Media { command } => {
-            return media::run_media_command(command, cfg, auth, out);
+            return media::run_media_command(command, cfg, auth, out, stdout, stderr);
         }
 
         // ── Meta (handled before config init in main) ───────────────

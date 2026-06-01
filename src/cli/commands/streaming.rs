@@ -1,4 +1,6 @@
 /// Streaming request handler — SSE / chunked transfer support.
+use std::io::Write;
+
 use crate::api::{ApiClient, RequestOptions};
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
@@ -8,6 +10,8 @@ pub(super) fn stream_request_with_output(
     client: &mut ApiClient,
     options: &RequestOptions,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     use std::io::{BufRead, BufReader};
 
@@ -59,12 +63,8 @@ pub(super) fn stream_request_with_output(
         eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
     }
 
-    // TODO(U4): replace these stdout/stderr stubs with runner-injected writers.
-    let mut stdout = std::io::stdout();
-    let mut stderr = std::io::stderr();
-
     out.status(
-        &mut stderr,
+        stderr,
         &format!("Connecting to streaming endpoint: {}", options.endpoint),
     );
 
@@ -91,8 +91,8 @@ pub(super) fn stream_request_with_output(
         return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
-    out.status(&mut stderr, "--- Streaming response started ---");
-    out.status(&mut stderr, "--- Press Ctrl+C to stop ---");
+    out.status(stderr, "--- Streaming response started ---");
+    out.status(stderr, "--- Press Ctrl+C to stop ---");
 
     let reader = BufReader::with_capacity(1024 * 1024, resp);
     for line in reader.lines() {
@@ -101,7 +101,7 @@ pub(super) fn stream_request_with_output(
                 if line.is_empty() {
                     continue;
                 }
-                out.print_stream_line(&mut stdout, &line);
+                out.print_stream_line(stdout, &line);
             }
             Err(e) => {
                 return Err(XurlError::Io(e.to_string()));
@@ -109,6 +109,6 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status(&mut stderr, "--- End of stream ---");
+    out.status(stderr, "--- End of stream ---");
     Ok(())
 }
