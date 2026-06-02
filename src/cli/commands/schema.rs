@@ -126,21 +126,29 @@ fn schema_for_command(command: &str) -> Result<Value> {
 /// JSON-emitting paths route through `OutputConfig::print_response` so a
 /// schema body is not double-wrapped in `{"message": "..."}` under
 /// `--output json`. The human-readable `--list` path routes through
-/// `OutputConfig::print_message`.
+/// `OutputConfig::print_message`. The `envelope` flag (or `command =
+/// "envelope"`) dumps the canonical output envelope schema instead of a
+/// response-type schema.
 ///
 /// # Errors
 ///
 /// Returns an error if the requested command is unknown, has no typed
-/// response, or no argument/`--list`/`--all` is supplied.
+/// response, or no argument/`--list`/`--all`/`--envelope` is supplied.
 pub fn run_schema(
     command: Option<&str>,
     list: bool,
     all: bool,
+    envelope: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
 ) -> Result<()> {
     if all {
         return print_all_schemas(out, stdout);
+    }
+    if envelope || command == Some("envelope") {
+        let schema = crate::envelope::envelope_schema();
+        out.print_response(stdout, &schema);
+        return Ok(());
     }
     if list {
         return print_schema_list(out, stdout);
@@ -154,13 +162,16 @@ pub fn run_schema(
         None => {
             // No argument: show help text (same as `xr schema --help`)
             Err(XurlError::validation(
-                "usage: xr schema <COMMAND> | xr schema --list | xr schema --all",
+                "usage: xr schema <COMMAND> | xr schema envelope | xr schema --list | xr schema --all",
             ))
         }
     }
 }
 
 /// Writes all commands and their response type names to `stdout`.
+///
+/// The trailing `envelope` row advertises the canonical agent-native
+/// output envelope schema; consumers query it via `xr schema envelope`.
 fn print_schema_list(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     let mut entries: Vec<(&str, &str)> = Vec::new();
     for entry in SCHEMA_ENTRIES {
@@ -170,6 +181,7 @@ fn print_schema_list(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     }
     // Sort by command name for consistent output
     entries.sort_by_key(|(cmd, _)| *cmd);
+    entries.push(("envelope", "Envelope"));
 
     let max_cmd_len = entries.iter().map(|(cmd, _)| cmd.len()).max().unwrap_or(0);
     for (cmd, type_name) in &entries {
