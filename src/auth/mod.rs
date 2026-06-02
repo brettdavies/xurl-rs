@@ -135,36 +135,82 @@ impl Auth {
 
     /// Gets or refreshes an `OAuth2` token and returns the Authorization header.
     ///
+    /// Lookup precedence is intent-split per `KTD5`:
+    ///
+    /// - non-empty `username` (named caller): try the username's own token
+    ///   first; on miss, fall through to
+    ///   [`TokenStore::get_first_oauth2_token_for_app`] (which itself prefers
+    ///   `default_user`, then arbitrary-first); on total miss, trigger the
+    ///   full OAuth2 flow. The unnamed (`/me`-failed salvage) slot is
+    ///   **never** consulted on this branch — a caller who supplies a
+    ///   username has explicit identity intent and must not silently receive
+    ///   a salvage-state token under their name.
+    /// - empty `username`: try `get_first_oauth2_token_for_app` (which
+    ///   prefers `default_user`, then arbitrary-first); on miss, fall through
+    ///   to the unnamed slot via
+    ///   [`TokenStore::get_oauth2_token_unnamed_for_app`]; on total miss,
+    ///   trigger the OAuth2 flow.
+    ///
+    /// In both branches the cached-token path delegates to
+    /// [`Auth::refresh_oauth2_token`], which is a no-op if the token is still
+    /// valid.
+    ///
     /// # Errors
     ///
     /// Returns an error if the `OAuth2` flow fails or token refresh fails.
     pub fn get_oauth2_header(&mut self, username: &str) -> Result<String> {
-        let token = if username.is_empty() {
-            self.token_store.get_first_oauth2_token().cloned()
-        } else {
-            self.token_store.get_oauth2_token(username).cloned()
-        };
+        let app_name = self.app_name.clone();
 
-        if token.is_none() {
-            // Deferred per U4 / KTD6: this site is the mid-request token-refresh
-            // path inside `ApiClient::send_request`. Plumbing writers from the
-            // runner all the way through `ApiClient::send_request` →
-            // `get_auth_header` → `get_oauth2_header` would expand 6 method
-            // signatures (send_request, send_multipart_request, stream_request,
-            // get_auth_header, get_auth_header_public, get_oauth2_header) and
-            // every call site in `cli/commands/` and `api/media.rs` for a path
-            // that runs only on the first request when no token is cached.
-            //
-            // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
-            // time (which U4 wires correctly via the runner's writers). This
-            // stub is the only remaining direct-stdio site after U4.
-            let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
-            let mut stdout = std::io::stdout();
-            let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
-            return Ok(format!("Bearer {access_token}"));
+        if username.is_empty() {
+            // Empty-caller precedence: default_user (via get_first) -> unnamed -> flow.
+            if self
+                .token_store
+                .get_first_oauth2_token_for_app(&app_name)
+                .is_some()
+            {
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
+
+            if self
+                .token_store
+                .get_oauth2_token_unnamed_for_app(&app_name)
+                .is_some()
+            {
+                // Empty-caller + unnamed-hit: refresh delegates with empty username;
+                // if /me fails again the refresh path writes back to the unnamed slot.
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
+        } else {
+            // Named-caller precedence: own token -> get_first fallback -> flow.
+            // The unnamed slot is never consulted here.
+            if self.token_store.get_oauth2_token(username).is_some()
+                || self
+                    .token_store
+                    .get_first_oauth2_token_for_app(&app_name)
+                    .is_some()
+            {
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
         }
 
-        let access_token = self.refresh_oauth2_token(username)?;
+        // Deferred per U4 / KTD6: this site is the mid-request token-refresh
+        // path inside `ApiClient::send_request`. Plumbing writers from the
+        // runner all the way through `ApiClient::send_request` →
+        // `get_auth_header` → `get_oauth2_header` would expand 6 method
+        // signatures (send_request, send_multipart_request, stream_request,
+        // get_auth_header, get_auth_header_public, get_oauth2_header) and
+        // every call site in `cli/commands/` and `api/media.rs` for a path
+        // that runs only on the first request when no token is cached.
+        //
+        // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
+        // time (which U4 wires correctly via the runner's writers). This
+        // stub is the only remaining direct-stdio site after U4.
+        let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
+        let mut stdout = std::io::stdout();
+        let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
         Ok(format!("Bearer {access_token}"))
     }
 

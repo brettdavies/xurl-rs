@@ -354,13 +354,40 @@ pub fn run_remote_step2(
 
 /// Refreshes an `OAuth2` token if expired.
 ///
+/// The refresh-token POST result is the sole source of truth for "is the
+/// refresh successful" (`KTD2`). The refreshed access token is persisted in
+/// all three success branches:
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   `eprintln!` (the function lacks an `OutputConfig`; the persisted store
+///   state is the load-bearing observable).
+///
 /// # Errors
 ///
-/// Returns an error if no token is found, the refresh request fails, or the
-/// username cannot be resolved after refresh.
+/// Returns an error when no cached token is found or the refresh-token POST
+/// itself fails. `fetch_username` failures no longer propagate.
 pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
+    let app_name_lookup = auth.app_name().to_string();
     let token = if username.is_empty() {
-        auth.token_store.get_first_oauth2_token().cloned()
+        // Empty-caller precedence mirrors `Auth::get_oauth2_header` (KTD5):
+        // default_user/arbitrary-first in the named map first, then the
+        // unnamed (`/me`-failed salvage) slot. Without the unnamed fallback,
+        // a refresh driven by `get_oauth2_header` on an unnamed-only app
+        // would fail with `TokenNotFound` even though a token exists.
+        auth.token_store
+            .get_first_oauth2_token()
+            .cloned()
+            .or_else(|| {
+                auth.token_store
+                    .get_oauth2_token_unnamed_for_app(&app_name_lookup)
+                    .cloned()
+            })
     } else {
         auth.token_store.get_oauth2_token(username).cloned()
     };
@@ -410,26 +437,46 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&new_access_token)
-            .map_err(|e| XurlError::auth_with_cause("UsernameFetchError", &e))?
-    } else {
-        username.to_string()
-    };
-
     let new_now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = new_now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &new_access_token,
-        &new_refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&new_access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                eprintln!(
+                    "warning: refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &new_access_token,
+            &new_refresh_token,
+            expiration_time,
+        )?;
+    }
 
     Ok(new_access_token)
 }
