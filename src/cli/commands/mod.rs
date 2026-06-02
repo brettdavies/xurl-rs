@@ -43,7 +43,10 @@ pub fn run(
     stderr: &mut dyn Write,
     mut auth: Auth,
 ) -> Result<()> {
-    let cfg = Config::new();
+    let mut cfg = Config::new();
+    // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
+    // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
+    cfg.http_timeout_secs = cli.timeout;
 
     // KTD6: capture whether the user passed `--app` BEFORE `cli.app` is
     // collapsed into `auth.with_app_name(...)` below. The collapsed
@@ -149,7 +152,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.create_post(&text, &media_ids, &opts)?;
             // NOTE: All match arms below follow this same pattern — auth is moved
             // into ApiClient::new(). The compiler ensures only one arm executes.
@@ -162,7 +165,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.reply_to_post(&post_id, &text, &media_ids, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -172,13 +175,13 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.quote_post(&post_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Delete { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.delete_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -186,7 +189,7 @@ fn run_subcommand(
         // ── Reading ──────────────────────────────────────────────────
         Commands::Read { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.read_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -196,7 +199,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.search_posts(&query, max_results, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -204,7 +207,7 @@ fn run_subcommand(
         // ── User Info ────────────────────────────────────────────────
         Commands::Whoami { common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_me(&opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -213,7 +216,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.lookup_user(&target_username, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -224,7 +227,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_timeline(&user_id, max_results, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -234,7 +237,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_mentions(&user_id, max_results, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -243,42 +246,42 @@ fn run_subcommand(
         // ── Engagement ───────────────────────────────────────────────
         Commands::Like { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.like_post(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Unlike { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unlike_post(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Repost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.repost(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Unrepost { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unrepost(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Bookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.bookmark(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Unbookmark { post_id, common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unbookmark(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -288,7 +291,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_bookmarks(&user_id, max_results, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -298,7 +301,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_liked_posts(&user_id, max_results, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -310,7 +313,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.follow_user(&my_id, &target_id, &opts)?;
@@ -321,7 +324,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unfollow_user(&my_id, &target_id, &opts)?;
@@ -333,7 +336,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -348,7 +351,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -362,7 +365,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.block_user(&my_id, &target_id, &opts)?;
@@ -373,7 +376,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unblock_user(&my_id, &target_id, &opts)?;
@@ -384,7 +387,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.mute_user(&my_id, &target_id, &opts)?;
@@ -395,7 +398,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unmute_user(&my_id, &target_id, &opts)?;
@@ -405,7 +408,7 @@ fn run_subcommand(
         // ── Usage ─────────────────────────────────────────────────────
         Commands::Usage { common } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_usage(&opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -417,7 +420,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.send_dm(&target_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -427,7 +430,7 @@ fn run_subcommand(
             common,
         } => {
             let mut client = ApiClient::new(cfg, auth);
-            let opts = common.to_call_options(verbose);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_dm_events(max_results, &opts)?;
             print_typed(out, stdout, &response)?;
         }

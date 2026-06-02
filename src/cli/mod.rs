@@ -497,15 +497,17 @@ pub struct CommonFlags {
 impl CommonFlags {
     /// Converts to `CallOptions` for shortcut methods.
     ///
-    /// `verbose` is sourced from the root [`Cli::verbose`] global flag rather
-    /// than per-subcommand, so the caller threads it through here.
-    pub fn to_call_options(&self, verbose: bool) -> crate::api::CallOptions {
+    /// `verbose` and `timeout_secs` are sourced from the root [`Cli`] global
+    /// flags rather than per-subcommand, so the caller threads them through
+    /// here.
+    pub fn to_call_options(&self, verbose: bool, timeout_secs: u64) -> crate::api::CallOptions {
         crate::api::CallOptions {
             auth_type: self.auth_type.clone().unwrap_or_default(),
             username: self.username.clone().unwrap_or_default(),
             no_auth: false,
             verbose,
             trace: self.trace,
+            timeout_secs,
         }
     }
 }

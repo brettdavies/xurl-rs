@@ -302,7 +302,12 @@ impl Auth {
 
     /// Fetches the username for an access token from the /2/users/me endpoint.
     pub(crate) fn fetch_username(&self, access_token: &str) -> Result<String> {
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(
+                self.config.http_timeout_secs,
+            ))
+            .build()
+            .unwrap_or_else(|_| reqwest::blocking::Client::new());
         let resp = client
             .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
@@ -373,6 +378,12 @@ impl Auth {
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
         &self.config.redirect_uri
+    }
+    /// Per-request HTTP timeout in seconds for OAuth2 token exchange,
+    /// refresh, and `/2/users/me` lookups. Mirrors the `--timeout` flag.
+    #[must_use]
+    pub fn http_timeout_secs(&self) -> u64 {
+        self.config.http_timeout_secs
     }
 }
 
