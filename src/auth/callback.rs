@@ -127,10 +127,11 @@ fn path_matches(uri_path: &str, request_path: &str) -> bool {
     request_path.starts_with(&with_q)
 }
 
-/// One-line warning shape for partial-bind cases.
+/// One-line warning body for partial-bind cases. The `warning:` prefix is
+/// added by [`crate::output::warn_stderr`] at the emission site.
 fn format_partial_bind_warning(bound_addr: &str, failed_addr: &str, failed_err: &str) -> String {
     format!(
-        "warning: callback listener bound {bound_addr} but failed to bind {failed_addr} ({failed_err}); continuing with the bound address"
+        "callback listener bound {bound_addr} but failed to bind {failed_addr} ({failed_err}); continuing with the bound address"
     )
 }
 
@@ -311,10 +312,11 @@ where
             && let Some((failed_addr, failed_err)) = failed.first()
         {
             let bound_addr = &bound[0].addr;
-            eprintln!(
-                "{}",
-                format_partial_bind_warning(bound_addr, failed_addr, failed_err)
-            );
+            crate::output::warn_stderr(&format_partial_bind_warning(
+                bound_addr,
+                failed_addr,
+                failed_err,
+            ));
         }
 
         let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, String>>();

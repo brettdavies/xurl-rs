@@ -10,6 +10,12 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::output::OutputConfig;
 
+fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
+    let mut client = ApiClient::new(cfg, auth);
+    client.set_output(out.clone());
+    client
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn run_media_command(
     cmd: MediaCommands,
@@ -42,7 +48,7 @@ pub(super) fn run_media_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             api::execute_media_upload(
                 &file,
                 &media_type,
@@ -67,7 +73,7 @@ pub(super) fn run_media_command(
             trace,
             headers,
         } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),

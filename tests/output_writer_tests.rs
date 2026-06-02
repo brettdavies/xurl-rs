@@ -257,3 +257,137 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
     let _ = std::io::Write::write_all(&mut stdout_buf, b"sanity");
     assert!(!err_buf.is_empty());
 }
+
+// U8: verbose/warning/progress contract — naked stdio elsewhere is barred,
+// so these are the only legal channels for diagnostics.
+
+#[test]
+fn verbose_writes_under_text_when_verbose_flag_on() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Text,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: true,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.verbose(&mut buf, "> GET /2/users/me");
+    let s = String::from_utf8(buf).expect("utf8");
+    assert_eq!(s, "> GET /2/users/me\n");
+}
+
+#[test]
+fn verbose_suppressed_under_json_even_when_verbose_on() {
+    // U8 requirement: agents parsing structured output must not see verbose
+    // request/response prefixes on stderr.
+    let cfg = OutputConfig {
+        format: OutputFormat::Json,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: true,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.verbose(&mut buf, "> GET /2/users/me");
+    assert!(
+        buf.is_empty(),
+        "verbose() must not emit under JSON: {buf:?}"
+    );
+}
+
+#[test]
+fn verbose_suppressed_under_quiet() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Text,
+        quiet: true,
+        no_color: true,
+        use_color: false,
+        verbose: true,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.verbose(&mut buf, "should be silent");
+    assert!(buf.is_empty());
+}
+
+#[test]
+fn verbose_suppressed_when_verbose_flag_off() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Text,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: false,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.verbose(&mut buf, "noop");
+    assert!(buf.is_empty());
+}
+
+#[test]
+fn warning_writes_under_text() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Text,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: false,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.warning(&mut buf, "token near expiry");
+    let s = String::from_utf8(buf).expect("utf8");
+    assert!(
+        s.contains("warning: token near expiry"),
+        "unexpected: {s:?}"
+    );
+}
+
+#[test]
+fn warning_suppressed_under_json() {
+    // Per agent-native semantic-fields-over-stderr-warnings: warnings under
+    // JSON modes are not emitted on stderr (envelope promotion is the future
+    // home for them — plan U8 deferred).
+    let cfg = OutputConfig {
+        format: OutputFormat::Json,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: false,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.warning(&mut buf, "token near expiry");
+    assert!(
+        buf.is_empty(),
+        "warnings on stderr must be suppressed under JSON: {buf:?}"
+    );
+}
+
+#[test]
+fn warning_under_jsonl_also_suppressed() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Jsonl,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: false,
+        raw: false,
+    };
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.warning(&mut buf, "near expiry");
+    assert!(buf.is_empty());
+}
+
+#[test]
+fn output_config_default_is_text_no_verbose() {
+    let cfg = OutputConfig::default();
+    assert_eq!(cfg.format, OutputFormat::Text);
+    assert!(!cfg.verbose);
+    assert!(!cfg.quiet);
+    assert!(!cfg.raw);
+    assert!(!cfg.use_color);
+}

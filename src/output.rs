@@ -5,6 +5,12 @@
 /// owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
 /// so the same config can drive real stdout, real stderr, or a captured
 /// `Vec<u8>` in library tests.
+///
+/// This module is the single owner of `println!` / `eprintln!`. Every other
+/// `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
+/// [`warn_stderr`] for the rare deep call sites that cannot carry an
+/// `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
+/// invariant.
 use std::io::{IsTerminal, Write};
 
 use clap::ValueEnum;
@@ -305,6 +311,54 @@ impl OutputConfig {
         }
     }
 
+    /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is
+    /// off, and the format is text.
+    ///
+    /// Under `--output json` or `--output jsonl`, agents parsing structured
+    /// output must not encounter interleaved human text on stderr, so
+    /// `verbose` is suppressed (per the agent-native semantic-fields-over-
+    /// stderr-warnings principle). Mirrors the `diag!` macro pattern from the
+    /// bird CLI without the macro.
+    pub fn verbose(&self, err: &mut dyn Write, msg: &str) {
+        if !self.verbose || self.quiet || self.format != OutputFormat::Text {
+            return;
+        }
+        let _ = writeln!(err, "{msg}");
+    }
+
+    /// Emits a warning to `err`. Always goes to stderr in text mode; under
+    /// JSON modes the line is suppressed (the canonical envelope is the
+    /// channel for structured warnings — see plan U8's deferred
+    /// `warnings: []` envelope promotion).
+    ///
+    /// Suppressed entirely under `--quiet` combined with JSON modes; under
+    /// `--quiet` text mode, warnings still surface (errors and warnings are
+    /// the load-bearing signals the operator must see).
+    pub fn warning(&self, err: &mut dyn Write, msg: &str) {
+        match self.format {
+            OutputFormat::Json | OutputFormat::Jsonl => {}
+            OutputFormat::Text => {
+                if self.no_color {
+                    let _ = writeln!(err, "warning: {msg}");
+                } else {
+                    let _ = writeln!(err, "\x1b[1;33mwarning:\x1b[0m {msg}");
+                }
+            }
+        }
+    }
+
+    /// Emits a progress / status line to `err` when the format is text and
+    /// stderr is a TTY. Quiet suppresses progress unconditionally.
+    pub fn progress(&self, err: &mut dyn Write, msg: &str) {
+        if self.quiet || self.format != OutputFormat::Text {
+            return;
+        }
+        if !std::io::stderr().is_terminal() {
+            return;
+        }
+        let _ = writeln!(err, "{msg}");
+    }
+
     /// Prints a simple text message (e.g. version, auth status) to the supplied writer.
     /// Respects --output json by wrapping in a JSON object.
     pub fn print_message(&self, out: &mut dyn Write, msg: &str) {
@@ -323,6 +377,33 @@ impl OutputConfig {
             }
         }
     }
+}
+
+impl Default for OutputConfig {
+    /// Library-friendly default: text format, color-auto, no verbose, no quiet,
+    /// no raw. Matches what an interactive operator gets without flags. Used
+    /// when an `ApiClient` is constructed before the runner has resolved the
+    /// real `OutputConfig`.
+    fn default() -> Self {
+        Self {
+            format: OutputFormat::Text,
+            quiet: false,
+            no_color: true,
+            use_color: false,
+            verbose: false,
+            raw: false,
+        }
+    }
+}
+
+/// Emits a one-line warning to stderr. Single-owner escape hatch for deep
+/// call sites that cannot reasonably carry an `OutputConfig` (token-store
+/// migration, env-var rejection during config resolution, callback partial-
+/// bind notices, OAuth2 salvage warnings). The CI guard at
+/// `scripts/lint-stdio.sh` allow-lists this module so the discipline holds:
+/// every `eprintln!` lives here.
+pub fn warn_stderr(msg: &str) {
+    eprintln!("warning: {msg}");
 }
 
 /// Strips ANSI escape codes from a string.
@@ -452,5 +533,57 @@ mod tests {
             OutputConfig::new_with_raw(OutputFormat::Text, false, false, ColorChoice::Always, true);
         assert!(!cfg.use_color, "--raw must force use_color = false");
         assert!(cfg.raw);
+    }
+
+    #[test]
+    fn test_verbose_emits_under_text_when_verbose_flag_set() {
+        let cfg = OutputConfig::new(OutputFormat::Text, false, true, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.verbose(&mut buf, "hello");
+        assert_eq!(buf, b"hello\n");
+    }
+
+    #[test]
+    fn test_verbose_suppressed_under_json() {
+        let cfg = OutputConfig::new(OutputFormat::Json, false, true, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.verbose(&mut buf, "hello");
+        assert!(buf.is_empty(), "verbose must not leak under JSON");
+    }
+
+    #[test]
+    fn test_verbose_suppressed_under_quiet() {
+        let cfg = OutputConfig::new(OutputFormat::Text, true, true, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.verbose(&mut buf, "hello");
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn test_verbose_suppressed_when_flag_off() {
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.verbose(&mut buf, "hello");
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn test_warning_emits_under_text() {
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.warning(&mut buf, "rate limited");
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("warning: rate limited"));
+    }
+
+    #[test]
+    fn test_warning_suppressed_under_json() {
+        let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.warning(&mut buf, "rate limited");
+        assert!(
+            buf.is_empty(),
+            "warnings on stderr must be suppressed under JSON modes"
+        );
     }
 }
