@@ -13,5 +13,8 @@ pub fn run_skill(cmd: SkillCmd, out: &OutputConfig, stdout: &mut dyn Write) -> i
         SkillCmd::Install { host, all, dry_run } => {
             skill_install::run_install_multi(host, all, dry_run, out, stdout)
         }
+        SkillCmd::Update { host, all, dry_run } => {
+            skill_install::run_update_multi(host, all, dry_run, out, stdout)
+        }
     }
 }
