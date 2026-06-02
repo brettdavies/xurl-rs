@@ -314,3 +314,72 @@ fn test_no_color_env_overrides_color_always() {
         "NO_COLOR=1 must defeat --color always per https://no-color.org/: {stderr:?}"
     );
 }
+
+// ── U5: clap-error envelope via XURL_OUTPUT env var ──────────────────
+
+#[test]
+fn test_clap_error_envelope_via_xurl_output_env() {
+    // When clap parsing fails BEFORE flags are read, the runner reads
+    // XURL_OUTPUT directly to decide whether to JSON-wrap the parse error.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--bogus-flag"])
+        .env("XURL_OUTPUT", "json")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code().unwrap(), 2);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let parsed: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("XURL_OUTPUT=json wraps clap errors");
+    assert_eq!(parsed["status"], "error");
+    assert_eq!(parsed["reason"], "invalid-args");
+    assert_eq!(parsed["exit_code"], 2);
+}
+
+#[test]
+fn test_clap_error_envelope_via_xurl_output_jsonl_env() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--bogus-flag"])
+        .env("XURL_OUTPUT", "jsonl")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code().unwrap(), 2);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let parsed: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("XURL_OUTPUT=jsonl wraps clap errors");
+    assert_eq!(parsed["reason"], "invalid-args");
+}
+
+#[test]
+fn test_raw_with_output_json_emits_compact_json() {
+    // --raw under JSON mode produces compact JSON (no whitespace) on stderr
+    // for the envelope path. Schema lookup is a clean stdout-emitting verb.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "envelope", "--output", "json", "--raw"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Compact JSON has no `"\n  "` indentation prefix.
+    assert!(
+        !stdout.contains("  \""),
+        "--raw must emit compact JSON: {stdout}"
+    );
+}
+
+#[test]
+fn test_raw_without_flag_pretty_prints() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "envelope", "--output", "json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("  \""),
+        "default JSON must be pretty-printed: {stdout}"
+    );
+}

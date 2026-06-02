@@ -8,6 +8,7 @@
 use std::io::{IsTerminal, Write};
 
 use clap::ValueEnum;
+use serde_json::Value;
 
 use crate::cli::ColorChoice;
 use crate::error::XurlError;
@@ -33,6 +34,9 @@ pub enum OutputFormat {
 /// `NO_COLOR` env var, and stderr's TTY-ness. `no_color` is preserved as the
 /// negation (`!use_color`) for source-compatibility with existing call sites
 /// and tests that constructed `OutputConfig { … }` directly.
+///
+/// `raw` (from `--raw`) forces compact JSON (no pretty-printing) and strips
+/// ANSI styling from text output. Useful for pipelines that line-buffer.
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
     pub format: OutputFormat,
@@ -40,6 +44,7 @@ pub struct OutputConfig {
     pub no_color: bool,
     pub use_color: bool,
     pub verbose: bool,
+    pub raw: bool,
 }
 
 impl OutputConfig {
@@ -52,10 +57,27 @@ impl OutputConfig {
     /// - `--color always` overrides the TTY check (still loses to `NO_COLOR`).
     /// - `--color never` disables color unconditionally.
     /// - `--color auto` enables color only when stderr is a TTY.
+    ///
+    /// `raw` forces `use_color = false` and switches JSON output to compact
+    /// form (no pretty-printing).
     #[must_use]
     pub fn new(format: OutputFormat, quiet: bool, verbose: bool, color: ColorChoice) -> Self {
+        Self::new_with_raw(format, quiet, verbose, color, false)
+    }
+
+    /// Like [`new`], with an explicit `raw` flag.
+    ///
+    /// [`new`]: Self::new
+    #[must_use]
+    pub fn new_with_raw(
+        format: OutputFormat,
+        quiet: bool,
+        verbose: bool,
+        color: ColorChoice,
+        raw: bool,
+    ) -> Self {
         let no_color_env = std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty());
-        let use_color = if no_color_env {
+        let use_color = if raw || no_color_env {
             false
         } else {
             match color {
@@ -70,6 +92,7 @@ impl OutputConfig {
             no_color: !use_color,
             use_color,
             verbose,
+            raw,
         }
     }
 
@@ -102,12 +125,18 @@ impl OutputConfig {
     /// I/O errors are intentionally swallowed (best-effort posture) so a
     /// closed downstream pipe doesn't abort the program — the SIGPIPE
     /// restoration in `main` handles the more general case.
+    ///
+    /// Under `--raw`, JSON output is emitted compactly (one line, no
+    /// whitespace) rather than pretty-printed.
     pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
-                let pretty =
-                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
-                let _ = writeln!(out, "{pretty}");
+                let body = if self.raw {
+                    serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
+                } else {
+                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+                };
+                let _ = writeln!(out, "{body}");
             }
             OutputFormat::Text => {
                 if self.no_color {
@@ -127,18 +156,25 @@ impl OutputConfig {
     }
 
     /// Formats and prints an error to the supplied stderr writer.
-    /// When --output json/jsonl, emits structured JSON.
+    /// Under `--output json|jsonl`, emits the canonical envelope shape:
+    /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
     pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
-                let kind = error_kind(error);
+                let reason = error.kind();
                 let msg = error.to_string();
-                let json = serde_json::json!({
-                    "error": msg,
-                    "kind": kind,
-                    "code": exit_code,
+                let envelope = serde_json::json!({
+                    "status": "error",
+                    "reason": reason,
+                    "exit_code": exit_code,
+                    "message": msg,
                 });
-                let _ = writeln!(err, "{json}");
+                let rendered = if self.raw {
+                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
+                } else {
+                    envelope.to_string()
+                };
+                let _ = writeln!(err, "{rendered}");
             }
             OutputFormat::Text => {
                 if self.no_color {
@@ -147,6 +183,70 @@ impl OutputConfig {
                     let _ = writeln!(err, "\x1b[31mError: {error}\x1b[0m");
                 }
             }
+        }
+    }
+
+    /// Emits a canonical success envelope under JSON modes.
+    ///
+    /// Wraps `payload` (treated as a JSON object whose keys flatten in at
+    /// the top level) with `{"status":"ok", ...payload}`. Under text mode
+    /// the payload is passed through to [`Self::print_response`] so existing
+    /// formatters keep their shape.
+    pub fn print_success(&self, out: &mut dyn Write, payload: &Value) {
+        match self.format {
+            OutputFormat::Json | OutputFormat::Jsonl => {
+                let mut obj = serde_json::Map::new();
+                obj.insert("status".into(), Value::String("ok".into()));
+                if let Some(map) = payload.as_object() {
+                    for (k, v) in map {
+                        obj.insert(k.clone(), v.clone());
+                    }
+                } else {
+                    obj.insert("payload".into(), payload.clone());
+                }
+                let envelope = Value::Object(obj);
+                let body = if self.raw {
+                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
+                } else {
+                    serde_json::to_string_pretty(&envelope).unwrap_or_else(|_| envelope.to_string())
+                };
+                let _ = writeln!(out, "{body}");
+            }
+            OutputFormat::Text => self.print_response(out, payload),
+        }
+    }
+
+    /// Emits a canonical dry-run envelope under JSON modes.
+    ///
+    /// Shape: `{"status":"dry_run","would_succeed":<bool>,"exit_code":<int>, ...ctx}`.
+    /// Under text mode, falls back to a pass-through of `ctx`.
+    pub fn print_dry_run(
+        &self,
+        out: &mut dyn Write,
+        would_succeed: bool,
+        exit_code: i32,
+        ctx: &Value,
+    ) {
+        match self.format {
+            OutputFormat::Json | OutputFormat::Jsonl => {
+                let mut obj = serde_json::Map::new();
+                obj.insert("status".into(), Value::String("dry_run".into()));
+                obj.insert("would_succeed".into(), Value::Bool(would_succeed));
+                obj.insert("exit_code".into(), Value::from(exit_code));
+                if let Some(map) = ctx.as_object() {
+                    for (k, v) in map {
+                        obj.insert(k.clone(), v.clone());
+                    }
+                }
+                let envelope = Value::Object(obj);
+                let body = if self.raw {
+                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
+                } else {
+                    serde_json::to_string_pretty(&envelope).unwrap_or_else(|_| envelope.to_string())
+                };
+                let _ = writeln!(out, "{body}");
+            }
+            OutputFormat::Text => self.print_response(out, ctx),
         }
     }
 
@@ -167,20 +267,6 @@ impl OutputConfig {
                 }
             }
         }
-    }
-}
-
-/// Returns a string category for an error variant.
-fn error_kind(e: &XurlError) -> &'static str {
-    match e {
-        XurlError::Auth(_) => "auth",
-        XurlError::Http(_) => "http",
-        XurlError::Api { .. } => "api",
-        XurlError::Validation(_) => "validation",
-        XurlError::Io(_) => "io",
-        XurlError::Json(_) => "json",
-        XurlError::InvalidMethod(_) => "invalid_method",
-        XurlError::TokenStore(_) => "token_store",
     }
 }
 
@@ -215,12 +301,21 @@ mod tests {
     }
 
     #[test]
-    fn test_error_kind_mapping() {
-        assert_eq!(error_kind(&XurlError::Auth("test".into())), "auth");
-        assert_eq!(error_kind(&XurlError::Http("test".into())), "http");
-        assert_eq!(error_kind(&XurlError::api(400, "test")), "api");
-        assert_eq!(error_kind(&XurlError::validation("test")), "validation");
-        assert_eq!(error_kind(&XurlError::Io("test".into())), "io");
+    fn test_xurl_error_kind_mapping() {
+        assert_eq!(XurlError::Auth("test".into()).kind(), "auth-required");
+        assert_eq!(XurlError::Http("test".into()).kind(), "network-error");
+        assert_eq!(XurlError::api(400, "test").kind(), "network-error");
+        assert_eq!(XurlError::api(401, "x").kind(), "auth-required");
+        assert_eq!(XurlError::api(404, "x").kind(), "not-found");
+        assert_eq!(XurlError::api(429, "x").kind(), "rate-limited");
+        assert_eq!(XurlError::validation("test").kind(), "validation");
+        assert_eq!(XurlError::Io("test".into()).kind(), "io");
+        assert_eq!(XurlError::Json("test".into()).kind(), "serialization");
+        assert_eq!(
+            XurlError::InvalidMethod("X".into()).kind(),
+            "invalid-method"
+        );
+        assert_eq!(XurlError::token_store("x").kind(), "token-store");
     }
 
     #[test]
@@ -231,6 +326,7 @@ mod tests {
             no_color: false,
             use_color: true,
             verbose: false,
+            raw: false,
         };
         assert!(!cfg.quiet);
     }
@@ -293,5 +389,13 @@ mod tests {
                 std::env::set_var("NO_COLOR", v);
             }
         }
+    }
+
+    #[test]
+    fn test_raw_forces_color_off() {
+        let cfg =
+            OutputConfig::new_with_raw(OutputFormat::Text, false, false, ColorChoice::Always, true);
+        assert!(!cfg.use_color, "--raw must force use_color = false");
+        assert!(cfg.raw);
     }
 }

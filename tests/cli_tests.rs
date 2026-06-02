@@ -86,6 +86,120 @@ fn test_invalid_flag() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// U5: JSON envelope on clap parse failure + --json/--jsonl/--raw aliases
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Asserts `stderr` parses as the canonical `invalid-args` envelope at
+/// `exit_code` 2.
+fn assert_invalid_args_envelope(stderr: &str) {
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("clap-error envelope is valid JSON");
+    assert_eq!(v["status"], "error", "envelope status: {stderr}");
+    assert_eq!(v["reason"], "invalid-args", "envelope reason: {stderr}");
+    assert_eq!(v["exit_code"], 2, "envelope exit_code: {stderr}");
+    assert!(
+        v["message"].is_string(),
+        "envelope message must be present: {stderr}"
+    );
+}
+
+#[test]
+fn test_clap_error_emits_envelope_under_output_json() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]);
+    assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
+    assert_invalid_args_envelope(&stderr);
+}
+
+#[test]
+fn test_clap_error_emits_envelope_under_json_alias() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]);
+    assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
+    assert_invalid_args_envelope(&stderr);
+}
+
+#[test]
+fn test_clap_error_emits_envelope_under_jsonl_alias() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--jsonl"]);
+    assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
+    assert_invalid_args_envelope(&stderr);
+}
+
+#[test]
+fn test_clap_error_falls_back_to_text_without_json_intent() {
+    // No --output json, no --json, no XURL_OUTPUT — clap's default text
+    // rendering is preserved.
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag"]);
+    assert_eq!(code, 2);
+    assert!(
+        serde_json::from_str::<serde_json::Value>(stderr.trim()).is_err(),
+        "without JSON intent, stderr should not be JSON: {stderr}"
+    );
+    assert!(stderr.contains("error"));
+}
+
+#[test]
+fn test_help_under_output_json_still_writes_to_stdout() {
+    // DisplayHelp short-circuit: --help bypasses envelope routing.
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--help", "--output", "json"]);
+    assert_eq!(code, 0);
+    assert!(stdout.contains("Usage"), "help on stdout: {stdout}");
+}
+
+#[test]
+fn test_version_under_output_json_still_writes_to_stdout() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--version", "--output", "json"]);
+    assert_eq!(code, 0);
+    assert!(stdout.contains("xr"), "version on stdout: {stdout}");
+}
+
+#[test]
+fn test_envelope_consistency_clap_error_has_status_key() {
+    // R6 / p2-should-consistent-envelope: clap-error JSON and runtime-error
+    // JSON share the `status` discriminant; agents dispatch on it uniformly.
+    let (_code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]);
+    let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
+    assert!(
+        parsed.get("status").is_some(),
+        "clap-error envelope carries status: {stderr}"
+    );
+}
+
+#[test]
+fn test_raw_flag_accepted() {
+    // --raw is a global boolean flag; smoke-tests parse path.
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--raw", "--help"]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn test_json_and_output_conflict() {
+    // clap should reject `--output json --json` together (validated after
+    // parsing — --help would short-circuit, so use `version` subcommand).
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "--json", "version"]);
+    assert_ne!(code, 0, "--json + --output must conflict: {stderr}");
+}
+
+#[test]
+fn test_json_and_jsonl_conflict() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]);
+    assert_ne!(code, 0, "--json + --jsonl must conflict: {stderr}");
+}
+
+#[test]
+fn test_json_alias_envelope_equivalent_to_output_json() {
+    // On a clap parse failure, `--json` and `--output json` produce
+    // identical envelope JSON modulo the embedded clap-rendered message
+    // (which mentions the flag name). Compare structure on shared keys.
+    let (_c1, _o1, e1) = run_isolated(&["xr", "--bogus-flag", "--json"]);
+    let (_c2, _o2, e2) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]);
+    let p1: serde_json::Value = serde_json::from_str(e1.trim()).unwrap();
+    let p2: serde_json::Value = serde_json::from_str(e2.trim()).unwrap();
+    assert_eq!(p1["status"], p2["status"]);
+    assert_eq!(p1["reason"], p2["reason"]);
+    assert_eq!(p1["exit_code"], p2["exit_code"]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Subcommand help tests
 // ═══════════════════════════════════════════════════════════════════════════
 

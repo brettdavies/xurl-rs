@@ -87,6 +87,64 @@ impl XurlError {
     pub fn is_validation(&self) -> bool {
         matches!(self, Self::Validation(_))
     }
+
+    /// Returns a typed kebab-case identifier for this error.
+    ///
+    /// The closed set is the envelope `reason` vocabulary that agents
+    /// pattern-match on. Never returns English; never embeds state.
+    ///
+    /// | Variant                | `kind()`         |
+    /// | ---------------------- | ---------------- |
+    /// | `Auth`                 | `auth-required`  |
+    /// | `TokenStore`           | `token-store`    |
+    /// | `Api { 401, .. }`      | `auth-required`  |
+    /// | `Api { 429, .. }`      | `rate-limited`   |
+    /// | `Api { 404, .. }`      | `not-found`      |
+    /// | `Api { other, .. }`    | `network-error`  |
+    /// | `Http`                 | `network-error`  |
+    /// | `Io`                   | `io`             |
+    /// | `Json`                 | `serialization`  |
+    /// | `InvalidMethod`        | `invalid-method` |
+    /// | `Validation`           | `validation`     |
+    #[must_use]
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Auth(_) => "auth-required",
+            Self::TokenStore(_) => "token-store",
+            Self::Api { status: 401, .. } => "auth-required",
+            Self::Api { status: 429, .. } => "rate-limited",
+            Self::Api { status: 404, .. } => "not-found",
+            Self::Api { .. } => "network-error",
+            Self::Http(_) => "network-error",
+            Self::Io(_) => "io",
+            Self::Json(_) => "serialization",
+            Self::InvalidMethod(_) => "invalid-method",
+            Self::Validation(_) => "validation",
+        }
+    }
+
+    /// Returns the structured exit code for this error.
+    ///
+    /// Pattern-matches on `Api { status, .. }` directly for HTTP errors,
+    /// preserves string-scanning for `Http` transport errors (no structured
+    /// status available), and maps `Validation` to `EXIT_GENERAL_ERROR`.
+    #[must_use]
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            Self::Auth(_) | Self::TokenStore(_) => EXIT_AUTH_REQUIRED,
+            Self::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
+            Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
+            Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
+            Self::Http(msg) if msg.contains("401") || msg.contains("Unauthorized") => {
+                EXIT_AUTH_REQUIRED
+            }
+            Self::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
+            Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
+            Self::Io(_) => EXIT_NETWORK_ERROR,
+            Self::Validation(_) => EXIT_GENERAL_ERROR,
+            _ => EXIT_GENERAL_ERROR,
+        }
+    }
 }
 
 impl From<reqwest::Error> for XurlError {
@@ -126,19 +184,29 @@ pub type Result<T> = std::result::Result<T, XurlError>;
 
 /// Structured exit codes for machine-readable error handling.
 ///
-/// Following UNIX conventions and agent-native design:
-/// - 0: success
-/// - 1: general error
-/// - 2: auth required (agent should run `xurl auth login`)
-/// - 3: rate limited (agent should retry with backoff)
-/// - 4: not found (resource doesn't exist)
-/// - 5: network error (connectivity issue)
+/// Follows the sysexits-style matrix from the agent-native CLI envelope
+/// pattern (corpus doc #1):
+/// - `0` (`EXIT_SUCCESS`): success.
+/// - `1` (`EXIT_GENERAL_ERROR`): general / user-recoverable error.
+/// - `2` (`EXIT_USAGE_ERROR`): clap usage error (invalid args). Not surfaced
+///   here; emitted directly by the runner on parse failure.
+/// - `3` (`EXIT_RATE_LIMITED`): API rate limit hit — agent should back off.
+/// - `4` (`EXIT_NOT_FOUND`): resource not found.
+/// - `5` (`EXIT_NETWORK_ERROR`): network / connectivity issue.
+/// - `77` (`EXIT_AUTH_REQUIRED`): authentication required. Matches sysexits
+///   `EX_NOPERM`; disambiguates from clap `EX_USAGE` (2). Behavior change in
+///   v1.3.0 — auth-required errors were previously exit `2`.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_GENERAL_ERROR: i32 = 1;
+/// Authentication required. `EX_NOPERM` from sysexits — `77`.
+///
+/// **Behavior change in v1.3.0:** auth-required errors moved from exit `2`
+/// to `77` so the code unambiguously distinguishes auth failures from clap
+/// usage errors (which keep `EX_USAGE` = `2`).
 #[allow(dead_code)] // Public library API — used by consumers
-pub const EXIT_AUTH_REQUIRED: i32 = 2;
+pub const EXIT_AUTH_REQUIRED: i32 = 77;
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_RATE_LIMITED: i32 = 3;
 #[allow(dead_code)] // Public library API — used by consumers
@@ -148,24 +216,9 @@ pub const EXIT_NETWORK_ERROR: i32 = 5;
 
 /// Maps an [`XurlError`] to a structured exit code.
 ///
-/// Pattern-matches on `Api { status, .. }` directly for HTTP errors,
-/// preserves string-scanning for `Http` transport errors (no structured
-/// status available), and maps `Validation` to `EXIT_GENERAL_ERROR`.
+/// Free-function shim delegating to [`XurlError::exit_code`].
 #[allow(dead_code)] // Public library API — used by consumers
 #[must_use]
 pub fn exit_code_for_error(e: &XurlError) -> i32 {
-    match e {
-        XurlError::Auth(_) | XurlError::TokenStore(_) => EXIT_AUTH_REQUIRED,
-        XurlError::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
-        XurlError::Api { status: 429, .. } => EXIT_RATE_LIMITED,
-        XurlError::Api { status: 404, .. } => EXIT_NOT_FOUND,
-        XurlError::Http(msg) if msg.contains("401") || msg.contains("Unauthorized") => {
-            EXIT_AUTH_REQUIRED
-        }
-        XurlError::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
-        XurlError::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
-        XurlError::Io(_) => EXIT_NETWORK_ERROR,
-        XurlError::Validation(_) => EXIT_GENERAL_ERROR,
-        _ => EXIT_GENERAL_ERROR,
-    }
+    e.exit_code()
 }

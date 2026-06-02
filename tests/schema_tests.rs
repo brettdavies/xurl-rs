@@ -80,7 +80,7 @@ fn schema_no_extra_named_property() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn schema_list_shows_all_29_commands() {
+fn schema_list_shows_all_commands_plus_envelope() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["schema", "--list"])
@@ -89,7 +89,12 @@ fn schema_list_shows_all_29_commands() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
-    assert_eq!(lines.len(), 29, "Expected 29 commands, got {}", lines.len());
+    // 29 typed response commands + 1 envelope schema row.
+    assert_eq!(lines.len(), 30, "Expected 30 rows, got {}", lines.len());
+    assert!(
+        stdout.contains("envelope"),
+        "--list should advertise the envelope schema"
+    );
 }
 
 #[test]
@@ -254,6 +259,76 @@ fn schema_no_args_shows_usage() {
 // ═══════════════════════════════════════════════════════════════════════════
 // Command mapping correctness
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U5: envelope schema + drift guard
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn envelope_schema_is_draft_2020_12_with_oneof() {
+    // `xr schema envelope` emits the canonical envelope JSON Schema; agents
+    // pin against `$schema` + the three-variant `oneOf`.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "envelope"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let parsed: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        parsed["$schema"], "https://json-schema.org/draft/2020-12/schema",
+        "envelope schema must declare Draft 2020-12"
+    );
+    let variants = parsed["oneOf"]
+        .as_array()
+        .expect("envelope schema has oneOf array");
+    assert_eq!(
+        variants.len(),
+        3,
+        "envelope has three variants: ok, dry_run, error"
+    );
+}
+
+#[test]
+fn envelope_schema_via_flag_equals_positional() {
+    let by_pos = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "envelope"])
+        .output()
+        .unwrap();
+    let by_flag = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "--envelope"])
+        .output()
+        .unwrap();
+    assert!(by_pos.status.success());
+    assert!(by_flag.status.success());
+    assert_eq!(by_pos.stdout, by_flag.stdout);
+}
+
+#[test]
+fn committed_envelope_schema_matches_runtime() {
+    // Drift guard: schema/output.schema.json must match the runtime-emitted
+    // schema byte-for-byte. Regenerate via:
+    //   cargo run --bin xr -- schema envelope --output json > schema/output.schema.json
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "envelope", "--output", "json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let runtime = String::from_utf8(output.stdout).unwrap();
+    let committed = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/schema/output.schema.json"
+    ))
+    .expect("schema/output.schema.json must be committed at the repo root");
+    assert_eq!(
+        runtime.trim(),
+        committed.trim(),
+        "schema/output.schema.json drifted; regenerate with: cargo run --bin xr -- schema envelope --output json > schema/output.schema.json"
+    );
+}
 
 #[test]
 fn schema_commands_sharing_type_produce_identical_output() {
