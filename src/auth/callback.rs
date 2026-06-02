@@ -395,19 +395,19 @@ mod tests {
 
     #[test]
     fn callback_path_from_explicit_path() {
-        let uri = Url::parse("http://localhost:8080/callback").unwrap();
+        let uri = Url::parse("http://localhost:8080/callback").expect("test URL must parse");
         assert_eq!(callback_path_from(&uri), "/callback");
     }
 
     #[test]
     fn callback_path_from_trailing_slash_root_honoured() {
-        let uri = Url::parse("http://localhost:8080/").unwrap();
+        let uri = Url::parse("http://localhost:8080/").expect("test URL must parse");
         assert_eq!(callback_path_from(&uri), "/");
     }
 
     #[test]
     fn callback_path_from_custom_path() {
-        let uri = Url::parse("http://localhost:8080/oauth/return").unwrap();
+        let uri = Url::parse("http://localhost:8080/oauth/return").expect("test URL must parse");
         assert_eq!(callback_path_from(&uri), "/oauth/return");
     }
 

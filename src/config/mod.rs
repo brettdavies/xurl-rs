@@ -381,7 +381,7 @@ mod tests {
     #[test]
     #[serial]
     fn resolve_redirect_uri_env_wins() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("create tempdir for redirect_uri test");
         let store_path = tmp.path().join(".xurl");
         write_store_with_redirect_uri(&store_path, "app1", "http://localhost:7777/cb");
 
@@ -400,7 +400,7 @@ mod tests {
     #[test]
     #[serial]
     fn resolve_redirect_uri_stored_when_no_env() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("create tempdir for redirect_uri test");
         let store_path = tmp.path().join(".xurl");
         write_store_with_redirect_uri(&store_path, "app1", "http://localhost:9090/cb");
 
@@ -416,7 +416,7 @@ mod tests {
     #[test]
     #[serial]
     fn resolve_redirect_uri_default_fallback() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("create tempdir for redirect_uri test");
         let store_path = tmp.path().join(".xurl");
         write_empty_store(&store_path, "app1");
 
