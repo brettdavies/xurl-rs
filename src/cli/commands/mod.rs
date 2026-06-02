@@ -42,17 +42,32 @@ fn is_interactive(no_interactive: bool, quiet: bool) -> bool {
     !no_interactive && !quiet && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
 }
 
-/// Confirms a destructive op interactively via dialoguer.
+/// Confirms a destructive op interactively via stdin.
 ///
-/// Returns `Ok(true)` on `y`, `Ok(false)` on `n` or Esc, `Err` only on
-/// IO failure.
+/// Writes the prompt with `[y/N]` to stderr, reads one line from stdin,
+/// returns `Ok(true)` on a `y`/`yes` answer (case-insensitive), `Ok(false)`
+/// otherwise (including EOF). `Err` only on IO failure.
+///
+/// Stays dialoguer-free so the binary doesn't carry an interactive prompt
+/// library dependency — gating already happens in [`is_interactive`].
 fn confirm_destructive(prompt: &str) -> Result<bool> {
-    let answer = dialoguer::Confirm::new()
-        .with_prompt(prompt)
-        .default(false)
-        .interact_opt()
+    use std::io::{BufRead, Write as _};
+    let stderr = std::io::stderr();
+    let mut handle = stderr.lock();
+    write!(handle, "{prompt} [y/N]: ")
         .map_err(|e| XurlError::validation(format!("confirmation prompt failed: {e}")))?;
-    Ok(answer.unwrap_or(false))
+    handle
+        .flush()
+        .map_err(|e| XurlError::validation(format!("confirmation prompt failed: {e}")))?;
+    drop(handle);
+
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).is_err() {
+        return Ok(false);
+    }
+    let answer = line.trim().to_ascii_lowercase();
+    Ok(matches!(answer.as_str(), "y" | "yes"))
 }
 
 /// Outcome of the force/confirmation gate for a destructive op.
