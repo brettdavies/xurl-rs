@@ -12,6 +12,47 @@ use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::{OutputConfig, OutputFormat};
 use crate::store::TokenStore;
 
+/// Lists `items` on stderr with numeric indices and prompts the user to pick
+/// one via stdin. Returns the chosen item on success or `Ok(None)` on EOF /
+/// blank input / out-of-range / non-numeric input.
+///
+/// Stays dialoguer-free so the binary doesn't carry an interactive prompt
+/// library dependency. Callers must verify TTY readiness independently.
+fn prompt_select(label: &str, items: &[String]) -> Result<Option<String>> {
+    use std::io::BufRead;
+    let stderr = std::io::stderr();
+    let mut handle = stderr.lock();
+    writeln!(handle, "{label}:")
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    for (idx, item) in items.iter().enumerate() {
+        writeln!(handle, "  {}) {item}", idx + 1)
+            .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    }
+    write!(handle, "Choice [1-{}]: ", items.len())
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    handle
+        .flush()
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    drop(handle);
+
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).is_err() {
+        return Ok(None);
+    }
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let Ok(idx) = trimmed.parse::<usize>() else {
+        return Ok(None);
+    };
+    if idx == 0 || idx > items.len() {
+        return Ok(None);
+    }
+    Ok(Some(items[idx - 1].clone()))
+}
+
 /// Bundle of global flags relevant to auth subcommands.
 ///
 /// Mirrors the parent module's `GlobalFlags`, scoped to the subset auth needs.
@@ -483,16 +524,9 @@ pub(super) fn run_auth_command(
                     return Ok(());
                 }
 
-                let app_choice = match dialoguer::Select::new()
-                    .with_prompt("Select default app")
-                    .items(&apps)
-                    .interact_opt()
-                {
-                    Ok(Some(idx)) => apps[idx].clone(),
-                    Ok(None) => return Ok(()),
-                    Err(e) => {
-                        return Err(XurlError::validation(format!("Selection error: {e}")));
-                    }
+                let app_choice = match prompt_select("Select default app", &apps)? {
+                    Some(name) => name,
+                    None => return Ok(()),
                 };
 
                 auth.token_store.set_default_app(&app_choice)?;
@@ -508,13 +542,9 @@ pub(super) fn run_auth_command(
                 let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
                 if !users.is_empty()
                     && out.is_interactive_terminal()
-                    && let Ok(Some(idx)) = dialoguer::Select::new()
-                        .with_prompt("Select default OAuth2 user")
-                        .items(&users)
-                        .interact_opt()
+                    && let Ok(Some(user)) = prompt_select("Select default OAuth2 user", &users)
                 {
-                    let user = &users[idx];
-                    auth.token_store.set_default_user(&app_choice, user)?;
+                    auth.token_store.set_default_user(&app_choice, &user)?;
                     out.print_message(
                         stdout,
                         &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
