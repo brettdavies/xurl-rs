@@ -2835,6 +2835,11 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
         .env("HOME", tmp.path())
         .env_remove("XURL_NO_BROWSER")
         .env_remove("XURL_OUTPUT")
+        // Other tests in this binary set `XURL_DRY_RUN=1` to exercise the
+        // dry-run envelope; that env var leaks into the subprocess unless we
+        // clear it here, which would short-circuit U9's awaiting_callback
+        // path through the U7 dry-run branch.
+        .env_remove("XURL_DRY_RUN")
         .args(["auth", "oauth2", "--no-browser", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2865,6 +2870,7 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
         .env("HOME", tmp.path())
         .env("XURL_NO_BROWSER", "1")
         .env_remove("XURL_OUTPUT")
+        .env_remove("XURL_DRY_RUN")
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2892,6 +2898,7 @@ fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
         .env("HOME", tmp.path())
         .env_remove("XURL_NO_BROWSER")
         .env_remove("XURL_OUTPUT")
+        .env_remove("XURL_DRY_RUN")
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");

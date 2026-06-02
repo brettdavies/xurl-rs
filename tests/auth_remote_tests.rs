@@ -887,6 +887,11 @@ fn cli_no_browser_without_step_auto_engages_step1() {
     let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
         .env("HOME", tmp.path())
+        // U7 dry-run tests in this binary set `XURL_DRY_RUN=1`; without an
+        // explicit removal the env var leaks into our subprocess and routes
+        // through the dry-run envelope instead of step 1.
+        .env_remove("XURL_DRY_RUN")
+        .env_remove("XURL_NO_BROWSER")
         .args(["auth", "oauth2", "--no-browser"])
         .output()
         .unwrap();
