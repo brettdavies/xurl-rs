@@ -915,12 +915,18 @@ fn test_stream_request_error() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
     let err = client
-        .stream_request(&RequestOptions {
-            method: "GET".to_string(),
-            endpoint: "/2/tweets/search/stream/error".to_string(),
-            ..Default::default()
-        })
+        .stream_request(
+            &RequestOptions {
+                method: "GET".to_string(),
+                endpoint: "/2/tweets/search/stream/error".to_string(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
         .unwrap_err();
     assert!(err.is_api(), "Expected API error, got: {err}");
 }

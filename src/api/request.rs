@@ -10,6 +10,7 @@ use reqwest::blocking::{Client, multipart};
 use crate::auth::Auth;
 use crate::config::Config;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 /// Common options for API requests.
 #[derive(Debug, Clone, Default)]
@@ -92,6 +93,12 @@ pub struct ApiClient {
     client: Client,
     auth: Auth,
     timeout_secs: u64,
+    /// Output configuration used to route verbose request/response logs
+    /// through the single owner in `src/output.rs`. Library callers that
+    /// haven't supplied one get the [`OutputConfig::default`] (text, no
+    /// verbose) — equivalent to the pre-U8 behavior where `verbose=false`
+    /// suppressed diagnostics.
+    out: OutputConfig,
 }
 
 impl ApiClient {
@@ -121,6 +128,7 @@ impl ApiClient {
             client,
             auth,
             timeout_secs,
+            out: OutputConfig::default(),
         }
     }
 
@@ -128,6 +136,16 @@ impl ApiClient {
     #[must_use]
     pub fn timeout_secs(&self) -> u64 {
         self.timeout_secs
+    }
+
+    /// Installs an `OutputConfig` for verbose request/response diagnostics.
+    ///
+    /// The CLI runner calls this after constructing the client so the
+    /// verbose logs route through the single output owner. Library callers
+    /// that skip this get a default config (text, verbose off), which
+    /// matches the pre-U8 behavior.
+    pub fn set_output(&mut self, out: OutputConfig) {
+        self.out = out;
     }
 
     /// Creates an `ApiClient` from environment variables.
@@ -230,21 +248,20 @@ impl ApiClient {
         }
 
         if options.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            let mut err = std::io::stderr().lock();
+            if self.out.use_color {
+                self.out
+                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(&mut err, &format!("> {method} {url}"));
+            }
         }
 
         let resp = builder.send()?;
 
         if options.verbose {
-            eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-            for (key, value) in resp.headers() {
-                eprintln!(
-                    "\x1b[1;32m< {}\x1b[0m: {}",
-                    key,
-                    value.to_str().unwrap_or("")
-                );
-            }
-            eprintln!();
+            let mut err = std::io::stderr().lock();
+            log_response_headers(&self.out, &mut err, resp.status(), resp.headers());
         }
 
         let status = resp.status();
@@ -334,7 +351,13 @@ impl ApiClient {
         }
 
         if options.request.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            let mut err = std::io::stderr().lock();
+            if self.out.use_color {
+                self.out
+                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(&mut err, &format!("> {method} {url}"));
+            }
         }
 
         let resp = builder.send()?;
@@ -356,16 +379,24 @@ impl ApiClient {
 
     /// Sends a streaming request — reads lines until EOF.
     ///
-    /// Note: The binary uses `stream_request_with_output` in `cli::commands`
-    /// for output-format awareness. This method is retained for library usage
-    /// and tests.
+    /// All output flows through this client's configured `OutputConfig`
+    /// (set via [`ApiClient::set_output`]); the CLI binary calls the
+    /// `stream_request_with_output` helper in `cli::commands` which threads
+    /// the runner's `OutputConfig` and writers in directly. Library callers
+    /// pass their own `stdout`/`stderr` here so a streaming session can be
+    /// captured in tests or redirected to a custom sink.
     ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// the API returns an error status (>= 400), or a read error occurs.
     #[allow(dead_code)] // Public library API — used by consumers and integration tests
-    pub fn stream_request(&mut self, options: &RequestOptions) -> Result<()> {
+    pub fn stream_request(
+        &mut self,
+        options: &RequestOptions,
+        stdout: &mut dyn std::io::Write,
+        stderr: &mut dyn std::io::Write,
+    ) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         let url = self.build_url(&options.endpoint);
@@ -411,23 +442,23 @@ impl ApiClient {
         }
 
         if options.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            if self.out.use_color {
+                self.out
+                    .verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(stderr, &format!("> {method} {url}"));
+            }
         }
 
-        eprintln!("Connecting to streaming endpoint: {}", options.endpoint);
+        self.out.status(
+            stderr,
+            &format!("Connecting to streaming endpoint: {}", options.endpoint),
+        );
 
         let resp = builder.send()?;
 
         if options.verbose {
-            eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-            for (key, value) in resp.headers() {
-                eprintln!(
-                    "\x1b[1;32m< {}\x1b[0m: {}",
-                    key,
-                    value.to_str().unwrap_or("")
-                );
-            }
-            eprintln!();
+            log_response_headers(&self.out, stderr, resp.status(), resp.headers());
         }
 
         let resp_status = resp.status();
@@ -439,8 +470,9 @@ impl ApiClient {
             return Err(XurlError::api(resp_status.as_u16(), body));
         }
 
-        eprintln!("--- Streaming response started ---");
-        eprintln!("--- Press Ctrl+C to stop ---");
+        self.out
+            .status(stderr, "--- Streaming response started ---");
+        self.out.status(stderr, "--- Press Ctrl+C to stop ---");
 
         let reader = BufReader::with_capacity(1024 * 1024, resp);
         for line in reader.lines() {
@@ -449,7 +481,7 @@ impl ApiClient {
                     if line.is_empty() {
                         continue;
                     }
-                    println!("{line}");
+                    self.out.print_stream_line(stdout, &line);
                 }
                 Err(e) => {
                     return Err(XurlError::Io(e.to_string()));
@@ -457,7 +489,7 @@ impl ApiClient {
             }
         }
 
-        eprintln!("--- End of stream ---");
+        self.out.status(stderr, "--- End of stream ---");
         Ok(())
     }
 
@@ -512,6 +544,33 @@ impl ApiClient {
             "NoAuthMethod: no authentication method available",
         ))
     }
+}
+
+/// Emits the verbose response-header dump (`< STATUS`, `< key: value`, blank
+/// line) through the supplied `OutputConfig`. Lives at module scope so
+/// `send_request`, `send_multipart_request`, and `stream_request` share one
+/// implementation.
+fn log_response_headers(
+    out: &OutputConfig,
+    err: &mut dyn std::io::Write,
+    status: reqwest::StatusCode,
+    headers: &reqwest::header::HeaderMap,
+) {
+    if out.use_color {
+        out.verbose(err, &format!("\x1b[1;31m< {status}\x1b[0m"));
+        for (key, value) in headers {
+            out.verbose(
+                err,
+                &format!("\x1b[1;32m< {key}\x1b[0m: {}", value.to_str().unwrap_or("")),
+            );
+        }
+    } else {
+        out.verbose(err, &format!("< {status}"));
+        for (key, value) in headers {
+            out.verbose(err, &format!("< {key}: {}", value.to_str().unwrap_or("")));
+        }
+    }
+    out.verbose(err, "");
 }
 
 #[cfg(test)]

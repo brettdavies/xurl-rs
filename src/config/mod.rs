@@ -205,11 +205,12 @@ pub(crate) struct ResolvedRedirectUri {
 /// `stored` is the per-app value from `TokenStore::get_app_redirect_uri`.
 ///
 /// When `env_value` is set but fails [`Config::validate_redirect_uri`](Config::validate_redirect_uri), the helper
-/// emits a one-line warning to stderr (via `eprintln!`) and falls through to the
-/// next precedence level. The pure helper has no `OutputConfig` available, so the
-/// warning shape is intentionally minimal; the binary's `OutputConfig::print_message`
-/// equivalent would be redundant here since callers cannot suppress the env-var
-/// rejection in any meaningful way.
+/// emits a one-line warning to stderr (via [`crate::output::warn_stderr`])
+/// and falls through to the next precedence level. The pure helper has no
+/// `OutputConfig` available, so the warning shape is intentionally minimal;
+/// the binary's `OutputConfig::print_message` equivalent would be redundant
+/// here since callers cannot suppress the env-var rejection in any meaningful
+/// way.
 ///
 /// Stored values are assumed valid — validation is enforced at `set_app_redirect_uri`
 /// write time per R2.
@@ -224,8 +225,8 @@ pub(crate) fn resolve_redirect_uri_from(
                 source: ResolveSource::EnvVar,
             };
         }
-        eprintln!(
-            "warning: REDIRECT_URI env value rejected by validation; falling through to next precedence level"
+        crate::output::warn_stderr(
+            "REDIRECT_URI env value rejected by validation; falling through to next precedence level",
         );
     }
 

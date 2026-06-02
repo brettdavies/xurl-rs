@@ -95,7 +95,7 @@ impl TokenStore {
             if twurlrc_path.exists()
                 && let Err(e) = store.import_from_twurlrc(&twurlrc_path)
             {
-                eprintln!("Error importing from .twurlrc: {e}");
+                crate::output::warn_stderr(&format!("error importing from .twurlrc: {e}"));
             }
         }
 

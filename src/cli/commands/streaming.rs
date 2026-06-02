@@ -85,7 +85,11 @@ pub(super) fn stream_request_with_output(
     }
 
     if options.verbose {
-        eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+        if out.use_color {
+            out.verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+        } else {
+            out.verbose(stderr, &format!("> {method} {url}"));
+        }
     }
 
     out.status(
@@ -96,15 +100,25 @@ pub(super) fn stream_request_with_output(
     let resp = builder.send()?;
 
     if options.verbose {
-        eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-        for (key, value) in resp.headers() {
-            eprintln!(
-                "\x1b[1;32m< {}\x1b[0m: {}",
-                key,
-                value.to_str().unwrap_or("")
-            );
+        let status = resp.status();
+        if out.use_color {
+            out.verbose(stderr, &format!("\x1b[1;31m< {status}\x1b[0m"));
+            for (key, value) in resp.headers() {
+                out.verbose(
+                    stderr,
+                    &format!("\x1b[1;32m< {key}\x1b[0m: {}", value.to_str().unwrap_or("")),
+                );
+            }
+        } else {
+            out.verbose(stderr, &format!("< {status}"));
+            for (key, value) in resp.headers() {
+                out.verbose(
+                    stderr,
+                    &format!("< {key}: {}", value.to_str().unwrap_or("")),
+                );
+            }
         }
-        eprintln!();
+        out.verbose(stderr, "");
     }
 
     let resp_status = resp.status();
