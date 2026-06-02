@@ -1,5 +1,6 @@
 /// Command execution — dispatches CLI commands to API functions.
 mod auth;
+pub mod examples;
 mod media;
 pub mod schema;
 mod streaming;
@@ -459,6 +460,9 @@ fn run_subcommand(
         }
         Commands::Version => {
             unreachable!("version is handled before config init in main()")
+        }
+        Commands::Examples => {
+            unreachable!("examples is handled before config init in main()")
         }
     }
     Ok(())
