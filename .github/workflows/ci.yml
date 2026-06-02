@@ -30,3 +30,13 @@ permissions:
 jobs:
   ci:
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
+
+  lint-stdio:
+    name: Output discipline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Run scripts/lint-stdio.sh
+        run: bash scripts/lint-stdio.sh

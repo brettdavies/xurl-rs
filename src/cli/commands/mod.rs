@@ -153,6 +153,15 @@ fn print_typed<T: Serialize>(
     Ok(())
 }
 
+/// Constructs an `ApiClient` with the runner's `OutputConfig` already
+/// installed so verbose request/response diagnostics flow through the
+/// single owner of stdio (`src/output.rs`).
+fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
+    let mut client = ApiClient::new(cfg, auth);
+    client.set_output(out.clone());
+    client
+}
+
 /// Runs the CLI — dispatches to the appropriate handler.
 ///
 /// `auth` is constructed by the caller (typically `xurl::cli::runner`) so the
@@ -249,7 +258,7 @@ fn run_raw_mode(
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
     let media_file = cli.file.clone().unwrap_or_default();
 
-    let mut client = ApiClient::new(cfg, auth);
+    let mut client = make_client(cfg, auth, out);
     let options = RequestOptions {
         method,
         endpoint: url.clone(),
@@ -320,7 +329,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.create_post(&text, &media_ids, &opts)?;
             // NOTE: All match arms below follow this same pattern — auth is moved
@@ -350,7 +359,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.reply_to_post(&post_id, &text, &media_ids, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -374,7 +383,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.quote_post(&post_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -410,7 +419,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.delete_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -418,7 +427,7 @@ fn run_subcommand(
 
         // ── Reading ──────────────────────────────────────────────────
         Commands::Read { post_id, common } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.read_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -429,7 +438,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.search_posts(&query, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -437,7 +446,7 @@ fn run_subcommand(
 
         // ── User Info ────────────────────────────────────────────────
         Commands::Whoami { common } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_me(&opts)?;
             print_typed(out, stdout, &response)?;
@@ -446,7 +455,7 @@ fn run_subcommand(
             target_username,
             common,
         } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.lookup_user(&target_username, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -458,7 +467,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_timeline(&user_id, n, &opts)?;
@@ -469,7 +478,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_mentions(&user_id, n, &opts)?;
@@ -486,7 +495,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.like_post(&user_id, &post_id, &opts)?;
@@ -501,7 +510,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unlike_post(&user_id, &post_id, &opts)?;
@@ -516,7 +525,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.repost(&user_id, &post_id, &opts)?;
@@ -531,7 +540,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unrepost(&user_id, &post_id, &opts)?;
@@ -546,7 +555,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.bookmark(&user_id, &post_id, &opts)?;
@@ -561,7 +570,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unbookmark(&user_id, &post_id, &opts)?;
@@ -572,7 +581,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_bookmarks(&user_id, n, &opts)?;
@@ -583,7 +592,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_liked_posts(&user_id, n, &opts)?;
@@ -603,7 +612,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -622,7 +631,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -635,7 +644,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
@@ -651,7 +660,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
@@ -673,7 +682,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -692,7 +701,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -711,7 +720,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -730,7 +739,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -740,7 +749,7 @@ fn run_subcommand(
 
         // ── Usage ─────────────────────────────────────────────────────
         Commands::Usage { common } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_usage(&opts)?;
             print_typed(out, stdout, &response)?;
@@ -766,7 +775,7 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.send_dm(&target_id, &text, &opts)?;
@@ -777,7 +786,7 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = ApiClient::new(cfg, auth);
+            let mut client = make_client(cfg, auth, out);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.get_dm_events(n, &opts)?;
             print_typed(out, stdout, &response)?;

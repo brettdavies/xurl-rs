@@ -93,9 +93,9 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///   under the discovered name;
 /// - caller supplied empty `username` and `fetch_username` fails -> save into
 ///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
-///   `eprintln!` so the access token isn't discarded along with the lookup
-///   failure.
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
+///   via [`crate::output::warn_stderr`] so the access token isn't discarded
+///   along with the lookup failure.
 ///
 /// # Errors
 ///
@@ -169,8 +169,8 @@ pub(crate) fn exchange_code_for_token(
                 )?;
             }
             Err(_) => {
-                eprintln!(
-                    "warning: token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                crate::output::warn_stderr(
+                    "token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot",
                 );
                 auth.token_store.save_oauth2_token_unnamed_for_app(
                     &app_name,
@@ -300,7 +300,7 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         // would require expanding the `Auth::remote_oauth2_step1` signature
         // for a single warning line. Library tests covering remote OAuth2
         // step 1 don't exercise the overwrite branch.
-        eprintln!("Warning: Overwriting previous pending auth flow");
+        crate::output::warn_stderr("overwriting previous pending auth flow");
     }
 
     let state_bytes: [u8; 32] = rand::random();
@@ -412,9 +412,9 @@ pub fn run_remote_step2(
 ///   under the discovered name;
 /// - caller supplied empty `username` and `fetch_username` fails -> save into
 ///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
-///   `eprintln!` (the function lacks an `OutputConfig`; the persisted store
-///   state is the load-bearing observable).
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
+///   via [`crate::output::warn_stderr`] (the function lacks an
+///   `OutputConfig`; the persisted store state is the load-bearing observable).
 ///
 /// # Errors
 ///
@@ -508,8 +508,8 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
                 )?;
             }
             Err(_) => {
-                eprintln!(
-                    "warning: refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                crate::output::warn_stderr(
+                    "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot",
                 );
                 auth.token_store.save_oauth2_token_unnamed_for_app(
                     &app_name,
