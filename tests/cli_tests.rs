@@ -782,6 +782,16 @@ fn populate_credentialed_store(store_path: &Path) {
     .expect("save_oauth1");
     ts.save_bearer_token_for_app("myapp", "BEARER-VALUE-FFF")
         .expect("save_bearer");
+    // KTD9 + R20: the unnamed slot carries OAuth2 credentials that must also
+    // be excluded from rendered JSON. The banned-string list below grows to
+    // match.
+    ts.save_oauth2_token_unnamed_for_app(
+        "myapp",
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
+        1_900_000_000,
+    )
+    .expect("save_oauth2_unnamed");
     ts.set_default_app("myapp").expect("set_default_app");
     // `TokenStore::new_with_path` seeds an empty `"default"` placeholder app
     // on first load; drop it so the JSON array carries exactly one entry.
@@ -799,6 +809,11 @@ fn assert_no_credentials(stdout: &str, context: &str) {
         "CONSUMER-SECRET-DDD",
         "TOKEN-SECRET-EEE",
         "BEARER-VALUE-FFF",
+        // Unnamed (`/me`-failed salvage) slot credentials from
+        // `populate_credentialed_store` per KTD1; the JSON entry surfaces
+        // only `oauth2_unnamed: true`, never the raw token strings.
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
         // Credential field names that would only appear if `App` were
         // serialized directly or via `From<&App>`.
         "client_secret",
@@ -1578,5 +1593,199 @@ fn test_oauth2_positional_invalid_extra_args() {
     assert!(
         stderr.contains("error"),
         "stderr should contain clap error text: {stderr}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U5: credential-less-default warning + status/list unnamed-slot rendering
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Seeds a store where the default app `default` has no `client_id` but
+/// another registered app `myapp` does — the configuration that triggers the
+/// credential-less-default warning per R13.
+fn seed_credential_less_default_with_alternative(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    // `TokenStore::new_with_path` seeds an empty `default` placeholder app
+    // with empty credentials; that is exactly what we want here.
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+    // The default app remains `default` (the placeholder).
+}
+
+/// Seeds a store where only the default app `default` exists with no
+/// credentials; no credentialed alternative — the warning must NOT fire.
+fn seed_credential_less_default_only(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let _ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    // `new_with_path` already seeds an empty `default` app; nothing else to do.
+}
+
+/// Seeds a store where the default app `default` HAS credentials — the
+/// warning must NOT fire.
+fn seed_default_with_credentials(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.update_app("default", "DEFAULT-CLIENT-ID", "DEFAULT-SECRET")
+        .expect("update_app");
+}
+
+#[test]
+fn test_credential_less_default_warning_fires() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_with_alternative(&store);
+
+    // `--no-browser --step 1` emits the auth URL and returns; it does NOT
+    // touch the network or write a token. The credential-less-default check
+    // runs BEFORE this dispatch.
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        stderr.contains("warning: --app not specified"),
+        "stderr should contain credential-less-default warning; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("--app myapp"),
+        "stderr should reference the credentialed alternative `myapp`; got: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_by_explicit_app() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_with_alternative(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "myapp",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "explicit `--app` must suppress the warning; got stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_no_credentialed_alternative() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_only(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "warning must NOT fire when no credentialed alternative exists; got stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_when_default_has_credentials() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_default_with_credentials(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "warning must NOT fire when the default app already has credentials; got stderr: {stderr}"
+    );
+}
+
+/// Seeds a store with one app `myapp` carrying an unnamed OAuth2 token and
+/// no named OAuth2 entries.
+fn seed_app_with_unnamed_oauth2(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+    ts.save_oauth2_token_unnamed_for_app(
+        "myapp",
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
+        1_900_000_000,
+    )
+    .expect("save_oauth2_unnamed");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+}
+
+#[test]
+fn test_status_text_shows_unnamed_oauth2() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_app_with_unnamed_oauth2(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("oauth2: (unknown user)"),
+        "status text should render `oauth2: (unknown user)` for the unnamed slot; got:\n{stdout}"
+    );
+}
+
+#[test]
+fn test_status_json_emits_oauth2_unnamed_true() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_app_with_unnamed_oauth2(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(
+        code, 0,
+        "auth status --output json failed; stderr: {stderr}"
+    );
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(
+        entry["oauth2_unnamed"],
+        serde_json::Value::Bool(true),
+        "oauth2_unnamed must be true; got entry: {entry}"
+    );
+}
+
+#[test]
+fn test_status_json_omits_oauth2_unnamed_when_false() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    // Reuse the bearer-only fixture: no named OAuth2, no unnamed slot.
+    populate_bearer_store(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(
+        code, 0,
+        "auth status --output json failed; stderr: {stderr}"
+    );
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert!(
+        entry.get("oauth2_unnamed").is_none(),
+        "oauth2_unnamed must be omitted when false; got entry: {entry}"
     );
 }
