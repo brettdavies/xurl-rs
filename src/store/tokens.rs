@@ -77,6 +77,36 @@ impl TokenStore {
         self.save_to_file()
     }
 
+    /// Saves an `OAuth2` token into the named app's unnamed (`/me`-failed salvage) slot.
+    ///
+    /// Used by the refresh and exchange paths when post-token username discovery
+    /// fails: the refreshed access token is still valid and is preserved here
+    /// rather than discarded. Single-occupancy, last-write-wins per `KTD1`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn save_oauth2_token_unnamed_for_app(
+        &mut self,
+        app_name: &str,
+        access_token: &str,
+        refresh_token: &str,
+        expiration_time: u64,
+    ) -> Result<()> {
+        let app = self.resolve_app_mut(app_name);
+        app.unnamed_oauth2_token = Some(Token {
+            token_type: TokenType::Oauth2,
+            bearer: None,
+            oauth2: Some(OAuth2Token {
+                access_token: access_token.to_string(),
+                refresh_token: refresh_token.to_string(),
+                expiration_time,
+            }),
+            oauth1: None,
+        });
+        self.save_to_file()
+    }
+
     /// Saves `OAuth1` tokens into the resolved app.
     ///
     /// # Errors
@@ -158,6 +188,15 @@ impl TokenStore {
             return Some(token);
         }
         app.oauth2_tokens.values().next()
+    }
+
+    /// Gets the unnamed (`/me`-failed salvage) `OAuth2` token from the named app.
+    ///
+    /// Returns `None` when the slot is empty.
+    #[must_use]
+    pub fn get_oauth2_token_unnamed_for_app(&self, app_name: &str) -> Option<&Token> {
+        let app = self.resolve_app(app_name);
+        app.unnamed_oauth2_token.as_ref()
     }
 
     /// Gets `OAuth1` tokens from the resolved app.
@@ -267,6 +306,7 @@ impl TokenStore {
         app.oauth2_tokens.clear();
         app.oauth1_token = None;
         app.bearer_token = None;
+        app.unnamed_oauth2_token = None;
         self.save_to_file()
     }
 

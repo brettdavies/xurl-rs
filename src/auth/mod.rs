@@ -2,7 +2,7 @@
 ///
 /// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
 /// env-var config -> active app in `.xurl` store.
-pub(crate) mod callback;
+pub mod callback;
 pub mod oauth1;
 pub mod oauth2;
 pub mod pending;
@@ -16,12 +16,14 @@ use crate::store::TokenStore;
 #[allow(clippy::struct_field_names)]
 pub struct Auth {
     pub token_store: TokenStore,
-    info_url: String,
+    /// Owned application configuration. The redirect URI here is the
+    /// resolver output (env > app-stored > built-in default), written by
+    /// [`Auth::new_with_store_path`] and re-resolved by
+    /// [`Auth::with_app_name`]. This is the single source of truth per
+    /// KTD2 — no parallel `redirect_uri` field lives on `Auth`.
+    config: Config,
     client_id: String,
     client_secret: String,
-    auth_url: String,
-    token_url: String,
-    redirect_uri: String,
     app_name: String,
 }
 
@@ -41,6 +43,11 @@ impl Auth {
     /// touching the real `~/.xurl`; the binary calls [`Auth::new`] which
     /// resolves to [`Config::default_store_path`]. Credentials are resolved:
     /// env vars -> active app at `store_path`.
+    ///
+    /// Runs the three-level redirect URI resolver (env > app-stored >
+    /// built-in default) against the constructed token store and writes the
+    /// result back into the owned `Config`, satisfying KTD2's single source
+    /// of truth invariant.
     #[must_use]
     pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
         let path_str = store_path.to_str().unwrap_or(".");
@@ -59,19 +66,30 @@ impl Auth {
             client_secret.clone_from(&app.client_secret);
         }
 
+        let mut config = cfg.clone();
+        let resolved = crate::config::resolve_redirect_uri_from(
+            std::env::var("REDIRECT_URI").ok(),
+            ts.get_app_redirect_uri(&app_name),
+        );
+        config.redirect_uri = resolved.uri;
+        config.redirect_uri_source = resolved.source;
+        config.redirect_uri_from_env = resolved.source.is_env_var();
+
         Self {
             token_store: ts,
-            info_url: cfg.info_url.clone(),
+            config,
             client_id,
             client_secret,
-            auth_url: cfg.auth_url.clone(),
-            token_url: cfg.token_url.clone(),
-            redirect_uri: cfg.redirect_uri.clone(),
             app_name,
         }
     }
 
-    /// Sets the explicit app name override.
+    /// Sets the explicit app name override and re-resolves the redirect URI.
+    ///
+    /// Credentials follow the "preserve if non-empty" pattern (env var or
+    /// upstream-supplied values survive the switch). The redirect URI does
+    /// NOT (KTD3): env-precedence is enforced inside the resolver itself, so
+    /// re-running unconditionally produces the right value for the new app.
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
@@ -81,6 +99,14 @@ impl Auth {
         if self.client_secret.is_empty() {
             self.client_secret = app.client_secret.clone();
         }
+
+        let resolved = crate::config::resolve_redirect_uri_from(
+            std::env::var("REDIRECT_URI").ok(),
+            self.token_store.get_app_redirect_uri(app_name),
+        );
+        self.config.redirect_uri = resolved.uri;
+        self.config.redirect_uri_source = resolved.source;
+        self.config.redirect_uri_from_env = resolved.source.is_env_var();
     }
 
     /// Gets the `OAuth1` Authorization header for a request.
@@ -109,43 +135,93 @@ impl Auth {
 
     /// Gets or refreshes an `OAuth2` token and returns the Authorization header.
     ///
+    /// Lookup precedence is intent-split per `KTD5`:
+    ///
+    /// - non-empty `username` (named caller): try the username's own token
+    ///   first; on miss, fall through to
+    ///   [`TokenStore::get_first_oauth2_token_for_app`] (which itself prefers
+    ///   `default_user`, then arbitrary-first); on total miss, trigger the
+    ///   full OAuth2 flow. The unnamed (`/me`-failed salvage) slot is
+    ///   **never** consulted on this branch — a caller who supplies a
+    ///   username has explicit identity intent and must not silently receive
+    ///   a salvage-state token under their name.
+    /// - empty `username`: try `get_first_oauth2_token_for_app` (which
+    ///   prefers `default_user`, then arbitrary-first); on miss, fall through
+    ///   to the unnamed slot via
+    ///   [`TokenStore::get_oauth2_token_unnamed_for_app`]; on total miss,
+    ///   trigger the OAuth2 flow.
+    ///
+    /// In both branches the cached-token path delegates to
+    /// [`Auth::refresh_oauth2_token`], which is a no-op if the token is still
+    /// valid.
+    ///
     /// # Errors
     ///
     /// Returns an error if the `OAuth2` flow fails or token refresh fails.
     pub fn get_oauth2_header(&mut self, username: &str) -> Result<String> {
-        let token = if username.is_empty() {
-            self.token_store.get_first_oauth2_token().cloned()
-        } else {
-            self.token_store.get_oauth2_token(username).cloned()
-        };
+        let app_name = self.app_name.clone();
 
-        if token.is_none() {
-            // Deferred per U4 / KTD6: this site is the mid-request token-refresh
-            // path inside `ApiClient::send_request`. Plumbing writers from the
-            // runner all the way through `ApiClient::send_request` →
-            // `get_auth_header` → `get_oauth2_header` would expand 6 method
-            // signatures (send_request, send_multipart_request, stream_request,
-            // get_auth_header, get_auth_header_public, get_oauth2_header) and
-            // every call site in `cli/commands/` and `api/media.rs` for a path
-            // that runs only on the first request when no token is cached.
-            //
-            // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
-            // time (which U4 wires correctly via the runner's writers). This
-            // stub is the only remaining direct-stdio site after U4.
-            let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
-            let mut stdout = std::io::stdout();
-            let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
-            return Ok(format!("Bearer {access_token}"));
+        if username.is_empty() {
+            // Empty-caller precedence: default_user (via get_first) -> unnamed -> flow.
+            if self
+                .token_store
+                .get_first_oauth2_token_for_app(&app_name)
+                .is_some()
+            {
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
+
+            if self
+                .token_store
+                .get_oauth2_token_unnamed_for_app(&app_name)
+                .is_some()
+            {
+                // Empty-caller + unnamed-hit: refresh delegates with empty username;
+                // if /me fails again the refresh path writes back to the unnamed slot.
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
+        } else {
+            // Named-caller precedence: own token -> get_first fallback -> flow.
+            // The unnamed slot is never consulted here.
+            if self.token_store.get_oauth2_token(username).is_some()
+                || self
+                    .token_store
+                    .get_first_oauth2_token_for_app(&app_name)
+                    .is_some()
+            {
+                let access_token = self.refresh_oauth2_token(username)?;
+                return Ok(format!("Bearer {access_token}"));
+            }
         }
 
-        let access_token = self.refresh_oauth2_token(username)?;
+        // Deferred per U4 / KTD6: this site is the mid-request token-refresh
+        // path inside `ApiClient::send_request`. Plumbing writers from the
+        // runner all the way through `ApiClient::send_request` →
+        // `get_auth_header` → `get_oauth2_header` would expand 6 method
+        // signatures (send_request, send_multipart_request, stream_request,
+        // get_auth_header, get_auth_header_public, get_oauth2_header) and
+        // every call site in `cli/commands/` and `api/media.rs` for a path
+        // that runs only on the first request when no token is cached.
+        //
+        // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
+        // time (which U4 wires correctly via the runner's writers). This
+        // stub is the only remaining direct-stdio site after U4.
+        let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
+        let mut stdout = std::io::stdout();
+        let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
         Ok(format!("Bearer {access_token}"))
     }
 
-    /// Starts the `OAuth2` PKCE flow.
+    /// Starts the `OAuth2` PKCE flow with the default `open::that` browser opener.
     ///
     /// Browser-failure prompts are written to `stdout` via `out`'s
-    /// `print_message`, so callers can capture them in tests.
+    /// `print_message`, so callers can capture them in tests. Library
+    /// consumers needing a custom opener (recording / headless / tests for
+    /// the listener-before-browser ordering) call
+    /// [`oauth2::run_oauth2_flow`] directly with their own `fn(&str) ->
+    /// io::Result<()>` opener.
     ///
     /// # Errors
     ///
@@ -157,7 +233,7 @@ impl Auth {
         out: &OutputConfig,
         stdout: &mut dyn std::io::Write,
     ) -> Result<String> {
-        oauth2::run_oauth2_flow(self, username, out, stdout)
+        oauth2::run_oauth2_flow(self, username, out, stdout, |url| open::that(url))
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.
@@ -223,7 +299,7 @@ impl Auth {
     pub(crate) fn fetch_username(&self, access_token: &str) -> Result<String> {
         let client = reqwest::blocking::Client::new();
         let resp = client
-            .get(&self.info_url)
+            .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
             .map_err(|e| XurlError::auth_with_cause("NetworkError", &e))?;
@@ -283,15 +359,15 @@ impl Auth {
     }
     #[must_use]
     pub fn auth_url(&self) -> &str {
-        &self.auth_url
+        &self.config.auth_url
     }
     #[must_use]
     pub fn token_url(&self) -> &str {
-        &self.token_url
+        &self.config.token_url
     }
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
-        &self.redirect_uri
+        &self.config.redirect_uri
     }
 }
 

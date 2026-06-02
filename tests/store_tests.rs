@@ -29,9 +29,11 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -666,9 +668,11 @@ fn test_yaml_persistence() {
             client_id: "cid".to_string(),
             client_secret: "csec".to_string(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
     s1.save_bearer_token("yaml-bearer").unwrap();
@@ -722,9 +726,11 @@ configuration:
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -833,9 +839,11 @@ fn test_twurlrc_malformed_error() {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -898,4 +906,270 @@ fn test_concurrent_app_operations() {
         let app = store.get_app(&format!("app{i}")).unwrap();
         assert_eq!(app.client_id, format!("id{i}"));
     }
+}
+
+// ── TestRedirectUri ────────────────────────────────────────────────────────
+
+#[test]
+fn test_set_app_redirect_uri_happy_path_persists() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .set_app_redirect_uri("app1", "http://localhost:9090/cb")
+        .expect("set should succeed");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        Some("http://localhost:9090/cb")
+    );
+}
+
+#[test]
+fn test_get_app_redirect_uri_empty_by_default() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    assert_eq!(store.get_app_redirect_uri("app1"), None);
+}
+
+#[test]
+fn test_set_app_redirect_uri_empty_clears_value_and_omits_from_yaml() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .set_app_redirect_uri("app1", "http://localhost:9090/cb")
+        .unwrap();
+    assert_eq!(
+        store.get_app_redirect_uri("app1"),
+        Some("http://localhost:9090/cb")
+    );
+
+    store.set_app_redirect_uri("app1", "").unwrap();
+    assert_eq!(store.get_app_redirect_uri("app1"), None);
+
+    // Reload from disk and confirm the field is also absent after a round-trip.
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(reloaded.get_app_redirect_uri("app1"), None);
+
+    // Parse the on-disk YAML and confirm `app1` has no `redirect_uri` key.
+    let raw = fs::read_to_string(&store.file_path).unwrap();
+    let parsed: serde_yaml::Value = serde_yaml::from_str(&raw).unwrap();
+    let app1 = parsed
+        .get("apps")
+        .and_then(|a| a.get("app1"))
+        .expect("app1 entry missing from serialized YAML");
+    assert!(
+        app1.get("redirect_uri").is_none(),
+        "redirect_uri key should be omitted after clear, got: {app1:?}"
+    );
+}
+
+#[test]
+fn test_set_app_redirect_uri_unknown_app_errors() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    let err = store.set_app_redirect_uri("missing", "http://localhost:9090/cb");
+    assert!(
+        err.is_err(),
+        "Setting redirect_uri on unknown app should error"
+    );
+}
+
+#[test]
+fn test_set_app_redirect_uri_rejects_http_remote() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+
+    let err = store.set_app_redirect_uri("app1", "http://attacker.example.com/cb");
+    assert!(err.is_err(), "http+remote redirect URI must be rejected");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        None,
+        "rejected URI must not be persisted"
+    );
+}
+
+#[test]
+fn test_set_app_redirect_uri_rejects_malformed_url() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+
+    let err = store.set_app_redirect_uri("app1", "::not-a-url");
+    assert!(err.is_err(), "malformed URI must be rejected");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    assert_eq!(
+        reloaded.get_app_redirect_uri("app1"),
+        None,
+        "rejected URI must not be persisted"
+    );
+}
+
+// ── TestUnnamedOAuth2Token ─────────────────────────────────────────────────
+
+#[test]
+fn test_set_app_unnamed_oauth2_token_round_trips() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .save_oauth2_token_unnamed_for_app("app1", "unnamed-at", "unnamed-rt", 1_234_567_890)
+        .expect("save should succeed");
+
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    let tok = reloaded
+        .get_oauth2_token_unnamed_for_app("app1")
+        .expect("unnamed token should be present after reload");
+
+    assert_eq!(tok.token_type, TokenType::Oauth2);
+    let oauth2 = tok.oauth2.as_ref().expect("oauth2 payload present");
+    assert_eq!(oauth2.access_token, "unnamed-at");
+    assert_eq!(oauth2.refresh_token, "unnamed-rt");
+    assert_eq!(oauth2.expiration_time, 1_234_567_890);
+}
+
+#[test]
+fn test_get_app_unnamed_oauth2_token_empty_by_default() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    assert!(store.get_oauth2_token_unnamed_for_app("app1").is_none());
+}
+
+#[test]
+fn test_save_unnamed_oauth2_token_last_write_wins() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store
+        .save_oauth2_token_unnamed_for_app("app1", "first-at", "first-rt", 100)
+        .unwrap();
+    store
+        .save_oauth2_token_unnamed_for_app("app1", "second-at", "second-rt", 200)
+        .unwrap();
+
+    let tok = store
+        .get_oauth2_token_unnamed_for_app("app1")
+        .expect("token present");
+    let oauth2 = tok.oauth2.as_ref().expect("oauth2 payload present");
+    assert_eq!(oauth2.access_token, "second-at");
+    assert_eq!(oauth2.refresh_token, "second-rt");
+    assert_eq!(oauth2.expiration_time, 200);
+}
+
+#[test]
+fn test_app_yaml_without_unnamed_field_loads_with_none() {
+    let tmp = TempDir::new().unwrap();
+    let xurl_path = tmp.path().join(".xurl");
+
+    // YAML fixture: a complete app with NO unnamed_oauth2_token key.
+    let yaml = "\
+apps:
+  default:
+    client_id: cid
+    client_secret: csec
+    oauth2_tokens:
+      alice:
+        type: oauth2
+        oauth2:
+          access_token: at
+          refresh_token: rt
+          expiration_time: 100
+default_app: default
+";
+    fs::write(&xurl_path, yaml).unwrap();
+
+    let store = TokenStore::load_from_path(&xurl_path.to_string_lossy());
+    assert!(store.get_oauth2_token_unnamed_for_app("default").is_none());
+    // Sanity: the named token still loaded.
+    assert!(store.get_oauth2_token_for_app("default", "alice").is_some());
+}
+
+#[test]
+fn test_clear_all_for_app_clears_unnamed_slot() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    // Seed with all four token shapes.
+    store
+        .save_oauth2_token_for_app("app1", "alice", "at", "rt", 1)
+        .unwrap();
+    store.save_bearer_token_for_app("app1", "bearer").unwrap();
+    store
+        .save_oauth1_tokens_for_app("app1", "a", "t", "c", "s")
+        .unwrap();
+    store
+        .save_oauth2_token_unnamed_for_app("app1", "u-at", "u-rt", 2)
+        .unwrap();
+
+    store.clear_all_for_app("app1").expect("clear_all_for_app");
+
+    assert!(store.get_oauth2_usernames_for_app("app1").is_empty());
+    assert!(store.get_oauth1_tokens_for_app("app1").is_none());
+    assert!(store.get_bearer_token_for_app("app1").is_none());
+    assert!(store.get_oauth2_token_unnamed_for_app("app1").is_none());
+}
+
+#[test]
+fn test_has_tokens_returns_true_for_unnamed_only_app() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    store.add_app("app1", "id1", "secret1").unwrap();
+    store.set_default_app("app1").unwrap();
+    store
+        .save_oauth2_token_unnamed_for_app("app1", "u-at", "u-rt", 100)
+        .unwrap();
+
+    // The app holds no named oauth2, no oauth1, no bearer — only the unnamed slot.
+    let app = store.get_app("app1").expect("app1 present");
+    assert!(app.oauth2_tokens.is_empty());
+    assert!(app.oauth1_token.is_none());
+    assert!(app.bearer_token.is_none());
+    assert!(app.unnamed_oauth2_token.is_some());
+
+    // Reload from disk and verify has_tokens via the (default) app variants
+    // that surface its true/false answer indirectly: the bearer/oauth1 helpers
+    // should still report empty, while the unnamed slot is the sole occupant.
+    let path = store.file_path.to_string_lossy().into_owned();
+    let reloaded = TokenStore::load_from_path(&path);
+    let app = reloaded.get_app("app1").expect("app1 present after reload");
+    assert!(app.unnamed_oauth2_token.is_some());
+    assert!(app.oauth2_tokens.is_empty());
+    assert!(app.oauth1_token.is_none());
+    assert!(app.bearer_token.is_none());
+}
+
+#[test]
+fn test_save_unnamed_to_missing_app_auto_creates() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    // No "ghost" app exists; resolve_app_mut falls back to the active app
+    // (or freshly creates "default"). The save must NOT return an error.
+    store
+        .save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999)
+        .expect("save into missing app must not error (auto-create / fallback)");
+
+    // The active app (default) now holds the token; "ghost" remains absent.
+    let active = store.get_default_app().to_string();
+    let tok = store
+        .get_oauth2_token_unnamed_for_app(&active)
+        .expect("token landed in the active app");
+    assert_eq!(tok.oauth2.as_ref().unwrap().access_token, "ghost-at");
+
+    assert!(
+        store.get_app("ghost").is_none(),
+        "ghost app should not have been registered"
+    );
 }

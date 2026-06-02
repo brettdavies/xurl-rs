@@ -115,7 +115,10 @@ fn test_no_color_env_strips_ansi() {
 
 #[test]
 fn test_xurl_output_env_sets_json_format() {
-    // XURL_OUTPUT=json should make auth status output JSON
+    // XURL_OUTPUT=json should make auth status output JSON.
+    // The status renderer emits a JSON array of per-app entries
+    // (`print_response`); on a fresh `$HOME` the store seeds a `"default"`
+    // placeholder app, so the array carries one entry.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -123,14 +126,16 @@ fn test_xurl_output_env_sets_json_format() {
         .args(["auth", "status"])
         .env("HOME", tmp.path())
         .env("XURL_OUTPUT", "json")
+        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let first_line = stdout.lines().next().unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
-    assert!(parsed["message"].is_string());
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    let arr = parsed.as_array().expect("auth status emits a JSON array");
+    assert!(!arr.is_empty(), "expected at least one entry: {stdout}");
+    assert!(arr[0]["name"].is_string());
 }
 
 #[test]
@@ -287,26 +292,29 @@ fn test_exit_code_json_error_includes_code() {
 
 #[test]
 fn test_json_quiet_combined() {
-    // --output json --quiet should still produce JSON output (tested via auth status)
+    // --output json --quiet should still produce the JSON-array shape from
+    // `auth status` because `print_response` is independent of `--quiet`.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "status", "--output", "json", "--quiet"])
         .env("HOME", tmp.path())
+        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let first_line = stdout.lines().next().unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
-    assert!(parsed["message"].is_string());
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    let arr = parsed.as_array().expect("auth status emits a JSON array");
+    assert!(!arr.is_empty(), "expected at least one entry: {stdout}");
+    assert!(arr[0]["name"].is_string());
 }
 
 #[test]
 fn test_all_agentic_flags_wired_correctly() {
-    // All flags together should work and produce clean JSON output
+    // All flags together should work and produce a parseable JSON document.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -322,13 +330,13 @@ fn test_all_agentic_flags_wired_correctly() {
             "5",
         ])
         .env("HOME", tmp.path())
+        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let first_line = stdout.lines().next().unwrap();
-    assert!(serde_json::from_str::<serde_json::Value>(first_line).is_ok());
+    assert!(serde_json::from_str::<serde_json::Value>(stdout.trim()).is_ok());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -337,38 +345,48 @@ fn test_all_agentic_flags_wired_correctly() {
 
 #[test]
 fn test_auth_status_json_output() {
-    // `xurl auth status --output json` should output JSON with default app info
+    // `xurl auth status --output json` emits a JSON array of per-app
+    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "status", "--output", "json"])
         .env("HOME", tmp.path())
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    // Output is JSONL (one JSON object per line) — parse the first line
-    let first_line = stdout.lines().next().unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
-    assert!(parsed["message"].as_str().unwrap().contains("default"));
-}
-
-#[test]
-fn test_auth_apps_list_json_output() {
-    // `xurl auth apps list --output json` should list the default app as JSON
-    let tmp = TempDir::new().unwrap();
-
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["auth", "apps", "list", "--output", "json"])
-        .env("HOME", tmp.path())
+        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    assert!(parsed["message"].as_str().unwrap().contains("default"));
+    let arr = parsed.as_array().expect("status emits a JSON array");
+    assert!(
+        arr.iter().any(|e| e["name"] == "default"),
+        "expected the default placeholder app: {stdout}"
+    );
+}
+
+#[test]
+fn test_auth_apps_list_json_output() {
+    // `xurl auth apps list --output json` emits a JSON array of per-app
+    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
+    let tmp = TempDir::new().unwrap();
+
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["auth", "apps", "list", "--output", "json"])
+        .env("HOME", tmp.path())
+        .env_remove("REDIRECT_URI")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    let arr = parsed.as_array().expect("apps list emits a JSON array");
+    assert!(
+        arr.iter().any(|e| e["name"] == "default"),
+        "expected the default placeholder app: {stdout}"
+    );
 }

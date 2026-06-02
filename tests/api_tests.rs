@@ -63,16 +63,20 @@ impl TestServer {
 // ── Test helpers ───────────────────────────────────────────────────────
 
 fn create_test_config(base_url: &str) -> Config {
-    Config {
-        client_id: "test-client-id".to_string(),
-        client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
-        auth_url: "https://x.com/i/oauth2/authorize".to_string(),
-        token_url: "https://api.x.com/2/oauth2/token".to_string(),
-        api_base_url: base_url.to_string(),
-        info_url: format!("{base_url}/2/users/me"),
-        app_name: String::new(),
-    }
+    // `Config` has `pub(crate)` resolver fields that external callers cannot
+    // name in a struct literal; start from `Config::new()` and assign the
+    // public fields explicitly. The resolver fields are overwritten by
+    // `Auth::new_with_store_path` downstream.
+    let mut cfg = Config::new();
+    cfg.client_id = "test-client-id".to_string();
+    cfg.client_secret = "test-client-secret".to_string();
+    cfg.redirect_uri = "http://localhost:8080/callback".to_string();
+    cfg.auth_url = "https://x.com/i/oauth2/authorize".to_string();
+    cfg.token_url = "https://api.x.com/2/oauth2/token".to_string();
+    cfg.api_base_url = base_url.to_string();
+    cfg.info_url = format!("{base_url}/2/users/me");
+    cfg.app_name = String::new();
+    cfg
 }
 
 fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
@@ -93,6 +97,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
             client_id: "test-client-id".to_string(),
             client_secret: "test-client-secret".to_string(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: Some(Token {
@@ -101,6 +106,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
                 oauth2: None,
                 oauth1: None,
             }),
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -126,6 +132,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: Some(Token {
                 token_type: TokenType::Oauth1,
@@ -139,6 +146,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
                 }),
             }),
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -168,9 +176,11 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
         client_id: "cid".to_string(),
         client_secret: "csec".to_string(),
         default_user: "testuser".to_string(),
+        redirect_uri: String::new(),
         oauth2_tokens: BTreeMap::new(),
         oauth1_token: None,
         bearer_token: None,
+        unnamed_oauth2_token: None,
     };
     app.oauth2_tokens.insert(
         "testuser".to_string(),

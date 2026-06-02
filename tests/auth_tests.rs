@@ -18,16 +18,33 @@ use xurl::store::{App, TokenStore};
 // ── Test helpers ───────────────────────────────────────────────────────────
 
 fn test_config() -> Config {
-    Config {
-        client_id: "test-client-id".to_string(),
-        client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
-        auth_url: "https://x.com/i/oauth2/authorize".to_string(),
-        token_url: "https://api.x.com/2/oauth2/token".to_string(),
-        api_base_url: "https://api.x.com".to_string(),
-        info_url: "https://api.x.com/2/users/me".to_string(),
-        app_name: String::new(),
-    }
+    // `Config` has `pub(crate)` resolver fields that external test code cannot
+    // name in a struct literal (or fill via `..Config::new()` from an external
+    // crate); assign the public fields after `Config::new()`. The resolver
+    // fields are overwritten by `Auth::new_with_store_path` anyway.
+    let mut cfg = Config::new();
+    cfg.client_id = "test-client-id".to_string();
+    cfg.client_secret = "test-client-secret".to_string();
+    cfg.redirect_uri = "http://localhost:8080/callback".to_string();
+    cfg.auth_url = "https://x.com/i/oauth2/authorize".to_string();
+    cfg.token_url = "https://api.x.com/2/oauth2/token".to_string();
+    cfg.api_base_url = "https://api.x.com".to_string();
+    cfg.info_url = "https://api.x.com/2/users/me".to_string();
+    cfg.app_name = String::new();
+    cfg
+}
+
+fn empty_config() -> Config {
+    let mut cfg = Config::new();
+    cfg.client_id = String::new();
+    cfg.client_secret = String::new();
+    cfg.redirect_uri = String::new();
+    cfg.auth_url = String::new();
+    cfg.token_url = String::new();
+    cfg.api_base_url = String::new();
+    cfg.info_url = String::new();
+    cfg.app_name = String::new();
+    cfg
 }
 
 fn create_temp_token_store() -> (TokenStore, TempDir) {
@@ -45,9 +62,11 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -82,16 +101,7 @@ fn test_with_token_store() {
 
 #[test]
 fn test_bearer_token_no_token() {
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let auth = Auth::new(&cfg);
     let (token_store, _tmp) = create_temp_token_store();
     let auth = auth.with_token_store(token_store);
@@ -106,16 +116,7 @@ fn test_bearer_token_no_token() {
 
 #[test]
 fn test_bearer_token_with_token() {
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let auth = Auth::new(&cfg);
     let (mut token_store, _tmp) = create_temp_token_store();
 
@@ -216,16 +217,9 @@ fn test_env_vars_take_priority_over_store() {
     token_store.apps.get_mut("default").unwrap().client_secret = "store-secret".to_string();
     token_store.save_bearer_token("x").unwrap(); // force save
 
-    let cfg = Config {
-        client_id: "env-id".to_string(),
-        client_secret: "env-secret".to_string(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let mut cfg = empty_config();
+    cfg.client_id = "env-id".to_string();
+    cfg.client_secret = "env-secret".to_string();
     let auth = Auth::new(&cfg).with_token_store(token_store);
     assert_eq!(auth.client_id(), "env-id");
     assert_eq!(auth.client_secret(), "env-secret");
@@ -256,16 +250,7 @@ fn test_with_app_name() {
         .add_app("other", "other-id", "other-secret")
         .unwrap();
 
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let mut auth = Auth::new(&cfg).with_token_store(token_store);
 
     // Initially no app override
@@ -281,16 +266,7 @@ fn test_with_app_name() {
 fn test_with_app_name_nonexistent() {
     let (token_store, _tmp) = create_temp_token_store();
 
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let mut auth = Auth::new(&cfg).with_token_store(token_store);
 
     // Setting a nonexistent app name should not panic
@@ -304,16 +280,7 @@ fn test_with_app_name_nonexistent() {
 fn test_oauth1_header_no_token_fails() {
     let (token_store, _tmp) = create_temp_token_store();
 
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let auth = Auth::new(&cfg).with_token_store(token_store);
 
     // No OAuth1 token — should fail
@@ -329,16 +296,7 @@ fn test_oauth1_header_with_token_succeeds() {
         .save_oauth1_tokens("at", "ts", "ck", "cs")
         .unwrap();
 
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let auth = Auth::new(&cfg).with_token_store(token_store);
 
     let header = auth
@@ -403,16 +361,7 @@ fn test_oauth1_header_format() {
         )
         .unwrap();
 
-    let cfg = Config {
-        client_id: String::new(),
-        client_secret: String::new(),
-        redirect_uri: String::new(),
-        auth_url: String::new(),
-        token_url: String::new(),
-        api_base_url: String::new(),
-        info_url: String::new(),
-        app_name: String::new(),
-    };
+    let cfg = empty_config();
     let auth = Auth::new(&cfg).with_token_store(token_store);
 
     let header = auth
@@ -462,4 +411,145 @@ fn test_new_with_store_path_honors_explicit_path() {
         .get_bearer_token_header()
         .expect("Failed to read bearer token from reopened store");
     assert_eq!(reopened_header, "Bearer explicit-path-bearer");
+}
+
+// ── U3: redirect URI single-source-of-truth on owned Config ───────────────
+//
+// `Auth::new_with_store_path` runs the three-level resolver (env > app-stored
+// > built-in default) and writes the resolved value back into the owned
+// `Config`. `Auth::with_app_name` re-runs the resolver. `Auth::redirect_uri()`
+// returns the resolved value. Tests use `#[serial]` for the env-var leg
+// because `REDIRECT_URI` is process-wide.
+
+fn write_store_with_redirect_uri(path: &std::path::Path, app: &str, uri: &str) {
+    let yaml = format!(
+        "apps:\n  {app}:\n    client_id: ''\n    client_secret: ''\n    redirect_uri: '{uri}'\n    oauth2_tokens: {{}}\ndefault_app: {app}\n"
+    );
+    std::fs::write(path, yaml).expect("write tempdir store");
+}
+
+fn write_two_app_store(path: &std::path::Path, app_a: &str, uri_a: &str, app_b: &str, uri_b: &str) {
+    let yaml = format!(
+        "apps:\n  {app_a}:\n    client_id: ''\n    client_secret: ''\n    redirect_uri: '{uri_a}'\n    oauth2_tokens: {{}}\n  {app_b}:\n    client_id: ''\n    client_secret: ''\n    redirect_uri: '{uri_b}'\n    oauth2_tokens: {{}}\ndefault_app: {app_a}\n"
+    );
+    std::fs::write(path, yaml).expect("write tempdir store");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_redirect_uri_env_wins_via_new_with_store_path() {
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    write_store_with_redirect_uri(&store_path, "default", "http://localhost:7777/cb");
+
+    let cfg = empty_config();
+    unsafe {
+        std::env::set_var("REDIRECT_URI", "https://example.com/cb");
+    }
+    let auth = Auth::new_with_store_path(&cfg, &store_path);
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
+
+    assert_eq!(auth.redirect_uri(), "https://example.com/cb");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_redirect_uri_stored_wins_when_env_unset() {
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    write_store_with_redirect_uri(&store_path, "default", "http://localhost:9090/cb");
+
+    let cfg = empty_config();
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
+    let auth = Auth::new_with_store_path(&cfg, &store_path);
+
+    assert_eq!(auth.redirect_uri(), "http://localhost:9090/cb");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_redirect_uri_falls_back_to_default_when_no_env_and_no_stored() {
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    // Store with the default app but no stored redirect_uri (empty).
+    let yaml = "apps:\n  default:\n    client_id: ''\n    client_secret: ''\n    oauth2_tokens: {}\ndefault_app: default\n";
+    std::fs::write(&store_path, yaml).expect("write store");
+
+    let cfg = empty_config();
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
+    let auth = Auth::new_with_store_path(&cfg, &store_path);
+
+    assert_eq!(auth.redirect_uri(), "http://localhost:8080/callback");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_with_app_name_re_resolves_per_app_stored_uri() {
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    write_two_app_store(
+        &store_path,
+        "alpha",
+        "http://localhost:7001/cb",
+        "beta",
+        "http://localhost:7002/cb",
+    );
+
+    let cfg = empty_config();
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
+    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+
+    // Default app is "alpha" — resolver picks alpha's stored URI.
+    assert_eq!(auth.redirect_uri(), "http://localhost:7001/cb");
+
+    // Switch to beta; resolver re-runs and returns beta's stored URI.
+    auth.with_app_name("beta");
+    assert_eq!(auth.redirect_uri(), "http://localhost:7002/cb");
+
+    // Switch back to alpha; resolver re-runs again.
+    auth.with_app_name("alpha");
+    assert_eq!(auth.redirect_uri(), "http://localhost:7001/cb");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_with_app_name_env_override_survives_app_switch() {
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    write_two_app_store(
+        &store_path,
+        "alpha",
+        "http://localhost:7001/cb",
+        "beta",
+        "http://localhost:7002/cb",
+    );
+
+    let cfg = empty_config();
+    unsafe {
+        std::env::set_var("REDIRECT_URI", "https://envvar.example.com/cb");
+    }
+    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+
+    // Env wins for the default app.
+    assert_eq!(auth.redirect_uri(), "https://envvar.example.com/cb");
+
+    // Env still wins after switching apps — KTD3 forbids the credential's
+    // "preserve if non-empty" pattern; the resolver itself enforces env
+    // precedence each time.
+    auth.with_app_name("beta");
+    let still_env_after_switch = auth.redirect_uri().to_string();
+
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
+
+    assert_eq!(still_env_after_switch, "https://envvar.example.com/cb");
 }
