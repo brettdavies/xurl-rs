@@ -436,16 +436,25 @@ fn run_subcommand(
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/// Resolves the authenticated user's ID from /2/users/me.
+/// Resolves the authenticated user's ID.
+///
+/// When `opts.username` is empty, calls `/2/users/me` (the default identity
+/// for the active credential). When non-empty, calls
+/// `/2/users/by/username/<u>` directly, bypassing `/me` so the shortcut works
+/// when `/me` is unavailable or when the caller wants to act under a known
+/// handle without consulting `/me`.
 fn resolve_my_user_id(client: &mut ApiClient, opts: &CallOptions) -> Result<String> {
-    let resp = client.get_me(opts)?;
-    let id = &resp.data.id;
+    let id = if opts.username.is_empty() {
+        client.get_me(opts)?.data.id
+    } else {
+        client.lookup_user(&opts.username, opts)?.data.id
+    };
     if id.is_empty() {
         return Err(XurlError::auth(
             "user ID was empty -- check your auth tokens",
         ));
     }
-    Ok(id.clone())
+    Ok(id)
 }
 
 /// Resolves a username to a user ID.

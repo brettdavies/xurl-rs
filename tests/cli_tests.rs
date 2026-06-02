@@ -8,6 +8,8 @@
 use std::path::Path;
 
 use tempfile::TempDir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::cli;
 
@@ -1250,4 +1252,270 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
             "expected built-in default label: {line}"
         );
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U3: resolve_my_user_id --username fallback
+//
+// Drives the `like` shortcut through wiremock to verify the resolver picks
+// `/2/users/by/username/<u>` when `-u` is non-empty and `/2/users/me` when
+// empty. A single shortcut is representative because all 18 engagement
+// handlers route through the same resolver.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Wiremock harness mirroring `tests/auth_remote_tests.rs::TestServer`.
+///
+/// Owns the runtime so the `MockServer` (started inside it) outlives every
+/// async mount call. The leaked `&'static MockServer` keeps the server alive
+/// for the duration of the test without a manual `Arc` dance.
+struct CliMockServer {
+    _rt: tokio::runtime::Runtime,
+    server: &'static MockServer,
+    uri: String,
+}
+
+impl CliMockServer {
+    fn new() -> Self {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        let server = rt.block_on(async {
+            let s = MockServer::start().await;
+            Box::leak(Box::new(s))
+        });
+        let uri = server.uri();
+        Self {
+            _rt: rt,
+            server,
+            uri,
+        }
+    }
+
+    fn mount(&self, mock: Mock) {
+        self._rt.block_on(async {
+            mock.mount(self.server).await;
+        });
+    }
+
+    fn uri(&self) -> &str {
+        &self.uri
+    }
+}
+
+/// Seeds a tempdir-rooted store with a single app carrying a bearer token.
+///
+/// `--auth app` resolves through `get_bearer_token_header` which reads the
+/// bearer slot on the active app, so this is the minimal credential shape
+/// the `like` POST needs to leave the resolver and reach the mocked endpoint.
+fn populate_bearer_store(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
+        .expect("save_bearer");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_username_flag_calls_lookup_by_username() {
+    // `-u alice` routes through `/2/users/by/username/alice`; the resolved id
+    // (67890) drives the like POST. `expect(1)` on each mock fails the test
+    // (on server drop) if either endpoint is hit zero times or > 1.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "67890", "username": "alice", "name": "Alice"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/67890/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_without_username_flag_calls_me() {
+    // No `-u` → empty `opts.username` → resolver hits `/2/users/me`.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "111", "username": "self", "name": "Self"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/111/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(&store, &["xr", "like", "12345", "--auth", "app"]);
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_username_flag_lookup_404() {
+    // `-u alice` + 404 from lookup → resolver bubbles the transport error up
+    // and the like POST is never issued. Mock the lookup only; if anything
+    // else hits the server, wiremock returns 404 by default and the test
+    // still surfaces a non-zero exit.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(404).set_body_json(serde_json::json!({
+                "title": "Not Found",
+                "detail": "Could not find user with username: [alice]",
+                "status": 404,
+                "type": "https://api.x.com/2/problems/resource-not-found"
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_ne!(
+        code, 0,
+        "expected non-zero exit when lookup 404s; stderr: {stderr}"
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_empty_username_falls_back_to_me() {
+    // `-u ""` collapses through `CommonFlags::to_call_options()` to an empty
+    // `opts.username`, which falls into the `/me` branch. Documents the
+    // current contract: a future change that treats `Some("")` differently
+    // from `None` is intentional, not accidental.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "222", "username": "self", "name": "Self"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/222/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "like", "12345", "-u", "", "--auth", "app"]);
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_at_prefix_username_strips_at() {
+    // `lookup_user`'s internal `resolve_username` strips a leading `@` before
+    // building the path. The mock matches the bare handle; if the strip were
+    // skipped, wiremock would 404 the `@alice` request and exit would be
+    // non-zero.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "333", "username": "alice", "name": "Alice"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/333/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "@alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
