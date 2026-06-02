@@ -93,7 +93,7 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///   under the discovered name;
 /// - caller supplied empty `username` and `fetch_username` fails -> save into
 ///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
 ///   `eprintln!` so the access token isn't discarded along with the lookup
 ///   failure.
 ///
@@ -396,7 +396,7 @@ pub fn run_remote_step2(
 ///   under the discovered name;
 /// - caller supplied empty `username` and `fetch_username` fails -> save into
 ///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
 ///   `eprintln!` (the function lacks an `OutputConfig`; the persisted store
 ///   state is the load-bearing observable).
 ///
