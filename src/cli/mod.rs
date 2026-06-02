@@ -467,6 +467,9 @@ pub enum AuthCommands {
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]
         auth_url: Option<String>,
+        /// Username to label the saved token (bypasses `/2/users/me` lookup when supplied)
+        #[arg(value_name = "USERNAME")]
+        username: Option<String>,
     },
     /// Configure `OAuth1` authentication
     Oauth1 {

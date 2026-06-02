@@ -8,6 +8,8 @@
 use std::path::Path;
 
 use tempfile::TempDir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::cli;
 
@@ -780,6 +782,16 @@ fn populate_credentialed_store(store_path: &Path) {
     .expect("save_oauth1");
     ts.save_bearer_token_for_app("myapp", "BEARER-VALUE-FFF")
         .expect("save_bearer");
+    // KTD9 + R20: the unnamed slot carries OAuth2 credentials that must also
+    // be excluded from rendered JSON. The banned-string list below grows to
+    // match.
+    ts.save_oauth2_token_unnamed_for_app(
+        "myapp",
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
+        1_900_000_000,
+    )
+    .expect("save_oauth2_unnamed");
     ts.set_default_app("myapp").expect("set_default_app");
     // `TokenStore::new_with_path` seeds an empty `"default"` placeholder app
     // on first load; drop it so the JSON array carries exactly one entry.
@@ -797,6 +809,11 @@ fn assert_no_credentials(stdout: &str, context: &str) {
         "CONSUMER-SECRET-DDD",
         "TOKEN-SECRET-EEE",
         "BEARER-VALUE-FFF",
+        // Unnamed (`/me`-failed salvage) slot credentials from
+        // `populate_credentialed_store` per KTD1; the JSON entry surfaces
+        // only `oauth2_unnamed: true`, never the raw token strings.
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
         // Credential field names that would only appear if `App` were
         // serialized directly or via `From<&App>`.
         "client_secret",
@@ -1250,4 +1267,525 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
             "expected built-in default label: {line}"
         );
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U3: resolve_my_user_id --username fallback
+//
+// Drives the `like` shortcut through wiremock to verify the resolver picks
+// `/2/users/by/username/<u>` when `-u` is non-empty and `/2/users/me` when
+// empty. A single shortcut is representative because all 18 engagement
+// handlers route through the same resolver.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Wiremock harness mirroring `tests/auth_remote_tests.rs::TestServer`.
+///
+/// Owns the runtime so the `MockServer` (started inside it) outlives every
+/// async mount call. The leaked `&'static MockServer` keeps the server alive
+/// for the duration of the test without a manual `Arc` dance.
+struct CliMockServer {
+    _rt: tokio::runtime::Runtime,
+    server: &'static MockServer,
+    uri: String,
+}
+
+impl CliMockServer {
+    fn new() -> Self {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        let server = rt.block_on(async {
+            let s = MockServer::start().await;
+            Box::leak(Box::new(s))
+        });
+        let uri = server.uri();
+        Self {
+            _rt: rt,
+            server,
+            uri,
+        }
+    }
+
+    fn mount(&self, mock: Mock) {
+        self._rt.block_on(async {
+            mock.mount(self.server).await;
+        });
+    }
+
+    fn uri(&self) -> &str {
+        &self.uri
+    }
+}
+
+/// Seeds a tempdir-rooted store with a single app carrying a bearer token.
+///
+/// `--auth app` resolves through `get_bearer_token_header` which reads the
+/// bearer slot on the active app, so this is the minimal credential shape
+/// the `like` POST needs to leave the resolver and reach the mocked endpoint.
+fn populate_bearer_store(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
+        .expect("save_bearer");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_username_flag_calls_lookup_by_username() {
+    // `-u alice` routes through `/2/users/by/username/alice`; the resolved id
+    // (67890) drives the like POST. `expect(1)` on each mock fails the test
+    // (on server drop) if either endpoint is hit zero times or > 1.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "67890", "username": "alice", "name": "Alice"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/67890/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_without_username_flag_calls_me() {
+    // No `-u` → empty `opts.username` → resolver hits `/2/users/me`.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "111", "username": "self", "name": "Self"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/111/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(&store, &["xr", "like", "12345", "--auth", "app"]);
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_username_flag_lookup_404() {
+    // `-u alice` + 404 from lookup → resolver bubbles the transport error up
+    // and the like POST is never issued. Mock the lookup only; if anything
+    // else hits the server, wiremock returns 404 by default and the test
+    // still surfaces a non-zero exit.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(404).set_body_json(serde_json::json!({
+                "title": "Not Found",
+                "detail": "Could not find user with username: [alice]",
+                "status": 404,
+                "type": "https://api.x.com/2/problems/resource-not-found"
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_ne!(
+        code, 0,
+        "expected non-zero exit when lookup 404s; stderr: {stderr}"
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_empty_username_falls_back_to_me() {
+    // `-u ""` collapses through `CommonFlags::to_call_options()` to an empty
+    // `opts.username`, which falls into the `/me` branch. Documents the
+    // current contract: a future change that treats `Some("")` differently
+    // from `None` is intentional, not accidental.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "222", "username": "self", "name": "Self"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/222/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "like", "12345", "-u", "", "--auth", "app"]);
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_like_with_at_prefix_username_strips_at() {
+    // `lookup_user`'s internal `resolve_username` strips a leading `@` before
+    // building the path. The mock matches the bare handle; if the strip were
+    // skipped, wiremock would 404 the `@alice` request and exit would be
+    // non-zero.
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/alice"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "333", "username": "alice", "name": "Alice"}
+            })))
+            .expect(1),
+    );
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/333/likes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"liked": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "@alice", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// `auth oauth2 [USERNAME]` positional (U4)
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_oauth2_positional_username_threads_through() {
+    // Parse-level assertion: `xr auth oauth2 alice --no-browser --step 1`
+    // must succeed at the clap layer with the positional bound to `alice`.
+    // Driving the full OAuth2 flow end-to-end lives in `auth_remote_tests.rs`
+    // (`exchange_code_for_token_nonempty_username_skips_me_and_saves_named`).
+    use clap::Parser;
+
+    let parsed = xurl::cli::Cli::try_parse_from([
+        "xr",
+        "auth",
+        "oauth2",
+        "alice",
+        "--no-browser",
+        "--step",
+        "1",
+    ])
+    .expect("positional + --no-browser --step 1 must parse");
+
+    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
+        panic!("expected Auth subcommand");
+    };
+    match command {
+        xurl::cli::AuthCommands::Oauth2 {
+            no_browser,
+            step,
+            auth_url,
+            username,
+        } => {
+            assert!(no_browser, "--no-browser should be set");
+            assert_eq!(step, Some(1));
+            assert!(auth_url.is_none());
+            assert_eq!(
+                username.as_deref(),
+                Some("alice"),
+                "positional username must bind to `alice`",
+            );
+        }
+        other => panic!("expected AuthCommands::Oauth2, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_oauth2_positional_invalid_extra_args() {
+    // Two positionals on `auth oauth2` must fail with a clap usage error
+    // (exit code 2 via the runner).
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "alice", "bob"]);
+    assert_eq!(
+        code, 2,
+        "expected clap usage exit code 2 for extra positional; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("error"),
+        "stderr should contain clap error text: {stderr}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U5: credential-less-default warning + status/list unnamed-slot rendering
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Seeds a store where the default app `default` has no `client_id` but
+/// another registered app `myapp` does — the configuration that triggers the
+/// credential-less-default warning per R13.
+fn seed_credential_less_default_with_alternative(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    // `TokenStore::new_with_path` seeds an empty `default` placeholder app
+    // with empty credentials; that is exactly what we want here.
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+    // The default app remains `default` (the placeholder).
+}
+
+/// Seeds a store where only the default app `default` exists with no
+/// credentials; no credentialed alternative — the warning must NOT fire.
+fn seed_credential_less_default_only(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let _ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    // `new_with_path` already seeds an empty `default` app; nothing else to do.
+}
+
+/// Seeds a store where the default app `default` HAS credentials — the
+/// warning must NOT fire.
+fn seed_default_with_credentials(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.update_app("default", "DEFAULT-CLIENT-ID", "DEFAULT-SECRET")
+        .expect("update_app");
+}
+
+#[test]
+fn test_credential_less_default_warning_fires() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_with_alternative(&store);
+
+    // `--no-browser --step 1` emits the auth URL and returns; it does NOT
+    // touch the network or write a token. The credential-less-default check
+    // runs BEFORE this dispatch.
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        stderr.contains("warning: --app not specified"),
+        "stderr should contain credential-less-default warning; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("--app myapp"),
+        "stderr should reference the credentialed alternative `myapp`; got: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_by_explicit_app() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_with_alternative(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "myapp",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "explicit `--app` must suppress the warning; got stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_no_credentialed_alternative() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_credential_less_default_only(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "warning must NOT fire when no credentialed alternative exists; got stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_credential_less_default_warning_suppressed_when_default_has_credentials() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_default_with_credentials(&store);
+
+    let (_code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert!(
+        !stderr.contains("warning: --app not specified"),
+        "warning must NOT fire when the default app already has credentials; got stderr: {stderr}"
+    );
+}
+
+/// Seeds a store with one app `myapp` carrying an unnamed OAuth2 token and
+/// no named OAuth2 entries.
+fn seed_app_with_unnamed_oauth2(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+    ts.save_oauth2_token_unnamed_for_app(
+        "myapp",
+        "UNNAMED-AT-AAA",
+        "UNNAMED-RT-BBB",
+        1_900_000_000,
+    )
+    .expect("save_oauth2_unnamed");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+}
+
+#[test]
+fn test_status_text_shows_unnamed_oauth2() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_app_with_unnamed_oauth2(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("oauth2: (unknown user)"),
+        "status text should render `oauth2: (unknown user)` for the unnamed slot; got:\n{stdout}"
+    );
+}
+
+#[test]
+fn test_status_json_emits_oauth2_unnamed_true() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_app_with_unnamed_oauth2(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(
+        code, 0,
+        "auth status --output json failed; stderr: {stderr}"
+    );
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(
+        entry["oauth2_unnamed"],
+        serde_json::Value::Bool(true),
+        "oauth2_unnamed must be true; got entry: {entry}"
+    );
+}
+
+#[test]
+fn test_status_json_omits_oauth2_unnamed_when_false() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    // Reuse the bearer-only fixture: no named OAuth2, no unnamed slot.
+    populate_bearer_store(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(
+        code, 0,
+        "auth status --output json failed; stderr: {stderr}"
+    );
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert!(
+        entry.get("oauth2_unnamed").is_none(),
+        "oauth2_unnamed must be omitted when false; got entry: {entry}"
+    );
 }

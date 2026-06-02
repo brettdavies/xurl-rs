@@ -40,25 +40,48 @@ struct AppStatusEntry {
     bearer: bool,
     /// Whether this app is the default.
     default: bool,
+    /// Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.
+    ///
+    /// Omitted from JSON output when `false` per KTD9 — a `true` value signals
+    /// that `App.unnamed_oauth2_token.is_some()`.
+    #[serde(skip_serializing_if = "is_false")]
+    oauth2_unnamed: bool,
 }
 
-#[allow(clippy::too_many_lines)]
+/// Helper for `#[serde(skip_serializing_if)]` on `bool` fields that default false.
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 pub(super) fn run_auth_command(
     cmd: AuthCommands,
     mut auth: Auth,
     no_interactive: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    app_explicit: bool,
 ) -> Result<()> {
     match cmd {
         AuthCommands::Oauth2 {
             no_browser,
             step,
             auth_url,
+            username,
         } => {
+            let username_arg = username.as_deref().unwrap_or("");
+            // R13/KTD4: credential-less-default warning. Fires when the user
+            // did not pass `--app`, the default app has no `client_id`, and at
+            // least one other registered app does. Routed via
+            // `OutputConfig::info` so `--quiet` and `--output json` suppress it.
+            if !app_explicit && let Some(msg) = credential_less_default_warning(&auth.token_store) {
+                out.info(stderr, &msg);
+            }
             if !no_browser {
                 // Standard interactive flow
-                auth.oauth2_flow("", out, stdout)?;
+                auth.oauth2_flow(username_arg, out, stdout)?;
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
                 let pending_path = crate::auth::pending::default_pending_path()?;
@@ -132,7 +155,7 @@ pub(super) fn run_auth_command(
                             url_value
                         };
 
-                        auth.remote_oauth2_step2(&redirect_url, "", &pending_path)?;
+                        auth.remote_oauth2_step2(&redirect_url, username_arg, &pending_path)?;
                         out.print_message(
                             stdout,
                             "\x1b[32mOAuth2 authentication successful!\x1b[0m",
@@ -219,7 +242,7 @@ pub(super) fn run_auth_command(
                             );
                         }
 
-                        if entry.oauth2_users.is_empty() {
+                        if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
                             out.print_message(stdout, "      oauth2: (none)");
                         } else {
                             for u in &entry.oauth2_users {
@@ -228,6 +251,11 @@ pub(super) fn run_auth_command(
                                 } else {
                                     out.print_message(stdout, &format!("      oauth2: {u}"));
                                 }
+                            }
+                            // KTD8: render the unnamed (`/me`-failed salvage)
+                            // slot after named users, labelled `(unknown user)`.
+                            if entry.oauth2_unnamed {
+                                out.print_message(stdout, "      oauth2: (unknown user)");
                             }
                         }
 
@@ -453,6 +481,57 @@ fn run_app_command(
     Ok(())
 }
 
+/// Builds the credential-less-default-app warning when applicable.
+///
+/// Returns `Some(message)` when the default app exists with an empty
+/// `client_id` AND at least one other registered app has a non-empty
+/// `client_id`. Returns `None` otherwise.
+///
+/// Caller decides whether to emit (callers gate this on the user not having
+/// passed `--app` per R13). The message uses plain ASCII (no ANSI escape
+/// codes) per KTD4 and is routed through `OutputConfig::info` so `--quiet`
+/// and `--output json` suppress it.
+fn credential_less_default_warning(ts: &TokenStore) -> Option<String> {
+    let default_name = ts.get_default_app();
+    let default_app = ts.get_app(default_name)?;
+    if !default_app.client_id.is_empty() {
+        return None;
+    }
+
+    let credentialed: Vec<(String, String)> = ts
+        .list_apps()
+        .into_iter()
+        .filter(|name| name != default_name)
+        .filter_map(|name| {
+            let app = ts.get_app(&name)?;
+            if app.client_id.is_empty() {
+                None
+            } else {
+                Some((name, truncate(&app.client_id, 8).to_string()))
+            }
+        })
+        .collect();
+
+    if credentialed.is_empty() {
+        return None;
+    }
+
+    let mut msg = String::new();
+    msg.push_str(&format!(
+        "warning: --app not specified. The OAuth2 token will be saved to the \"{default_name}\" app,\n"
+    ));
+    msg.push_str("which has no client credentials stored. API calls will fail with 401 errors.\n");
+    msg.push('\n');
+    msg.push_str("App(s) with credentials available:\n");
+    for (name, hint) in &credentialed {
+        msg.push_str(&format!("  --app {name}  [client_id: {hint}...]\n"));
+    }
+    msg.push('\n');
+    let first = &credentialed[0].0;
+    msg.push_str(&format!("Run instead:  xr auth oauth2 --app {first}"));
+    Some(msg)
+}
+
 /// Truncates a string to a maximum length.
 fn truncate(s: &str, max_len: usize) -> &str {
     if s.len() <= max_len {
@@ -496,6 +575,7 @@ fn build_app_status_entries(
                 oauth1: app.oauth1_token.is_some(),
                 bearer: app.bearer_token.is_some(),
                 default: name == default_app,
+                oauth2_unnamed: app.unnamed_oauth2_token.is_some(),
             })
         })
         .collect()

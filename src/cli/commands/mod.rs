@@ -45,6 +45,15 @@ pub fn run(
 ) -> Result<()> {
     let cfg = Config::new();
 
+    // KTD6: capture whether the user passed `--app` BEFORE `cli.app` is
+    // collapsed into `auth.with_app_name(...)` below. The collapsed
+    // `Config.app_name` is always `"default"` in normal runtime paths and
+    // therefore cannot distinguish "user passed --app default" from "user
+    // passed nothing"; the boolean derived here threads through to
+    // `run_auth_command` so the credential-less-default warning gates
+    // correctly (R13).
+    let app_explicit = cli.app.is_some();
+
     // Apply --app override
     if let Some(ref app_name) = cli.app {
         auth.with_app_name(app_name);
@@ -52,7 +61,16 @@ pub fn run(
 
     let no_interactive = cli.no_interactive;
     match cli.command {
-        Some(cmd) => run_subcommand(cmd, &cfg, auth, no_interactive, out, stdout, stderr),
+        Some(cmd) => run_subcommand(
+            cmd,
+            &cfg,
+            auth,
+            no_interactive,
+            out,
+            stdout,
+            stderr,
+            app_explicit,
+        ),
         None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr),
     }
 }
@@ -118,6 +136,7 @@ fn run_subcommand(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
+    app_explicit: bool,
 ) -> Result<()> {
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
@@ -412,7 +431,15 @@ fn run_subcommand(
 
         // ── Auth ─────────────────────────────────────────────────────
         Commands::Auth { command } => {
-            return auth::run_auth_command(command, auth, no_interactive, out, stdout);
+            return auth::run_auth_command(
+                command,
+                auth,
+                no_interactive,
+                out,
+                stdout,
+                stderr,
+                app_explicit,
+            );
         }
 
         // ── Media ────────────────────────────────────────────────────
@@ -436,16 +463,25 @@ fn run_subcommand(
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/// Resolves the authenticated user's ID from /2/users/me.
+/// Resolves the authenticated user's ID.
+///
+/// When `opts.username` is empty, calls `/2/users/me` (the default identity
+/// for the active credential). When non-empty, calls
+/// `/2/users/by/username/<u>` directly, bypassing `/me` so the shortcut works
+/// when `/me` is unavailable or when the caller wants to act under a known
+/// handle without consulting `/me`.
 fn resolve_my_user_id(client: &mut ApiClient, opts: &CallOptions) -> Result<String> {
-    let resp = client.get_me(opts)?;
-    let id = &resp.data.id;
+    let id = if opts.username.is_empty() {
+        client.get_me(opts)?.data.id
+    } else {
+        client.lookup_user(&opts.username, opts)?.data.id
+    };
     if id.is_empty() {
         return Err(XurlError::auth(
             "user ID was empty -- check your auth tokens",
         ));
     }
-    Ok(id.clone())
+    Ok(id)
 }
 
 /// Resolves a username to a user ID.

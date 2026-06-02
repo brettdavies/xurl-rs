@@ -66,6 +66,7 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
