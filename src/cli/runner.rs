@@ -178,7 +178,14 @@ where
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
             let code = e.exit_code();
-            out.print_error(stderr, &e, code);
+            // `EnvelopeAlreadyEmitted` is the U7 sentinel: the call site has
+            // already written the canonical envelope (e.g.
+            // `print_confirmation_required`) and we must NOT emit a second
+            // `{"error":...,"kind":...}` line. The carried exit code surfaces
+            // as the process exit unchanged.
+            if !matches!(e, crate::error::XurlError::EnvelopeAlreadyEmitted { .. }) {
+                out.print_error(stderr, &e, code);
+            }
             code
         }
     }

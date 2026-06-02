@@ -1,6 +1,8 @@
 /// Media subcommand handlers — upload and status.
 use std::io::Write;
 
+use serde_json::json;
+
 use crate::api::{self, ApiClient};
 use crate::auth::Auth;
 use crate::cli::MediaCommands;
@@ -8,11 +10,13 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::output::OutputConfig;
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn run_media_command(
     cmd: MediaCommands,
     cfg: &Config,
     auth: Auth,
     verbose: bool,
+    dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
@@ -28,6 +32,16 @@ pub(super) fn run_media_command(
             trace,
             headers,
         } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "media-upload",
+                    "file": file,
+                    "media_type": media_type,
+                    "category": category,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             api::execute_media_upload(
                 &file,

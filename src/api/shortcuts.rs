@@ -61,6 +61,76 @@ pub fn resolve_username(input: &str) -> String {
     input.trim().trim_start_matches('@').to_string()
 }
 
+// ── Write-op validators (U7) ─────────────────────────────────────────
+//
+// Each validator returns `Ok(())` when the inputs would be accepted by the
+// API and `Err(reason)` with a kebab-case reason otherwise. Callers compose
+// these into the canonical dry-run envelope without issuing HTTP.
+
+/// X API post body length budget. The platform rejects > 280 chars.
+pub const POST_BODY_MAX_CHARS: usize = 280;
+
+/// X API media attachment cap per post.
+pub const POST_MEDIA_MAX: usize = 4;
+
+/// Validates a post / reply / quote body.
+///
+/// # Errors
+/// Returns the kebab-case reason: `empty-body`, `body-too-long`.
+pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
+    if text.is_empty() {
+        return Err("empty-body");
+    }
+    if text.chars().count() > POST_BODY_MAX_CHARS {
+        return Err("body-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a media-attachment list for a post.
+///
+/// # Errors
+/// Returns `too-many-attachments` when more than [`POST_MEDIA_MAX`] are passed.
+pub fn validate_media_attachments(ids: &[String]) -> std::result::Result<(), &'static str> {
+    if ids.len() > POST_MEDIA_MAX {
+        return Err("too-many-attachments");
+    }
+    Ok(())
+}
+
+/// Validates a DM body.
+///
+/// # Errors
+/// Returns `empty-body` for an empty string. (DM length is enforced server-side.)
+pub fn validate_dm_body(text: &str) -> std::result::Result<(), &'static str> {
+    if text.is_empty() {
+        return Err("empty-body");
+    }
+    Ok(())
+}
+
+/// Validates a username target (strips a leading `@` first).
+///
+/// # Errors
+/// Returns `empty-username` when the trimmed input is empty.
+pub fn validate_target_username(input: &str) -> std::result::Result<(), &'static str> {
+    if resolve_username(input).is_empty() {
+        return Err("empty-username");
+    }
+    Ok(())
+}
+
+/// Validates a post identifier (URL or ID).
+///
+/// # Errors
+/// Returns `empty-post-id` when the resolver yields the empty string.
+pub fn validate_post_id(input: &str) -> std::result::Result<(), &'static str> {
+    if resolve_post_id(input).is_empty() {
+        return Err("empty-post-id");
+    }
+    Ok(())
+}
+
 // ── Shortcut methods on ApiClient ───────────────────────────────────
 
 impl ApiClient {

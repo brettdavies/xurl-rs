@@ -44,6 +44,20 @@ pub enum XurlError {
     /// Token store persistence / lookup error.
     #[error("Token Store Error: {0}")]
     TokenStore(String),
+
+    /// Sentinel: a structured envelope was already emitted by the call site.
+    ///
+    /// The runner short-circuits its trailing `print_error` for this variant
+    /// and propagates the carried exit code unchanged. Used by U7's
+    /// `print_confirmation_required` so the canonical envelope
+    /// `{"status":"error","reason":"confirmation-required",…}` is the only
+    /// thing the agent sees on stderr (no duplicated `{"error":...,"kind":...}`
+    /// from the generic `print_error` path).
+    #[error("envelope-already-emitted")]
+    EnvelopeAlreadyEmitted {
+        /// Exit code the runner should surface for this error.
+        exit_code: i32,
+    },
 }
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
@@ -106,6 +120,7 @@ impl XurlError {
     /// | `Json`                 | `serialization`  |
     /// | `InvalidMethod`        | `invalid-method` |
     /// | `Validation`           | `validation`     |
+    /// | `EnvelopeAlreadyEmitted` | `confirmation-required` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -120,6 +135,7 @@ impl XurlError {
             Self::Json(_) => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
             Self::Validation(_) => "validation",
+            Self::EnvelopeAlreadyEmitted { .. } => "confirmation-required",
         }
     }
 
@@ -142,6 +158,7 @@ impl XurlError {
             Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
             Self::Io(_) => EXIT_NETWORK_ERROR,
             Self::Validation(_) => EXIT_GENERAL_ERROR,
+            Self::EnvelopeAlreadyEmitted { exit_code } => *exit_code,
             _ => EXIT_GENERAL_ERROR,
         }
     }

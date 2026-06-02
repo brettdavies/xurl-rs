@@ -2,13 +2,30 @@
 use std::io::Write;
 
 use serde::Serialize;
+use serde_json::json;
 
+use super::{Gate, gate_destructive};
 use crate::auth::Auth;
 use crate::cli::{AppCommands, AuthCommands, RedirectUriCommands};
 use crate::config::{self, ResolveSource};
-use crate::error::{Result, XurlError};
+use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::{OutputConfig, OutputFormat};
 use crate::store::TokenStore;
+
+/// Bundle of global flags relevant to auth subcommands.
+///
+/// Mirrors the parent module's `GlobalFlags`, scoped to the subset auth needs.
+/// `verbose` is reserved for future auth handlers that surface verbose request
+/// tracing (e.g. the manual OAuth2 step exchange).
+#[derive(Debug, Clone, Copy)]
+pub(super) struct AuthGlobalFlags {
+    pub(super) no_interactive: bool,
+    #[allow(dead_code)]
+    pub(super) verbose: bool,
+    pub(super) dry_run: bool,
+    pub(super) quiet: bool,
+    pub(super) app_explicit: bool,
+}
 
 /// Per-app status/list entry rendered under `--output json`.
 ///
@@ -58,12 +75,18 @@ fn is_false(b: &bool) -> bool {
 pub(super) fn run_auth_command(
     cmd: AuthCommands,
     mut auth: Auth,
-    no_interactive: bool,
+    flags: AuthGlobalFlags,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-    app_explicit: bool,
 ) -> Result<()> {
+    let AuthGlobalFlags {
+        no_interactive,
+        verbose: _,
+        dry_run,
+        quiet,
+        app_explicit,
+    } = flags;
     match cmd {
         AuthCommands::Oauth2 {
             no_browser,
@@ -71,6 +94,16 @@ pub(super) fn run_auth_command(
             auth_url,
             username,
         } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "auth-oauth2",
+                    "no_browser": no_browser,
+                    "step": step,
+                    "username": username,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             let username_arg = username.as_deref().unwrap_or("");
             // R13/KTD4: credential-less-default warning. Fires when the user
             // did not pass `--app`, the default app has no `client_id`, and at
@@ -176,6 +209,11 @@ pub(super) fn run_auth_command(
             access_token,
             token_secret,
         } => {
+            if dry_run {
+                let ctx = json!({"command": "auth-oauth1"});
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store.save_oauth1_tokens(
                 &access_token,
                 &token_secret,
@@ -188,6 +226,11 @@ pub(super) fn run_auth_command(
             );
         }
         AuthCommands::App { bearer_token } => {
+            if dry_run {
+                let ctx = json!({"command": "auth-app"});
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store.save_bearer_token(&bearer_token)?;
             out.print_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
         }
@@ -283,7 +326,48 @@ pub(super) fn run_auth_command(
             oauth1,
             oauth2_username,
             bearer,
+            force,
         } => {
+            let ctx = json!({
+                "command": "auth-clear",
+                "all": all,
+                "oauth1": oauth1,
+                "oauth2_username": oauth2_username,
+                "bearer": bearer,
+            });
+
+            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
+            // destructive op in interactive mode does not leak a dry-run
+            // envelope. Dry-run still composes with --force.
+            let target = if all {
+                "all credentials"
+            } else if oauth1 {
+                "OAuth1 tokens"
+            } else if oauth2_username.is_some() {
+                "OAuth2 token"
+            } else if bearer {
+                "bearer token"
+            } else {
+                ""
+            };
+            if !target.is_empty() {
+                match gate_destructive(force, no_interactive, quiet, &format!("Clear {target}?"))? {
+                    Gate::Proceed => {}
+                    Gate::Declined => return Ok(()),
+                    Gate::ConfirmationRequired => {
+                        out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
+                        return Err(XurlError::EnvelopeAlreadyEmitted {
+                            exit_code: EXIT_GENERAL_ERROR,
+                        });
+                    }
+                }
+            }
+
+            if dry_run {
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+
             if all {
                 auth.token_store.clear_all()?;
                 out.print_message(stdout, "All authentication cleared!");
@@ -303,9 +387,29 @@ pub(super) fn run_auth_command(
             }
         }
         AuthCommands::Apps { command } => {
-            return run_app_command(command, &mut auth, out, stdout);
+            return run_app_command(
+                command,
+                &mut auth,
+                AppGlobalFlags {
+                    no_interactive,
+                    dry_run,
+                    quiet,
+                },
+                out,
+                stdout,
+                stderr,
+            );
         }
         AuthCommands::Default { app_name, username } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "auth-default",
+                    "app_name": app_name,
+                    "username": username,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             if let Some(app_name) = app_name {
                 auth.token_store.set_default_app(&app_name)?;
                 out.print_message(
@@ -374,12 +478,27 @@ pub(super) fn run_auth_command(
     Ok(())
 }
 
+/// Subset of `AuthGlobalFlags` needed by app management.
+#[derive(Debug, Clone, Copy)]
+struct AppGlobalFlags {
+    no_interactive: bool,
+    dry_run: bool,
+    quiet: bool,
+}
+
 fn run_app_command(
     cmd: AppCommands,
     auth: &mut Auth,
+    flags: AppGlobalFlags,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
+    let AppGlobalFlags {
+        no_interactive,
+        dry_run,
+        quiet,
+    } = flags;
     match cmd {
         AppCommands::Add {
             name,
@@ -387,6 +506,15 @@ fn run_app_command(
             client_secret,
             redirect_uri,
         } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "app-add",
+                    "name": name,
+                    "has_redirect_uri": redirect_uri.is_some(),
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store
                 .add_app(&name, &client_id, &client_secret)?;
             if let Some(ref uri) = redirect_uri {
@@ -408,6 +536,17 @@ fn run_app_command(
                     "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
                 ));
             }
+            if dry_run {
+                let ctx = json!({
+                    "command": "app-update",
+                    "name": name,
+                    "has_client_id": client_id.is_some(),
+                    "has_client_secret": client_secret.is_some(),
+                    "has_redirect_uri": redirect_uri.is_some(),
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             if client_id.is_some() || client_secret.is_some() {
                 auth.token_store.update_app(
                     &name,
@@ -420,12 +559,35 @@ fn run_app_command(
             }
             out.print_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
         }
-        AppCommands::Remove { name } => {
+        AppCommands::Remove { name, force } => {
+            let ctx = json!({"command": "app-remove", "name": name});
+            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
+            // destructive op in interactive mode does not leak a dry-run
+            // envelope.
+            match gate_destructive(
+                force,
+                no_interactive,
+                quiet,
+                &format!("Remove app {name:?}?"),
+            )? {
+                Gate::Proceed => {}
+                Gate::Declined => return Ok(()),
+                Gate::ConfirmationRequired => {
+                    out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
+                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                        exit_code: EXIT_GENERAL_ERROR,
+                    });
+                }
+            }
+            if dry_run {
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store.remove_app(&name)?;
             out.print_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
         }
         AppCommands::RedirectUri { command } => {
-            return run_redirect_uri_command(command, auth, out, stdout);
+            return run_redirect_uri_command(command, auth, dry_run, out, stdout);
         }
         AppCommands::List => {
             // Read through the runner-constructed store so tempdir-based
@@ -584,6 +746,7 @@ fn build_app_status_entries(
 fn run_redirect_uri_command(
     cmd: RedirectUriCommands,
     auth: &mut Auth,
+    dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
 ) -> Result<()> {
@@ -630,6 +793,15 @@ fn run_redirect_uri_command(
             }
         }
         RedirectUriCommands::Set { name, uri } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "redirect-uri-set",
+                    "app": name,
+                    "redirect_uri": uri,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store.set_app_redirect_uri(&name, &uri)?;
             match out.format {
                 crate::output::OutputFormat::Json | crate::output::OutputFormat::Jsonl => {
