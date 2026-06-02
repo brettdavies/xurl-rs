@@ -752,6 +752,40 @@ pub struct Cli {
     )]
     pub output: OutputFormat,
 
+    /// Shorthand for `--output json` (P2 alias).
+    #[arg(
+        long,
+        global = true,
+        conflicts_with = "output",
+        conflicts_with = "jsonl",
+        action = clap::ArgAction::SetTrue,
+    )]
+    pub json: bool,
+
+    /// Shorthand for `--output jsonl` (P2 alias).
+    #[arg(
+        long,
+        global = true,
+        conflicts_with = "output",
+        conflicts_with = "json",
+        action = clap::ArgAction::SetTrue,
+    )]
+    pub jsonl: bool,
+
+    /// Emit unstyled, compact output. Strips ANSI in text mode; compact (no
+    /// pretty-printing) JSON in json/jsonl modes.
+    #[arg(
+        long,
+        global = true,
+        env = "XURL_RAW",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = false,
+    )]
+    pub raw: bool,
+
     /// Suppress all non-essential output (errors still go to stderr)
     #[arg(
         long,
@@ -1121,7 +1155,7 @@ pub enum Commands {
     /// Show JSON Schema for a command's response type
     #[command(after_help = SCHEMA_HELP)]
     Schema {
-        /// Command name to get the schema for (e.g. "post", "whoami")
+        /// Command name to get the schema for (e.g. "post", "whoami", "envelope")
         command: Option<String>,
         /// List all commands and their response types
         #[arg(long)]
@@ -1129,6 +1163,9 @@ pub enum Commands {
         /// Output all schemas as a single JSON document
         #[arg(long)]
         all: bool,
+        /// Output the canonical agent-native output envelope schema
+        #[arg(long)]
+        envelope: bool,
     },
 
     /// Generate shell completion script
@@ -1173,6 +1210,25 @@ pub enum SkillCmd {
         #[arg(long)]
         dry_run: bool,
     },
+}
+
+impl Cli {
+    /// Resolves the effective output format after applying `--json` /
+    /// `--jsonl` aliases.
+    ///
+    /// `--jsonl` wins over `--json` if both were set (they conflict via
+    /// clap, so at most one survives parsing); either alias overrides
+    /// `--output`.
+    #[must_use]
+    pub fn effective_output(&self) -> OutputFormat {
+        if self.jsonl {
+            OutputFormat::Jsonl
+        } else if self.json {
+            OutputFormat::Json
+        } else {
+            self.output.clone()
+        }
+    }
 }
 
 /// Common flags shared by shortcut commands.
