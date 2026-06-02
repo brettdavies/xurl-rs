@@ -110,6 +110,15 @@ where
                 let _ = writeln!(stdout, "xr {}", env!("CARGO_PKG_VERSION"));
                 return EXIT_SUCCESS;
             }
+            Commands::Examples => {
+                return match crate::cli::commands::examples::run_examples(stdout) {
+                    Ok(()) => EXIT_SUCCESS,
+                    Err(e) => {
+                        out.print_error(stderr, &e, EXIT_GENERAL_ERROR);
+                        EXIT_GENERAL_ERROR
+                    }
+                };
+            }
             Commands::Schema { command, list, all } => {
                 return match crate::cli::commands::schema::run_schema(
                     command.as_deref(),
