@@ -876,17 +876,25 @@ fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
 // ── CLI E2E tests ─────────────────────────────────────────────────────
 
 #[test]
-fn cli_no_browser_without_step_fails() {
+fn cli_no_browser_without_step_auto_engages_step1() {
+    // U9: `--no-browser` (no `--step`) now auto-promotes to step 1 — emits
+    // the authorize URL and exits 0 rather than rejecting at usage time.
+    // The exact envelope shape is covered by the JSON-mode tests in
+    // `cli_tests.rs`; this test asserts the exit code only so it survives
+    // text-mode rendering changes. Redirect HOME to a tempdir so the
+    // pending-state file (`~/.xurl.pending`) does not pollute the user's
+    // real home.
+    let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .env("HOME", tmp.path())
         .args(["auth", "oauth2", "--no-browser"])
         .output()
         .unwrap();
 
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--no-browser requires --step"),
-        "Expected --step required error, got: {stderr}"
+        output.status.success(),
+        "expected success; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 

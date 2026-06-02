@@ -2733,3 +2733,180 @@ fn test_limit_help_advertised_globally() {
         "xr --help must advertise --limit globally; got: {stdout}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U9: TTY-gated dialoguer + `--no-browser` env + headless auto-engage
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// `xr auth default --no-interactive --output json` (no app_name supplied)
+/// must emit the canonical `no-tty` envelope on stderr and skip any dialoguer
+/// call.  Two apps are seeded so the picker would otherwise prompt.
+#[test]
+fn test_auth_default_no_interactive_emits_no_tty_envelope() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("alpha", "ALPHA-CID", "ALPHA-SECRET")
+        .expect("add alpha");
+    ts.add_app("beta", "BETA-CID", "BETA-SECRET")
+        .expect("add beta");
+    drop(ts);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "default",
+            "--no-interactive",
+            "--output",
+            "json",
+        ],
+    );
+    assert_ne!(code, 0, "expected non-zero exit; stdout: {stdout}");
+    let trimmed = stderr.trim();
+    assert!(
+        !trimmed.is_empty(),
+        "stderr envelope must be present; got empty stderr"
+    );
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
+    assert_eq!(v["status"], "error", "envelope status: {trimmed}");
+    assert_eq!(v["reason"], "no-tty", "envelope reason: {trimmed}");
+    assert!(
+        v["message"]
+            .as_str()
+            .map(|s| s.contains("default app") || s.contains("interactively"))
+            .unwrap_or(false),
+        "envelope message: {trimmed}"
+    );
+}
+
+/// `xr auth default` without `--no-interactive` while the test harness's
+/// stdin/stderr are not real TTYs (cargo test) must still skip dialoguer and
+/// emit the `no-tty` envelope. The TTY check is independent of the
+/// `--no-interactive` flag.
+#[test]
+fn test_auth_default_non_tty_emits_no_tty_envelope() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("alpha", "ALPHA-CID", "ALPHA-SECRET")
+        .expect("add alpha");
+    ts.add_app("beta", "BETA-CID", "BETA-SECRET")
+        .expect("add beta");
+    drop(ts);
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "auth", "default", "--output", "json"]);
+    assert_ne!(code, 0, "expected non-zero exit");
+    let trimmed = stderr.trim();
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
+    assert_eq!(v["status"], "error", "envelope status: {trimmed}");
+    assert_eq!(v["reason"], "no-tty", "envelope reason: {trimmed}");
+}
+
+/// `xr auth oauth2 --help` must advertise the new `XURL_NO_BROWSER` env var.
+#[test]
+fn test_auth_oauth2_help_advertises_no_browser_env_var() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("XURL_NO_BROWSER"),
+        "auth oauth2 --help must advertise XURL_NO_BROWSER env var; got:\n{stdout}"
+    );
+}
+
+/// `xr auth oauth2 --no-browser --output json` (no `--step`) emits the
+/// canonical `{"status":"awaiting_callback","url":"..."}` envelope on stdout
+/// and exits 0; the user is expected to invoke step 2 separately. Validates
+/// the U9 "explicit --no-browser without --step" auto-promotion to step 1.
+///
+/// Uses a subprocess with `HOME` redirected to a tempdir because the OAuth2
+/// step-1 pending-state file lives at `$HOME/.xurl.pending` — the library
+/// entrypoint does not isolate that path, so an in-process call would
+/// pollute the user's real home directory.
+#[test]
+fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
+    let tmp = TempDir::new().expect("tempdir");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .env("HOME", tmp.path())
+        .env_remove("XURL_NO_BROWSER")
+        .env_remove("XURL_OUTPUT")
+        .args(["auth", "oauth2", "--no-browser", "--output", "json"])
+        .output()
+        .expect("spawn xr");
+    assert!(
+        output.status.success(),
+        "expected 0 for --no-browser; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let trimmed = stdout.trim();
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
+    assert_eq!(v["status"], "awaiting_callback", "status: {trimmed}");
+    assert!(v["url"].is_string(), "url present: {trimmed}");
+    let url = v["url"].as_str().expect("url string");
+    assert!(
+        url.contains("oauth2/authorize"),
+        "url must point at OAuth2 authorize endpoint: {url}"
+    );
+}
+
+/// `XURL_NO_BROWSER=1 xr auth oauth2 --output json` is equivalent to passing
+/// `--no-browser` explicitly — env-var routing for headless runners.
+#[test]
+fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
+    let tmp = TempDir::new().expect("tempdir");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .env("HOME", tmp.path())
+        .env("XURL_NO_BROWSER", "1")
+        .env_remove("XURL_OUTPUT")
+        .args(["auth", "oauth2", "--output", "json"])
+        .output()
+        .expect("spawn xr");
+    assert!(
+        output.status.success(),
+        "XURL_NO_BROWSER auto-engage must succeed; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let trimmed = stdout.trim();
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
+    assert_eq!(v["status"], "awaiting_callback");
+    assert!(v["url"].is_string());
+}
+
+/// When stdout is not a TTY (subprocess piped output) and neither
+/// `--no-browser` nor `XURL_NO_BROWSER` is set, `xr auth oauth2 --output
+/// json` must auto-engage the headless path rather than attempting to spawn
+/// a browser. Confirms scenario 5 of the U9 plan.
+#[test]
+fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
+    let tmp = TempDir::new().expect("tempdir");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .env("HOME", tmp.path())
+        .env_remove("XURL_NO_BROWSER")
+        .env_remove("XURL_OUTPUT")
+        .args(["auth", "oauth2", "--output", "json"])
+        .output()
+        .expect("spawn xr");
+    assert!(
+        output.status.success(),
+        "auto-engage must succeed; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let trimmed = stdout.trim();
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
+    assert_eq!(
+        v["status"], "awaiting_callback",
+        "auto-engaged envelope must match explicit --no-browser shape: {trimmed}"
+    );
+    assert!(v["url"].is_string(), "url present: {trimmed}");
+}
