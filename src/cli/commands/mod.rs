@@ -3,6 +3,7 @@ mod auth;
 pub mod examples;
 mod media;
 pub mod schema;
+pub mod skill;
 mod streaming;
 
 use std::io::Write;
@@ -463,6 +464,9 @@ fn run_subcommand(
         }
         Commands::Version => {
             unreachable!("version is handled before config init in main()")
+        }
+        Commands::Skill { .. } => {
+            unreachable!("skill is handled before config init in main()")
         }
         Commands::Examples => {
             unreachable!("examples is handled before config init in main()")
