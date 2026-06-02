@@ -12,6 +12,7 @@ use clap::builder::FalseyValueParser;
 use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::output::OutputFormat;
+pub use crate::skill_install::SkillHost;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -1099,6 +1100,23 @@ pub enum Commands {
         command: MediaCommands,
     },
 
+    // ── Skill bundle ─────────────────────────────────────────────────
+    /// Install or manage the xurl-rs skill bundle
+    ///
+    /// Namespace for bundle operations. `xr skill install <host>` shallow-clones
+    /// the xurl-rs repository into a host's canonical skills directory so the
+    /// bundled `AGENTS.md` becomes discoverable to local agents.
+    #[command(after_help = "Examples:
+  xr skill install claude_code                 # install bundle to Claude Code
+  xr skill install claude_code --dry-run       # print the resolved git command without spawning
+  xr skill install --all                       # install across every known host
+  xr skill install codex --output json         # JSON envelope for agent consumption
+  xr skill install --all --dry-run --output json  # multi-host dry-run envelope")]
+    Skill {
+        #[command(subcommand)]
+        cmd: SkillCmd,
+    },
+
     // ── Meta ─────────────────────────────────────────────────────────
     /// Show JSON Schema for a command's response type
     #[command(after_help = SCHEMA_HELP)]
@@ -1127,6 +1145,34 @@ pub enum Commands {
     /// Print a curated gallery of invocation examples grouped by use case
     #[command(after_help = EXAMPLES_HELP)]
     Examples,
+}
+
+/// `skill` subcommand variants.
+#[derive(Subcommand, Debug)]
+pub enum SkillCmd {
+    /// Install the skill bundle into a host's canonical skills directory.
+    ///
+    /// Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is
+    /// discoverable to local agents. The destination is taken from the
+    /// build-generated host map (`src/skill_install/skill.json`).
+    #[command(after_help = "Examples:
+  xr skill install claude_code                     # install bundle to Claude Code
+  xr skill install claude_code --dry-run           # print the resolved git command without spawning
+  xr skill install --all                           # install across every known host
+  xr skill install codex --output json             # JSON envelope for agent consumption
+  xr skill install --all --dry-run --output json   # multi-host dry-run envelope")]
+    Install {
+        /// Target host (e.g. claude_code, codex, cursor). Required unless `--all`.
+        host: Option<SkillHost>,
+
+        /// Install into every known host in one invocation.
+        #[arg(long, conflicts_with = "host")]
+        all: bool,
+
+        /// Print the resolved git command without spawning.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 /// Common flags shared by shortcut commands.
