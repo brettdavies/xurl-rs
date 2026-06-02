@@ -48,7 +48,9 @@ fn test_json_output_no_ansi_codes() {
 
 #[test]
 fn test_json_output_error_format() {
-    // When a command fails with --output json, stderr should be structured JSON
+    // When a command fails with --output json, stderr should be the canonical
+    // agent-native envelope: {"status":"error","reason":<kebab>,
+    // "exit_code":<int>,"message":<str>}.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -63,14 +65,20 @@ fn test_json_output_error_format() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
 
-    // Should be valid JSON with error, kind, and code fields
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
+    assert_eq!(parsed["status"], "error");
     assert!(
-        parsed["error"].is_string(),
-        "error field should be a string"
+        parsed["reason"].is_string(),
+        "reason field should be a string"
     );
-    assert!(parsed["kind"].is_string(), "kind field should be a string");
-    assert!(parsed["code"].is_number(), "code field should be a number");
+    assert!(
+        parsed["exit_code"].is_number(),
+        "exit_code field should be a number"
+    );
+    assert!(
+        parsed["message"].is_string(),
+        "message field should be a string"
+    );
 }
 
 #[test]
@@ -245,8 +253,9 @@ fn test_exit_code_zero_on_success() {
 }
 
 #[test]
-fn test_exit_code_auth_required_is_2() {
-    // Auth failure should exit with code 2
+fn test_exit_code_auth_required_is_77() {
+    // Auth-required failures exit with sysexits EX_NOPERM (77), disambiguating
+    // from clap usage errors (EX_USAGE = 2). Behavior change in v1.3.0.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -260,14 +269,15 @@ fn test_exit_code_auth_required_is_2() {
 
     assert_eq!(
         output.status.code().unwrap(),
-        2,
-        "Auth error should exit with code 2"
+        77,
+        "Auth error should exit with code 77 (EX_NOPERM)"
     );
 }
 
 #[test]
 fn test_exit_code_json_error_includes_code() {
-    // With --output json, the error JSON should include the exit code
+    // With --output json, the envelope's exit_code field carries the semantic
+    // exit code (77 for auth-required).
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
@@ -281,9 +291,9 @@ fn test_exit_code_json_error_includes_code() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
-    assert_eq!(parsed["code"].as_i64().unwrap(), 2);
-    // kind reflects the error variant (api for HTTP 401), code reflects semantic meaning
-    assert!(parsed["kind"].is_string(), "kind should be a string");
+    assert_eq!(parsed["status"], "error");
+    assert_eq!(parsed["exit_code"].as_i64().unwrap(), 77);
+    assert_eq!(parsed["reason"], "auth-required");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

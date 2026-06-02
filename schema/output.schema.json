@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The three envelope variants — one per `status` discriminator value.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "description": "Success envelope. `payload` holds verb-specific fields; agents\nmerge them flat at the top level for legibility.",
+      "properties": {
+        "status": {
+          "const": "ok",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "description": "Dry-run envelope. `would_succeed` and `exit_code` are mandatory;\nadditional context (command name, body preview, etc.) lives in\n`payload`.",
+      "properties": {
+        "exit_code": {
+          "description": "Exit code the verb would have returned on actual execution.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "const": "dry_run",
+          "type": "string"
+        },
+        "would_succeed": {
+          "description": "True iff every precondition checked clean.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "would_succeed",
+        "exit_code"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Error envelope. `reason` is mandatory — a typed kebab-case identifier\nfrom the closed set: `auth-required`, `rate-limited`, `not-found`,\n`network-error`, `invalid-args`, `invalid-method`, `validation`,\n`serialization`, `io`, `token-store`.",
+      "properties": {
+        "exit_code": {
+          "description": "Structured exit code per the sysexits-inspired matrix in\n`xurl::error`.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "description": "Optional human-readable message. Omitted entirely (not `null`)\nwhen absent so consumers feature-detect by key presence.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "Typed kebab-case kind. Closed set; agents pattern-match on this.",
+          "type": "string"
+        },
+        "status": {
+          "const": "error",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "exit_code"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "Envelope"
+}
