@@ -66,6 +66,9 @@ percent-encoding = "2"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[build-dependencies]
+serde_json = "1"
+
 [[bin]]
 name = "xr"
 path = "src/main.rs"
