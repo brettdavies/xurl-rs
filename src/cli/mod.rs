@@ -62,9 +62,8 @@ ENVIRONMENT VARIABLES:
   REDIRECT_URI           OAuth2 redirect URI override for the active app
 
 Flags override env vars when both are set. NO_COLOR=1 always wins over
---color/XURL_COLOR (https://no-color.org). PAGER and $PAGER are not used:
-xr writes directly to stdout/stderr and never invokes a pager, so output
-is pipe-safe by default (no --no-pager flag is necessary).
+--color/XURL_COLOR (https://no-color.org). --no-pager is a documented
+no-op so agents can pass it unconditionally; xr never invokes $PAGER.
 
 EXIT CODES:
   0    success
@@ -794,6 +793,18 @@ pub struct Cli {
         require_equals = false,
     )]
     pub raw: bool,
+
+    /// Documented no-op. `xr` writes directly to stdout and never invokes
+    /// `$PAGER`; this flag is advertised so agents can pass `--no-pager`
+    /// unconditionally without xr rejecting it.
+    #[arg(
+        long,
+        global = true,
+        env = "XURL_NO_PAGER",
+        value_parser = FalseyValueParser::new(),
+        action = clap::ArgAction::SetTrue,
+    )]
+    pub no_pager: bool,
 
     /// Suppress all non-essential output (errors still go to stderr)
     #[arg(
