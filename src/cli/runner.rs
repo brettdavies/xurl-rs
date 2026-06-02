@@ -125,6 +125,13 @@ where
                     }
                 };
             }
+            Commands::Skill { .. } => {
+                // Move out of `cli` so the handler owns the enum (avoids clone).
+                let Some(Commands::Skill { cmd }) = cli.command else {
+                    unreachable!("matched Commands::Skill above")
+                };
+                return crate::cli::commands::skill::run_skill(cmd, &out, stdout);
+            }
             _ => {}
         }
     }
