@@ -19,6 +19,8 @@ fn print_message_writes_to_supplied_writer_text() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.print_message(&mut buf, "hi");
@@ -32,6 +34,8 @@ fn print_message_json_wraps_as_envelope() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.print_message(&mut buf, "hello");
@@ -47,6 +51,8 @@ fn info_writes_nothing_when_quiet() {
         format: OutputFormat::Text,
         quiet: true,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.info(&mut buf, "should be suppressed");
@@ -59,6 +65,8 @@ fn status_writes_nothing_when_quiet() {
         format: OutputFormat::Text,
         quiet: true,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.status(&mut buf, "should be suppressed");
@@ -71,6 +79,8 @@ fn info_writes_nothing_when_format_is_json() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.info(&mut buf, "machine path");
@@ -83,6 +93,8 @@ fn status_writes_nothing_when_format_is_json() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.status(&mut buf, "machine path");
@@ -95,6 +107,8 @@ fn info_writes_message_when_text_and_not_quiet() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.info(&mut buf, "fyi");
@@ -108,6 +122,8 @@ fn print_response_emits_json_in_json_format() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let value = serde_json::json!({"id": "abc", "n": 7});
     let mut buf: Vec<u8> = Vec::new();
@@ -124,6 +140,8 @@ fn print_response_no_ansi_in_json_format() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let value = serde_json::json!({"id": "abc"});
     let mut buf: Vec<u8> = Vec::new();
@@ -144,6 +162,8 @@ fn print_response_text_no_color_writes_pretty_json() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let value = serde_json::json!({"k": "v"});
     let mut buf: Vec<u8> = Vec::new();
@@ -159,6 +179,8 @@ fn print_stream_line_writes_with_trailing_newline() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let mut buf: Vec<u8> = Vec::new();
     cfg.print_stream_line(&mut buf, "event-payload");
@@ -172,6 +194,8 @@ fn print_error_writes_to_error_writer_only() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
     let err = XurlError::auth("token expired");
@@ -187,6 +211,8 @@ fn print_error_emits_structured_json_when_format_is_json() {
         format: OutputFormat::Json,
         quiet: false,
         no_color: false,
+        use_color: true,
+        verbose: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
     let err = XurlError::auth("bad token");
@@ -204,6 +230,8 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
         format: OutputFormat::Text,
         quiet: false,
         no_color: true,
+        use_color: false,
+        verbose: false,
     };
     let mut stdout_buf: Vec<u8> = Vec::new();
     let mut err_buf: Vec<u8> = Vec::new();

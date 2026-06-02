@@ -8,9 +8,24 @@ pub mod runner;
 
 pub use runner::{run, run_argv, run_with_store_path};
 
-use clap::{Parser, Subcommand};
+use clap::builder::FalseyValueParser;
+use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::output::OutputFormat;
+
+/// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
+/// and TTY detection.
+#[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq, Default)]
+#[value(rename_all = "lower")]
+pub enum ColorChoice {
+    /// Enable color when stderr is a TTY and `NO_COLOR` is unset.
+    #[default]
+    Auto,
+    /// Always emit ANSI color escapes (still suppressed by `NO_COLOR`).
+    Always,
+    /// Never emit ANSI color escapes.
+    Never,
+}
 
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
@@ -80,7 +95,17 @@ pub struct Cli {
     pub username: Option<String>,
 
     /// Print verbose information
-    #[arg(short = 'v', long = "verbose")]
+    #[arg(
+        short = 'v',
+        long = "verbose",
+        global = true,
+        env = "XURL_VERBOSE",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = false,
+    )]
     pub verbose: bool,
 
     /// Add trace header to request
@@ -96,7 +121,7 @@ pub struct Cli {
     pub file: Option<String>,
 
     /// Use a specific registered app (overrides default)
-    #[arg(long = "app", global = true)]
+    #[arg(long = "app", global = true, env = "XURL_APP")]
     pub app: Option<String>,
 
     /// Output format: text (default), json (machine-readable), jsonl (streaming)
@@ -110,16 +135,45 @@ pub struct Cli {
     pub output: OutputFormat,
 
     /// Suppress all non-essential output (errors still go to stderr)
-    #[arg(long, short = 'q', global = true)]
+    #[arg(
+        long,
+        short = 'q',
+        global = true,
+        env = "XURL_QUIET",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = false,
+    )]
     pub quiet: bool,
 
     /// Disable interactive prompts; fail with error instead
-    #[arg(long, global = true)]
+    #[arg(
+        long,
+        global = true,
+        env = "XURL_NO_INTERACTIVE",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = false,
+    )]
     pub no_interactive: bool,
 
     /// Request timeout in seconds
-    #[arg(long, global = true, default_value = "30")]
+    #[arg(long, global = true, default_value = "30", env = "XURL_TIMEOUT")]
     pub timeout: u64,
+
+    /// Colorize output: auto (TTY-aware), always, or never
+    #[arg(
+        long,
+        global = true,
+        value_enum,
+        default_value_t = ColorChoice::Auto,
+        env = "XURL_COLOR"
+    )]
+    pub color: ColorChoice,
 
     /// Subcommand to run
     #[command(subcommand)]
@@ -421,6 +475,10 @@ pub enum Commands {
 }
 
 /// Common flags shared by shortcut commands.
+///
+/// `--verbose` is intentionally absent here; it lives on the root [`Cli`]
+/// as a global flag with `XURL_VERBOSE` env backing, so subcommands inherit
+/// it without local duplication.
 #[derive(clap::Args, Debug, Clone)]
 pub struct CommonFlags {
     /// Authentication type (oauth1, oauth2, app)
@@ -431,10 +489,6 @@ pub struct CommonFlags {
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
-    /// Print verbose request/response info
-    #[arg(short = 'v', long = "verbose")]
-    pub verbose: bool,
-
     /// Add X-B3-Flags trace header
     #[arg(short = 't', long = "trace")]
     pub trace: bool,
@@ -442,12 +496,15 @@ pub struct CommonFlags {
 
 impl CommonFlags {
     /// Converts to `CallOptions` for shortcut methods.
-    pub fn to_call_options(&self) -> crate::api::CallOptions {
+    ///
+    /// `verbose` is sourced from the root [`Cli::verbose`] global flag rather
+    /// than per-subcommand, so the caller threads it through here.
+    pub fn to_call_options(&self, verbose: bool) -> crate::api::CallOptions {
         crate::api::CallOptions {
             auth_type: self.auth_type.clone().unwrap_or_default(),
             username: self.username.clone().unwrap_or_default(),
             no_auth: false,
-            verbose: self.verbose,
+            verbose,
             trace: self.trace,
         }
     }
@@ -610,9 +667,6 @@ pub enum MediaCommands {
         /// Username
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
-        /// Verbose output
-        #[arg(short = 'v', long = "verbose")]
-        verbose: bool,
         /// Trace header
         #[arg(short = 't', long = "trace")]
         trace: bool,
@@ -630,9 +684,6 @@ pub enum MediaCommands {
         /// Username
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
-        /// Verbose output
-        #[arg(short = 'v', long = "verbose")]
-        verbose: bool,
         /// Wait for processing
         #[arg(short = 'w', long = "wait")]
         wait: bool,

@@ -96,7 +96,7 @@ where
         }
     };
 
-    let out = OutputConfig::new(cli.output.clone(), cli.quiet);
+    let out = OutputConfig::new(cli.output.clone(), cli.quiet, cli.verbose, cli.color);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {

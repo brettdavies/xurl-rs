@@ -140,3 +140,177 @@ fn test_exit_code_nonzero_on_error() {
 
     assert_ne!(output.status.code().unwrap(), 0);
 }
+
+// ── U3: env-backed global flags + TTY-aware color ────────────────────
+
+#[test]
+fn test_help_advertises_xurl_verbose_env() {
+    // p1-must-env-var: --verbose must show [env: XURL_VERBOSE=] in --help.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("XURL_VERBOSE"),
+        "expected XURL_VERBOSE in --help: {stdout}"
+    );
+}
+
+#[test]
+fn test_help_advertises_all_xurl_env_vars() {
+    // p1-must-env-var: every agentic flag must surface its env var in --help.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for expected in [
+        "XURL_VERBOSE",
+        "XURL_QUIET",
+        "XURL_NO_INTERACTIVE",
+        "XURL_TIMEOUT",
+        "XURL_OUTPUT",
+        "XURL_COLOR",
+        "XURL_APP",
+    ] {
+        assert!(
+            stdout.contains(expected),
+            "expected {expected} in --help: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_help_advertises_color_flag() {
+    // p6-may-color-flag: --color must appear in --help.
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--color"),
+        "expected --color in --help: {stdout}"
+    );
+}
+
+#[test]
+fn test_color_choices_accepted() {
+    for choice in ["auto", "always", "never"] {
+        Command::cargo_bin("xr")
+            .unwrap()
+            .args(["--color", choice, "--help"])
+            .assert()
+            .success();
+    }
+}
+
+#[test]
+fn test_color_invalid_value_fails() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--color", "rainbow", "--help"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_xurl_quiet_falsey_env_does_not_enable_quiet() {
+    // FalseyValueParser must treat XURL_QUIET=0 as "not quiet".
+    // --help itself succeeds either way; this is mostly a smoke that the
+    // env-backed bool flag parses "0" without error.
+    Command::cargo_bin("xr")
+        .unwrap()
+        .env("XURL_QUIET", "0")
+        .arg("--help")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_xurl_quiet_truthy_env_accepts_arbitrary_string() {
+    // Any non-falsey env value is truthy under FalseyValueParser.
+    Command::cargo_bin("xr")
+        .unwrap()
+        .env("XURL_QUIET", "yes")
+        .arg("--help")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_xurl_verbose_env_accepted() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .env("XURL_VERBOSE", "1")
+        .arg("--help")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_xurl_color_env_accepted() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .env("XURL_COLOR", "never")
+        .arg("--help")
+        .assert()
+        .success();
+}
+
+// ── Color resolution: NO_COLOR and --color via subprocess ────────────
+//
+// Subprocess tests (via assert_cmd) give hermetic env control —
+// `.env_remove("NO_COLOR")` and `.env("NO_COLOR", "1")` apply only to the
+// child, so concurrent cargo-test threads can't race on the env var.
+// The runner emits a `No URL provided` validation error to stderr via
+// `OutputConfig::print_error`, which honors `use_color`.
+
+#[test]
+fn test_color_never_strips_ansi_from_stderr() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--color", "never"])
+        .env_remove("NO_COLOR")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains('\x1b'),
+        "--color never must strip ANSI from stderr: {stderr:?}"
+    );
+}
+
+#[test]
+fn test_color_always_emits_ansi_on_stderr() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--color", "always"])
+        .env_remove("NO_COLOR")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains('\x1b'),
+        "--color always must emit ANSI even when stderr is captured: {stderr:?}"
+    );
+}
+
+#[test]
+fn test_no_color_env_overrides_color_always() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--color", "always"])
+        .env("NO_COLOR", "1")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains('\x1b'),
+        "NO_COLOR=1 must defeat --color always per https://no-color.org/: {stderr:?}"
+    );
+}
