@@ -112,7 +112,8 @@ where
         cli.verbose,
         cli.color,
         cli.raw,
-    );
+    )
+    .with_no_interactive(cli.no_interactive);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {

@@ -51,6 +51,13 @@ pub struct OutputConfig {
     pub use_color: bool,
     pub verbose: bool,
     pub raw: bool,
+    /// Set when the user passed `--no-interactive` (or `XURL_NO_INTERACTIVE`).
+    ///
+    /// Routed into `OutputConfig` so dialoguer-gating call sites can ask
+    /// [`Self::is_interactive_terminal`] without re-reading the parsed `Cli`
+    /// struct. Constructors default this to `false`; the runner sets it via
+    /// [`Self::with_no_interactive`] right after construction.
+    pub no_interactive: bool,
 }
 
 impl OutputConfig {
@@ -99,6 +106,70 @@ impl OutputConfig {
             use_color,
             verbose,
             raw,
+            no_interactive: false,
+        }
+    }
+
+    /// Returns a copy of this config with the `no_interactive` field set.
+    ///
+    /// Used by the runner immediately after construction to thread the parsed
+    /// `--no-interactive` (or `XURL_NO_INTERACTIVE`) flag into
+    /// [`Self::is_interactive_terminal`].
+    #[must_use]
+    pub fn with_no_interactive(mut self, no_interactive: bool) -> Self {
+        self.no_interactive = no_interactive;
+        self
+    }
+
+    /// Returns `true` when the active session can drive interactive prompts.
+    ///
+    /// True only when:
+    /// - `--no-interactive` is NOT set,
+    /// - stdin is a TTY,
+    /// - stderr is a TTY (dialoguer renders prompts on stderr).
+    ///
+    /// Call sites that drive `dialoguer::Select` / `dialoguer::Confirm`
+    /// MUST gate on this — auto-engaging a prompt under a non-TTY session
+    /// leaves the dialoguer state machine waiting on `/dev/null`.
+    #[must_use]
+    pub fn is_interactive_terminal(&self) -> bool {
+        !self.no_interactive && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
+    }
+
+    /// Emits a canonical error envelope with an explicit kebab-case `reason`.
+    ///
+    /// Mirrors [`Self::print_error`] but lets the caller pin the `reason`
+    /// (e.g. `"no-tty"`) rather than reading it from `XurlError::kind()`.
+    /// Under text mode falls back to a plain "Error: …" line.
+    pub fn print_error_envelope(
+        &self,
+        err: &mut dyn Write,
+        reason: &str,
+        exit_code: i32,
+        message: &str,
+    ) {
+        match self.format {
+            OutputFormat::Json | OutputFormat::Jsonl => {
+                let envelope = serde_json::json!({
+                    "status": "error",
+                    "reason": reason,
+                    "exit_code": exit_code,
+                    "message": message,
+                });
+                let rendered = if self.raw {
+                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
+                } else {
+                    envelope.to_string()
+                };
+                let _ = writeln!(err, "{rendered}");
+            }
+            OutputFormat::Text => {
+                if self.no_color {
+                    let _ = writeln!(err, "Error: {message}");
+                } else {
+                    let _ = writeln!(err, "\x1b[31mError: {message}\x1b[0m");
+                }
+            }
         }
     }
 
@@ -392,6 +463,7 @@ impl Default for OutputConfig {
             use_color: false,
             verbose: false,
             raw: false,
+            no_interactive: false,
         }
     }
 }
@@ -463,8 +535,31 @@ mod tests {
             use_color: true,
             verbose: false,
             raw: false,
+            no_interactive: false,
         };
         assert!(!cfg.quiet);
+    }
+
+    #[test]
+    fn test_with_no_interactive_threads_field() {
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never)
+            .with_no_interactive(true);
+        assert!(cfg.no_interactive);
+        // is_interactive_terminal is false when no_interactive is true regardless of TTY.
+        assert!(!cfg.is_interactive_terminal());
+    }
+
+    #[test]
+    fn test_print_error_envelope_json_shape() {
+        let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut buf: Vec<u8> = Vec::new();
+        cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+        let s = String::from_utf8(buf).expect("utf8");
+        let v: serde_json::Value = serde_json::from_str(s.trim()).expect("valid json");
+        assert_eq!(v["status"], "error");
+        assert_eq!(v["reason"], "no-tty");
+        assert_eq!(v["exit_code"], 1);
+        assert_eq!(v["message"], "stdin is not a terminal");
     }
 
     #[test]

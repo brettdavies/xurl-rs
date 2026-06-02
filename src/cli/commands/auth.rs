@@ -1,5 +1,5 @@
 /// Auth subcommand handlers — OAuth2, OAuth1, Bearer, app management.
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use serde::Serialize;
 use serde_json::json;
@@ -112,13 +112,28 @@ pub(super) fn run_auth_command(
             if !app_explicit && let Some(msg) = credential_less_default_warning(&auth.token_store) {
                 out.info(stderr, &msg);
             }
-            if !no_browser {
+            // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
+            // harness) and the user did not pass `--no-browser` (or set
+            // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
+            // silently strand the flow, so promote to the remote two-step
+            // path and surface the auth URL on stdout.
+            let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
+            let effective_no_browser = no_browser || auto_engage_no_browser;
+            if !effective_no_browser {
                 // Standard interactive flow
                 auth.oauth2_flow(username_arg, out, stdout)?;
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
                 let pending_path = crate::auth::pending::default_pending_path()?;
-                match step {
+                // When the user opted into `--no-browser` without an explicit
+                // `--step`, or when auto-engage promoted us here, run step 1
+                // and emit the canonical `awaiting_callback` envelope.
+                let effective_step = if step.is_none() && auth_url.is_none() {
+                    Some(1u8)
+                } else {
+                    step
+                };
+                match effective_step {
                     Some(1) => {
                         if auth_url.is_some() {
                             return Err(crate::error::XurlError::auth(
@@ -129,10 +144,23 @@ pub(super) fn run_auth_command(
                         match out.format {
                             crate::output::OutputFormat::Json
                             | crate::output::OutputFormat::Jsonl => {
-                                let envelope = serde_json::json!({
-                                    "auth_url": url,
-                                    "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
-                                });
+                                // U9: explicit `--no-browser` (no `--step`) and
+                                // the auto-engaged path both emit the canonical
+                                // `awaiting_callback` envelope; the existing
+                                // `--step 1` path keeps its legacy shape so
+                                // agents that pinned against it don't drift.
+                                let envelope = if step.is_none() {
+                                    serde_json::json!({
+                                        "status": "awaiting_callback",
+                                        "url": url,
+                                        "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
+                                    })
+                                } else {
+                                    serde_json::json!({
+                                        "auth_url": url,
+                                        "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
+                                    })
+                                };
                                 out.print_response(stdout, &envelope);
                             }
                             crate::output::OutputFormat::Text => {
@@ -195,6 +223,10 @@ pub(super) fn run_auth_command(
                         );
                     }
                     None => {
+                        // Unreachable in practice: when `--step` is omitted and
+                        // `--auth-url` is also omitted, `effective_step` is set
+                        // to `Some(1)` above; when `--auth-url` is given without
+                        // `--step`, clap rejects it via `requires = "step"`.
                         return Err(crate::error::XurlError::auth(
                             "--no-browser requires --step 1 or --step 2",
                         ));
@@ -424,11 +456,22 @@ pub(super) fn run_auth_command(
                     );
                 }
             } else {
-                // Interactive picker
-                if no_interactive {
-                    return Err(XurlError::auth(
-                        "Interactive prompt required. Pass app name as argument: xr auth default <app-name>",
-                    ));
+                // Interactive picker — gate on `--no-interactive` AND on
+                // TTY-ness of stdin/stderr (the dialoguer transports). Without
+                // a real terminal the dialoguer state machine would block on
+                // `/dev/null` or panic; emit the canonical `no-tty` envelope
+                // and return `EnvelopeAlreadyEmitted` so the runner skips its
+                // generic error path.
+                if !out.is_interactive_terminal() {
+                    out.print_error_envelope(
+                        stderr,
+                        "no-tty",
+                        EXIT_GENERAL_ERROR,
+                        "no default app set; pass --app or run 'xr auth default <name>' interactively",
+                    );
+                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                        exit_code: EXIT_GENERAL_ERROR,
+                    });
                 }
 
                 let apps = auth.token_store.list_apps();
@@ -458,8 +501,13 @@ pub(super) fn run_auth_command(
                     &format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
                 );
 
+                // Defensive TTY re-check before the second dialoguer prompt
+                // (the user picker). The outer gate already guarantees this in
+                // the current flow; the explicit check keeps the invariant
+                // local to the call site so future refactors can't drop it.
                 let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
                 if !users.is_empty()
+                    && out.is_interactive_terminal()
                     && let Ok(Some(idx)) = dialoguer::Select::new()
                         .with_prompt("Select default OAuth2 user")
                         .items(&users)
