@@ -288,7 +288,7 @@ impl TokenStore {
     ///
     /// An empty `uri` clears the stored value; the next serialize omits the
     /// field thanks to `#[serde(skip_serializing_if = "String::is_empty")]`.
-    /// A non-empty `uri` is validated via [`Config::validate_redirect_uri`]
+    /// A non-empty `uri` is validated via [`crate::config::Config::validate_redirect_uri`]
     /// before persisting; on validation failure the store is not modified.
     ///
     /// # Errors

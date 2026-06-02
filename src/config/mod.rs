@@ -197,7 +197,7 @@ pub(crate) struct ResolvedRedirectUri {
 /// `env_value` is the raw `Option<String>` produced by `std::env::var("REDIRECT_URI").ok()`.
 /// `stored` is the per-app value from `TokenStore::get_app_redirect_uri`.
 ///
-/// When `env_value` is set but fails [`Config::validate_redirect_uri`], the helper
+/// When `env_value` is set but fails [`Config::validate_redirect_uri`](Config::validate_redirect_uri), the helper
 /// emits a one-line warning to stderr (via `eprintln!`) and falls through to the
 /// next precedence level. The pure helper has no `OutputConfig` available, so the
 /// warning shape is intentionally minimal; the binary's `OutputConfig::print_message`
@@ -237,11 +237,11 @@ pub(crate) fn resolve_redirect_uri_from(
     }
 }
 
-/// Thin wrapper around [`resolve_redirect_uri_from`] that opens the token
+/// Thin wrapper around the pure precedence helper that opens the token
 /// store at `store_path` and looks up the per-app stored URI for `app_name`.
 ///
-/// Callers that already hold a `TokenStore` should call
-/// [`resolve_redirect_uri_from`] directly with the env var and the result of
+/// Callers that already hold a `TokenStore` should call the pure helper
+/// directly with the env var and the result of
 /// `store.get_app_redirect_uri(app_name)` to avoid a second disk read.
 #[must_use]
 #[allow(private_interfaces)] // ResolvedRedirectUri is pub(crate) per KTD9; the plan keeps this resolver pub
