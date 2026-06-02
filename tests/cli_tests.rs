@@ -1519,3 +1519,64 @@ fn test_like_with_at_prefix_username_strips_at() {
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// `auth oauth2 [USERNAME]` positional (U4)
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_oauth2_positional_username_threads_through() {
+    // Parse-level assertion: `xr auth oauth2 alice --no-browser --step 1`
+    // must succeed at the clap layer with the positional bound to `alice`.
+    // Driving the full OAuth2 flow end-to-end lives in `auth_remote_tests.rs`
+    // (`exchange_code_for_token_nonempty_username_skips_me_and_saves_named`).
+    use clap::Parser;
+
+    let parsed = xurl::cli::Cli::try_parse_from([
+        "xr",
+        "auth",
+        "oauth2",
+        "alice",
+        "--no-browser",
+        "--step",
+        "1",
+    ])
+    .expect("positional + --no-browser --step 1 must parse");
+
+    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
+        panic!("expected Auth subcommand");
+    };
+    match command {
+        xurl::cli::AuthCommands::Oauth2 {
+            no_browser,
+            step,
+            auth_url,
+            username,
+        } => {
+            assert!(no_browser, "--no-browser should be set");
+            assert_eq!(step, Some(1));
+            assert!(auth_url.is_none());
+            assert_eq!(
+                username.as_deref(),
+                Some("alice"),
+                "positional username must bind to `alice`",
+            );
+        }
+        other => panic!("expected AuthCommands::Oauth2, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_oauth2_positional_invalid_extra_args() {
+    // Two positionals on `auth oauth2` must fail with a clap usage error
+    // (exit code 2 via the runner).
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "alice", "bob"]);
+    assert_eq!(
+        code, 2,
+        "expected clap usage exit code 2 for extra positional; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("error"),
+        "stderr should contain clap error text: {stderr}"
+    );
+}

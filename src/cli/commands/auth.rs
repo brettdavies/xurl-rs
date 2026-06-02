@@ -55,10 +55,12 @@ pub(super) fn run_auth_command(
             no_browser,
             step,
             auth_url,
+            username,
         } => {
+            let username_arg = username.as_deref().unwrap_or("");
             if !no_browser {
                 // Standard interactive flow
-                auth.oauth2_flow("", out, stdout)?;
+                auth.oauth2_flow(username_arg, out, stdout)?;
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
                 let pending_path = crate::auth::pending::default_pending_path()?;
@@ -132,7 +134,7 @@ pub(super) fn run_auth_command(
                             url_value
                         };
 
-                        auth.remote_oauth2_step2(&redirect_url, "", &pending_path)?;
+                        auth.remote_oauth2_step2(&redirect_url, username_arg, &pending_path)?;
                         out.print_message(
                             stdout,
                             "\x1b[32mOAuth2 authentication successful!\x1b[0m",

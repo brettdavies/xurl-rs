@@ -83,13 +83,24 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Exchanges an authorization code for an access token and saves it.
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
-/// parse response, resolve username (fetching from API if empty), compute
-/// expiration, and save to the token store.
+/// parse response, resolve the storage key, compute expiration, and save to
+/// the token store. The storage-key resolution mirrors
+/// [`refresh_oauth2_token`]'s three-branch shape (KTD7):
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   `eprintln!` so the access token isn't discarded along with the lookup
+///   failure.
 ///
 /// # Errors
 ///
-/// Returns an error if the token exchange request fails, the response is
-/// missing an access token, or the username cannot be resolved.
+/// Returns an error if the token-exchange request fails or the response is
+/// missing an access token. `fetch_username` failures no longer propagate.
 pub(crate) fn exchange_code_for_token(
     auth: &mut Auth,
     code: &str,
@@ -138,25 +149,46 @@ pub(crate) fn exchange_code_for_token(
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&access_token)?
-    } else {
-        username.to_string()
-    };
-
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &access_token,
-        &refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                eprintln!(
+                    "warning: token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &access_token,
+            &refresh_token,
+            expiration_time,
+        )?;
+    }
 
     Ok(access_token)
 }

@@ -641,8 +641,11 @@ fn step2_token_exchange_200_but_no_access_token() {
 }
 
 #[test]
-fn step2_username_resolution_failure_preserves_pending() {
-    // Token exchange succeeds but /2/users/me fails
+fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
+    // KTD7: token exchange succeeds + /2/users/me fails + empty caller ->
+    // token persists in the unnamed slot, run_remote_step2 reaches the
+    // normal pending::delete success branch, and the access token surfaces
+    // to the caller as Ok.
     let ts = TestServer::new();
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
@@ -678,19 +681,196 @@ fn step2_username_resolution_failure_preserves_pending() {
         .append_pair("state", &state.state);
     let redirect_url = redirect.to_string();
 
-    let err = auth
+    let access_token = auth
         .remote_oauth2_step2(&redirect_url, "", &pending_path)
-        .unwrap_err();
+        .expect("empty-caller + /me-failure path must return Ok with the new access token");
+    assert_eq!(access_token, "good-token");
 
-    // The error comes from username resolution failure
-    let msg = err.to_string();
+    let token = auth
+        .token_store
+        .get_oauth2_token_unnamed_for_app("default")
+        .expect("unnamed slot populated after /me failure");
+    let oauth2 = token.oauth2.as_ref().unwrap();
+    assert_eq!(oauth2.access_token, "good-token");
+    assert_eq!(oauth2.refresh_token, "good-refresh");
+
+    // Pending file is consumed by run_remote_step2's normal success path
+    // because exchange_code_for_token no longer propagates the /me error.
     assert!(
-        msg.contains("Auth Error"),
-        "Expected auth error from username resolution, got: {msg}"
+        !pending_path.exists(),
+        "pending file should be deleted on the Ok path"
     );
-    // Pending file should be preserved (exchange_code_for_token failed,
-    // so run_remote_step2 never reaches pending::delete)
-    assert!(pending_path.exists());
+}
+
+#[test]
+fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
+    // KTD7: when the CLI threads a `USERNAME` positional through to
+    // exchange_code_for_token, the function saves under that username and
+    // never consults /2/users/me.
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "alice-access",
+                "refresh_token": "alice-refresh",
+                "expires_in": 7200
+            }))),
+    );
+    // Deliberately do NOT mock /2/users/me; any call to it returns 404 from
+    // wiremock's default unmatched handler, which would propagate as Err
+    // and fail this test if the empty-username branch were taken.
+
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "good-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let access_token = auth
+        .remote_oauth2_step2(&redirect_url, "alice", &pending_path)
+        .expect("non-empty username path must succeed without /me");
+    assert_eq!(access_token, "alice-access");
+
+    let token = auth
+        .token_store
+        .get_oauth2_token("alice")
+        .expect("token saved under supplied username");
+    let oauth2 = token.oauth2.as_ref().unwrap();
+    assert_eq!(oauth2.access_token, "alice-access");
+    assert_eq!(oauth2.refresh_token, "alice-refresh");
+
+    // Unnamed slot must remain empty on the named path.
+    assert!(
+        auth.token_store
+            .get_oauth2_token_unnamed_for_app("default")
+            .is_none(),
+        "non-empty username path must not write to the unnamed slot"
+    );
+}
+
+#[test]
+fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
+    // KTD7: empty caller + /me Ok -> token saved under the discovered name;
+    // unnamed slot untouched.
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "discovered-access",
+                "refresh_token": "discovered-refresh",
+                "expires_in": 7200
+            }))),
+    );
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "42", "username": "discovered"}
+            }))),
+    );
+
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "good-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let access_token = auth
+        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .expect("empty caller + /me Ok must succeed");
+    assert_eq!(access_token, "discovered-access");
+
+    let token = auth
+        .token_store
+        .get_oauth2_token("discovered")
+        .expect("token saved under /me-discovered username");
+    let oauth2 = token.oauth2.as_ref().unwrap();
+    assert_eq!(oauth2.access_token, "discovered-access");
+    assert_eq!(oauth2.refresh_token, "discovered-refresh");
+
+    assert!(
+        auth.token_store
+            .get_oauth2_token_unnamed_for_app("default")
+            .is_none(),
+        "/me-success path must not touch the unnamed slot"
+    );
+}
+
+#[test]
+fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
+    // KTD7: empty caller + /me Err -> token saved in the unnamed slot,
+    // named map untouched, function returns Ok with the access token.
+    let ts = TestServer::new();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+
+    let named_before: Vec<String> = auth.token_store.get_oauth2_usernames();
+
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "salvage-access",
+                "refresh_token": "salvage-refresh",
+                "expires_in": 7200
+            }))),
+    );
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(500).set_body_json(serde_json::json!({
+                "title": "Server Error",
+                "status": 500
+            }))),
+    );
+
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "good-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let access_token = auth
+        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .expect("empty caller + /me Err must still return Ok with the access token");
+    assert_eq!(access_token, "salvage-access");
+
+    let token = auth
+        .token_store
+        .get_oauth2_token_unnamed_for_app("default")
+        .expect("unnamed slot populated when /me fails");
+    let oauth2 = token.oauth2.as_ref().unwrap();
+    assert_eq!(oauth2.access_token, "salvage-access");
+    assert_eq!(oauth2.refresh_token, "salvage-refresh");
+
+    let named_after: Vec<String> = auth.token_store.get_oauth2_usernames();
+    assert_eq!(
+        named_before, named_after,
+        "named map keys unchanged when /me fails"
+    );
 }
 
 // ── CLI E2E tests ─────────────────────────────────────────────────────
