@@ -56,10 +56,15 @@ ENVIRONMENT VARIABLES:
   XURL_COLOR             Color control: auto, always, never (same as --color)
   XURL_VERBOSE           Verbose request/response logging (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)
+  XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
+  XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
+  XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
   REDIRECT_URI           OAuth2 redirect URI override for the active app
 
 Flags override env vars when both are set. NO_COLOR=1 always wins over
---color/XURL_COLOR (https://no-color.org).
+--color/XURL_COLOR (https://no-color.org). PAGER and $PAGER are not used:
+xr writes directly to stdout/stderr and never invokes a pager, so output
+is pipe-safe by default (no --no-pager flag is necessary).
 
 EXIT CODES:
   0    success
@@ -758,6 +763,8 @@ pub struct Cli {
         global = true,
         conflicts_with = "output",
         conflicts_with = "jsonl",
+        env = "XURL_JSON",
+        value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
     )]
     pub json: bool,
@@ -768,6 +775,8 @@ pub struct Cli {
         global = true,
         conflicts_with = "output",
         conflicts_with = "json",
+        env = "XURL_JSONL",
+        value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
     )]
     pub jsonl: bool,
@@ -1234,6 +1243,30 @@ pub enum SkillCmd {
         all: bool,
 
         /// Print the resolved git command without spawning.
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    /// Refresh an existing skill-bundle install in place.
+    ///
+    /// Removes the current destination and re-runs the install pipeline so
+    /// the bundle picks up upstream changes. Hardening surface is identical
+    /// to `install`. The envelope's `action` is `"skill-update"` so agents
+    /// can distinguish from a first-time install.
+    #[command(after_help = "Examples:
+  xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle
+  xr skill update claude_code --dry-run            # show the resolved plan without touching disk
+  xr skill update --all                            # refresh every known host
+  xr skill update codex --output json              # JSON envelope for agent consumption")]
+    Update {
+        /// Target host (e.g. claude_code, codex, cursor). Required unless `--all`.
+        host: Option<SkillHost>,
+
+        /// Update every known host in one invocation.
+        #[arg(long, conflicts_with = "host")]
+        all: bool,
+
+        /// Print the resolved plan without removing or cloning.
         #[arg(long)]
         dry_run: bool,
     },
