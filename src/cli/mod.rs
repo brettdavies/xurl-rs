@@ -1347,7 +1347,23 @@ pub enum AuthCommands {
     #[command(after_help = AUTH_OAUTH2_HELP)]
     Oauth2 {
         /// Enable manual two-step flow for headless machines (SSH, containers)
-        #[arg(long)]
+        ///
+        /// Auto-engages when stdout is not a TTY (piped runs, CI) so headless
+        /// callers receive the auth URL instead of a silent `open::that` spawn
+        /// that nothing will see. The `XURL_NO_BROWSER` env var sets this by
+        /// default on machines that should never attempt to open a browser.
+        /// Honours `1` / `true` / `yes` / `on` as truthy and `0` / `false` /
+        /// `no` / `off` / empty as falsey (the same `FalseyValueParser` shape
+        /// used by every other env-backed boolean flag).
+        #[arg(
+            long,
+            env = "XURL_NO_BROWSER",
+            value_parser = FalseyValueParser::new(),
+            num_args = 0..=1,
+            default_value_t = false,
+            default_missing_value = "true",
+            require_equals = false,
+        )]
         no_browser: bool,
         /// Step number: 1 (generate auth URL) or 2 (complete exchange)
         #[arg(long, requires = "no_browser", value_parser = clap::value_parser!(u8).range(1..=2))]
