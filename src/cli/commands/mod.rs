@@ -6,16 +6,141 @@ pub mod schema;
 pub mod skill;
 mod streaming;
 
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use serde::Serialize;
+use serde_json::json;
 
+use crate::api::shortcuts;
 use crate::api::{self, ApiClient, CallOptions, RequestOptions};
 use crate::auth::Auth;
 use crate::cli::{Cli, Commands};
 use crate::config::Config;
-use crate::error::{Result, XurlError};
+use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::OutputConfig;
+
+/// Default page size when neither `--max-results` nor `--limit` is supplied.
+const DEFAULT_PAGE_SIZE: i32 = 10;
+
+/// Resolves the effective result limit per U7's rule.
+///
+/// Per-command `-n/--max-results` takes precedence when set. Otherwise the
+/// global `--limit` applies. Otherwise the default falls back to
+/// [`DEFAULT_PAGE_SIZE`]. The result is clamped to `1..=100`.
+fn effective_limit(per_cmd: Option<i32>, global: Option<i32>) -> i32 {
+    per_cmd
+        .or(global)
+        .unwrap_or(DEFAULT_PAGE_SIZE)
+        .clamp(1, 100)
+}
+
+/// Returns true when the active session is a real interactive terminal.
+///
+/// Used to gate dialoguer prompts so they never fire under `--no-interactive`,
+/// when stdin/stderr are not TTYs (piped runs, CI), or when `--quiet` is set.
+fn is_interactive(no_interactive: bool, quiet: bool) -> bool {
+    !no_interactive && !quiet && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
+}
+
+/// Confirms a destructive op interactively via dialoguer.
+///
+/// Returns `Ok(true)` on `y`, `Ok(false)` on `n` or Esc, `Err` only on
+/// IO failure.
+fn confirm_destructive(prompt: &str) -> Result<bool> {
+    let answer = dialoguer::Confirm::new()
+        .with_prompt(prompt)
+        .default(false)
+        .interact_opt()
+        .map_err(|e| XurlError::validation(format!("confirmation prompt failed: {e}")))?;
+    Ok(answer.unwrap_or(false))
+}
+
+/// Outcome of the force/confirmation gate for a destructive op.
+pub(super) enum Gate {
+    /// User confirmed (or supplied `--force`); proceed with the op.
+    Proceed,
+    /// User declined / unable to prompt: emit nothing further, return Ok(()).
+    Declined,
+    /// `--no-interactive` set without `--force`: caller must emit a
+    /// `confirmation-required` envelope on stderr and return an error code.
+    ConfirmationRequired,
+}
+
+/// Gates a destructive op on `--force` / TTY confirmation.
+///
+/// Rules per U7:
+/// - `--force` → proceed.
+/// - `--no-interactive` without `--force` → ConfirmationRequired.
+/// - Interactive terminal without `--force` → dialoguer confirm.
+pub(super) fn gate_destructive(
+    force: bool,
+    no_interactive: bool,
+    quiet: bool,
+    prompt: &str,
+) -> Result<Gate> {
+    if force {
+        return Ok(Gate::Proceed);
+    }
+    if no_interactive {
+        return Ok(Gate::ConfirmationRequired);
+    }
+    if !is_interactive(no_interactive, quiet) {
+        return Ok(Gate::ConfirmationRequired);
+    }
+    if confirm_destructive(prompt)? {
+        Ok(Gate::Proceed)
+    } else {
+        Ok(Gate::Declined)
+    }
+}
+
+/// Validation+envelope helper used by every write handler.
+///
+/// `validator` produces `Ok(())` for valid inputs or `Err(reason)` with a
+/// kebab-case reason. When `dry_run` is set the helper emits the canonical
+/// envelope and returns `false` (caller must skip the API call). When
+/// `dry_run` is false the helper returns `Ok(true)` (proceed).
+///
+/// Validation errors surface as either:
+///   - Dry-run envelope with `would_succeed: false` and the kebab-case
+///     reason when `dry_run` is true.
+///   - A `XurlError::validation` when `dry_run` is false (so the runtime
+///     path still rejects bad input).
+fn dry_run_or_validate(
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    dry_run: bool,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+) -> Result<bool> {
+    let validation = validator();
+    if dry_run {
+        match validation {
+            Ok(()) => out.print_dry_run(stdout, true, 0, &ctx),
+            Err(reason) => {
+                let mut ctx_with_reason = ctx
+                    .as_object()
+                    .cloned()
+                    .unwrap_or_else(serde_json::Map::new);
+                ctx_with_reason.insert(
+                    "reason".to_string(),
+                    serde_json::Value::String(reason.to_string()),
+                );
+                out.print_dry_run(
+                    stdout,
+                    false,
+                    1,
+                    &serde_json::Value::Object(ctx_with_reason),
+                );
+            }
+        }
+        return Ok(false);
+    }
+    if let Err(reason) = validation {
+        return Err(XurlError::validation(reason.to_string()));
+    }
+    Ok(true)
+}
 
 /// Converts a typed response to Value and prints it.
 fn print_typed<T: Serialize>(
@@ -66,20 +191,42 @@ pub fn run(
 
     let no_interactive = cli.no_interactive;
     let verbose = cli.verbose;
+    let dry_run = cli.dry_run;
+    let global_limit = cli.limit;
+    let quiet = cli.quiet;
     match cli.command {
         Some(cmd) => run_subcommand(
             cmd,
             &cfg,
             auth,
-            no_interactive,
-            verbose,
+            GlobalFlags {
+                no_interactive,
+                verbose,
+                dry_run,
+                global_limit,
+                quiet,
+                app_explicit,
+            },
             out,
             stdout,
             stderr,
-            app_explicit,
         ),
         None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr),
     }
+}
+
+/// Bundle of the global flags every subcommand needs.
+///
+/// Avoids a 12-arg `run_subcommand` signature by collapsing the cross-cutting
+/// agentic flags into one record.
+#[derive(Debug, Clone, Copy)]
+struct GlobalFlags {
+    no_interactive: bool,
+    verbose: bool,
+    dry_run: bool,
+    global_limit: Option<i32>,
+    quiet: bool,
+    app_explicit: bool,
 }
 
 /// Runs raw curl-style mode.
@@ -139,13 +286,19 @@ fn run_subcommand(
     cmd: Commands,
     cfg: &Config,
     auth: Auth,
-    no_interactive: bool,
-    verbose: bool,
+    flags: GlobalFlags,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-    app_explicit: bool,
 ) -> Result<()> {
+    let GlobalFlags {
+        no_interactive,
+        verbose,
+        dry_run,
+        global_limit,
+        quiet,
+        app_explicit,
+    } = flags;
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
         Commands::Post {
@@ -153,6 +306,20 @@ fn run_subcommand(
             media_ids,
             common,
         } => {
+            let ctx = json!({
+                "command": "post",
+                "body": text,
+                "media_ids": media_ids,
+            });
+            let body = text.clone();
+            let attachments = media_ids.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_body(&body)?;
+                shortcuts::validate_media_attachments(&attachments)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.create_post(&text, &media_ids, &opts)?;
@@ -166,6 +333,23 @@ fn run_subcommand(
             media_ids,
             common,
         } => {
+            let ctx = json!({
+                "command": "reply",
+                "post_id": post_id,
+                "body": text,
+                "media_ids": media_ids,
+            });
+            let body = text.clone();
+            let pid = post_id.clone();
+            let attachments = media_ids.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)?;
+                shortcuts::validate_post_body(&body)?;
+                shortcuts::validate_media_attachments(&attachments)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.reply_to_post(&post_id, &text, &media_ids, &opts)?;
@@ -176,12 +360,56 @@ fn run_subcommand(
             text,
             common,
         } => {
+            let ctx = json!({
+                "command": "quote",
+                "post_id": post_id,
+                "body": text,
+            });
+            let body = text.clone();
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)?;
+                shortcuts::validate_post_body(&body)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.quote_post(&post_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
         }
-        Commands::Delete { post_id, common } => {
+        Commands::Delete {
+            post_id,
+            force,
+            common,
+        } => {
+            let ctx = json!({"command": "delete", "post_id": post_id});
+            let pid = post_id.clone();
+            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
+            // destructive op in interactive mode does not leak a dry-run
+            // envelope. Dry-run still composes with --force.
+            match gate_destructive(
+                force,
+                no_interactive,
+                quiet,
+                &format!("Delete post {post_id}?"),
+            )? {
+                Gate::Proceed => {}
+                Gate::Declined => return Ok(()),
+                Gate::ConfirmationRequired => {
+                    out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
+                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                        exit_code: EXIT_GENERAL_ERROR,
+                    });
+                }
+            }
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let response = client.delete_post(&post_id, &opts)?;
@@ -200,9 +428,10 @@ fn run_subcommand(
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
-            let response = client.search_posts(&query, max_results, &opts)?;
+            let response = client.search_posts(&query, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
@@ -228,25 +457,35 @@ fn run_subcommand(
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
-            let response = client.get_timeline(&user_id, max_results, &opts)?;
+            let response = client.get_timeline(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Mentions {
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
-            let response = client.get_mentions(&user_id, max_results, &opts)?;
+            let response = client.get_mentions(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
         // ── Engagement ───────────────────────────────────────────────
         Commands::Like { post_id, common } => {
+            let ctx = json!({"command": "like", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -254,6 +493,14 @@ fn run_subcommand(
             print_typed(out, stdout, &response)?;
         }
         Commands::Unlike { post_id, common } => {
+            let ctx = json!({"command": "unlike", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -261,6 +508,14 @@ fn run_subcommand(
             print_typed(out, stdout, &response)?;
         }
         Commands::Repost { post_id, common } => {
+            let ctx = json!({"command": "repost", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -268,6 +523,14 @@ fn run_subcommand(
             print_typed(out, stdout, &response)?;
         }
         Commands::Unrepost { post_id, common } => {
+            let ctx = json!({"command": "unrepost", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -275,6 +538,14 @@ fn run_subcommand(
             print_typed(out, stdout, &response)?;
         }
         Commands::Bookmark { post_id, common } => {
+            let ctx = json!({"command": "bookmark", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -282,6 +553,14 @@ fn run_subcommand(
             print_typed(out, stdout, &response)?;
         }
         Commands::Unbookmark { post_id, common } => {
+            let ctx = json!({"command": "unbookmark", "post_id": post_id});
+            let pid = post_id.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_post_id(&pid)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
@@ -292,20 +571,22 @@ fn run_subcommand(
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
-            let response = client.get_bookmarks(&user_id, max_results, &opts)?;
+            let response = client.get_bookmarks(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Likes {
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
-            let response = client.get_liked_posts(&user_id, max_results, &opts)?;
+            let response = client.get_liked_posts(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
@@ -314,6 +595,14 @@ fn run_subcommand(
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "follow", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -325,6 +614,14 @@ fn run_subcommand(
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "unfollow", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -337,6 +634,7 @@ fn run_subcommand(
             of,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
@@ -344,7 +642,7 @@ fn run_subcommand(
             } else {
                 resolve_my_user_id(&mut client, &opts)?
             };
-            let response = client.get_following(&user_id, max_results, &opts)?;
+            let response = client.get_following(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Followers {
@@ -352,6 +650,7 @@ fn run_subcommand(
             of,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let user_id = if let Some(ref target) = of {
@@ -359,13 +658,21 @@ fn run_subcommand(
             } else {
                 resolve_my_user_id(&mut client, &opts)?
             };
-            let response = client.get_followers(&user_id, max_results, &opts)?;
+            let response = client.get_followers(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Block {
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "block", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -377,6 +684,14 @@ fn run_subcommand(
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "unblock", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -388,6 +703,14 @@ fn run_subcommand(
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "mute", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -399,6 +722,14 @@ fn run_subcommand(
             target_username,
             common,
         } => {
+            let ctx = json!({"command": "unmute", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
@@ -421,6 +752,20 @@ fn run_subcommand(
             text,
             common,
         } => {
+            let ctx = json!({
+                "command": "dm",
+                "target_username": target_username,
+                "body": text,
+            });
+            let body = text.clone();
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)?;
+                shortcuts::validate_dm_body(&body)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
@@ -431,9 +776,10 @@ fn run_subcommand(
             max_results,
             common,
         } => {
+            let n = effective_limit(max_results, global_limit);
             let mut client = ApiClient::new(cfg, auth);
             let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
-            let response = client.get_dm_events(max_results, &opts)?;
+            let response = client.get_dm_events(n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
@@ -442,17 +788,24 @@ fn run_subcommand(
             return auth::run_auth_command(
                 command,
                 auth,
-                no_interactive,
+                auth::AuthGlobalFlags {
+                    no_interactive,
+                    verbose,
+                    dry_run,
+                    quiet,
+                    app_explicit,
+                },
                 out,
                 stdout,
                 stderr,
-                app_explicit,
             );
         }
 
         // ── Media ────────────────────────────────────────────────────
         Commands::Media { command } => {
-            return media::run_media_command(command, cfg, auth, verbose, out, stdout, stderr);
+            return media::run_media_command(
+                command, cfg, auth, verbose, dry_run, out, stdout, stderr,
+            );
         }
 
         // ── Meta (handled before config init in main) ───────────────

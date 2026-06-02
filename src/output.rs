@@ -250,6 +250,61 @@ impl OutputConfig {
         }
     }
 
+    /// Prints a canonical confirmation-required error envelope (U7).
+    ///
+    /// Emitted when a destructive op was invoked under `--no-interactive`
+    /// without `--force`. `ctx` carries verb-context fields; the helper folds
+    /// `status: "error"`, `reason: "confirmation-required"`, and `exit_code`
+    /// into the same object on stderr.
+    pub fn print_confirmation_required(
+        &self,
+        err: &mut dyn Write,
+        ctx: &serde_json::Value,
+        exit_code: i32,
+    ) {
+        let mut obj = if let serde_json::Value::Object(m) = ctx {
+            m.clone()
+        } else {
+            serde_json::Map::new()
+        };
+        obj.insert(
+            "status".to_string(),
+            serde_json::Value::String("error".to_string()),
+        );
+        obj.insert(
+            "reason".to_string(),
+            serde_json::Value::String("confirmation-required".to_string()),
+        );
+        obj.insert(
+            "exit_code".to_string(),
+            serde_json::Value::Number(serde_json::Number::from(exit_code)),
+        );
+        match self.format {
+            OutputFormat::Json | OutputFormat::Jsonl => {
+                let value = serde_json::Value::Object(obj);
+                let pretty =
+                    serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string());
+                let _ = writeln!(err, "{pretty}");
+            }
+            OutputFormat::Text => {
+                let cmd = obj
+                    .get("command")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("operation");
+                let line = if self.no_color {
+                    format!(
+                        "Error: confirmation required for {cmd} — pass --force or run interactively"
+                    )
+                } else {
+                    format!(
+                        "\x1b[31mError: confirmation required for {cmd} — pass --force or run interactively\x1b[0m"
+                    )
+                };
+                let _ = writeln!(err, "{line}");
+            }
+        }
+    }
+
     /// Prints a simple text message (e.g. version, auth status) to the supplied writer.
     /// Respects --output json by wrapping in a JSON object.
     pub fn print_message(&self, out: &mut dyn Write, msg: &str) {

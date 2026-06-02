@@ -3,7 +3,7 @@ mod endpoints;
 mod media;
 mod request;
 pub mod response;
-mod shortcuts;
+pub mod shortcuts;
 
 pub use endpoints::is_streaming_endpoint;
 #[allow(unused_imports)]

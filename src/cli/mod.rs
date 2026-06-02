@@ -827,6 +827,30 @@ pub struct Cli {
     )]
     pub color: ColorChoice,
 
+    /// Validate inputs and skip the API call (U7).
+    ///
+    /// Honored by every write op; emits a canonical dry-run envelope on
+    /// stdout under `--output json` / `--output jsonl`, or a "Would …" line
+    /// under `--output text`. Read ops ignore it.
+    #[arg(
+        long = "dry-run",
+        global = true,
+        env = "XURL_DRY_RUN",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = false,
+    )]
+    pub dry_run: bool,
+
+    /// Global result-set limit, clamped to 1..=100 (U7).
+    ///
+    /// Applies to every list-style command. The per-command `-n/--max-results`
+    /// flag takes precedence when both are set.
+    #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
+    pub limit: Option<i32>,
+
     /// Subcommand to run
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -878,6 +902,9 @@ pub enum Commands {
     Delete {
         /// Post ID or URL to delete
         post_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -896,9 +923,9 @@ pub enum Commands {
     Search {
         /// Search query
         query: String,
-        /// Number of results (min 10, max 100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -924,18 +951,18 @@ pub enum Commands {
     /// Show your home timeline
     #[command(after_help = TIMELINE_HELP)]
     Timeline {
-        /// Number of results (1-100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Show your recent mentions
     #[command(after_help = MENTIONS_HELP)]
     Mentions {
-        /// Number of results (5-100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (5-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -992,18 +1019,18 @@ pub enum Commands {
     /// List your bookmarks
     #[command(after_help = BOOKMARKS_HELP)]
     Bookmarks {
-        /// Number of results (1-100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (1-100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1030,9 +1057,9 @@ pub enum Commands {
     /// List users you follow
     #[command(after_help = FOLLOWING_HELP)]
     Following {
-        /// Number of results (1-1000)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-1000). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Username to list following for (default: you)
         #[arg(long = "of")]
         of: Option<String>,
@@ -1042,9 +1069,9 @@ pub enum Commands {
     /// List your followers
     #[command(after_help = FOLLOWERS_HELP)]
     Followers {
-        /// Number of results (1-1000)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-1000). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Username to list followers for (default: you)
         #[arg(long = "of")]
         of: Option<String>,
@@ -1111,9 +1138,9 @@ pub enum Commands {
     /// List recent direct messages
     #[command(after_help = DMS_HELP)]
     Dms {
-        /// Number of results (1-100)
-        #[arg(short = 'n', long = "max-results", default_value = "10")]
-        max_results: i32,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1329,6 +1356,9 @@ pub enum AuthCommands {
         /// Clear bearer token
         #[arg(long)]
         bearer: bool,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
     },
     /// Manage registered X API apps
     #[command(after_help = AUTH_APPS_HELP)]
@@ -1384,6 +1414,9 @@ pub enum AppCommands {
     Remove {
         /// App name
         name: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
     },
     /// List registered apps
     #[command(after_help = APPS_LIST_HELP)]
