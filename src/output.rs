@@ -1,13 +1,15 @@
-/// Output formatting helpers for `--output`, `--quiet`, and `NO_COLOR` support.
+/// Output formatting helpers for `--output`, `--quiet`, `--color`, and
+/// `NO_COLOR` support.
 ///
 /// `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
 /// owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
 /// so the same config can drive real stdout, real stderr, or a captured
 /// `Vec<u8>` in library tests.
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use clap::ValueEnum;
 
+use crate::cli::ColorChoice;
 use crate::error::XurlError;
 
 /// Output format for machine/human consumption.
@@ -26,22 +28,48 @@ pub enum OutputFormat {
 /// `OutputConfig` is intentionally a pure data carrier — no I/O handles, no
 /// interior mutability. This keeps it `Send + Sync + Clone`, which is required
 /// for the planned async/concurrent `ApiClient` (see `project_async_requirement`).
+///
+/// `use_color` is the resolved color decision after combining `--color`, the
+/// `NO_COLOR` env var, and stderr's TTY-ness. `no_color` is preserved as the
+/// negation (`!use_color`) for source-compatibility with existing call sites
+/// and tests that constructed `OutputConfig { … }` directly.
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
     pub format: OutputFormat,
     pub quiet: bool,
     pub no_color: bool,
+    pub use_color: bool,
+    pub verbose: bool,
 }
 
 impl OutputConfig {
-    /// Creates an `OutputConfig` from CLI flags and environment.
+    /// Creates an `OutputConfig` from resolved CLI flags and environment.
+    ///
+    /// `use_color` is computed from `color` together with `NO_COLOR` and
+    /// `std::io::stderr().is_terminal()`:
+    /// - `NO_COLOR` is absolute (per <https://no-color.org/>): when set,
+    ///   color is disabled regardless of `--color`.
+    /// - `--color always` overrides the TTY check (still loses to `NO_COLOR`).
+    /// - `--color never` disables color unconditionally.
+    /// - `--color auto` enables color only when stderr is a TTY.
     #[must_use]
-    pub fn new(format: OutputFormat, quiet: bool) -> Self {
-        let no_color = std::env::var("NO_COLOR").is_ok();
+    pub fn new(format: OutputFormat, quiet: bool, verbose: bool, color: ColorChoice) -> Self {
+        let no_color_env = std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty());
+        let use_color = if no_color_env {
+            false
+        } else {
+            match color {
+                ColorChoice::Always => true,
+                ColorChoice::Never => false,
+                ColorChoice::Auto => std::io::stderr().is_terminal(),
+            }
+        };
         Self {
             format,
             quiet,
-            no_color,
+            no_color: !use_color,
+            use_color,
+            verbose,
         }
     }
 
@@ -201,7 +229,69 @@ mod tests {
             format: OutputFormat::Json,
             quiet: false,
             no_color: false,
+            use_color: true,
+            verbose: false,
         };
         assert!(!cfg.quiet);
+    }
+
+    #[test]
+    fn test_no_color_env_overrides_color_always() {
+        // Save and clear any existing NO_COLOR so the assertion is deterministic
+        // in the unlikely case the test runner has it set.
+        // SAFETY: tests in this module are single-threaded under cargo test by default;
+        // no other thread reads NO_COLOR concurrently.
+        let prior = std::env::var_os("NO_COLOR");
+        // SAFETY: see above.
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Always);
+        assert!(!cfg.use_color, "NO_COLOR must defeat --color always");
+        assert!(cfg.no_color, "no_color mirrors !use_color");
+        // SAFETY: see above.
+        unsafe {
+            match prior {
+                Some(v) => std::env::set_var("NO_COLOR", v),
+                None => std::env::remove_var("NO_COLOR"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_color_never_disables_color() {
+        // Force NO_COLOR off so the --color flag is the only driver here.
+        // SAFETY: tests in this module are single-threaded under cargo test by default.
+        let prior = std::env::var_os("NO_COLOR");
+        // SAFETY: see above.
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
+        assert!(!cfg.use_color);
+        // SAFETY: see above.
+        unsafe {
+            if let Some(v) = prior {
+                std::env::set_var("NO_COLOR", v);
+            }
+        }
+    }
+
+    #[test]
+    fn test_color_always_enables_color_when_no_color_unset() {
+        // SAFETY: tests in this module are single-threaded under cargo test by default.
+        let prior = std::env::var_os("NO_COLOR");
+        // SAFETY: see above.
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Always);
+        assert!(cfg.use_color, "--color always must enable color");
+        // SAFETY: see above.
+        unsafe {
+            if let Some(v) = prior {
+                std::env::set_var("NO_COLOR", v);
+            }
+        }
     }
 }

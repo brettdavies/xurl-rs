@@ -12,6 +12,7 @@ pub(super) fn run_media_command(
     cmd: MediaCommands,
     cfg: &Config,
     auth: Auth,
+    verbose: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
@@ -24,7 +25,6 @@ pub(super) fn run_media_command(
             wait,
             auth_type,
             username,
-            verbose,
             trace,
             headers,
         } => {
@@ -49,7 +49,6 @@ pub(super) fn run_media_command(
             media_id,
             auth_type,
             username,
-            verbose,
             wait,
             trace,
             headers,

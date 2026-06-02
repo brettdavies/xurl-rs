@@ -199,7 +199,12 @@ fn listener_bound_before_browser_opener_invoked() {
     let cfg = test_config(&token_url, &info_url, &redirect_uri);
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
 
-    let out = OutputConfig::new(OutputFormat::Text, false);
+    let out = OutputConfig::new(
+        OutputFormat::Text,
+        false,
+        false,
+        xurl::cli::ColorChoice::Auto,
+    );
     let mut stdout = Vec::<u8>::new();
 
     let flow_started_at = Instant::now();

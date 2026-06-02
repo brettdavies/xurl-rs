@@ -208,7 +208,12 @@ impl Auth {
         // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
         // time (which U4 wires correctly via the runner's writers). This
         // stub is the only remaining direct-stdio site after U4.
-        let out = OutputConfig::new(crate::output::OutputFormat::Text, false);
+        let out = OutputConfig::new(
+            crate::output::OutputFormat::Text,
+            false,
+            false,
+            crate::cli::ColorChoice::Auto,
+        );
         let mut stdout = std::io::stdout();
         let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
         Ok(format!("Bearer {access_token}"))
