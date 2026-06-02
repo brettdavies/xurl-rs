@@ -35,6 +35,7 @@ dialoguer = "0.11"
 # HTTP
 reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "blocking", "stream", "rustls-tls"] }
 tokio = { version = "1", features = ["rt", "net", "macros", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

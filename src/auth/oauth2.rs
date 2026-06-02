@@ -83,13 +83,24 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Exchanges an authorization code for an access token and saves it.
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
-/// parse response, resolve username (fetching from API if empty), compute
-/// expiration, and save to the token store.
+/// parse response, resolve the storage key, compute expiration, and save to
+/// the token store. The storage-key resolution mirrors
+/// [`refresh_oauth2_token`]'s three-branch shape (KTD7):
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   `eprintln!` so the access token isn't discarded along with the lookup
+///   failure.
 ///
 /// # Errors
 ///
-/// Returns an error if the token exchange request fails, the response is
-/// missing an access token, or the username cannot be resolved.
+/// Returns an error if the token-exchange request fails or the response is
+/// missing an access token. `fetch_username` failures no longer propagate.
 pub(crate) fn exchange_code_for_token(
     auth: &mut Auth,
     code: &str,
@@ -138,25 +149,46 @@ pub(crate) fn exchange_code_for_token(
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&access_token)?
-    } else {
-        username.to_string()
-    };
-
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &access_token,
-        &refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                eprintln!(
+                    "warning: token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &access_token,
+            &refresh_token,
+            expiration_time,
+        )?;
+    }
 
     Ok(access_token)
 }
@@ -167,6 +199,12 @@ pub(crate) fn exchange_code_for_token(
 /// `OutputConfig::print_message`, so library callers can capture them
 /// instead of seeing real-process stdout pollution.
 ///
+/// `browser_opener` is the injection point for the listener-before-browser
+/// ordering test (KTD13). The production caller passes `open::that`; tests
+/// pass a recording closure. The opener is invoked after the listener has
+/// bound and entered its accept loop, guaranteeing the browser cannot reach
+/// the callback URL before the socket is actively draining.
+///
 /// # Errors
 ///
 /// Returns an error if the authorization URL is invalid, the callback server
@@ -176,6 +214,7 @@ pub fn run_oauth2_flow(
     username: &str,
     out: &OutputConfig,
     stdout: &mut dyn std::io::Write,
+    browser_opener: fn(&str) -> std::io::Result<()>,
 ) -> Result<String> {
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
@@ -185,22 +224,42 @@ pub fn run_oauth2_flow(
 
     let auth_url_str = build_auth_url(auth, &state, &challenge)?;
 
-    // Try to open browser
-    if let Err(_e) = open::that(&auth_url_str) {
+    // Parse the resolved redirect URI; the listener binds host, port, and path
+    // from it (KTD6 + R25). Validation already accepted https or http+loopback
+    // at U2/R8 write/resolve time, so a parse failure here is a programmer error.
+    let redirect_parsed = Url::parse(auth.redirect_uri())
+        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+
+    // Browser-open closure: runs on the listener's bind-success hook so the
+    // socket is actively in `accept().await` before the URL is dispatched
+    // (KTD5). Stdout messages on opener failure remain user-visible because
+    // the closure can capture the OutputConfig; here we keep the closure
+    // signature simple by returning io::Result and handling the message
+    // OUTSIDE the closure via the recorded outcome.
+    //
+    // The shared cell carries the opener's io::Result back to the parent so
+    // the failure-message print happens once the runtime exits — this avoids
+    // holding `&mut dyn Write` across the runtime's lifetime.
+    let opener_outcome = std::sync::Arc::new(std::sync::Mutex::new(None::<std::io::Result<()>>));
+    let opener_outcome_for_closure = std::sync::Arc::clone(&opener_outcome);
+    let auth_url_for_closure = auth_url_str.clone();
+    let on_bound = move || {
+        let result = browser_opener(&auth_url_for_closure);
+        if let Ok(mut slot) = opener_outcome_for_closure.lock() {
+            *slot = Some(result);
+        }
+    };
+
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let code = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound)?;
+
+    if let Some(Err(_e)) = opener_outcome.lock().ok().and_then(|mut s| s.take()) {
         out.print_message(
             stdout,
             "Failed to open browser automatically. Please visit this URL manually:",
         );
         out.print_message(stdout, &auth_url_str);
     }
-
-    // Parse redirect URI to get callback port
-    let redirect_parsed = Url::parse(auth.redirect_uri())
-        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
-    let port = redirect_parsed.port().unwrap_or(8080);
-
-    // Start callback server and wait for code
-    let code = callback::wait_for_callback(port, &state)?;
 
     exchange_code_for_token(auth, &code, &verifier, username)
 }
@@ -327,13 +386,40 @@ pub fn run_remote_step2(
 
 /// Refreshes an `OAuth2` token if expired.
 ///
+/// The refresh-token POST result is the sole source of truth for "is the
+/// refresh successful" (`KTD2`). The refreshed access token is persisted in
+/// all three success branches:
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn via
+///   `eprintln!` (the function lacks an `OutputConfig`; the persisted store
+///   state is the load-bearing observable).
+///
 /// # Errors
 ///
-/// Returns an error if no token is found, the refresh request fails, or the
-/// username cannot be resolved after refresh.
+/// Returns an error when no cached token is found or the refresh-token POST
+/// itself fails. `fetch_username` failures no longer propagate.
 pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
+    let app_name_lookup = auth.app_name().to_string();
     let token = if username.is_empty() {
-        auth.token_store.get_first_oauth2_token().cloned()
+        // Empty-caller precedence mirrors `Auth::get_oauth2_header` (KTD5):
+        // default_user/arbitrary-first in the named map first, then the
+        // unnamed (`/me`-failed salvage) slot. Without the unnamed fallback,
+        // a refresh driven by `get_oauth2_header` on an unnamed-only app
+        // would fail with `TokenNotFound` even though a token exists.
+        auth.token_store
+            .get_first_oauth2_token()
+            .cloned()
+            .or_else(|| {
+                auth.token_store
+                    .get_oauth2_token_unnamed_for_app(&app_name_lookup)
+                    .cloned()
+            })
     } else {
         auth.token_store.get_oauth2_token(username).cloned()
     };
@@ -383,26 +469,46 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&new_access_token)
-            .map_err(|e| XurlError::auth_with_cause("UsernameFetchError", &e))?
-    } else {
-        username.to_string()
-    };
-
     let new_now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = new_now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &new_access_token,
-        &new_refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&new_access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                eprintln!(
+                    "warning: refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &new_access_token,
+            &new_refresh_token,
+            expiration_time,
+        )?;
+    }
 
     Ok(new_access_token)
 }
