@@ -106,6 +106,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
                 oauth2: None,
                 oauth1: None,
             }),
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -145,6 +146,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
                 }),
             }),
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -178,6 +180,7 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
         oauth2_tokens: BTreeMap::new(),
         oauth1_token: None,
         bearer_token: None,
+        unnamed_oauth2_token: None,
     };
     app.oauth2_tokens.insert(
         "testuser".to_string(),

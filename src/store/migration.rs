@@ -59,6 +59,7 @@ impl TokenStore {
                 oauth2_tokens: legacy.oauth2_tokens.unwrap_or_default(),
                 oauth1_token: legacy.oauth1_token,
                 bearer_token: legacy.bearer_token,
+                unnamed_oauth2_token: None,
             };
             self.apps.insert("default".to_string(), app);
             self.default_app = "default".to_string();

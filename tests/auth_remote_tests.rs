@@ -87,6 +87,7 @@ fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -364,6 +365,7 @@ fn step2_client_id_mismatch_returns_error() {
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
     let mut auth2 = auth2.with_token_store(store2);
