@@ -1789,3 +1789,189 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
         "oauth2_unnamed must be omitted when false; got entry: {entry}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U6: P3 progressive help — `after_help` on every subcommand + xr examples
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Returns the index of the first line within `lines[start..]` that starts
+/// (after trimming) with `"Examples:"`, or `None` if not present.
+fn examples_line_index(lines: &[&str]) -> Option<usize> {
+    lines
+        .iter()
+        .position(|l| l.trim_start().starts_with("Examples:"))
+}
+
+#[test]
+fn test_post_help_includes_paired_text_and_json_examples() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
+    assert_eq!(code, 0, "expected 0 for post --help; stderr: {stderr}");
+    assert!(
+        stdout.contains("Examples:"),
+        "post --help must include an 'Examples:' block; got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("--output json"),
+        "post --help must include at least one --output json example; got:\n{stdout}"
+    );
+
+    // Paired text + JSON within 5 lines: walk the Examples block, find a text
+    // invocation, and confirm a --output json example appears within 5
+    // following lines.
+    let lines: Vec<&str> = stdout.lines().collect();
+    let start = examples_line_index(&lines).expect("Examples block must exist");
+    let mut paired = false;
+    for i in start..lines.len() {
+        let line = lines[i];
+        if line.contains("xr post ") && !line.contains("--output") {
+            let window_end = (i + 6).min(lines.len());
+            if lines[i + 1..window_end]
+                .iter()
+                .any(|l| l.contains("--output json"))
+            {
+                paired = true;
+                break;
+            }
+        }
+    }
+    assert!(
+        paired,
+        "post --help must pair a text invocation with --output json within 5 lines; got:\n{stdout}"
+    );
+}
+
+#[test]
+fn test_auth_oauth2_help_shows_no_browser_example() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
+    assert_eq!(
+        code, 0,
+        "expected 0 for auth oauth2 --help; stderr: {stderr}"
+    );
+    assert!(
+        stdout.contains("Examples:"),
+        "auth oauth2 --help must include an Examples block; got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("--no-browser"),
+        "auth oauth2 --help must advertise the --no-browser headless flow; got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("--step 1"),
+        "auth oauth2 --help must show the headless step 1 invocation; got:\n{stdout}"
+    );
+}
+
+#[test]
+fn test_examples_subcommand_runs() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "examples"]);
+    assert_eq!(code, 0, "expected 0 for xr examples; stderr: {stderr}");
+    assert!(!stdout.is_empty(), "examples output must be non-empty");
+    for section in [
+        "AUTHENTICATE:",
+        "POST AND READ:",
+        "MANAGE SOCIAL GRAPH:",
+        "MEDIA UPLOAD:",
+        "INSPECT SCHEMAS:",
+    ] {
+        assert!(
+            stdout.contains(section),
+            "examples output missing section {section}; got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_search_help_demonstrates_env_var_precedence() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
+    assert_eq!(code, 0, "expected 0 for search --help; stderr: {stderr}");
+    assert!(
+        stdout.contains("XURL_OUTPUT=json xr search"),
+        "search --help must demo XURL_OUTPUT precedence; got:\n{stdout}"
+    );
+}
+
+#[test]
+fn test_root_help_lists_env_vars_and_exit_codes() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
+    assert_eq!(code, 0, "expected 0 for --help; stderr: {stderr}");
+    assert!(
+        stdout.contains("ENVIRONMENT VARIABLES:"),
+        "root --help must include ENVIRONMENT VARIABLES section; got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("EXIT CODES:"),
+        "root --help must include EXIT CODES section; got:\n{stdout}"
+    );
+    // Every env var the binary reads at the root level must appear.
+    for env_var in [
+        "XURL_OUTPUT",
+        "XURL_QUIET",
+        "XURL_NO_INTERACTIVE",
+        "XURL_TIMEOUT",
+        "XURL_COLOR",
+        "XURL_VERBOSE",
+        "XURL_APP",
+        "REDIRECT_URI",
+    ] {
+        assert!(
+            stdout.contains(env_var),
+            "root --help must document {env_var}; got:\n{stdout}"
+        );
+    }
+    assert!(
+        stdout.contains("TTY behavior:") || stdout.contains("not a TTY"),
+        "root --help must call out TTY-aware behavior; got:\n{stdout}"
+    );
+}
+
+/// Walk every subcommand (recursively, including nested ones like
+/// `auth oauth2`, `auth apps add`, `auth apps redirect-uri get`) and confirm
+/// each `--help` carries an Examples block. Parametric coverage: a future
+/// new subcommand without examples fails this test instead of silently
+/// regressing the P3 audit.
+#[test]
+fn test_every_subcommand_help_has_examples_block() {
+    use clap::CommandFactory;
+
+    fn collect_paths(cmd: &clap::Command, prefix: &[String], out: &mut Vec<Vec<String>>) {
+        for sub in cmd.get_subcommands() {
+            let name = sub.get_name().to_string();
+            // Skip clap's auto-generated `help` subcommand and aliases.
+            if name == "help" {
+                continue;
+            }
+            let mut path = prefix.to_vec();
+            path.push(name);
+            out.push(path.clone());
+            collect_paths(sub, &path, out);
+        }
+    }
+
+    let cli = xurl::cli::Cli::command();
+    let mut paths: Vec<Vec<String>> = Vec::new();
+    collect_paths(&cli, &[], &mut paths);
+    assert!(!paths.is_empty(), "Cli must expose at least one subcommand");
+
+    let mut missing: Vec<String> = Vec::new();
+    for path in &paths {
+        let mut args: Vec<String> = vec!["xr".to_string()];
+        args.extend(path.iter().cloned());
+        args.push("--help".to_string());
+        let argv: Vec<&str> = args.iter().map(String::as_str).collect();
+        let (code, stdout, stderr) = run_isolated(&argv);
+        assert_eq!(
+            code,
+            0,
+            "expected 0 for `{}` --help; stderr: {stderr}",
+            path.join(" ")
+        );
+        if !stdout.contains("Examples:") {
+            missing.push(path.join(" "));
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "the following subcommands' --help lacks an Examples: block:\n  {}",
+        missing.join("\n  ")
+    );
+}
