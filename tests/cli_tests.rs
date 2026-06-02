@@ -2227,6 +2227,297 @@ fn test_auth_oauth2_help_shows_no_browser_example() {
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// U7: --force, --dry-run, --limit mutation-safety envelopes
+//
+// The `wiremock::Mock::expect(0)` calls below double as no-HTTP guards: any
+// stray API call would fail the test when the mock-server drop checks the
+// expectation. The dry-run-only tests need no mounted endpoints because the
+// envelope path short-circuits before HTTP.
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+#[serial_test::serial]
+fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // Mount the delete endpoint with expect(0) — verifies no HTTP fires.
+    ts.mount(
+        Mock::given(method("DELETE"))
+            .and(path("/2/tweets/12345"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(0),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+        std::env::set_var("XURL_NO_INTERACTIVE", "1");
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", "json", "delete", "12345", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+        std::env::remove_var("XURL_NO_INTERACTIVE");
+    }
+
+    assert_eq!(
+        code, 1,
+        "delete without --force under --no-interactive must exit 1; stderr: {stderr}"
+    );
+    // The envelope goes to stderr per `print_confirmation_required`.
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is valid JSON envelope");
+    assert_eq!(envelope["status"], "error");
+    assert_eq!(envelope["reason"], "confirmation-required");
+    assert_eq!(envelope["exit_code"], 1);
+}
+
+#[test]
+#[serial_test::serial]
+fn test_delete_force_no_interactive_calls_api_and_succeeds() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    ts.mount(
+        Mock::given(method("DELETE"))
+            .and(path("/2/tweets/12345"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"deleted": true}
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+        std::env::set_var("XURL_NO_INTERACTIVE", "1");
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr", "--output", "json", "delete", "12345", "--force", "--auth", "app",
+        ],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+        std::env::remove_var("XURL_NO_INTERACTIVE");
+    }
+
+    assert_eq!(
+        code, 0,
+        "delete --force --no-interactive must exit 0; stderr: {stderr}; stdout: {stdout}"
+    );
+    let v = parse_json(&stdout);
+    assert_eq!(v["data"]["deleted"], serde_json::Value::Bool(true));
+}
+
+#[test]
+#[serial_test::serial]
+fn test_post_dry_run_emits_envelope_and_skips_api() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // No HTTP must fire.
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(0),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+        std::env::set_var("XURL_DRY_RUN", "1");
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", "json", "post", "Hello", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+        std::env::remove_var("XURL_DRY_RUN");
+    }
+
+    assert_eq!(
+        code, 0,
+        "post --dry-run must exit 0; stderr: {stderr}; stdout: {stdout}"
+    );
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run");
+    assert_eq!(v["would_succeed"], serde_json::Value::Bool(true));
+    assert_eq!(v["exit_code"], 0);
+    assert_eq!(v["command"], "post");
+    assert_eq!(v["body"], "Hello");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_post_empty_body_dry_run_reports_empty_body_reason() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    unsafe {
+        std::env::set_var("XURL_DRY_RUN", "1");
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", "json", "post", "", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("XURL_DRY_RUN");
+    }
+
+    assert_eq!(
+        code, 0,
+        "post '' --dry-run must exit 0 (envelope, not error); stderr: {stderr}; stdout: {stdout}"
+    );
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run");
+    assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
+    assert_eq!(v["reason"], "empty-body");
+    assert_eq!(v["exit_code"], 1);
+}
+
+#[test]
+#[serial_test::serial]
+fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // 281 chars: one past the 280-char limit.
+    let too_long: String = std::iter::repeat_n('x', 281).collect();
+    unsafe {
+        std::env::set_var("XURL_DRY_RUN", "1");
+    }
+    let (code, stdout, _stderr) = run_at(
+        &store,
+        &["xr", "--output", "json", "post", &too_long, "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("XURL_DRY_RUN");
+    }
+
+    assert_eq!(code, 0);
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run");
+    assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
+    assert_eq!(v["reason"], "body-too-long");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_search_global_limit_50_respected() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // `max_results=50` MUST appear on the query string when --limit 50 is set.
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(wiremock::matchers::query_param("max_results", "50"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": []
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "--limit", "50", "search", "x", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "search --limit 50 failed; stderr: {stderr}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_search_global_limit_500_clamped_to_100() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // 500 must be clamped to 100 before the API call.
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(wiremock::matchers::query_param("max_results", "100"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": []
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &["xr", "--limit", "500", "search", "x", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(code, 0, "search --limit 500 must clamp; stderr: {stderr}");
+}
+
+#[test]
+#[serial_test::serial]
+fn test_search_per_cmd_max_results_overrides_global_limit() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // `-n 20` MUST take precedence over `--limit 80`.
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(wiremock::matchers::query_param("max_results", "20"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": []
+            })))
+            .expect(1),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+    }
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr", "--limit", "80", "search", "x", "-n", "20", "--auth", "app",
+        ],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+    }
+
+    assert_eq!(
+        code, 0,
+        "per-cmd -n must override --limit; stderr: {stderr}"
+    );
+}
+
 #[test]
 fn test_examples_subcommand_runs() {
     let (code, stdout, stderr) = run_isolated(&["xr", "examples"]);
@@ -2253,6 +2544,87 @@ fn test_search_help_demonstrates_env_var_precedence() {
     assert!(
         stdout.contains("XURL_OUTPUT=json xr search"),
         "search --help must demo XURL_OUTPUT precedence; got:\n{stdout}"
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn test_auth_clear_force_no_interactive_dry_run_envelope() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    unsafe {
+        std::env::set_var("XURL_NO_INTERACTIVE", "1");
+        std::env::set_var("XURL_DRY_RUN", "1");
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr", "--output", "json", "auth", "clear", "--all", "--force",
+        ],
+    );
+    unsafe {
+        std::env::remove_var("XURL_NO_INTERACTIVE");
+        std::env::remove_var("XURL_DRY_RUN");
+    }
+
+    assert_eq!(
+        code, 0,
+        "auth clear --force --no-interactive --dry-run must exit 0; stderr: {stderr}"
+    );
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run");
+    assert_eq!(v["command"], "auth-clear");
+    assert_eq!(v["all"], serde_json::Value::Bool(true));
+}
+
+#[test]
+#[serial_test::serial]
+fn test_xurl_dry_run_env_var_engages_dry_run() {
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    // No HTTP must fire.
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(0),
+    );
+
+    unsafe {
+        std::env::set_var("API_BASE_URL", ts.uri());
+        std::env::set_var("XURL_DRY_RUN", "1");
+    }
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", "json", "post", "Hi", "--auth", "app"],
+    );
+    unsafe {
+        std::env::remove_var("API_BASE_URL");
+        std::env::remove_var("XURL_DRY_RUN");
+    }
+
+    assert_eq!(
+        code, 0,
+        "XURL_DRY_RUN=1 must engage dry-run; stderr: {stderr}; stdout: {stdout}"
+    );
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run");
+}
+
+#[test]
+fn test_dry_run_help_advertised_on_post() {
+    // Sanity: the help text MUST mention --dry-run so anc's p5-must-dry-run
+    // gate sees the advertisement.
+    let (code, stdout, _stderr) = run_isolated(&["xr", "post", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("--dry-run"),
+        "post --help must advertise --dry-run; got: {stdout}"
     );
 }
 
@@ -2339,5 +2711,25 @@ fn test_every_subcommand_help_has_examples_block() {
         missing.is_empty(),
         "the following subcommands' --help lacks an Examples: block:\n  {}",
         missing.join("\n  ")
+    );
+}
+
+#[test]
+fn test_force_help_advertised_on_delete() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "delete", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("--force"),
+        "delete --help must advertise --force; got: {stdout}"
+    );
+}
+
+#[test]
+fn test_limit_help_advertised_globally() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("--limit"),
+        "xr --help must advertise --limit globally; got: {stdout}"
     );
 }

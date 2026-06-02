@@ -243,24 +243,40 @@ pub fn run_oauth2_flow(
     let opener_outcome = std::sync::Arc::new(std::sync::Mutex::new(None::<std::io::Result<()>>));
     let opener_outcome_for_closure = std::sync::Arc::clone(&opener_outcome);
     let auth_url_for_closure = auth_url_str.clone();
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let cancel_for_closure = cancel.clone();
     let on_bound = move || {
         let result = browser_opener(&auth_url_for_closure);
+        let failed = result.is_err();
         if let Ok(mut slot) = opener_outcome_for_closure.lock() {
             *slot = Some(result);
         }
+        if failed {
+            // Auto-open chose this code path; if open fails there is no
+            // mechanism here for the user to paste the URL back. Cancel the
+            // listener immediately rather than waiting out the 5-minute
+            // CALLBACK_TIMEOUT. Callers wanting a paste flow use --no-browser
+            // (cli/commands/auth.rs), which routes through remote_oauth2_step1.
+            cancel_for_closure.cancel();
+        }
     };
 
-    let cancel = tokio_util::sync::CancellationToken::new();
-    let code = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound)?;
+    let code_result = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound);
 
-    if let Some(Err(_e)) = opener_outcome.lock().ok().and_then(|mut s| s.take()) {
+    let opener_err = opener_outcome.lock().ok().and_then(|mut s| s.take());
+    if let Some(Err(_e)) = &opener_err {
         out.print_message(
             stdout,
-            "Failed to open browser automatically. Please visit this URL manually:",
+            "Failed to open browser automatically. Re-run with --no-browser \
+             to use the paste-the-URL flow:",
         );
         out.print_message(stdout, &auth_url_str);
+        return Err(XurlError::auth(
+            "browser-open failed; re-run with --no-browser to paste the URL manually",
+        ));
     }
 
+    let code = code_result?;
     exchange_code_for_token(auth, &code, &verifier, username)
 }
 
