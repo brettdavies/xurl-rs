@@ -496,6 +496,60 @@ fn test_send_request_json_parse_error() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Timeout wiring — --timeout / XURL_TIMEOUT bound network calls
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn slow_endpoint_trips_explicit_timeout() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/slow"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_delay(std::time::Duration::from_secs(10))
+                    .set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::with_timeout(&cfg, auth, 1);
+    assert_eq!(client.timeout_secs(), 1);
+
+    let started = std::time::Instant::now();
+    let err = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/slow".to_string(),
+            ..Default::default()
+        })
+        .expect_err("a 1s timeout must fire before the 10s server delay");
+    let elapsed = started.elapsed();
+
+    assert!(
+        elapsed < std::time::Duration::from_secs(5),
+        "timeout should fire well under the server's 10s delay; elapsed = {elapsed:?}"
+    );
+    let msg = err.to_string();
+    assert!(
+        msg.contains("HTTP Error"),
+        "expected an HTTP/transport error, got: {msg}"
+    );
+}
+
+#[test]
+fn config_default_timeout_carries_through_apiclient_new() {
+    // Regression guard for the runner-to-ApiClient timeout plumbing: the value
+    // on `Config::http_timeout_secs` must drive `ApiClient::timeout_secs()`.
+    let mut cfg = create_test_config("http://127.0.0.1:9");
+    cfg.http_timeout_secs = 7;
+    let (auth, _tmp) = create_mock_auth_with_bearer("http://127.0.0.1:9");
+    let client = ApiClient::new(&cfg, auth);
+    assert_eq!(client.timeout_secs(), 7);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Auth header routing tests
 // ═══════════════════════════════════════════════════════════════════════════
 

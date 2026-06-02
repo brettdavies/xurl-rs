@@ -25,17 +25,38 @@ pub struct RequestOptions {
     pub trace: bool,
 }
 
+/// Default request timeout in seconds when none is supplied.
+pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
+
 /// Consumer-facing options for shortcut methods.
 ///
 /// Exposes only the fields relevant to crate consumers, hiding internal
 /// request construction details like `method`, `endpoint`, `headers`, and `data`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CallOptions {
     pub auth_type: String,
     pub username: String,
     pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+    /// Per-call HTTP timeout in seconds. Mirrors the `--timeout` flag /
+    /// `XURL_TIMEOUT` env var. Used by the streaming and per-call refresh
+    /// paths; non-streaming requests inherit the timeout that was passed to
+    /// [`ApiClient::new`].
+    pub timeout_secs: u64,
+}
+
+impl Default for CallOptions {
+    fn default() -> Self {
+        Self {
+            auth_type: String::new(),
+            username: String::new(),
+            no_auth: false,
+            verbose: false,
+            trace: false,
+            timeout_secs: DEFAULT_TIMEOUT_SECS,
+        }
+    }
 }
 
 impl CallOptions {
@@ -70,13 +91,28 @@ pub struct ApiClient {
     base_url: String,
     client: Client,
     auth: Auth,
+    timeout_secs: u64,
 }
 
 impl ApiClient {
-    /// Creates a new `ApiClient`.
+    /// Creates a new `ApiClient` using the timeout configured on `config`.
+    ///
+    /// The CLI runner writes `--timeout` / `XURL_TIMEOUT` into
+    /// [`Config::http_timeout_secs`]; library consumers that want a different
+    /// timeout can use [`ApiClient::with_timeout`].
     pub fn new(config: &Config, auth: Auth) -> Self {
+        Self::with_timeout(config, auth, config.http_timeout_secs)
+    }
+
+    /// Creates a new `ApiClient` with an explicit request timeout.
+    ///
+    /// The timeout bounds every non-streaming HTTP call dispatched by this
+    /// client. Streaming requests intentionally retain `.timeout(None)` — the
+    /// long-running shape is the point — and bound runtime via signal handlers
+    /// in the streaming handler.
+    pub fn with_timeout(config: &Config, auth: Auth, timeout_secs: u64) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(timeout_secs))
             .build()
             .unwrap_or_else(|_| Client::new());
 
@@ -84,7 +120,14 @@ impl ApiClient {
             base_url: config.api_base_url.clone(),
             client,
             auth,
+            timeout_secs,
         }
+    }
+
+    /// Returns the per-call timeout used by this client (seconds).
+    #[must_use]
+    pub fn timeout_secs(&self) -> u64 {
+        self.timeout_secs
     }
 
     /// Creates an `ApiClient` from environment variables.
@@ -483,6 +526,7 @@ mod tests {
             no_auth: true,
             verbose: true,
             trace: true,
+            timeout_secs: 45,
         };
 
         let req = opts.to_request_options();
@@ -509,5 +553,9 @@ mod tests {
         assert!(!req.trace);
         assert!(req.auth_type.is_empty());
         assert!(req.username.is_empty());
+        assert_eq!(
+            opts.timeout_secs, DEFAULT_TIMEOUT_SECS,
+            "timeout_secs should default to {DEFAULT_TIMEOUT_SECS}"
+        );
     }
 }
