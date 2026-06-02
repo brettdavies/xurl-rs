@@ -108,7 +108,7 @@ pub(crate) fn exchange_code_for_token(
     username: &str,
 ) -> Result<String> {
     let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .build()
         .unwrap_or_else(|_| reqwest::blocking::Client::new());
     let token_resp = client
@@ -441,7 +441,10 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
     }
 
     // Token is expired, refresh it
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
+        .build()
+        .unwrap_or_else(|_| reqwest::blocking::Client::new());
     let token_resp = client
         .post(auth.token_url())
         .form(&[

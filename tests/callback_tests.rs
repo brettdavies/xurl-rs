@@ -335,6 +335,39 @@ fn state_mismatch_returns_400_and_error() {
 }
 
 #[test]
+fn external_cancellation_returns_quickly_with_typed_error() {
+    // Regression coverage for the SIGTERM/SIGINT wiring in the listener
+    // select: external cancellation must drop through the select arms and
+    // return a typed Auth error without waiting for the 5-minute timeout.
+    let port = pick_free_port_ipv4();
+    let uri = Url::parse(&format!("http://127.0.0.1:{port}/callback")).unwrap();
+    let cancel = CancellationToken::new();
+    let cancel_for_thread = cancel.clone();
+    let (tx, rx) = mpsc::channel::<XurlResult<String>>();
+
+    let started = std::time::Instant::now();
+    let h = thread::spawn(move || {
+        let res = wait_for_callback_with(&uri, "STATE", cancel_for_thread, || {});
+        tx.send(res).unwrap();
+    });
+
+    // Give the listener time to bind and enter accept(), then cancel.
+    thread::sleep(Duration::from_millis(50));
+    cancel.cancel();
+
+    let res = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("listener must observe cancellation promptly");
+    assert!(res.is_err(), "external cancel must return Err");
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_secs(2),
+        "cancellation should not wait on the 5-minute callback timeout; elapsed = {elapsed:?}"
+    );
+    h.join().unwrap();
+}
+
+#[test]
 fn on_bound_callback_fires_once_after_listener_ready() {
     let port = pick_free_port_ipv4();
     let uri = Url::parse(&format!("http://127.0.0.1:{port}/callback")).unwrap();

@@ -139,7 +139,10 @@ where
     }
 
     // ── Tier 3: Everything else (needs config + auth) ──────────────────
-    let cfg = Config::new();
+    let mut cfg = Config::new();
+    // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
+    // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
+    cfg.http_timeout_secs = cli.timeout;
     let auth = Auth::new_with_store_path(&cfg, store_path);
 
     match crate::cli::commands::run(cli, &out, stdout, stderr, auth) {

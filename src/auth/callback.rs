@@ -19,6 +19,35 @@ use url::Url;
 
 use crate::error::{Result, XurlError};
 
+/// Resolves when the process receives SIGINT (Ctrl+C) or, on Unix, SIGTERM.
+///
+/// Used by long-running paths (OAuth2 callback listener, streaming HTTP) to
+/// observe shutdown signals and exit cleanly. On Windows only `ctrl_c()` is
+/// available; the `cfg(unix)` arm folds SIGTERM into the same future.
+pub(crate) async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+        let mut term = match signal(SignalKind::terminate()) {
+            Ok(s) => s,
+            Err(_) => {
+                // SignalKind::terminate is documented to always succeed on
+                // Unix; if it does fail, fall back to ctrl_c only.
+                let _ = tokio::signal::ctrl_c().await;
+                return;
+            }
+        };
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = term.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
+
 /// Hardcoded 5-minute timeout matching upstream Go xurl.
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -336,6 +365,10 @@ where
             }
             () = cancel.cancelled() => {
                 Err(XurlError::auth("ListenerError: cancelled before code received"))
+            }
+            () = shutdown_signal() => {
+                cancel.cancel();
+                Err(XurlError::auth("Cancelled: oauth callback cancelled by signal"))
             }
             () = tokio::time::sleep(CALLBACK_TIMEOUT) => {
                 cancel.cancel();

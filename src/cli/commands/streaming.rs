@@ -1,9 +1,34 @@
 /// Streaming request handler — SSE / chunked transfer support.
 use std::io::Write;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::api::{ApiClient, RequestOptions};
+use crate::auth::callback::shutdown_signal;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
+use crate::output::{OutputConfig, OutputFormat};
+
+/// Spawns a background thread that waits for SIGINT/SIGTERM and flips the
+/// returned `AtomicBool` to true. The thread holds its own current-thread
+/// tokio runtime so the synchronous streaming path can observe signals
+/// without itself being async.
+fn spawn_shutdown_watcher() -> Arc<AtomicBool> {
+    let flag = Arc::new(AtomicBool::new(false));
+    let flag_for_thread = Arc::clone(&flag);
+    std::thread::spawn(move || {
+        let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        else {
+            return;
+        };
+        rt.block_on(async move {
+            shutdown_signal().await;
+            flag_for_thread.store(true, Ordering::SeqCst);
+        });
+    });
+    flag
+}
 
 /// Sends a streaming request with output-format awareness.
 pub(super) fn stream_request_with_output(
@@ -94,8 +119,27 @@ pub(super) fn stream_request_with_output(
     out.status(stderr, "--- Streaming response started ---");
     out.status(stderr, "--- Press Ctrl+C to stop ---");
 
+    let shutdown = spawn_shutdown_watcher();
     let reader = BufReader::with_capacity(1024 * 1024, resp);
     for line in reader.lines() {
+        if shutdown.load(Ordering::SeqCst) {
+            // Flush buffered output, emit a cancellation envelope under JSON
+            // modes, and exit cleanly. Text mode keeps stdout silent — the
+            // status banner on stderr already signals shutdown.
+            let _ = stdout.flush();
+            match out.format {
+                OutputFormat::Json | OutputFormat::Jsonl => {
+                    let envelope = serde_json::json!({
+                        "status": "cancelled",
+                        "reason": "sigterm",
+                    });
+                    out.print_response(stdout, &envelope);
+                }
+                OutputFormat::Text => {}
+            }
+            out.status(stderr, "--- Stream cancelled by signal ---");
+            return Ok(());
+        }
         match line {
             Ok(line) => {
                 if line.is_empty() {
