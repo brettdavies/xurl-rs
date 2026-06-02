@@ -2,7 +2,7 @@
 ///
 /// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
 /// env-var config -> active app in `.xurl` store.
-pub(crate) mod callback;
+pub mod callback;
 pub mod oauth1;
 pub mod oauth2;
 pub mod pending;
@@ -168,10 +168,14 @@ impl Auth {
         Ok(format!("Bearer {access_token}"))
     }
 
-    /// Starts the `OAuth2` PKCE flow.
+    /// Starts the `OAuth2` PKCE flow with the default `open::that` browser opener.
     ///
     /// Browser-failure prompts are written to `stdout` via `out`'s
-    /// `print_message`, so callers can capture them in tests.
+    /// `print_message`, so callers can capture them in tests. Library
+    /// consumers needing a custom opener (recording / headless / tests for
+    /// the listener-before-browser ordering) call
+    /// [`oauth2::run_oauth2_flow`] directly with their own `fn(&str) ->
+    /// io::Result<()>` opener.
     ///
     /// # Errors
     ///
@@ -183,7 +187,7 @@ impl Auth {
         out: &OutputConfig,
         stdout: &mut dyn std::io::Write,
     ) -> Result<String> {
-        oauth2::run_oauth2_flow(self, username, out, stdout)
+        oauth2::run_oauth2_flow(self, username, out, stdout, |url| open::that(url))
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.

@@ -167,6 +167,12 @@ pub(crate) fn exchange_code_for_token(
 /// `OutputConfig::print_message`, so library callers can capture them
 /// instead of seeing real-process stdout pollution.
 ///
+/// `browser_opener` is the injection point for the listener-before-browser
+/// ordering test (KTD13). The production caller passes `open::that`; tests
+/// pass a recording closure. The opener is invoked after the listener has
+/// bound and entered its accept loop, guaranteeing the browser cannot reach
+/// the callback URL before the socket is actively draining.
+///
 /// # Errors
 ///
 /// Returns an error if the authorization URL is invalid, the callback server
@@ -176,6 +182,7 @@ pub fn run_oauth2_flow(
     username: &str,
     out: &OutputConfig,
     stdout: &mut dyn std::io::Write,
+    browser_opener: fn(&str) -> std::io::Result<()>,
 ) -> Result<String> {
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
@@ -185,22 +192,42 @@ pub fn run_oauth2_flow(
 
     let auth_url_str = build_auth_url(auth, &state, &challenge)?;
 
-    // Try to open browser
-    if let Err(_e) = open::that(&auth_url_str) {
+    // Parse the resolved redirect URI; the listener binds host, port, and path
+    // from it (KTD6 + R25). Validation already accepted https or http+loopback
+    // at U2/R8 write/resolve time, so a parse failure here is a programmer error.
+    let redirect_parsed = Url::parse(auth.redirect_uri())
+        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+
+    // Browser-open closure: runs on the listener's bind-success hook so the
+    // socket is actively in `accept().await` before the URL is dispatched
+    // (KTD5). Stdout messages on opener failure remain user-visible because
+    // the closure can capture the OutputConfig; here we keep the closure
+    // signature simple by returning io::Result and handling the message
+    // OUTSIDE the closure via the recorded outcome.
+    //
+    // The shared cell carries the opener's io::Result back to the parent so
+    // the failure-message print happens once the runtime exits — this avoids
+    // holding `&mut dyn Write` across the runtime's lifetime.
+    let opener_outcome = std::sync::Arc::new(std::sync::Mutex::new(None::<std::io::Result<()>>));
+    let opener_outcome_for_closure = std::sync::Arc::clone(&opener_outcome);
+    let auth_url_for_closure = auth_url_str.clone();
+    let on_bound = move || {
+        let result = browser_opener(&auth_url_for_closure);
+        if let Ok(mut slot) = opener_outcome_for_closure.lock() {
+            *slot = Some(result);
+        }
+    };
+
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let code = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound)?;
+
+    if let Some(Err(_e)) = opener_outcome.lock().ok().and_then(|mut s| s.take()) {
         out.print_message(
             stdout,
             "Failed to open browser automatically. Please visit this URL manually:",
         );
         out.print_message(stdout, &auth_url_str);
     }
-
-    // Parse redirect URI to get callback port
-    let redirect_parsed = Url::parse(auth.redirect_uri())
-        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
-    let port = redirect_parsed.port().unwrap_or(8080);
-
-    // Start callback server and wait for code
-    let code = callback::wait_for_callback(port, &state)?;
 
     exchange_code_for_token(auth, &code, &verifier, username)
 }
