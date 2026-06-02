@@ -1789,3 +1789,255 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
         "oauth2_unnamed must be omitted when false; got entry: {entry}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U10: `xr skill install` — agent bundle distribution
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Hermetic by construction: every invocation that touches the host map runs
+// with `HOME` redirected to a fresh `TempDir`, so the tests never read or
+// write the developer's real `~/.claude/skills/...`.
+
+/// Helper: run `xr` with a caller-supplied `HOME` env var. Mirrors
+/// `run_isolated` but also overrides `HOME` for the duration of the call. The
+/// child process is `cli::run_with_store_path`, which reads `HOME` only via
+/// `skill_install::expand_tilde`. Tests serialize via `serial_test` because
+/// process-wide env mutation races otherwise.
+fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
+    use std::sync::Mutex;
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+
+    let prior = std::env::var_os("HOME");
+    // SAFETY: ENV_LOCK serialises all env mutations across these tests.
+    unsafe {
+        match home {
+            Some(v) => std::env::set_var("HOME", v),
+            None => std::env::remove_var("HOME"),
+        }
+    }
+    let result = run_isolated(args);
+    // SAFETY: see above.
+    unsafe {
+        match prior {
+            Some(v) => std::env::set_var("HOME", v),
+            None => std::env::remove_var("HOME"),
+        }
+    }
+    result
+}
+
+#[test]
+fn skill_install_help_advertises_host_all_dry_run() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "skill", "install", "--help"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("--all"),
+        "--all missing from help: {stdout}"
+    );
+    assert!(
+        stdout.contains("--dry-run"),
+        "--dry-run missing from help: {stdout}"
+    );
+    assert!(
+        stdout.contains("HOST") || stdout.contains("[HOST]") || stdout.contains("host"),
+        "host arg missing from help: {stdout}"
+    );
+    assert!(
+        stdout.contains("claude_code"),
+        "claude_code possible value missing from help: {stdout}"
+    );
+}
+
+#[test]
+fn skill_install_dry_run_emits_envelope_without_spawning_git() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    let (code, stdout, stderr) = run_with_home(
+        &[
+            "xr",
+            "skill",
+            "install",
+            "claude_code",
+            "--dry-run",
+            "--output",
+            "json",
+        ],
+        Some(&home),
+    );
+    assert_eq!(code, 0, "expected 0 for dry-run; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "dry_run", "envelope: {v}");
+    assert_eq!(v["host"], "claude_code");
+    assert_eq!(v["would_succeed"], true);
+    assert_eq!(v["exit_code"], 0);
+    assert_eq!(v["action"], "skill-install");
+    let preview = v["command_preview"]
+        .as_str()
+        .expect("command_preview string");
+    assert!(
+        preview.starts_with("git clone --depth 1 "),
+        "command_preview shape unexpected: {preview}"
+    );
+    assert!(
+        preview.contains("github.com/brettdavies/xurl-rs.git"),
+        "command_preview missing repo URL: {preview}"
+    );
+    let install_dir = v["install_dir"].as_str().expect("install_dir string");
+    assert!(
+        install_dir.contains(".claude/skills/xurl-rs"),
+        "install_dir not under .claude/skills/xurl-rs: {install_dir}"
+    );
+    // The dry-run path must not have created the destination — it only
+    // resolves and reports.
+    assert!(
+        !std::path::Path::new(install_dir).exists(),
+        "dry-run created the destination directory: {install_dir}"
+    );
+}
+
+#[test]
+fn skill_install_existing_non_empty_destination_errors() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    // Pre-populate the destination so the conflict check fires.
+    let dest = tmp.path().join(".claude").join("skills").join("xurl-rs");
+    std::fs::create_dir_all(&dest).expect("mkdir -p dest");
+    std::fs::write(dest.join("placeholder"), b"x").expect("write placeholder");
+
+    let (code, stdout, stderr) = run_with_home(
+        &["xr", "skill", "install", "claude_code", "--output", "json"],
+        Some(&home),
+    );
+    assert_eq!(code, 1, "expected 1 for dest-not-empty; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "error");
+    assert_eq!(v["reason"], "destination-not-empty");
+    assert_eq!(v["exit_code"], 1);
+    assert_eq!(v["destination_status"], "non-empty-dir");
+}
+
+#[test]
+fn skill_install_all_dry_run_lists_every_host() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    let (code, stdout, stderr) = run_with_home(
+        &[
+            "xr",
+            "skill",
+            "install",
+            "--all",
+            "--dry-run",
+            "--output",
+            "json",
+        ],
+        Some(&home),
+    );
+    assert_eq!(code, 0, "expected 0 for --all dry-run; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "dry_run");
+    assert_eq!(v["action"], "skill-install");
+    let arr = v["installations"]
+        .as_array()
+        .expect("installations is an array");
+    let host_names: Vec<&str> = arr
+        .iter()
+        .map(|e| e["host"].as_str().expect("host string"))
+        .collect();
+    for expected in xurl::skill_install::KNOWN_HOSTS {
+        assert!(
+            host_names.contains(expected),
+            "host {expected} missing from --all envelope; got {host_names:?}"
+        );
+    }
+}
+
+#[test]
+fn skill_install_home_unset_emits_home_not_set_reason() {
+    let (code, stdout, stderr) = run_with_home(
+        &["xr", "skill", "install", "claude_code", "--output", "json"],
+        None,
+    );
+    assert_eq!(code, 1, "expected 1 for HOME unset; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "error");
+    assert_eq!(v["reason"], "home-not-set");
+    assert_eq!(v["exit_code"], 1);
+}
+
+#[test]
+fn skill_install_no_args_lists_supported_hosts() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    let (code, stdout, stderr) = run_with_home(&["xr", "skill", "install"], Some(&home));
+    assert_eq!(
+        code, 2,
+        "expected 2 (usage error) for missing host; stderr: {stderr}"
+    );
+    for expected in xurl::skill_install::KNOWN_HOSTS {
+        assert!(
+            stdout.contains(expected),
+            "host {expected} missing from text listing: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    let (code, stdout, stderr) =
+        run_with_home(&["xr", "skill", "install", "--output", "json"], Some(&home));
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "error");
+    assert_eq!(v["reason"], "missing-host");
+    assert_eq!(v["exit_code"], 2);
+    let hosts = v["known_hosts"]
+        .as_array()
+        .expect("known_hosts is an array");
+    let names: Vec<&str> = hosts.iter().map(|h| h.as_str().expect("str")).collect();
+    for expected in xurl::skill_install::KNOWN_HOSTS {
+        assert!(names.contains(expected), "missing {expected}: {names:?}");
+    }
+}
+
+#[test]
+fn skill_install_dry_run_text_output_is_single_line_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    let (code, stdout, stderr) = run_with_home(
+        &["xr", "skill", "install", "claude_code", "--dry-run"],
+        Some(&home),
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let line = stdout.trim();
+    assert!(
+        line.starts_with("git clone --depth 1 "),
+        "text dry-run output shape unexpected: {line}"
+    );
+    assert!(
+        line.contains("xurl-rs.git"),
+        "text dry-run missing repo URL: {line}"
+    );
+}
+
+#[test]
+fn skill_install_dest_is_regular_file_errors() {
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().to_string_lossy().into_owned();
+    // Plant a regular file at the destination path.
+    let dest_parent = tmp.path().join(".claude").join("skills");
+    std::fs::create_dir_all(&dest_parent).expect("mkdir -p parent");
+    std::fs::write(dest_parent.join("xurl-rs"), b"i'm a file").expect("write file");
+
+    let (code, stdout, stderr) = run_with_home(
+        &["xr", "skill", "install", "claude_code", "--output", "json"],
+        Some(&home),
+    );
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "error");
+    assert_eq!(v["reason"], "destination-is-file");
+    assert_eq!(v["destination_status"], "file");
+}
