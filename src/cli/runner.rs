@@ -164,6 +164,15 @@ where
                 };
                 return crate::cli::commands::skill::run_skill(cmd, &out, stdout);
             }
+            Commands::Validate { file, schema } => {
+                return crate::cli::commands::validate::run_validate(
+                    file.as_deref(),
+                    schema.as_deref(),
+                    &out,
+                    stdout,
+                    stderr,
+                );
+            }
             _ => {}
         }
     }

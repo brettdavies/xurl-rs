@@ -5,6 +5,7 @@ mod media;
 pub mod schema;
 pub mod skill;
 mod streaming;
+pub mod validate;
 
 use std::io::{IsTerminal, Write};
 
@@ -218,6 +219,26 @@ pub fn run(
     let dry_run = cli.dry_run;
     let global_limit = cli.limit;
     let quiet = cli.quiet;
+
+    // Resolve cursor from --cursor or --after. --page is rejected upstream
+    // because the X API does not offer offset-style pagination.
+    if cli.page.is_some() {
+        out.print_error_envelope(
+            stderr,
+            "unsupported-pagination",
+            EXIT_GENERAL_ERROR,
+            "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
+        );
+        return Err(XurlError::EnvelopeAlreadyEmitted {
+            exit_code: EXIT_GENERAL_ERROR,
+        });
+    }
+    let cursor = cli
+        .cursor
+        .clone()
+        .or_else(|| cli.after.clone())
+        .unwrap_or_default();
+
     match cli.command {
         Some(cmd) => run_subcommand(
             cmd,
@@ -230,6 +251,7 @@ pub fn run(
                 global_limit,
                 quiet,
                 app_explicit,
+                cursor,
             },
             out,
             stdout,
@@ -243,7 +265,7 @@ pub fn run(
 ///
 /// Avoids a 12-arg `run_subcommand` signature by collapsing the cross-cutting
 /// agentic flags into one record.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct GlobalFlags {
     no_interactive: bool,
     verbose: bool,
@@ -251,6 +273,10 @@ struct GlobalFlags {
     global_limit: Option<i32>,
     quiet: bool,
     app_explicit: bool,
+    /// Resolved cursor / `pagination_token` from `--cursor` / `--after`.
+    /// Empty string when neither flag was supplied. Threaded into
+    /// `CallOptions::pagination_token` for every list endpoint.
+    cursor: String,
 }
 
 /// Runs raw curl-style mode.
@@ -284,6 +310,7 @@ fn run_raw_mode(
         no_auth: false,
         verbose: cli.verbose,
         trace: cli.trace,
+        pagination_token: cli.cursor.clone().unwrap_or_default(),
     };
 
     // Check for media append request
@@ -322,7 +349,13 @@ fn run_subcommand(
         global_limit,
         quiet,
         app_explicit,
+        cursor,
     } = flags;
+    let cursor_opt = if cursor.is_empty() {
+        None
+    } else {
+        Some(cursor.as_str())
+    };
     match cmd {
         // ── Posting ──────────────────────────────────────────────────
         Commands::Post {
@@ -454,7 +487,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let response = client.search_posts(&query, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -483,7 +517,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_timeline(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -494,7 +529,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_mentions(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -597,7 +633,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_bookmarks(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -608,7 +645,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_liked_posts(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -660,7 +698,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -676,7 +715,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -802,7 +842,8 @@ fn run_subcommand(
         } => {
             let n = effective_limit(max_results, global_limit);
             let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
             let response = client.get_dm_events(n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -847,6 +888,9 @@ fn run_subcommand(
         }
         Commands::Examples => {
             unreachable!("examples is handled before config init in main()")
+        }
+        Commands::Validate { .. } => {
+            unreachable!("validate is handled before config init in runner")
         }
     }
     Ok(())

@@ -24,6 +24,12 @@ pub struct RequestOptions {
     pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+    /// Cursor / `pagination_token` query parameter for list endpoints.
+    ///
+    /// Threaded in from the global `--cursor` / `--after` flag (or
+    /// `XURL_CURSOR` / `XURL_AFTER` env vars). List shortcuts append it to
+    /// the URL when non-empty; non-paginated endpoints ignore it.
+    pub pagination_token: String,
 }
 
 /// Default request timeout in seconds when none is supplied.
@@ -45,6 +51,11 @@ pub struct CallOptions {
     /// paths; non-streaming requests inherit the timeout that was passed to
     /// [`ApiClient::new`].
     pub timeout_secs: u64,
+    /// Cursor / `pagination_token` query parameter for list endpoints.
+    ///
+    /// Threaded in from the global `--cursor` flag. List shortcuts append
+    /// it to the URL when non-empty; non-paginated endpoints ignore it.
+    pub pagination_token: String,
 }
 
 impl Default for CallOptions {
@@ -56,6 +67,7 @@ impl Default for CallOptions {
             verbose: false,
             trace: false,
             timeout_secs: DEFAULT_TIMEOUT_SECS,
+            pagination_token: String::new(),
         }
     }
 }
@@ -71,6 +83,7 @@ impl CallOptions {
             no_auth: self.no_auth,
             verbose: self.verbose,
             trace: self.trace,
+            pagination_token: self.pagination_token.clone(),
             ..Default::default()
         }
     }
@@ -586,6 +599,7 @@ mod tests {
             verbose: true,
             trace: true,
             timeout_secs: 45,
+            pagination_token: "abc123".to_string(),
         };
 
         let req = opts.to_request_options();
@@ -595,6 +609,7 @@ mod tests {
         assert!(req.no_auth);
         assert!(req.verbose);
         assert!(req.trace);
+        assert_eq!(req.pagination_token, "abc123");
         // Request-specific fields should be at defaults
         assert!(req.method.is_empty());
         assert!(req.endpoint.is_empty());
@@ -612,6 +627,10 @@ mod tests {
         assert!(!req.trace);
         assert!(req.auth_type.is_empty());
         assert!(req.username.is_empty());
+        assert!(
+            opts.pagination_token.is_empty(),
+            "pagination_token should default to empty so non-paginated endpoints stay clean"
+        );
         assert_eq!(
             opts.timeout_secs, DEFAULT_TIMEOUT_SECS,
             "timeout_secs should default to {DEFAULT_TIMEOUT_SECS}"
