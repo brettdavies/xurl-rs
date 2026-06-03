@@ -18,6 +18,9 @@ All notable changes to this project will be documented in this file.
 - Global `--limit <n>` flag (env-backed via `XURL_LIMIT`), clamped to `1..=100`. Applies to search, timeline, mentions, bookmarks, likes, following, followers, and dms. Per-command `-n/--max-results` keeps precedence when both are set.
 - `XURL_NO_BROWSER` env var for `xr auth oauth2 --no-browser` so headless and CI runners can set the headless flow by default. by @brettdavies in [#43](https://github.com/brettdavies/xurl-rs/pull/43)
 - `xr auth oauth2` auto-engages the headless (remote-step-1) flow when stdout is not a TTY and `--no-browser` / `XURL_NO_BROWSER` is unset, emitting `{"status":"awaiting_callback","url":"..."}` on stdout instead of attempting to open a browser.
+- `schema/responses/<command>.schema.json` for every entry in `SCHEMA_ENTRIES` (35 files at v1.3.0): the 14 existing typed shortcut commands plus `auth-status`, `auth-apps-list`, `redirect-uri-get`, `redirect-uri-set`, `skill-install`, and `skill-install-all`. Downstream agents and CI consumers can pin against the on-disk JSON Schemas without invoking `xr`. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
+- `scripts/generate-response-schemas.sh` regenerates the per-command files by enumerating commands via `xr schema --list` and dumping each via `xr schema <cmd> --output json`.
+- Typed `RedirectUriGetResponse` and `RedirectUriSetResponse` for the `auth apps redirect-uri get` / `set` JSON output paths, replacing the prior ad-hoc `serde_json::json!()` shapes so the schema is derivable.
 
 ### Changed
 
@@ -32,6 +35,7 @@ All notable changes to this project will be documented in this file.
 - `src/api/shortcuts` is now `pub` so the new validators are importable from the command handlers without re-exports.
 - `xr auth default` without an app argument now gates the dialoguer picker on `--no-interactive` AND stdin/stderr TTY-ness. Non-TTY sessions exit non-zero with a `{"status":"error","reason":"no-tty","exit_code":1,...}` envelope on stderr instead of stranding the dialoguer state machine on `/dev/null`. by @brettdavies in [#43](https://github.com/brettdavies/xurl-rs/pull/43)
 - `xr auth oauth2 --no-browser` (no `--step`) now auto-promotes to step 1 and emits the canonical `{"status":"awaiting_callback","url":"..."}` envelope, instead of rejecting the invocation as "requires --step 1 or --step 2". The explicit `--no-browser --step 1` path keeps its prior envelope shape.
+- `AppStatusEntry`, `InstallEnvelope`, `InstallMultiEnvelope`, and `ResolveSource` now derive `schemars::JsonSchema`. `AppStatusEntry` is `pub(crate)` so the `xr schema` module can reference it. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
 
 ### Fixed
 
@@ -42,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - The browser cannot be opened before the callback listener is actively draining the accept queue, eliminating a race on fast machines.
 - Invalid redirect URIs are rejected at write time. `http` is allowed only on loopback hosts; non-loopback `http` and other schemes return a validation error.
 - `auth status` and `auth apps list` previously read `~/.xurl` directly through a fresh `TokenStore::new()`, bypassing the runner's configured store path. Both now use `&auth.token_store`, which makes tempdir isolation reliable for library-level tests.
+- `tests/schema_tests.rs::committed_response_schemas_match_runtime` drift guard asserts byte-equality between every `schema/responses/*.schema.json` and the runtime-emitted shape; CI fails on drift with the regen command in the error message. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
 
 ### Documentation
 
