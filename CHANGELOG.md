@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-06-03
+
+### Added
+
+- New CLI surface: `auth apps add --redirect-uri`, `auth apps update --redirect-uri`, `auth apps redirect-uri get [NAME]`, `auth apps redirect-uri set NAME URI`. by @brettdavies in [#30](https://github.com/brettdavies/xurl-rs/pull/30)
+- Structured JSON output for `auth status`, `auth apps list`, and `auth apps redirect-uri get` under `--output json`.
+- New `--color <auto|always|never>` global flag (`XURL_COLOR`); `auto` honors stderr's TTY-ness, and `NO_COLOR` is absolute per https://no-color.org/. by @brettdavies in [#34](https://github.com/brettdavies/xurl-rs/pull/34)
+- Environment-variable backing for every agentic flag: `XURL_VERBOSE`, `XURL_QUIET`, `XURL_NO_INTERACTIVE`, `XURL_TIMEOUT`, `XURL_APP` (in addition to the pre-existing `XURL_OUTPUT`). Boolean flags use `FalseyValueParser` so `XURL_QUIET=0` correctly disables quiet.
+- `xr skill install [<host>] [--all] [--dry-run] [--output json]` to install the `AGENTS.md` bundle into per-host skills directories. Supports `claude_code`, `codex`, `cursor`, `factory`, `kiro`, and `opencode`. by @brettdavies in [#36](https://github.com/brettdavies/xurl-rs/pull/36)
+- Wire `--timeout` / `XURL_TIMEOUT` through `ApiClient`, OAuth2 token exchange + refresh, and the `/2/users/me` lookup so the flag bounds every HTTP request. Default stays 30 seconds. by @brettdavies in [#37](https://github.com/brettdavies/xurl-rs/pull/37)
+- SIGTERM and SIGINT now cancel the OAuth2 callback listener and any active streaming request. Streaming emits a `{"status":"cancelled","reason":"sigterm"}` envelope under `--output json` / `--jsonl` and returns exit code 0.
+- Global `--force` flag (with confirmation gate) on `xr delete`, `xr auth clear`, and `xr auth apps remove`. Under `--no-interactive`, the flag is mandatory; calling the op without it returns `{"status":"error","reason":"confirmation-required","exit_code":1}` on stderr and never touches the API. Under a TTY without `--force`, dialoguer prompts the operator. by @brettdavies in [#39](https://github.com/brettdavies/xurl-rs/pull/39)
+- Global `--dry-run` flag (env-backed via `XURL_DRY_RUN`) on every write op: post, reply, quote, delete, like, unlike, repost, unrepost, bookmark, unbookmark, follow, unfollow, block, unblock, mute, unmute, dm, media upload, app add/update/remove, redirect-uri set, and every `xr auth` subcommand. The envelope shape is `{"status":"dry_run","would_succeed":bool,"reason":"<kebab>","exit_code":int,"command":"<verb>",…}`. Pre-flight validators catch `empty-body`, `body-too-long`, `too-many-attachments`, `empty-username`, and `empty-post-id` so the dry-run path predicts failure before any HTTP call.
+- Global `--limit <n>` flag (env-backed via `XURL_LIMIT`), clamped to `1..=100`. Applies to search, timeline, mentions, bookmarks, likes, following, followers, and dms. Per-command `-n/--max-results` keeps precedence when both are set.
+- `XURL_NO_BROWSER` env var for `xr auth oauth2 --no-browser` so headless and CI runners can set the headless flow by default. by @brettdavies in [#43](https://github.com/brettdavies/xurl-rs/pull/43)
+- `xr auth oauth2` auto-engages the headless (remote-step-1) flow when stdout is not a TTY and `--no-browser` / `XURL_NO_BROWSER` is unset, emitting `{"status":"awaiting_callback","url":"..."}` on stdout instead of attempting to open a browser.
+
+### Changed
+
+- Bumped declared `rust-version` from `1.85` to `1.94` to match the pinned toolchain, closing the MSRV gap between the promise to library consumers and the code that actually ships. by @brettdavies in [#28](https://github.com/brettdavies/xurl-rs/pull/28)
+- `auth status` text output now includes a `redirect_uri:` line per app showing the effective URI and source label. When the env var overrides a stored value, a `stored_redirect_uri:` line surfaces the stored value. by @brettdavies in [#30](https://github.com/brettdavies/xurl-rs/pull/30)
+- `auth apps list` text output includes the same inline redirect URI hint per app row.
+- The OAuth2 callback listener now binds the host, port, and path from the resolved redirect URI rather than the hardcoded `127.0.0.1:8080/callback`.
+- Path matching on the callback listener tightens from `starts_with` to exact-or-querystring, so a custom redirect URI like `/oauth/return` no longer matches unrelated prefixes.
+- `-v/--verbose` is now a single root-level global flag and applies to every subcommand. The duplicate `-v` definitions on `CommonFlags`, `media upload`, and `media status` are removed. by @brettdavies in [#34](https://github.com/brettdavies/xurl-rs/pull/34)
+- `OutputConfig` gains `print_dry_run` and `print_confirmation_required` helpers so any handler can emit the canonical envelope in one call. by @brettdavies in [#39](https://github.com/brettdavies/xurl-rs/pull/39)
+- `XurlError::EnvelopeAlreadyEmitted { exit_code }` is the new sentinel that lets the runner suppress its trailing `print_error` when a typed envelope was already written; agents see exactly one JSON object on stderr.
+- `src/api/shortcuts` is now `pub` so the new validators are importable from the command handlers without re-exports.
+- `xr auth default` without an app argument now gates the dialoguer picker on `--no-interactive` AND stdin/stderr TTY-ness. Non-TTY sessions exit non-zero with a `{"status":"error","reason":"no-tty","exit_code":1,...}` envelope on stderr instead of stranding the dialoguer state machine on `/dev/null`. by @brettdavies in [#43](https://github.com/brettdavies/xurl-rs/pull/43)
+- `xr auth oauth2 --no-browser` (no `--step`) now auto-promotes to step 1 and emits the canonical `{"status":"awaiting_callback","url":"..."}` envelope, instead of rejecting the invocation as "requires --step 1 or --step 2". The explicit `--no-browser --step 1` path keeps its prior envelope shape.
+
+### Fixed
+
+- Bump `rand` to 0.9.4 to clear RUSTSEC-2026-0097 (`ThreadRng` unsoundness when accessed from a custom `log::Logger`). by @brettdavies in [#25](https://github.com/brettdavies/xurl-rs/pull/25)
+- Bump `rustls-webpki` to 0.103.13 to clear RUSTSEC-2026-0104 (reachable panic in CRL `IssuingDistributionPoint` parsing, triggerable before signature verification).
+- Resolved a private-intra-doc-link in `src/auth/pending.rs` that broke `cargo doc -D warnings` and would render badly on docs.rs. by @brettdavies in [#28](https://github.com/brettdavies/xurl-rs/pull/28)
+- Browsers that resolve `localhost` to `[::1]` no longer time out during the OAuth2 flow. The listener dual-binds both loopback addresses when the URI host is `localhost`. by @brettdavies in [#30](https://github.com/brettdavies/xurl-rs/pull/30)
+- The browser cannot be opened before the callback listener is actively draining the accept queue, eliminating a race on fast machines.
+- Invalid redirect URIs are rejected at write time. `http` is allowed only on loopback hosts; non-loopback `http` and other schemes return a validation error.
+- `auth status` and `auth apps list` previously read `~/.xurl` directly through a fresh `TokenStore::new()`, bypassing the runner's configured store path. Both now use `&auth.token_store`, which makes tempdir isolation reliable for library-level tests.
+
+### Documentation
+
+- Document the `docs/solutions` archive and `qmd query` retrieval in `AGENTS.md` so agent consumers can find it from the onboarding doc. by @brettdavies in [#26](https://github.com/brettdavies/xurl-rs/pull/26)
+- Harden `RELEASES.md` with triple-diff verification, prose scrubbing, the CHANGELOG generation contract and `cliff.toml` chore-skip footgun, non-draft release behavior, and branch-protection rulesets.
+- Document new CLI surface (per-app redirect URI, `-u USERNAME` fallback, structured output) in README by @brettdavies in [#32](https://github.com/brettdavies/xurl-rs/pull/32)
+- Document X platform "Pay-per-use Production" enrollment workaround in README
+
+**Full Changelog**: [v1.2.0...v1.3.0](https://github.com/brettdavies/xurl-rs/compare/v1.2.0...v1.3.0)
+
 ## [1.2.0] - 2026-04-16
 
 ### Added
