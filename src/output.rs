@@ -28,6 +28,25 @@ pub enum OutputFormat {
     Json,
     /// JSON Lines (useful for streaming)
     Jsonl,
+    /// Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name.
+    Ndjson,
+    /// YAML document (best-effort serialization of the JSON shape).
+    Yaml,
+    /// Comma-separated values (best-effort flattening of the top-level shape).
+    Csv,
+    /// Tab-separated values (best-effort flattening of the top-level shape).
+    Tsv,
+}
+
+impl OutputFormat {
+    /// Returns true for every machine-readable format. Equivalent to
+    /// `*self != OutputFormat::Text`. Used by stderr-emitter methods
+    /// (`info`, `status`, `warning`, `verbose`, `progress`) to suppress
+    /// human-targeted chatter under any structured mode.
+    #[must_use]
+    pub fn is_structured(&self) -> bool {
+        !matches!(self, OutputFormat::Text)
+    }
 }
 
 /// Output configuration threaded through command handlers.
@@ -148,36 +167,21 @@ impl OutputConfig {
         exit_code: i32,
         message: &str,
     ) {
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let envelope = serde_json::json!({
-                    "status": "error",
-                    "reason": reason,
-                    "exit_code": exit_code,
-                    "message": message,
-                });
-                let rendered = if self.raw {
-                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
-                } else {
-                    envelope.to_string()
-                };
-                let _ = writeln!(err, "{rendered}");
-            }
-            OutputFormat::Text => {
-                if self.no_color {
-                    let _ = writeln!(err, "Error: {message}");
-                } else {
-                    let _ = writeln!(err, "\x1b[31mError: {message}\x1b[0m");
-                }
-            }
-        }
+        let envelope = serde_json::json!({
+            "status": "error",
+            "reason": reason,
+            "exit_code": exit_code,
+            "message": message,
+        });
+        self.write_envelope_or_text_error(err, &envelope, message);
     }
 
-    /// Prints an informational message (suppressed by --quiet or --output json/jsonl).
+    /// Prints an informational message (suppressed by --quiet or any
+    /// structured `--output` mode).
     ///
     /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
     pub fn info(&self, err: &mut dyn Write, msg: &str) {
-        if self.quiet || self.format != OutputFormat::Text {
+        if self.quiet || self.format.is_structured() {
             return;
         }
         let _ = writeln!(err, "{msg}");
@@ -187,7 +191,7 @@ impl OutputConfig {
     ///
     /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
     pub fn status(&self, err: &mut dyn Write, msg: &str) {
-        if self.quiet || self.format != OutputFormat::Text {
+        if self.quiet || self.format.is_structured() {
             return;
         }
         if self.no_color {
@@ -207,13 +211,23 @@ impl OutputConfig {
     /// whitespace) rather than pretty-printed.
     pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let body = if self.raw {
+            OutputFormat::Json | OutputFormat::Jsonl | OutputFormat::Ndjson => {
+                let body = if self.raw || matches!(self.format, OutputFormat::Ndjson) {
                     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
                 } else {
                     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
                 };
                 let _ = writeln!(out, "{body}");
+            }
+            OutputFormat::Yaml => {
+                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let _ = write!(out, "{body}");
+            }
+            OutputFormat::Csv => {
+                let _ = write_flattened(out, value, ',');
+            }
+            OutputFormat::Tsv => {
+                let _ = write_flattened(out, value, '\t');
             }
             OutputFormat::Text => {
                 if self.no_color {
@@ -233,67 +247,47 @@ impl OutputConfig {
     }
 
     /// Formats and prints an error to the supplied stderr writer.
-    /// Under `--output json|jsonl`, emits the canonical envelope shape:
+    /// Under any structured `--output`, emits the canonical envelope shape:
     /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
+    /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
+    /// emit a JSON line carrying the envelope (delimited formats are not a good
+    /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let reason = error.kind();
-                let msg = error.to_string();
-                let envelope = serde_json::json!({
-                    "status": "error",
-                    "reason": reason,
-                    "exit_code": exit_code,
-                    "message": msg,
-                });
-                let rendered = if self.raw {
-                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
-                } else {
-                    envelope.to_string()
-                };
-                let _ = writeln!(err, "{rendered}");
-            }
-            OutputFormat::Text => {
-                if self.no_color {
-                    let _ = writeln!(err, "Error: {error}");
-                } else {
-                    let _ = writeln!(err, "\x1b[31mError: {error}\x1b[0m");
-                }
-            }
-        }
+        let envelope = serde_json::json!({
+            "status": "error",
+            "reason": error.kind(),
+            "exit_code": exit_code,
+            "message": error.to_string(),
+        });
+        let display = error.to_string();
+        self.write_envelope_or_text_error(err, &envelope, &display);
     }
 
-    /// Emits a canonical success envelope under JSON modes.
+    /// Emits a canonical success envelope under structured modes.
     ///
     /// Wraps `payload` (treated as a JSON object whose keys flatten in at
     /// the top level) with `{"status":"ok", ...payload}`. Under text mode
     /// the payload is passed through to [`Self::print_response`] so existing
     /// formatters keep their shape.
     pub fn print_success(&self, out: &mut dyn Write, payload: &Value) {
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let mut obj = serde_json::Map::new();
-                obj.insert("status".into(), Value::String("ok".into()));
-                if let Some(map) = payload.as_object() {
-                    for (k, v) in map {
-                        obj.insert(k.clone(), v.clone());
-                    }
-                } else {
-                    obj.insert("payload".into(), payload.clone());
-                }
-                let envelope = Value::Object(obj);
-                let body = if self.raw {
-                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
-                } else {
-                    serde_json::to_string_pretty(&envelope).unwrap_or_else(|_| envelope.to_string())
-                };
-                let _ = writeln!(out, "{body}");
-            }
-            OutputFormat::Text => self.print_response(out, payload),
+        if !self.format.is_structured() {
+            self.print_response(out, payload);
+            return;
         }
+        let mut obj = serde_json::Map::new();
+        obj.insert("status".into(), Value::String("ok".into()));
+        if let Some(map) = payload.as_object() {
+            for (k, v) in map {
+                obj.insert(k.clone(), v.clone());
+            }
+        } else {
+            obj.insert("payload".into(), payload.clone());
+        }
+        let envelope = Value::Object(obj);
+        self.write_structured(out, &envelope);
     }
 
-    /// Emits a canonical dry-run envelope under JSON modes.
+    /// Emits a canonical dry-run envelope under structured modes.
     ///
     /// Shape: `{"status":"dry_run","would_succeed":<bool>,"exit_code":<int>, ...ctx}`.
     /// Under text mode, falls back to a pass-through of `ctx`.
@@ -304,27 +298,21 @@ impl OutputConfig {
         exit_code: i32,
         ctx: &Value,
     ) {
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let mut obj = serde_json::Map::new();
-                obj.insert("status".into(), Value::String("dry_run".into()));
-                obj.insert("would_succeed".into(), Value::Bool(would_succeed));
-                obj.insert("exit_code".into(), Value::from(exit_code));
-                if let Some(map) = ctx.as_object() {
-                    for (k, v) in map {
-                        obj.insert(k.clone(), v.clone());
-                    }
-                }
-                let envelope = Value::Object(obj);
-                let body = if self.raw {
-                    serde_json::to_string(&envelope).unwrap_or_else(|_| envelope.to_string())
-                } else {
-                    serde_json::to_string_pretty(&envelope).unwrap_or_else(|_| envelope.to_string())
-                };
-                let _ = writeln!(out, "{body}");
-            }
-            OutputFormat::Text => self.print_response(out, ctx),
+        if !self.format.is_structured() {
+            self.print_response(out, ctx);
+            return;
         }
+        let mut obj = serde_json::Map::new();
+        obj.insert("status".into(), Value::String("dry_run".into()));
+        obj.insert("would_succeed".into(), Value::Bool(would_succeed));
+        obj.insert("exit_code".into(), Value::from(exit_code));
+        if let Some(map) = ctx.as_object() {
+            for (k, v) in map {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+        let envelope = Value::Object(obj);
+        self.write_structured(out, &envelope);
     }
 
     /// Prints a canonical confirmation-required error envelope (U7).
@@ -356,29 +344,24 @@ impl OutputConfig {
             "exit_code".to_string(),
             serde_json::Value::Number(serde_json::Number::from(exit_code)),
         );
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
-                let value = serde_json::Value::Object(obj);
-                let pretty =
-                    serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string());
-                let _ = writeln!(err, "{pretty}");
-            }
-            OutputFormat::Text => {
-                let cmd = obj
-                    .get("command")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("operation");
-                let line = if self.no_color {
-                    format!(
-                        "Error: confirmation required for {cmd} — pass --force or run interactively"
-                    )
-                } else {
-                    format!(
-                        "\x1b[31mError: confirmation required for {cmd} — pass --force or run interactively\x1b[0m"
-                    )
-                };
-                let _ = writeln!(err, "{line}");
-            }
+        if self.format.is_structured() {
+            let value = serde_json::Value::Object(obj);
+            self.write_structured(err, &value);
+        } else {
+            let cmd = obj
+                .get("command")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("operation");
+            let line = if self.no_color {
+                format!(
+                    "Error: confirmation required for {cmd} — pass --force or run interactively"
+                )
+            } else {
+                format!(
+                    "\x1b[31mError: confirmation required for {cmd} — pass --force or run interactively\x1b[0m"
+                )
+            };
+            let _ = writeln!(err, "{line}");
         }
     }
 
@@ -391,7 +374,7 @@ impl OutputConfig {
     /// stderr-warnings principle). Mirrors the `diag!` macro pattern from the
     /// bird CLI without the macro.
     pub fn verbose(&self, err: &mut dyn Write, msg: &str) {
-        if !self.verbose || self.quiet || self.format != OutputFormat::Text {
+        if !self.verbose || self.quiet || self.format.is_structured() {
             return;
         }
         let _ = writeln!(err, "{msg}");
@@ -406,22 +389,20 @@ impl OutputConfig {
     /// `--quiet` text mode, warnings still surface (errors and warnings are
     /// the load-bearing signals the operator must see).
     pub fn warning(&self, err: &mut dyn Write, msg: &str) {
-        match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {}
-            OutputFormat::Text => {
-                if self.no_color {
-                    let _ = writeln!(err, "warning: {msg}");
-                } else {
-                    let _ = writeln!(err, "\x1b[1;33mwarning:\x1b[0m {msg}");
-                }
-            }
+        if self.format.is_structured() {
+            return;
+        }
+        if self.no_color {
+            let _ = writeln!(err, "warning: {msg}");
+        } else {
+            let _ = writeln!(err, "\x1b[1;33mwarning:\x1b[0m {msg}");
         }
     }
 
     /// Emits a progress / status line to `err` when the format is text and
     /// stderr is a TTY. Quiet suppresses progress unconditionally.
     pub fn progress(&self, err: &mut dyn Write, msg: &str) {
-        if self.quiet || self.format != OutputFormat::Text {
+        if self.quiet || self.format.is_structured() {
             return;
         }
         if !std::io::stderr().is_terminal() {
@@ -433,19 +414,68 @@ impl OutputConfig {
     /// Prints a simple text message (e.g. version, auth status) to the supplied writer.
     /// Respects --output json by wrapping in a JSON object.
     pub fn print_message(&self, out: &mut dyn Write, msg: &str) {
+        if self.format.is_structured() {
+            let clean = strip_ansi(msg);
+            let value = serde_json::json!({"message": clean});
+            self.write_structured(out, &value);
+            return;
+        }
+        if self.no_color {
+            let _ = writeln!(out, "{}", strip_ansi(msg));
+        } else {
+            let _ = writeln!(out, "{msg}");
+        }
+    }
+
+    /// Renders `value` to `w` in the active structured format.
+    ///
+    /// Json/Jsonl pretty-print (compact under `--raw`); Ndjson always emits a
+    /// single line; Yaml emits a YAML document; Csv/Tsv fall back to one line
+    /// of JSON because nested envelope metadata isn't a good fit for a
+    /// flat delimited table.
+    fn write_structured(&self, w: &mut dyn Write, value: &Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl => {
-                let clean = strip_ansi(msg);
-                let json = serde_json::json!({"message": clean});
-                let _ = writeln!(out, "{json}");
+                let body = if self.raw {
+                    serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
+                } else {
+                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+                };
+                let _ = writeln!(w, "{body}");
+            }
+            OutputFormat::Ndjson => {
+                let body = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
+                let _ = writeln!(w, "{body}");
+            }
+            OutputFormat::Yaml => {
+                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let _ = write!(w, "{body}");
+            }
+            OutputFormat::Csv | OutputFormat::Tsv => {
+                // Envelopes are nested by design; fall back to one JSON line.
+                let body = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
+                let _ = writeln!(w, "{body}");
             }
             OutputFormat::Text => {
-                if self.no_color {
-                    let _ = writeln!(out, "{}", strip_ansi(msg));
-                } else {
-                    let _ = writeln!(out, "{msg}");
-                }
+                // Unreachable in practice — guarded by callers — but keep a
+                // safe fallback rather than panic.
+                let body =
+                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
+                let _ = writeln!(w, "{body}");
             }
+        }
+    }
+
+    /// Common helper for the error printers: routes the structured envelope
+    /// through [`Self::write_structured`] in machine modes, falling back to a
+    /// colored "Error: {display}" line in text mode.
+    fn write_envelope_or_text_error(&self, err: &mut dyn Write, envelope: &Value, display: &str) {
+        if self.format.is_structured() {
+            self.write_structured(err, envelope);
+        } else if self.no_color {
+            let _ = writeln!(err, "Error: {display}");
+        } else {
+            let _ = writeln!(err, "\x1b[31mError: {display}\x1b[0m");
         }
     }
 }
@@ -476,6 +506,131 @@ impl Default for OutputConfig {
 /// every `eprintln!` lives here.
 pub fn warn_stderr(msg: &str) {
     eprintln!("warning: {msg}");
+}
+
+/// Best-effort delimited-table emitter for the `csv` / `tsv` output formats.
+///
+/// Strategy:
+/// - Object → one header row + one value row.
+/// - Array of objects → header is the union of keys (insertion-ordered by
+///   first occurrence), followed by one row per element. Missing keys emit
+///   an empty cell.
+/// - Array of scalars → single-column `value` table, one row per element.
+/// - Scalar → single-column `value` table with one row.
+///
+/// Nested values (objects, arrays inside a cell) are serialized as JSON so
+/// each cell stays a single delimited field. A `_warning` column is appended
+/// with the note "nested values JSON-stringified" so downstream tools see why
+/// some cells carry JSON.
+///
+/// The result is forward-only and best-effort: malformed shapes degrade
+/// gracefully into a one-line JSON blob in a `_payload` column rather than
+/// erroring out.
+fn write_flattened(out: &mut dyn Write, value: &Value, sep: char) -> std::io::Result<()> {
+    let rows: Vec<&Value> = match value {
+        Value::Array(arr) => arr.iter().collect(),
+        other => vec![other],
+    };
+
+    // Collect the union of object keys to use as the column header.
+    let mut header: Vec<String> = Vec::new();
+    let mut all_objects = true;
+    for row in &rows {
+        if let Value::Object(map) = row {
+            for k in map.keys() {
+                if !header.iter().any(|h| h == k) {
+                    header.push(k.clone());
+                }
+            }
+        } else {
+            all_objects = false;
+        }
+    }
+
+    if !all_objects || header.is_empty() {
+        // Scalar / mixed shapes: single-column "value" table.
+        writeln!(out, "value")?;
+        for row in &rows {
+            let cell = scalar_cell(row);
+            writeln!(out, "{}", delimited_escape(&cell, sep))?;
+        }
+        return Ok(());
+    }
+
+    // Detect whether any cell needed JSON stringification so we can emit a
+    // single `_warning` column at the end, only when relevant.
+    let mut needs_warning = false;
+    let row_cells: Vec<Vec<String>> = rows
+        .iter()
+        .map(|row| {
+            header
+                .iter()
+                .map(|key| {
+                    let cell =
+                        row.as_object()
+                            .and_then(|m| m.get(key))
+                            .map_or_else(String::new, |v| {
+                                if matches!(v, Value::Object(_) | Value::Array(_)) {
+                                    needs_warning = true;
+                                    serde_json::to_string(v).unwrap_or_else(|_| v.to_string())
+                                } else {
+                                    scalar_cell(v)
+                                }
+                            });
+                    delimited_escape(&cell, sep)
+                })
+                .collect()
+        })
+        .collect();
+
+    // Header line.
+    let mut header_out: Vec<String> = header.iter().map(|h| delimited_escape(h, sep)).collect();
+    if needs_warning {
+        header_out.push(delimited_escape("_warning", sep));
+    }
+    writeln!(out, "{}", header_out.join(&sep.to_string()))?;
+
+    for cells in &row_cells {
+        let mut line = cells.clone();
+        if needs_warning {
+            line.push(delimited_escape("nested values JSON-stringified", sep));
+        }
+        writeln!(out, "{}", line.join(&sep.to_string()))?;
+    }
+    Ok(())
+}
+
+/// Renders a scalar [`Value`] as the unquoted cell body (the caller wraps with
+/// `delimited_escape` to handle the delimiter / quote rules).
+fn scalar_cell(v: &Value) -> String {
+    match v {
+        Value::Null => String::new(),
+        Value::Bool(b) => b.to_string(),
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => s.clone(),
+        Value::Object(_) | Value::Array(_) => {
+            serde_json::to_string(v).unwrap_or_else(|_| v.to_string())
+        }
+    }
+}
+
+/// Applies RFC 4180 quoting when needed.
+///
+/// For comma-delimited output: wraps in double quotes when the cell contains
+/// a comma, double quote, CR, or LF, and escapes embedded quotes. For tab-
+/// delimited output: replaces embedded tabs and newlines with spaces (TSV
+/// has no canonical quoting rule, and most consumers reject control chars
+/// inside fields).
+fn delimited_escape(cell: &str, sep: char) -> String {
+    if sep == '\t' {
+        return cell.replace(['\t', '\n', '\r'], " ");
+    }
+    if cell.contains(sep) || cell.contains('"') || cell.contains('\n') || cell.contains('\r') {
+        let escaped = cell.replace('"', "\"\"");
+        format!("\"{escaped}\"")
+    } else {
+        cell.to_string()
+    }
 }
 
 /// Strips ANSI escape codes from a string.

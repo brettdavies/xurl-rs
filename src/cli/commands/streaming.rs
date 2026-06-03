@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::api::{ApiClient, RequestOptions};
 use crate::auth::callback::shutdown_signal;
 use crate::error::{Result, XurlError};
-use crate::output::{OutputConfig, OutputFormat};
+use crate::output::OutputConfig;
 
 /// Spawns a background thread that waits for SIGINT/SIGTERM and flips the
 /// returned `AtomicBool` to true. The thread holds its own current-thread
@@ -141,15 +141,12 @@ pub(super) fn stream_request_with_output(
             // modes, and exit cleanly. Text mode keeps stdout silent — the
             // status banner on stderr already signals shutdown.
             let _ = stdout.flush();
-            match out.format {
-                OutputFormat::Json | OutputFormat::Jsonl => {
-                    let envelope = serde_json::json!({
-                        "status": "cancelled",
-                        "reason": "sigterm",
-                    });
-                    out.print_response(stdout, &envelope);
-                }
-                OutputFormat::Text => {}
+            if out.format.is_structured() {
+                let envelope = serde_json::json!({
+                    "status": "cancelled",
+                    "reason": "sigterm",
+                });
+                out.print_response(stdout, &envelope);
             }
             out.status(stderr, "--- Stream cancelled by signal ---");
             return Ok(());

@@ -9,7 +9,7 @@ use crate::auth::Auth;
 use crate::cli::{AppCommands, AuthCommands, RedirectUriCommands};
 use crate::config::{self, ResolveSource};
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
-use crate::output::{OutputConfig, OutputFormat};
+use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Lists `items` on stderr with numeric indices and prompts the user to pick
@@ -182,51 +182,47 @@ pub(super) fn run_auth_command(
                             ));
                         }
                         let url = auth.remote_oauth2_step1(&pending_path)?;
-                        match out.format {
-                            crate::output::OutputFormat::Json
-                            | crate::output::OutputFormat::Jsonl => {
-                                // U9: explicit `--no-browser` (no `--step`) and
-                                // the auto-engaged path both emit the canonical
-                                // `awaiting_callback` envelope; the existing
-                                // `--step 1` path keeps its legacy shape so
-                                // agents that pinned against it don't drift.
-                                let envelope = if step.is_none() {
-                                    serde_json::json!({
-                                        "status": "awaiting_callback",
-                                        "url": url,
-                                        "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
-                                    })
-                                } else {
-                                    serde_json::json!({
-                                        "auth_url": url,
-                                        "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
-                                    })
-                                };
-                                out.print_response(stdout, &envelope);
-                            }
-                            crate::output::OutputFormat::Text => {
-                                out.print_message(
-                                    stdout,
-                                    "Open this URL in a browser on a machine with a display:",
-                                );
-                                out.print_message(stdout, "");
-                                out.print_message(stdout, &format!("  {url}"));
-                                out.print_message(stdout, "");
-                                out.print_message(
-                                    stdout,
-                                    "After authorizing, copy the redirect URL from your browser's address bar",
-                                );
-                                out.print_message(
-                                    stdout,
-                                    "(it will show an error page — that's expected).",
-                                );
-                                out.print_message(stdout, "");
-                                out.print_message(stdout, "Then run:");
-                                out.print_message(
-                                    stdout,
-                                    "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
-                                );
-                            }
+                        if out.format.is_structured() {
+                            // U9: explicit `--no-browser` (no `--step`) and
+                            // the auto-engaged path both emit the canonical
+                            // `awaiting_callback` envelope; the existing
+                            // `--step 1` path keeps its legacy shape so
+                            // agents that pinned against it don't drift.
+                            let envelope = if step.is_none() {
+                                serde_json::json!({
+                                    "status": "awaiting_callback",
+                                    "url": url,
+                                    "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
+                                })
+                            } else {
+                                serde_json::json!({
+                                    "auth_url": url,
+                                    "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
+                                })
+                            };
+                            out.print_response(stdout, &envelope);
+                        } else {
+                            out.print_message(
+                                stdout,
+                                "Open this URL in a browser on a machine with a display:",
+                            );
+                            out.print_message(stdout, "");
+                            out.print_message(stdout, &format!("  {url}"));
+                            out.print_message(stdout, "");
+                            out.print_message(
+                                stdout,
+                                "After authorizing, copy the redirect URL from your browser's address bar",
+                            );
+                            out.print_message(
+                                stdout,
+                                "(it will show an error page — that's expected).",
+                            );
+                            out.print_message(stdout, "");
+                            out.print_message(stdout, "Then run:");
+                            out.print_message(
+                                stdout,
+                                "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
+                            );
                         }
                     }
                     Some(2) => {
@@ -324,72 +320,66 @@ pub(super) fn run_auth_command(
 
             let entries = build_app_status_entries(ts, &apps, default_app);
 
-            match out.format {
-                OutputFormat::Json | OutputFormat::Jsonl => {
-                    let value = serde_json::to_value(&entries)?;
-                    out.print_response(stdout, &value);
-                }
-                OutputFormat::Text => {
-                    for (i, (name, entry)) in apps.iter().zip(entries.iter()).enumerate() {
-                        let Some(app) = ts.get_app(name) else {
-                            continue;
-                        };
-                        let marker = if name == default_app { "\u{25b8}" } else { " " };
-                        let client_hint = if app.client_id.is_empty() {
-                            "(no credentials)".to_string()
-                        } else {
-                            format!("client_id: {}...", entry.client_id_hint)
-                        };
-                        out.print_message(stdout, &format!("{marker} {name}  [{client_hint}]"));
+            if out.format.is_structured() {
+                let value = serde_json::to_value(&entries)?;
+                out.print_response(stdout, &value);
+            } else {
+                for (i, (name, entry)) in apps.iter().zip(entries.iter()).enumerate() {
+                    let Some(app) = ts.get_app(name) else {
+                        continue;
+                    };
+                    let marker = if name == default_app { "\u{25b8}" } else { " " };
+                    let client_hint = if app.client_id.is_empty() {
+                        "(no credentials)".to_string()
+                    } else {
+                        format!("client_id: {}...", entry.client_id_hint)
+                    };
+                    out.print_message(stdout, &format!("{marker} {name}  [{client_hint}]"));
 
-                        // R19 + R24: surface the effective redirect URI + source.
-                        out.print_message(
-                            stdout,
-                            &format!(
-                                "      redirect_uri: {} [{}]",
-                                entry.redirect_uri,
-                                entry.redirect_uri_source.as_text_label()
-                            ),
-                        );
-                        if let Some(stored) = entry.redirect_uri_stored.as_deref() {
-                            out.print_message(
-                                stdout,
-                                &format!("      stored_redirect_uri: {stored}"),
-                            );
-                        }
+                    // R19 + R24: surface the effective redirect URI + source.
+                    out.print_message(
+                        stdout,
+                        &format!(
+                            "      redirect_uri: {} [{}]",
+                            entry.redirect_uri,
+                            entry.redirect_uri_source.as_text_label()
+                        ),
+                    );
+                    if let Some(stored) = entry.redirect_uri_stored.as_deref() {
+                        out.print_message(stdout, &format!("      stored_redirect_uri: {stored}"));
+                    }
 
-                        if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
-                            out.print_message(stdout, "      oauth2: (none)");
-                        } else {
-                            for u in &entry.oauth2_users {
-                                if *u == app.default_user {
-                                    out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
-                                } else {
-                                    out.print_message(stdout, &format!("      oauth2: {u}"));
-                                }
-                            }
-                            // KTD8: render the unnamed (`/me`-failed salvage)
-                            // slot after named users, labelled `(unknown user)`.
-                            if entry.oauth2_unnamed {
-                                out.print_message(stdout, "      oauth2: (unknown user)");
+                    if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
+                        out.print_message(stdout, "      oauth2: (none)");
+                    } else {
+                        for u in &entry.oauth2_users {
+                            if *u == app.default_user {
+                                out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
+                            } else {
+                                out.print_message(stdout, &format!("      oauth2: {u}"));
                             }
                         }
-
-                        if entry.oauth1 {
-                            out.print_message(stdout, "      oauth1: \u{2713}");
-                        } else {
-                            out.print_message(stdout, "      oauth1: \u{2013}");
+                        // KTD8: render the unnamed (`/me`-failed salvage)
+                        // slot after named users, labelled `(unknown user)`.
+                        if entry.oauth2_unnamed {
+                            out.print_message(stdout, "      oauth2: (unknown user)");
                         }
+                    }
 
-                        if entry.bearer {
-                            out.print_message(stdout, "      bearer: \u{2713}");
-                        } else {
-                            out.print_message(stdout, "      bearer: \u{2013}");
-                        }
+                    if entry.oauth1 {
+                        out.print_message(stdout, "      oauth1: \u{2713}");
+                    } else {
+                        out.print_message(stdout, "      oauth1: \u{2013}");
+                    }
 
-                        if i < apps.len() - 1 {
-                            out.print_message(stdout, "");
-                        }
+                    if entry.bearer {
+                        out.print_message(stdout, "      bearer: \u{2713}");
+                    } else {
+                        out.print_message(stdout, "      bearer: \u{2013}");
+                    }
+
+                    if i < apps.len() - 1 {
+                        out.print_message(stdout, "");
                     }
                 }
             }
@@ -684,36 +674,33 @@ fn run_app_command(
 
             let entries = build_app_status_entries(ts, &apps, default_app);
 
-            match out.format {
-                OutputFormat::Json | OutputFormat::Jsonl => {
-                    let value = serde_json::to_value(&entries)?;
-                    out.print_response(stdout, &value);
-                }
-                OutputFormat::Text => {
-                    for (name, entry) in apps.iter().zip(entries.iter()) {
-                        let Some(app) = ts.get_app(name) else {
-                            continue;
-                        };
-                        let marker = if name == default_app {
-                            "\u{25b8} "
-                        } else {
-                            "  "
-                        };
-                        let client_hint = if app.client_id.is_empty() {
-                            String::new()
-                        } else {
-                            format!(" (client_id: {}...)", entry.client_id_hint)
-                        };
-                        // R20: inline the effective redirect URI + source hint.
-                        out.print_message(
-                            stdout,
-                            &format!(
-                                "{marker}{name}{client_hint} [redirect_uri: {} ({})]",
-                                entry.redirect_uri,
-                                entry.redirect_uri_source.as_text_label()
-                            ),
-                        );
-                    }
+            if out.format.is_structured() {
+                let value = serde_json::to_value(&entries)?;
+                out.print_response(stdout, &value);
+            } else {
+                for (name, entry) in apps.iter().zip(entries.iter()) {
+                    let Some(app) = ts.get_app(name) else {
+                        continue;
+                    };
+                    let marker = if name == default_app {
+                        "\u{25b8} "
+                    } else {
+                        "  "
+                    };
+                    let client_hint = if app.client_id.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" (client_id: {}...)", entry.client_id_hint)
+                    };
+                    // R20: inline the effective redirect URI + source hint.
+                    out.print_message(
+                        stdout,
+                        &format!(
+                            "{marker}{name}{client_hint} [redirect_uri: {} ({})]",
+                            entry.redirect_uri,
+                            entry.redirect_uri_source.as_text_label()
+                        ),
+                    );
                 }
             }
         }
@@ -848,26 +835,23 @@ fn run_redirect_uri_command(
                 .map(str::to_string);
             let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
 
-            match out.format {
-                crate::output::OutputFormat::Json | crate::output::OutputFormat::Jsonl => {
-                    let value = serde_json::json!({
-                        "app": target,
-                        "effective_redirect_uri": resolved.uri,
-                        "effective_source": resolved.source,
-                        "stored_redirect_uri": stored,
-                    });
-                    out.print_response(stdout, &value);
-                }
-                crate::output::OutputFormat::Text => {
-                    out.print_message(stdout, &format!("app: {target}"));
-                    out.print_message(stdout, &format!("effective_redirect_uri: {}", resolved.uri));
-                    out.print_message(
-                        stdout,
-                        &format!("effective_source: {}", resolved.source.as_text_label()),
-                    );
-                    let stored_display = stored.as_deref().unwrap_or("(none)");
-                    out.print_message(stdout, &format!("stored_redirect_uri: {stored_display}"));
-                }
+            if out.format.is_structured() {
+                let value = serde_json::json!({
+                    "app": target,
+                    "effective_redirect_uri": resolved.uri,
+                    "effective_source": resolved.source,
+                    "stored_redirect_uri": stored,
+                });
+                out.print_response(stdout, &value);
+            } else {
+                out.print_message(stdout, &format!("app: {target}"));
+                out.print_message(stdout, &format!("effective_redirect_uri: {}", resolved.uri));
+                out.print_message(
+                    stdout,
+                    &format!("effective_source: {}", resolved.source.as_text_label()),
+                );
+                let stored_display = stored.as_deref().unwrap_or("(none)");
+                out.print_message(stdout, &format!("stored_redirect_uri: {stored_display}"));
             }
         }
         RedirectUriCommands::Set { name, uri } => {
@@ -881,18 +865,15 @@ fn run_redirect_uri_command(
                 return Ok(());
             }
             auth.token_store.set_app_redirect_uri(&name, &uri)?;
-            match out.format {
-                crate::output::OutputFormat::Json | crate::output::OutputFormat::Jsonl => {
-                    let value = serde_json::json!({
-                        "status": "ok",
-                        "app": name,
-                        "redirect_uri": uri,
-                    });
-                    out.print_response(stdout, &value);
-                }
-                crate::output::OutputFormat::Text => {
-                    out.print_message(stdout, &format!("Set redirect URI for {name:?}"));
-                }
+            if out.format.is_structured() {
+                let value = serde_json::json!({
+                    "status": "ok",
+                    "app": name,
+                    "redirect_uri": uri,
+                });
+                out.print_response(stdout, &value);
+            } else {
+                out.print_message(stdout, &format!("Set redirect URI for {name:?}"));
             }
         }
     }
