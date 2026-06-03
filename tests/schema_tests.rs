@@ -89,8 +89,8 @@ fn schema_list_shows_all_commands_plus_envelope() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
-    // 29 typed response commands + 1 envelope schema row.
-    assert_eq!(lines.len(), 30, "Expected 30 rows, got {}", lines.len());
+    // 35 typed response commands + 1 envelope schema row.
+    assert_eq!(lines.len(), 36, "Expected 36 rows, got {}", lines.len());
     assert!(
         stdout.contains("envelope"),
         "--list should advertise the envelope schema"
@@ -169,13 +169,12 @@ fn schema_all_outputs_json_with_all_commands() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
-    assert_eq!(obj.len(), 29, "Expected 29 entries, got {}", obj.len());
-    // Each value should be a valid schema object
+    assert_eq!(obj.len(), 35, "Expected 35 entries, got {}", obj.len());
+    // Each value should be a valid schema object — either an object schema
+    // with `properties` or an array schema with `items`.
     for (cmd, schema) in obj {
-        assert!(
-            schema.get("properties").is_some(),
-            "Schema for '{cmd}' missing properties"
-        );
+        let shape_ok = schema.get("properties").is_some() || schema.get("items").is_some();
+        assert!(shape_ok, "Schema for '{cmd}' missing properties or items");
     }
 }
 
@@ -328,6 +327,49 @@ fn committed_envelope_schema_matches_runtime() {
         committed.trim(),
         "schema/output.schema.json drifted; regenerate with: cargo run --bin xr -- schema envelope --output json > schema/output.schema.json"
     );
+}
+
+#[test]
+fn committed_response_schemas_match_runtime() {
+    // Drift guard: every schema/responses/<cmd>.schema.json must match the
+    // runtime-emitted shape for that command. Regenerate via:
+    //   ./scripts/generate-response-schemas.sh
+    let list = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "--list", "--output", "text"])
+        .output()
+        .unwrap();
+    assert!(list.status.success());
+    let list_text = String::from_utf8(list.stdout).unwrap();
+
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/schema/responses");
+    let mut checked = 0usize;
+    for line in list_text.lines() {
+        let cmd = line.split_whitespace().next().unwrap_or("");
+        if cmd.is_empty() || cmd == "envelope" {
+            continue;
+        }
+        let runtime = Command::cargo_bin("xr")
+            .unwrap()
+            .args(["schema", cmd, "--output", "json"])
+            .output()
+            .unwrap();
+        assert!(runtime.status.success(), "xr schema {cmd} exited non-zero");
+        let runtime_body = String::from_utf8(runtime.stdout).unwrap();
+        let path = format!("{dir}/{cmd}.schema.json");
+        let committed = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+            panic!(
+                "schema/responses/{cmd}.schema.json missing; regenerate with: ./scripts/generate-response-schemas.sh"
+            )
+        });
+        assert_eq!(
+            runtime_body.trim(),
+            committed.trim(),
+            "schema/responses/{cmd}.schema.json drifted; regenerate with: ./scripts/generate-response-schemas.sh"
+        );
+        checked += 1;
+    }
+    assert!(checked > 0, "no per-command schemas were checked");
 }
 
 #[test]

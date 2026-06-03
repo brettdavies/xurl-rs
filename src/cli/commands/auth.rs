@@ -77,8 +77,8 @@ pub(super) struct AuthGlobalFlags {
 ///
 /// A secret-exclusion test in `tests/cli_tests.rs` asserts no credential
 /// field name or value appears in the rendered JSON.
-#[derive(Debug, Clone, Serialize)]
-struct AppStatusEntry {
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct AppStatusEntry {
     /// App name as stored in `~/.xurl`.
     name: String,
     /// First 8 characters of `client_id` (never the full value, never `client_secret`).
@@ -110,6 +110,30 @@ struct AppStatusEntry {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(b: &bool) -> bool {
     !*b
+}
+
+/// Response shape for `xr auth apps redirect-uri get` under `--output json`.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct RedirectUriGetResponse {
+    /// App name the lookup targeted.
+    pub app: String,
+    /// Effective redirect URI after applying the precedence chain.
+    pub effective_redirect_uri: String,
+    /// Precedence layer that produced [`Self::effective_redirect_uri`].
+    pub effective_source: ResolveSource,
+    /// Stored per-app redirect URI; `None` when no value is stored.
+    pub stored_redirect_uri: Option<String>,
+}
+
+/// Response shape for `xr auth apps redirect-uri set` under `--output json`.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct RedirectUriSetResponse {
+    /// Always `"ok"` on success.
+    pub status: &'static str,
+    /// App name the write targeted.
+    pub app: String,
+    /// Redirect URI that was persisted.
+    pub redirect_uri: String,
 }
 
 #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
@@ -836,12 +860,13 @@ fn run_redirect_uri_command(
             let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
 
             if out.format.is_structured() {
-                let value = serde_json::json!({
-                    "app": target,
-                    "effective_redirect_uri": resolved.uri,
-                    "effective_source": resolved.source,
-                    "stored_redirect_uri": stored,
-                });
+                let response = RedirectUriGetResponse {
+                    app: target.clone(),
+                    effective_redirect_uri: resolved.uri.clone(),
+                    effective_source: resolved.source,
+                    stored_redirect_uri: stored.clone(),
+                };
+                let value = serde_json::to_value(&response)?;
                 out.print_response(stdout, &value);
             } else {
                 out.print_message(stdout, &format!("app: {target}"));
@@ -866,11 +891,12 @@ fn run_redirect_uri_command(
             }
             auth.token_store.set_app_redirect_uri(&name, &uri)?;
             if out.format.is_structured() {
-                let value = serde_json::json!({
-                    "status": "ok",
-                    "app": name,
-                    "redirect_uri": uri,
-                });
+                let response = RedirectUriSetResponse {
+                    status: "ok",
+                    app: name.clone(),
+                    redirect_uri: uri.clone(),
+                };
+                let value = serde_json::to_value(&response)?;
                 out.print_response(stdout, &value);
             } else {
                 out.print_message(stdout, &format!("Set redirect URI for {name:?}"));

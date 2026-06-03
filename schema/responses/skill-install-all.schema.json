@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "InstallEnvelope": {
+      "description": "Result envelope shared by both `--output text` and `--output json`.\nUniform across success and error paths per the project envelope rules.",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "command_preview": {
+          "type": "string"
+        },
+        "destination_status": {
+          "type": "string"
+        },
+        "exit_code": {
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "host": {
+          "type": "string"
+        },
+        "install_dir": {
+          "type": "string"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "would_succeed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "host",
+        "install_dir",
+        "command_preview",
+        "destination_status",
+        "status"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Multi-host envelope for `--all` invocations.",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "exit_code": {
+      "format": "int32",
+      "type": "integer"
+    },
+    "installations": {
+      "items": {
+        "$ref": "#/$defs/InstallEnvelope"
+      },
+      "type": "array"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "status",
+    "installations",
+    "exit_code"
+  ],
+  "title": "InstallMultiEnvelope",
+  "type": "object"
+}

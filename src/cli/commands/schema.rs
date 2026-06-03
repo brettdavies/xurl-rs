@@ -9,8 +9,10 @@ use crate::api::{
     ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
     LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User,
 };
+use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
+use crate::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -78,6 +80,26 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["usage"],
         type_name: "ApiResponse<UsageData>",
     },
+    SchemaEntry {
+        commands: &["auth-status", "auth-apps-list"],
+        type_name: "Vec<AppStatusEntry>",
+    },
+    SchemaEntry {
+        commands: &["redirect-uri-get"],
+        type_name: "RedirectUriGetResponse",
+    },
+    SchemaEntry {
+        commands: &["redirect-uri-set"],
+        type_name: "RedirectUriSetResponse",
+    },
+    SchemaEntry {
+        commands: &["skill-install"],
+        type_name: "InstallEnvelope",
+    },
+    SchemaEntry {
+        commands: &["skill-install-all"],
+        type_name: "InstallMultiEnvelope",
+    },
 ];
 
 /// Returns the JSON Schema for a given command name.
@@ -101,6 +123,11 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "dm" => schema_for!(ApiResponse<DmEvent>),
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
+        "auth-status" | "auth-apps-list" => schema_for!(Vec<AppStatusEntry>),
+        "redirect-uri-get" => schema_for!(RedirectUriGetResponse),
+        "redirect-uri-set" => schema_for!(RedirectUriSetResponse),
+        "skill-install" => schema_for!(InstallEnvelope),
+        "skill-install-all" => schema_for!(InstallMultiEnvelope),
         "auth" | "media" | "completions" | "version" | "schema" => {
             return Err(XurlError::validation(format!(
                 "schema not available for '{command}' (no typed response)"
