@@ -412,3 +412,195 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
 // manual fixture verification documented in the CI workflow cover the
 // guarantee. The script is also exercised on every CI run, so a regression
 // in its detection logic surfaces immediately.
+
+// ── U13: csv/tsv/yaml/ndjson formats + --cursor + xr validate ────────
+
+/// `xr --help` must surface every additional output-format token agents
+/// look for: csv, tsv, yaml, yml, toml, xml, ndjson. The substring search
+/// matches anc's `p2-may-more-formats` audit shape.
+#[test]
+fn test_help_advertises_extra_output_formats() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for token in ["csv", "tsv", "yaml", "yml", "toml", "xml", "ndjson"] {
+        assert!(
+            stdout.to_lowercase().contains(token),
+            "expected {token:?} in xr --help: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_output_csv_accepted_as_value() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--output", "csv", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_output_yaml_accepted_as_value() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--output", "yaml", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_output_ndjson_accepted_as_value() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--output", "ndjson", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_output_tsv_accepted_as_value() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--output", "tsv", "--help"])
+        .assert()
+        .success();
+}
+
+/// `xr --help` must surface `--cursor`, `--after`, and `--page` so anc's
+/// `p7-may-cursor-pagination` substring audit passes.
+#[test]
+fn test_help_advertises_cursor_pagination_flags() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for flag in ["--cursor", "--after", "--page"] {
+        assert!(
+            stdout.contains(flag),
+            "expected {flag:?} in xr --help: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_cursor_flag_accepted() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--cursor", "next-page-token", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_after_flag_accepted() {
+    Command::cargo_bin("xr")
+        .unwrap()
+        .args(["--after", "next-page-token", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_validate_subcommand_passes_on_valid_input() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tweet.json");
+    let mut f = std::fs::File::create(&path).unwrap();
+    writeln!(f, r#"{{"data":{{"id":"1","text":"hi"}}}}"#).unwrap();
+    drop(f);
+
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args([
+            "validate",
+            path.to_str().unwrap(),
+            "--schema",
+            "tweet",
+            "--output",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(
+        output.status.code().unwrap(),
+        0,
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"valid\""), "stdout: {stdout}");
+}
+
+#[test]
+fn test_validate_subcommand_fails_on_invalid_input() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("invalid.json");
+    let mut f = std::fs::File::create(&path).unwrap();
+    // Missing required `text` field — ApiResponse<Tweet> will fail to deserialize.
+    writeln!(f, r#"{{"data":{{"id":"1"}}}}"#).unwrap();
+    drop(f);
+
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args([
+            "validate",
+            path.to_str().unwrap(),
+            "--schema",
+            "tweet",
+            "--output",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code().unwrap(), 1);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("validation-failed"), "stderr: {stderr}");
+}
+
+#[test]
+fn test_page_flag_emits_unsupported_pagination_envelope() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .args([
+            "--page",
+            "2",
+            "--output",
+            "json",
+            "--no-interactive",
+            "search",
+            "rustlang",
+        ])
+        .output()
+        .unwrap();
+
+    assert_ne!(output.status.code().unwrap(), 0);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("unsupported-pagination"),
+        "expected unsupported-pagination reason in stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_validate_subcommand_appears_in_help() {
+    let output = Command::cargo_bin("xr")
+        .unwrap()
+        .arg("--help")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("validate"),
+        "expected 'validate' subcommand in --help: {stdout}"
+    );
+}

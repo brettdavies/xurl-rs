@@ -133,6 +133,27 @@ pub fn validate_post_id(input: &str) -> std::result::Result<(), &'static str> {
 
 // ── Shortcut methods on ApiClient ───────────────────────────────────
 
+/// Appends `&pagination_token=<token>` to a list-endpoint URL when the
+/// caller threaded a cursor into [`CallOptions::pagination_token`].
+///
+/// Always called against endpoints that already contain `?...` (every list
+/// shortcut starts with a `max_results=` query param), so the join is an
+/// unconditional `&`. The token is URL-encoded so it round-trips through the
+/// server even when the upstream API hands back exotic characters.
+fn append_pagination(endpoint: &mut String, token: &str) {
+    if token.is_empty() {
+        return;
+    }
+    let encoded = url::form_urlencoded::byte_serialize(token.as_bytes()).collect::<String>();
+    if endpoint.contains('?') {
+        endpoint.push('&');
+    } else {
+        endpoint.push('?');
+    }
+    endpoint.push_str("pagination_token=");
+    endpoint.push_str(&encoded);
+}
+
 impl ApiClient {
     /// Creates a new post.
     ///
@@ -285,6 +306,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/tweets/search/recent?query={q}&max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name,verified"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -339,6 +361,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/timelines/reverse_chronological?max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -360,6 +383,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/mentions?max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -501,6 +525,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/bookmarks?max_results={max_results}&tweet.fields=created_at,public_metrics,entities&expansions=author_id&user.fields=username,name"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -560,6 +585,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/following?max_results={max_results}&user.fields=created_at,description,public_metrics,verified"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -581,6 +607,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/followers?max_results={max_results}&user.fields=created_at,description,public_metrics,verified"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -621,6 +648,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/dm_events?max_results={max_results}&dm_event.fields=created_at,dm_conversation_id,sender_id,text&expansions=sender_id&user.fields=username,name"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -642,6 +670,7 @@ impl ApiClient {
         req.endpoint = format!(
             "/2/users/{user_id}/liked_tweets?max_results={max_results}&tweet.fields=created_at,public_metrics,entities&expansions=author_id&user.fields=username,name"
         );
+        append_pagination(&mut req.endpoint, &opts.pagination_token);
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)

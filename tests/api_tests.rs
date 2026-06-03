@@ -729,6 +729,57 @@ fn test_search_posts() {
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
+/// Threads `CallOptions::pagination_token` through to the
+/// `pagination_token` query parameter on the search URL — wiremock asserts
+/// the parameter is present and carries the URL-decoded token.
+#[test]
+fn test_search_posts_threads_pagination_token() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(query_param("pagination_token", "next_abc_token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":[{"id":"2","text":"page2"}],"meta":{"result_count":1}}),
+            )),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        pagination_token: "next_abc_token".into(),
+        ..base_call_opts()
+    };
+    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    assert_eq!(resp.data.first().unwrap().id, "2");
+}
+
+/// Same wiremock probe as above, but verifies the URL-encoder runs on
+/// special characters (spaces → `%20`).
+#[test]
+fn test_search_posts_url_encodes_pagination_token() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(query_param("pagination_token", "page 2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":[{"id":"3","text":"p"}],"meta":{"result_count":1}}),
+            )),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        pagination_token: "page 2".into(),
+        ..base_call_opts()
+    };
+    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    assert_eq!(resp.data.first().unwrap().id, "3");
+}
+
 #[test]
 fn test_get_me() {
     let ts = TestServer::new();

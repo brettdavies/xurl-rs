@@ -49,7 +49,8 @@ Examples:
     xr examples
 
 ENVIRONMENT VARIABLES:
-  XURL_OUTPUT            Output format: text, json, jsonl (same as --output)
+  XURL_OUTPUT            Output format: text, json, jsonl, ndjson, yaml, csv, tsv (same as --output)
+  XURL_CURSOR            Pagination cursor / page token (same as --cursor)
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
@@ -64,6 +65,13 @@ ENVIRONMENT VARIABLES:
 Flags override env vars when both are set. NO_COLOR=1 always wins over
 --color/XURL_COLOR (https://no-color.org). --no-pager is a documented
 no-op so agents can pass it unconditionally; xr never invokes $PAGER.
+
+INPUT FROM STDIN:
+  Subcommands that accept JSON input (currently `xr validate`) read from
+  stdin when no file argument is given or when `-` is passed as the path.
+  This matches the standard CLI convention for piping data:
+    cat tweet.json | xr validate --schema tweet --output json
+    cat tweet.json | xr validate - --schema tweet --output json
 
 EXIT CODES:
   0    success
@@ -444,6 +452,19 @@ Examples:
     xr --version
 ";
 
+/// `xr validate` — JSON-shape validation against bundled response schemas.
+const VALIDATE_HELP: &str = "\
+Examples:
+  Read JSON from stdin (no file argument):
+    cat tweet.json | xr validate --output json
+  Same, written as `xr validate -` for explicit stdin:
+    cat tweet.json | xr validate - --schema tweet --output json
+  Validate a file against a specific schema:
+    xr validate tweets.json --schema tweets --output json
+  Validate the canonical xurl error envelope:
+    echo '{\"status\":\"error\",\"reason\":\"x\",\"exit_code\":1,\"message\":\"y\"}' | xr validate --schema envelope --output json
+";
+
 /// `xr examples` advertises itself — paired text + JSON for the top-level
 /// flag round-trip.
 const EXAMPLES_HELP: &str = "\
@@ -746,7 +767,10 @@ pub struct Cli {
     #[arg(long = "app", global = true, env = "XURL_APP")]
     pub app: Option<String>,
 
-    /// Output format: text (default), json (machine-readable), jsonl (streaming)
+    /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
+    /// yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml,
+    /// xml) are not supported — xurl emits a JSON envelope with reason
+    /// `invalid-args` if requested.
     #[arg(
         long,
         global = true,
@@ -870,6 +894,53 @@ pub struct Cli {
     /// flag takes precedence when both are set.
     #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
+
+    /// Pagination cursor / `pagination_token` for list endpoints.
+    ///
+    /// The X API uses cursor-based pagination: each list response carries a
+    /// `meta.next_token` field, and the next page is fetched by re-running
+    /// the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`).
+    /// Threads through to the `pagination_token` query parameter on every
+    /// `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`,
+    /// `followers`, and `dms` invocation.
+    #[arg(
+        long = "cursor",
+        global = true,
+        env = "XURL_CURSOR",
+        value_name = "TOKEN"
+    )]
+    pub cursor: Option<String>,
+
+    /// Documented alias for `--cursor`.
+    ///
+    /// X's API does not offer offset-style pagination (`--page 2` is not
+    /// addressable). Passing `--page` returns a canonical
+    /// `unsupported-pagination` envelope on stderr suggesting `--cursor`
+    /// instead. Exposed so agents trained on offset-pagination conventions
+    /// get a structured error rather than a silent no-op.
+    #[arg(
+        long = "page",
+        global = true,
+        env = "XURL_PAGE",
+        value_name = "N",
+        conflicts_with = "cursor"
+    )]
+    pub page: Option<String>,
+
+    /// Documented alias for `--cursor` (`--after <token>`).
+    ///
+    /// Threads through to the same `pagination_token` query parameter as
+    /// `--cursor`. Exposed so agents that picked up "after-style" pagination
+    /// from other CLIs (`gh`, `kubectl`) get a working flag.
+    #[arg(
+        long = "after",
+        global = true,
+        env = "XURL_AFTER",
+        value_name = "TOKEN",
+        conflicts_with = "cursor",
+        conflicts_with = "page"
+    )]
+    pub after: Option<String>,
 
     /// Subcommand to run
     #[command(subcommand)]
@@ -1229,6 +1300,26 @@ pub enum Commands {
     /// Print a curated gallery of invocation examples grouped by use case
     #[command(after_help = EXAMPLES_HELP)]
     Examples,
+
+    /// Validate a JSON document against a bundled response schema.
+    ///
+    /// Reads JSON from stdin (when no file argument is given or `-` is
+    /// passed) or from the supplied file, deserializes it into the
+    /// requested typed response, and emits an `ok` / `validation-failed`
+    /// envelope. Use `--schema` to pin a specific shape (e.g. `tweet`,
+    /// `user`); without it the command auto-detects from the top-level
+    /// shape.
+    #[command(after_help = VALIDATE_HELP)]
+    Validate {
+        /// File path to read JSON from. Pass `-` or omit to read from stdin.
+        #[arg(value_name = "FILE")]
+        file: Option<String>,
+
+        /// Schema name to validate against (`tweet`, `tweets`, `user`,
+        /// `users`, `dm`, `dms`, `usage`, `envelope`). Omit for auto-detection.
+        #[arg(long = "schema", value_name = "NAME")]
+        schema: Option<String>,
+    },
 }
 
 /// `skill` subcommand variants.
@@ -1329,6 +1420,21 @@ impl CommonFlags {
     /// flags rather than per-subcommand, so the caller threads them through
     /// here.
     pub fn to_call_options(&self, verbose: bool, timeout_secs: u64) -> crate::api::CallOptions {
+        self.to_call_options_with_cursor(verbose, timeout_secs, None)
+    }
+
+    /// Like [`to_call_options`] but with an explicit cursor / pagination
+    /// token. The runner threads the global `--cursor` (or `--after` /
+    /// `XURL_CURSOR` / `XURL_AFTER`) here so list shortcuts can append it to
+    /// their URL.
+    ///
+    /// [`to_call_options`]: Self::to_call_options
+    pub fn to_call_options_with_cursor(
+        &self,
+        verbose: bool,
+        timeout_secs: u64,
+        cursor: Option<&str>,
+    ) -> crate::api::CallOptions {
         crate::api::CallOptions {
             auth_type: self.auth_type.clone().unwrap_or_default(),
             username: self.username.clone().unwrap_or_default(),
@@ -1336,6 +1442,7 @@ impl CommonFlags {
             verbose,
             trace: self.trace,
             timeout_secs,
+            pagination_token: cursor.unwrap_or_default().to_string(),
         }
     }
 }

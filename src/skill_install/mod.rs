@@ -380,39 +380,56 @@ fn spawn_git_clone(cmd: &mut Command) -> Result<(), InstallError> {
     }
 }
 
-/// Render a single install envelope as text (single line) or JSON (pretty).
+/// Render a single install envelope per the active output format.
+///
+/// Json/Jsonl pretty-print JSON. Ndjson emits one compact JSON line. Yaml
+/// emits a YAML document. Csv/Tsv fall back to one compact JSON line because
+/// the envelope is nested by construction. Text mode emits the legacy
+/// human-readable summary.
 fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> String {
-    match format {
-        OutputFormat::Json | OutputFormat::Jsonl => serde_json::to_string_pretty(env)
-            .expect("InstallEnvelope serialization is infallible by construction"),
-        OutputFormat::Text => match env.status {
-            STATUS_DRY_RUN => env.command_preview.clone(),
-            STATUS_OK => format!("Installed xurl-rs skill bundle into {}", env.install_dir),
-            _ => {
-                let reason = env.reason.unwrap_or("unknown");
-                format!("error: {reason}: {}", env.install_dir)
-            }
-        },
+    if format.is_structured() {
+        return render_structured(env, format);
+    }
+    match env.status {
+        STATUS_DRY_RUN => env.command_preview.clone(),
+        STATUS_OK => format!("Installed xurl-rs skill bundle into {}", env.install_dir),
+        _ => {
+            let reason = env.reason.unwrap_or("unknown");
+            format!("error: {reason}: {}", env.install_dir)
+        }
     }
 }
 
-/// Render a multi-host envelope as text (line per host) or JSON (pretty).
+/// Render a multi-host envelope per the active output format.
 fn render_multi(env: &InstallMultiEnvelope, format: &OutputFormat) -> String {
+    if format.is_structured() {
+        return render_structured(env, format);
+    }
+    let mut out = String::new();
+    for inst in &env.installations {
+        out.push_str(&render_envelope(inst, format));
+        out.push('\n');
+    }
+    // Trim trailing newline — the writer adds its own.
+    if out.ends_with('\n') {
+        out.pop();
+    }
+    out
+}
+
+/// Best-effort serializer for any of the structured formats.
+fn render_structured<T: serde::Serialize>(env: &T, format: &OutputFormat) -> String {
     match format {
         OutputFormat::Json | OutputFormat::Jsonl => serde_json::to_string_pretty(env)
-            .expect("InstallMultiEnvelope serialization is infallible by construction"),
-        OutputFormat::Text => {
-            let mut out = String::new();
-            for inst in &env.installations {
-                out.push_str(&render_envelope(inst, format));
-                out.push('\n');
-            }
-            // Trim trailing newline — the writer adds its own.
-            if out.ends_with('\n') {
-                out.pop();
-            }
-            out
+            .unwrap_or_else(|_| "{\"status\":\"error\"}".to_string()),
+        OutputFormat::Ndjson | OutputFormat::Csv | OutputFormat::Tsv => {
+            serde_json::to_string(env).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
         }
+        OutputFormat::Yaml => serde_yaml::to_string(env)
+            .unwrap_or_else(|_| "status: error\n".to_string())
+            .trim_end()
+            .to_string(),
+        OutputFormat::Text => unreachable!("guarded by is_structured()"),
     }
 }
 
@@ -487,31 +504,23 @@ fn run_for_all_hosts(dry_run: bool, out: &OutputConfig, stdout: &mut dyn Write) 
 /// Emit a hint envelope listing the known hosts. Returned when neither a host
 /// nor `--all` is supplied.
 fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32 {
-    match out.format {
-        OutputFormat::Json | OutputFormat::Jsonl => {
-            let json = serde_json::json!({
-                "action": ACTION_INSTALL,
-                "status": "error",
-                "reason": "missing-host",
-                "exit_code": 2,
-                "message": "missing target host; pass <host> or --all",
-                "known_hosts": KNOWN_HOSTS,
-            });
-            let _ = writeln!(
-                stdout,
-                "{}",
-                serde_json::to_string_pretty(&json)
-                    .unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
-            );
-        }
-        OutputFormat::Text => {
-            let _ = writeln!(
-                stdout,
-                "error: missing target host; pass <host> or --all\nsupported hosts:"
-            );
-            for h in KNOWN_HOSTS {
-                let _ = writeln!(stdout, "  {h}");
-            }
+    if out.format.is_structured() {
+        let json = serde_json::json!({
+            "action": ACTION_INSTALL,
+            "status": "error",
+            "reason": "missing-host",
+            "exit_code": 2,
+            "message": "missing target host; pass <host> or --all",
+            "known_hosts": KNOWN_HOSTS,
+        });
+        let _ = writeln!(stdout, "{}", render_structured(&json, &out.format));
+    } else {
+        let _ = writeln!(
+            stdout,
+            "error: missing target host; pass <host> or --all\nsupported hosts:"
+        );
+        for h in KNOWN_HOSTS {
+            let _ = writeln!(stdout, "  {h}");
         }
     }
     2
