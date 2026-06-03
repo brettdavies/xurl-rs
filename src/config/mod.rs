@@ -160,7 +160,7 @@ impl Config {
 /// `"env-var"`, `"app-config"`, and `"built-in-default"` in JSON output
 /// (the machine-readable shape consumed by `--output json`); the
 /// human-readable text rendering uses [`ResolveSource::as_text_label`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ResolveSource {
     /// Resolved from the `REDIRECT_URI` environment variable.

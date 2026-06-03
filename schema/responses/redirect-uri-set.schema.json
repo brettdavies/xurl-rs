@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Response shape for `xr auth apps redirect-uri set` under `--output json`.",
+  "properties": {
+    "app": {
+      "description": "App name the write targeted.",
+      "type": "string"
+    },
+    "redirect_uri": {
+      "description": "Redirect URI that was persisted.",
+      "type": "string"
+    },
+    "status": {
+      "description": "Always `\"ok\"` on success.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "app",
+    "redirect_uri"
+  ],
+  "title": "RedirectUriSetResponse",
+  "type": "object"
+}
