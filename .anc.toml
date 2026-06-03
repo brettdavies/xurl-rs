@@ -1,5 +1,6 @@
 # Per-CLI domain vocabulary for anc's p6-may-standard-names audit.
-# These verbs are the X (Twitter) platform's canonical actions.
+# These verbs are the X (Twitter) platform's canonical actions, plus
+# xr-specific surface verbs (examples, validate) and the media namespace.
 [p6]
 domain_verbs = [
   "post", "reply", "quote", "delete", "read", "search",
@@ -9,4 +10,5 @@ domain_verbs = [
   "follow", "unfollow", "following", "followers",
   "block", "unblock", "mute", "unmute",
   "usage", "dm", "dms",
+  "media", "examples", "validate",
 ]
