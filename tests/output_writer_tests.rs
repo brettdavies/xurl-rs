@@ -412,3 +412,149 @@ fn output_config_default_is_text_no_verbose() {
     assert!(!cfg.raw);
     assert!(!cfg.use_color);
 }
+
+// ── U13: csv / tsv / yaml / ndjson format coverage ──────────────────
+
+fn fmt_cfg(format: OutputFormat) -> OutputConfig {
+    OutputConfig {
+        format,
+        quiet: false,
+        no_color: true,
+        use_color: false,
+        verbose: false,
+        raw: false,
+        no_interactive: false,
+    }
+}
+
+#[test]
+fn yaml_format_writes_yaml_document() {
+    let cfg = fmt_cfg(OutputFormat::Yaml);
+    let value = serde_json::json!({"id": "1", "text": "hi"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(s.contains("id: '1'") || s.contains("id: \"1\""), "got: {s}");
+    assert!(s.contains("text: hi"), "got: {s}");
+}
+
+#[test]
+fn ndjson_format_emits_one_compact_json_line() {
+    let cfg = fmt_cfg(OutputFormat::Ndjson);
+    let value = serde_json::json!({"id": "1", "text": "hi"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    let trimmed = s.trim_end_matches('\n');
+    assert!(!trimmed.contains('\n'), "expected one line: {s:?}");
+    assert!(s.ends_with('\n'));
+}
+
+#[test]
+fn csv_format_writes_header_and_row() {
+    let cfg = fmt_cfg(OutputFormat::Csv);
+    let value = serde_json::json!({"id": "1", "text": "hi"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    let mut lines = s.lines();
+    let header = lines.next().expect("header line");
+    let row = lines.next().expect("row line");
+    assert!(header.contains("id"));
+    assert!(header.contains("text"));
+    assert!(row.contains("hi"));
+    assert!(row.contains('1'));
+}
+
+#[test]
+fn csv_format_handles_array_with_union_of_keys() {
+    let cfg = fmt_cfg(OutputFormat::Csv);
+    let value = serde_json::json!([
+        {"id": "1", "text": "hi"},
+        {"id": "2", "extra": "x"},
+    ]);
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    let header = s.lines().next().unwrap();
+    assert!(header.contains("id"));
+    assert!(header.contains("text"));
+    assert!(header.contains("extra"));
+}
+
+#[test]
+fn csv_format_quotes_cells_with_commas() {
+    let cfg = fmt_cfg(OutputFormat::Csv);
+    let value = serde_json::json!({"text": "hi, world"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(s.contains("\"hi, world\""), "expected quoted cell: {s}");
+}
+
+#[test]
+fn tsv_format_uses_tab_delimiter() {
+    let cfg = fmt_cfg(OutputFormat::Tsv);
+    let value = serde_json::json!({"id": "1", "text": "hi"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(s.contains('\t'), "expected tab in TSV output: {s:?}");
+}
+
+#[test]
+fn csv_format_stringifies_nested_values_with_warning_column() {
+    let cfg = fmt_cfg(OutputFormat::Csv);
+    let value = serde_json::json!({"id": "1", "nested": {"a": 1}});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(s.contains("_warning"), "expected _warning column: {s}");
+    assert!(s.contains("JSON-stringified"));
+}
+
+#[test]
+fn warning_suppressed_under_yaml_and_csv() {
+    for fmt in [
+        OutputFormat::Yaml,
+        OutputFormat::Csv,
+        OutputFormat::Tsv,
+        OutputFormat::Ndjson,
+    ] {
+        let cfg = fmt_cfg(fmt.clone());
+        let mut buf: Vec<u8> = Vec::new();
+        cfg.warning(&mut buf, "rate limited");
+        assert!(
+            buf.is_empty(),
+            "warnings on stderr must be suppressed under {fmt:?}: {buf:?}"
+        );
+    }
+}
+
+#[test]
+fn print_error_under_yaml_emits_yaml_envelope() {
+    let cfg = fmt_cfg(OutputFormat::Yaml);
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    let s = String::from_utf8(buf).unwrap();
+    assert!(s.contains("status: error"), "got: {s}");
+    assert!(s.contains("reason: no-tty"), "got: {s}");
+    assert!(s.contains("exit_code: 1"), "got: {s}");
+}
+
+#[test]
+fn info_suppressed_under_every_structured_format() {
+    for fmt in [
+        OutputFormat::Json,
+        OutputFormat::Jsonl,
+        OutputFormat::Ndjson,
+        OutputFormat::Yaml,
+        OutputFormat::Csv,
+        OutputFormat::Tsv,
+    ] {
+        let cfg = fmt_cfg(fmt.clone());
+        let mut buf: Vec<u8> = Vec::new();
+        cfg.info(&mut buf, "hi");
+        assert!(buf.is_empty(), "info() must be silent under {fmt:?}");
+    }
+}
