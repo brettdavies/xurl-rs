@@ -40,6 +40,9 @@ _xr() {
             xr,dms)
                 cmd="xr__dms"
                 ;;
+            xr,examples)
+                cmd="xr__examples"
+                ;;
             xr,follow)
                 cmd="xr__follow"
                 ;;
@@ -88,6 +91,9 @@ _xr() {
             xr,search)
                 cmd="xr__search"
                 ;;
+            xr,skill)
+                cmd="xr__skill"
+                ;;
             xr,timeline)
                 cmd="xr__timeline"
                 ;;
@@ -114,6 +120,9 @@ _xr() {
                 ;;
             xr,user)
                 cmd="xr__user"
+                ;;
+            xr,validate)
+                cmd="xr__validate"
                 ;;
             xr,version)
                 cmd="xr__version"
@@ -154,6 +163,9 @@ _xr() {
             xr__auth__apps,list)
                 cmd="xr__auth__apps__list"
                 ;;
+            xr__auth__apps,redirect-uri)
+                cmd="xr__auth__apps__redirect__uri"
+                ;;
             xr__auth__apps,remove)
                 cmd="xr__auth__apps__remove"
                 ;;
@@ -169,11 +181,38 @@ _xr() {
             xr__auth__apps__help,list)
                 cmd="xr__auth__apps__help__list"
                 ;;
+            xr__auth__apps__help,redirect-uri)
+                cmd="xr__auth__apps__help__redirect__uri"
+                ;;
             xr__auth__apps__help,remove)
                 cmd="xr__auth__apps__help__remove"
                 ;;
             xr__auth__apps__help,update)
                 cmd="xr__auth__apps__help__update"
+                ;;
+            xr__auth__apps__help__redirect__uri,get)
+                cmd="xr__auth__apps__help__redirect__uri__get"
+                ;;
+            xr__auth__apps__help__redirect__uri,set)
+                cmd="xr__auth__apps__help__redirect__uri__set"
+                ;;
+            xr__auth__apps__redirect__uri,get)
+                cmd="xr__auth__apps__redirect__uri__get"
+                ;;
+            xr__auth__apps__redirect__uri,help)
+                cmd="xr__auth__apps__redirect__uri__help"
+                ;;
+            xr__auth__apps__redirect__uri,set)
+                cmd="xr__auth__apps__redirect__uri__set"
+                ;;
+            xr__auth__apps__redirect__uri__help,get)
+                cmd="xr__auth__apps__redirect__uri__help__get"
+                ;;
+            xr__auth__apps__redirect__uri__help,help)
+                cmd="xr__auth__apps__redirect__uri__help__help"
+                ;;
+            xr__auth__apps__redirect__uri__help,set)
+                cmd="xr__auth__apps__redirect__uri__help__set"
                 ;;
             xr__auth__help,app)
                 cmd="xr__auth__help__app"
@@ -205,11 +244,20 @@ _xr() {
             xr__auth__help__apps,list)
                 cmd="xr__auth__help__apps__list"
                 ;;
+            xr__auth__help__apps,redirect-uri)
+                cmd="xr__auth__help__apps__redirect__uri"
+                ;;
             xr__auth__help__apps,remove)
                 cmd="xr__auth__help__apps__remove"
                 ;;
             xr__auth__help__apps,update)
                 cmd="xr__auth__help__apps__update"
+                ;;
+            xr__auth__help__apps__redirect__uri,get)
+                cmd="xr__auth__help__apps__redirect__uri__get"
+                ;;
+            xr__auth__help__apps__redirect__uri,set)
+                cmd="xr__auth__help__apps__redirect__uri__set"
                 ;;
             xr__help,auth)
                 cmd="xr__help__auth"
@@ -234,6 +282,9 @@ _xr() {
                 ;;
             xr__help,dms)
                 cmd="xr__help__dms"
+                ;;
+            xr__help,examples)
+                cmd="xr__help__examples"
                 ;;
             xr__help,follow)
                 cmd="xr__help__follow"
@@ -283,6 +334,9 @@ _xr() {
             xr__help,search)
                 cmd="xr__help__search"
                 ;;
+            xr__help,skill)
+                cmd="xr__help__skill"
+                ;;
             xr__help,timeline)
                 cmd="xr__help__timeline"
                 ;;
@@ -309,6 +363,9 @@ _xr() {
                 ;;
             xr__help,user)
                 cmd="xr__help__user"
+                ;;
+            xr__help,validate)
+                cmd="xr__help__validate"
                 ;;
             xr__help,version)
                 cmd="xr__help__version"
@@ -343,17 +400,32 @@ _xr() {
             xr__help__auth__apps,list)
                 cmd="xr__help__auth__apps__list"
                 ;;
+            xr__help__auth__apps,redirect-uri)
+                cmd="xr__help__auth__apps__redirect__uri"
+                ;;
             xr__help__auth__apps,remove)
                 cmd="xr__help__auth__apps__remove"
                 ;;
             xr__help__auth__apps,update)
                 cmd="xr__help__auth__apps__update"
                 ;;
+            xr__help__auth__apps__redirect__uri,get)
+                cmd="xr__help__auth__apps__redirect__uri__get"
+                ;;
+            xr__help__auth__apps__redirect__uri,set)
+                cmd="xr__help__auth__apps__redirect__uri__set"
+                ;;
             xr__help__media,status)
                 cmd="xr__help__media__status"
                 ;;
             xr__help__media,upload)
                 cmd="xr__help__media__upload"
+                ;;
+            xr__help__skill,install)
+                cmd="xr__help__skill__install"
+                ;;
+            xr__help__skill,update)
+                cmd="xr__help__skill__update"
                 ;;
             xr__media,help)
                 cmd="xr__media__help"
@@ -373,6 +445,24 @@ _xr() {
             xr__media__help,upload)
                 cmd="xr__media__help__upload"
                 ;;
+            xr__skill,help)
+                cmd="xr__skill__help"
+                ;;
+            xr__skill,install)
+                cmd="xr__skill__install"
+                ;;
+            xr__skill,update)
+                cmd="xr__skill__update"
+                ;;
+            xr__skill__help,help)
+                cmd="xr__skill__help__help"
+                ;;
+            xr__skill__help,install)
+                cmd="xr__skill__help__install"
+                ;;
+            xr__skill__help,update)
+                cmd="xr__skill__help__update"
+                ;;
             *)
                 ;;
         esac
@@ -380,7 +470,7 @@ _xr() {
 
     case "${cmd}" in
         xr)
-            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --quiet --no-interactive --timeout --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media schema completions version help"
+            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help --version [URL] post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media skill schema completions version examples validate help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -422,6 +512,14 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --file)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -435,10 +533,50 @@ _xr() {
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -450,21 +588,69 @@ _xr() {
             return 0
             ;;
         xr__auth)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help oauth2 oauth1 app status clear apps default help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help oauth2 oauth1 app status clear apps default help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -476,7 +662,7 @@ _xr() {
             return 0
             ;;
         xr__auth__app)
-            opts="-q -h --bearer-token --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --bearer-token --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -486,15 +672,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -506,21 +740,69 @@ _xr() {
             return 0
             ;;
         xr__auth__apps)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help add update remove list help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help add update remove list redirect-uri help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -532,7 +814,7 @@ _xr() {
             return 0
             ;;
         xr__auth__apps__add)
-            opts="-q -h --client-id --client-secret --app --output --quiet --no-interactive --timeout --help <NAME>"
+            opts="-v -q -h --client-id --client-secret --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -546,15 +828,67 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --redirect-uri)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -566,7 +900,7 @@ _xr() {
             return 0
             ;;
         xr__auth__apps__help)
-            opts="add update remove list help"
+            opts="add update remove list redirect-uri help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -621,6 +955,48 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        xr__auth__apps__help__redirect__uri)
+            opts="get set"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__help__redirect__uri__get)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__help__redirect__uri__set)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         xr__auth__apps__help__remove)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
@@ -650,21 +1026,347 @@ _xr() {
             return 0
             ;;
         xr__auth__apps__list)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help get set help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__get)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help [NAME]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__help)
+            opts="get set help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__help__get)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__help__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__help__set)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__apps__redirect__uri__set)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <NAME> <URI>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -676,21 +1378,69 @@ _xr() {
             return 0
             ;;
         xr__auth__apps__remove)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help <NAME>"
+            opts="-v -q -h --force --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -702,7 +1452,7 @@ _xr() {
             return 0
             ;;
         xr__auth__apps__update)
-            opts="-q -h --client-id --client-secret --app --output --quiet --no-interactive --timeout --help <NAME>"
+            opts="-v -q -h --client-id --client-secret --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <NAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -716,15 +1466,67 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --redirect-uri)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -736,7 +1538,7 @@ _xr() {
             return 0
             ;;
         xr__auth__clear)
-            opts="-q -h --all --oauth1 --oauth2-username --bearer --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --all --oauth1 --oauth2-username --bearer --force --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -746,15 +1548,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -766,21 +1616,69 @@ _xr() {
             return 0
             ;;
         xr__auth__default)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help [APP_NAME] [USERNAME]"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help [APP_NAME] [USERNAME]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -820,7 +1718,7 @@ _xr() {
             return 0
             ;;
         xr__auth__help__apps)
-            opts="add update remove list"
+            opts="add update remove list redirect-uri"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -850,6 +1748,48 @@ _xr() {
         xr__auth__help__apps__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__help__apps__redirect__uri)
+            opts="get set"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__help__apps__redirect__uri__get)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__auth__help__apps__redirect__uri__set)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -974,7 +1914,7 @@ _xr() {
             return 0
             ;;
         xr__auth__oauth1)
-            opts="-q -h --consumer-key --consumer-secret --access-token --token-secret --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --consumer-key --consumer-secret --access-token --token-secret --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -996,15 +1936,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1016,12 +2004,16 @@ _xr() {
             return 0
             ;;
         xr__auth__oauth2)
-            opts="-q -h --no-browser --step --auth-url --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --no-browser --step --auth-url --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help [USERNAME]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --no-browser)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --step)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -1030,15 +2022,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1050,21 +2090,69 @@ _xr() {
             return 0
             ;;
         xr__auth__status)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1076,7 +2164,7 @@ _xr() {
             return 0
             ;;
         xr__block)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1094,15 +2182,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1114,7 +2250,7 @@ _xr() {
             return 0
             ;;
         xr__bookmark)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1132,15 +2268,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1152,7 +2336,7 @@ _xr() {
             return 0
             ;;
         xr__bookmarks)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1178,15 +2362,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1198,21 +2430,69 @@ _xr() {
             return 0
             ;;
         xr__completions)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help bash elvish fish powershell zsh"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help bash elvish fish powershell zsh"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1224,7 +2504,7 @@ _xr() {
             return 0
             ;;
         xr__delete)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --force --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1242,15 +2522,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1262,7 +2590,7 @@ _xr() {
             return 0
             ;;
         xr__dm)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME> <TEXT>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1280,15 +2608,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1300,7 +2676,7 @@ _xr() {
             return 0
             ;;
         xr__dms)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1326,15 +2702,137 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__examples)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1346,7 +2844,7 @@ _xr() {
             return 0
             ;;
         xr__follow)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1364,15 +2862,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1384,7 +2930,7 @@ _xr() {
             return 0
             ;;
         xr__followers)
-            opts="-n -u -v -t -q -h --max-results --of --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --of --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1414,15 +2960,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1434,7 +3028,7 @@ _xr() {
             return 0
             ;;
         xr__following)
-            opts="-n -u -v -t -q -h --max-results --of --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --of --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1464,15 +3058,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1484,7 +3126,7 @@ _xr() {
             return 0
             ;;
         xr__help)
-            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media schema completions version help"
+            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers block unblock mute unmute usage dm dms auth media skill schema completions version examples validate help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1526,7 +3168,7 @@ _xr() {
             return 0
             ;;
         xr__help__auth__apps)
-            opts="add update remove list"
+            opts="add update remove list redirect-uri"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1556,6 +3198,48 @@ _xr() {
         xr__help__auth__apps__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__auth__apps__redirect__uri)
+            opts="get set"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__auth__apps__redirect__uri__get)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__auth__apps__redirect__uri__set)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 6 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -1750,6 +3434,20 @@ _xr() {
             return 0
             ;;
         xr__help__dms)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__examples)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2015,6 +3713,48 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        xr__help__skill)
+            opts="install update"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__skill__install)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__help__skill__update)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         xr__help__timeline)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -2141,6 +3881,20 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        xr__help__validate)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         xr__help__version)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -2170,7 +3924,7 @@ _xr() {
             return 0
             ;;
         xr__like)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2188,15 +3942,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2208,7 +4010,7 @@ _xr() {
             return 0
             ;;
         xr__likes)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2234,15 +4036,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2254,21 +4104,69 @@ _xr() {
             return 0
             ;;
         xr__media)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help upload status help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help upload status help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2336,7 +4234,7 @@ _xr() {
             return 0
             ;;
         xr__media__status)
-            opts="-u -v -w -t -H -q -h --auth --username --verbose --wait --trace --header --app --output --quiet --no-interactive --timeout --help <MEDIA_ID>"
+            opts="-u -w -t -H -v -q -h --auth --username --wait --trace --header --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <MEDIA_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2362,15 +4260,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2382,7 +4328,7 @@ _xr() {
             return 0
             ;;
         xr__media__upload)
-            opts="-u -v -t -H -q -h --media-type --category --wait --auth --username --verbose --trace --header --app --output --quiet --no-interactive --timeout --help <FILE>"
+            opts="-u -t -H -v -q -h --media-type --category --wait --auth --username --trace --header --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <FILE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2416,15 +4362,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2436,7 +4430,7 @@ _xr() {
             return 0
             ;;
         xr__mentions)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2462,15 +4456,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2482,7 +4524,7 @@ _xr() {
             return 0
             ;;
         xr__mute)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2500,15 +4542,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2520,7 +4610,7 @@ _xr() {
             return 0
             ;;
         xr__post)
-            opts="-u -v -t -q -h --media-id --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <TEXT>"
+            opts="-u -t -v -q -h --media-id --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2542,15 +4632,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2562,7 +4700,7 @@ _xr() {
             return 0
             ;;
         xr__quote)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID> <TEXT>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2580,15 +4718,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2600,7 +4786,7 @@ _xr() {
             return 0
             ;;
         xr__read)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2618,15 +4804,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2638,7 +4872,7 @@ _xr() {
             return 0
             ;;
         xr__reply)
-            opts="-u -v -t -q -h --media-id --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID> <TEXT>"
+            opts="-u -t -v -q -h --media-id --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID> <TEXT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2660,15 +4894,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2680,7 +4962,7 @@ _xr() {
             return 0
             ;;
         xr__repost)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2698,15 +4980,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2718,21 +5048,69 @@ _xr() {
             return 0
             ;;
         xr__schema)
-            opts="-q -h --list --all --app --output --quiet --no-interactive --timeout --help [COMMAND]"
+            opts="-v -q -h --list --all --envelope --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help [COMMAND]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2744,7 +5122,7 @@ _xr() {
             return 0
             ;;
         xr__search)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <QUERY>"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <QUERY>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2770,15 +5148,333 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help install update help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__help)
+            opts="install update help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__help__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__help__install)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__help__update)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__install)
+            opts="-v -q -h --all --dry-run --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --limit --cursor --page --after --help claude_code codex cursor factory kiro opencode"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__skill__update)
+            opts="-v -q -h --all --dry-run --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --limit --cursor --page --after --help claude_code codex cursor factory kiro opencode"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2790,7 +5486,7 @@ _xr() {
             return 0
             ;;
         xr__timeline)
-            opts="-n -u -v -t -q -h --max-results --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-n -u -t -v -q -h --max-results --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2816,15 +5512,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2836,7 +5580,7 @@ _xr() {
             return 0
             ;;
         xr__unblock)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2854,15 +5598,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2874,7 +5666,7 @@ _xr() {
             return 0
             ;;
         xr__unbookmark)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2892,15 +5684,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2912,7 +5752,7 @@ _xr() {
             return 0
             ;;
         xr__unfollow)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2930,15 +5770,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2950,7 +5838,7 @@ _xr() {
             return 0
             ;;
         xr__unlike)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2968,15 +5856,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2988,7 +5924,7 @@ _xr() {
             return 0
             ;;
         xr__unmute)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3006,15 +5942,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -3026,7 +6010,7 @@ _xr() {
             return 0
             ;;
         xr__unrepost)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <POST_ID>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <POST_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3044,15 +6028,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -3064,7 +6096,7 @@ _xr() {
             return 0
             ;;
         xr__usage)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3082,15 +6114,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -3102,7 +6182,7 @@ _xr() {
             return 0
             ;;
         xr__user)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help <USERNAME>"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help <USERNAME>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3120,15 +6200,141 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__validate)
+            opts="-v -q -h --schema --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help [FILE]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --schema)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -3140,21 +6346,69 @@ _xr() {
             return 0
             ;;
         xr__version)
-            opts="-q -h --app --output --quiet --no-interactive --timeout --help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -3166,7 +6420,7 @@ _xr() {
             return 0
             ;;
         xr__whoami)
-            opts="-u -v -t -q -h --auth --username --verbose --trace --app --output --quiet --no-interactive --timeout --help"
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3184,15 +6438,63 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
                 --app)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "text json jsonl" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
                 --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
