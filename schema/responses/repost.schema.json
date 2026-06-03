@@ -1,0 +1,350 @@
+{
+  "$defs": {
+    "ApiError": {
+      "additionalProperties": true,
+      "description": "Partial error returned alongside valid data in 200 responses.",
+      "properties": {
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Includes": {
+      "additionalProperties": true,
+      "description": "Expanded objects included alongside the primary data.",
+      "properties": {
+        "tweets": {
+          "items": {
+            "$ref": "#/$defs/Tweet"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "users": {
+          "items": {
+            "$ref": "#/$defs/User"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ReferencedTweet": {
+      "additionalProperties": true,
+      "description": "A referenced tweet (reply-to, quote, retweet).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "ResponseMeta": {
+      "additionalProperties": true,
+      "description": "Pagination and result count metadata.",
+      "properties": {
+        "next_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previous_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_count": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RetweetedResult": {
+      "additionalProperties": true,
+      "description": "Confirmation for repost/unrepost actions.",
+      "properties": {
+        "retweeted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "retweeted"
+      ],
+      "type": "object"
+    },
+    "Tweet": {
+      "additionalProperties": true,
+      "description": "A tweet object from the X API v2.\n\nRequired fields: `id`, `text` (always present in API responses).\nOptional fields depend on which `tweet.fields` the caller requests.",
+      "properties": {
+        "attachments": true,
+        "author_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conversation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entities": true,
+        "id": {
+          "type": "string"
+        },
+        "in_reply_to_user_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TweetPublicMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "referenced_tweets": {
+          "items": {
+            "$ref": "#/$defs/ReferencedTweet"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "type": "object"
+    },
+    "TweetPublicMetrics": {
+      "additionalProperties": true,
+      "description": "Public engagement metrics for a tweet.",
+      "properties": {
+        "bookmark_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "impression_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "like_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reply_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retweet_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "User": {
+      "additionalProperties": true,
+      "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
+      "properties": {
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "profile_image_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserPublicMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "username": {
+          "type": "string"
+        },
+        "verified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "username"
+      ],
+      "type": "object"
+    },
+    "UserPublicMetrics": {
+      "additionalProperties": true,
+      "description": "Public engagement metrics for a user.",
+      "properties": {
+        "followers_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "following_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "listed_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "tweet_count": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Tweet>`, list endpoints use\n`ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.",
+  "properties": {
+    "data": {
+      "$ref": "#/$defs/RetweetedResult"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/ApiError"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "includes": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Includes"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "meta": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResponseMeta"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "ApiResponse",
+  "type": "object"
+}

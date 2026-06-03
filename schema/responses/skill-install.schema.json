@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Result envelope shared by both `--output text` and `--output json`.\nUniform across success and error paths per the project envelope rules.",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "command_preview": {
+      "type": "string"
+    },
+    "destination_status": {
+      "type": "string"
+    },
+    "exit_code": {
+      "format": "int32",
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "host": {
+      "type": "string"
+    },
+    "install_dir": {
+      "type": "string"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "would_succeed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "action",
+    "host",
+    "install_dir",
+    "command_preview",
+    "destination_status",
+    "status"
+  ],
+  "title": "InstallEnvelope",
+  "type": "object"
+}

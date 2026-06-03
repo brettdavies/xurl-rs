@@ -1,0 +1,54 @@
+{
+  "$defs": {
+    "ResolveSource": {
+      "description": "Origin of a resolved redirect URI.\n\nMirrors the upstream Go xurl labels at `config/config.go:62-72`.\nThe `#[serde(rename_all = \"kebab-case\")]` directive produces\n`\"env-var\"`, `\"app-config\"`, and `\"built-in-default\"` in JSON output\n(the machine-readable shape consumed by `--output json`); the\nhuman-readable text rendering uses [`ResolveSource::as_text_label`].",
+      "oneOf": [
+        {
+          "const": "env-var",
+          "description": "Resolved from the `REDIRECT_URI` environment variable.",
+          "type": "string"
+        },
+        {
+          "const": "app-config",
+          "description": "Resolved from the per-app value stored in `~/.xurl`.",
+          "type": "string"
+        },
+        {
+          "const": "built-in-default",
+          "description": "Fell through to [`DEFAULT_REDIRECT_URI`].",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Response shape for `xr auth apps redirect-uri get` under `--output json`.",
+  "properties": {
+    "app": {
+      "description": "App name the lookup targeted.",
+      "type": "string"
+    },
+    "effective_redirect_uri": {
+      "description": "Effective redirect URI after applying the precedence chain.",
+      "type": "string"
+    },
+    "effective_source": {
+      "$ref": "#/$defs/ResolveSource",
+      "description": "Precedence layer that produced [`Self::effective_redirect_uri`]."
+    },
+    "stored_redirect_uri": {
+      "description": "Stored per-app redirect URI; `None` when no value is stored.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "app",
+    "effective_redirect_uri",
+    "effective_source"
+  ],
+  "title": "RedirectUriGetResponse",
+  "type": "object"
+}

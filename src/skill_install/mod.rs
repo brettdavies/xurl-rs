@@ -225,7 +225,7 @@ pub fn format_clone_command(url: &str, dest: &str) -> String {
 
 /// Result envelope shared by both `--output text` and `--output json`.
 /// Uniform across success and error paths per the project envelope rules.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct InstallEnvelope {
     pub action: &'static str,
     pub host: &'static str,
@@ -242,7 +242,7 @@ pub struct InstallEnvelope {
 }
 
 /// Multi-host envelope for `--all` invocations.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct InstallMultiEnvelope {
     pub action: &'static str,
     pub status: &'static str,
