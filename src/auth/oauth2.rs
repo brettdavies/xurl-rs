@@ -190,6 +190,15 @@ pub(crate) fn exchange_code_for_token(
         )?;
     }
 
+    // First-signed-in-app auto-default: if the user authenticated against a
+    // named app and the previous default app holds no credentials, promote
+    // the just-signed-in app to default so subsequent invocations resolve
+    // it without an explicit `--app NAME`. No-op on subsequent sign-ins or
+    // when the user has already configured a credentialed default.
+    let _ = auth
+        .token_store
+        .promote_to_default_if_first_credentialed(&app_name)?;
+
     Ok(access_token)
 }
 
@@ -425,11 +434,16 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
     let token = if username.is_empty() {
         // Empty-caller precedence mirrors `Auth::get_oauth2_header` (KTD5):
         // default_user/arbitrary-first in the named map first, then the
-        // unnamed (`/me`-failed salvage) slot. Without the unnamed fallback,
-        // a refresh driven by `get_oauth2_header` on an unnamed-only app
-        // would fail with `TokenNotFound` even though a token exists.
+        // unnamed (`/me`-failed salvage) slot. Both lookups MUST be
+        // scoped to `app_name_lookup` so a `--app NAME` invocation reads
+        // NAME's tokens, not whichever app happens to be the default. The
+        // previous `get_first_oauth2_token()` call (no arg) defaulted the
+        // lookup to the empty app name, which `resolve_app` resolved to
+        // the default app, causing a freshly minted token in a named app
+        // to be invisible to the refresh path. Fixed alongside the
+        // `--app NAME` client_id regression (#51).
         auth.token_store
-            .get_first_oauth2_token()
+            .get_first_oauth2_token_for_app(&app_name_lookup)
             .cloned()
             .or_else(|| {
                 auth.token_store
@@ -437,7 +451,9 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
                     .cloned()
             })
     } else {
-        auth.token_store.get_oauth2_token(username).cloned()
+        auth.token_store
+            .get_oauth2_token_for_app(&app_name_lookup, username)
+            .cloned()
     };
 
     let token = token.ok_or_else(|| XurlError::auth("TokenNotFound: oauth2 token not found"))?;

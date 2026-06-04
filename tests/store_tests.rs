@@ -1173,3 +1173,106 @@ fn test_save_unnamed_to_missing_app_auto_creates() {
         "ghost app should not have been registered"
     );
 }
+
+// ── TestPromoteFirstCredentialed (Bug C) ──────────────────────────────────
+//
+// `promote_to_default_if_first_credentialed` drives the "first signed-in app
+// becomes the default" UX. It must promote when the current default has no
+// credentials and the candidate is registered and different, no-op
+// otherwise (already-credentialed default, unknown candidate, empty
+// candidate name, candidate equals current default).
+
+#[test]
+fn promote_promotes_when_default_is_uninitialized() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "alpha-id", "alpha-secret").unwrap();
+    store
+        .save_oauth2_token_for_app("alpha", "u", "tok", "ref", 9999)
+        .unwrap();
+
+    let promoted = store
+        .promote_to_default_if_first_credentialed("alpha")
+        .expect("promote must succeed");
+    assert_eq!(promoted.as_deref(), Some("alpha"));
+    assert_eq!(store.get_default_app(), "alpha");
+}
+
+#[test]
+fn promote_no_op_when_default_already_has_credentials() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store.save_bearer_token("default-bearer").unwrap();
+    store.add_app("alpha", "alpha-id", "alpha-secret").unwrap();
+
+    let promoted = store
+        .promote_to_default_if_first_credentialed("alpha")
+        .expect("promote must succeed");
+    assert!(
+        promoted.is_none(),
+        "must not promote over credentialed default"
+    );
+    assert_eq!(store.get_default_app(), "default");
+}
+
+#[test]
+fn promote_no_op_when_candidate_unknown() {
+    let (mut store, _tmp) = create_temp_token_store();
+    let promoted = store
+        .promote_to_default_if_first_credentialed("ghost")
+        .expect("promote must succeed");
+    assert!(promoted.is_none(), "unknown candidate must not be promoted");
+    assert_eq!(store.get_default_app(), "default");
+}
+
+#[test]
+fn promote_no_op_when_candidate_empty() {
+    let (mut store, _tmp) = create_temp_token_store();
+    let promoted = store
+        .promote_to_default_if_first_credentialed("")
+        .expect("promote must succeed");
+    assert!(promoted.is_none(), "empty candidate must not be promoted");
+}
+
+#[test]
+fn promote_no_op_when_candidate_already_default() {
+    let (mut store, _tmp) = create_temp_token_store();
+    let promoted = store
+        .promote_to_default_if_first_credentialed("default")
+        .expect("promote must succeed");
+    assert!(
+        promoted.is_none(),
+        "candidate matching current default must not trigger reassignment"
+    );
+}
+
+#[test]
+fn promote_treats_unnamed_oauth2_token_as_credentials() {
+    // Salvage-state default (a `/me`-failed OAuth2 exchange) counts as
+    // credentialed; promotion must skip even though there are no named
+    // tokens.
+    let (mut store, _tmp) = create_temp_token_store();
+    store
+        .save_oauth2_token_unnamed_for_app("default", "tok", "ref", 9999)
+        .unwrap();
+    store.add_app("alpha", "alpha-id", "alpha-secret").unwrap();
+
+    let promoted = store
+        .promote_to_default_if_first_credentialed("alpha")
+        .expect("promote must succeed");
+    assert!(promoted.is_none());
+    assert_eq!(store.get_default_app(), "default");
+}
+
+#[test]
+fn promote_default_app_is_uninitialized_signal() {
+    let (mut store, _tmp) = create_temp_token_store();
+    assert!(
+        store.default_app_is_uninitialized(),
+        "fresh placeholder must report uninitialized"
+    );
+
+    store.save_bearer_token("any").unwrap();
+    assert!(
+        !store.default_app_is_uninitialized(),
+        "bearer presence must flip the signal"
+    );
+}

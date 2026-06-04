@@ -307,12 +307,27 @@ pub(super) fn run_auth_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            auth.token_store.save_oauth1_tokens(
+            // Multi-app save: route OAuth1 tokens to the active app
+            // (set by `--app NAME` or default). The no-arg variant fell
+            // back to the default app even with `--app NAME` set, so a
+            // user running `xr auth oauth1 --app NAME …` would silently
+            // overwrite default's OAuth1 instead of populating NAME.
+            let candidate = auth.app_name().to_string();
+            auth.token_store.save_oauth1_tokens_for_app(
+                &candidate,
                 &access_token,
                 &token_secret,
                 &consumer_key,
                 &consumer_secret,
             )?;
+            // Auto-default the first signed-in app so the user does not
+            // need an explicit `xr auth default <name>` follow-up. Clone
+            // the app name first; `promote_...` takes `&mut self` on the
+            // store which would otherwise alias the immutable `&str`
+            // borrow from `auth.app_name()`.
+            let _ = auth
+                .token_store
+                .promote_to_default_if_first_credentialed(&candidate)?;
             out.print_message(
                 stdout,
                 "\x1b[32mOAuth1 credentials saved successfully!\x1b[0m",
@@ -324,7 +339,18 @@ pub(super) fn run_auth_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            auth.token_store.save_bearer_token(&bearer_token)?;
+            // Multi-app save: route the bearer to the active app
+            // (set by `--app NAME` or default). The no-arg variant
+            // silently fell back to the default app even with `--app
+            // NAME` set, so `xr auth app --bearer-token … --app NAME`
+            // would overwrite default's bearer instead of populating
+            // NAME's entry.
+            let candidate = auth.app_name().to_string();
+            auth.token_store
+                .save_bearer_token_for_app(&candidate, &bearer_token)?;
+            let _ = auth
+                .token_store
+                .promote_to_default_if_first_credentialed(&candidate)?;
             out.print_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
         }
         AuthCommands::Status => {

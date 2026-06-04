@@ -566,7 +566,7 @@ fn test_with_app_name_env_override_survives_app_switch() {
 #[test]
 fn resolve_bearer_returns_env_when_set_and_store_empty() {
     let (token_store, _tmp) = create_temp_token_store();
-    let header = resolve_bearer_token(Some("env-only-bearer".to_string()), &token_store)
+    let header = resolve_bearer_token(Some("env-only-bearer".to_string()), &token_store, "")
         .expect("env token should resolve");
     assert_eq!(header, "Bearer env-only-bearer");
 }
@@ -578,7 +578,7 @@ fn resolve_bearer_env_overrides_stored_bearer() {
         .save_bearer_token("stored-bearer")
         .expect("save_bearer_token must succeed");
 
-    let header = resolve_bearer_token(Some("env-wins".to_string()), &token_store)
+    let header = resolve_bearer_token(Some("env-wins".to_string()), &token_store, "")
         .expect("env token should resolve");
     assert_eq!(
         header, "Bearer env-wins",
@@ -593,7 +593,7 @@ fn resolve_bearer_falls_back_to_store_when_env_empty() {
         .save_bearer_token("stored-bearer")
         .expect("save_bearer_token must succeed");
 
-    let header = resolve_bearer_token(Some(String::new()), &token_store)
+    let header = resolve_bearer_token(Some(String::new()), &token_store, "")
         .expect("empty env should fall through to store");
     assert_eq!(
         header, "Bearer stored-bearer",
@@ -608,14 +608,15 @@ fn resolve_bearer_falls_back_to_store_when_env_unset() {
         .save_bearer_token("stored-bearer")
         .expect("save_bearer_token must succeed");
 
-    let header = resolve_bearer_token(None, &token_store).expect("store should resolve");
+    let header = resolve_bearer_token(None, &token_store, "").expect("store should resolve");
     assert_eq!(header, "Bearer stored-bearer");
 }
 
 #[test]
 fn resolve_bearer_errors_when_neither_set() {
     let (token_store, _tmp) = create_temp_token_store();
-    let err = resolve_bearer_token(None, &token_store).expect_err("no env, no store should error");
+    let err =
+        resolve_bearer_token(None, &token_store, "").expect_err("no env, no store should error");
     assert!(
         err.to_string().contains("bearer token not found"),
         "expected TokenNotFound message, got: {err}"
@@ -625,7 +626,7 @@ fn resolve_bearer_errors_when_neither_set() {
 #[test]
 fn resolve_bearer_errors_when_env_empty_and_store_empty() {
     let (token_store, _tmp) = create_temp_token_store();
-    let err = resolve_bearer_token(Some(String::new()), &token_store)
+    let err = resolve_bearer_token(Some(String::new()), &token_store, "")
         .expect_err("empty env + empty store should error");
     assert!(err.to_string().contains("bearer token not found"));
 }
@@ -773,4 +774,267 @@ fn with_app_name_back_to_default_re_resolves_from_default_app() {
         "default-id",
         "switching back to default must re-resolve to default's stored id"
     );
+}
+
+// ── TestRefreshOauth2TokenAppContext (Bug A) ──────────────────────────────
+//
+// `oauth2::refresh_oauth2_token` must use the active app context when
+// looking up the cached token. The older `get_first_oauth2_token()` call
+// (no arg) resolved to the empty-string app name, which `resolve_app` falls
+// back to the default app for — so a token freshly minted under a named
+// app via `xr auth oauth2 --app NAME` was invisible to the subsequent
+// refresh path, and the request went out without a token. The integration
+// surface for this bug fires only when the token is still valid and the
+// refresh becomes a fast no-op return of the cached access_token.
+
+#[test]
+fn refresh_finds_named_app_token_when_active_app_set() {
+    use xurl::auth::oauth2::refresh_oauth2_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store
+        .add_app("bird-dev", "id", "secret")
+        .expect("add bird-dev");
+    // Stash a token under bird-dev with a far-future expiration so the
+    // refresh path returns the cached value directly (no HTTP).
+    let far_future = 9_999_999_999;
+    store
+        .save_oauth2_token_for_app(
+            "bird-dev",
+            "alice",
+            "alice-access",
+            "alice-refresh",
+            far_future,
+        )
+        .expect("save");
+
+    // Default app stays uninitialized; the bug's symptom was the refresh
+    // path resolving lookups to the default app and missing the bird-dev
+    // token entirely.
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("bird-dev");
+
+    let token =
+        refresh_oauth2_token(&mut auth, "alice").expect("refresh must find named app token");
+    assert_eq!(
+        token, "alice-access",
+        "refresh must read alice's token from bird-dev, not the empty default"
+    );
+}
+
+#[test]
+fn refresh_finds_first_token_in_named_app_when_username_empty() {
+    use xurl::auth::oauth2::refresh_oauth2_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store
+        .add_app("bird-dev", "id", "secret")
+        .expect("add bird-dev");
+    let far_future = 9_999_999_999;
+    store
+        .save_oauth2_token_for_app("bird-dev", "user1", "u1-token", "u1-ref", far_future)
+        .expect("save");
+
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("bird-dev");
+
+    // Empty username = "use the first token in the active app". The fix
+    // routes this lookup through bird-dev instead of falling back to the
+    // empty default app.
+    let token = refresh_oauth2_token(&mut auth, "").expect("refresh with empty username");
+    assert_eq!(token, "u1-token");
+}
+
+#[test]
+fn refresh_falls_back_to_unnamed_slot_within_active_app() {
+    use xurl::auth::oauth2::refresh_oauth2_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store
+        .add_app("bird-dev", "id", "secret")
+        .expect("add bird-dev");
+    let far_future = 9_999_999_999;
+    // Salvage-state: no named users, only the unnamed slot has a token.
+    store
+        .save_oauth2_token_unnamed_for_app("bird-dev", "unnamed-tok", "unnamed-ref", far_future)
+        .expect("save unnamed");
+
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("bird-dev");
+
+    let token = refresh_oauth2_token(&mut auth, "").expect("refresh must fall back to unnamed");
+    assert_eq!(token, "unnamed-tok");
+}
+
+// ── TestMultiAppCredentialRouting (Bugs D, E, F) ──────────────────────────
+//
+// Multi-app isolation: each app should own its own OAuth1, OAuth2, and
+// bearer credentials, and `Auth`'s `--app NAME`-driven `app_name` field
+// must scope every read and write. The legacy code paths used the
+// store's no-arg accessors, which `resolve_app("")` redirected to the
+// default app, so `--app NAME --auth <method>` silently fell back to the
+// default app for OAuth1, bearer, and auto-detect.
+//
+// The OAuth2 refresh-path fix in `refresh_finds_named_app_token_when_active_app_set`
+// lives above; these tests cover the parallel cases for OAuth1, bearer,
+// and the request layer's auto-detect.
+
+#[test]
+fn bearer_resolution_targets_active_app_not_default() {
+    use xurl::auth::resolve_bearer_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "a-id", "a-secret").unwrap();
+    store.add_app("beta", "b-id", "b-secret").unwrap();
+    store
+        .save_bearer_token_for_app("alpha", "alpha-bearer")
+        .unwrap();
+    store
+        .save_bearer_token_for_app("beta", "beta-bearer")
+        .unwrap();
+
+    // Default app stays uninitialized; the legacy resolver would have
+    // ignored the `app_name` argument and resolved to default, returning
+    // TokenNotFound here.
+    let alpha_header = resolve_bearer_token(None, &store, "alpha").expect("alpha header");
+    assert_eq!(alpha_header, "Bearer alpha-bearer");
+
+    let beta_header = resolve_bearer_token(None, &store, "beta").expect("beta header");
+    assert_eq!(beta_header, "Bearer beta-bearer");
+}
+
+#[test]
+fn bearer_env_var_overrides_active_app_store() {
+    use xurl::auth::resolve_bearer_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "id", "secret").unwrap();
+    store
+        .save_bearer_token_for_app("alpha", "alpha-bearer")
+        .unwrap();
+
+    // Env wins over any app's stored bearer regardless of app_name scope.
+    let header = resolve_bearer_token(Some("env-wins".to_string()), &store, "alpha")
+        .expect("env should override");
+    assert_eq!(header, "Bearer env-wins");
+}
+
+#[test]
+fn oauth1_header_routes_to_active_app() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "a-id", "a-secret").unwrap();
+    store
+        .save_oauth1_tokens_for_app(
+            "alpha",
+            "alpha-access-tok",
+            "alpha-secret",
+            "alpha-consumer-key",
+            "alpha-consumer-secret",
+        )
+        .unwrap();
+
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("alpha");
+
+    // OAuth1 header construction reaches into the active app's stored
+    // token; pre-fix it would have hit the empty default app and errored.
+    let header = auth
+        .get_oauth1_header("GET", "https://api.x.com/2/users/me", None)
+        .expect("alpha must have OAuth1");
+    assert!(
+        header.starts_with("OAuth "),
+        "expected OAuth1 header prefix, got {header}"
+    );
+    assert!(
+        header.contains("alpha-consumer-key"),
+        "expected consumer-key threaded into header, got {header}"
+    );
+}
+
+#[test]
+fn oauth1_header_errors_when_active_app_has_no_token() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "a-id", "a-secret").unwrap();
+    // alpha has no OAuth1 tokens; default also has none. Active app is alpha.
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("alpha");
+
+    let err = auth
+        .get_oauth1_header("GET", "https://api.x.com/2/users/me", None)
+        .expect_err("should error rather than fall back to default");
+    assert!(
+        err.to_string().contains("OAuth1 token not found"),
+        "expected TokenNotFound on the active app, got {err}"
+    );
+}
+
+#[test]
+fn bearer_header_via_auth_routes_to_active_app() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "a-id", "a-secret").unwrap();
+    store.add_app("beta", "b-id", "b-secret").unwrap();
+    store
+        .save_bearer_token_for_app("alpha", "alpha-bearer")
+        .unwrap();
+    store
+        .save_bearer_token_for_app("beta", "beta-bearer")
+        .unwrap();
+
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+    auth.with_app_name("alpha");
+    assert_eq!(
+        auth.get_bearer_token_header().expect("alpha bearer"),
+        "Bearer alpha-bearer"
+    );
+
+    auth.with_app_name("beta");
+    assert_eq!(
+        auth.get_bearer_token_header().expect("beta bearer"),
+        "Bearer beta-bearer"
+    );
+}
+
+#[test]
+fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
+    use xurl::auth::oauth2::refresh_oauth2_token;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("alpha", "a-id", "a-secret").unwrap();
+    store.add_app("beta", "b-id", "b-secret").unwrap();
+    let far_future = 9_999_999_999;
+    store
+        .save_oauth2_token_for_app("alpha", "alice", "alpha-tok", "alpha-ref", far_future)
+        .unwrap();
+    store
+        .save_oauth2_token_for_app("beta", "bob", "beta-tok", "beta-ref", far_future)
+        .unwrap();
+
+    let cfg = empty_config();
+    let mut auth = Auth::new(&cfg).with_token_store(store);
+
+    auth.with_app_name("alpha");
+    assert_eq!(
+        refresh_oauth2_token(&mut auth, "alice").expect("alpha/alice"),
+        "alpha-tok"
+    );
+
+    auth.with_app_name("beta");
+    assert_eq!(
+        refresh_oauth2_token(&mut auth, "bob").expect("beta/bob"),
+        "beta-tok"
+    );
+
+    // Cross-check: alice does NOT exist in beta. Without the fix, the
+    // refresh path would have resolved to default (no tokens) instead of
+    // failing in beta — both arrive at "not found", but for the right
+    // reason now.
+    auth.with_app_name("beta");
+    let err = refresh_oauth2_token(&mut auth, "alice").expect_err("alice not in beta");
+    assert!(err.to_string().contains("oauth2 token not found"));
 }
