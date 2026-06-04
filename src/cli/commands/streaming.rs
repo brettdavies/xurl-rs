@@ -42,7 +42,7 @@ pub(super) fn stream_request_with_output(
 
     let method = options.method.to_uppercase();
     let method = if method.is_empty() { "GET" } else { &method };
-    let url = client.build_url_public(&options.endpoint);
+    let url = client.build_url_public(&options.target)?;
 
     let req_method = reqwest::Method::from_bytes(method.as_bytes())
         .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
@@ -92,10 +92,7 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status(
-        stderr,
-        &format!("Connecting to streaming endpoint: {}", options.endpoint),
-    );
+    out.status(stderr, &format!("Connecting to streaming endpoint: {url}"));
 
     let resp = builder.send()?;
 

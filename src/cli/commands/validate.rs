@@ -13,8 +13,8 @@ use std::path::Path;
 use serde::de::DeserializeOwned;
 
 use crate::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User,
+    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
+    MutingResult, RetweetedResult, Tweet, UsageData, User,
 };
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 use crate::output::OutputConfig;
@@ -36,7 +36,7 @@ const SCHEMA_UNKNOWN: &str = "unknown";
 fn known_schemas() -> &'static [&'static str] {
     &[
         "tweet", "tweets", "user", "users", "dm", "dms", "usage", "envelope", "like", "follow",
-        "delete", "repost", "bookmark", "block", "mute",
+        "delete", "repost", "bookmark", "mute",
     ]
 }
 
@@ -205,8 +205,6 @@ fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), Strin
             .or_else(|_| try_into::<RetweetedResult>(value)),
         "bookmark" => try_into::<ApiResponse<BookmarkedResult>>(value)
             .or_else(|_| try_into::<BookmarkedResult>(value)),
-        "block" => try_into::<ApiResponse<BlockingResult>>(value)
-            .or_else(|_| try_into::<BlockingResult>(value)),
         "mute" => try_into::<ApiResponse<MutingResult>>(value)
             .or_else(|_| try_into::<MutingResult>(value)),
         SCHEMA_UNKNOWN => Err(format!(

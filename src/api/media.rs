@@ -8,7 +8,7 @@ use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
-use super::request::{ApiClient, MultipartOptions, RequestOptions};
+use super::request::{ApiClient, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
@@ -66,7 +66,11 @@ pub fn execute_media_upload(
 
     let mut init_opts = base_opts.clone();
     init_opts.method = "POST".to_string();
-    init_opts.endpoint = format!("{MEDIA_ENDPOINT}/initialize");
+    init_opts.target = RequestTarget::Template {
+        path: "/2/media/upload/initialize".to_string(),
+        path_params: HashMap::new(),
+        query: Vec::new(),
+    };
     init_opts.data = init_body.to_string();
 
     let init_response: ApiResponse<MediaUploadResponse> =
@@ -93,7 +97,11 @@ pub fn execute_media_upload(
 
     let mut finalize_opts = base_opts.clone();
     finalize_opts.method = "POST".to_string();
-    finalize_opts.endpoint = format!("{MEDIA_ENDPOINT}/{media_id}/finalize");
+    finalize_opts.target = RequestTarget::Template {
+        path: "/2/media/upload/{id}/finalize".to_string(),
+        path_params: HashMap::from([("id".to_string(), media_id.clone())]),
+        query: Vec::new(),
+    };
     finalize_opts.data.clear();
 
     let finalize_response: ApiResponse<MediaUploadResponse> =
@@ -144,7 +152,6 @@ fn upload_chunks(
             break;
         }
 
-        let append_url = format!("{MEDIA_ENDPOINT}/{media_id}/append");
         let file_name = Path::new(file_path)
             .file_name()
             .map_or_else(|| "file".to_string(), |n| n.to_string_lossy().to_string());
@@ -155,7 +162,11 @@ fn upload_chunks(
         let multipart_opts = MultipartOptions {
             request: RequestOptions {
                 method: "POST".to_string(),
-                endpoint: append_url,
+                target: RequestTarget::Template {
+                    path: "/2/media/upload/{id}/append".to_string(),
+                    path_params: HashMap::from([("id".to_string(), media_id.to_string())]),
+                    query: Vec::new(),
+                },
                 headers: base_opts.headers.clone(),
                 auth_type: base_opts.auth_type.clone(),
                 username: base_opts.username.clone(),
@@ -239,7 +250,14 @@ fn check_media_status(
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let mut opts = base_opts.clone();
     opts.method = "GET".to_string();
-    opts.endpoint = format!("{MEDIA_ENDPOINT}?command=STATUS&media_id={media_id}");
+    opts.target = RequestTarget::Template {
+        path: "/2/media/upload".to_string(),
+        path_params: HashMap::new(),
+        query: vec![
+            ("command".to_string(), "STATUS".to_string()),
+            ("media_id".to_string(), media_id.to_string()),
+        ],
+    };
     opts.data.clear();
 
     deserialize_response(client.send_request(&opts)?)
@@ -308,7 +326,13 @@ pub fn handle_media_append_request(
     media_file: &str,
     client: &mut ApiClient,
 ) -> Result<serde_json::Value> {
-    let media_id = extract_media_id(&options.endpoint);
+    // Raw mode is the only caller — its target is a `RawUrl` carrying
+    // the user-supplied URL with the media_id embedded in the path.
+    let url_for_id = match &options.target {
+        RequestTarget::RawUrl(u) => u.clone(),
+        RequestTarget::Template { path, .. } => path.clone(),
+    };
+    let media_id = extract_media_id(&url_for_id);
     if media_id.is_empty() {
         return Err(XurlError::validation(
             "media_id is required for append endpoint",

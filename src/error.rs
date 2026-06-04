@@ -33,6 +33,29 @@ pub enum XurlError {
     #[error("{0}")]
     Validation(String),
 
+    /// Raw URL supplied with an unsupported scheme. Only `http://` and
+    /// `https://` are accepted; file/ftp/etc are rejected before any
+    /// network or filesystem activity.
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(String),
+
+    /// Path-parameter value contained a character that would break URL
+    /// semantics (`/`, `?`, `#`, or `%`). Surfaces real IDs that contain
+    /// stray separators rather than silently encoding them.
+    #[error("Invalid path parameter {name:?}: value {value:?} contains a reserved character")]
+    InvalidPathParam {
+        /// Name of the offending `{param}` segment in the path template.
+        name: String,
+        /// Caller-supplied value that failed validation.
+        value: String,
+    },
+
+    /// Internal invariant violated — typically a programmer error such as
+    /// a path template referencing a `{name}` segment that the caller never
+    /// supplied in `path_params`.
+    #[error("Internal error: {0}")]
+    Internal(String),
+
     /// JSON serialization / deserialization error.
     #[error("JSON Error: {0}")]
     Json(String),
@@ -120,6 +143,9 @@ impl XurlError {
     /// | `Json`                 | `serialization`  |
     /// | `InvalidMethod`        | `invalid-method` |
     /// | `Validation`           | `validation`     |
+    /// | `InvalidUrl`           | `invalid-url`    |
+    /// | `InvalidPathParam`     | `invalid-path-param` |
+    /// | `Internal`             | `internal`       |
     /// | `EnvelopeAlreadyEmitted` | `confirmation-required` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
@@ -135,6 +161,9 @@ impl XurlError {
             Self::Json(_) => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
             Self::Validation(_) => "validation",
+            Self::InvalidUrl(_) => "invalid-url",
+            Self::InvalidPathParam { .. } => "invalid-path-param",
+            Self::Internal(_) => "internal",
             Self::EnvelopeAlreadyEmitted { .. } => "confirmation-required",
         }
     }
@@ -157,7 +186,10 @@ impl XurlError {
             Self::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
             Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
             Self::Io(_) => EXIT_NETWORK_ERROR,
-            Self::Validation(_) => EXIT_GENERAL_ERROR,
+            Self::Validation(_)
+            | Self::InvalidUrl(_)
+            | Self::InvalidPathParam { .. }
+            | Self::Internal(_) => EXIT_GENERAL_ERROR,
             Self::EnvelopeAlreadyEmitted { exit_code } => *exit_code,
             _ => EXIT_GENERAL_ERROR,
         }

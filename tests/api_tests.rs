@@ -15,9 +15,11 @@ use tempfile::TempDir;
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use std::collections::HashMap;
+
 use xurl::api::{
-    self, ApiClient, CallOptions, RequestOptions, extract_media_id, extract_segment_index,
-    is_media_append_request, is_streaming_endpoint,
+    self, ApiClient, CallOptions, RequestOptions, RequestTarget, extract_media_id,
+    extract_segment_index, is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
 use xurl::config::Config;
@@ -205,6 +207,19 @@ fn base_call_opts() -> CallOptions {
     CallOptions::default()
 }
 
+/// Builds a `RequestTarget::Template` from a path with no params or query.
+///
+/// Keeps the test-side ergonomics close to the pre-U4 `endpoint:
+/// "/2/foo".to_string()` shorthand without rewriting every literal at
+/// each call site.
+fn target_path(path: &str) -> RequestTarget {
+    RequestTarget::Template {
+        path: path.to_string(),
+        path_params: HashMap::new(),
+        query: Vec::new(),
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // api/endpoints_test.go — TestIsStreamingEndpoint
 // ═══════════════════════════════════════════════════════════════════════════
@@ -295,7 +310,7 @@ fn test_build_request_get() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         ..Default::default()
     };
 
@@ -322,7 +337,7 @@ fn test_build_request_post() {
 
     let opts = RequestOptions {
         method: "POST".to_string(),
-        endpoint: "/2/tweets".to_string(),
+        target: target_path("/2/tweets"),
         data: r#"{"text":"Hello world!"}"#.to_string(),
         ..Default::default()
     };
@@ -352,7 +367,7 @@ fn test_build_request_with_auth_bearer() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "app".to_string(),
         ..Default::default()
     };
@@ -378,7 +393,7 @@ fn test_build_request_with_auth_oauth1() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "oauth1".to_string(),
         ..Default::default()
     };
@@ -404,7 +419,7 @@ fn test_build_request_with_auth_oauth2() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "oauth2".to_string(),
         username: "testuser".to_string(),
         ..Default::default()
@@ -436,7 +451,7 @@ fn test_send_request_success() {
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/users/me".to_string(),
+            target: target_path("/2/users/me"),
             ..Default::default()
         })
         .unwrap();
@@ -463,7 +478,7 @@ fn test_send_request_http_error() {
     let err = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/tweets/search/recent".to_string(),
+            target: target_path("/2/tweets/search/recent"),
             ..Default::default()
         })
         .unwrap_err();
@@ -488,7 +503,7 @@ fn test_send_request_json_parse_error() {
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/bad-json".to_string(),
+            target: target_path("/2/bad-json"),
             ..Default::default()
         })
         .unwrap();
@@ -521,7 +536,7 @@ fn slow_endpoint_trips_explicit_timeout() {
     let err = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/slow".to_string(),
+            target: target_path("/2/slow"),
             ..Default::default()
         })
         .expect_err("a 1s timeout must fire before the 10s server delay");
@@ -895,7 +910,7 @@ fn test_media_upload_init() {
 
     let resp = client.send_request(&RequestOptions {
         method: "POST".to_string(),
-        endpoint: "/2/media/upload/initialize".to_string(),
+        target: target_path("/2/media/upload/initialize"),
         data: serde_json::json!({"total_bytes": 1024, "media_type": "image/jpeg", "media_category": "tweet_image"}).to_string(),
         ..Default::default()
     }).unwrap();
@@ -919,7 +934,7 @@ fn test_media_upload_finalize() {
     let resp = client
         .send_request(&RequestOptions {
             method: "POST".to_string(),
-            endpoint: "/2/media/upload/test_media_id/finalize".to_string(),
+            target: target_path("/2/media/upload/test_media_id/finalize"),
             ..Default::default()
         })
         .unwrap();
@@ -945,7 +960,14 @@ fn test_media_upload_check_status() {
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/media/upload?command=STATUS&media_id=test_media_id".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload".to_string(),
+                path_params: HashMap::new(),
+                query: vec![
+                    ("command".to_string(), "STATUS".to_string()),
+                    ("media_id".to_string(), "test_media_id".to_string()),
+                ],
+            },
             ..Default::default()
         })
         .unwrap();
@@ -972,7 +994,7 @@ fn test_stream_request_error() {
         .stream_request(
             &RequestOptions {
                 method: "GET".to_string(),
-                endpoint: "/2/tweets/search/stream/error".to_string(),
+                target: target_path("/2/tweets/search/stream/error"),
                 ..Default::default()
             },
             &mut stdout,
@@ -1677,7 +1699,7 @@ fn test_no_auth_with_raw_send_request() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/test".to_string(),
+        target: target_path("/2/test"),
         no_auth: true,
         ..Default::default()
     };
@@ -1704,7 +1726,7 @@ fn test_no_auth_with_raw_send_request() {
 
     let opts2 = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/test".to_string(),
+        target: target_path("/2/test"),
         no_auth: false,
         ..Default::default()
     };
