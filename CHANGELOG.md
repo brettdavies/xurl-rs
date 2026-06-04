@@ -58,6 +58,8 @@ All notable changes to this project will be documented in this file.
 - `schema/responses/<command>.schema.json` for every entry in `SCHEMA_ENTRIES` (35 files at v1.3.0): the 14 existing typed shortcut commands plus `auth-status`, `auth-apps-list`, `redirect-uri-get`, `redirect-uri-set`, `skill-install`, and `skill-install-all`. Downstream agents and CI consumers can pin against the on-disk JSON Schemas without invoking `xr`. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
 - `scripts/generate-response-schemas.sh` regenerates the per-command files by enumerating commands via `xr schema --list` and dumping each via `xr schema <cmd> --output json`.
 - Typed `RedirectUriGetResponse` and `RedirectUriSetResponse` for the `auth apps redirect-uri get` / `set` JSON output paths, replacing the prior ad-hoc `serde_json::json!()` shapes so the schema is derivable.
+- `XURL_BEARER_TOKEN` env var now feeds `Auth::get_bearer_token_header`, so one-shot agent flows can pipe a bearer through the environment without first running `xr auth app --bearer-token`. Resolution order is env-supplied bearer first, then the resolved app's stored bearer; empty env values fall through. Matches the precedence shape of every other agentic flag (`XURL_VERBOSE`, `XURL_OUTPUT`, `XURL_NO_BROWSER`). by @brettdavies in [#51](https://github.com/brettdavies/xurl-rs/pull/51)
+- `xurl::auth::resolve_bearer_token` public free function factored out of `get_bearer_token_header` so library consumers and unit tests can exercise every precedence branch without touching the process environment.
 
 ### Changed
 
@@ -108,6 +110,7 @@ All notable changes to this project will be documented in this file.
 - Stop leaking streaming status messages such as `Connecting to streaming endpoint` and `--- Streaming response started ---` to stderr under JSON mode. by @brettdavies in [#40](https://github.com/brettdavies/xurl-rs/pull/40)
 - Clear `XURL_DRY_RUN` before spawning `xr` in U9 subprocess tests so parallel test scheduling cannot leak the var and flake the awaiting_callback assertions. by @brettdavies in [#44](https://github.com/brettdavies/xurl-rs/pull/44)
 - `tests/schema_tests.rs::committed_response_schemas_match_runtime` drift guard asserts byte-equality between every `schema/responses/*.schema.json` and the runtime-emitted shape; CI fails on drift with the regen command in the error message. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
+- `xr <subcommand> --app NAME` now correctly resolves `client_id` and `client_secret` to NAME's stored values across `Auth::with_app_name` and `Auth::with_token_store` switches. The previous "preserve if non-empty" check could not distinguish env-supplied values from values copied off the previous app's store entry during `Auth::new_with_store_path`, so `--app NAME` switches silently re-used the previous app's stored `client_id`. The user-facing symptom was an OAuth2 step-1 URL carrying the wrong `client_id`, yielding a 401 from X. `Auth` now tracks origin via two new `client_id_from_env` and `client_secret_from_env` fields, and `with_token_store` drops the older `self.client_id == old_app.client_id` equality heuristic. by @brettdavies in [#51](https://github.com/brettdavies/xurl-rs/pull/51)
 
 ### Documentation
 
@@ -122,6 +125,11 @@ All notable changes to this project will be documented in this file.
 - Update `xr schema --list` rustdoc and the `xr schema` usage string to advertise the new `envelope` row and `xr schema envelope` invocation.
 - Note in root `xr --help` that `xr` writes directly to stdout and stderr and never invokes `$PAGER`, so output is pipe-safe by default and no `--no-pager` flag is required. by @brettdavies in [#41](https://github.com/brettdavies/xurl-rs/pull/41)
 - Add 11 output-writer tests, 8 agentic subprocess tests, and 2 wiremock pagination tests covering each new format, the cursor query-parameter threading and URL encoding, the unsupported-pagination envelope, and ok and fail paths for `xr validate`. by @brettdavies in [#46](https://github.com/brettdavies/xurl-rs/pull/46)
+- Split the bearer preflight gate in `RELEASES-PREFLIGHT.md` into two subgates so the env-var one-shot path (`XURL_BEARER_TOKEN=… xr <shortcut> --auth app`) and the stored two-step path (`xr auth app --bearer-token` then `--auth app`) are both explicitly verified before tagging. The single combined line previously documented only the env-var inline form, which the bearer resolver did not honor until this PR. by @brettdavies in [#51](https://github.com/brettdavies/xurl-rs/pull/51)
+
+### Tests
+
+- 11 red team tests in `tests/auth_tests.rs`: 7 cover bearer resolution (env-only, env-overrides-store, env-empty falls through, env-unset falls through, neither-set errors, env-empty + store-empty errors, real-env integration via `std::env::set_var` behind an `unsafe` guard mirroring `test_env_redirect_uri_wins_over_app_stored`); 4 cover app-switch precedence (env-supplied `client_id` survives a switch, store-derived `client_id` re-resolves to new app's stored value, round-trip default to bird-dev to default re-resolves correctly, `client_secret` follows the same contract). by @brettdavies in [#51](https://github.com/brettdavies/xurl-rs/pull/51)
 
 **Full Changelog**: [v1.2.0...v1.3.0](https://github.com/brettdavies/xurl-rs/compare/v1.2.0...v1.3.0)
 
