@@ -1994,7 +1994,7 @@ fn skill_install_dry_run_emits_envelope_without_spawning_git() {
         "command_preview shape unexpected: {preview}"
     );
     assert!(
-        preview.contains("github.com/brettdavies/xurl-rs.git"),
+        preview.contains("github.com/brettdavies/xurl-rs-skill.git"),
         "command_preview missing repo URL: {preview}"
     );
     let install_dir = v["install_dir"].as_str().expect("install_dir string");
@@ -2131,7 +2131,7 @@ fn skill_install_dry_run_text_output_is_single_line_command() {
         "text dry-run output shape unexpected: {line}"
     );
     assert!(
-        line.contains("xurl-rs.git"),
+        line.contains("xurl-rs-skill.git"),
         "text dry-run missing repo URL: {line}"
     );
 }

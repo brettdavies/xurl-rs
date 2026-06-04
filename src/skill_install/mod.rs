@@ -818,7 +818,7 @@ mod tests {
         let s = format_clone_command(skill_repo_url(), "/home/u/.claude/skills/xurl-rs");
         assert_eq!(
             s,
-            "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git /home/u/.claude/skills/xurl-rs",
+            "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git /home/u/.claude/skills/xurl-rs",
         );
     }
 
