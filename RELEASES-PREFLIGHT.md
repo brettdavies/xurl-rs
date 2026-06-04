@@ -59,8 +59,11 @@ live API. Pick fresh targets each release.
   write-scoped shortcut. Confirms the PKCE flow and refresh-token rotation still work.
 - [ ] OAuth2 headless (`--no-browser`) path: same exercise on a host without a graphical browser. Confirms the
   copy-paste-the-URL flow still works.
-- [ ] Bearer token path: `XURL_BEARER_TOKEN=… xr <read-only-shortcut>`. Confirms app-auth still works for read-only
-  endpoints.
+- [ ] Bearer token (env var, one-shot): `XURL_BEARER_TOKEN=… xr <read-only-shortcut> --auth app`. Confirms
+  `Auth::get_bearer_token_header` honors the env var without a persisted store entry, the pattern stateless containers
+  and agents pipe a bearer through.
+- [ ] Bearer token (stored, two-step): `xr auth app --bearer-token "$(…)"` then `xr <read-only-shortcut> --auth app`.
+  Confirms the persisted bearer in `~/.xurl` still loads for callers that opt into the store-backed path.
 - [ ] Media upload: `xr media-upload <image>`. Confirms the chunked-upload state machine still works (`INIT` → `APPEND`
   → `FINALIZE` → poll `STATUS` until `processing_info.state` is `succeeded`).
 - [ ] Output formats: `--output text`, `--output json`, `--output jsonl` for one streaming and one non-streaming
