@@ -7,15 +7,15 @@
   "license": "MIT OR Apache-2.0",
   "source": {
     "type": "git",
-    "url": "https://github.com/brettdavies/xurl-rs.git"
+    "url": "https://github.com/brettdavies/xurl-rs-skill.git"
   },
   "install": {
-    "claude_code": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.claude/skills/xurl-rs",
-    "codex": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.codex/skills/xurl-rs",
-    "cursor": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.cursor/skills/xurl-rs",
-    "factory": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.factory/skills/xurl-rs",
-    "kiro": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.kiro/skills/xurl-rs",
-    "opencode": "git clone --depth 1 https://github.com/brettdavies/xurl-rs.git ~/.config/opencode/skills/xurl-rs"
+    "claude_code": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.claude/skills/xurl-rs",
+    "codex": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.codex/skills/xurl-rs",
+    "cursor": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.cursor/skills/xurl-rs",
+    "factory": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.factory/skills/xurl-rs",
+    "kiro": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.kiro/skills/xurl-rs",
+    "opencode": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.config/opencode/skills/xurl-rs"
   },
   "update": "cd <install-dir> && git pull --ff-only",
   "uninstall": "rm -rf <install-dir>"
