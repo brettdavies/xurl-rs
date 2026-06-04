@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.0] - 2026-06-03
+## [1.3.0] - 2026-06-04
 
 ### Added
 
@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - `xr auth default` without an app argument now gates the dialoguer picker on `--no-interactive` AND stdin/stderr TTY-ness. Non-TTY sessions exit non-zero with a `{"status":"error","reason":"no-tty","exit_code":1,...}` envelope on stderr instead of stranding the dialoguer state machine on `/dev/null`. by @brettdavies in [#43](https://github.com/brettdavies/xurl-rs/pull/43)
 - `xr auth oauth2 --no-browser` (no `--step`) now auto-promotes to step 1 and emits the canonical `{"status":"awaiting_callback","url":"..."}` envelope, instead of rejecting the invocation as "requires --step 1 or --step 2". The explicit `--no-browser --step 1` path keeps its prior envelope shape.
 - `AppStatusEntry`, `InstallEnvelope`, `InstallMultiEnvelope`, and `ResolveSource` now derive `schemars::JsonSchema`. `AppStatusEntry` is `pub(crate)` so the `xr schema` module can reference it. by @brettdavies in [#48](https://github.com/brettdavies/xurl-rs/pull/48)
+- `xr skill install` and `xr skill update` now clone from `brettdavies/xurl-rs-skill` instead of `brettdavies/xurl-rs`. The skill bundle (`AGENTS.md`, fixtures, templates, evals, scripts) lives in its own repo so the install path no longer pulls the entire `xurl-rs` source tree. Install directories (`~/.claude/skills/xurl-rs/`, `~/.codex/skills/xurl-rs/`, …) stay the same; only the source URL moves. by @brettdavies in [#49](https://github.com/brettdavies/xurl-rs/pull/49)
 
 ### Fixed
 
