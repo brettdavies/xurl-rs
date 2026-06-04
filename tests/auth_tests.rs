@@ -9,9 +9,9 @@ use std::collections::BTreeMap;
 use rstest::rstest;
 use tempfile::TempDir;
 
-use xurl::auth::Auth;
 use xurl::auth::oauth1::{encode, generate_nonce, generate_timestamp};
 use xurl::auth::oauth2::{generate_code_verifier_and_challenge, get_oauth2_scopes};
+use xurl::auth::{Auth, resolve_bearer_token};
 use xurl::config::Config;
 use xurl::store::{App, TokenStore};
 
@@ -552,4 +552,225 @@ fn test_with_app_name_env_override_survives_app_switch() {
     }
 
     assert_eq!(still_env_after_switch, "https://envvar.example.com/cb");
+}
+
+// ── TestResolveBearerToken (env fallback for bearer auth) ──────────────────
+//
+// `resolve_bearer_token` is the pure resolver factored out of
+// `Auth::get_bearer_token_header`. The unit tests exercise every precedence
+// branch without touching the process environment, per the project's
+// no-env-mutation test-isolation policy. One integration-style test below
+// (`get_bearer_token_header_reads_real_env`) explicitly sets the env var
+// behind an `unsafe { set_var }` guard to verify the production wrapper.
+
+#[test]
+fn resolve_bearer_returns_env_when_set_and_store_empty() {
+    let (token_store, _tmp) = create_temp_token_store();
+    let header = resolve_bearer_token(Some("env-only-bearer".to_string()), &token_store)
+        .expect("env token should resolve");
+    assert_eq!(header, "Bearer env-only-bearer");
+}
+
+#[test]
+fn resolve_bearer_env_overrides_stored_bearer() {
+    let (mut token_store, _tmp) = create_temp_token_store();
+    token_store
+        .save_bearer_token("stored-bearer")
+        .expect("save_bearer_token must succeed");
+
+    let header = resolve_bearer_token(Some("env-wins".to_string()), &token_store)
+        .expect("env token should resolve");
+    assert_eq!(
+        header, "Bearer env-wins",
+        "env-supplied bearer must win over stored bearer"
+    );
+}
+
+#[test]
+fn resolve_bearer_falls_back_to_store_when_env_empty() {
+    let (mut token_store, _tmp) = create_temp_token_store();
+    token_store
+        .save_bearer_token("stored-bearer")
+        .expect("save_bearer_token must succeed");
+
+    let header = resolve_bearer_token(Some(String::new()), &token_store)
+        .expect("empty env should fall through to store");
+    assert_eq!(
+        header, "Bearer stored-bearer",
+        "Some(\"\") env must be treated as unset and fall through"
+    );
+}
+
+#[test]
+fn resolve_bearer_falls_back_to_store_when_env_unset() {
+    let (mut token_store, _tmp) = create_temp_token_store();
+    token_store
+        .save_bearer_token("stored-bearer")
+        .expect("save_bearer_token must succeed");
+
+    let header = resolve_bearer_token(None, &token_store).expect("store should resolve");
+    assert_eq!(header, "Bearer stored-bearer");
+}
+
+#[test]
+fn resolve_bearer_errors_when_neither_set() {
+    let (token_store, _tmp) = create_temp_token_store();
+    let err = resolve_bearer_token(None, &token_store).expect_err("no env, no store should error");
+    assert!(
+        err.to_string().contains("bearer token not found"),
+        "expected TokenNotFound message, got: {err}"
+    );
+}
+
+#[test]
+fn resolve_bearer_errors_when_env_empty_and_store_empty() {
+    let (token_store, _tmp) = create_temp_token_store();
+    let err = resolve_bearer_token(Some(String::new()), &token_store)
+        .expect_err("empty env + empty store should error");
+    assert!(err.to_string().contains("bearer token not found"));
+}
+
+#[test]
+fn get_bearer_token_header_reads_real_env() {
+    // Production wrapper covers the path that pulls from `std::env`. Mutates
+    // env behind an `unsafe` guard to mirror the existing
+    // `test_env_redirect_uri_wins_over_app_stored` pattern. The var name is
+    // unique enough that parallel-test contamination is unlikely; the cleanup
+    // is unconditional so a panic mid-test still restores process state.
+    let cfg = empty_config();
+    let (token_store, _tmp) = create_temp_token_store();
+    let auth = Auth::new(&cfg).with_token_store(token_store);
+
+    unsafe {
+        std::env::set_var("XURL_BEARER_TOKEN", "integration-env-bearer");
+    }
+    let header_with_env = auth.get_bearer_token_header();
+    unsafe {
+        std::env::remove_var("XURL_BEARER_TOKEN");
+    }
+
+    let header = header_with_env.expect("env-supplied bearer should resolve");
+    assert_eq!(header, "Bearer integration-env-bearer");
+}
+
+// ── TestWithAppName (client_id env precedence across app switches) ────────
+//
+// The `client_id_from_env` / `client_secret_from_env` flags on `Auth` track
+// where credentials originally came from so a later `with_app_name` switch
+// honors env precedence correctly. Without the flags, the older
+// "preserve if non-empty" check could not distinguish env-supplied values
+// from values loaded off the previous app's store entry, so subsequent
+// `--app NAME` switches silently re-used the previous app's stored
+// client_id (the user-facing bug surfaced during v1.3.0 preflight smoke).
+
+fn token_store_with_two_apps(
+    default_id: &str,
+    second_name: &str,
+    second_id: &str,
+) -> (TokenStore, TempDir) {
+    let (mut ts, tmp) = create_temp_token_store();
+    ts.apps
+        .get_mut("default")
+        .expect("default app must exist")
+        .client_id = default_id.to_string();
+    ts.apps
+        .get_mut("default")
+        .expect("default app must exist")
+        .client_secret = format!("{default_id}-secret");
+    ts.apps.insert(
+        second_name.to_string(),
+        App {
+            client_id: second_id.to_string(),
+            client_secret: format!("{second_id}-secret"),
+            default_user: String::new(),
+            redirect_uri: String::new(),
+            oauth2_tokens: BTreeMap::new(),
+            oauth1_token: None,
+            bearer_token: None,
+            unnamed_oauth2_token: None,
+        },
+    );
+    (ts, tmp)
+}
+
+#[test]
+fn with_app_name_loads_new_app_client_id_when_no_env() {
+    // cfg.client_id empty => Auth picks default app's "default-id" from store.
+    // After `with_app_name("bird-dev")`, client_id must be re-resolved to
+    // "bird-id", not silently retained as "default-id".
+    let cfg = empty_config();
+    let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
+    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+
+    assert_eq!(
+        auth.client_id(),
+        "default-id",
+        "Auth must load default app's id"
+    );
+
+    auth.with_app_name("bird-dev");
+    assert_eq!(
+        auth.client_id(),
+        "bird-id",
+        "with_app_name must re-resolve client_id from the new app's store entry"
+    );
+}
+
+#[test]
+fn with_app_name_loads_new_app_client_secret_when_no_env() {
+    let cfg = empty_config();
+    let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
+    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+
+    auth.with_app_name("bird-dev");
+    assert_eq!(auth.client_secret(), "bird-id-secret");
+}
+
+#[test]
+fn with_app_name_preserves_env_supplied_client_id_across_switches() {
+    // cfg.client_id non-empty => env-supplied. After switching to bird-dev,
+    // the env value must remain even though bird-dev's stored value is
+    // different. The old "preserve if non-empty" check happened to satisfy
+    // this case, but the explicit flag makes the invariant load-bearing.
+    let mut cfg = empty_config();
+    cfg.client_id = "from-env".to_string();
+    cfg.client_secret = "secret-from-env".to_string();
+
+    let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
+    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+
+    assert_eq!(auth.client_id(), "from-env");
+    assert_eq!(auth.client_secret(), "secret-from-env");
+
+    auth.with_app_name("bird-dev");
+    assert_eq!(
+        auth.client_id(),
+        "from-env",
+        "env-supplied client_id must survive a `with_app_name` switch"
+    );
+    assert_eq!(
+        auth.client_secret(),
+        "secret-from-env",
+        "env-supplied client_secret must survive a `with_app_name` switch"
+    );
+}
+
+#[test]
+fn with_app_name_back_to_default_re_resolves_from_default_app() {
+    // Round-trip: default => bird-dev => default. Without the env flag,
+    // step three would retain bird-dev's "bird-id" because of the old
+    // "if empty" check. The fix re-resolves correctly.
+    let cfg = empty_config();
+    let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
+    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+
+    auth.with_app_name("bird-dev");
+    assert_eq!(auth.client_id(), "bird-id");
+
+    auth.with_app_name("default");
+    assert_eq!(
+        auth.client_id(),
+        "default-id",
+        "switching back to default must re-resolve to default's stored id"
+    );
 }

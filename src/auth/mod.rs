@@ -24,6 +24,16 @@ pub struct Auth {
     config: Config,
     client_id: String,
     client_secret: String,
+    /// `true` iff [`Self::client_id`] was supplied via the `CLIENT_ID` env
+    /// var at construction. Preserved across [`Self::with_app_name`] switches
+    /// so env precedence holds even after the active app changes. Without
+    /// this flag, the older "preserve if non-empty" check could not
+    /// distinguish env-supplied values from values copied off the previous
+    /// app's store entry, so subsequent `--app NAME` switches silently
+    /// re-used the previous app's stored client_id.
+    client_id_from_env: bool,
+    /// Counterpart to [`Self::client_id_from_env`] for client_secret.
+    client_secret_from_env: bool,
     app_name: String,
 }
 
@@ -54,15 +64,21 @@ impl Auth {
         let ts =
             TokenStore::new_with_credentials_and_path(&cfg.client_id, &cfg.client_secret, path_str);
 
+        // Env-origin is recorded BEFORE falling back to the store so a later
+        // `with_app_name` switch can correctly preserve env-supplied values
+        // and re-resolve store-derived ones from the new app's entry.
+        let client_id_from_env = !cfg.client_id.is_empty();
+        let client_secret_from_env = !cfg.client_secret.is_empty();
+
         let mut client_id = cfg.client_id.clone();
         let mut client_secret = cfg.client_secret.clone();
         let app_name = cfg.app_name.clone();
 
         let app = ts.resolve_app(&app_name);
-        if client_id.is_empty() {
+        if !client_id_from_env {
             client_id.clone_from(&app.client_id);
         }
-        if client_secret.is_empty() {
+        if !client_secret_from_env {
             client_secret.clone_from(&app.client_secret);
         }
 
@@ -80,23 +96,29 @@ impl Auth {
             config,
             client_id,
             client_secret,
+            client_id_from_env,
+            client_secret_from_env,
             app_name,
         }
     }
 
     /// Sets the explicit app name override and re-resolves the redirect URI.
     ///
-    /// Credentials follow the "preserve if non-empty" pattern (env var or
-    /// upstream-supplied values survive the switch). The redirect URI does
-    /// NOT (KTD3): env-precedence is enforced inside the resolver itself, so
-    /// re-running unconditionally produces the right value for the new app.
+    /// Credentials honor env precedence per the internal
+    /// `client_id_from_env` / `client_secret_from_env` flags:
+    /// env-supplied values survive the switch; store-derived values
+    /// get re-resolved from the new app's
+    /// entry, even when the previous app's stored value was non-empty.
+    /// The redirect URI is always re-resolved (env-precedence is enforced
+    /// inside the resolver itself, so re-running unconditionally produces
+    /// the right value per KTD3).
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
-        if self.client_id.is_empty() {
+        if !self.client_id_from_env {
             self.client_id = app.client_id.clone();
         }
-        if self.client_secret.is_empty() {
+        if !self.client_secret_from_env {
             self.client_secret = app.client_secret.clone();
         }
 
@@ -283,21 +305,26 @@ impl Auth {
 
     /// Gets the bearer token Authorization header.
     ///
+    /// Resolution order: `XURL_BEARER_TOKEN` env var first (one-shot agent
+    /// flows that pipe a secret without persisting it to disk), then the
+    /// token store entry on the resolved app. Empty env values fall through
+    /// to the store. The env var matches the precedence shape used by every
+    /// other agentic flag (`XURL_VERBOSE`, `XURL_OUTPUT`, `XURL_NO_BROWSER`,
+    /// etc.) and pairs with `XURL_OUTPUT=json xr ... --auth app` for stateless
+    /// container invocations.
+    ///
+    /// Production code reads `XURL_BEARER_TOKEN` from the process environment.
+    /// The resolution logic is factored into [`resolve_bearer_token`] so unit
+    /// tests can exercise every precedence path without mutating the global
+    /// environment (the project policy in MEMORY: no env mutation in tests,
+    /// no `#[serial]`).
+    ///
     /// # Errors
     ///
-    /// Returns an error if no bearer token is found in the token store.
+    /// Returns an error if `XURL_BEARER_TOKEN` is unset (or empty) AND no
+    /// bearer token is stored for the resolved app.
     pub fn get_bearer_token_header(&self) -> Result<String> {
-        let token = self
-            .token_store
-            .get_bearer_token()
-            .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
-
-        let bearer = token
-            .bearer
-            .as_ref()
-            .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
-
-        Ok(format!("Bearer {bearer}"))
+        resolve_bearer_token(std::env::var("XURL_BEARER_TOKEN").ok(), &self.token_store)
     }
 
     /// Fetches the username for an access token from the /2/users/me endpoint.
@@ -329,18 +356,21 @@ impl Auth {
 
     /// Replaces the token store (used in integration tests).
     ///
-    /// Re-resolves credentials from the new store's active app when
-    /// they came from the old store (not from config/env vars), so
-    /// stale credentials from the real `~/.xurl` don't leak into tests.
+    /// Honors the internal env-precedence flags
+    /// (`client_id_from_env` / `client_secret_from_env`):
+    /// env-supplied values survive the swap; store-derived values get
+    /// re-resolved from the new store's
+    /// active app. Replaces the older equality-based heuristic
+    /// (`self.client_id == old_app.client_id`) which produced false
+    /// negatives when the old and new stores happened to share a value.
     #[allow(dead_code)] // Public library API — used by consumers and integration tests
     #[must_use]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
-        let old_app = self.token_store.resolve_app(&self.app_name);
         let new_app = token_store.resolve_app(&self.app_name);
-        if self.client_id == old_app.client_id {
+        if !self.client_id_from_env {
             self.client_id = new_app.client_id.clone();
         }
-        if self.client_secret == old_app.client_secret {
+        if !self.client_secret_from_env {
             self.client_secret = new_app.client_secret.clone();
         }
         self.token_store = token_store;
@@ -385,6 +415,42 @@ impl Auth {
     pub fn http_timeout_secs(&self) -> u64 {
         self.config.http_timeout_secs
     }
+}
+
+/// Pure resolver for the bearer Authorization header.
+///
+/// Encapsulates the precedence between an env-supplied bearer (typically
+/// `XURL_BEARER_TOKEN`) and the resolved app's stored bearer in the token
+/// store. Factored out of [`Auth::get_bearer_token_header`] so unit tests
+/// can exercise every branch (env-only, store-only, env-overrides-store,
+/// env-empty-falls-through, neither-set) without touching the process
+/// environment, per the test-isolation policy.
+///
+/// `env_token` is `None` when the env var is unset, `Some("")` when it is set
+/// to the empty string (which falls through to the store), and `Some(value)`
+/// when it carries a non-empty token that wins.
+///
+/// # Errors
+///
+/// Returns an error if `env_token` is `None` or `Some("")` AND no bearer
+/// token is stored for the resolved app.
+pub fn resolve_bearer_token(env_token: Option<String>, store: &TokenStore) -> Result<String> {
+    if let Some(token) = env_token
+        && !token.is_empty()
+    {
+        return Ok(format!("Bearer {token}"));
+    }
+
+    let token = store
+        .get_bearer_token()
+        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+
+    let bearer = token
+        .bearer
+        .as_ref()
+        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+
+    Ok(format!("Bearer {bearer}"))
 }
 
 // Compile-time guarantee: `Auth` is `Send + Sync` so it can be shared across
