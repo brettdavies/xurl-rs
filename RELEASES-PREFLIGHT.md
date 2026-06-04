@@ -71,6 +71,43 @@ live API. Pick fresh targets each release.
 - [ ] Error paths: drive at least one 401 (revoked token), one 429 (rate-limited), and one 4xx-with-error-body response.
   Confirms `XurlError` mapping still produces useful messages, not raw upstream JSON dumps.
 
+### Multi-app credential routing
+
+Auth methods exist on `Auth` as `--app NAME`-aware reads and writes. The legacy code paths used the store's no-arg
+accessors, which fell back to the default app and silently bypassed NAME's credentials; the v1.3.0 multi-app credential
+routing fix scoped every read and write to the active app. These gates verify the routing stays correct across OAuth1,
+OAuth2, and bearer, and that the auto-default UX still fires on the first signed-in app. Each gate needs at least two
+registered apps to exercise the cross-app path; reuse the existing dev and prod app entries in 1Password where
+applicable.
+
+- [ ] OAuth2 `--app NAME` save and read isolation: register `alpha` and `beta` apps, run `xr auth oauth2 --app alpha
+  --no-browser --step 1/2` for one X account and the same flow for a different account against `--app beta`, then
+  confirm via `cat ~/.xurl` that each app holds its own `oauth2_tokens` map and neither overwrites the other. Subsequent
+  `xr whoami --app alpha --auth oauth2` and `xr whoami --app beta --auth oauth2` return the right identity. Confirms
+  `refresh_oauth2_token` and the active-app lookup did not regress to the empty-string default app context.
+- [ ] OAuth1 `--app NAME` save and read isolation: `xr auth oauth1 --app alpha --consumer-key K --consumer-secret S
+  --access-token T --token-secret TS` lands the credentials under `alpha`, not `default`. `xr whoami --app alpha --auth
+  oauth1` produces the alpha-signed HMAC header; the same call with `--app beta` errors with `TokenNotFound` rather than
+  falling back to alpha's credentials.
+- [ ] Bearer `--app NAME` save and read isolation: `xr auth app --bearer-token "$(…)" --app alpha` lands the bearer
+  under `alpha`; the default app retains its own bearer (or stays empty). `xr search "x" --auth app --app alpha` and `xr
+  search "x" --auth app --app beta` send different `Authorization` headers (or 401 on the empty one). Confirms
+  `save_bearer_token_for_app` and `resolve_bearer_token(_, _, "alpha")` route correctly.
+- [ ] Auto-detect with `--app NAME`: with two apps each holding a different auth method (e.g., alpha has OAuth2, beta
+  has bearer), `xr <read-shortcut> --app alpha` and `xr <read-shortcut> --app beta` both succeed without an explicit
+  `--auth` flag. Confirms `ApiClient::get_auth_header`'s auto-detect probes the active app, not the default.
+- [ ] First-signed-in-app auto-default: with `~/.xurl` containing only an uninitialized placeholder default, `xr auth
+  oauth2 --app NAME --no-browser --step 2 …` flips `default_app: NAME` in the YAML and `xr whoami` (no `--app` flag)
+  returns the authenticated profile. Repeat under OAuth1 (`xr auth oauth1 --app NAME …`) and bearer (`xr auth app
+  --bearer-token … --app NAME`). Confirms `promote_to_default_if_first_credentialed` fires on every sign-in handler.
+- [ ] Promotion idempotence: after the auto-default has fired once, a second `xr auth oauth2 --app OTHER --no-browser
+  --step 2 …` does NOT overwrite the existing default. User can still call `xr auth default OTHER` explicitly to switch.
+  Confirms the helper's no-op-on-credentialed-default contract.
+- [ ] Auth-error envelope vs upstream 401: with no token stored for the requested auth path (e.g., `xr search "x" --auth
+  oauth1` against an app that has no OAuth1 entry), the error envelope is `auth-required` with `message:` mentioning
+  `TokenNotFound` rather than a wrapped X 401 body. Confirms `ApiClient::send_request` propagates auth errors instead of
+  silently sending an unauthenticated request that surfaces as an upstream rejection.
+
 ### Distribution and install paths
 
 The release builds cross-compiled binaries and the homebrew tap dispatches downstream. None of this runs in `cargo

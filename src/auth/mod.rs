@@ -142,9 +142,15 @@ impl Auth {
         url_str: &str,
         additional_params: Option<&std::collections::BTreeMap<String, String>>,
     ) -> Result<String> {
+        // Multi-app resolution: read the OAuth1 token from the active app
+        // (set by `with_app_name` from the `--app NAME` CLI flag) rather
+        // than from the legacy no-arg `get_oauth1_tokens()` which falls
+        // back to the default app. Without this scoping, a token saved
+        // under NAME via `xr auth oauth1 --app NAME` would be invisible
+        // to subsequent `--app NAME --auth oauth1` invocations.
         let token = self
             .token_store
-            .get_oauth1_tokens()
+            .get_oauth1_tokens_for_app(&self.app_name)
             .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
 
         let oauth1_token = token
@@ -324,7 +330,11 @@ impl Auth {
     /// Returns an error if `XURL_BEARER_TOKEN` is unset (or empty) AND no
     /// bearer token is stored for the resolved app.
     pub fn get_bearer_token_header(&self) -> Result<String> {
-        resolve_bearer_token(std::env::var("XURL_BEARER_TOKEN").ok(), &self.token_store)
+        resolve_bearer_token(
+            std::env::var("XURL_BEARER_TOKEN").ok(),
+            &self.token_store,
+            &self.app_name,
+        )
     }
 
     /// Fetches the username for an access token from the /2/users/me endpoint.
@@ -420,7 +430,7 @@ impl Auth {
 /// Pure resolver for the bearer Authorization header.
 ///
 /// Encapsulates the precedence between an env-supplied bearer (typically
-/// `XURL_BEARER_TOKEN`) and the resolved app's stored bearer in the token
+/// `XURL_BEARER_TOKEN`) and the active app's stored bearer in the token
 /// store. Factored out of [`Auth::get_bearer_token_header`] so unit tests
 /// can exercise every branch (env-only, store-only, env-overrides-store,
 /// env-empty-falls-through, neither-set) without touching the process
@@ -430,11 +440,20 @@ impl Auth {
 /// to the empty string (which falls through to the store), and `Some(value)`
 /// when it carries a non-empty token that wins.
 ///
+/// `app_name` scopes the store lookup so multi-app callers reading a bearer
+/// via `xr <cmd> --app NAME --auth app` correctly target NAME's stored
+/// bearer rather than the default app's. Pass an empty string to fall back
+/// to the default app (the legacy no-arg behavior).
+///
 /// # Errors
 ///
 /// Returns an error if `env_token` is `None` or `Some("")` AND no bearer
 /// token is stored for the resolved app.
-pub fn resolve_bearer_token(env_token: Option<String>, store: &TokenStore) -> Result<String> {
+pub fn resolve_bearer_token(
+    env_token: Option<String>,
+    store: &TokenStore,
+    app_name: &str,
+) -> Result<String> {
     if let Some(token) = env_token
         && !token.is_empty()
     {
@@ -442,7 +461,7 @@ pub fn resolve_bearer_token(env_token: Option<String>, store: &TokenStore) -> Re
     }
 
     let token = store
-        .get_bearer_token()
+        .get_bearer_token_for_app(app_name)
         .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
 
     let bearer = token
