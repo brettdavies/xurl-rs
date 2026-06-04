@@ -253,13 +253,46 @@ impl OutputConfig {
     /// emit a JSON line carrying the envelope (delimited formats are not a good
     /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
-        let envelope = serde_json::json!({
-            "status": "error",
-            "reason": error.kind(),
-            "exit_code": exit_code,
-            "message": error.to_string(),
-        });
         let display = error.to_string();
+        let mut obj = serde_json::Map::new();
+        obj.insert("status".into(), Value::String("error".into()));
+        obj.insert("reason".into(), Value::String(error.kind().to_string()));
+        obj.insert("exit_code".into(), Value::from(exit_code));
+        // `AuthMethodMismatch` carries structured fields per R10: the
+        // envelope folds `endpoint`, `method`, `requested`, `supported`, and
+        // (in U7's empty-intersection shape) `available_in_app` in alongside
+        // the standard `message`. Agents pattern-match on these without
+        // re-parsing the human message.
+        if let XurlError::AuthMethodMismatch {
+            endpoint,
+            method,
+            requested,
+            supported,
+            available_in_app,
+        } = error
+        {
+            obj.insert("endpoint".into(), Value::String(endpoint.clone()));
+            obj.insert("method".into(), Value::String(method.clone()));
+            obj.insert(
+                "requested".into(),
+                match requested {
+                    Some(s) => Value::String(s.clone()),
+                    None => Value::Null,
+                },
+            );
+            obj.insert(
+                "supported".into(),
+                Value::Array(supported.iter().cloned().map(Value::String).collect()),
+            );
+            if let Some(avail) = available_in_app {
+                obj.insert(
+                    "available_in_app".into(),
+                    Value::Array(avail.iter().cloned().map(Value::String).collect()),
+                );
+            }
+        }
+        obj.insert("message".into(), Value::String(display.clone()));
+        let envelope = Value::Object(obj);
         self.write_envelope_or_text_error(err, &envelope, &display);
     }
 

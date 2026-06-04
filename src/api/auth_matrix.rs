@@ -12,6 +12,9 @@
 /// return `None`, which the validator treats as permissive per R19.
 use std::fmt::Write as _;
 
+use crate::api::request::RequestTarget;
+use crate::error::{Result, XurlError};
+
 /// Auth schemes an X API endpoint accepts, as declared by its OpenAPI
 /// `security:` list. Scope lists are captured verbatim for v2 scope
 /// checking — v1 ignores them (KTD-4, KTD-P3).
@@ -113,9 +116,103 @@ pub fn supported_auth(method: &str, path: &str) -> Option<&'static [AuthScheme]>
     AUTH_MATRIX.get(key.as_str()).copied()
 }
 
+/// Maps an [`AuthScheme`] to its wire-format `--auth` flag value.
+///
+/// - [`AuthScheme::Bearer`] → `"app"` (matches the CLI's `--auth app`).
+/// - [`AuthScheme::OAuth1User`] → `"oauth1"`.
+/// - [`AuthScheme::OAuth2User`] → `"oauth2"` (scope list ignored — v1
+///   doesn't surface scopes; KTD-4 / KTD-P3).
+#[must_use]
+pub fn auth_scheme_wire_str(scheme: AuthScheme) -> &'static str {
+    match scheme {
+        AuthScheme::Bearer => "app",
+        AuthScheme::OAuth1User => "oauth1",
+        AuthScheme::OAuth2User(_) => "oauth2",
+    }
+}
+
+/// Collapses a slice of [`AuthScheme`] entries into the deduplicated wire
+/// list used in `AuthMethodMismatch.supported`.
+///
+/// Insertion order is preserved (matrix entries already follow the spec's
+/// `security:` list order). Duplicates can appear when the spec lists
+/// multiple OAuth2 scope sets for the same endpoint — collapse them so the
+/// envelope reads `["oauth2", "oauth1"]`, not `["oauth2", "oauth2", "oauth1"]`.
+fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::with_capacity(schemes.len());
+    for s in schemes {
+        let w = auth_scheme_wire_str(*s);
+        if !out.iter().any(|existing| existing == w) {
+            out.push(w.to_string());
+        }
+    }
+    out
+}
+
+/// Validates that `requested_auth` is accepted at `(method, path)` per the
+/// spec-derived auth matrix.
+///
+/// Rules (per brainstorm R10, R18, R19 and plan U6):
+/// 1. [`RequestTarget::RawUrl`] → `Ok(())` unconditionally (R18 — raw mode
+///    bypasses the matrix).
+/// 2. [`RequestTarget::Template`] with matrix-miss → `Ok(())` (R19 —
+///    unknown endpoints are permissive).
+/// 3. [`RequestTarget::Template`] with matrix-hit AND empty `requested_auth`
+///    → `Ok(())` (auto-detect path; U7 owns the dispatch).
+/// 4. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` in
+///    the supported set → `Ok(())`.
+/// 5. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` NOT
+///    in the supported set → `Err(XurlError::AuthMethodMismatch{...})`.
+///
+/// The error variant is U6's "explicit-mismatch" shape: `requested =
+/// Some(requested_auth)`, `available_in_app = None`. U7's empty-intersection
+/// shape is constructed elsewhere.
+///
+/// `method` is uppercased before lookup; the matrix key is case-insensitive
+/// on method per [`supported_auth`].
+///
+/// # Errors
+///
+/// Returns [`XurlError::AuthMethodMismatch`] when rule 5 fires.
+pub fn validate(target: &RequestTarget, method: &str, requested_auth: &str) -> Result<()> {
+    // Rule 1: raw mode bypasses the matrix.
+    let RequestTarget::Template { path, .. } = target else {
+        return Ok(());
+    };
+
+    // Rule 2: unknown endpoints are permissive.
+    let Some(schemes) = supported_auth(method, path) else {
+        return Ok(());
+    };
+
+    // Rule 3: empty requested_auth is the auto-detect path — U7 owns it.
+    if requested_auth.is_empty() {
+        return Ok(());
+    }
+
+    // Rule 4/5: explicit auth must be in the supported set.
+    let requested_norm = requested_auth.to_ascii_lowercase();
+    let supported = schemes_to_wire_list(schemes);
+    if supported.iter().any(|s| s == &requested_norm) {
+        return Ok(());
+    }
+
+    Err(XurlError::AuthMethodMismatch {
+        endpoint: path.clone(),
+        method: method.to_ascii_uppercase(),
+        requested: Some(requested_norm),
+        supported,
+        available_in_app: None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{AUTH_MATRIX, AuthScheme, SHORTCUT_TEMPLATES, supported_auth};
+    use std::collections::HashMap;
+
+    use super::{AUTH_MATRIX, AuthScheme, SHORTCUT_TEMPLATES, supported_auth, validate};
+    use crate::api::request::RequestTarget;
+    use crate::error::XurlError;
 
     /// Shortcut + media layer currently targets 32 (method, path) pairs.
     /// Updating this requires updating both the build-time allowlist in
@@ -209,5 +306,116 @@ mod tests {
         let lower = supported_auth("post", "/2/tweets");
         assert!(upper.is_some());
         assert_eq!(upper, lower, "method comparison must be case-insensitive");
+    }
+
+    // ── validate() tests ────────────────────────────────────────────────
+
+    fn tmpl(path: &str) -> RequestTarget {
+        RequestTarget::Template {
+            path: path.to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn validate_raw_url_always_ok() {
+        // Rule 1 (R18): raw mode bypasses the matrix regardless of method,
+        // path, or requested auth — including auth strings that would fail
+        // for any template path.
+        let target = RequestTarget::RawUrl("https://api.x.com/2/media/upload".to_string());
+        assert!(validate(&target, "POST", "app").is_ok());
+        assert!(validate(&target, "GET", "oauth1").is_ok());
+        assert!(validate(&target, "DELETE", "").is_ok());
+    }
+
+    #[test]
+    fn validate_template_empty_requested_is_ok() {
+        // Rule 3: empty `requested_auth` is the auto-detect path (U7 owns
+        // dispatch). Validator must not reject — even for endpoints with a
+        // restrictive supported set.
+        let target = tmpl("/2/media/upload");
+        assert!(validate(&target, "POST", "").is_ok());
+    }
+
+    #[test]
+    fn validate_template_matrix_miss_is_ok() {
+        // Rule 2 (R19): unknown endpoints are permissive even when the user
+        // pinned an `--auth` value. The validator yields to upstream
+        // semantics rather than fabricating supported lists.
+        let target = tmpl("/2/never/heard/of");
+        assert!(validate(&target, "POST", "app").is_ok());
+        assert!(validate(&target, "GET", "oauth2").is_ok());
+    }
+
+    #[test]
+    fn validate_template_requested_in_supported_is_ok() {
+        // Rule 4: an explicit `--auth` value the endpoint accepts passes
+        // through. `/2/media/upload` POST accepts OAuth2 (media.write) and
+        // OAuth1 per the spec — both must be accepted.
+        let target = tmpl("/2/media/upload");
+        assert!(validate(&target, "POST", "oauth1").is_ok());
+        assert!(validate(&target, "POST", "oauth2").is_ok());
+    }
+
+    #[test]
+    fn validate_template_requested_case_insensitive() {
+        // The matrix lookup is case-insensitive on method; the auth string
+        // is normalised the same way so `OAuth1` matches `oauth1` even
+        // though clap conventionally lowercases the value.
+        let target = tmpl("/2/media/upload");
+        assert!(validate(&target, "post", "OAuth1").is_ok());
+    }
+
+    #[test]
+    fn validate_template_requested_not_in_supported_errors() {
+        // Rule 5: this is the explicit-mismatch path. `/2/media/upload`
+        // POST accepts OAuth1 + OAuth2 but not Bearer. Validator must emit
+        // the U6 envelope shape: `requested = Some("app")`,
+        // `available_in_app = None`.
+        let target = tmpl("/2/media/upload");
+        let err = validate(&target, "POST", "app").unwrap_err();
+        match err {
+            XurlError::AuthMethodMismatch {
+                endpoint,
+                method,
+                requested,
+                supported,
+                available_in_app,
+            } => {
+                assert_eq!(endpoint, "/2/media/upload");
+                assert_eq!(method, "POST");
+                assert_eq!(requested.as_deref(), Some("app"));
+                // OAuth2 (media.write) + OAuth1 collapse to ["oauth2", "oauth1"].
+                assert_eq!(supported, vec!["oauth2".to_string(), "oauth1".to_string()]);
+                assert!(
+                    available_in_app.is_none(),
+                    "U6 explicit-mismatch shape must leave `available_in_app` at None"
+                );
+            }
+            other => panic!("expected AuthMethodMismatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_envelope_message_lists_alternatives() {
+        // The Display message (and envelope `message` field) must surface
+        // the actionable `--auth ...` alternatives so a user can fix the
+        // invocation without consulting the matrix by hand.
+        let target = tmpl("/2/media/upload");
+        let err = validate(&target, "POST", "app").unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Bearer (app)"),
+            "message must pretty-print requested scheme: {msg}"
+        );
+        assert!(
+            msg.contains("--auth oauth2") && msg.contains("--auth oauth1"),
+            "message must list both supported alternatives: {msg}"
+        );
+        assert!(
+            msg.contains("POST /2/media/upload"),
+            "message must include method + endpoint: {msg}"
+        );
     }
 }

@@ -281,6 +281,10 @@ impl ApiClient {
     pub fn send_request(&mut self, options: &RequestOptions) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
+        // Fail-fast auth-matrix validation BEFORE URL rendering or body
+        // construction (plan U6). Rejects requests where `--auth X` is
+        // explicitly supplied for an endpoint that does not accept `X`.
+        crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
         let url = self.build_url(&options.target)?;
 
         // Build the request
@@ -382,6 +386,13 @@ impl ApiClient {
     ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
+        // Fail-fast auth-matrix validation BEFORE form/file construction
+        // (plan U6).
+        crate::api::auth_matrix::validate(
+            &options.request.target,
+            method,
+            &options.request.auth_type,
+        )?;
         let url = self.build_url(&options.request.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -482,6 +493,11 @@ impl ApiClient {
     ) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
+        // Fail-fast auth-matrix validation BEFORE URL rendering or
+        // connection setup (plan U6). Streaming honours the same rule: an
+        // explicit `--auth X` against an endpoint that doesn't accept `X`
+        // must reject before any socket is opened.
+        crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
         let url = self.build_url(&options.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())

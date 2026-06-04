@@ -81,6 +81,102 @@ pub enum XurlError {
         /// Exit code the runner should surface for this error.
         exit_code: i32,
     },
+
+    /// Auth method mismatch: the user supplied (or the auto-detect resolved)
+    /// an auth method the endpoint's matrix entry doesn't accept.
+    ///
+    /// Two shapes share the variant:
+    /// - **Explicit-mismatch** (U6): `requested = Some("app"|"oauth1"|"oauth2")`,
+    ///   `available_in_app = None`. The user passed `--auth X` and `X` isn't
+    ///   in the endpoint's supported set.
+    /// - **Empty-intersection** (U7): `requested = None`,
+    ///   `available_in_app = Some([...])`. Auto-detect resolved a non-empty
+    ///   `available_in_app` against `supported` to an empty intersection — no
+    ///   stored credential on the active app satisfies the endpoint.
+    ///
+    /// The `Display` impl renders the same body that fills the envelope's
+    /// `message` field (R12).
+    #[error("{}", auth_method_mismatch_message(.endpoint, .method, .requested.as_deref(), .supported, .available_in_app.as_deref()))]
+    AuthMethodMismatch {
+        /// Path template (e.g. `/2/media/upload`) — keyed verbatim against
+        /// the spec, never the rendered URL.
+        endpoint: String,
+        /// HTTP method, already uppercased.
+        method: String,
+        /// What the user asked for. `Some("app"|"oauth1"|"oauth2")` in the
+        /// explicit-mismatch shape; `None` in the empty-intersection shape.
+        requested: Option<String>,
+        /// Auth methods the endpoint accepts, as user-facing strings.
+        supported: Vec<String>,
+        /// Auth methods the active app actually has stored. `None` in the
+        /// explicit-mismatch shape; `Some([...])` in the empty-intersection
+        /// shape so the user can see what would and wouldn't have worked.
+        available_in_app: Option<Vec<String>>,
+    },
+}
+
+/// Builds the user-facing message that fills both the `Display` output and
+/// the JSON envelope's `message` field for `AuthMethodMismatch`.
+///
+/// Two shapes per the variant's docstring; both end with an actionable
+/// `Use --auth X` / `xr auth Y --app NAME` instruction.
+fn auth_method_mismatch_message(
+    endpoint: &str,
+    method: &str,
+    requested: Option<&str>,
+    supported: &[String],
+    available_in_app: Option<&[String]>,
+) -> String {
+    match (requested, available_in_app) {
+        (Some(req), _) => {
+            let pretty_req = pretty_scheme(req);
+            let alt = supported
+                .iter()
+                .map(|s| format!("--auth {s}"))
+                .collect::<Vec<_>>()
+                .join(" or ");
+            if alt.is_empty() {
+                format!("{pretty_req} auth is not accepted at {method} {endpoint}.")
+            } else {
+                format!("{pretty_req} auth is not accepted at {method} {endpoint}. Use {alt}.")
+            }
+        }
+        (None, Some(avail)) => {
+            let has = if avail.is_empty() {
+                "none".to_string()
+            } else {
+                avail.join(", ")
+            };
+            let accepts = if supported.is_empty() {
+                "none".to_string()
+            } else {
+                supported.join(", ")
+            };
+            let suggest = supported
+                .first()
+                .map(|s| format!(" Add credentials with: xr auth {s} --app <APP>."))
+                .unwrap_or_default();
+            format!(
+                "No stored auth method on the active app is accepted at {method} {endpoint}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
+            )
+        }
+        (None, None) => {
+            format!("Auth method is not accepted at {method} {endpoint}.")
+        }
+    }
+}
+
+/// Maps a wire-format auth string to its pretty-printed scheme name.
+///
+/// `"app" -> "Bearer (app)"`, `"oauth1" -> "OAuth 1.0a"`,
+/// `"oauth2" -> "OAuth 2.0"`. Falls back to the input for unknown strings.
+fn pretty_scheme(name: &str) -> String {
+    match name {
+        "app" => "Bearer (app)".to_string(),
+        "oauth1" => "OAuth 1.0a".to_string(),
+        "oauth2" => "OAuth 2.0".to_string(),
+        other => other.to_string(),
+    }
 }
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
@@ -147,6 +243,7 @@ impl XurlError {
     /// | `InvalidPathParam`     | `invalid-path-param` |
     /// | `Internal`             | `internal`       |
     /// | `EnvelopeAlreadyEmitted` | `confirmation-required` |
+    /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -160,6 +257,7 @@ impl XurlError {
             Self::Io(_) => "io",
             Self::Json(_) => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
+            Self::AuthMethodMismatch { .. } => "auth-method-mismatch",
             Self::Validation(_) => "validation",
             Self::InvalidUrl(_) => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
@@ -190,6 +288,7 @@ impl XurlError {
             | Self::InvalidUrl(_)
             | Self::InvalidPathParam { .. }
             | Self::Internal(_) => EXIT_GENERAL_ERROR,
+            Self::AuthMethodMismatch { .. } => EXIT_AUTH_MISMATCH,
             Self::EnvelopeAlreadyEmitted { exit_code } => *exit_code,
             _ => EXIT_GENERAL_ERROR,
         }
@@ -245,10 +344,23 @@ pub type Result<T> = std::result::Result<T, XurlError>;
 /// - `77` (`EXIT_AUTH_REQUIRED`): authentication required. Matches sysexits
 ///   `EX_NOPERM`; disambiguates from clap `EX_USAGE` (2). Behavior change in
 ///   v1.3.0 — auth-required errors were previously exit `2`.
+/// - `2` (`EXIT_AUTH_MISMATCH`): auth method mismatch — the user supplied
+///   `--auth X` for an endpoint that does not accept `X`. Distinct from
+///   `EXIT_AUTH_REQUIRED` (missing credential) — this signals a *wrong*
+///   credential request that's fixable by changing `--auth`. Shares the
+///   `EX_USAGE` numeric value with clap because both are usage faults.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_GENERAL_ERROR: i32 = 1;
+/// Auth method mismatch. `EX_USAGE` from sysexits — `2`.
+///
+/// Surfaces when `--auth X` is in the user's invocation and the endpoint's
+/// matrix entry does not accept `X`. Also surfaces in U7's empty-intersection
+/// path when auto-detect finds no compatible stored credential. Distinct
+/// from [`EXIT_AUTH_REQUIRED`] (= `77`, missing credential).
+#[allow(dead_code)] // Public library API — used by consumers
+pub const EXIT_AUTH_MISMATCH: i32 = 2;
 /// Authentication required. `EX_NOPERM` from sysexits — `77`.
 ///
 /// **Behavior change in v1.3.0:** auth-required errors moved from exit `2`

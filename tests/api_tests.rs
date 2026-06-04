@@ -60,6 +60,19 @@ impl TestServer {
     fn uri(&self) -> &str {
         &self.uri
     }
+
+    /// Returns the number of requests this mock server has received across
+    /// all registered mocks. Used by the U6 enforcement tests to assert
+    /// that fail-fast validation rejects before any network I/O happens.
+    fn received_request_count(&self) -> usize {
+        self._rt.block_on(async {
+            self.server
+                .received_requests()
+                .await
+                .map(|v| v.len())
+                .unwrap_or(0)
+        })
+    }
 }
 
 // ── Test helpers ───────────────────────────────────────────────────────
@@ -352,10 +365,13 @@ fn test_build_request_post() {
 
 #[test]
 fn test_build_request_with_auth_bearer() {
+    // The intent: `--auth app` routes the Bearer auth header. Targeted at
+    // `/2/tweets/search/recent` rather than `/2/users/me` because the
+    // spec-derived auth matrix (v2.0.0) says only the former accepts Bearer.
     let ts = TestServer::new();
     ts.mount(
         Mock::given(method("GET"))
-            .and(path("/2/users/me"))
+            .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
             ),
@@ -367,7 +383,7 @@ fn test_build_request_with_auth_bearer() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        target: target_path("/2/users/me"),
+        target: target_path("/2/tweets/search/recent"),
         auth_type: "app".to_string(),
         ..Default::default()
     };
@@ -1939,13 +1955,23 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     // need to be mounted; we deliberately mount nothing so a regression
     // surfaces as a network-layer error against an unmatched path rather
     // than as `XurlError::Auth`. The assertion then catches the regression.
+    //
+    // Target `/2/tweets/search/recent` (Bearer-accepting per the spec
+    // matrix) rather than `get_me`'s `/2/users/me` (OAuth1/OAuth2 only),
+    // so the U6 fail-fast validator yields and the auth-resolution layer
+    // is the one that surfaces the missing-credential error.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let mut opts = base_call_opts();
-    opts.auth_type = "app".to_string(); // bearer path; no token in store
-    let err = client.get_me(&opts).unwrap_err();
+    let err = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            target: target_path("/2/tweets/search/recent"),
+            auth_type: "app".to_string(), // bearer path; no token in store
+            ..Default::default()
+        })
+        .unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("bearer token not found") || msg.contains("TokenNotFound"),
@@ -1979,5 +2005,146 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
             xurl::error::XurlError::Auth(_) | xurl::error::XurlError::Http(_)
         ),
         "expected auth-layer error, got: {err:?}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U6 auth-enforcement integration tests (AE1, AE2, AE5)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// These exercise the fail-fast validator wired into `send_request` /
+// `send_multipart_request` / `stream_request`. The matrix says
+// `POST /2/media/upload` accepts OAuth2 (`media.write`) + OAuth1 but not
+// Bearer — so `--auth app` against that endpoint must reject before any
+// network I/O. The wiremock server is set up to log all traffic so we can
+// assert "zero requests received" for the reject case.
+
+/// AE1 — explicit mismatch.
+///
+/// Bearer-only app, `--auth app`, `POST /2/media/upload`. The validator
+/// must short-circuit with `XurlError::AuthMethodMismatch` carrying the
+/// U6 explicit-mismatch shape (`requested = Some("app")`,
+/// `available_in_app = None`), and wiremock must observe zero requests.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_media_upload() {
+    let ts = TestServer::new();
+    // No mocks mounted intentionally — if the validator failed to reject
+    // and the request leaked through, wiremock would return 404 and the
+    // request count would tick to 1, breaking the assertion.
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        })
+        .unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            method,
+            requested,
+            supported,
+            available_in_app,
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(method, "POST");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "U6 explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    // Exit-code surface: 2 (`EX_USAGE`-aligned `EXIT_AUTH_MISMATCH`).
+    assert_eq!(err.exit_code(), 2, "exit code must be EXIT_AUTH_MISMATCH");
+    assert_eq!(err.kind(), "auth-method-mismatch");
+
+    // Fail-fast invariant: zero traffic reached the mock server.
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "validator must reject BEFORE any HTTP I/O"
+    );
+}
+
+/// AE2 — pass-through with an explicit `--auth` value the endpoint accepts.
+///
+/// OAuth1 creds + `--auth oauth1` + `POST /2/media/upload`. The validator
+/// must yield, the request must reach wiremock, and the mocked 200
+/// response should propagate back as JSON.
+#[test]
+fn u6_ae2_passthrough_oauth1_against_media_upload() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "media_xyz"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "oauth1".to_string(),
+            ..Default::default()
+        })
+        .expect("oauth1 against /2/media/upload must validate and reach the server");
+
+    assert_eq!(resp["data"]["id"], "media_xyz");
+    assert_eq!(
+        ts.received_request_count(),
+        1,
+        "validator must pass through and let the request reach wiremock"
+    );
+}
+
+/// AE5 — raw mode bypasses the matrix (R18).
+///
+/// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
+/// must NOT reject even though the same `(method, path)` would reject under a
+/// `Template` target. Raw mode is the user's escape hatch.
+#[test]
+fn u6_ae5_raw_url_skips_validation() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "raw_bypass"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let raw_url = format!("{}/2/media/upload", ts.uri());
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::RawUrl(raw_url),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        })
+        .expect("raw mode must skip auth-matrix validation per R18");
+
+    assert_eq!(resp["data"]["id"], "raw_bypass");
+    assert_eq!(
+        ts.received_request_count(),
+        1,
+        "raw mode must let the request through even with a normally-rejected auth"
     );
 }
