@@ -1871,3 +1871,91 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
         "429 should map to EXIT_RATE_LIMITED"
     );
 }
+
+// ── TestAuthErrorPropagation (Bug B) ──────────────────────────────────────
+//
+// `ApiClient::send_request` (and its sibling paths) must propagate the
+// `get_auth_header` error rather than silently sending the request
+// unauthenticated. The older `if let Ok(...)` form let auth bugs masquerade
+// as upstream 401s; the new path returns the real `XurlError::Auth` so the
+// user can tell the difference between "we couldn't sign the request" and
+// "we signed it and X rejected it".
+
+fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
+    let cfg = create_test_config(base_url);
+    let auth = Auth::new(&cfg);
+
+    let tmp = TempDir::new().expect("temp dir");
+    let file_path = tmp.path().join(".xurl");
+
+    let mut store = TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path,
+    };
+    store.apps.insert(
+        "default".to_string(),
+        App {
+            client_id: "test-client-id".to_string(),
+            client_secret: "test-client-secret".to_string(),
+            default_user: String::new(),
+            redirect_uri: String::new(),
+            oauth2_tokens: BTreeMap::new(),
+            oauth1_token: None,
+            bearer_token: None,
+            unnamed_oauth2_token: None,
+        },
+    );
+    let auth = auth.with_token_store(store);
+    (auth, tmp)
+}
+
+#[test]
+fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
+    let ts = TestServer::new();
+    // If Bug B regresses (request sent unauthenticated), the wiremock would
+    // need to be mounted; we deliberately mount nothing so a regression
+    // surfaces as a network-layer error against an unmatched path rather
+    // than as `XurlError::Auth`. The assertion then catches the regression.
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut opts = base_call_opts();
+    opts.auth_type = "app".to_string(); // bearer path; no token in store
+    let err = client.get_me(&opts).unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("bearer token not found") || msg.contains("TokenNotFound"),
+        "expected bearer-not-found auth error, got: {msg}"
+    );
+}
+
+#[test]
+fn auth_error_propagates_for_oauth2_path_with_no_token() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut opts = base_call_opts();
+    opts.auth_type = "oauth2".to_string();
+    // get_me with --auth oauth2 and an explicit username triggers the
+    // named-caller branch; with no stored token the flow attempts to start
+    // an interactive OAuth2 PKCE flow which fails (no DISPLAY in tests).
+    // The end state is `XurlError::Auth`, not a request to wiremock.
+    opts.username = "ghost-user".to_string();
+    let err = client.get_me(&opts).unwrap_err();
+    // Accept either the TokenNotFound from refresh_oauth2_token or any
+    // browser-open / network error from the implicit PKCE flow that fires
+    // when no token is cached. The point of this test is that the call
+    // returns Err without silently sending a request — not the exact
+    // failure mode.
+    assert!(
+        matches!(
+            err,
+            xurl::error::XurlError::Auth(_) | xurl::error::XurlError::Http(_)
+        ),
+        "expected auth-layer error, got: {err:?}"
+    );
+}

@@ -249,6 +249,58 @@ impl TokenStore {
         self.save_to_file()
     }
 
+    /// Returns `true` when the currently-resolved default app holds no
+    /// credentials of any kind: no `OAuth2` user tokens, no `OAuth1` token,
+    /// no bearer token, and no unnamed `OAuth2` salvage token. The signal
+    /// used by [`Self::promote_to_default_if_first_credentialed`] to detect
+    /// the placeholder default that a fresh install starts with so the very
+    /// first authenticated app can transparently take over.
+    #[must_use]
+    pub fn default_app_is_uninitialized(&self) -> bool {
+        let app = self.resolve_app("");
+        app.oauth2_tokens.is_empty()
+            && app.oauth1_token.is_none()
+            && app.bearer_token.is_none()
+            && app.unnamed_oauth2_token.is_none()
+    }
+
+    /// Promotes `candidate_app` to the default app iff the current default
+    /// is uninitialized (per [`Self::default_app_is_uninitialized`]) and
+    /// `candidate_app` is registered and different from the current default.
+    /// Returns the new default name when promotion happened, `None` otherwise.
+    ///
+    /// Idempotent: callers can invoke unconditionally after any
+    /// authentication save. No-op on already-credentialed defaults, on
+    /// unknown candidates, on empty candidate names, and when the candidate
+    /// already IS the default.
+    ///
+    /// Drives the "first signed-in app becomes the default" UX so a fresh
+    /// `xr auth oauth2 --app NAME` (or `oauth1`, or `auth app --bearer-token
+    /// --app NAME`) does not leave the placeholder `default` ahead of NAME
+    /// in the resolution chain. Users who want a different default later
+    /// can still run `xr auth default <name>` explicitly; this helper only
+    /// fires on the first authenticated save.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if [`Self::set_default_app`] fails to persist.
+    pub fn promote_to_default_if_first_credentialed(
+        &mut self,
+        candidate_app: &str,
+    ) -> Result<Option<String>> {
+        if candidate_app.is_empty() || candidate_app == self.default_app {
+            return Ok(None);
+        }
+        if !self.apps.contains_key(candidate_app) {
+            return Ok(None);
+        }
+        if !self.default_app_is_uninitialized() {
+            return Ok(None);
+        }
+        self.set_default_app(candidate_app)?;
+        Ok(Some(candidate_app.to_string()))
+    }
+
     /// Returns sorted app names.
     #[must_use]
     pub fn list_apps(&self) -> Vec<String> {

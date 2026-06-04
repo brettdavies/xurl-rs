@@ -245,11 +245,15 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set)
-        if !options.no_auth
-            && let Ok(auth_header) =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
+        // Add auth header (skip if no_auth is set). When auth resolution
+        // fails (e.g., TokenNotFound for the resolved app), propagate the
+        // error so the user sees the real problem instead of letting the
+        // request go out unauthenticated and surfacing as a confusing 401
+        // from upstream. The older "silently skip on Err" form let auth
+        // bugs masquerade as upstream auth rejections.
+        if !options.no_auth {
+            let auth_header =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -345,15 +349,16 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set)
-        if !options.request.no_auth
-            && let Ok(auth_header) = self.get_auth_header(
+        // Add auth header (skip if no_auth is set). Propagate auth errors
+        // rather than silently sending the request unauthenticated; see the
+        // matching propagation site in `send_request` for the rationale.
+        if !options.request.no_auth {
+            let auth_header = self.get_auth_header(
                 method,
                 &url,
                 &options.request.auth_type,
                 &options.request.username,
-            )
-        {
+            )?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -441,10 +446,9 @@ impl ApiClient {
             }
         }
 
-        if !options.no_auth
-            && let Ok(auth_header) =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)
-        {
+        if !options.no_auth {
+            let auth_header =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -538,18 +542,41 @@ impl ApiClient {
             };
         }
 
-        // Try OAuth2 first — propagate errors if a token exists
-        if self.auth.token_store.get_first_oauth2_token().is_some() {
+        // Auto-detect: scope every check to the active app (set by
+        // `--app NAME` via `Auth::with_app_name`) so a `--app NAME`
+        // invocation without `--auth` picks NAME's tokens, not the
+        // default app's. The legacy no-arg `get_first_oauth2_token` /
+        // `get_oauth1_tokens` / `has_bearer_token` calls resolved to the
+        // default app and silently bypassed NAME's stored credentials.
+        let app_name = self.auth.app_name();
+
+        // Try OAuth2 first — propagate errors if a token exists.
+        if self
+            .auth
+            .token_store
+            .get_first_oauth2_token_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_oauth2_header(username);
         }
 
-        // Try OAuth1 — propagate errors if a token exists
-        if self.auth.token_store.get_oauth1_tokens().is_some() {
+        // Try OAuth1 — propagate errors if a token exists.
+        if self
+            .auth
+            .token_store
+            .get_oauth1_tokens_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_oauth1_header(method, url, None);
         }
 
-        // Try Bearer
-        if self.auth.token_store.has_bearer_token() {
+        // Try Bearer.
+        if self
+            .auth
+            .token_store
+            .get_bearer_token_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_bearer_token_header();
         }
 
