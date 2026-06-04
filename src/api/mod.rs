@@ -1,4 +1,5 @@
 /// X API client — request building, response handling, shortcuts, and media.
+pub mod auth_matrix;
 mod endpoints;
 mod media;
 mod request;
