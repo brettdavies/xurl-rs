@@ -5,24 +5,28 @@
       "description": "Partial error returned alongside valid data in 200 responses.",
       "properties": {
         "detail": {
+          "description": "Longer human-readable detail.",
           "type": [
             "string",
             "null"
           ]
         },
         "message": {
+          "description": "Short human-readable error description.",
           "type": [
             "string",
             "null"
           ]
         },
         "title": {
+          "description": "Error category title (e.g. `\"Not Found Error\"`).",
           "type": [
             "string",
             "null"
           ]
         },
         "type": {
+          "description": "URI identifying the error type (problem-details style).",
           "type": [
             "string",
             "null"
@@ -36,6 +40,7 @@
       "description": "Confirmation for delete actions.",
       "properties": {
         "deleted": {
+          "description": "Whether the resource was deleted.",
           "type": "boolean"
         }
       },
@@ -49,6 +54,7 @@
       "description": "Expanded objects included alongside the primary data.",
       "properties": {
         "tweets": {
+          "description": "Tweet objects referenced by `referenced_tweets`.",
           "items": {
             "$ref": "#/$defs/Tweet"
           },
@@ -58,6 +64,7 @@
           ]
         },
         "users": {
+          "description": "User objects referenced by `author_id`, `sender_id`, etc.",
           "items": {
             "$ref": "#/$defs/User"
           },
@@ -74,9 +81,11 @@
       "description": "A referenced tweet (reply-to, quote, retweet).",
       "properties": {
         "id": {
+          "description": "Referenced tweet identifier.",
           "type": "string"
         },
         "type": {
+          "description": "Reference kind — `\"replied_to\"`, `\"quoted\"`, or `\"retweeted\"`.",
           "type": "string"
         }
       },
@@ -91,18 +100,21 @@
       "description": "Pagination and result count metadata.",
       "properties": {
         "next_token": {
+          "description": "Opaque cursor for the next page; pass to a follow-up call as\n`pagination_token`.",
           "type": [
             "string",
             "null"
           ]
         },
         "previous_token": {
+          "description": "Opaque cursor for the previous page.",
           "type": [
             "string",
             "null"
           ]
         },
         "result_count": {
+          "description": "Total items returned in `data` for list endpoints.",
           "format": "uint64",
           "minimum": 0,
           "type": [
@@ -117,30 +129,39 @@
       "additionalProperties": true,
       "description": "A tweet object from the X API v2.\n\nRequired fields: `id`, `text` (always present in API responses).\nOptional fields depend on which `tweet.fields` the caller requests.",
       "properties": {
-        "attachments": true,
+        "attachments": {
+          "description": "Media / poll attachment references — opaque JSON."
+        },
         "author_id": {
+          "description": "Author's user ID; resolve via `includes.users` when expanded.",
           "type": [
             "string",
             "null"
           ]
         },
         "conversation_id": {
+          "description": "Root tweet ID of the conversation thread.",
           "type": [
             "string",
             "null"
           ]
         },
         "created_at": {
+          "description": "ISO-8601 timestamp the tweet was created.",
           "type": [
             "string",
             "null"
           ]
         },
-        "entities": true,
+        "entities": {
+          "description": "Parsed entities (URLs, mentions, hashtags) — opaque JSON."
+        },
         "id": {
+          "description": "Tweet identifier (X API snowflake string).",
           "type": "string"
         },
         "in_reply_to_user_id": {
+          "description": "User ID this tweet replies to, when applicable.",
           "type": [
             "string",
             "null"
@@ -154,9 +175,11 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Engagement counts (likes, replies, retweets, etc)."
         },
         "referenced_tweets": {
+          "description": "Tweets this one references (reply, quote, retweet).",
           "items": {
             "$ref": "#/$defs/ReferencedTweet"
           },
@@ -166,6 +189,7 @@
           ]
         },
         "text": {
+          "description": "Tweet body text.",
           "type": "string"
         }
       },
@@ -181,36 +205,42 @@
       "properties": {
         "bookmark_count": {
           "default": 0,
+          "description": "Bookmark count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "impression_count": {
           "default": 0,
+          "description": "View count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "like_count": {
           "default": 0,
+          "description": "Like count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "quote_count": {
           "default": 0,
+          "description": "Quote-tweet count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "reply_count": {
           "default": 0,
+          "description": "Reply count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "retweet_count": {
           "default": 0,
+          "description": "Retweet count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -223,24 +253,29 @@
       "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
       "properties": {
         "created_at": {
+          "description": "ISO-8601 account creation timestamp.",
           "type": [
             "string",
             "null"
           ]
         },
         "description": {
+          "description": "Bio / profile description.",
           "type": [
             "string",
             "null"
           ]
         },
         "id": {
+          "description": "User identifier (X API snowflake string).",
           "type": "string"
         },
         "name": {
+          "description": "Display name.",
           "type": "string"
         },
         "profile_image_url": {
+          "description": "Profile image URL.",
           "type": [
             "string",
             "null"
@@ -254,12 +289,15 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Engagement counts (followers, following, tweets)."
         },
         "username": {
+          "description": "Handle without the leading `@`.",
           "type": "string"
         },
         "verified": {
+          "description": "Whether the account carries a verified badge.",
           "type": [
             "boolean",
             "null"
@@ -279,24 +317,28 @@
       "properties": {
         "followers_count": {
           "default": 0,
+          "description": "Follower count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "following_count": {
           "default": 0,
+          "description": "Following count.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "listed_count": {
           "default": 0,
+          "description": "Number of public lists the user is on.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
         },
         "tweet_count": {
           "default": 0,
+          "description": "Tweet count for the user.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -310,9 +352,11 @@
   "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Tweet>`, list endpoints use\n`ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/DeletedResult"
+      "$ref": "#/$defs/DeletedResult",
+      "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
     },
     "errors": {
+      "description": "Partial errors returned alongside a 200 response.",
       "items": {
         "$ref": "#/$defs/ApiError"
       },
@@ -329,7 +373,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Expanded objects referenced by `data` when the caller requested\n`expansions=...`."
     },
     "meta": {
       "anyOf": [
@@ -339,7 +384,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Pagination and result-count metadata."
     }
   },
   "required": [

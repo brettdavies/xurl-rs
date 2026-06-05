@@ -1,12 +1,13 @@
-/// Persistence layer for in-flight OAuth2 PKCE state.
-///
-/// During the remote OAuth2 flow the authorization URL is opened on one device
-/// while the callback is received on another.  `PendingOAuth2State` captures
-/// the PKCE code verifier, state nonce, and associated metadata so the callback
-/// handler can resume the exchange even if the originating process has exited.
-///
-/// The pending file lives at `~/.xurl.pending` by default and is created with
-/// `0o600` permissions on Unix.  A 15-minute TTL guards against stale state.
+//! Persistence layer for in-flight OAuth2 PKCE state.
+//!
+//! During the remote OAuth2 flow the authorization URL is opened on one device
+//! while the callback is received on another. [`PendingOAuth2State`] captures
+//! the PKCE code verifier, state nonce, and associated metadata so the callback
+//! handler can resume the exchange even if the originating process has exited.
+//!
+//! The pending file lives at `~/.xurl.pending` by default and is created with
+//! `0o600` permissions on Unix. A 15-minute TTL guards against stale state.
+
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -20,13 +21,23 @@ use crate::error::{Result, XurlError};
 const PENDING_TTL_SECS: u64 = 900; // 15 minutes
 
 /// Serialisable snapshot of an in-flight OAuth2 PKCE authorization.
+///
+/// Persisted to disk between `xr auth oauth2 --step 1` (which writes it)
+/// and `xr auth oauth2 --step 2` (which reads + deletes it on success).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PendingOAuth2State {
+    /// PKCE code verifier; presented to the token endpoint in step 2.
     pub code_verifier: String,
+    /// CSRF state nonce; the step-2 redirect URL must echo this value.
     pub state: String,
+    /// `OAuth2` client ID active when step 1 ran. Step 2 rejects the
+    /// exchange if the runtime client ID has changed.
     pub client_id: String,
+    /// Active app name when step 1 ran; surfaced in error messages when
+    /// step 2 mismatches the runtime context.
     pub app_name: String,
-    /// Unix epoch seconds when the authorization was initiated.
+    /// Unix epoch seconds when the authorization was initiated. Used by
+    /// [`load`] to enforce the 15-minute freshness window.
     pub created_at: u64,
 }
 

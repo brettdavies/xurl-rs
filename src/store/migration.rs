@@ -1,4 +1,5 @@
-/// Legacy format migration — JSON and `.twurlrc` import.
+//! Legacy format migration — JSON and `.twurlrc` import.
+
 use std::collections::BTreeMap;
 
 use serde::Deserialize;

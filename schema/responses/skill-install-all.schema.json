@@ -4,15 +4,19 @@
       "description": "Result envelope shared by both `--output text` and `--output json`.\nUniform across success and error paths per the project envelope rules.",
       "properties": {
         "action": {
+          "description": "Action discriminator: `\"skill-install\"` or `\"skill-update\"`.",
           "type": "string"
         },
         "command_preview": {
+          "description": "Human-visible `git clone` command (hardening flags omitted).",
           "type": "string"
         },
         "destination_status": {
+          "description": "Pre-clone state of `install_dir` per [`DestinationStatus`].",
           "type": "string"
         },
         "exit_code": {
+          "description": "Process exit code for the install run.",
           "format": "int32",
           "type": [
             "integer",
@@ -20,21 +24,26 @@
           ]
         },
         "host": {
+          "description": "Target host slug (e.g. `\"claude_code\"`).",
           "type": "string"
         },
         "install_dir": {
+          "description": "Resolved destination path with `$HOME` expanded.",
           "type": "string"
         },
         "reason": {
+          "description": "Kebab-case error reason from [`InstallError::reason`]; `None` on success.",
           "type": [
             "string",
             "null"
           ]
         },
         "status": {
+          "description": "Outcome discriminator: `\"ok\"`, `\"error\"`, or `\"dry_run\"`.",
           "type": "string"
         },
         "would_succeed": {
+          "description": "Dry-run-only: would the install have succeeded?",
           "type": [
             "boolean",
             "null"
@@ -56,19 +65,23 @@
   "description": "Multi-host envelope for `--all` invocations.",
   "properties": {
     "action": {
+      "description": "Action discriminator: `\"skill-install\"` or `\"skill-update\"`.",
       "type": "string"
     },
     "exit_code": {
+      "description": "Worst exit code observed across [`Self::installations`].",
       "format": "int32",
       "type": "integer"
     },
     "installations": {
+      "description": "One [`InstallEnvelope`] per host, in [`KNOWN_HOSTS`] order.",
       "items": {
         "$ref": "#/$defs/InstallEnvelope"
       },
       "type": "array"
     },
     "status": {
+      "description": "Aggregate outcome: `\"ok\"`, `\"error\"`, or `\"dry_run\"`.",
       "type": "string"
     }
   },
