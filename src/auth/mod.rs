@@ -14,8 +14,15 @@ use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
+///
+/// Holds the credential matrix (env-supplied vs store-derived `client_id` /
+/// `client_secret`), the active app name, and the [`TokenStore`] that
+/// persists tokens to disk. Constructed via [`Auth::new`] (legacy
+/// `~/.xurl` path) or [`Auth::new_with_store_path`] (test-friendly explicit
+/// path).
 #[allow(clippy::struct_field_names)]
 pub struct Auth {
+    /// Token store backing this `Auth` instance.
     pub token_store: TokenStore,
     /// Owned application configuration. The redirect URI here is the
     /// resolver output (env > app-stored > built-in default), written by
@@ -396,26 +403,37 @@ impl Auth {
     }
 
     // Accessors
+
+    /// Returns the active app name resolved against `--app` / `XURL_APP`.
     #[must_use]
     pub fn app_name(&self) -> &str {
         &self.app_name
     }
+    /// Returns the active `OAuth2` client ID (env-supplied or store-derived).
     #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id
     }
+    /// Returns the active `OAuth2` client secret (env-supplied or store-derived).
     #[must_use]
     pub fn client_secret(&self) -> &str {
         &self.client_secret
     }
+    /// Returns the `OAuth2` authorization URL.
     #[must_use]
     pub fn auth_url(&self) -> &str {
         &self.config.auth_url
     }
+    /// Returns the `OAuth2` token-exchange URL.
     #[must_use]
     pub fn token_url(&self) -> &str {
         &self.config.token_url
     }
+    /// Returns the resolved `OAuth2` redirect URI.
+    ///
+    /// The value already reflects the three-level precedence (env >
+    /// app-stored > built-in default) applied at construction by
+    /// [`Auth::new_with_store_path`].
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
         &self.config.redirect_uri

@@ -1,16 +1,17 @@
-/// Endpoint -> accepted auth methods, generated from the vendored X OpenAPI
-/// spec at build time.
-///
-/// Source of truth: `vendor/x-api-openapi.json`. Codegen lives in
-/// `build.rs::emit_auth_matrix`; the same `SHORTCUT_TEMPLATES` allowlist
-/// is duplicated here for runtime callers. Both copies must list the same
-/// `(method, path)` pairs — the build panics if a spec lookup misses,
-/// which surfaces drift between the two.
-///
-/// Lookup is a direct hash on the packed key `"METHOD\0/path/template"`;
-/// no path-template precedence resolution. Unknown `(method, path)` pairs
-/// return `None`, which the validator treats as permissive (the request
-/// goes out and X arbitrates).
+//! Endpoint -> accepted auth methods, generated from the vendored X OpenAPI
+//! spec at build time.
+//!
+//! Source of truth: `vendor/x-api-openapi.json`. Codegen lives in
+//! `build.rs::emit_auth_matrix`; the same `SHORTCUT_TEMPLATES` allowlist
+//! is duplicated here for runtime callers. Both copies must list the same
+//! `(method, path)` pairs — the build panics if a spec lookup misses,
+//! which surfaces drift between the two.
+//!
+//! Lookup is a direct hash on the packed key `"METHOD\0/path/template"`;
+//! no path-template precedence resolution. Unknown `(method, path)` pairs
+//! return `None`, which the validator treats as permissive (the request
+//! goes out and X arbitrates).
+
 use std::fmt::Write as _;
 
 use crate::api::request::RequestTarget;

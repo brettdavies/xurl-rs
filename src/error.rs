@@ -405,8 +405,11 @@ pub type Result<T> = std::result::Result<T, XurlError>;
 ///   `EXIT_AUTH_REQUIRED` (missing credential) — this signals a *wrong*
 ///   credential request that's fixable by changing `--auth`. Shares the
 ///   `EX_USAGE` numeric value with clap because both are usage faults.
+/// Process exited cleanly with no error.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
+/// General / user-recoverable error. Sysexits default for anything not
+/// covered by a more specific code.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// Auth method mismatch. `EX_USAGE` from sysexits — `2`.
@@ -425,10 +428,15 @@ pub const EXIT_AUTH_MISMATCH: i32 = 2;
 /// usage errors (which keep `EX_USAGE` = `2`).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_REQUIRED: i32 = 77;
+/// API rate limit hit (HTTP 429). Agents should back off and retry per
+/// the response's rate-limit headers.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_RATE_LIMITED: i32 = 3;
+/// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
+/// Network / connectivity issue. Surfaces for non-401/404/429 HTTP errors
+/// and for `reqwest` transport failures (DNS, TLS, timeout).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

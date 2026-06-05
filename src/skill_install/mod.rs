@@ -97,11 +97,21 @@ pub const GIT_HARDEN_ENV_SET: &[(&str, &str)] = &[
 /// Typed install error — closed set matching the envelope `reason` taxonomy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstallError {
+    /// `$HOME` is unset or empty; cannot expand a `~` destination template.
     MissingHome,
+    /// The resolved destination already holds files.
     DestNotEmpty,
+    /// The resolved destination path exists as a regular file (or device /
+    /// socket / fifo).
     DestIsFile,
+    /// `git` was not found on `$PATH` when the spawn was attempted.
     GitNotFound,
-    GitCloneFailed { code: i32 },
+    /// `git clone` exited with a non-zero status. `code` carries the
+    /// observed exit code (1 when the process terminated without one).
+    GitCloneFailed {
+        /// Exit code reported by the failed `git clone` invocation.
+        code: i32,
+    },
 }
 
 impl InstallError {
@@ -117,12 +127,16 @@ impl InstallError {
     }
 }
 
-/// Snapshot of what `check_destination` found at the resolved path.
+/// Snapshot of what [`check_destination`] found at the resolved path.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DestinationStatus {
+    /// Nothing exists at the resolved path.
     Absent,
+    /// An empty directory exists; safe to clone into.
     EmptyDir,
+    /// A directory with at least one entry blocks the clone.
     NonEmptyDir,
+    /// A regular file (or device / socket / fifo) blocks the clone.
     File,
 }
 
@@ -227,16 +241,25 @@ pub fn format_clone_command(url: &str, dest: &str) -> String {
 /// Uniform across success and error paths per the project envelope rules.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct InstallEnvelope {
+    /// Action discriminator: `"skill-install"` or `"skill-update"`.
     pub action: &'static str,
+    /// Target host slug (e.g. `"claude_code"`).
     pub host: &'static str,
+    /// Resolved destination path with `$HOME` expanded.
     pub install_dir: String,
+    /// Human-visible `git clone` command (hardening flags omitted).
     pub command_preview: String,
+    /// Pre-clone state of `install_dir` per [`DestinationStatus`].
     pub destination_status: &'static str,
+    /// Outcome discriminator: `"ok"`, `"error"`, or `"dry_run"`.
     pub status: &'static str,
+    /// Dry-run-only: would the install have succeeded?
     #[serde(skip_serializing_if = "Option::is_none")]
     pub would_succeed: Option<bool>,
+    /// Process exit code for the install run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
+    /// Kebab-case error reason from [`InstallError::reason`]; `None` on success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<&'static str>,
 }
@@ -244,9 +267,13 @@ pub struct InstallEnvelope {
 /// Multi-host envelope for `--all` invocations.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct InstallMultiEnvelope {
+    /// Action discriminator: `"skill-install"` or `"skill-update"`.
     pub action: &'static str,
+    /// Aggregate outcome: `"ok"`, `"error"`, or `"dry_run"`.
     pub status: &'static str,
+    /// One [`InstallEnvelope`] per host, in [`KNOWN_HOSTS`] order.
     pub installations: Vec<InstallEnvelope>,
+    /// Worst exit code observed across [`Self::installations`].
     pub exit_code: i32,
 }
 

@@ -945,6 +945,7 @@ pub enum Commands {
         /// Media ID(s) to attach (repeatable)
         #[arg(long = "media-id")]
         media_ids: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -958,6 +959,7 @@ pub enum Commands {
         /// Media ID(s) to attach (repeatable)
         #[arg(long = "media-id")]
         media_ids: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -968,6 +970,7 @@ pub enum Commands {
         post_id: String,
         /// The quote text
         text: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -979,6 +982,7 @@ pub enum Commands {
         /// Skip the confirmation prompt; required under `--no-interactive`
         #[arg(long)]
         force: bool,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -989,6 +993,7 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1000,6 +1005,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1008,6 +1014,7 @@ pub enum Commands {
     /// Show the authenticated user's profile
     #[command(after_help = WHOAMI_HELP)]
     Whoami {
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1017,6 +1024,7 @@ pub enum Commands {
         /// Username to look up
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1028,6 +1036,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1037,6 +1046,7 @@ pub enum Commands {
         /// Number of results (5-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1047,6 +1057,7 @@ pub enum Commands {
     Like {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1055,6 +1066,7 @@ pub enum Commands {
     Unlike {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1063,6 +1075,7 @@ pub enum Commands {
     Repost {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1071,6 +1084,7 @@ pub enum Commands {
     Unrepost {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1079,6 +1093,7 @@ pub enum Commands {
     Bookmark {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1087,6 +1102,7 @@ pub enum Commands {
     Unbookmark {
         /// Post ID or URL
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1096,6 +1112,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1105,6 +1122,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1116,6 +1134,7 @@ pub enum Commands {
         /// Username to follow
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1125,6 +1144,7 @@ pub enum Commands {
         /// Username to unfollow
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1137,6 +1157,7 @@ pub enum Commands {
         /// Username to list following for (default: you)
         #[arg(long = "of")]
         of: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1149,6 +1170,7 @@ pub enum Commands {
         /// Username to list followers for (default: you)
         #[arg(long = "of")]
         of: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1158,6 +1180,7 @@ pub enum Commands {
         /// Username to mute
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1167,6 +1190,7 @@ pub enum Commands {
         /// Username to unmute
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1175,6 +1199,7 @@ pub enum Commands {
     /// Show API usage (tweet caps, daily breakdown)
     #[command(after_help = USAGE_HELP)]
     Usage {
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1188,6 +1213,7 @@ pub enum Commands {
         target_username: String,
         /// Message text
         text: String,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1197,6 +1223,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
@@ -1205,6 +1232,7 @@ pub enum Commands {
     /// Authentication management
     #[command(after_help = AUTH_HELP)]
     Auth {
+        /// `auth` subcommand to dispatch (`oauth2`, `oauth1`, `app`, …).
         #[command(subcommand)]
         command: AuthCommands,
     },
@@ -1213,6 +1241,7 @@ pub enum Commands {
     /// Media upload operations
     #[command(after_help = MEDIA_HELP)]
     Media {
+        /// `media` subcommand to dispatch (`upload` or `status`).
         #[command(subcommand)]
         command: MediaCommands,
     },
@@ -1230,6 +1259,7 @@ pub enum Commands {
   xr skill install codex --output json         # JSON envelope for agent consumption
   xr skill install --all --dry-run --output json  # multi-host dry-run envelope")]
     Skill {
+        /// `skill` subcommand to dispatch (`install` or `update`).
         #[command(subcommand)]
         cmd: SkillCmd,
     },
@@ -1495,6 +1525,7 @@ pub enum AuthCommands {
     /// Manage registered X API apps
     #[command(after_help = AUTH_APPS_HELP)]
     Apps {
+        /// `apps` subcommand to dispatch (`add`, `list`, `update`, …).
         #[command(subcommand)]
         command: AppCommands,
     },
@@ -1556,6 +1587,7 @@ pub enum AppCommands {
     /// Inspect or set the stored `OAuth2` redirect URI for an app
     #[command(after_help = APPS_REDIRECT_URI_HELP)]
     RedirectUri {
+        /// `redirect-uri` subcommand to dispatch (`get` or `set`).
         #[command(subcommand)]
         command: RedirectUriCommands,
     },

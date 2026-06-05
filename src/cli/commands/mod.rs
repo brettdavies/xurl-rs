@@ -1,4 +1,5 @@
-/// Command execution — dispatches CLI commands to API functions.
+//! Command execution — dispatches CLI commands to API functions.
+
 mod auth;
 pub mod examples;
 mod media;

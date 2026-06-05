@@ -65,11 +65,23 @@ impl OutputFormat {
 /// ANSI styling from text output. Useful for pipelines that line-buffer.
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
+    /// Resolved output format from `--output` / `--json` / `--jsonl` /
+    /// `XURL_OUTPUT`.
     pub format: OutputFormat,
+    /// Suppress non-essential human chatter (`--quiet` / `XURL_QUIET`).
     pub quiet: bool,
+    /// Negation of [`Self::use_color`], kept for source compatibility with
+    /// call sites that pattern-match on the negative form.
     pub no_color: bool,
+    /// Resolved color decision after combining `--color`, `NO_COLOR`, and
+    /// stderr's TTY-ness. The single source of truth for "should I emit
+    /// ANSI escapes".
     pub use_color: bool,
+    /// Enable verbose request/response logging
+    /// (`--verbose` / `-v` / `XURL_VERBOSE`).
     pub verbose: bool,
+    /// Emit unstyled, compact output (`--raw` / `XURL_RAW`). Strips ANSI in
+    /// text mode and forces compact JSON in machine modes.
     pub raw: bool,
     /// Set when the user passed `--no-interactive` (or `XURL_NO_INTERACTIVE`).
     ///

@@ -23,13 +23,23 @@ use crate::error::{Result, XurlError};
 // ── TokenStore ───────────────────────────────────────────────────────
 
 /// Manages authentication tokens across multiple apps.
+///
+/// The in-memory shape mirrors the on-disk YAML at `~/.xurl`. Library
+/// consumers construct via [`TokenStore::new`] (legacy default path),
+/// [`TokenStore::new_with_path`] (explicit path, no auto-import), or
+/// [`TokenStore::with_credentials`] (auto-backfill).
 pub struct TokenStore {
+    /// All registered apps, keyed by name.
     pub apps: BTreeMap<String, App>,
+    /// Name of the default app selected when `--app` is not supplied.
     pub default_app: String,
+    /// Path to the YAML file backing this store.
     pub file_path: PathBuf,
 }
 
 impl Default for TokenStore {
+    /// Constructs a `TokenStore` from the default location, identical to
+    /// calling [`TokenStore::new`].
     fn default() -> Self {
         Self::new()
     }
