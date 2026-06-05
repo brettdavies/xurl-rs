@@ -1141,7 +1141,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-":: :_xr__auth_commands" \
+":: :_xr__subcmd__auth_commands" \
 "*::: :->auth" \
 && ret=0
 
@@ -1355,7 +1355,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-":: :_xr__auth__apps_commands" \
+":: :_xr__subcmd__auth__subcmd__apps_commands" \
 "*::: :->apps" \
 && ret=0
 
@@ -1533,7 +1533,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-":: :_xr__auth__apps__redirect-uri_commands" \
+":: :_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands" \
 "*::: :->redirect-uri" \
 && ret=0
 
@@ -1612,7 +1612,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__apps__redirect-uri__help_commands" \
+":: :_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -1644,7 +1644,7 @@ esac
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__apps__help_commands" \
+":: :_xr__subcmd__auth__subcmd__apps__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -1672,7 +1672,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (redirect-uri)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__apps__help__redirect-uri_commands" \
+":: :_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri_commands" \
 "*::: :->redirect-uri" \
 && ret=0
 
@@ -1742,7 +1742,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__help_commands" \
+":: :_xr__subcmd__auth__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -1774,7 +1774,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (apps)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__help__apps_commands" \
+":: :_xr__subcmd__auth__subcmd__help__subcmd__apps_commands" \
 "*::: :->apps" \
 && ret=0
 
@@ -1802,7 +1802,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (redirect-uri)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__auth__help__apps__redirect-uri_commands" \
+":: :_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri_commands" \
 "*::: :->redirect-uri" \
 && ret=0
 
@@ -1874,7 +1874,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-":: :_xr__media_commands" \
+":: :_xr__subcmd__media_commands" \
 "*::: :->media" \
 && ret=0
 
@@ -1971,7 +1971,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__media__help_commands" \
+":: :_xr__subcmd__media__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -2031,7 +2031,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-":: :_xr__skill_commands" \
+":: :_xr__subcmd__skill_commands" \
 "*::: :->skill" \
 && ret=0
 
@@ -2111,7 +2111,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__skill__help_commands" \
+":: :_xr__subcmd__skill__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -2310,7 +2310,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help_commands" \
+":: :_xr__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -2430,7 +2430,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (auth)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help__auth_commands" \
+":: :_xr__subcmd__help__subcmd__auth_commands" \
 "*::: :->auth" \
 && ret=0
 
@@ -2462,7 +2462,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (apps)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help__auth__apps_commands" \
+":: :_xr__subcmd__help__subcmd__auth__subcmd__apps_commands" \
 "*::: :->apps" \
 && ret=0
 
@@ -2490,7 +2490,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (redirect-uri)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help__auth__apps__redirect-uri_commands" \
+":: :_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands" \
 "*::: :->redirect-uri" \
 && ret=0
 
@@ -2526,7 +2526,7 @@ esac
 ;;
 (media)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help__media_commands" \
+":: :_xr__subcmd__help__subcmd__media_commands" \
 "*::: :->media" \
 && ret=0
 
@@ -2550,7 +2550,7 @@ esac
 ;;
 (skill)
 _arguments "${_arguments_options[@]}" : \
-":: :_xr__help__skill_commands" \
+":: :_xr__subcmd__help__subcmd__skill_commands" \
 "*::: :->skill" \
 && ret=0
 
@@ -2647,8 +2647,8 @@ _xr_commands() {
     )
     _describe -t commands 'xr commands' commands "$@"
 }
-(( $+functions[_xr__auth_commands] )) ||
-_xr__auth_commands() {
+(( $+functions[_xr__subcmd__auth_commands] )) ||
+_xr__subcmd__auth_commands() {
     local commands; commands=(
 'oauth2:Configure \`OAuth2\` authentication' \
 'oauth1:Configure \`OAuth1\` authentication' \
@@ -2661,13 +2661,13 @@ _xr__auth_commands() {
     )
     _describe -t commands 'xr auth commands' commands "$@"
 }
-(( $+functions[_xr__auth__app_commands] )) ||
-_xr__auth__app_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__app_commands] )) ||
+_xr__subcmd__auth__subcmd__app_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth app commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps_commands] )) ||
-_xr__auth__apps_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps_commands] )) ||
+_xr__subcmd__auth__subcmd__apps_commands() {
     local commands; commands=(
 'add:Register a new X API app' \
 'update:Update credentials for an existing app' \
@@ -2678,13 +2678,13 @@ _xr__auth__apps_commands() {
     )
     _describe -t commands 'xr auth apps commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__add_commands] )) ||
-_xr__auth__apps__add_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__add_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps add commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help_commands] )) ||
-_xr__auth__apps__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help_commands() {
     local commands; commands=(
 'add:Register a new X API app' \
 'update:Update credentials for an existing app' \
@@ -2695,56 +2695,56 @@ _xr__auth__apps__help_commands() {
     )
     _describe -t commands 'xr auth apps help commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__add_commands] )) ||
-_xr__auth__apps__help__add_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help add commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__help_commands] )) ||
-_xr__auth__apps__help__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help help commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__list_commands] )) ||
-_xr__auth__apps__help__list_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help list commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__redirect-uri_commands] )) ||
-_xr__auth__apps__help__redirect-uri_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri_commands() {
     local commands; commands=(
 'get:Show the effective redirect URI, its source, and the stored value' \
 'set:Set the stored redirect URI for an app (empty string clears)' \
     )
     _describe -t commands 'xr auth apps help redirect-uri commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__redirect-uri__get_commands] )) ||
-_xr__auth__apps__help__redirect-uri__get_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri__subcmd__get_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help redirect-uri get commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__redirect-uri__set_commands] )) ||
-_xr__auth__apps__help__redirect-uri__set_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri__subcmd__set_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__redirect-uri__subcmd__set_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help redirect-uri set commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__remove_commands] )) ||
-_xr__auth__apps__help__remove_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help remove commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__help__update_commands] )) ||
-_xr__auth__apps__help__update_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__help__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help update commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__list_commands] )) ||
-_xr__auth__apps__list_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__list_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps list commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri_commands] )) ||
-_xr__auth__apps__redirect-uri_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands() {
     local commands; commands=(
 'get:Show the effective redirect URI, its source, and the stored value' \
 'set:Set the stored redirect URI for an app (empty string clears)' \
@@ -2752,13 +2752,13 @@ _xr__auth__apps__redirect-uri_commands() {
     )
     _describe -t commands 'xr auth apps redirect-uri commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__get_commands] )) ||
-_xr__auth__apps__redirect-uri__get_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps redirect-uri get commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__help_commands] )) ||
-_xr__auth__apps__redirect-uri__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help_commands() {
     local commands; commands=(
 'get:Show the effective redirect URI, its source, and the stored value' \
 'set:Set the stored redirect URI for an app (empty string clears)' \
@@ -2766,48 +2766,48 @@ _xr__auth__apps__redirect-uri__help_commands() {
     )
     _describe -t commands 'xr auth apps redirect-uri help commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__help__get_commands] )) ||
-_xr__auth__apps__redirect-uri__help__get_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__get_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps redirect-uri help get commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__help__help_commands] )) ||
-_xr__auth__apps__redirect-uri__help__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps redirect-uri help help commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__help__set_commands] )) ||
-_xr__auth__apps__redirect-uri__help__set_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__set_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__help__subcmd__set_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps redirect-uri help set commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__redirect-uri__set_commands] )) ||
-_xr__auth__apps__redirect-uri__set_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps redirect-uri set commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__remove_commands] )) ||
-_xr__auth__apps__remove_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__remove_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps remove commands' commands "$@"
 }
-(( $+functions[_xr__auth__apps__update_commands] )) ||
-_xr__auth__apps__update_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__apps__subcmd__update_commands] )) ||
+_xr__subcmd__auth__subcmd__apps__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps update commands' commands "$@"
 }
-(( $+functions[_xr__auth__clear_commands] )) ||
-_xr__auth__clear_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__clear_commands] )) ||
+_xr__subcmd__auth__subcmd__clear_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth clear commands' commands "$@"
 }
-(( $+functions[_xr__auth__default_commands] )) ||
-_xr__auth__default_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__default_commands] )) ||
+_xr__subcmd__auth__subcmd__default_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth default commands' commands "$@"
 }
-(( $+functions[_xr__auth__help_commands] )) ||
-_xr__auth__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__help_commands() {
     local commands; commands=(
 'oauth2:Configure \`OAuth2\` authentication' \
 'oauth1:Configure \`OAuth1\` authentication' \
@@ -2820,13 +2820,13 @@ _xr__auth__help_commands() {
     )
     _describe -t commands 'xr auth help commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__app_commands] )) ||
-_xr__auth__help__app_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__app_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__app_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help app commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps_commands] )) ||
-_xr__auth__help__apps_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps_commands() {
     local commands; commands=(
 'add:Register a new X API app' \
 'update:Update credentials for an existing app' \
@@ -2836,141 +2836,141 @@ _xr__auth__help__apps_commands() {
     )
     _describe -t commands 'xr auth help apps commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__add_commands] )) ||
-_xr__auth__help__apps__add_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__add_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps add commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__list_commands] )) ||
-_xr__auth__help__apps__list_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__list_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps list commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__redirect-uri_commands] )) ||
-_xr__auth__help__apps__redirect-uri_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri_commands() {
     local commands; commands=(
 'get:Show the effective redirect URI, its source, and the stored value' \
 'set:Set the stored redirect URI for an app (empty string clears)' \
     )
     _describe -t commands 'xr auth help apps redirect-uri commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__redirect-uri__get_commands] )) ||
-_xr__auth__help__apps__redirect-uri__get_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps redirect-uri get commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__redirect-uri__set_commands] )) ||
-_xr__auth__help__apps__redirect-uri__set_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps redirect-uri set commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__remove_commands] )) ||
-_xr__auth__help__apps__remove_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__remove_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps remove commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__apps__update_commands] )) ||
-_xr__auth__help__apps__update_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__update_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps update commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__clear_commands] )) ||
-_xr__auth__help__clear_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__clear_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__clear_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help clear commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__default_commands] )) ||
-_xr__auth__help__default_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__default_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__default_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help default commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__help_commands] )) ||
-_xr__auth__help__help_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help help commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__oauth1_commands] )) ||
-_xr__auth__help__oauth1_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__oauth1_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__oauth1_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help oauth1 commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__oauth2_commands] )) ||
-_xr__auth__help__oauth2_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__oauth2_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__oauth2_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help oauth2 commands' commands "$@"
 }
-(( $+functions[_xr__auth__help__status_commands] )) ||
-_xr__auth__help__status_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__help__subcmd__status_commands] )) ||
+_xr__subcmd__auth__subcmd__help__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help status commands' commands "$@"
 }
-(( $+functions[_xr__auth__oauth1_commands] )) ||
-_xr__auth__oauth1_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__oauth1_commands] )) ||
+_xr__subcmd__auth__subcmd__oauth1_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth oauth1 commands' commands "$@"
 }
-(( $+functions[_xr__auth__oauth2_commands] )) ||
-_xr__auth__oauth2_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__oauth2_commands] )) ||
+_xr__subcmd__auth__subcmd__oauth2_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth oauth2 commands' commands "$@"
 }
-(( $+functions[_xr__auth__status_commands] )) ||
-_xr__auth__status_commands() {
+(( $+functions[_xr__subcmd__auth__subcmd__status_commands] )) ||
+_xr__subcmd__auth__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth status commands' commands "$@"
 }
-(( $+functions[_xr__bookmark_commands] )) ||
-_xr__bookmark_commands() {
+(( $+functions[_xr__subcmd__bookmark_commands] )) ||
+_xr__subcmd__bookmark_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmark commands' commands "$@"
 }
-(( $+functions[_xr__bookmarks_commands] )) ||
-_xr__bookmarks_commands() {
+(( $+functions[_xr__subcmd__bookmarks_commands] )) ||
+_xr__subcmd__bookmarks_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmarks commands' commands "$@"
 }
-(( $+functions[_xr__completions_commands] )) ||
-_xr__completions_commands() {
+(( $+functions[_xr__subcmd__completions_commands] )) ||
+_xr__subcmd__completions_commands() {
     local commands; commands=()
     _describe -t commands 'xr completions commands' commands "$@"
 }
-(( $+functions[_xr__delete_commands] )) ||
-_xr__delete_commands() {
+(( $+functions[_xr__subcmd__delete_commands] )) ||
+_xr__subcmd__delete_commands() {
     local commands; commands=()
     _describe -t commands 'xr delete commands' commands "$@"
 }
-(( $+functions[_xr__dm_commands] )) ||
-_xr__dm_commands() {
+(( $+functions[_xr__subcmd__dm_commands] )) ||
+_xr__subcmd__dm_commands() {
     local commands; commands=()
     _describe -t commands 'xr dm commands' commands "$@"
 }
-(( $+functions[_xr__dms_commands] )) ||
-_xr__dms_commands() {
+(( $+functions[_xr__subcmd__dms_commands] )) ||
+_xr__subcmd__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr dms commands' commands "$@"
 }
-(( $+functions[_xr__examples_commands] )) ||
-_xr__examples_commands() {
+(( $+functions[_xr__subcmd__examples_commands] )) ||
+_xr__subcmd__examples_commands() {
     local commands; commands=()
     _describe -t commands 'xr examples commands' commands "$@"
 }
-(( $+functions[_xr__follow_commands] )) ||
-_xr__follow_commands() {
+(( $+functions[_xr__subcmd__follow_commands] )) ||
+_xr__subcmd__follow_commands() {
     local commands; commands=()
     _describe -t commands 'xr follow commands' commands "$@"
 }
-(( $+functions[_xr__followers_commands] )) ||
-_xr__followers_commands() {
+(( $+functions[_xr__subcmd__followers_commands] )) ||
+_xr__subcmd__followers_commands() {
     local commands; commands=()
     _describe -t commands 'xr followers commands' commands "$@"
 }
-(( $+functions[_xr__following_commands] )) ||
-_xr__following_commands() {
+(( $+functions[_xr__subcmd__following_commands] )) ||
+_xr__subcmd__following_commands() {
     local commands; commands=()
     _describe -t commands 'xr following commands' commands "$@"
 }
-(( $+functions[_xr__help_commands] )) ||
-_xr__help_commands() {
+(( $+functions[_xr__subcmd__help_commands] )) ||
+_xr__subcmd__help_commands() {
     local commands; commands=(
 'post:Post to X' \
 'reply:Reply to a post' \
@@ -3011,8 +3011,8 @@ _xr__help_commands() {
     )
     _describe -t commands 'xr help commands' commands "$@"
 }
-(( $+functions[_xr__help__auth_commands] )) ||
-_xr__help__auth_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth_commands] )) ||
+_xr__subcmd__help__subcmd__auth_commands() {
     local commands; commands=(
 'oauth2:Configure \`OAuth2\` authentication' \
 'oauth1:Configure \`OAuth1\` authentication' \
@@ -3024,13 +3024,13 @@ _xr__help__auth_commands() {
     )
     _describe -t commands 'xr help auth commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__app_commands] )) ||
-_xr__help__auth__app_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__app_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__app_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth app commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps_commands] )) ||
-_xr__help__auth__apps_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps_commands() {
     local commands; commands=(
 'add:Register a new X API app' \
 'update:Update credentials for an existing app' \
@@ -3040,282 +3040,282 @@ _xr__help__auth__apps_commands() {
     )
     _describe -t commands 'xr help auth apps commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__add_commands] )) ||
-_xr__help__auth__apps__add_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps add commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__list_commands] )) ||
-_xr__help__auth__apps__list_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps list commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__redirect-uri_commands] )) ||
-_xr__help__auth__apps__redirect-uri_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri_commands() {
     local commands; commands=(
 'get:Show the effective redirect URI, its source, and the stored value' \
 'set:Set the stored redirect URI for an app (empty string clears)' \
     )
     _describe -t commands 'xr help auth apps redirect-uri commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__redirect-uri__get_commands] )) ||
-_xr__help__auth__apps__redirect-uri__get_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps redirect-uri get commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__redirect-uri__set_commands] )) ||
-_xr__help__auth__apps__redirect-uri__set_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect-uri__subcmd__set_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps redirect-uri set commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__remove_commands] )) ||
-_xr__help__auth__apps__remove_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps remove commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__apps__update_commands] )) ||
-_xr__help__auth__apps__update_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps update commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__clear_commands] )) ||
-_xr__help__auth__clear_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__clear_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__clear_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth clear commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__default_commands] )) ||
-_xr__help__auth__default_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__default_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__default_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth default commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__oauth1_commands] )) ||
-_xr__help__auth__oauth1_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__oauth1_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__oauth1_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth oauth1 commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__oauth2_commands] )) ||
-_xr__help__auth__oauth2_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__oauth2_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__oauth2_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth oauth2 commands' commands "$@"
 }
-(( $+functions[_xr__help__auth__status_commands] )) ||
-_xr__help__auth__status_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__auth__subcmd__status_commands] )) ||
+_xr__subcmd__help__subcmd__auth__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth status commands' commands "$@"
 }
-(( $+functions[_xr__help__bookmark_commands] )) ||
-_xr__help__bookmark_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__bookmark_commands] )) ||
+_xr__subcmd__help__subcmd__bookmark_commands() {
     local commands; commands=()
     _describe -t commands 'xr help bookmark commands' commands "$@"
 }
-(( $+functions[_xr__help__bookmarks_commands] )) ||
-_xr__help__bookmarks_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__bookmarks_commands] )) ||
+_xr__subcmd__help__subcmd__bookmarks_commands() {
     local commands; commands=()
     _describe -t commands 'xr help bookmarks commands' commands "$@"
 }
-(( $+functions[_xr__help__completions_commands] )) ||
-_xr__help__completions_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__completions_commands] )) ||
+_xr__subcmd__help__subcmd__completions_commands() {
     local commands; commands=()
     _describe -t commands 'xr help completions commands' commands "$@"
 }
-(( $+functions[_xr__help__delete_commands] )) ||
-_xr__help__delete_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__delete_commands] )) ||
+_xr__subcmd__help__subcmd__delete_commands() {
     local commands; commands=()
     _describe -t commands 'xr help delete commands' commands "$@"
 }
-(( $+functions[_xr__help__dm_commands] )) ||
-_xr__help__dm_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__dm_commands] )) ||
+_xr__subcmd__help__subcmd__dm_commands() {
     local commands; commands=()
     _describe -t commands 'xr help dm commands' commands "$@"
 }
-(( $+functions[_xr__help__dms_commands] )) ||
-_xr__help__dms_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__dms_commands] )) ||
+_xr__subcmd__help__subcmd__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr help dms commands' commands "$@"
 }
-(( $+functions[_xr__help__examples_commands] )) ||
-_xr__help__examples_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__examples_commands] )) ||
+_xr__subcmd__help__subcmd__examples_commands() {
     local commands; commands=()
     _describe -t commands 'xr help examples commands' commands "$@"
 }
-(( $+functions[_xr__help__follow_commands] )) ||
-_xr__help__follow_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__follow_commands] )) ||
+_xr__subcmd__help__subcmd__follow_commands() {
     local commands; commands=()
     _describe -t commands 'xr help follow commands' commands "$@"
 }
-(( $+functions[_xr__help__followers_commands] )) ||
-_xr__help__followers_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__followers_commands] )) ||
+_xr__subcmd__help__subcmd__followers_commands() {
     local commands; commands=()
     _describe -t commands 'xr help followers commands' commands "$@"
 }
-(( $+functions[_xr__help__following_commands] )) ||
-_xr__help__following_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__following_commands] )) ||
+_xr__subcmd__help__subcmd__following_commands() {
     local commands; commands=()
     _describe -t commands 'xr help following commands' commands "$@"
 }
-(( $+functions[_xr__help__help_commands] )) ||
-_xr__help__help_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr help help commands' commands "$@"
 }
-(( $+functions[_xr__help__like_commands] )) ||
-_xr__help__like_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__like_commands] )) ||
+_xr__subcmd__help__subcmd__like_commands() {
     local commands; commands=()
     _describe -t commands 'xr help like commands' commands "$@"
 }
-(( $+functions[_xr__help__likes_commands] )) ||
-_xr__help__likes_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__likes_commands] )) ||
+_xr__subcmd__help__subcmd__likes_commands() {
     local commands; commands=()
     _describe -t commands 'xr help likes commands' commands "$@"
 }
-(( $+functions[_xr__help__media_commands] )) ||
-_xr__help__media_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__media_commands] )) ||
+_xr__subcmd__help__subcmd__media_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
     )
     _describe -t commands 'xr help media commands' commands "$@"
 }
-(( $+functions[_xr__help__media__status_commands] )) ||
-_xr__help__media__status_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__status_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr help media status commands' commands "$@"
 }
-(( $+functions[_xr__help__media__upload_commands] )) ||
-_xr__help__media__upload_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__upload_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__upload_commands() {
     local commands; commands=()
     _describe -t commands 'xr help media upload commands' commands "$@"
 }
-(( $+functions[_xr__help__mentions_commands] )) ||
-_xr__help__mentions_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__mentions_commands] )) ||
+_xr__subcmd__help__subcmd__mentions_commands() {
     local commands; commands=()
     _describe -t commands 'xr help mentions commands' commands "$@"
 }
-(( $+functions[_xr__help__mute_commands] )) ||
-_xr__help__mute_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__mute_commands] )) ||
+_xr__subcmd__help__subcmd__mute_commands() {
     local commands; commands=()
     _describe -t commands 'xr help mute commands' commands "$@"
 }
-(( $+functions[_xr__help__post_commands] )) ||
-_xr__help__post_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__post_commands] )) ||
+_xr__subcmd__help__subcmd__post_commands() {
     local commands; commands=()
     _describe -t commands 'xr help post commands' commands "$@"
 }
-(( $+functions[_xr__help__quote_commands] )) ||
-_xr__help__quote_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__quote_commands] )) ||
+_xr__subcmd__help__subcmd__quote_commands() {
     local commands; commands=()
     _describe -t commands 'xr help quote commands' commands "$@"
 }
-(( $+functions[_xr__help__read_commands] )) ||
-_xr__help__read_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__read_commands] )) ||
+_xr__subcmd__help__subcmd__read_commands() {
     local commands; commands=()
     _describe -t commands 'xr help read commands' commands "$@"
 }
-(( $+functions[_xr__help__reply_commands] )) ||
-_xr__help__reply_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__reply_commands] )) ||
+_xr__subcmd__help__subcmd__reply_commands() {
     local commands; commands=()
     _describe -t commands 'xr help reply commands' commands "$@"
 }
-(( $+functions[_xr__help__repost_commands] )) ||
-_xr__help__repost_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__repost_commands] )) ||
+_xr__subcmd__help__subcmd__repost_commands() {
     local commands; commands=()
     _describe -t commands 'xr help repost commands' commands "$@"
 }
-(( $+functions[_xr__help__schema_commands] )) ||
-_xr__help__schema_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__schema_commands] )) ||
+_xr__subcmd__help__subcmd__schema_commands() {
     local commands; commands=()
     _describe -t commands 'xr help schema commands' commands "$@"
 }
-(( $+functions[_xr__help__search_commands] )) ||
-_xr__help__search_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__search_commands] )) ||
+_xr__subcmd__help__subcmd__search_commands() {
     local commands; commands=()
     _describe -t commands 'xr help search commands' commands "$@"
 }
-(( $+functions[_xr__help__skill_commands] )) ||
-_xr__help__skill_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__skill_commands] )) ||
+_xr__subcmd__help__subcmd__skill_commands() {
     local commands; commands=(
 'install:Install the skill bundle into a host'\''s canonical skills directory' \
 'update:Refresh an existing skill-bundle install in place' \
     )
     _describe -t commands 'xr help skill commands' commands "$@"
 }
-(( $+functions[_xr__help__skill__install_commands] )) ||
-_xr__help__skill__install_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__skill__subcmd__install_commands] )) ||
+_xr__subcmd__help__subcmd__skill__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'xr help skill install commands' commands "$@"
 }
-(( $+functions[_xr__help__skill__update_commands] )) ||
-_xr__help__skill__update_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__skill__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__skill__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr help skill update commands' commands "$@"
 }
-(( $+functions[_xr__help__timeline_commands] )) ||
-_xr__help__timeline_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__timeline_commands] )) ||
+_xr__subcmd__help__subcmd__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr help timeline commands' commands "$@"
 }
-(( $+functions[_xr__help__unbookmark_commands] )) ||
-_xr__help__unbookmark_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__unbookmark_commands] )) ||
+_xr__subcmd__help__subcmd__unbookmark_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unbookmark commands' commands "$@"
 }
-(( $+functions[_xr__help__unfollow_commands] )) ||
-_xr__help__unfollow_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__unfollow_commands] )) ||
+_xr__subcmd__help__subcmd__unfollow_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unfollow commands' commands "$@"
 }
-(( $+functions[_xr__help__unlike_commands] )) ||
-_xr__help__unlike_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__unlike_commands] )) ||
+_xr__subcmd__help__subcmd__unlike_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unlike commands' commands "$@"
 }
-(( $+functions[_xr__help__unmute_commands] )) ||
-_xr__help__unmute_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__unmute_commands] )) ||
+_xr__subcmd__help__subcmd__unmute_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unmute commands' commands "$@"
 }
-(( $+functions[_xr__help__unrepost_commands] )) ||
-_xr__help__unrepost_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__unrepost_commands] )) ||
+_xr__subcmd__help__subcmd__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr help unrepost commands' commands "$@"
 }
-(( $+functions[_xr__help__usage_commands] )) ||
-_xr__help__usage_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__usage_commands] )) ||
+_xr__subcmd__help__subcmd__usage_commands() {
     local commands; commands=()
     _describe -t commands 'xr help usage commands' commands "$@"
 }
-(( $+functions[_xr__help__user_commands] )) ||
-_xr__help__user_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__user_commands] )) ||
+_xr__subcmd__help__subcmd__user_commands() {
     local commands; commands=()
     _describe -t commands 'xr help user commands' commands "$@"
 }
-(( $+functions[_xr__help__validate_commands] )) ||
-_xr__help__validate_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__validate_commands] )) ||
+_xr__subcmd__help__subcmd__validate_commands() {
     local commands; commands=()
     _describe -t commands 'xr help validate commands' commands "$@"
 }
-(( $+functions[_xr__help__version_commands] )) ||
-_xr__help__version_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__version_commands] )) ||
+_xr__subcmd__help__subcmd__version_commands() {
     local commands; commands=()
     _describe -t commands 'xr help version commands' commands "$@"
 }
-(( $+functions[_xr__help__whoami_commands] )) ||
-_xr__help__whoami_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__whoami_commands] )) ||
+_xr__subcmd__help__subcmd__whoami_commands() {
     local commands; commands=()
     _describe -t commands 'xr help whoami commands' commands "$@"
 }
-(( $+functions[_xr__like_commands] )) ||
-_xr__like_commands() {
+(( $+functions[_xr__subcmd__like_commands] )) ||
+_xr__subcmd__like_commands() {
     local commands; commands=()
     _describe -t commands 'xr like commands' commands "$@"
 }
-(( $+functions[_xr__likes_commands] )) ||
-_xr__likes_commands() {
+(( $+functions[_xr__subcmd__likes_commands] )) ||
+_xr__subcmd__likes_commands() {
     local commands; commands=()
     _describe -t commands 'xr likes commands' commands "$@"
 }
-(( $+functions[_xr__media_commands] )) ||
-_xr__media_commands() {
+(( $+functions[_xr__subcmd__media_commands] )) ||
+_xr__subcmd__media_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
@@ -3323,8 +3323,8 @@ _xr__media_commands() {
     )
     _describe -t commands 'xr media commands' commands "$@"
 }
-(( $+functions[_xr__media__help_commands] )) ||
-_xr__media__help_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__help_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
@@ -3332,78 +3332,78 @@ _xr__media__help_commands() {
     )
     _describe -t commands 'xr media help commands' commands "$@"
 }
-(( $+functions[_xr__media__help__help_commands] )) ||
-_xr__media__help__help_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help help commands' commands "$@"
 }
-(( $+functions[_xr__media__help__status_commands] )) ||
-_xr__media__help__status_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__status_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help status commands' commands "$@"
 }
-(( $+functions[_xr__media__help__upload_commands] )) ||
-_xr__media__help__upload_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__upload_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__upload_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help upload commands' commands "$@"
 }
-(( $+functions[_xr__media__status_commands] )) ||
-_xr__media__status_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__status_commands] )) ||
+_xr__subcmd__media__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr media status commands' commands "$@"
 }
-(( $+functions[_xr__media__upload_commands] )) ||
-_xr__media__upload_commands() {
+(( $+functions[_xr__subcmd__media__subcmd__upload_commands] )) ||
+_xr__subcmd__media__subcmd__upload_commands() {
     local commands; commands=()
     _describe -t commands 'xr media upload commands' commands "$@"
 }
-(( $+functions[_xr__mentions_commands] )) ||
-_xr__mentions_commands() {
+(( $+functions[_xr__subcmd__mentions_commands] )) ||
+_xr__subcmd__mentions_commands() {
     local commands; commands=()
     _describe -t commands 'xr mentions commands' commands "$@"
 }
-(( $+functions[_xr__mute_commands] )) ||
-_xr__mute_commands() {
+(( $+functions[_xr__subcmd__mute_commands] )) ||
+_xr__subcmd__mute_commands() {
     local commands; commands=()
     _describe -t commands 'xr mute commands' commands "$@"
 }
-(( $+functions[_xr__post_commands] )) ||
-_xr__post_commands() {
+(( $+functions[_xr__subcmd__post_commands] )) ||
+_xr__subcmd__post_commands() {
     local commands; commands=()
     _describe -t commands 'xr post commands' commands "$@"
 }
-(( $+functions[_xr__quote_commands] )) ||
-_xr__quote_commands() {
+(( $+functions[_xr__subcmd__quote_commands] )) ||
+_xr__subcmd__quote_commands() {
     local commands; commands=()
     _describe -t commands 'xr quote commands' commands "$@"
 }
-(( $+functions[_xr__read_commands] )) ||
-_xr__read_commands() {
+(( $+functions[_xr__subcmd__read_commands] )) ||
+_xr__subcmd__read_commands() {
     local commands; commands=()
     _describe -t commands 'xr read commands' commands "$@"
 }
-(( $+functions[_xr__reply_commands] )) ||
-_xr__reply_commands() {
+(( $+functions[_xr__subcmd__reply_commands] )) ||
+_xr__subcmd__reply_commands() {
     local commands; commands=()
     _describe -t commands 'xr reply commands' commands "$@"
 }
-(( $+functions[_xr__repost_commands] )) ||
-_xr__repost_commands() {
+(( $+functions[_xr__subcmd__repost_commands] )) ||
+_xr__subcmd__repost_commands() {
     local commands; commands=()
     _describe -t commands 'xr repost commands' commands "$@"
 }
-(( $+functions[_xr__schema_commands] )) ||
-_xr__schema_commands() {
+(( $+functions[_xr__subcmd__schema_commands] )) ||
+_xr__subcmd__schema_commands() {
     local commands; commands=()
     _describe -t commands 'xr schema commands' commands "$@"
 }
-(( $+functions[_xr__search_commands] )) ||
-_xr__search_commands() {
+(( $+functions[_xr__subcmd__search_commands] )) ||
+_xr__subcmd__search_commands() {
     local commands; commands=()
     _describe -t commands 'xr search commands' commands "$@"
 }
-(( $+functions[_xr__skill_commands] )) ||
-_xr__skill_commands() {
+(( $+functions[_xr__subcmd__skill_commands] )) ||
+_xr__subcmd__skill_commands() {
     local commands; commands=(
 'install:Install the skill bundle into a host'\''s canonical skills directory' \
 'update:Refresh an existing skill-bundle install in place' \
@@ -3411,8 +3411,8 @@ _xr__skill_commands() {
     )
     _describe -t commands 'xr skill commands' commands "$@"
 }
-(( $+functions[_xr__skill__help_commands] )) ||
-_xr__skill__help_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__help_commands] )) ||
+_xr__subcmd__skill__subcmd__help_commands() {
     local commands; commands=(
 'install:Install the skill bundle into a host'\''s canonical skills directory' \
 'update:Refresh an existing skill-bundle install in place' \
@@ -3420,83 +3420,83 @@ _xr__skill__help_commands() {
     )
     _describe -t commands 'xr skill help commands' commands "$@"
 }
-(( $+functions[_xr__skill__help__help_commands] )) ||
-_xr__skill__help__help_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__skill__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr skill help help commands' commands "$@"
 }
-(( $+functions[_xr__skill__help__install_commands] )) ||
-_xr__skill__help__install_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__help__subcmd__install_commands] )) ||
+_xr__subcmd__skill__subcmd__help__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'xr skill help install commands' commands "$@"
 }
-(( $+functions[_xr__skill__help__update_commands] )) ||
-_xr__skill__help__update_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__skill__subcmd__help__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr skill help update commands' commands "$@"
 }
-(( $+functions[_xr__skill__install_commands] )) ||
-_xr__skill__install_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__install_commands] )) ||
+_xr__subcmd__skill__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'xr skill install commands' commands "$@"
 }
-(( $+functions[_xr__skill__update_commands] )) ||
-_xr__skill__update_commands() {
+(( $+functions[_xr__subcmd__skill__subcmd__update_commands] )) ||
+_xr__subcmd__skill__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr skill update commands' commands "$@"
 }
-(( $+functions[_xr__timeline_commands] )) ||
-_xr__timeline_commands() {
+(( $+functions[_xr__subcmd__timeline_commands] )) ||
+_xr__subcmd__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr timeline commands' commands "$@"
 }
-(( $+functions[_xr__unbookmark_commands] )) ||
-_xr__unbookmark_commands() {
+(( $+functions[_xr__subcmd__unbookmark_commands] )) ||
+_xr__subcmd__unbookmark_commands() {
     local commands; commands=()
     _describe -t commands 'xr unbookmark commands' commands "$@"
 }
-(( $+functions[_xr__unfollow_commands] )) ||
-_xr__unfollow_commands() {
+(( $+functions[_xr__subcmd__unfollow_commands] )) ||
+_xr__subcmd__unfollow_commands() {
     local commands; commands=()
     _describe -t commands 'xr unfollow commands' commands "$@"
 }
-(( $+functions[_xr__unlike_commands] )) ||
-_xr__unlike_commands() {
+(( $+functions[_xr__subcmd__unlike_commands] )) ||
+_xr__subcmd__unlike_commands() {
     local commands; commands=()
     _describe -t commands 'xr unlike commands' commands "$@"
 }
-(( $+functions[_xr__unmute_commands] )) ||
-_xr__unmute_commands() {
+(( $+functions[_xr__subcmd__unmute_commands] )) ||
+_xr__subcmd__unmute_commands() {
     local commands; commands=()
     _describe -t commands 'xr unmute commands' commands "$@"
 }
-(( $+functions[_xr__unrepost_commands] )) ||
-_xr__unrepost_commands() {
+(( $+functions[_xr__subcmd__unrepost_commands] )) ||
+_xr__subcmd__unrepost_commands() {
     local commands; commands=()
     _describe -t commands 'xr unrepost commands' commands "$@"
 }
-(( $+functions[_xr__usage_commands] )) ||
-_xr__usage_commands() {
+(( $+functions[_xr__subcmd__usage_commands] )) ||
+_xr__subcmd__usage_commands() {
     local commands; commands=()
     _describe -t commands 'xr usage commands' commands "$@"
 }
-(( $+functions[_xr__user_commands] )) ||
-_xr__user_commands() {
+(( $+functions[_xr__subcmd__user_commands] )) ||
+_xr__subcmd__user_commands() {
     local commands; commands=()
     _describe -t commands 'xr user commands' commands "$@"
 }
-(( $+functions[_xr__validate_commands] )) ||
-_xr__validate_commands() {
+(( $+functions[_xr__subcmd__validate_commands] )) ||
+_xr__subcmd__validate_commands() {
     local commands; commands=()
     _describe -t commands 'xr validate commands' commands "$@"
 }
-(( $+functions[_xr__version_commands] )) ||
-_xr__version_commands() {
+(( $+functions[_xr__subcmd__version_commands] )) ||
+_xr__subcmd__version_commands() {
     local commands; commands=()
     _describe -t commands 'xr version commands' commands "$@"
 }
-(( $+functions[_xr__whoami_commands] )) ||
-_xr__whoami_commands() {
+(( $+functions[_xr__subcmd__whoami_commands] )) ||
+_xr__subcmd__whoami_commands() {
     local commands; commands=()
     _describe -t commands 'xr whoami commands' commands "$@"
 }
