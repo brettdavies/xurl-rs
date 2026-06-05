@@ -72,8 +72,7 @@ pub(super) fn stream_request_with_output(
     }
 
     if !options.no_auth
-        && let Ok(auth_header) =
-            client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
+        && let Ok(auth_header) = client.get_auth_header_public(options)
     {
         builder = builder.header("Authorization", auth_header);
     }

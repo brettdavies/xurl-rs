@@ -138,7 +138,7 @@ pub fn auth_scheme_wire_str(scheme: AuthScheme) -> &'static str {
 /// `security:` list order). Duplicates can appear when the spec lists
 /// multiple OAuth2 scope sets for the same endpoint — collapse them so the
 /// envelope reads `["oauth2", "oauth1"]`, not `["oauth2", "oauth2", "oauth1"]`.
-fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
+pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
     let mut out: Vec<String> = Vec::with_capacity(schemes.len());
     for s in schemes {
         let w = auth_scheme_wire_str(*s);

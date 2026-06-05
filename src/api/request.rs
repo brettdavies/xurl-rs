@@ -321,8 +321,7 @@ impl ApiClient {
         // from upstream. The older "silently skip on Err" form let auth
         // bugs masquerade as upstream auth rejections.
         if !options.no_auth {
-            let auth_header =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -429,12 +428,7 @@ impl ApiClient {
         // rather than silently sending the request unauthenticated; see the
         // matching propagation site in `send_request` for the rationale.
         if !options.request.no_auth {
-            let auth_header = self.get_auth_header(
-                method,
-                &url,
-                &options.request.auth_type,
-                &options.request.username,
-            )?;
+            let auth_header = self.get_auth_header(&options.request)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -528,8 +522,7 @@ impl ApiClient {
         }
 
         if !options.no_auth {
-            let auth_header =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -593,29 +586,37 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Returns an error if no valid auth method is found.
-    pub fn get_auth_header_public(
-        &mut self,
-        method: &str,
-        url: &str,
-        auth_type: &str,
-        username: &str,
-    ) -> Result<String> {
-        self.get_auth_header(method, url, auth_type, username)
+    /// Returns an error if no valid auth method is found, or — when the
+    /// auto-detect path resolves an empty intersection between stored
+    /// credentials and the endpoint's accepted schemes — an
+    /// [`XurlError::AuthMethodMismatch`] in the empty-intersection shape.
+    pub fn get_auth_header_public(&mut self, options: &RequestOptions) -> Result<String> {
+        self.get_auth_header(options)
     }
 
     /// Gets the authorization header for a request.
-    fn get_auth_header(
-        &mut self,
-        method: &str,
-        url: &str,
-        auth_type: &str,
-        username: &str,
-    ) -> Result<String> {
+    ///
+    /// When `options.auth_type` is non-empty, dispatches directly to that
+    /// scheme. When empty, runs the U7 endpoint-aware auto-detect:
+    /// intersects the active app's stored credentials with the endpoint's
+    /// accepted auth schemes per the matrix, picks the first match in
+    /// OAuth2 → OAuth1 → Bearer preference order, and falls back to that
+    /// fixed order for [`RequestTarget::RawUrl`] and matrix-miss
+    /// [`RequestTarget::Template`] targets (R19).
+    fn get_auth_header(&mut self, options: &RequestOptions) -> Result<String> {
+        let auth_type = &options.auth_type;
+        let method_raw = options.method.to_uppercase();
+        let method = if method_raw.is_empty() {
+            "GET"
+        } else {
+            method_raw.as_str()
+        };
+
         if !auth_type.is_empty() {
+            let url = self.build_url(&options.target)?;
             return match auth_type.to_lowercase().as_str() {
-                "oauth1" => self.auth.get_oauth1_header(method, url, None),
-                "oauth2" => self.auth.get_oauth2_header(username),
+                "oauth1" => self.auth.get_oauth1_header(method, &url, None),
+                "oauth2" => self.auth.get_oauth2_header(&options.username),
                 "app" => self.auth.get_bearer_token_header(),
                 _ => Err(XurlError::auth(format!("invalid auth type: {auth_type}"))),
             };
@@ -627,41 +628,110 @@ impl ApiClient {
         // default app's. The legacy no-arg `get_first_oauth2_token` /
         // `get_oauth1_tokens` / `has_bearer_token` calls resolved to the
         // default app and silently bypassed NAME's stored credentials.
-        let app_name = self.auth.app_name();
+        let app_name = self.auth.app_name().to_string();
+        let available_in_app = self.available_auth_in_app(&app_name);
 
-        // Try OAuth2 first — propagate errors if a token exists.
+        // Endpoint-aware intersection only fires for `Template` targets whose
+        // (method, path) lands in the matrix. `RawUrl` and matrix-miss
+        // `Template` targets fall back to the fixed OAuth2 → OAuth1 → Bearer
+        // order gated on availability (R19, R7-R9).
+        let endpoint_schemes = match &options.target {
+            RequestTarget::Template { path, .. } => {
+                crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
+            }
+            RequestTarget::RawUrl(_) => None,
+        };
+
+        let candidate_order: Vec<&'static str> = match &endpoint_schemes {
+            Some((path, schemes)) => {
+                let endpoint_supported = crate::api::auth_matrix::schemes_to_wire_list(schemes);
+                let intersection: Vec<&'static str> = ["oauth2", "oauth1", "app"]
+                    .into_iter()
+                    .filter(|m| {
+                        available_in_app.iter().any(|a| a == m)
+                            && endpoint_supported.iter().any(|s| s == m)
+                    })
+                    .collect();
+
+                if intersection.is_empty() {
+                    // App holds zero credentials → the user has not logged in
+                    // at all; surface AuthRequired (exit 77) rather than
+                    // mismatch (exit 2). Mismatch is the wrong-credential
+                    // signal; required is the no-credential signal.
+                    if available_in_app.is_empty() {
+                        return Err(XurlError::auth(
+                            "NoAuthMethod: no authentication method available",
+                        ));
+                    }
+                    return Err(XurlError::AuthMethodMismatch {
+                        endpoint: path.clone(),
+                        method: method.to_string(),
+                        requested: None,
+                        supported: endpoint_supported,
+                        available_in_app: Some(
+                            available_in_app.iter().map(|s| (*s).to_string()).collect(),
+                        ),
+                    });
+                }
+                intersection
+            }
+            None => ["oauth2", "oauth1", "app"]
+                .into_iter()
+                .filter(|m| available_in_app.iter().any(|a| a == m))
+                .collect(),
+        };
+
+        // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference
+        // order. `candidate_order` is constructed in that order with
+        // unavailable schemes already filtered out, so first-wins matches
+        // the intended precedence.
+        match candidate_order.first().copied() {
+            Some("oauth2") => self.auth.get_oauth2_header(&options.username),
+            Some("oauth1") => {
+                let url = self.build_url(&options.target)?;
+                self.auth.get_oauth1_header(method, &url, None)
+            }
+            Some("app") => self.auth.get_bearer_token_header(),
+            Some(_) => unreachable!("candidate_order is filtered to known wire strings"),
+            None => Err(XurlError::auth(
+                "NoAuthMethod: no authentication method available",
+            )),
+        }
+    }
+
+    /// Probes the active app for which auth schemes have stored credentials.
+    ///
+    /// Returned vector lists the wire strings (`"oauth2"`, `"oauth1"`,
+    /// `"app"`) in OAuth2 → OAuth1 → Bearer order. Used by the auto-detect
+    /// intersection in [`Self::get_auth_header`] and by the empty-intersection
+    /// error envelope to populate `available_in_app`.
+    fn available_auth_in_app(&self, app_name: &str) -> Vec<&'static str> {
+        let mut out: Vec<&'static str> = Vec::with_capacity(3);
         if self
             .auth
             .token_store
             .get_first_oauth2_token_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_oauth2_header(username);
+            out.push("oauth2");
         }
-
-        // Try OAuth1 — propagate errors if a token exists.
         if self
             .auth
             .token_store
             .get_oauth1_tokens_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_oauth1_header(method, url, None);
+            out.push("oauth1");
         }
-
-        // Try Bearer.
         if self
             .auth
             .token_store
             .get_bearer_token_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_bearer_token_header();
+            out.push("app");
         }
-
-        Err(XurlError::auth(
-            "NoAuthMethod: no authentication method available",
-        ))
+        out
     }
 }
 
