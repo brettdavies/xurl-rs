@@ -326,24 +326,6 @@ Examples:
     xr followers --of @jack --output json
 ";
 
-/// `xr block` examples — paired text + JSON.
-const BLOCK_HELP: &str = "\
-Examples:
-  Block a user (text):
-    xr block @spammer
-  Block (JSON envelope):
-    xr block @spammer --output json
-";
-
-/// `xr unblock` examples — paired text + JSON.
-const UNBLOCK_HELP: &str = "\
-Examples:
-  Unblock a user (text):
-    xr unblock @spammer
-  Unblock (JSON envelope):
-    xr unblock @spammer --output json
-";
-
 /// `xr mute` examples — paired text + JSON.
 const MUTE_HELP: &str = "\
 Examples:
@@ -1166,24 +1148,6 @@ pub enum Commands {
         /// Username to list followers for (default: you)
         #[arg(long = "of")]
         of: Option<String>,
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Block a user
-    #[command(after_help = BLOCK_HELP)]
-    Block {
-        /// Username to block
-        #[arg(value_name = "USERNAME")]
-        target_username: String,
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Unblock a user
-    #[command(after_help = UNBLOCK_HELP)]
-    Unblock {
-        /// Username to unblock
-        #[arg(value_name = "USERNAME")]
-        target_username: String,
         #[command(flatten)]
         common: CommonFlags,
     },

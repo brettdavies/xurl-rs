@@ -13,7 +13,7 @@ use serde::Serialize;
 use serde_json::json;
 
 use crate::api::shortcuts;
-use crate::api::{self, ApiClient, CallOptions, RequestOptions};
+use crate::api::{self, ApiClient, CallOptions, RequestOptions, RequestTarget};
 use crate::auth::Auth;
 use crate::cli::{Cli, Commands};
 use crate::config::Config;
@@ -300,9 +300,28 @@ fn run_raw_mode(
     let media_file = cli.file.clone().unwrap_or_default();
 
     let mut client = make_client(cfg, auth, out);
+    // Raw mode accepts either an absolute http(s) URL OR an absolute path
+    // (e.g. `xr POST /2/users/me`). Pre-v2.0.0 `build_url` prepended
+    // `api_base_url` whenever the input did not start with `http`; with the
+    // typed RequestTarget, RawUrl values must be absolute URLs (the scheme
+    // allowlist enforces http/https), so the prepend now happens here.
+    let absolute_url = if url.starts_with("http://") || url.starts_with("https://") {
+        url.clone()
+    } else if url.starts_with('/') {
+        format!("{}{}", cfg.api_base_url, url)
+    } else {
+        return Err(XurlError::validation(format!(
+            "URL {url:?} must be an absolute http(s) URL or an absolute path starting with `/`."
+        )));
+    };
+    // Raw mode threads the (now absolute) URL through as a `RawUrl` target.
+    // The matrix validator short-circuits for RawUrl; the
+    // streaming/media-append heuristics below inspect the URL string
+    // directly — they pre-date the typed target and still make sense for
+    // raw curl-style mode.
     let options = RequestOptions {
         method,
-        endpoint: url.clone(),
+        target: RequestTarget::RawUrl(absolute_url.clone()),
         headers: cli.headers.clone(),
         data: cli.data.clone().unwrap_or_default(),
         auth_type: cli.auth_type.clone().unwrap_or_default(),
@@ -314,13 +333,13 @@ fn run_raw_mode(
     };
 
     // Check for media append request
-    if api::is_media_append_request(&options.endpoint, &media_file) {
+    if api::is_media_append_request(&absolute_url, &media_file) {
         let response = api::handle_media_append_request(&options, &media_file, &mut client)?;
         out.print_response(stdout, &response);
         return Ok(());
     }
 
-    let should_stream = cli.stream || api::is_streaming_endpoint(&options.endpoint);
+    let should_stream = cli.stream || api::is_streaming_endpoint(&absolute_url);
 
     if should_stream {
         streaming::stream_request_with_output(&mut client, &options, out, stdout, stderr)
@@ -723,44 +742,6 @@ fn run_subcommand(
                 resolve_my_user_id(&mut client, &opts)?
             };
             let response = client.get_followers(&user_id, n, &opts)?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Block {
-            target_username,
-            common,
-        } => {
-            let ctx = json!({"command": "block", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
-            let my_id = resolve_my_user_id(&mut client, &opts)?;
-            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
-            let response = client.block_user(&my_id, &target_id, &opts)?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Unblock {
-            target_username,
-            common,
-        } => {
-            let ctx = json!({"command": "unblock", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
-            let my_id = resolve_my_user_id(&mut client, &opts)?;
-            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
-            let response = client.unblock_user(&my_id, &target_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
         Commands::Mute {

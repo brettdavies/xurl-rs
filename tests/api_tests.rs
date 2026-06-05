@@ -15,9 +15,11 @@ use tempfile::TempDir;
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use std::collections::HashMap;
+
 use xurl::api::{
-    self, ApiClient, CallOptions, RequestOptions, extract_media_id, extract_segment_index,
-    is_media_append_request, is_streaming_endpoint,
+    self, ApiClient, CallOptions, RequestOptions, RequestTarget, extract_media_id,
+    extract_segment_index, is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
 use xurl::config::Config;
@@ -57,6 +59,19 @@ impl TestServer {
 
     fn uri(&self) -> &str {
         &self.uri
+    }
+
+    /// Returns the number of requests this mock server has received across
+    /// all registered mocks. Used by the U6 enforcement tests to assert
+    /// that fail-fast validation rejects before any network I/O happens.
+    fn received_request_count(&self) -> usize {
+        self._rt.block_on(async {
+            self.server
+                .received_requests()
+                .await
+                .map(|v| v.len())
+                .unwrap_or(0)
+        })
     }
 }
 
@@ -201,8 +216,88 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
+/// Fixture with all three credentials stored on the default app. Under U7's
+/// endpoint-aware auto-detect, callers exercising a non-auth-centric
+/// concern (request shape, error mapping, response parsing) can opt into
+/// this fixture and stay agnostic about which scheme the matrix picks for
+/// any given `(method, path)` — the intersection always resolves.
+fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
+    let cfg = create_test_config(base_url);
+    let auth = Auth::new(&cfg);
+
+    let tmp = TempDir::new().expect("temp dir");
+    let file_path = tmp.path().join(".xurl");
+
+    let future_epoch = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        + 3600;
+
+    let mut store = TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path,
+    };
+    let mut app = App {
+        client_id: "cid".to_string(),
+        client_secret: "csec".to_string(),
+        default_user: "testuser".to_string(),
+        redirect_uri: String::new(),
+        oauth2_tokens: BTreeMap::new(),
+        oauth1_token: Some(Token {
+            token_type: TokenType::Oauth1,
+            bearer: None,
+            oauth2: None,
+            oauth1: Some(OAuth1Token {
+                access_token: "at".to_string(),
+                token_secret: "ts".to_string(),
+                consumer_key: "ck".to_string(),
+                consumer_secret: "cs".to_string(),
+            }),
+        }),
+        bearer_token: Some(Token {
+            token_type: TokenType::Bearer,
+            bearer: Some("test-bearer-token".to_string()),
+            oauth2: None,
+            oauth1: None,
+        }),
+        unnamed_oauth2_token: None,
+    };
+    app.oauth2_tokens.insert(
+        "testuser".to_string(),
+        Token {
+            token_type: TokenType::Oauth2,
+            bearer: None,
+            oauth2: Some(OAuth2Token {
+                access_token: "valid-access-token".to_string(),
+                refresh_token: "refresh".to_string(),
+                expiration_time: future_epoch,
+            }),
+            oauth1: None,
+        },
+    );
+    store.apps.insert("default".to_string(), app);
+
+    let auth = auth.with_token_store(store);
+    (auth, tmp)
+}
+
 fn base_call_opts() -> CallOptions {
     CallOptions::default()
+}
+
+/// Builds a `RequestTarget::Template` from a path with no params or query.
+///
+/// Keeps the test-side ergonomics close to the pre-U4 `endpoint:
+/// "/2/foo".to_string()` shorthand without rewriting every literal at
+/// each call site.
+fn target_path(path: &str) -> RequestTarget {
+    RequestTarget::Template {
+        path: path.to_string(),
+        path_params: HashMap::new(),
+        query: Vec::new(),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -268,7 +363,7 @@ fn test_resolve_username(#[case] input: &str, #[case] expected: &str) {
 fn test_new_api_client() {
     let ts = TestServer::new();
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let _client = ApiClient::new(&cfg, auth);
 }
 
@@ -290,12 +385,12 @@ fn test_build_request_get() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         ..Default::default()
     };
 
@@ -317,12 +412,12 @@ fn test_build_request_post() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "POST".to_string(),
-        endpoint: "/2/tweets".to_string(),
+        target: target_path("/2/tweets"),
         data: r#"{"text":"Hello world!"}"#.to_string(),
         ..Default::default()
     };
@@ -337,22 +432,25 @@ fn test_build_request_post() {
 
 #[test]
 fn test_build_request_with_auth_bearer() {
+    // The intent: `--auth app` routes the Bearer auth header. Targeted at
+    // `/2/tweets/search/recent` rather than `/2/users/me` because the
+    // spec-derived auth matrix (v2.0.0) says only the former accepts Bearer.
     let ts = TestServer::new();
     ts.mount(
         Mock::given(method("GET"))
-            .and(path("/2/users/me"))
+            .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
             ),
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/tweets/search/recent"),
         auth_type: "app".to_string(),
         ..Default::default()
     };
@@ -378,7 +476,7 @@ fn test_build_request_with_auth_oauth1() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "oauth1".to_string(),
         ..Default::default()
     };
@@ -404,7 +502,7 @@ fn test_build_request_with_auth_oauth2() {
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/users/me".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "oauth2".to_string(),
         username: "testuser".to_string(),
         ..Default::default()
@@ -430,13 +528,13 @@ fn test_send_request_success() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/users/me".to_string(),
+            target: target_path("/2/users/me"),
             ..Default::default()
         })
         .unwrap();
@@ -457,13 +555,13 @@ fn test_send_request_http_error() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let err = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/tweets/search/recent".to_string(),
+            target: target_path("/2/tweets/search/recent"),
             ..Default::default()
         })
         .unwrap_err();
@@ -481,14 +579,14 @@ fn test_send_request_json_parse_error() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     // Non-JSON 200 response returns empty JSON object
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/bad-json".to_string(),
+            target: target_path("/2/bad-json"),
             ..Default::default()
         })
         .unwrap();
@@ -513,7 +611,7 @@ fn slow_endpoint_trips_explicit_timeout() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::with_timeout(&cfg, auth, 1);
     assert_eq!(client.timeout_secs(), 1);
 
@@ -521,7 +619,7 @@ fn slow_endpoint_trips_explicit_timeout() {
     let err = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/slow".to_string(),
+            target: target_path("/2/slow"),
             ..Default::default()
         })
         .expect_err("a 1s timeout must fire before the 10s server delay");
@@ -544,7 +642,7 @@ fn config_default_timeout_carries_through_apiclient_new() {
     // on `Config::http_timeout_secs` must drive `ApiClient::timeout_secs()`.
     let mut cfg = create_test_config("http://127.0.0.1:9");
     cfg.http_timeout_secs = 7;
-    let (auth, _tmp) = create_mock_auth_with_bearer("http://127.0.0.1:9");
+    let (auth, _tmp) = create_mock_auth_with_all_methods("http://127.0.0.1:9");
     let client = ApiClient::new(&cfg, auth);
     assert_eq!(client.timeout_secs(), 7);
 }
@@ -596,7 +694,7 @@ fn test_create_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -618,7 +716,7 @@ fn test_reply_to_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -640,7 +738,7 @@ fn test_reply_to_post_with_url() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -666,7 +764,7 @@ fn test_quote_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -687,7 +785,7 @@ fn test_delete_post() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.delete_post("123", &base_call_opts()).unwrap();
@@ -703,7 +801,7 @@ fn test_read_post() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.read_post("123", &base_call_opts()).unwrap();
@@ -720,7 +818,7 @@ fn test_search_posts() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -744,7 +842,7 @@ fn test_search_posts_threads_pagination_token() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = CallOptions {
@@ -769,7 +867,7 @@ fn test_search_posts_url_encodes_pagination_token() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = CallOptions {
@@ -791,7 +889,7 @@ fn test_get_me() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_me(&base_call_opts()).unwrap();
@@ -810,7 +908,7 @@ fn test_lookup_user() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.lookup_user("@someuser", &base_call_opts()).unwrap();
@@ -830,7 +928,7 @@ fn test_create_post_with_media() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
@@ -890,12 +988,12 @@ fn test_media_upload_init() {
         ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.send_request(&RequestOptions {
         method: "POST".to_string(),
-        endpoint: "/2/media/upload/initialize".to_string(),
+        target: target_path("/2/media/upload/initialize"),
         data: serde_json::json!({"total_bytes": 1024, "media_type": "image/jpeg", "media_category": "tweet_image"}).to_string(),
         ..Default::default()
     }).unwrap();
@@ -913,13 +1011,13 @@ fn test_media_upload_finalize() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
             method: "POST".to_string(),
-            endpoint: "/2/media/upload/test_media_id/finalize".to_string(),
+            target: target_path("/2/media/upload/test_media_id/finalize"),
             ..Default::default()
         })
         .unwrap();
@@ -939,13 +1037,20 @@ fn test_media_upload_check_status() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
         .send_request(&RequestOptions {
             method: "GET".to_string(),
-            endpoint: "/2/media/upload?command=STATUS&media_id=test_media_id".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload".to_string(),
+                path_params: HashMap::new(),
+                query: vec![
+                    ("command".to_string(), "STATUS".to_string()),
+                    ("media_id".to_string(), "test_media_id".to_string()),
+                ],
+            },
             ..Default::default()
         })
         .unwrap();
@@ -963,7 +1068,7 @@ fn test_stream_request_error() {
             )),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let mut stdout = Vec::new();
@@ -972,7 +1077,7 @@ fn test_stream_request_error() {
         .stream_request(
             &RequestOptions {
                 method: "GET".to_string(),
-                endpoint: "/2/tweets/search/stream/error".to_string(),
+                target: target_path("/2/tweets/search/stream/error"),
                 ..Default::default()
             },
             &mut stdout,
@@ -1057,7 +1162,7 @@ fn test_get_usage_happy_path() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts()).unwrap();
@@ -1095,7 +1200,7 @@ fn test_get_usage_requires_usage_fields_query_param() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts()).unwrap();
@@ -1115,7 +1220,7 @@ fn test_get_usage_uses_get_method() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts());
@@ -1137,7 +1242,7 @@ fn test_get_usage_api_error_401() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts());
@@ -1159,7 +1264,7 @@ fn test_get_usage_api_error_429() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts());
@@ -1167,8 +1272,11 @@ fn test_get_usage_api_error_429() {
 }
 
 #[test]
-fn test_get_usage_with_oauth1_auth() {
-    // Usage endpoint works with any valid auth, not just bearer.
+fn test_get_usage_with_bearer() {
+    // `/2/usage/tweets` is Bearer-only per the OpenAPI spec; previous tests
+    // that drove OAuth1/OAuth2 against this endpoint passed because no
+    // matrix validation existed. The intersection check (U7) now rejects
+    // those configurations, so the surviving coverage uses Bearer.
     let ts = TestServer::new();
     ts.mount(
         Mock::given(method("GET"))
@@ -1179,7 +1287,7 @@ fn test_get_usage_with_oauth1_auth() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts()).unwrap();
@@ -1187,22 +1295,35 @@ fn test_get_usage_with_oauth1_auth() {
 }
 
 #[test]
-fn test_get_usage_with_oauth2_auth() {
+fn test_get_usage_rejects_oauth_only_app() {
+    // /2/usage/tweets accepts only Bearer per the spec. An app that only
+    // holds OAuth1 credentials hits the empty-intersection path (U7) and
+    // surfaces AuthMethodMismatch rather than the prior silent OAuth1
+    // attempt.
     let ts = TestServer::new();
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(serde_json::json!({"data": {"project_usage": "20"}})),
-            ),
+            .respond_with(ResponseTemplate::new(200)),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
-    assert_eq!(resp.data.project_usage.as_deref(), Some("20"));
+    let err = client.get_usage(&base_call_opts()).unwrap_err();
+    match err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/usage/tweets");
+            assert_eq!(supported, vec!["app"]);
+            assert_eq!(available_in_app, Some(vec!["oauth1".to_string()]));
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
 }
 
 #[test]
@@ -1226,7 +1347,7 @@ fn test_get_usage_daily_project_usage_structure() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts()).unwrap();
@@ -1263,7 +1384,7 @@ fn test_get_usage_daily_client_app_usage_structure() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.get_usage(&base_call_opts()).unwrap();
@@ -1292,7 +1413,7 @@ fn test_get_usage_clears_request_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     // CallOptions has no data field, so stale data can't leak — verify the call succeeds
@@ -1317,7 +1438,7 @@ fn redteam_create_post_array_where_object_expected() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.create_post("test", &[], &base_call_opts());
@@ -1340,7 +1461,7 @@ fn redteam_get_me_no_data_field() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.get_me(&base_call_opts());
@@ -1364,7 +1485,7 @@ fn redteam_delete_post_wrong_type_in_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.delete_post("123", &base_call_opts());
@@ -1386,7 +1507,7 @@ fn redteam_search_posts_null_data() {
             ),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.search_posts("test", 10, &base_call_opts());
@@ -1403,7 +1524,7 @@ fn redteam_empty_body_returns_descriptive_error() {
             .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.get_me(&base_call_opts());
@@ -1432,7 +1553,7 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client
@@ -1461,7 +1582,7 @@ fn redteam_like_post_extra_fields_on_action() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let resp = client.like_post("42", "123", &base_call_opts()).unwrap();
@@ -1483,7 +1604,7 @@ fn redteam_lookup_user_wrong_bool_type() {
             }))),
     );
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     // verified is Option<bool> — "true" (string) should fail deserialization
@@ -1614,7 +1735,7 @@ fn test_no_auth_skips_authorization_header() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = CallOptions {
@@ -1643,7 +1764,7 @@ fn test_no_auth_false_includes_authorization_header() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = CallOptions::default();
@@ -1672,12 +1793,12 @@ fn test_no_auth_with_raw_send_request() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/test".to_string(),
+        target: target_path("/2/test"),
         no_auth: true,
         ..Default::default()
     };
@@ -1699,12 +1820,12 @@ fn test_no_auth_with_raw_send_request() {
     );
 
     let cfg2 = create_test_config(ts2.uri());
-    let (auth2, _tmp2) = create_mock_auth_with_bearer(ts2.uri());
+    let (auth2, _tmp2) = create_mock_auth_with_all_methods(ts2.uri());
     let mut client2 = ApiClient::new(&cfg2, auth2);
 
     let opts2 = RequestOptions {
         method: "GET".to_string(),
-        endpoint: "/2/test".to_string(),
+        target: target_path("/2/test"),
         no_auth: false,
         ..Default::default()
     };
@@ -1732,7 +1853,7 @@ fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = CallOptions {
@@ -1770,7 +1891,7 @@ fn redteam_sequential_calls_on_same_client() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let opts = base_call_opts();
@@ -1803,7 +1924,7 @@ fn redteam_api_error_preserves_status_and_body() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.get_me(&base_call_opts());
@@ -1835,7 +1956,7 @@ fn redteam_api_error_401_gives_auth_exit_code() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let err = client.get_me(&base_call_opts()).unwrap_err();
@@ -1861,7 +1982,7 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
     );
 
     let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
     let err = client.get_me(&base_call_opts()).unwrap_err();
@@ -1917,13 +2038,23 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     // need to be mounted; we deliberately mount nothing so a regression
     // surfaces as a network-layer error against an unmatched path rather
     // than as `XurlError::Auth`. The assertion then catches the regression.
+    //
+    // Target `/2/tweets/search/recent` (Bearer-accepting per the spec
+    // matrix) rather than `get_me`'s `/2/users/me` (OAuth1/OAuth2 only),
+    // so the U6 fail-fast validator yields and the auth-resolution layer
+    // is the one that surfaces the missing-credential error.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let mut opts = base_call_opts();
-    opts.auth_type = "app".to_string(); // bearer path; no token in store
-    let err = client.get_me(&opts).unwrap_err();
+    let err = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            target: target_path("/2/tweets/search/recent"),
+            auth_type: "app".to_string(), // bearer path; no token in store
+            ..Default::default()
+        })
+        .unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("bearer token not found") || msg.contains("TokenNotFound"),
@@ -1958,4 +2089,481 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
         ),
         "expected auth-layer error, got: {err:?}"
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U6 auth-enforcement integration tests (AE1, AE2, AE5)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// These exercise the fail-fast validator wired into `send_request` /
+// `send_multipart_request` / `stream_request`. The matrix says
+// `POST /2/media/upload` accepts OAuth2 (`media.write`) + OAuth1 but not
+// Bearer — so `--auth app` against that endpoint must reject before any
+// network I/O. The wiremock server is set up to log all traffic so we can
+// assert "zero requests received" for the reject case.
+
+/// AE1 — explicit mismatch.
+///
+/// Bearer-only app, `--auth app`, `POST /2/media/upload`. The validator
+/// must short-circuit with `XurlError::AuthMethodMismatch` carrying the
+/// U6 explicit-mismatch shape (`requested = Some("app")`,
+/// `available_in_app = None`), and wiremock must observe zero requests.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_media_upload() {
+    let ts = TestServer::new();
+    // No mocks mounted intentionally — if the validator failed to reject
+    // and the request leaked through, wiremock would return 404 and the
+    // request count would tick to 1, breaking the assertion.
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        })
+        .unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            method,
+            requested,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(method, "POST");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    // Exit-code surface: 2 (`EX_USAGE`-aligned `EXIT_AUTH_MISMATCH`).
+    assert_eq!(err.exit_code(), 2, "exit code must be EXIT_AUTH_MISMATCH");
+    assert_eq!(err.kind(), "auth-method-mismatch");
+
+    // Fail-fast invariant: zero traffic reached the mock server.
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "validator must reject BEFORE any HTTP I/O"
+    );
+}
+
+/// AE2 — pass-through with an explicit `--auth` value the endpoint accepts.
+///
+/// OAuth1 creds + `--auth oauth1` + `POST /2/media/upload`. The validator
+/// must yield, the request must reach wiremock, and the mocked 200
+/// response should propagate back as JSON.
+#[test]
+fn u6_ae2_passthrough_oauth1_against_media_upload() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "media_xyz"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "oauth1".to_string(),
+            ..Default::default()
+        })
+        .expect("oauth1 against /2/media/upload must validate and reach the server");
+
+    assert_eq!(resp["data"]["id"], "media_xyz");
+    assert_eq!(
+        ts.received_request_count(),
+        1,
+        "validator must pass through and let the request reach wiremock"
+    );
+}
+
+/// AE1 mirror for the multipart send path.
+///
+/// `send_multipart_request` shares the same fail-fast validator wiring as
+/// `send_request`. Bearer-only app + `--auth app` against `/2/media/upload`
+/// must surface `AuthMethodMismatch` before the multipart body is built and
+/// wiremock receives zero traffic. Pre-merge insurance against a future
+/// edit that drops the gate from one of the three send paths.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
+    use std::collections::HashMap;
+    use xurl::api::MultipartOptions;
+
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mp_opts = MultipartOptions {
+        request: RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        },
+        form_fields: HashMap::new(),
+        file_field: "media".to_string(),
+        file_path: String::new(),
+        file_name: "x.jpg".to_string(),
+        file_data: b"fake-jpeg".to_vec(),
+    };
+
+    let err = client.send_multipart_request(&mp_opts).unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            method,
+            requested,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(method, "POST");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    assert_eq!(err.exit_code(), 2, "exit code must be EXIT_AUTH_MISMATCH");
+    assert_eq!(err.kind(), "auth-method-mismatch");
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "multipart validator must reject BEFORE any HTTP I/O"
+    );
+}
+
+/// AE1 mirror for the streaming send path.
+///
+/// `ApiClient::stream_request` wires the same fail-fast validator as
+/// `send_request`. Bearer-only app + `--auth app` against a streaming
+/// endpoint that only accepts OAuth1/OAuth2 must surface
+/// `AuthMethodMismatch` before any socket is opened. The CLI streaming
+/// wrapper (`cli::commands::streaming::stream_request_with_output`) makes
+/// the identical validator call at its own entry, so locking this
+/// invariant on the library side covers both.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    // /2/media/upload accepts OAuth2 + OAuth1 but rejects Bearer. Even
+    // though it isn't a "real" streaming endpoint, stream_request applies
+    // the validator before opening any connection, so the matrix surface
+    // is what matters here.
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let err = client
+        .stream_request(
+            &RequestOptions {
+                method: "POST".to_string(),
+                target: target_path("/2/media/upload"),
+                auth_type: "app".to_string(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
+        .unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            requested,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    assert_eq!(err.exit_code(), 2);
+    assert_eq!(err.kind(), "auth-method-mismatch");
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "streaming validator must reject BEFORE any socket is opened"
+    );
+}
+
+/// Streaming auth-error propagation.
+///
+/// The CLI streaming wrapper switched from `if let Ok(auth_header) = ...`
+/// (silently swallowing every auth error) to `?` propagation. The library
+/// `ApiClient::stream_request` shares the contract: when auth resolution
+/// fails (e.g. token-not-found on the active app), the error must surface
+/// rather than the request going out unauthenticated.
+#[test]
+fn u7_streaming_propagates_auth_resolution_errors() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    // No tokens stored on any app. Auto-detect has nothing to dispatch
+    // against a matrix-hit endpoint and must surface auth-required rather
+    // than letting an unauthenticated request leak through.
+    let tmp = TempDir::new().expect("temp dir");
+    let auth = Auth::new(&cfg).with_token_store(TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path: tmp.path().join(".xurl"),
+    });
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let err = client
+        .stream_request(
+            &RequestOptions {
+                method: "POST".to_string(),
+                target: target_path("/2/media/upload"),
+                // No --auth set; auto-detect path. Empty token store →
+                // auth-required (exit 77), not silent unauth request.
+                auth_type: String::new(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
+        .unwrap_err();
+
+    assert_eq!(err.kind(), "auth-required");
+    assert_eq!(err.exit_code(), 77);
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "auth-resolution failure on the streaming path must not let the request through"
+    );
+}
+
+/// AE5 — raw mode bypasses the matrix.
+///
+/// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
+/// must NOT reject even though the same `(method, path)` would reject under a
+/// `Template` target. Raw mode is the user's escape hatch.
+#[test]
+fn u6_ae5_raw_url_skips_validation() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "raw_bypass"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let raw_url = format!("{}/2/media/upload", ts.uri());
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::RawUrl(raw_url),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        })
+        .expect("raw mode must skip auth-matrix validation per R18");
+
+    assert_eq!(resp["data"]["id"], "raw_bypass");
+    assert_eq!(
+        ts.received_request_count(),
+        1,
+        "raw mode must let the request through even with a normally-rejected auth"
+    );
+}
+
+/// AE3 — auto-detect against an OAuth1-only app at an OAuth1+OAuth2 endpoint.
+/// Intersection yields {OAuth1}; the request must dispatch on OAuth1 without
+/// prompting and reach the wiremock.
+#[test]
+fn u7_ae3_auto_detect_oauth1_only_app() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload/initialize"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "ae3"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload/initialize".to_string(),
+                path_params: HashMap::new(),
+                query: Vec::new(),
+            },
+            ..Default::default()
+        })
+        .expect("AE3: OAuth1 must be auto-selected for an OAuth1+OAuth2 endpoint");
+
+    assert_eq!(resp["data"]["id"], "ae3");
+    assert_eq!(ts.received_request_count(), 1);
+}
+
+/// AE4 — auto-detect against a Bearer-only app at an OAuth1+OAuth2 endpoint.
+/// Intersection is empty; the request must fail with the typed envelope
+/// shape (R8) carrying `requested: None`, `available_in_app: Some(["app"])`,
+/// and the endpoint's supported set.
+#[test]
+fn u7_ae4_auto_detect_empty_intersection_envelope() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload/initialize"))
+            .respond_with(ResponseTemplate::new(200)),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload/initialize".to_string(),
+                path_params: HashMap::new(),
+                query: Vec::new(),
+            },
+            ..Default::default()
+        })
+        .unwrap_err();
+
+    match err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            method: m,
+            requested,
+            supported,
+            available_in_app,
+            app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload/initialize");
+            assert_eq!(m, "POST");
+            assert_eq!(requested, None);
+            assert_eq!(supported, vec!["oauth2", "oauth1"]);
+            assert_eq!(available_in_app, Some(vec!["app".to_string()]));
+            assert_eq!(
+                app,
+                Some("default".to_string()),
+                "envelope must carry the active app name"
+            );
+        }
+        other => panic!("AE4: expected AuthMethodMismatch, got {other:?}"),
+    }
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "AE4: validator must refuse before HTTP — wiremock receives nothing"
+    );
+}
+
+/// AE6 — auto-detect against an app holding both OAuth1 and OAuth2 at an
+/// endpoint accepting both. OAuth2 wins per the locked preference order.
+/// Verified by mounting two distinct mocks that match on the Authorization
+/// header prefix and asserting the OAuth2-shaped header lands.
+#[test]
+fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
+    use wiremock::matchers::header;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload/initialize"))
+            .and(header("Authorization", "Bearer valid-access-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "ae6_oauth2"}
+            }))),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let resp = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload/initialize".to_string(),
+                path_params: HashMap::new(),
+                query: Vec::new(),
+            },
+            ..Default::default()
+        })
+        .expect("AE6: OAuth2 must win the preference when both schemes are stored");
+
+    assert_eq!(resp["data"]["id"], "ae6_oauth2");
+}
+
+/// U7 semantic guard — an app with zero stored credentials surfaces
+/// `AuthRequired` (exit 77, "log in first"), not `AuthMethodMismatch`
+/// (exit 2, "wrong credential"). The empty-intersection branch fires only
+/// when the user has SOMETHING stored that happens not to overlap.
+#[test]
+fn u7_no_stored_credentials_returns_auth_required() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let tmp = TempDir::new().expect("temp dir");
+    let auth = Auth::new(&cfg).with_token_store(TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path: tmp.path().join(".xurl"),
+    });
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let err = client
+        .send_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: RequestTarget::Template {
+                path: "/2/media/upload/initialize".to_string(),
+                path_params: HashMap::new(),
+                query: Vec::new(),
+            },
+            ..Default::default()
+        })
+        .unwrap_err();
+
+    // Surfaces as Auth (kind "auth-required", exit 77) per the semantic
+    // distinction: no creds at all ≠ wrong creds.
+    assert_eq!(err.kind(), "auth-required");
+    assert_eq!(err.exit_code(), 77);
 }

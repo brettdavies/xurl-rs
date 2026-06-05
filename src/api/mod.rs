@@ -1,4 +1,5 @@
 /// X API client — request building, response handling, shortcuts, and media.
+pub mod auth_matrix;
 mod endpoints;
 mod media;
 mod request;
@@ -12,7 +13,9 @@ pub use media::{
     extract_segment_index, handle_media_append_request, is_media_append_request,
 };
 #[allow(unused_imports)]
-pub use request::{ApiClient, CallOptions, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions};
+pub use request::{
+    ApiClient, CallOptions, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions, RequestTarget,
+};
 #[allow(unused_imports)]
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,

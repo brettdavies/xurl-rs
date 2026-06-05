@@ -44,6 +44,11 @@ filter_unconventional = true
 split_commits = false
 commit_parsers = [
     { message = "^docs: update CHANGELOG", skip = true },
+    # Breaking changes route first — `feat!`, `fix(api)!`, etc. would
+    # otherwise match `^feat` / `^fix` below and land under Added/Fixed,
+    # silently dropping the SemVer-major signal from the changelog.
+    { message = "^[a-z]+(\\(.*\\))?!:", group = "Breaking" },
+    { body = ".*BREAKING CHANGE:.*", group = "Breaking" },
     { message = "^feat", group = "Added" },
     { message = "^fix", group = "Fixed" },
     { message = "^refactor", group = "Changed" },
