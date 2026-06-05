@@ -1,12 +1,13 @@
-/// `OAuth2` callback server — listens for the authorization code redirect.
-///
-/// Binds host, port, and path from the resolved redirect URI. For `localhost`,
-/// attempts to bind both `127.0.0.1:port` and `[::1]:port`. When only one
-/// succeeds the listener proceeds with a one-line warning to stderr; when both
-/// fail an error is returned. Coordinates shutdown via a
-/// [`tokio_util::sync::CancellationToken`]; the success path triggers
-/// cancellation immediately after the code is delivered. Times out after 5
-/// minutes, matching the Go implementation.
+//! `OAuth2` callback server — listens for the authorization code redirect.
+//!
+//! Binds host, port, and path from the resolved redirect URI. For `localhost`,
+//! attempts to bind both `127.0.0.1:port` and `[::1]:port`. When only one
+//! succeeds the listener proceeds with a one-line warning to stderr; when both
+//! fail an error is returned. Coordinates shutdown via a
+//! [`tokio_util::sync::CancellationToken`]; the success path triggers
+//! cancellation immediately after the code is delivered. Times out after 5
+//! minutes, matching the Go implementation.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

@@ -1,6 +1,6 @@
 [package]
 name = "xurl-rs"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT OR Apache-2.0"
@@ -42,9 +42,9 @@ serde_json = "1"
 serde_yaml = "0.9"
 
 # Auth
-hmac = "0.12"
-sha1 = "0.10"
-sha2 = "0.10"
+hmac = "0.13"
+sha1 = "0.11"
+sha2 = "0.11"
 base64 = "0.22"
 rand = "0.9"
 url = "2"

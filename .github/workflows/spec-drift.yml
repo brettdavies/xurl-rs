@@ -103,27 +103,6 @@ jobs:
             echo "drift=0" >> "$GITHUB_OUTPUT"
           else
             echo "drift=1" >> "$GITHUB_OUTPUT"
-            # Capture drift metadata via jq so spec-controlled strings cannot
-            # influence shell expansion. All values written to GITHUB_ENV via
-            # heredoc; never echo'd into a command line.
-            local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
-            upstream_version="$(jq -r '.info.version' "${tmp}")"
-            local_paths="$(jq -r '.paths | length' "${VENDOR_PATH}")"
-            upstream_paths="$(jq -r '.paths | length' "${tmp}")"
-            {
-              echo "LOCAL_VERSION<<EOF"
-              echo "${local_version}"
-              echo "EOF"
-              echo "UPSTREAM_VERSION<<EOF"
-              echo "${upstream_version}"
-              echo "EOF"
-              echo "LOCAL_PATHS<<EOF"
-              echo "${local_paths}"
-              echo "EOF"
-              echo "UPSTREAM_PATHS<<EOF"
-              echo "${upstream_paths}"
-              echo "EOF"
-            } >> "$GITHUB_ENV"
           fi
 
       - name: Report no drift
@@ -141,20 +120,14 @@ jobs:
         run: |
           set -uo pipefail
           body_file="$(mktemp)"
-          {
-            echo "Vendored \`${VENDOR_PATH}\` does not match upstream \`${UPSTREAM_URL}\`."
-            echo ""
-            echo "| Field | Vendored | Upstream |"
-            echo "| ----- | -------- | -------- |"
-            echo "| \`info.version\` | \`${LOCAL_VERSION}\` | \`${UPSTREAM_VERSION}\` |"
-            echo "| Path count | ${LOCAL_PATHS} | ${UPSTREAM_PATHS} |"
-            echo ""
-            echo "Refresh:"
-            echo ""
-            echo '```bash'
-            echo 'scripts/refresh-x-openapi.sh'
-            echo '```'
-          } > "${body_file}"
+          # All diff + render logic lives in scripts/diff-x-openapi-spec.sh
+          # so the same code drives the workflow comment, scheduled-issue
+          # body, manual local diffs, and any pre-push integration.
+          scripts/diff-x-openapi-spec.sh \
+            "${VENDOR_PATH}" \
+            "${{ steps.fetch.outputs.tmp }}" \
+            "${UPSTREAM_URL}" \
+            > "${body_file}"
           echo "body_file=${body_file}" >> "$GITHUB_OUTPUT"
           {
             echo "## Spec drift detected"

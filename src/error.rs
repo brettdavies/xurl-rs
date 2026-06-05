@@ -1,8 +1,9 @@
-/// Typed error system matching xurl's error categories.
-///
-/// The Go source uses string-typed errors with a `Type` field. We replicate
-/// that with thiserror variants so Rust callers get pattern matching while
-/// the Display output stays identical to xurl.
+//! Typed error system matching xurl's error categories.
+//!
+//! The Go source uses string-typed errors with a `Type` field. We replicate
+//! that with thiserror variants so Rust callers get pattern matching while
+//! the Display output stays identical to xurl.
+
 use thiserror::Error;
 
 /// Top-level error type for xurl-rs.
@@ -11,6 +12,22 @@ use thiserror::Error;
 /// (`AuthMethodMismatch`) carries multiple `String`/`Vec<String>` fields.
 /// Boxing the variant would change the public construction surface; allow
 /// the lint on the enum so consumers can keep building the variant inline.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::error::XurlError;
+/// # fn run() -> Result<(), XurlError> {
+/// # let result: Result<(), XurlError> = Err(XurlError::validation("missing field"));
+/// match result {
+///     Ok(()) => println!("ok"),
+///     Err(XurlError::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(XurlError::Validation(msg)) => eprintln!("validation: {msg}"),
+///     Err(XurlError::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
+/// }
+/// # Ok(()) }
+/// ```
 #[allow(clippy::result_large_err)]
 #[derive(Debug, Error)]
 pub enum XurlError {
@@ -406,6 +423,8 @@ pub type Result<T> = std::result::Result<T, XurlError>;
 ///   `EX_USAGE` numeric value with clap because both are usage faults.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
+/// General / user-recoverable error. Sysexits default for anything not
+/// covered by a more specific code.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// Auth method mismatch. `EX_USAGE` from sysexits — `2`.
@@ -424,10 +443,15 @@ pub const EXIT_AUTH_MISMATCH: i32 = 2;
 /// usage errors (which keep `EX_USAGE` = `2`).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_REQUIRED: i32 = 77;
+/// API rate limit hit (HTTP 429). Agents should back off and retry per
+/// the response's rate-limit headers.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_RATE_LIMITED: i32 = 3;
+/// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
+/// Network / connectivity issue. Surfaces for non-401/404/429 HTTP errors
+/// and for `reqwest` transport failures (DNS, TLS, timeout).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

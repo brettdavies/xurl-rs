@@ -1,13 +1,14 @@
-/// `OAuth1` HMAC-SHA1 signature generation.
-///
-/// Implements the full `OAuth1` signature base string construction and
-/// HMAC-SHA1 signing as specified by RFC 5849.
+//! `OAuth1` HMAC-SHA1 signature generation.
+//!
+//! Implements the full `OAuth1` signature base string construction and
+//! HMAC-SHA1 signing as specified by RFC 5849.
+
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use rand::Rng;
 use sha1::Sha1;
 use url::Url;

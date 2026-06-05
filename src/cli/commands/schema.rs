@@ -1,4 +1,5 @@
-/// Schema subcommand — outputs JSON Schema for command response types.
+//! Schema subcommand — outputs JSON Schema for command response types.
+
 use std::collections::BTreeMap;
 use std::io::Write;
 
