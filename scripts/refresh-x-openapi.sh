@@ -22,6 +22,7 @@ set -euo pipefail
 UPSTREAM_URL="https://api.x.com/2/openapi.json"
 VENDOR_PATH="vendor/x-api-openapi.json"
 README_PATH="vendor/README.md"
+METADATA_PATH="vendor/spec-metadata.json"
 
 # Resolve repo root from this script's location, so the script works from any cwd.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -80,6 +81,19 @@ SPEC_SHA256="$(sha256sum "${VENDOR_PATH}" | awk '{print $1}')"
 SPEC_SIZE_BYTES="$(stat -c %s "${VENDOR_PATH}" 2>/dev/null || stat -f %z "${VENDOR_PATH}")"
 REFRESH_DATE="$(date -u +"%Y-%m-%d")"
 
+# Vendor the metadata alongside the spec so build.rs reads provenance from
+# the repo, not from git context. This makes the metadata correct for
+# uncommitted-refresh local builds and for crates.io tarball installs.
+cat > "${METADATA_PATH}" <<EOF
+{
+  "info_version": "${SPEC_VERSION}",
+  "content_sha256": "${SPEC_SHA256}",
+  "refreshed_at": "${REFRESH_DATE}",
+  "source_url": "${UPSTREAM_URL}"
+}
+EOF
+chmod 644 "${METADATA_PATH}"
+
 cat > "${README_PATH}" <<EOF
 # Vendored X API OpenAPI Spec
 
@@ -129,4 +143,5 @@ echo "    info.version : ${SPEC_VERSION}"
 echo "    path count   : ${SPEC_PATH_COUNT}"
 echo "    size         : ${SPEC_SIZE_BYTES} bytes"
 echo "    sha256       : ${SPEC_SHA256}"
+echo "==> Wrote ${METADATA_PATH}"
 echo "==> Wrote ${README_PATH}"

@@ -20,6 +20,7 @@ fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     emit_skill_hosts(&manifest_dir);
     emit_auth_matrix(&manifest_dir);
+    emit_build_info(&manifest_dir);
 }
 
 /// Emit `$OUT_DIR/generated_hosts.rs` from `src/skill_install/skill.json`.
@@ -418,6 +419,124 @@ fn emit_auth_matrix(manifest_dir: &Path) {
     let out_path = out_dir.join("auth_matrix.rs");
     fs::write(&out_path, src)
         .unwrap_or_else(|e| panic!("cannot write {}: {e}", out_path.display()));
+}
+
+// ── Build-info emission ─────────────────────────────────────────────────
+//
+// Populates compile-time env vars consumed by `src/lib.rs`'s `BUILD_INFO`
+// const.
+//
+// API spec metadata (`info_version`, `content_sha256`, `refreshed_at`) is
+// vendored alongside the spec itself at `vendor/spec-metadata.json` and
+// read from disk here. The sidecar exists so the metadata always describes
+// the actual bytes that ship: an uncommitted local refresh sees the new
+// metadata immediately, and a crates.io tarball build (no `.git`) carries
+// the metadata in the published package. `scripts/refresh-x-openapi.sh`
+// writes the sidecar atomically alongside `vendor/x-api-openapi.json`.
+//
+// Crate git SHA is genuinely build-context provenance and stays
+// best-effort: `git rev-parse HEAD` runs when a `.git` directory exists
+// and resolves to `None` on crates.io tarball installs.
+
+/// Emit `XURL_CRATE_GIT_SHA`, `XURL_API_SPEC_VERSION`, `XURL_API_SPEC_SHA256`,
+/// and `XURL_API_SPEC_DATE` env vars for `src/lib.rs` to consume via
+/// `env!` / `option_env!`. Panics if the vendored spec and sidecar
+/// disagree on `info.version` (a stale sidecar — re-run
+/// `scripts/refresh-x-openapi.sh`).
+fn emit_build_info(manifest_dir: &Path) {
+    // Invalidate the build when HEAD moves so `XURL_CRATE_GIT_SHA` tracks
+    // the actual current commit on rebuild.
+    println!("cargo:rerun-if-changed=.git/HEAD");
+    println!("cargo:rerun-if-changed=vendor/spec-metadata.json");
+
+    if let Some(sha) = run_git(manifest_dir, &["rev-parse", "HEAD"]) {
+        println!("cargo:rustc-env=XURL_CRATE_GIT_SHA={sha}");
+    }
+
+    // Read the vendored metadata sidecar. The sidecar is the source of
+    // truth for shipped spec identity.
+    let metadata_path = manifest_dir.join("vendor").join("spec-metadata.json");
+    let metadata_content = fs::read_to_string(&metadata_path).unwrap_or_else(|e| {
+        panic!(
+            "read {}: {e} — run scripts/refresh-x-openapi.sh to regenerate",
+            metadata_path.display()
+        )
+    });
+    let metadata: serde_json::Value = serde_json::from_str(&metadata_content).unwrap_or_else(|e| {
+        panic!("parse {}: {e}", metadata_path.display());
+    });
+    let metadata_version = string_field(&metadata, "info_version", &metadata_path);
+    let metadata_sha256 = string_field(&metadata, "content_sha256", &metadata_path);
+    let metadata_refreshed = string_field(&metadata, "refreshed_at", &metadata_path);
+
+    // Cross-check: the sidecar's `info_version` must match the vendored
+    // JSON's `info.version`. A mismatch means one was updated without the
+    // other; fail the build with a pointer to the refresh script rather
+    // than letting drifted metadata reach consumers.
+    let spec_path = manifest_dir.join("vendor").join("x-api-openapi.json");
+    let spec_content = fs::read_to_string(&spec_path)
+        .unwrap_or_else(|e| panic!("read {}: {e}", spec_path.display()));
+    let spec: serde_json::Value = serde_json::from_str(&spec_content)
+        .unwrap_or_else(|e| panic!("parse {}: {e}", spec_path.display()));
+    let spec_info_version = spec
+        .get("info")
+        .and_then(|v| v.get("version"))
+        .and_then(|v| v.as_str())
+        .unwrap_or_else(|| {
+            panic!(
+                "{}: must have an `info.version` string field",
+                spec_path.display()
+            )
+        });
+    if spec_info_version != metadata_version {
+        panic!(
+            "vendor/x-api-openapi.json `info.version` is {spec_info_version:?} but \
+             vendor/spec-metadata.json `info_version` is {metadata_version:?} — \
+             run scripts/refresh-x-openapi.sh to resync"
+        );
+    }
+
+    println!("cargo:rustc-env=XURL_API_SPEC_VERSION={metadata_version}");
+    println!("cargo:rustc-env=XURL_API_SPEC_SHA256={metadata_sha256}");
+    println!("cargo:rustc-env=XURL_API_SPEC_DATE={metadata_refreshed}");
+}
+
+/// Extract a required string field from a `serde_json::Value` object;
+/// panic with a helpful message that names the file and field when
+/// missing.
+fn string_field<'a>(value: &'a serde_json::Value, field: &str, path: &Path) -> &'a str {
+    value
+        .get(field)
+        .and_then(|v| v.as_str())
+        .unwrap_or_else(|| {
+            panic!(
+                "{}: missing required string field {field:?} — \
+                 run scripts/refresh-x-openapi.sh to regenerate",
+                path.display()
+            )
+        })
+}
+
+/// Run `git <args>` from `cwd` and return trimmed stdout on success.
+/// Returns `None` when git is unavailable, the command fails, or stdout
+/// is empty. Used for best-effort provenance metadata that must degrade
+/// gracefully on crates.io tarball builds (no `.git` directory).
+fn run_git(cwd: &Path, args: &[&str]) -> Option<String> {
+    let output = std::process::Command::new("git")
+        .current_dir(cwd)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8(output.stdout).ok()?;
+    let trimmed = stdout.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
 }
 
 /// Render a slice of `SchemeRepr` as the body of a `&[AuthScheme]` literal.
