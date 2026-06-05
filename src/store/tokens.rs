@@ -225,6 +225,27 @@ impl TokenStore {
         app.bearer_token.as_ref()
     }
 
+    /// Returns the names of every app in the store that holds at least one
+    /// stored credential (OAuth2 token, OAuth1 tokens, or bearer token).
+    ///
+    /// Iterates in `BTreeMap` key order so the result is deterministic.
+    /// Used by the `get_auth_header` resolver to surface a "wrong-app"
+    /// envelope when the active app is empty but the user has credentials
+    /// stored under a different app.
+    #[must_use]
+    pub fn apps_with_credentials(&self) -> Vec<String> {
+        self.apps
+            .iter()
+            .filter(|(_, app)| {
+                !app.oauth2_tokens.is_empty()
+                    || app.oauth1_token.is_some()
+                    || app.bearer_token.is_some()
+                    || app.unnamed_oauth2_token.is_some()
+            })
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
     // ── Clear ────────────────────────────────────────────────────────
 
     /// Clears an `OAuth2` token for a username from the resolved app.

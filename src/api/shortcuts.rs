@@ -1,13 +1,17 @@
 /// API shortcut functions — high-level X API v2 operations.
 ///
-/// Each function maps to one of the 29 shortcut commands, building the
-/// appropriate endpoint URL and request body.
+/// Each function maps to one of the 27 shortcut commands, building the
+/// appropriate endpoint target and request body. Paths are spec-shaped
+/// templates (e.g. `/2/users/{id}/likes`) so the auth-matrix validator
+/// can key on the same string the build-time codegen ingests.
+use std::collections::HashMap;
+
 use serde::Serialize;
 
-use super::request::{ApiClient, CallOptions};
+use super::request::{ApiClient, CallOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User, deserialize_response,
+    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
+    MutingResult, RetweetedResult, Tweet, UsageData, User, deserialize_response,
 };
 use crate::error::Result;
 
@@ -133,25 +137,20 @@ pub fn validate_post_id(input: &str) -> std::result::Result<(), &'static str> {
 
 // ── Shortcut methods on ApiClient ───────────────────────────────────
 
-/// Appends `&pagination_token=<token>` to a list-endpoint URL when the
-/// caller threaded a cursor into [`CallOptions::pagination_token`].
+/// Returns a base query vec for a paginated shortcut.
 ///
-/// Always called against endpoints that already contain `?...` (every list
-/// shortcut starts with a `max_results=` query param), so the join is an
-/// unconditional `&`. The token is URL-encoded so it round-trips through the
-/// server even when the upstream API hands back exotic characters.
-fn append_pagination(endpoint: &mut String, token: &str) {
-    if token.is_empty() {
-        return;
-    }
-    let encoded = url::form_urlencoded::byte_serialize(token.as_bytes()).collect::<String>();
-    if endpoint.contains('?') {
-        endpoint.push('&');
+/// When the caller threaded a cursor into [`CallOptions::pagination_token`],
+/// emits `[("pagination_token", token)]`; otherwise empty. The percent-
+/// encoding happens at URL render time in `build_url_for_target`.
+fn build_query(opts: &CallOptions) -> Vec<(String, String)> {
+    if opts.pagination_token.is_empty() {
+        Vec::new()
     } else {
-        endpoint.push('?');
+        vec![(
+            "pagination_token".to_string(),
+            opts.pagination_token.clone(),
+        )]
     }
-    endpoint.push_str("pagination_token=");
-    endpoint.push_str(&encoded);
 }
 
 impl ApiClient {
@@ -181,7 +180,11 @@ impl ApiClient {
         let data = serde_json::to_string(&body)?;
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = "/2/tweets".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/tweets".to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        };
         req.data = data;
 
         deserialize_response(self.send_request(&req)?)
@@ -217,7 +220,11 @@ impl ApiClient {
         let data = serde_json::to_string(&body)?;
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = "/2/tweets".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/tweets".to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        };
         req.data = data;
 
         deserialize_response(self.send_request(&req)?)
@@ -245,7 +252,11 @@ impl ApiClient {
         let data = serde_json::to_string(&body)?;
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = "/2/tweets".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/tweets".to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        };
         req.data = data;
 
         deserialize_response(self.send_request(&req)?)
@@ -264,7 +275,11 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/tweets/{post_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/tweets/{id}".to_string(),
+            path_params: HashMap::from([("id".to_string(), post_id)]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -279,9 +294,24 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/tweets/{post_id}?tweet.fields=created_at,public_metrics,conversation_id,in_reply_to_user_id,referenced_tweets,entities,attachments&expansions=author_id,referenced_tweets.id&user.fields=username,name,verified"
-        );
+        req.target = RequestTarget::Template {
+            path: "/2/tweets/{id}".to_string(),
+            path_params: HashMap::from([("id".to_string(), post_id)]),
+            query: vec![
+                (
+                    "tweet.fields".to_string(),
+                    "created_at,public_metrics,conversation_id,in_reply_to_user_id,referenced_tweets,entities,attachments".to_string(),
+                ),
+                (
+                    "expansions".to_string(),
+                    "author_id,referenced_tweets.id".to_string(),
+                ),
+                (
+                    "user.fields".to_string(),
+                    "username,name,verified".to_string(),
+                ),
+            ],
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -298,15 +328,30 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<Tweet>>> {
-        let q = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
         let max_results = max_results.clamp(10, 100);
+
+        let mut q = vec![
+            ("query".to_string(), query.to_string()),
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "tweet.fields".to_string(),
+                "created_at,public_metrics,conversation_id,entities".to_string(),
+            ),
+            ("expansions".to_string(), "author_id".to_string()),
+            (
+                "user.fields".to_string(),
+                "username,name,verified".to_string(),
+            ),
+        ];
+        q.extend(build_query(opts));
 
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/tweets/search/recent?query={q}&max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name,verified"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/tweets/search/recent".to_string(),
+            path_params: HashMap::new(),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -320,9 +365,14 @@ impl ApiClient {
     pub fn get_me(&mut self, opts: &CallOptions) -> Result<ApiResponse<User>> {
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint =
-            "/2/users/me?user.fields=created_at,description,public_metrics,verified,profile_image_url"
-                .to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/users/me".to_string(),
+            path_params: HashMap::new(),
+            query: vec![(
+                "user.fields".to_string(),
+                "created_at,description,public_metrics,verified,profile_image_url".to_string(),
+            )],
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -337,9 +387,14 @@ impl ApiClient {
         let username = resolve_username(username);
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/by/username/{username}?user.fields=created_at,description,public_metrics,verified,profile_image_url"
-        );
+        req.target = RequestTarget::Template {
+            path: "/2/users/by/username/{username}".to_string(),
+            path_params: HashMap::from([("username".to_string(), username)]),
+            query: vec![(
+                "user.fields".to_string(),
+                "created_at,description,public_metrics,verified,profile_image_url".to_string(),
+            )],
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -356,12 +411,24 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<Tweet>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "tweet.fields".to_string(),
+                "created_at,public_metrics,conversation_id,entities".to_string(),
+            ),
+            ("expansions".to_string(), "author_id".to_string()),
+            ("user.fields".to_string(), "username,name".to_string()),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/timelines/reverse_chronological?max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/timelines/reverse_chronological".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -378,12 +445,24 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<Tweet>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "tweet.fields".to_string(),
+                "created_at,public_metrics,conversation_id,entities".to_string(),
+            ),
+            ("expansions".to_string(), "author_id".to_string()),
+            ("user.fields".to_string(), "username,name".to_string()),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/mentions?max_results={max_results}&tweet.fields=created_at,public_metrics,conversation_id,entities&expansions=author_id&user.fields=username,name"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/mentions".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -403,7 +482,11 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{user_id}/likes");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: Vec::new(),
+        };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
         deserialize_response(self.send_request(&req)?)
@@ -423,7 +506,14 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{user_id}/likes/{post_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/likes/{tweet_id}".to_string(),
+            path_params: HashMap::from([
+                ("id".to_string(), user_id.to_string()),
+                ("tweet_id".to_string(), post_id),
+            ]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -443,7 +533,11 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{user_id}/retweets");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/retweets".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: Vec::new(),
+        };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
         deserialize_response(self.send_request(&req)?)
@@ -463,7 +557,14 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{user_id}/retweets/{post_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/retweets/{source_tweet_id}".to_string(),
+            path_params: HashMap::from([
+                ("id".to_string(), user_id.to_string()),
+                ("source_tweet_id".to_string(), post_id),
+            ]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -483,7 +584,11 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{user_id}/bookmarks");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/bookmarks".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: Vec::new(),
+        };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
         deserialize_response(self.send_request(&req)?)
@@ -503,7 +608,14 @@ impl ApiClient {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{user_id}/bookmarks/{post_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/bookmarks/{tweet_id}".to_string(),
+            path_params: HashMap::from([
+                ("id".to_string(), user_id.to_string()),
+                ("tweet_id".to_string(), post_id),
+            ]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -520,12 +632,24 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<Tweet>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "tweet.fields".to_string(),
+                "created_at,public_metrics,entities".to_string(),
+            ),
+            ("expansions".to_string(), "author_id".to_string()),
+            ("user.fields".to_string(), "username,name".to_string()),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/bookmarks?max_results={max_results}&tweet.fields=created_at,public_metrics,entities&expansions=author_id&user.fields=username,name"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/bookmarks".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -544,7 +668,11 @@ impl ApiClient {
     ) -> Result<ApiResponse<FollowingResult>> {
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/following");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/following".to_string(),
+            path_params: HashMap::from([("id".to_string(), source_user_id.to_string())]),
+            query: Vec::new(),
+        };
         req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
         deserialize_response(self.send_request(&req)?)
@@ -563,7 +691,14 @@ impl ApiClient {
     ) -> Result<ApiResponse<FollowingResult>> {
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/following/{target_user_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{source_user_id}/following/{target_user_id}".to_string(),
+            path_params: HashMap::from([
+                ("source_user_id".to_string(), source_user_id.to_string()),
+                ("target_user_id".to_string(), target_user_id.to_string()),
+            ]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -580,12 +715,22 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "user.fields".to_string(),
+                "created_at,description,public_metrics,verified".to_string(),
+            ),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/following?max_results={max_results}&user.fields=created_at,description,public_metrics,verified"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/following".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -602,12 +747,22 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "user.fields".to_string(),
+                "created_at,description,public_metrics,verified".to_string(),
+            ),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/followers?max_results={max_results}&user.fields=created_at,description,public_metrics,verified"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/followers".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -627,7 +782,14 @@ impl ApiClient {
         let body = serde_json::json!({"text": text});
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/dm_conversations/with/{participant_id}/messages");
+        req.target = RequestTarget::Template {
+            path: "/2/dm_conversations/with/{participant_id}/messages".to_string(),
+            path_params: HashMap::from([(
+                "participant_id".to_string(),
+                participant_id.to_string(),
+            )]),
+            query: Vec::new(),
+        };
         req.data = serde_json::to_string(&body)?;
 
         deserialize_response(self.send_request(&req)?)
@@ -643,12 +805,24 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<DmEvent>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "dm_event.fields".to_string(),
+                "created_at,dm_conversation_id,sender_id,text".to_string(),
+            ),
+            ("expansions".to_string(), "sender_id".to_string()),
+            ("user.fields".to_string(), "username,name".to_string()),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/dm_events?max_results={max_results}&dm_event.fields=created_at,dm_conversation_id,sender_id,text&expansions=sender_id&user.fields=username,name"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
+        req.target = RequestTarget::Template {
+            path: "/2/dm_events".to_string(),
+            path_params: HashMap::new(),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -665,50 +839,24 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<Tweet>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "tweet.fields".to_string(),
+                "created_at,public_metrics,entities".to_string(),
+            ),
+            ("expansions".to_string(), "author_id".to_string()),
+            ("user.fields".to_string(), "username,name".to_string()),
+        ];
+        q.extend(build_query(opts));
+
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint = format!(
-            "/2/users/{user_id}/liked_tweets?max_results={max_results}&tweet.fields=created_at,public_metrics,entities&expansions=author_id&user.fields=username,name"
-        );
-        append_pagination(&mut req.endpoint, &opts.pagination_token);
-        req.data.clear();
-
-        deserialize_response(self.send_request(&req)?)
-    }
-
-    /// Blocks a user.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the request fails or the API returns an error.
-    pub fn block_user(
-        &mut self,
-        source_user_id: &str,
-        target_user_id: &str,
-        opts: &CallOptions,
-    ) -> Result<ApiResponse<BlockingResult>> {
-        let mut req = opts.to_request_options();
-        req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/blocking");
-        req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
-
-        deserialize_response(self.send_request(&req)?)
-    }
-
-    /// Unblocks a user.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the request fails or the API returns an error.
-    pub fn unblock_user(
-        &mut self,
-        source_user_id: &str,
-        target_user_id: &str,
-        opts: &CallOptions,
-    ) -> Result<ApiResponse<BlockingResult>> {
-        let mut req = opts.to_request_options();
-        req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/blocking/{target_user_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/liked_tweets".to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -727,7 +875,11 @@ impl ApiClient {
     ) -> Result<ApiResponse<MutingResult>> {
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/muting");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/muting".to_string(),
+            path_params: HashMap::from([("id".to_string(), source_user_id.to_string())]),
+            query: Vec::new(),
+        };
         req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
         deserialize_response(self.send_request(&req)?)
@@ -741,8 +893,14 @@ impl ApiClient {
     pub fn get_usage(&mut self, opts: &CallOptions) -> Result<ApiResponse<UsageData>> {
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
-        req.endpoint =
-            "/2/usage/tweets?usage.fields=daily_project_usage,daily_client_app_usage".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/usage/tweets".to_string(),
+            path_params: HashMap::new(),
+            query: vec![(
+                "usage.fields".to_string(),
+                "daily_project_usage,daily_client_app_usage".to_string(),
+            )],
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)
@@ -761,7 +919,14 @@ impl ApiClient {
     ) -> Result<ApiResponse<MutingResult>> {
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
-        req.endpoint = format!("/2/users/{source_user_id}/muting/{target_user_id}");
+        req.target = RequestTarget::Template {
+            path: "/2/users/{source_user_id}/muting/{target_user_id}".to_string(),
+            path_params: HashMap::from([
+                ("source_user_id".to_string(), source_user_id.to_string()),
+                ("target_user_id".to_string(), target_user_id.to_string()),
+            ]),
+            query: Vec::new(),
+        };
         req.data.clear();
 
         deserialize_response(self.send_request(&req)?)

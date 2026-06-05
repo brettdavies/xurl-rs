@@ -251,6 +251,116 @@ fn print_error_emits_structured_json_when_format_is_json() {
     assert!(parsed["message"].as_str().unwrap().contains("bad token"));
 }
 
+/// R10: `AuthMethodMismatch` JSON envelope folds in `endpoint`, `method`,
+/// `requested`, `supported`, and `message`. The U6 explicit-mismatch shape
+/// MUST omit `available_in_app` (U7's empty-intersection shape adds it).
+#[test]
+fn print_error_auth_method_mismatch_envelope_shape_r10() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Json,
+        quiet: false,
+        no_color: false,
+        use_color: true,
+        verbose: false,
+        raw: false,
+        no_interactive: false,
+    };
+    let mut err_buf: Vec<u8> = Vec::new();
+    let err = XurlError::AuthMethodMismatch {
+        endpoint: "/2/media/upload".to_string(),
+        rendered_url: None,
+        method: "POST".to_string(),
+        requested: Some("app".to_string()),
+        supported: vec!["oauth1".to_string(), "oauth2".to_string()],
+        available_in_app: None,
+        app: None,
+        other_apps_with_creds: None,
+    };
+    cfg.print_error(&mut err_buf, &err, 2);
+    let s = String::from_utf8(err_buf).expect("utf8");
+    let parsed: serde_json::Value = serde_json::from_str(s.trim()).expect("valid JSON");
+
+    assert_eq!(parsed["status"], "error");
+    assert_eq!(parsed["reason"], "auth-method-mismatch");
+    assert_eq!(parsed["exit_code"], 2);
+    assert_eq!(parsed["endpoint"], "/2/media/upload");
+    assert_eq!(parsed["method"], "POST");
+    assert_eq!(parsed["requested"], "app");
+    assert_eq!(
+        parsed["supported"],
+        serde_json::json!(["oauth1", "oauth2"]),
+        "supported list must preserve order from validate()"
+    );
+    assert!(
+        parsed.get("available_in_app").is_none(),
+        "explicit-mismatch envelope must omit available_in_app"
+    );
+    assert!(
+        parsed.get("rendered_url").is_none(),
+        "rendered_url is optional and omitted when None"
+    );
+    assert!(
+        parsed.get("app").is_none(),
+        "app is optional and omitted when None"
+    );
+
+    let msg = parsed["message"].as_str().expect("message string");
+    assert!(
+        msg.contains("Bearer (app)"),
+        "envelope message must pretty-print scheme: {msg}"
+    );
+    assert!(
+        msg.contains("POST /2/media/upload"),
+        "envelope message must reference method + endpoint: {msg}"
+    );
+    assert!(
+        msg.contains("--auth oauth1") && msg.contains("--auth oauth2"),
+        "envelope message must list both alternatives: {msg}"
+    );
+}
+
+/// U7 forward-compat: the empty-intersection shape (`requested = None`,
+/// `available_in_app = Some([...])`) must produce a `requested: null` JSON
+/// value and include the `available_in_app` array. U6 commits to this
+/// envelope shape so U7 doesn't have to rewrite the serializer.
+#[test]
+fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
+    let cfg = OutputConfig {
+        format: OutputFormat::Json,
+        quiet: false,
+        no_color: false,
+        use_color: true,
+        verbose: false,
+        raw: false,
+        no_interactive: false,
+    };
+    let mut err_buf: Vec<u8> = Vec::new();
+    let err = XurlError::AuthMethodMismatch {
+        endpoint: "/2/media/upload".to_string(),
+        rendered_url: None,
+        method: "POST".to_string(),
+        requested: None,
+        supported: vec!["oauth2".to_string()],
+        available_in_app: Some(vec!["oauth1".to_string()]),
+        app: Some("default".to_string()),
+        other_apps_with_creds: None,
+    };
+    cfg.print_error(&mut err_buf, &err, 2);
+    let s = String::from_utf8(err_buf).expect("utf8");
+    let parsed: serde_json::Value = serde_json::from_str(s.trim()).expect("valid JSON");
+
+    assert_eq!(parsed["reason"], "auth-method-mismatch");
+    assert_eq!(parsed["requested"], serde_json::Value::Null);
+    assert_eq!(parsed["available_in_app"], serde_json::json!(["oauth1"]));
+    let msg = parsed["message"].as_str().expect("message string");
+    assert!(
+        msg.contains("No stored auth method")
+            && msg.contains("App has: oauth1")
+            && msg.contains("Endpoint accepts: oauth2"),
+        "empty-intersection message must surface what app has vs endpoint accepts: {msg}"
+    );
+}
+
 #[test]
 fn print_error_does_not_write_to_unrelated_stdout_buffer() {
     let cfg = OutputConfig {
