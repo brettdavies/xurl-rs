@@ -54,7 +54,12 @@ use crate::output::{OutputConfig, OutputFormat};
 // `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, and `host_envelope_str` are
 // auto-generated at build time from `src/skill_install/skill.json`. Edit the
 // JSON file to add or remove hosts; `cargo build` regenerates this file.
-include!(concat!(env!("OUT_DIR"), "/generated_hosts.rs"));
+#[allow(missing_docs)]
+mod generated_hosts {
+    include!(concat!(env!("OUT_DIR"), "/generated_hosts.rs"));
+}
+
+pub use generated_hosts::{KNOWN_HOSTS, SkillHost, host_envelope_str, resolve_host};
 
 /// `git clone` config flags applied via `-c key=value` pairs, in token order
 /// suitable for `Command::args`.

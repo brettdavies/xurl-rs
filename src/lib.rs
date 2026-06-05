@@ -22,6 +22,7 @@
 // envelope structure. Boxing the variant would change the public
 // construction surface and break consumer code; allow the lint instead.
 #![allow(clippy::result_large_err)]
+#![deny(missing_docs)]
 
 pub mod api;
 pub mod auth;

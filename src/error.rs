@@ -421,7 +421,6 @@ pub type Result<T> = std::result::Result<T, XurlError>;
 ///   `EXIT_AUTH_REQUIRED` (missing credential) — this signals a *wrong*
 ///   credential request that's fixable by changing `--auth`. Shares the
 ///   `EX_USAGE` numeric value with clap because both are usage faults.
-/// Process exited cleanly with no error.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
 /// General / user-recoverable error. Sysexits default for anything not

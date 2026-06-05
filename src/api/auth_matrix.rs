@@ -109,6 +109,7 @@ impl WireScheme {
 // sub-module — a future toolchain bump that adds a new lint cannot drift
 // the CI's `-Dwarnings` gate red on code we cannot meaningfully edit.
 #[allow(clippy::all)]
+#[allow(missing_docs)]
 mod generated {
     use super::AuthScheme;
     include!(concat!(env!("OUT_DIR"), "/auth_matrix.rs"));
