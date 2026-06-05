@@ -32,7 +32,8 @@
 
 set -euo pipefail
 
-readonly REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+readonly REPO_ROOT
 readonly XR_BIN="$REPO_ROOT/target/release/xr"
 readonly OP_SKILL="$HOME/.claude/skills/1password/scripts"
 
