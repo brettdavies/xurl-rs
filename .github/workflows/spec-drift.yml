@@ -103,27 +103,6 @@ jobs:
             echo "drift=0" >> "$GITHUB_OUTPUT"
           else
             echo "drift=1" >> "$GITHUB_OUTPUT"
-            # Capture drift metadata via jq so spec-controlled strings cannot
-            # influence shell expansion. All values written to GITHUB_ENV via
-            # heredoc; never echo'd into a command line.
-            local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
-            upstream_version="$(jq -r '.info.version' "${tmp}")"
-            local_paths="$(jq -r '.paths | length' "${VENDOR_PATH}")"
-            upstream_paths="$(jq -r '.paths | length' "${tmp}")"
-            {
-              echo "LOCAL_VERSION<<EOF"
-              echo "${local_version}"
-              echo "EOF"
-              echo "UPSTREAM_VERSION<<EOF"
-              echo "${upstream_version}"
-              echo "EOF"
-              echo "LOCAL_PATHS<<EOF"
-              echo "${local_paths}"
-              echo "EOF"
-              echo "UPSTREAM_PATHS<<EOF"
-              echo "${upstream_paths}"
-              echo "EOF"
-            } >> "$GITHUB_ENV"
           fi
 
       - name: Report no drift
@@ -140,19 +119,101 @@ jobs:
         id: body
         run: |
           set -uo pipefail
+          tmp='${{ steps.fetch.outputs.tmp }}'
+
+          # Scalar extracts. Values flow through bash variables here only,
+          # never the command line, so spec-controlled strings cannot
+          # influence shell expansion.
+          local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
+          upstream_version="$(jq -r '.info.version' "${tmp}")"
+          local_paths_count="$(jq -r '.paths | length' "${VENDOR_PATH}")"
+          upstream_paths_count="$(jq -r '.paths | length' "${tmp}")"
+
+          # Promote the two `info.version`s into a header line so the
+          # most common drift shape (X bumped content without bumping the
+          # version field) reads clearly even when both sides match.
+          if [ "${local_version}" = "${upstream_version}" ]; then
+            version_line="info.version unchanged at \`${local_version}\` (X bumped spec content without bumping the version field)."
+          else
+            version_line="info.version: \`${local_version}\` (vendored) -> \`${upstream_version}\` (upstream)."
+          fi
+
+          # Set-difference helper: emits keys present in $2 but not $1.
+          # Both files run through jq so the input is JSON-validated, and
+          # sort+comm operate on local files so the diff itself never
+          # touches a shell command line.
+          diff_keys() {
+            local left="$1" right="$2" expr="$3"
+            local left_tmp right_tmp
+            left_tmp="$(mktemp)"
+            right_tmp="$(mktemp)"
+            jq -r "${expr}" "${left}" | sort > "${left_tmp}"
+            jq -r "${expr}" "${right}" | sort > "${right_tmp}"
+            comm -13 "${left_tmp}" "${right_tmp}"
+            rm -f "${left_tmp}" "${right_tmp}"
+          }
+
+          paths_added="$(diff_keys "${VENDOR_PATH}" "${tmp}" '.paths | keys[]')"
+          paths_removed="$(diff_keys "${tmp}" "${VENDOR_PATH}" '.paths | keys[]')"
+          schemas_added="$(diff_keys "${VENDOR_PATH}" "${tmp}" '.components.schemas // {} | keys[]')"
+          schemas_removed="$(diff_keys "${tmp}" "${VENDOR_PATH}" '.components.schemas // {} | keys[]')"
+
+          count_lines() {
+            if [ -z "$1" ]; then echo 0; else printf '%s\n' "$1" | wc -l; fi
+          }
+          paths_added_count="$(count_lines "${paths_added}")"
+          paths_removed_count="$(count_lines "${paths_removed}")"
+          schemas_added_count="$(count_lines "${schemas_added}")"
+          schemas_removed_count="$(count_lines "${schemas_removed}")"
+
+          # Format a newline-separated list as a comma-joined inline list
+          # of backticked identifiers, capped at 10 with a `+N more` tail.
+          fmt_list() {
+            local input="$1" count="$2"
+            local head
+            # shellcheck disable=SC2016 # backticks are literal markdown,
+            # not command substitution; sed wraps each line in `...`.
+            head="$(printf '%s\n' "${input}" | head -n 10 \
+              | sed 's/^/`/; s/$/`/' \
+              | paste -sd ', ' -)"
+            if [ "${count}" -gt 10 ]; then
+              printf '%s, _+%d more_' "${head}" $(( count - 10 ))
+            else
+              printf '%s' "${head}"
+            fi
+          }
+
           body_file="$(mktemp)"
           {
             echo "Vendored \`${VENDOR_PATH}\` does not match upstream \`${UPSTREAM_URL}\`."
             echo ""
-            echo "| Field | Vendored | Upstream |"
-            echo "| ----- | -------- | -------- |"
-            echo "| \`info.version\` | \`${LOCAL_VERSION}\` | \`${UPSTREAM_VERSION}\` |"
-            echo "| Path count | ${LOCAL_PATHS} | ${UPSTREAM_PATHS} |"
+            echo "${version_line}"
             echo ""
-            echo "Refresh:"
+            echo "**Path inventory:** ${paths_added_count} added, ${paths_removed_count} removed (${local_paths_count} -> ${upstream_paths_count})."
+            if [ "${paths_added_count}" -gt 0 ]; then
+              echo ""
+              echo "Added: $(fmt_list "${paths_added}" "${paths_added_count}")"
+            fi
+            if [ "${paths_removed_count}" -gt 0 ]; then
+              echo ""
+              echo "Removed: $(fmt_list "${paths_removed}" "${paths_removed_count}")"
+            fi
+            echo ""
+            echo "**Schemas:** ${schemas_added_count} added, ${schemas_removed_count} removed."
+            if [ "${schemas_added_count}" -gt 0 ]; then
+              echo ""
+              echo "Added: $(fmt_list "${schemas_added}" "${schemas_added_count}")"
+            fi
+            if [ "${schemas_removed_count}" -gt 0 ]; then
+              echo ""
+              echo "Removed: $(fmt_list "${schemas_removed}" "${schemas_removed_count}")"
+            fi
+            echo ""
+            echo "When neither paths nor schemas changed but the file still differs (X edited an existing schema in place, e.g. enum values), refresh locally to see the field-level diff:"
             echo ""
             echo '```bash'
             echo 'scripts/refresh-x-openapi.sh'
+            echo 'git diff vendor/x-api-openapi.json'
             echo '```'
           } > "${body_file}"
           echo "body_file=${body_file}" >> "$GITHUB_OUTPUT"
