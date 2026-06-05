@@ -10,12 +10,14 @@
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check)
-#   post-tag      Post-tag verification (release.yml + homebrew dispatch + finalize-release)
-#   all           Run surface, api-contract, smoke, multi-app, mechanics (skip post-tag)
+#   all           Run surface, api-contract, smoke, multi-app, mechanics
+#
+# Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
+# scripts/release-postflight.sh — that runs AFTER the tag push, not before.
 #
 # Flags:
 #   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
-#   --no-cleanup        Keep $SMOKE_HOME after exit (default: gio trash on exit)
+#   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: git tag --sort=-version:refname | head -n 1)
 #
 # Exit codes:
@@ -389,37 +391,6 @@ gate_mechanics() {
     [[ "$leaked" -eq 0 ]] && gate_pass "leak check (guarded paths): clean" || gate_fail "leak check" "$leaked guarded paths in diff vs $last_tag"
 }
 
-# Gate: post-tag -------------------------------------------------------------
-
-gate_post_tag() {
-    header "Post-tag verification (run after tag push)"
-    require_bin gh
-
-    local cargo_version expected_tag
-    cargo_version=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
-    expected_tag="v${cargo_version}"
-
-    local release_state
-    release_state=$(gh release view "$expected_tag" --repo "$(gh repo view --json nameWithOwner --jq .nameWithOwner)" --json isDraft,isPrerelease,assets 2>/dev/null \
-        | jaq -r '"draft=\(.isDraft) prerelease=\(.isPrerelease) assets=\(.assets|length)"' || true)
-    if [[ -n "$release_state" ]]; then
-        gate_pass "Release $expected_tag exists ($release_state)"
-    else
-        gate_skip "Release $expected_tag" "not yet tagged or not yet published"
-        return
-    fi
-
-    local latest_tag
-    latest_tag=$(gh api "repos/$(gh repo view --json nameWithOwner --jq .nameWithOwner)/releases/latest" --jq .tag_name 2>/dev/null || true)
-    [[ "$latest_tag" == "$expected_tag" ]] && gate_pass "GitHub Release latest = $latest_tag (finalize-release flipped make_latest)" \
-        || gate_skip "make_latest flip" "latest=$latest_tag expected=$expected_tag — homebrew dispatch may still be in flight"
-
-    gate_skip "cargo install xurl-rs --version $cargo_version on clean machine" "human-driven; runs after crates.io publish"
-    gate_skip "brew install brettdavies/tap/xurl-rs on fresh prefix" "human-driven; runs after homebrew dispatch"
-    gate_skip "cargo binstall xurl-rs" "human-driven; runs after release archives publish"
-    gate_skip "main → dev backport" "see solutions doc post-release-backport-prevents-diff-b-false-positives"
-}
-
 # Main dispatcher ------------------------------------------------------------
 
 usage() {
@@ -436,7 +407,8 @@ while [[ $# -gt 0 ]]; do
         --no-cleanup) NO_CLEANUP=1; shift;;
         --tag)        LAST_TAG="$2"; shift 2;;
         -h|--help)    usage;;
-        surface|api-contract|smoke|multi-app|mechanics|post-tag|all) SUBCMD="$1"; shift;;
+        surface|api-contract|smoke|multi-app|mechanics|all) SUBCMD="$1"; shift;;
+        post-tag) echo "post-tag moved to scripts/release-postflight.sh — run that after the tag push" >&2; exit 2;;
         *) echo "unknown arg: $1" >&2; usage;;
     esac
 done
@@ -449,7 +421,6 @@ case "$SUBCMD" in
     smoke)        gate_smoke;;
     multi-app)    gate_multi_app;;
     mechanics)    gate_mechanics;;
-    post-tag)     gate_post_tag;;
     all)          gate_surface; gate_api_contract; gate_smoke; gate_multi_app; gate_mechanics;;
 esac
 

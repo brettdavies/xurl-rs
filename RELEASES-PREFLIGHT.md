@@ -38,12 +38,14 @@ Most of this checklist now runs from one script. Build `xr` first, then:
 ```bash
 cargo build --release --bin xr
 scripts/release-preflight.sh all          # surface + api-contract + smoke + multi-app + mechanics
-scripts/release-preflight.sh post-tag     # run after `git push origin vX.Y.Z`
 ```
 
-The script (`scripts/release-preflight.sh`) covers 28 of the 31 automatable gates. It exits non-zero if any gate fails;
-human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
-the recipe below. Sub-commands let you re-run one gate group in isolation:
+After `git push origin vX.Y.Z` triggers the release pipeline, run
+[`scripts/release-postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
+
+The script (`scripts/release-preflight.sh`) covers 28 of the 31 automatable pre-tag gates. It exits non-zero if any gate
+fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a
+pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 | Sub-command    | What it runs                                                                                                               | Live API?                 |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
@@ -52,8 +54,7 @@ the recipe below. Sub-commands let you re-run one gate group in isolation:
 | `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                              | yes                       |
 | `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                     | yes                       |
 | `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check | no                        |
-| `post-tag`     | GitHub Release existence + `make_latest` flip after homebrew dispatch                                                      | no                        |
-| `all`          | every above except `post-tag`                                                                                              | yes                       |
+| `all`          | every above                                                                                                                | yes                       |
 
 Flags:
 
@@ -297,23 +298,14 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 
 ### Post-tag verification
 
-Run immediately after the tag push triggers `release.yml`.
-
-- [ ] `release.yml` green end-to-end. `gh run watch <id> --exit-status` then verify with `gh run view <id> --json
-  conclusion --jq .conclusion` — the watcher exit code alone is not authoritative.
-- [ ] Homebrew-tap `update-formula` dispatch completed (check `gh run list -R brettdavies/homebrew-tap`), then
-  `finalize-release.yml` ran back here and flipped the GitHub Release `make_latest: true`.
-- [ ] `crates.io` shows the new version published. `cargo install xurl-rs --version <new>` from a clean environment
-  resolves and runs. The crate's `xurl_rs` library re-exports surface (`use xurl_rs::*`) compiles in a downstream toy
-  crate.
-- [ ] `brew update && brew install brettdavies/tap/xurl-rs` on a fresh prefix resolves the new bottle and `xr --version`
-  reports the new tag. Confirms the homebrew-tap end of the cross-repo dispatch chain landed cleanly.
-- [ ] `cargo binstall xurl-rs` (without `--version`) resolves to the new tag and installs the matching prebuilt binary.
-  Confirms the GitHub Release asset layout matches binstall's expectations.
-- [ ] Backport `main` → `dev` per `RELEASES.md` § After publish, then `git push origin dev`.
+Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) — tagging happens **after** the release-branch cut and
+PR-to-main merge, so verification of the tag-triggered pipeline (release.yml → homebrew-tap → finalize-release →
+crates.io publish → fresh-machine install smokes) is post-flight, not pre-flight. Run `scripts/release-postflight.sh
+all` immediately after `git push origin vX.Y.Z`.
 
 ## Related docs
 
+- [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md): runs AFTER the tag push to verify the downstream pipeline.
 - [`RELEASES.md`](./RELEASES.md): operational runbook this checklist gates.
 - [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md): release-flow rationale.
 - [`AGENTS.md`](./AGENTS.md): project structure, auth paths, output formats.
