@@ -1,7 +1,8 @@
-/// CLI definition — clap derive with subcommands.
-///
-/// Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
-/// auth/media/webhook/version subcommands.
+//! CLI definition — clap derive with subcommands.
+//!
+//! Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
+//! auth/media/webhook/version subcommands.
+
 pub mod commands;
 pub mod exit_codes;
 pub mod runner;

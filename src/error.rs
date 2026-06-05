@@ -1,8 +1,9 @@
-/// Typed error system matching xurl's error categories.
-///
-/// The Go source uses string-typed errors with a `Type` field. We replicate
-/// that with thiserror variants so Rust callers get pattern matching while
-/// the Display output stays identical to xurl.
+//! Typed error system matching xurl's error categories.
+//!
+//! The Go source uses string-typed errors with a `Type` field. We replicate
+//! that with thiserror variants so Rust callers get pattern matching while
+//! the Display output stays identical to xurl.
+
 use thiserror::Error;
 
 /// Top-level error type for xurl-rs.

@@ -1,7 +1,8 @@
-/// Authentication orchestration — `OAuth2` PKCE, `OAuth1` HMAC-SHA1, Bearer.
-///
-/// Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
-/// env-var config -> active app in `.xurl` store.
+//! Authentication orchestration — `OAuth2` PKCE, `OAuth1` HMAC-SHA1, Bearer.
+//!
+//! Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
+//! env-var config -> active app in `.xurl` store.
+
 pub mod callback;
 pub mod oauth1;
 pub mod oauth2;

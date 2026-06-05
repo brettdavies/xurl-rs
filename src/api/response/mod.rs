@@ -1,7 +1,8 @@
-/// Typed API response structs and response formatting.
-///
-/// - `types` — Typed structs for X API v2 responses (`Tweet`, `User`, `ApiResponse<T>`, etc.)
-/// - `format` — JSON pretty-printing with syntax highlighting
+//! Typed API response structs and response formatting.
+//!
+//! - `types` — Typed structs for X API v2 responses (`Tweet`, `User`, `ApiResponse<T>`, etc.)
+//! - `format` — JSON pretty-printing with syntax highlighting
+
 mod format;
 pub mod types;
 

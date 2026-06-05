@@ -1,11 +1,12 @@
-/// Token persistence layer — multi-app YAML store at `~/.xurl`.
-///
-/// Supports:
-/// - Multi-app credential and token management
-/// - `OAuth2`, `OAuth1`, and Bearer token types
-/// - Legacy JSON migration (auto-converts old format)
-/// - `.twurlrc` import (legacy Twitter CLI compatibility)
-/// - Credential backfill from environment variables
+//! Token persistence layer — multi-app YAML store at `~/.xurl`.
+//!
+//! Supports:
+//! - Multi-app credential and token management
+//! - `OAuth2`, `OAuth1`, and Bearer token types
+//! - Legacy JSON migration (auto-converts old format)
+//! - `.twurlrc` import (legacy Twitter CLI compatibility)
+//! - Credential backfill from environment variables
+
 mod migration;
 mod tokens;
 pub mod types;

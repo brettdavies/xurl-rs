@@ -1,16 +1,17 @@
-/// Output formatting helpers for `--output`, `--quiet`, `--color`, and
-/// `NO_COLOR` support.
-///
-/// `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
-/// owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
-/// so the same config can drive real stdout, real stderr, or a captured
-/// `Vec<u8>` in library tests.
-///
-/// This module is the single owner of `println!` / `eprintln!`. Every other
-/// `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
-/// [`warn_stderr`] for the rare deep call sites that cannot carry an
-/// `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
-/// invariant.
+//! Output formatting helpers for `--output`, `--quiet`, `--color`, and
+//! `NO_COLOR` support.
+//!
+//! `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
+//! owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
+//! so the same config can drive real stdout, real stderr, or a captured
+//! `Vec<u8>` in library tests.
+//!
+//! This module is the single owner of `println!` / `eprintln!`. Every other
+//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
+//! [`warn_stderr`] for the rare deep call sites that cannot carry an
+//! `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
+//! invariant.
+
 use std::io::{IsTerminal, Write};
 
 use clap::ValueEnum;
