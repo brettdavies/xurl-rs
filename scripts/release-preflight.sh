@@ -2,7 +2,7 @@
 # Run release preflight gates against the current checkout.
 #
 # Usage:
-#   scripts/release-preflight <subcommand>
+#   scripts/release-preflight.sh <subcommand>
 #
 # Subcommands:
 #   surface       Establish surface: commits + diff vs last tag, breaking markers
