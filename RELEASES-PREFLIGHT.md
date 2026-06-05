@@ -53,23 +53,89 @@ generic `xr request` path, and the library re-exports in `src/lib.rs`.
 The in-repo tests mock the HTTP layer. The four auth paths and the three output formats only exercise end-to-end on the
 live API. Pick fresh targets each release.
 
-- [ ] OAuth1 path: `xr <some-shortcut>` against an account configured with OAuth1 in `~/.xurl`. Confirms HMAC-SHA1
-  signing didn't regress.
-- [ ] OAuth2 PKCE path: `xr auth` against a fresh `XDG_CONFIG_HOME` (or temporarily renamed `~/.xurl`), then exercise a
-  write-scoped shortcut. Confirms the PKCE flow and refresh-token rotation still work.
-- [ ] OAuth2 headless (`--no-browser`) path: same exercise on a host without a graphical browser. Confirms the
-  copy-paste-the-URL flow still works.
-- [ ] Bearer token (env var, one-shot): `XURL_BEARER_TOKEN=… xr <read-only-shortcut> --auth app`. Confirms
-  `Auth::get_bearer_token_header` honors the env var without a persisted store entry, the pattern stateless containers
-  and agents pipe a bearer through.
-- [ ] Bearer token (stored, two-step): `xr auth app --bearer-token "$(…)"` then `xr <read-only-shortcut> --auth app`.
-  Confirms the persisted bearer in `~/.xurl` still loads for callers that opt into the store-backed path.
-- [ ] Media upload: `xr media-upload <image>`. Confirms the chunked-upload state machine still works (`INIT` → `APPEND`
-  → `FINALIZE` → poll `STATUS` until `processing_info.state` is `succeeded`).
-- [ ] Output formats: `--output text`, `--output json`, `--output jsonl` for one streaming and one non-streaming
-  endpoint. Confirms the `OutputConfig` plumbing didn't regress, particularly for jsonl on streaming endpoints.
-- [ ] Error paths: drive at least one 401 (revoked token), one 429 (rate-limited), and one 4xx-with-error-body response.
-  Confirms `XurlError` mapping still produces useful messages, not raw upstream JSON dumps.
+**Isolated-store recipe (run all smokes without touching real `~/.xurl`):**
+
+```bash
+SMOKE_HOME=$(mktemp -d -t xr-smoke-XXXXXX)
+alias xrs="HOME=$SMOKE_HOME ./target/release/xr"
+
+# Seed from 1Password (vault: secrets-dev). Items used:
+#   "X App - Bird (dev)"            -> oauth2_client_id, oauth2_client_secret, consumer_key, secret_key, credential (Bearer)
+#   "X App - Bird (prod)"           -> same shape
+#   "X User Tokens - brettdavies"   -> "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN" + _SECRET (single-app OAuth1 user)
+#                                   -> "OAuth2 (bird_dev app).X_API_OAUTH2_USER_ACCESS_TOKEN" + REFRESH_TOKEN
+#                                   -> "OAuth2 (bird_prod app).X_API_OAUTH2_USER_ACCESS_TOKEN" + REFRESH_TOKEN
+
+# Register two apps (replace stub values with 1P reads via scripts/read_field.sh).
+xrs auth apps add bird_dev  --client-id "$DEV_CID"  --client-secret "$DEV_CSEC"
+xrs auth apps add bird_prod --client-id "$PROD_CID" --client-secret "$PROD_CSEC"
+
+# Seed bearer + OAuth1 via CLI (these accept tokens as args).
+xrs auth app    --bearer-token "$DEV_BEARER"  --app bird_dev
+xrs auth app    --bearer-token "$PROD_BEARER" --app bird_prod
+xrs auth oauth1 --consumer-key "$DEV_CK" --consumer-secret "$DEV_CS" \
+                --access-token "$DEV_AT" --token-secret "$DEV_TS" --app bird_dev
+
+# OAuth2 has no CLI sideload flag (PKCE-only). Inject via yq strenv() to avoid argv exposure:
+DEV_AT=$(read_field "OAuth2 (bird_dev app).X_API_OAUTH2_USER_ACCESS_TOKEN") \
+DEV_RT=$(read_field "OAuth2 (bird_dev app).X_API_OAUTH2_REFRESH_TOKEN") \
+EXP=$(date -d '+1 hour' +%s) \
+yq -i '.apps.bird_dev.oauth2_tokens.brettdavies = {
+  "type":"oauth2",
+  "oauth2":{"access_token":strenv(DEV_AT),"refresh_token":strenv(DEV_RT),"expiration_time":(strenv(EXP)|to_number)}
+} | .apps.bird_dev.default_user = "brettdavies"' "$SMOKE_HOME/.xurl"
+```
+
+**Never `cat` the seeded `~/.xurl`** — it round-trips plaintext OAuth1/Bearer secrets through the transcript. Use `xr
+auth status` (redacts) or `yq '... | path'` for shape probes only.
+
+- [ ] **OAuth1 path** (automatable): `xrs whoami --auth oauth1 --app bird_dev --output json | jaq -c
+  '{u:.data.username}'` → expect `{"u":"BrettDavies"}` (or whichever account is seeded). Confirms HMAC-SHA1 signing
+  didn't regress.
+- [ ] **OAuth2 PKCE path** (needs human): refresh-token sideloaded from 1P will be stale within hours of issuance, so
+  the auto-refresh path returns `RefreshTokenError: no access_token in response`. To actually exercise PKCE end-to-end
+  you need to run `xr auth oauth2 --no-browser --step 1 --app bird_dev`, paste the printed URL into a logged-in browser,
+  paste the redirect URL back into `xr auth oauth2 --no-browser --step 2 --auth-url -`. The agent can drive step 1 and
+  step 2 but cannot complete the browser approval — that part is the human's. After step 2 succeeds, run `xrs whoami
+  --auth oauth2 --app bird_dev`.
+- [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine — `--no-browser` auto-engages
+  when stdout isn't a TTY (the headless auto-engage shipped in v1.3.0). The two-step ceremony is the same; passing
+  `--no-browser` explicitly is the only difference.
+- [ ] **Bearer token (env var, one-shot)** (automatable): with an empty `$HOME`, run `HOME=$(mktemp -d)
+  XURL_BEARER_TOKEN=$(read_field 'X App - Bird (dev)' credential) xr search "rust" --max-results 1 --auth app`. Confirms
+  `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
+- [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above, `xrs search "rust" --max-results 1
+  --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` → expect `{"has_data":true}`.
+- [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
+  --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**
+  defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg --category
+  tweet_image` or the API returns `invalid-args`. Small images return no `processing_info` (set immediately) — `state`
+  is `n/a`, presence of `media_id` is the success signal.
+- [ ] **Output formats** (partially automatable): `--output text`, `--output json`, `--output jsonl` for one
+  non-streaming endpoint (e.g. `xr search`). **Known v2.0.0 behavior:** for non-streaming endpoints, `text` and `jsonl`
+  both produce the same pretty-printed JSON as `json`. The jsonl-per-line semantic is only meaningful on streaming
+  endpoints (`/2/tweets/search/stream`, `/2/tweets/sample/stream`, `/2/tweets/firehose/*`), which require elevated X API
+  access and aren't exercisable on a dev account.
+- [ ] **Error paths** (automatable): three envelope shapes plus an upstream propagation. All produce structured JSON
+  under `--output json`:
+- **`auth-method-mismatch` (exit 2)**: `xrs whoami --auth app --app bird_dev` — Bearer rejected at `/2/users/me`.
+  Envelope includes `endpoint`, `rendered_url`, `requested`, `supported`, `available_in_app`, `app`.
+- **Empty-intersection mismatch (exit 2)**: temporarily `yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$SMOKE_HOME/.xurl"`
+  then `xrs whoami --app bird_prod` — only Bearer in store, `/2/users/me` doesn't accept it.
+- **Wrong-app envelope (exit 2)**: `yq -i '.default_app = "default"' "$SMOKE_HOME/.xurl"` then `xrs search "x"
+  --max-results 1` (auto-detect, no `--app`) — empty default app, others have creds; envelope includes
+  `other_apps_with_creds`. Restore `default_app = "bird_dev"` after.
+- **Upstream 401 propagation (exit 77)**: with stale OAuth2 token, `xrs whoami --auth oauth2 --app bird_dev` returns
+  `{"reason":"auth-required","message":"... RefreshTokenError ..."}` — xr's mapping, not raw upstream JSON.
+
+  **429 (rate limited)** is hard to trigger reliably without burning quota; skip unless a specific regression suspicion
+  motivates it.
+
+**v2.0.0 design observation worth noting (not a regression):** when an app has multiple stored methods and the preferred
+one fails its refresh (e.g. expired OAuth2), auto-detect does NOT fall back to the next-preferred. Method selection is
+at request-construction time; refresh failure is treated as an auth-error for the chosen method. `xrs whoami --app
+bird_dev` with stale OAuth2 + valid OAuth1 returns `auth-required` rather than retrying with OAuth1. The intersection IS
+rechecked when OAuth2 is absent from the store; the gap is specifically refresh-time failures.
 
 ### Multi-app credential routing
 
@@ -77,32 +143,43 @@ Auth methods exist on `Auth` as `--app NAME`-aware reads and writes. The legacy 
 accessors, which fell back to the default app and silently bypassed NAME's credentials; the v1.3.0 multi-app credential
 routing fix scoped every read and write to the active app. These gates verify the routing stays correct across OAuth1,
 OAuth2, and bearer, and that the auto-default UX still fires on the first signed-in app. Each gate needs at least two
-registered apps to exercise the cross-app path; reuse the existing dev and prod app entries in 1Password where
-applicable.
+registered apps to exercise the cross-app path; the `bird_dev` + `bird_prod` entries in 1Password are the canonical
+substitutes for `alpha` / `beta`.
 
-- [ ] OAuth2 `--app NAME` save and read isolation: register `alpha` and `beta` apps, run `xr auth oauth2 --app alpha
-  --no-browser --step 1/2` for one X account and the same flow for a different account against `--app beta`, then
-  confirm via `cat ~/.xurl` that each app holds its own `oauth2_tokens` map and neither overwrites the other. Subsequent
-  `xr whoami --app alpha --auth oauth2` and `xr whoami --app beta --auth oauth2` return the right identity. Confirms
-  `refresh_oauth2_token` and the active-app lookup did not regress to the empty-string default app context.
-- [ ] OAuth1 `--app NAME` save and read isolation: `xr auth oauth1 --app alpha --consumer-key K --consumer-secret S
-  --access-token T --token-secret TS` lands the credentials under `alpha`, not `default`. `xr whoami --app alpha --auth
-  oauth1` produces the alpha-signed HMAC header; the same call with `--app beta` errors with `TokenNotFound` rather than
-  falling back to alpha's credentials.
-- [ ] Bearer `--app NAME` save and read isolation: `xr auth app --bearer-token "$(…)" --app alpha` lands the bearer
-  under `alpha`; the default app retains its own bearer (or stays empty). `xr search "x" --auth app --app alpha` and `xr
-  search "x" --auth app --app beta` send different `Authorization` headers (or 401 on the empty one). Confirms
-  `save_bearer_token_for_app` and `resolve_bearer_token(_, _, "alpha")` route correctly.
-- [ ] Auto-detect with `--app NAME`: with two apps each holding a different auth method (e.g., alpha has OAuth2, beta
-  has bearer), `xr <read-shortcut> --app alpha` and `xr <read-shortcut> --app beta` both succeed without an explicit
-  `--auth` flag. Confirms `ApiClient::get_auth_header`'s auto-detect probes the active app, not the default.
-- [ ] First-signed-in-app auto-default: with `~/.xurl` containing only an uninitialized placeholder default, `xr auth
-  oauth2 --app NAME --no-browser --step 2 …` flips `default_app: NAME` in the YAML and `xr whoami` (no `--app` flag)
-  returns the authenticated profile. Repeat under OAuth1 (`xr auth oauth1 --app NAME …`) and bearer (`xr auth app
-  --bearer-token … --app NAME`). Confirms `promote_to_default_if_first_credentialed` fires on every sign-in handler.
-- [ ] Promotion idempotence: after the auto-default has fired once, a second `xr auth oauth2 --app OTHER --no-browser
-  --step 2 …` does NOT overwrite the existing default. User can still call `xr auth default OTHER` explicitly to switch.
-  Confirms the helper's no-op-on-credentialed-default contract.
+All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat` `$SMOKE_HOME/.xurl`**
+— use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. | path' ...` for
+structural probes.
+
+- [ ] **OAuth2 `--app NAME` save and read isolation** (sideload-verifiable; PKCE end-to-end needs human): the seed
+  recipe injects per-app `oauth2_tokens.brettdavies` for both `bird_dev` and `bird_prod`. Verify isolation by inspecting
+  the structure without printing values: `yq '.apps | to_entries | map({app: .key, has_oauth2: (.value.oauth2_tokens !=
+  null), users: (.value.oauth2_tokens // {} | keys)})' "$SMOKE_HOME/.xurl"`. Each app holds its own
+  `oauth2_tokens.brettdavies` entry and neither overwrites the other. End-to-end PKCE verification (live token issued
+  during this preflight) requires the human-driven authorize step described in § Real-world smoke.
+- [ ] **OAuth1 `--app NAME` save and read isolation** (automatable): after the seed recipe puts OAuth1 only on
+  `bird_dev`, run `xrs whoami --app bird_dev --auth oauth1 --output json | jaq -c '{u:.data.username}'` → expect
+  `{"u":"BrettDavies"}`. Then `xrs whoami --app bird_prod --auth oauth1 --output json | jaq -c '{r:.reason,
+  m:.message}'` → expect `{"r":"auth-required", "m":"Auth Error: TokenNotFound: OAuth1 token not found"}`. Confirms the
+  resolver scopes to the active app rather than silently falling back.
+- [ ] **Bearer `--app NAME` save and read isolation** (automatable): both apps have distinct bearers in 1Password. Run
+  `xrs search "rust" --max-results 1 --auth app --app bird_dev --output json | jaq -c '{ok:(.data|length>0)}'` and the
+  same with `--app bird_prod`. Both should return `{"ok":true}` against their respective dev portal apps. The proof of
+  isolation is that the per-app `bearer_token` slot is distinct in the YAML (probe via `yq '.apps | to_entries |
+  map({app:.key, has_bearer:(.value.bearer_token != null)})'`).
+- [ ] **Auto-detect with `--app NAME`** (automatable): the seed recipe leaves `bird_dev` with OAuth1 + Bearer + stale
+  OAuth2, `bird_prod` with Bearer + stale OAuth2. Test the OAuth2-preferred selection by stripping `bird_dev`'s OAuth2:
+  `yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$SMOKE_HOME/.xurl"`, then `xrs whoami
+  --app bird_dev --output json | jaq -c '{u:.data.username,e:(.exit_code//0)}'` → expect `{"u":"BrettDavies","e":0}`
+  (auto-detect picked OAuth1 since OAuth2 is now absent). Restore from the backup before moving on.
+- [ ] **First-signed-in-app auto-default** (automatable): use a *fresh* tempdir (not `$SMOKE_HOME`). `FRESH=$(mktemp
+  -d); HOME=$FRESH xr auth apps add bird_dev --client-id … --client-secret …; HOME=$FRESH xr auth apps add bird_prod …`.
+  Confirm `yq '.default_app' "$FRESH/.xurl"` is `"default"`. Run `HOME=$FRESH xr auth oauth1 --app bird_dev …`. Confirm
+  `default_app` flipped to `"bird_dev"`. Repeat in a second fresh tempdir using `xr auth app --bearer-token …` and a
+  third using the OAuth2 PKCE flow (the OAuth2 one needs the human authorize step from § Real-world smoke). All three
+  sign-in handlers must promote.
+- [ ] **Promotion idempotence** (automatable): continue from the previous test in the *same* `$FRESH`. `HOME=$FRESH xr
+  auth oauth1 --app bird_prod …` (sign in on the OTHER app). Confirm `yq '.default_app'` is still `"bird_dev"`, not
+  `"bird_prod"`. The auto-default fires once; a credentialed default is not overwritten.
 - [ ] Auth-error envelope vs upstream 401: with no token stored for the requested auth path (e.g., `xr search "x" --auth
   oauth1` against an app that has no OAuth1 entry), the error envelope is `auth-required` with `message:` mentioning
   `TokenNotFound` rather than a wrapped X 401 body. Confirms `ApiClient::send_request` propagates auth errors instead of
