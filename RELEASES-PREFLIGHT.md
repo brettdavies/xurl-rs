@@ -92,15 +92,55 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **OAuth1 path** (automatable): `xrs whoami --auth oauth1 --app bird_dev --output json | jaq -c
   '{u:.data.username}'` → expect `{"u":"BrettDavies"}` (or whichever account is seeded). Confirms HMAC-SHA1 signing
   didn't regress.
-- [ ] **OAuth2 PKCE path** (needs human): refresh-token sideloaded from 1P will be stale within hours of issuance, so
-  the auto-refresh path returns `RefreshTokenError: no access_token in response`. To actually exercise PKCE end-to-end
-  you need to run `xr auth oauth2 --no-browser --step 1 --app bird_dev`, paste the printed URL into a logged-in browser,
-  paste the redirect URL back into `xr auth oauth2 --no-browser --step 2 --auth-url -`. The agent can drive step 1 and
-  step 2 but cannot complete the browser approval — that part is the human's. After step 2 succeeds, run `xrs whoami
-  --auth oauth2 --app bird_dev`.
+- [ ] **OAuth2 PKCE path** (needs human ONLY for the browser approval): drive end-to-end with the recipe below. The
+  human's only job is opening a URL and pasting the redirect URL back — the agent handles every CLI step.
+
+  ```bash
+  FRESH=$(mktemp -d -t xr-pkce-XXXXXX)
+  HOME=$FRESH ./target/release/xr auth apps add bird_dev \
+      --client-id "$(read_field 'X App - Bird (dev)' oauth2_client_id)" \
+      --client-secret "$(read_field 'X App - Bird (dev)' oauth2_client_secret)"
+
+  # Step 1: agent runs, prints the authorize URL to stdout (URL is public — client_id,
+  # state, code_challenge, no secrets).
+  HOME=$FRESH ./target/release/xr auth oauth2 --no-browser --step 1 --app bird_dev
+
+  # Human action: open the printed URL in a browser logged in as the target account,
+  # click Authorize, copy the full redirect URL from the address bar (browser will show
+  # a connection-refused error — that is expected).
+
+  # Step 2: pipe the redirect URL into the agent via stdin. The `?code=…` is one-shot
+  # and consumed immediately by the exchange, so stdin redirection keeps it off argv.
+  echo '<paste-redirect-url-here>' | HOME=$FRESH ./target/release/xr auth oauth2 \
+      --no-browser --step 2 --auth-url - --app bird_dev
+
+  # Verify: tokens issued + auto-default fired.
+  HOME=$FRESH ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
+    | jaq -c '{u:.data.username, exit:(.exit_code//0)}'   # expect {"u":"<handle>","exit":0}
+  yq '.default_app' "$FRESH/.xurl"                         # expect "bird_dev"
+
+  # Refresh-token rotation gate: force-expire the access token, retry, confirm a fresh
+  # access_token + refresh_token + expiration_time get written.
+  HANDLE=$(yq '.apps.bird_dev.oauth2_tokens | keys | .[0]' "$FRESH/.xurl")
+  yq -i ".apps.bird_dev.oauth2_tokens[\"$HANDLE\"].oauth2.expiration_time = 1" "$FRESH/.xurl"
+  HOME=$FRESH ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
+    | jaq -c '{u:.data.username, exit:(.exit_code//0)}'   # expect same {"u":...,"exit":0}
+  EXP_NOW=$(date +%s); NEW_EXP=$(yq ".apps.bird_dev.oauth2_tokens[\"$HANDLE\"].oauth2.expiration_time" "$FRESH/.xurl")
+  echo "refresh wrote new expiration: $((NEW_EXP - EXP_NOW))s in the future"
+  ```
+
+  **Critical gotcha — case-sensitive username key:** step 2 stores the token under the actual handle returned by
+  `/2/users/me` (`BrettDavies` with mixed case, NOT the lowercased `brettdavies` you might assume). Probe the real key
+  via `yq '.apps.bird_dev.oauth2_tokens | keys | .[0]'` before any yq edit. If you write to the wrong-cased path, yq
+  silently CREATES a stub entry while the real tokens stay under the correct key, and xr's auto-refresh then finds the
+  stub (or the wrong entry first via `default_user`) and dies with `RefreshTokenError: no access_token in response` or
+  falls back to a fresh PKCE attempt with `client_id=` (empty in the URL — the fallback misses the `--app NAME`
+  threading). This looks like a v2.0.0 bug but is just the case-sensitivity tripwire.
+
 - [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine — `--no-browser` auto-engages
   when stdout isn't a TTY (the headless auto-engage shipped in v1.3.0). The two-step ceremony is the same; passing
-  `--no-browser` explicitly is the only difference.
+  `--no-browser` explicitly is the only difference. The recipe above already uses `--no-browser`, so it satisfies both
+  gates in one run.
 - [ ] **Bearer token (env var, one-shot)** (automatable): with an empty `$HOME`, run `HOME=$(mktemp -d)
   XURL_BEARER_TOKEN=$(read_field 'X App - Bird (dev)' credential) xr search "rust" --max-results 1 --auth app`. Confirms
   `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
