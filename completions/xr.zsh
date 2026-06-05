@@ -920,82 +920,6 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
-(block)
-_arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
-'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to block:_default' \
-&& ret=0
-;;
-(unblock)
-_arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
-'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unblock:_default' \
-&& ret=0
-;;
 (mute)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
@@ -2484,14 +2408,6 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(block)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(unblock)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
 (mute)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -2714,8 +2630,6 @@ _xr_commands() {
 'unfollow:Unfollow a user' \
 'following:List users you follow' \
 'followers:List your followers' \
-'block:Block a user' \
-'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
 'usage:Show API usage (tweet caps, daily breakdown)' \
@@ -3005,11 +2919,6 @@ _xr__auth__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth status commands' commands "$@"
 }
-(( $+functions[_xr__block_commands] )) ||
-_xr__block_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr block commands' commands "$@"
-}
 (( $+functions[_xr__bookmark_commands] )) ||
 _xr__bookmark_commands() {
     local commands; commands=()
@@ -3085,8 +2994,6 @@ _xr__help_commands() {
 'unfollow:Unfollow a user' \
 'following:List users you follow' \
 'followers:List your followers' \
-'block:Block a user' \
-'unblock:Unblock a user' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
 'usage:Show API usage (tweet caps, daily breakdown)' \
@@ -3195,11 +3102,6 @@ _xr__help__auth__oauth2_commands() {
 _xr__help__auth__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth status commands' commands "$@"
-}
-(( $+functions[_xr__help__block_commands] )) ||
-_xr__help__block_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help block commands' commands "$@"
 }
 (( $+functions[_xr__help__bookmark_commands] )) ||
 _xr__help__bookmark_commands() {
@@ -3351,11 +3253,6 @@ _xr__help__skill__update_commands() {
 _xr__help__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr help timeline commands' commands "$@"
-}
-(( $+functions[_xr__help__unblock_commands] )) ||
-_xr__help__unblock_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help unblock commands' commands "$@"
 }
 (( $+functions[_xr__help__unbookmark_commands] )) ||
 _xr__help__unbookmark_commands() {
@@ -3552,11 +3449,6 @@ _xr__skill__update_commands() {
 _xr__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr timeline commands' commands "$@"
-}
-(( $+functions[_xr__unblock_commands] )) ||
-_xr__unblock_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr unblock commands' commands "$@"
 }
 (( $+functions[_xr__unbookmark_commands] )) ||
 _xr__unbookmark_commands() {
