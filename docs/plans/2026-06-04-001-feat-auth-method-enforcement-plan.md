@@ -2,7 +2,7 @@
 date: 2026-06-04
 title: "feat: Client-side auth-method enforcement (v2.0.0)"
 type: feat
-status: active
+status: completed
 origin: docs/brainstorms/2026-06-04-001-auth-method-enforcement-requirements.md
 target_release: v2.0.0
 ---
