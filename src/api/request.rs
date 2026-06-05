@@ -290,19 +290,11 @@ impl ApiClient {
     pub fn send_request(&mut self, options: &RequestOptions) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        // Fail-fast auth-matrix validation BEFORE URL rendering or body
-        // construction. Rejects requests where `--auth X` is explicitly
-        // supplied for an endpoint that does not accept `X`. Gated on
-        // !no_auth so explicit auth-skip invocations still work even when
-        // a stale auth_type is set on the RequestOptions.
-        if !options.no_auth {
-            crate::api::auth_matrix::validate(
-                &options.target,
-                method,
-                &options.auth_type,
-                Some(self.auth.app_name()),
-            )?;
-        }
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below) so each request performs one matrix lookup, not two. The
+        // explicit-auth branch there rejects with
+        // `XurlError::AuthMethodMismatch` before any header is produced;
+        // `no_auth: true` short-circuits past the call site entirely.
         let url = self.build_url(&options.target)?;
 
         // Build the request
@@ -403,17 +395,8 @@ impl ApiClient {
     ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
-        // Fail-fast auth-matrix validation BEFORE form/file construction.
-        // Gated on !no_auth so explicit auth-skip invocations still work
-        // even when a stale auth_type is set.
-        if !options.request.no_auth {
-            crate::api::auth_matrix::validate(
-                &options.request.target,
-                method,
-                &options.request.auth_type,
-                Some(self.auth.app_name()),
-            )?;
-        }
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below). `no_auth: true` short-circuits past the call site.
         let url = self.build_url(&options.request.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -509,20 +492,10 @@ impl ApiClient {
     ) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        // Fail-fast auth-matrix validation BEFORE URL rendering or
-        // connection setup. Streaming honours the same rule: an explicit
-        // `--auth X` against an endpoint that doesn't accept `X` must
-        // reject before any socket is opened. Gated on !no_auth so
-        // explicit auth-skip invocations still work even when a stale
-        // auth_type is set.
-        if !options.no_auth {
-            crate::api::auth_matrix::validate(
-                &options.target,
-                method,
-                &options.auth_type,
-                Some(self.auth.app_name()),
-            )?;
-        }
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below). Streaming honours the same fail-fast rule: an explicit
+        // `--auth X` against an endpoint that doesn't accept `X` rejects
+        // via `get_auth_header` before `builder.send()` opens any socket.
         let url = self.build_url(&options.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -644,7 +617,49 @@ impl ApiClient {
             method_raw.as_str()
         };
 
+        // One matrix lookup for the entire decision. Both the explicit-auth
+        // validation below and the auto-detect intersection further down
+        // consume this, eliminating the prior duplicate `supported_auth`
+        // call that fired from `auth_matrix::validate` plus a second pass
+        // here.
+        let endpoint_schemes = match &options.target {
+            RequestTarget::Template { path, .. } => {
+                crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
+            }
+            RequestTarget::RawUrl(_) => None,
+        };
+
         if !auth_type.is_empty() {
+            // Validate the explicit-auth request against the matrix entry
+            // when present. Matrix-miss is permissive per the unknown-
+            // endpoint rule. Empty wire list (currently unreachable) would
+            // collapse to permissive too — the matrix only emits entries
+            // for endpoints that declare a `security:` list.
+            if let Some((path, schemes)) = &endpoint_schemes {
+                let supported_static = crate::api::auth_matrix::schemes_to_wire_list(schemes);
+                let requested_norm = auth_type.to_ascii_lowercase();
+                if !supported_static.contains(&requested_norm.as_str()) {
+                    let supported: Vec<String> =
+                        supported_static.iter().map(|s| (*s).to_string()).collect();
+                    let rendered_url = render_template_template(&options.target).ok();
+                    let raw_app = self.auth.app_name();
+                    let app_name = if raw_app.is_empty() {
+                        self.auth.token_store.default_app.clone()
+                    } else {
+                        raw_app.to_string()
+                    };
+                    return Err(XurlError::AuthMethodMismatch {
+                        endpoint: path.clone(),
+                        rendered_url,
+                        method: method.to_string(),
+                        requested: Some(requested_norm),
+                        supported,
+                        available_in_app: None,
+                        app: Some(app_name),
+                        other_apps_with_creds: None,
+                    });
+                }
+            }
             let url = self.build_url(&options.target)?;
             return match auth_type.to_lowercase().as_str() {
                 "oauth1" => self.auth.get_oauth1_header(method, &url, None),
@@ -672,53 +687,48 @@ impl ApiClient {
         };
         let available_in_app = self.available_auth_in_app(&app_name);
 
-        // Endpoint-aware intersection only fires for `Template` targets whose
-        // (method, path) lands in the matrix. `RawUrl` and matrix-miss
-        // `Template` targets fall back to the fixed OAuth2 → OAuth1 → Bearer
-        // order gated on availability — permissive on unknown endpoints so
-        // raw mode and spec drift remain dispatchable.
-        let endpoint_schemes = match &options.target {
-            RequestTarget::Template { path, .. } => {
-                crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
-            }
-            RequestTarget::RawUrl(_) => None,
-        };
+        // Auto-detect filter: walk the preference order and keep every
+        // scheme the active app has, optionally intersected with the
+        // endpoint's accepted set. The closure expression collapses the
+        // two earlier branches that duplicated the availability filter.
+        let endpoint_supported_static: Option<Vec<&'static str>> = endpoint_schemes
+            .as_ref()
+            .map(|(_, schemes)| crate::api::auth_matrix::schemes_to_wire_list(schemes));
+        let candidate_order: Vec<crate::api::auth_matrix::WireScheme> =
+            crate::api::auth_matrix::WireScheme::ALL_BY_PREFERENCE
+                .into_iter()
+                .filter(|m| {
+                    let wire = m.as_wire();
+                    let in_app = available_in_app.contains(&wire);
+                    let in_endpoint = endpoint_supported_static
+                        .as_ref()
+                        .is_none_or(|sup| sup.contains(&wire));
+                    in_app && in_endpoint
+                })
+                .collect();
 
-        let candidate_order: Vec<&'static str> = match &endpoint_schemes {
-            Some((path, schemes)) => {
-                let endpoint_supported = crate::api::auth_matrix::schemes_to_wire_list(schemes);
-                let intersection: Vec<&'static str> = ["oauth2", "oauth1", "app"]
-                    .into_iter()
-                    .filter(|m| {
-                        available_in_app.iter().any(|a| a == m)
-                            && endpoint_supported.iter().any(|s| s == m)
-                    })
-                    .collect();
-
-                if intersection.is_empty() {
-                    let rendered_url = render_template_template(&options.target).ok();
-                    if available_in_app.is_empty() {
-                        // Active app holds nothing. Check whether OTHER apps
-                        // in the store hold credentials. If so, surface a
-                        // wrong-app envelope (exit 2) instead of generic
-                        // auth-required (exit 77) — the user logged in, just
-                        // not against the app they invoked.
-                        let other_apps = self.other_apps_with_credentials(&app_name);
-                        if other_apps.is_empty() {
-                            return Err(XurlError::auth(
-                                "NoAuthMethod: no authentication method available",
-                            ));
-                        }
-                        return Err(XurlError::AuthMethodMismatch {
-                            endpoint: path.clone(),
-                            rendered_url,
-                            method: method.to_string(),
-                            requested: None,
-                            supported: endpoint_supported,
-                            available_in_app: Some(Vec::new()),
-                            app: Some(app_name.clone()),
-                            other_apps_with_creds: Some(other_apps),
-                        });
+        if candidate_order.is_empty() {
+            // Empty intersection (or empty active app entirely). The
+            // matrix-hit branches construct the typed envelope; the
+            // matrix-miss branch falls back to the generic auth error
+            // because no endpoint context is in scope.
+            if let Some((path, _)) = &endpoint_schemes {
+                let rendered_url = render_template_template(&options.target).ok();
+                let endpoint_supported = endpoint_supported_static
+                    .as_ref()
+                    .map(|sup| sup.iter().map(|s| (*s).to_string()).collect::<Vec<_>>())
+                    .unwrap_or_default();
+                if available_in_app.is_empty() {
+                    // Active app holds nothing. Check whether OTHER apps
+                    // in the store hold credentials. If so, surface a
+                    // wrong-app envelope (exit 2) instead of generic
+                    // auth-required (exit 77) — the user logged in, just
+                    // not against the app they invoked.
+                    let other_apps = self.other_apps_with_credentials(&app_name);
+                    if other_apps.is_empty() {
+                        return Err(XurlError::auth(
+                            "NoAuthMethod: no authentication method available",
+                        ));
                     }
                     return Err(XurlError::AuthMethodMismatch {
                         endpoint: path.clone(),
@@ -726,36 +736,42 @@ impl ApiClient {
                         method: method.to_string(),
                         requested: None,
                         supported: endpoint_supported,
-                        available_in_app: Some(
-                            available_in_app.iter().map(|s| (*s).to_string()).collect(),
-                        ),
+                        available_in_app: Some(Vec::new()),
                         app: Some(app_name.clone()),
-                        other_apps_with_creds: None,
+                        other_apps_with_creds: Some(other_apps),
                     });
                 }
-                intersection
+                return Err(XurlError::AuthMethodMismatch {
+                    endpoint: path.clone(),
+                    rendered_url,
+                    method: method.to_string(),
+                    requested: None,
+                    supported: endpoint_supported,
+                    available_in_app: Some(
+                        available_in_app.iter().map(|s| (*s).to_string()).collect(),
+                    ),
+                    app: Some(app_name.clone()),
+                    other_apps_with_creds: None,
+                });
             }
-            None => ["oauth2", "oauth1", "app"]
-                .into_iter()
-                .filter(|m| available_in_app.iter().any(|a| a == m))
-                .collect(),
-        };
+            return Err(XurlError::auth(
+                "NoAuthMethod: no authentication method available",
+            ));
+        }
 
         // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference
-        // order. `candidate_order` is constructed in that order with
-        // unavailable schemes already filtered out, so first-wins matches
-        // the intended precedence.
-        match candidate_order.first().copied() {
-            Some("oauth2") => self.auth.get_oauth2_header(&options.username),
-            Some("oauth1") => {
+        // order. Dispatching on the typed [`WireScheme`] makes adding a
+        // new variant a compile error — the previous `&str`-keyed match
+        // could panic at runtime if the candidate list ever grew without
+        // a matching arm.
+        use crate::api::auth_matrix::WireScheme;
+        match candidate_order[0] {
+            WireScheme::OAuth2 => self.auth.get_oauth2_header(&options.username),
+            WireScheme::OAuth1 => {
                 let url = self.build_url(&options.target)?;
                 self.auth.get_oauth1_header(method, &url, None)
             }
-            Some("app") => self.auth.get_bearer_token_header(),
-            Some(_) => unreachable!("candidate_order is filtered to known wire strings"),
-            None => Err(XurlError::auth(
-                "NoAuthMethod: no authentication method available",
-            )),
+            WireScheme::App => self.auth.get_bearer_token_header(),
         }
     }
 

@@ -31,6 +31,77 @@ pub enum AuthScheme {
     OAuth2User(&'static [&'static str]),
 }
 
+impl AuthScheme {
+    /// Returns the wire-format scheme identifier this entry maps to.
+    #[must_use]
+    pub const fn wire(self) -> WireScheme {
+        match self {
+            Self::Bearer => WireScheme::App,
+            Self::OAuth1User => WireScheme::OAuth1,
+            Self::OAuth2User(_) => WireScheme::OAuth2,
+        }
+    }
+}
+
+/// Wire-format auth-scheme identifier.
+///
+/// Single source of truth for the strings agents see in `--auth` flag
+/// values, the `requested`/`supported` envelope fields, and the user-facing
+/// display names. Every wire <-> display mapping lives on this type so the
+/// "is `app` Bearer-only or both Bearer-and-OAuth1?" question has one
+/// answer at compile time.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WireScheme {
+    /// Wire string `"app"` — Bearer token (app-only).
+    App,
+    /// Wire string `"oauth1"` — OAuth 1.0a user context.
+    OAuth1,
+    /// Wire string `"oauth2"` — OAuth 2.0 PKCE user context.
+    OAuth2,
+}
+
+impl WireScheme {
+    /// Preference order for auto-detect (OAuth2 -> OAuth1 -> Bearer).
+    pub const ALL_BY_PREFERENCE: [Self; 3] = [Self::OAuth2, Self::OAuth1, Self::App];
+
+    /// Returns the wire-format string surfaced in `--auth` flag values and
+    /// envelope fields.
+    #[must_use]
+    pub const fn as_wire(self) -> &'static str {
+        match self {
+            Self::App => "app",
+            Self::OAuth1 => "oauth1",
+            Self::OAuth2 => "oauth2",
+        }
+    }
+
+    /// Returns the display name used in user-facing messages.
+    #[must_use]
+    pub const fn pretty(self) -> &'static str {
+        match self {
+            Self::App => "Bearer (app)",
+            Self::OAuth1 => "OAuth 1.0a",
+            Self::OAuth2 => "OAuth 2.0",
+        }
+    }
+
+    /// Parses a case-insensitive wire string back into a scheme. Returns
+    /// `None` for unknown values so callers can route to a fallback rather
+    /// than panic.
+    #[must_use]
+    pub fn from_wire(s: &str) -> Option<Self> {
+        match s {
+            "app" | "App" | "APP" => Some(Self::App),
+            "oauth1" | "OAuth1" | "OAUTH1" => Some(Self::OAuth1),
+            "oauth2" | "OAuth2" | "OAUTH2" => Some(Self::OAuth2),
+            other if other.eq_ignore_ascii_case("app") => Some(Self::App),
+            other if other.eq_ignore_ascii_case("oauth1") => Some(Self::OAuth1),
+            other if other.eq_ignore_ascii_case("oauth2") => Some(Self::OAuth2),
+            _ => None,
+        }
+    }
+}
+
 // phf_codegen emits `&STATIC_NAME` references inside the generated map,
 // which clippy flags as `needless_borrow`. The included file is machine-
 // generated and not edited by hand, so suppress every clippy lint in this
@@ -42,51 +113,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/auth_matrix.rs"));
 }
 
-pub use generated::AUTH_MATRIX;
-
-/// `(METHOD, spec path)` pairs the shortcut + media layer targets, mirroring
-/// the build-time allowlist verbatim. Consumed by `tests/auth_matrix_coverage.rs`
-/// which asserts every shortcut site lands in the matrix.
-pub const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
-    ("POST", "/2/tweets"),
-    ("GET", "/2/tweets/{id}"),
-    ("DELETE", "/2/tweets/{id}"),
-    ("GET", "/2/tweets/search/recent"),
-    ("GET", "/2/users/me"),
-    ("GET", "/2/users/by/username/{username}"),
-    ("GET", "/2/users/{id}/timelines/reverse_chronological"),
-    ("GET", "/2/users/{id}/mentions"),
-    ("GET", "/2/users/{id}/followers"),
-    ("GET", "/2/users/{id}/liked_tweets"),
-    ("GET", "/2/users/{id}/blocking"),
-    ("POST", "/2/users/{id}/likes"),
-    ("DELETE", "/2/users/{id}/likes/{tweet_id}"),
-    ("POST", "/2/users/{id}/retweets"),
-    ("DELETE", "/2/users/{id}/retweets/{source_tweet_id}"),
-    ("GET", "/2/users/{id}/bookmarks"),
-    ("POST", "/2/users/{id}/bookmarks"),
-    ("DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
-    ("GET", "/2/users/{id}/following"),
-    ("POST", "/2/users/{id}/following"),
-    (
-        "DELETE",
-        "/2/users/{source_user_id}/following/{target_user_id}",
-    ),
-    ("GET", "/2/users/{id}/muting"),
-    ("POST", "/2/users/{id}/muting"),
-    (
-        "DELETE",
-        "/2/users/{source_user_id}/muting/{target_user_id}",
-    ),
-    ("POST", "/2/dm_conversations/with/{participant_id}/messages"),
-    ("GET", "/2/dm_events"),
-    ("GET", "/2/usage/tweets"),
-    ("POST", "/2/media/upload"),
-    ("GET", "/2/media/upload"),
-    ("POST", "/2/media/upload/initialize"),
-    ("POST", "/2/media/upload/{id}/append"),
-    ("POST", "/2/media/upload/{id}/finalize"),
-];
+pub use generated::{AUTH_MATRIX, SHORTCUT_TEMPLATES};
 
 /// Maximum HTTP method length we accept. Standard methods top out at
 /// 7 characters (`OPTIONS`); the matrix only emits five of them. Anything
@@ -122,18 +149,11 @@ pub fn supported_auth(method: &str, path: &str) -> Option<&'static [AuthScheme]>
 
 /// Maps an [`AuthScheme`] to its wire-format `--auth` flag value.
 ///
-/// - [`AuthScheme::Bearer`] → `"app"` (matches the CLI's `--auth app`).
-/// - [`AuthScheme::OAuth1User`] → `"oauth1"`.
-/// - [`AuthScheme::OAuth2User`] → `"oauth2"` (scope list ignored at the
-///   envelope boundary; scope-checking would intersect at the auth-resolve
-///   site, not here).
+/// Thin wrapper around `scheme.wire().as_wire()` retained as a free function
+/// so callers that already think in `AuthScheme` don't have to chain.
 #[must_use]
 pub fn auth_scheme_wire_str(scheme: AuthScheme) -> &'static str {
-    match scheme {
-        AuthScheme::Bearer => "app",
-        AuthScheme::OAuth1User => "oauth1",
-        AuthScheme::OAuth2User(_) => "oauth2",
-    }
+    scheme.wire().as_wire()
 }
 
 /// Collapses a slice of [`AuthScheme`] entries into the deduplicated wire
@@ -143,12 +163,16 @@ pub fn auth_scheme_wire_str(scheme: AuthScheme) -> &'static str {
 /// `security:` list order). Duplicates can appear when the spec lists
 /// multiple OAuth2 scope sets for the same endpoint — collapse them so the
 /// envelope reads `["oauth2", "oauth1"]`, not `["oauth2", "oauth2", "oauth1"]`.
-pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
-    let mut out: Vec<String> = Vec::with_capacity(schemes.len());
+///
+/// Returns `Vec<&'static str>` (no allocation per element) so the happy
+/// path stays alloc-free. Callers building owned `Vec<String>` for the
+/// envelope can `.iter().map(|s| (*s).to_string()).collect()`.
+pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = Vec::with_capacity(schemes.len());
     for s in schemes {
-        let w = auth_scheme_wire_str(*s);
-        if !out.iter().any(|existing| existing == w) {
-            out.push(w.to_string());
+        let w = s.wire().as_wire();
+        if !out.contains(&w) {
+            out.push(w);
         }
     }
     out
@@ -205,12 +229,15 @@ pub fn validate(
         return Ok(());
     }
 
-    // Rule 4/5: explicit auth must be in the supported set.
+    // Rule 4/5: explicit auth must be in the supported set. Use the static
+    // wire list for the membership check (no allocation) and only build the
+    // owned envelope list on the Err branch below.
     let requested_norm = requested_auth.to_ascii_lowercase();
-    let supported = schemes_to_wire_list(schemes);
-    if supported.iter().any(|s| s == &requested_norm) {
+    let static_supported = schemes_to_wire_list(schemes);
+    if static_supported.iter().any(|s| *s == requested_norm) {
         return Ok(());
     }
+    let supported: Vec<String> = static_supported.iter().map(|s| (*s).to_string()).collect();
 
     let rendered_url = crate::api::request::render_template_path(path, path_params).ok();
     Err(XurlError::AuthMethodMismatch {

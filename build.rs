@@ -402,6 +402,18 @@ fn emit_auth_matrix(manifest_dir: &Path) {
     )
     .expect("write to String never fails");
 
+    // Emit SHORTCUT_TEMPLATES alongside AUTH_MATRIX so the runtime mirror
+    // is regenerated from this same source list every build. Removes the
+    // manual hand-copy at src/api/auth_matrix.rs and the test that existed
+    // solely to catch drift between the two.
+    src.push('\n');
+    src.push_str("pub const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[\n");
+    for entry in SHORTCUT_TEMPLATES {
+        writeln!(&mut src, "    ({:?}, {:?}),", entry.0, entry.1)
+            .expect("write to String never fails");
+    }
+    src.push_str("];\n");
+
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
     let out_path = out_dir.join("auth_matrix.rs");
     fs::write(&out_path, src)

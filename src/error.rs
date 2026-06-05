@@ -224,15 +224,14 @@ fn auth_method_mismatch_message(
 
 /// Maps a wire-format auth string to its pretty-printed scheme name.
 ///
-/// `"app" -> "Bearer (app)"`, `"oauth1" -> "OAuth 1.0a"`,
-/// `"oauth2" -> "OAuth 2.0"`. Falls back to the input for unknown strings.
+/// Delegates to [`crate::api::auth_matrix::WireScheme::pretty`] so the
+/// display vocabulary lives in one place. Unknown strings fall back to
+/// the input verbatim so a future scheme added to the matrix without an
+/// updated pretty mapping still surfaces something readable.
 fn pretty_scheme(name: &str) -> String {
-    match name {
-        "app" => "Bearer (app)".to_string(),
-        "oauth1" => "OAuth 1.0a".to_string(),
-        "oauth2" => "OAuth 2.0".to_string(),
-        other => other.to_string(),
-    }
+    crate::api::auth_matrix::WireScheme::from_wire(name)
+        .map(|ws| ws.pretty().to_string())
+        .unwrap_or_else(|| name.to_string())
 }
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
