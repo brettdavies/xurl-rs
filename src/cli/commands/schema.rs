@@ -6,8 +6,8 @@ use schemars::schema_for;
 use serde_json::Value;
 
 use crate::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User,
+    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
+    MutingResult, RetweetedResult, Tweet, UsageData, User,
 };
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::error::{Result, XurlError};
@@ -59,10 +59,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &["bookmark", "unbookmark"],
         type_name: "ApiResponse<BookmarkedResult>",
-    },
-    SchemaEntry {
-        commands: &["block", "unblock"],
-        type_name: "ApiResponse<BlockingResult>",
     },
     SchemaEntry {
         commands: &["mute", "unmute"],
@@ -118,7 +114,6 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "delete" => schema_for!(ApiResponse<DeletedResult>),
         "repost" | "unrepost" => schema_for!(ApiResponse<RetweetedResult>),
         "bookmark" | "unbookmark" => schema_for!(ApiResponse<BookmarkedResult>),
-        "block" | "unblock" => schema_for!(ApiResponse<BlockingResult>),
         "mute" | "unmute" => schema_for!(ApiResponse<MutingResult>),
         "dm" => schema_for!(ApiResponse<DmEvent>),
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),

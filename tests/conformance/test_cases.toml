@@ -129,13 +129,6 @@ stdout_contains = "unfollow"
 tags = ["basic", "subcommand-help"]
 
 [[test]]
-name = "block-help"
-args = ["block", "--help"]
-compare = ["exit_code"]
-stdout_contains = "block"
-tags = ["basic", "subcommand-help"]
-
-[[test]]
 name = "mute-help"
 args = ["mute", "--help"]
 compare = ["exit_code"]

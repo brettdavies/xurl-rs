@@ -2,9 +2,11 @@
 ///
 /// Mirrors the Go `ApiClient` — builds requests with auth headers,
 /// handles regular/streaming/multipart responses.
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::time::Duration;
 
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use reqwest::blocking::{Client, multipart};
 
 use crate::auth::Auth;
@@ -12,11 +14,81 @@ use crate::config::Config;
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
 
+/// Percent-encoding set for path-parameter values and query parameters.
+///
+/// Matches RFC 3986 §2.3 "unreserved" characters (alphanumeric, `-_.~`)
+/// — everything else is encoded. Mirrors `percent-encoding`'s
+/// `NON_ALPHANUMERIC` set widened to keep the URL-safe punctuation.
+const URL_VALUE_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'&')
+    .add(b'+')
+    .add(b',')
+    .add(b'/')
+    .add(b':')
+    .add(b';')
+    .add(b'<')
+    .add(b'=')
+    .add(b'>')
+    .add(b'?')
+    .add(b'@')
+    .add(b'[')
+    .add(b'\\')
+    .add(b']')
+    .add(b'^')
+    .add(b'`')
+    .add(b'{')
+    .add(b'|')
+    .add(b'}');
+
+/// Typed target for an HTTP request.
+///
+/// Either a template path with substitutable `{name}` segments plus an
+/// ordered query list (`Template`), or a fully-formed external URL that
+/// bypasses the auth matrix (`RawUrl`). The split is the v2.0.0 contract
+/// that lets the matrix validator reason about `(method, path)` without
+/// re-parsing already-rendered URLs.
+#[derive(Debug, Clone)]
+pub enum RequestTarget {
+    /// API path template — e.g. `"/2/users/{id}/likes"` — paired with
+    /// `path_params` to substitute and a `query` vec whose insertion
+    /// order is preserved on render.
+    Template {
+        /// Path template containing `{name}` segments to substitute. Must
+        /// match the spec verbatim (the auth matrix is keyed on this string).
+        path: String,
+        /// Map of `{name}` segments to caller-supplied values.
+        path_params: HashMap<String, String>,
+        /// Ordered query parameters. Each `(key, value)` pair is
+        /// percent-encoded and joined with `&`; empty `query` produces no
+        /// `?` on render.
+        query: Vec<(String, String)>,
+    },
+    /// Fully-formed URL — used by raw mode (`xr <URL>`) and by shortcuts
+    /// whose path is intentionally outside the spec. The matrix validator
+    /// short-circuits for `RawUrl` — the user accepted the contract by
+    /// reaching for raw mode.
+    RawUrl(String),
+}
+
+impl Default for RequestTarget {
+    fn default() -> Self {
+        Self::Template {
+            path: String::new(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        }
+    }
+}
+
 /// Common options for API requests.
 #[derive(Debug, Clone, Default)]
 pub struct RequestOptions {
     pub method: String,
-    pub endpoint: String,
+    pub target: RequestTarget,
     pub headers: Vec<String>,
     pub data: String,
     pub auth_type: String,
@@ -109,8 +181,7 @@ pub struct ApiClient {
     /// Output configuration used to route verbose request/response logs
     /// through the single owner in `src/output.rs`. Library callers that
     /// haven't supplied one get the [`OutputConfig::default`] (text, no
-    /// verbose) — equivalent to the pre-U8 behavior where `verbose=false`
-    /// suppressed diagnostics.
+    /// verbose) — `verbose=false` suppresses diagnostics.
     out: OutputConfig,
 }
 
@@ -155,8 +226,7 @@ impl ApiClient {
     ///
     /// The CLI runner calls this after constructing the client so the
     /// verbose logs route through the single output owner. Library callers
-    /// that skip this get a default config (text, verbose off), which
-    /// matches the pre-U8 behavior.
+    /// that skip this get a default config (text, verbose off).
     pub fn set_output(&mut self, out: OutputConfig) {
         self.out = out;
     }
@@ -183,28 +253,32 @@ impl ApiClient {
         Ok(Self::new(&cfg, auth))
     }
 
-    /// Builds the full URL from an endpoint (public accessor for command layer).
-    #[must_use]
-    pub fn build_url_public(&self, endpoint: &str) -> String {
-        self.build_url(endpoint)
+    /// Builds the full URL from a target (public accessor for command layer).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`XurlError::InvalidUrl`] when a `RawUrl` target's scheme
+    /// is not `http` or `https`, [`XurlError::InvalidPathParam`] when a
+    /// substituted value contains a URL-reserved character, or
+    /// [`XurlError::Internal`] when a path template references a `{name}`
+    /// segment missing from `path_params`.
+    pub fn build_url_public(&self, target: &RequestTarget) -> Result<String> {
+        self.build_url(target)
     }
 
-    /// Builds the full URL from an endpoint.
-    fn build_url(&self, endpoint: &str) -> String {
-        if endpoint.to_lowercase().starts_with("http") {
-            return endpoint.to_string();
-        }
+    /// Returns the active app name carried by the underlying [`Auth`].
+    ///
+    /// Library-public so callers building requests outside `ApiClient` (e.g.
+    /// the CLI streaming wrapper) can thread the active app into
+    /// `auth_matrix::validate` for the user-facing message.
+    #[must_use]
+    pub fn auth_app_name(&self) -> &str {
+        self.auth.app_name()
+    }
 
-        let mut url = self.base_url.clone();
-        if !url.ends_with('/') {
-            url.push('/');
-        }
-        if let Some(stripped) = endpoint.strip_prefix('/') {
-            url.push_str(stripped);
-        } else {
-            url.push_str(endpoint);
-        }
-        url
+    /// Builds the full URL from a target.
+    fn build_url(&self, target: &RequestTarget) -> Result<String> {
+        build_url_for_target(&self.base_url, target)
     }
 
     /// Sends a regular API request and returns the JSON response.
@@ -216,7 +290,12 @@ impl ApiClient {
     pub fn send_request(&mut self, options: &RequestOptions) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        let url = self.build_url(&options.endpoint);
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below) so each request performs one matrix lookup, not two. The
+        // explicit-auth branch there rejects with
+        // `XurlError::AuthMethodMismatch` before any header is produced;
+        // `no_auth: true` short-circuits past the call site entirely.
+        let url = self.build_url(&options.target)?;
 
         // Build the request
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -252,8 +331,7 @@ impl ApiClient {
         // from upstream. The older "silently skip on Err" form let auth
         // bugs masquerade as upstream auth rejections.
         if !options.no_auth {
-            let auth_header =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -317,7 +395,9 @@ impl ApiClient {
     ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
-        let url = self.build_url(&options.request.endpoint);
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below). `no_auth: true` short-circuits past the call site.
+        let url = self.build_url(&options.request.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
@@ -353,12 +433,7 @@ impl ApiClient {
         // rather than silently sending the request unauthenticated; see the
         // matching propagation site in `send_request` for the rationale.
         if !options.request.no_auth {
-            let auth_header = self.get_auth_header(
-                method,
-                &url,
-                &options.request.auth_type,
-                &options.request.username,
-            )?;
+            let auth_header = self.get_auth_header(&options.request)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -417,7 +492,11 @@ impl ApiClient {
     ) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        let url = self.build_url(&options.endpoint);
+        // Auth-matrix validation lives inside `get_auth_header` (called
+        // below). Streaming honours the same fail-fast rule: an explicit
+        // `--auth X` against an endpoint that doesn't accept `X` rejects
+        // via `get_auth_header` before `builder.send()` opens any socket.
+        let url = self.build_url(&options.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
@@ -447,8 +526,7 @@ impl ApiClient {
         }
 
         if !options.no_auth {
-            let auth_header =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -467,10 +545,8 @@ impl ApiClient {
             }
         }
 
-        self.out.status(
-            stderr,
-            &format!("Connecting to streaming endpoint: {}", options.endpoint),
-        );
+        self.out
+            .status(stderr, &format!("Connecting to streaming endpoint: {url}"));
 
         let resp = builder.send()?;
 
@@ -514,29 +590,80 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Returns an error if no valid auth method is found.
-    pub fn get_auth_header_public(
-        &mut self,
-        method: &str,
-        url: &str,
-        auth_type: &str,
-        username: &str,
-    ) -> Result<String> {
-        self.get_auth_header(method, url, auth_type, username)
+    /// Returns an error if no valid auth method is found, or — when the
+    /// auto-detect path resolves an empty intersection between stored
+    /// credentials and the endpoint's accepted schemes — an
+    /// [`XurlError::AuthMethodMismatch`] in the empty-intersection shape.
+    pub fn get_auth_header_public(&mut self, options: &RequestOptions) -> Result<String> {
+        self.get_auth_header(options)
     }
 
     /// Gets the authorization header for a request.
-    fn get_auth_header(
-        &mut self,
-        method: &str,
-        url: &str,
-        auth_type: &str,
-        username: &str,
-    ) -> Result<String> {
+    ///
+    /// When `options.auth_type` is non-empty, dispatches directly to that
+    /// scheme. When empty, runs the endpoint-aware auto-detect: intersects
+    /// the active app's stored credentials with the endpoint's accepted
+    /// auth schemes per the matrix, picks the first match in OAuth2 →
+    /// OAuth1 → Bearer preference order, and falls back to that fixed
+    /// order for [`RequestTarget::RawUrl`] and matrix-miss
+    /// [`RequestTarget::Template`] targets (the permissive surface for
+    /// unknown endpoints).
+    fn get_auth_header(&mut self, options: &RequestOptions) -> Result<String> {
+        let auth_type = &options.auth_type;
+        let method_raw = options.method.to_uppercase();
+        let method = if method_raw.is_empty() {
+            "GET"
+        } else {
+            method_raw.as_str()
+        };
+
+        // One matrix lookup for the entire decision. Both the explicit-auth
+        // validation below and the auto-detect intersection further down
+        // consume this, eliminating the prior duplicate `supported_auth`
+        // call that fired from `auth_matrix::validate` plus a second pass
+        // here.
+        let endpoint_schemes = match &options.target {
+            RequestTarget::Template { path, .. } => {
+                crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
+            }
+            RequestTarget::RawUrl(_) => None,
+        };
+
         if !auth_type.is_empty() {
+            // Validate the explicit-auth request against the matrix entry
+            // when present. Matrix-miss is permissive per the unknown-
+            // endpoint rule. Empty wire list (currently unreachable) would
+            // collapse to permissive too — the matrix only emits entries
+            // for endpoints that declare a `security:` list.
+            if let Some((path, schemes)) = &endpoint_schemes {
+                let supported_static = crate::api::auth_matrix::schemes_to_wire_list(schemes);
+                let requested_norm = auth_type.to_ascii_lowercase();
+                if !supported_static.contains(&requested_norm.as_str()) {
+                    let supported: Vec<String> =
+                        supported_static.iter().map(|s| (*s).to_string()).collect();
+                    let rendered_url = render_template_template(&options.target).ok();
+                    let raw_app = self.auth.app_name();
+                    let app_name = if raw_app.is_empty() {
+                        self.auth.token_store.default_app.clone()
+                    } else {
+                        raw_app.to_string()
+                    };
+                    return Err(XurlError::AuthMethodMismatch {
+                        endpoint: path.clone(),
+                        rendered_url,
+                        method: method.to_string(),
+                        requested: Some(requested_norm),
+                        supported,
+                        available_in_app: None,
+                        app: Some(app_name),
+                        other_apps_with_creds: None,
+                    });
+                }
+            }
+            let url = self.build_url(&options.target)?;
             return match auth_type.to_lowercase().as_str() {
-                "oauth1" => self.auth.get_oauth1_header(method, url, None),
-                "oauth2" => self.auth.get_oauth2_header(username),
+                "oauth1" => self.auth.get_oauth1_header(method, &url, None),
+                "oauth2" => self.auth.get_oauth2_header(&options.username),
                 "app" => self.auth.get_bearer_token_header(),
                 _ => Err(XurlError::auth(format!("invalid auth type: {auth_type}"))),
             };
@@ -545,44 +672,289 @@ impl ApiClient {
         // Auto-detect: scope every check to the active app (set by
         // `--app NAME` via `Auth::with_app_name`) so a `--app NAME`
         // invocation without `--auth` picks NAME's tokens, not the
-        // default app's. The legacy no-arg `get_first_oauth2_token` /
-        // `get_oauth1_tokens` / `has_bearer_token` calls resolved to the
-        // default app and silently bypassed NAME's stored credentials.
-        let app_name = self.auth.app_name();
+        // default app's. Per-app probes route through `_for_app(app_name)`
+        // accessors on the token store so the active-app contract holds
+        // even when the active app differs from the default.
+        let raw_app = self.auth.app_name();
+        // Empty active app name is the "use default app" convention. Resolve
+        // it to the store's actual default_app name so the envelope's `app`
+        // field carries something the user can act on (e.g. "default" rather
+        // than "").
+        let app_name = if raw_app.is_empty() {
+            self.auth.token_store.default_app.clone()
+        } else {
+            raw_app.to_string()
+        };
+        let available_in_app = self.available_auth_in_app(&app_name);
 
-        // Try OAuth2 first — propagate errors if a token exists.
+        // Auto-detect filter: walk the preference order and keep every
+        // scheme the active app has, optionally intersected with the
+        // endpoint's accepted set. The closure expression collapses the
+        // two earlier branches that duplicated the availability filter.
+        let endpoint_supported_static: Option<Vec<&'static str>> = endpoint_schemes
+            .as_ref()
+            .map(|(_, schemes)| crate::api::auth_matrix::schemes_to_wire_list(schemes));
+        let candidate_order: Vec<crate::api::auth_matrix::WireScheme> =
+            crate::api::auth_matrix::WireScheme::ALL_BY_PREFERENCE
+                .into_iter()
+                .filter(|m| {
+                    let wire = m.as_wire();
+                    let in_app = available_in_app.contains(&wire);
+                    let in_endpoint = endpoint_supported_static
+                        .as_ref()
+                        .is_none_or(|sup| sup.contains(&wire));
+                    in_app && in_endpoint
+                })
+                .collect();
+
+        if candidate_order.is_empty() {
+            // Empty intersection (or empty active app entirely). The
+            // matrix-hit branches construct the typed envelope; the
+            // matrix-miss branch falls back to the generic auth error
+            // because no endpoint context is in scope.
+            if let Some((path, _)) = &endpoint_schemes {
+                let rendered_url = render_template_template(&options.target).ok();
+                let endpoint_supported = endpoint_supported_static
+                    .as_ref()
+                    .map(|sup| sup.iter().map(|s| (*s).to_string()).collect::<Vec<_>>())
+                    .unwrap_or_default();
+                if available_in_app.is_empty() {
+                    // Active app holds nothing. Check whether OTHER apps
+                    // in the store hold credentials. If so, surface a
+                    // wrong-app envelope (exit 2) instead of generic
+                    // auth-required (exit 77) — the user logged in, just
+                    // not against the app they invoked.
+                    let other_apps = self.other_apps_with_credentials(&app_name);
+                    if other_apps.is_empty() {
+                        return Err(XurlError::auth(
+                            "NoAuthMethod: no authentication method available",
+                        ));
+                    }
+                    return Err(XurlError::AuthMethodMismatch {
+                        endpoint: path.clone(),
+                        rendered_url,
+                        method: method.to_string(),
+                        requested: None,
+                        supported: endpoint_supported,
+                        available_in_app: Some(Vec::new()),
+                        app: Some(app_name.clone()),
+                        other_apps_with_creds: Some(other_apps),
+                    });
+                }
+                return Err(XurlError::AuthMethodMismatch {
+                    endpoint: path.clone(),
+                    rendered_url,
+                    method: method.to_string(),
+                    requested: None,
+                    supported: endpoint_supported,
+                    available_in_app: Some(
+                        available_in_app.iter().map(|s| (*s).to_string()).collect(),
+                    ),
+                    app: Some(app_name.clone()),
+                    other_apps_with_creds: None,
+                });
+            }
+            return Err(XurlError::auth(
+                "NoAuthMethod: no authentication method available",
+            ));
+        }
+
+        // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference
+        // order. Dispatching on the typed [`WireScheme`] makes adding a
+        // new variant a compile error — the previous `&str`-keyed match
+        // could panic at runtime if the candidate list ever grew without
+        // a matching arm.
+        use crate::api::auth_matrix::WireScheme;
+        match candidate_order[0] {
+            WireScheme::OAuth2 => self.auth.get_oauth2_header(&options.username),
+            WireScheme::OAuth1 => {
+                let url = self.build_url(&options.target)?;
+                self.auth.get_oauth1_header(method, &url, None)
+            }
+            WireScheme::App => self.auth.get_bearer_token_header(),
+        }
+    }
+
+    /// Probes the active app for which auth schemes have stored credentials.
+    ///
+    /// Returned vector lists the wire strings (`"oauth2"`, `"oauth1"`,
+    /// `"app"`) in OAuth2 → OAuth1 → Bearer order. Used by the auto-detect
+    /// intersection in [`Self::get_auth_header`] and by the empty-intersection
+    /// error envelope to populate `available_in_app`.
+    fn available_auth_in_app(&self, app_name: &str) -> Vec<&'static str> {
+        let mut out: Vec<&'static str> = Vec::with_capacity(3);
         if self
             .auth
             .token_store
             .get_first_oauth2_token_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_oauth2_header(username);
+            out.push("oauth2");
         }
-
-        // Try OAuth1 — propagate errors if a token exists.
         if self
             .auth
             .token_store
             .get_oauth1_tokens_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_oauth1_header(method, url, None);
+            out.push("oauth1");
         }
-
-        // Try Bearer.
         if self
             .auth
             .token_store
             .get_bearer_token_for_app(app_name)
             .is_some()
         {
-            return self.auth.get_bearer_token_header();
+            out.push("app");
         }
+        out
+    }
 
-        Err(XurlError::auth(
-            "NoAuthMethod: no authentication method available",
-        ))
+    /// Names of apps OTHER than `active` that hold at least one stored
+    /// credential.
+    ///
+    /// Used by `get_auth_header` to surface a "wrong-app" envelope when the
+    /// active app is empty but the user has credentials elsewhere. Returns
+    /// the apps in stable BTreeMap iteration order so the resulting message
+    /// is deterministic.
+    fn other_apps_with_credentials(&self, active: &str) -> Vec<String> {
+        self.auth
+            .token_store
+            .apps_with_credentials()
+            .into_iter()
+            .filter(|name| name != active)
+            .collect()
+    }
+}
+
+/// Renders the path portion of a [`RequestTarget::Template`] without the
+/// `base_url` prefix or query string.
+///
+/// Used by error-envelope construction so user-facing messages show the
+/// substituted path (`/2/users/12345/likes`) instead of the spec template
+/// (`/2/users/{id}/likes`). Returns `Err` when the target is `RawUrl` (no
+/// substitution applies) or when substitution itself fails — both surface
+/// as `None` at the call site so the envelope falls back to `endpoint`.
+fn render_template_template(target: &RequestTarget) -> Result<String> {
+    match target {
+        RequestTarget::Template {
+            path, path_params, ..
+        } => render_template_path(path, path_params),
+        RequestTarget::RawUrl(_) => Err(XurlError::Internal(
+            "RawUrl target has no template to render".to_string(),
+        )),
+    }
+}
+
+/// Renders a [`RequestTarget`] against `base_url` into a full URL string.
+///
+/// Free function so unit tests can exercise the rendering without
+/// instantiating a full [`ApiClient`].
+fn build_url_for_target(base_url: &str, target: &RequestTarget) -> Result<String> {
+    match target {
+        RequestTarget::Template {
+            path,
+            path_params,
+            query,
+        } => {
+            let rendered_path = render_template_path(path, path_params)?;
+
+            let mut url = base_url.to_string();
+            if !url.ends_with('/') {
+                url.push('/');
+            }
+            if let Some(stripped) = rendered_path.strip_prefix('/') {
+                url.push_str(stripped);
+            } else {
+                url.push_str(&rendered_path);
+            }
+
+            if !query.is_empty() {
+                url.push('?');
+                for (i, (key, value)) in query.iter().enumerate() {
+                    if i > 0 {
+                        url.push('&');
+                    }
+                    write_encoded(&mut url, key);
+                    url.push('=');
+                    write_encoded(&mut url, value);
+                }
+            }
+            Ok(url)
+        }
+        RequestTarget::RawUrl(raw) => {
+            validate_raw_url_scheme(raw)?;
+            Ok(raw.clone())
+        }
+    }
+}
+
+/// Substitutes `{name}` segments in a path template using `path_params`.
+///
+/// Each substituted value is rejected up-front if it contains `/`, `?`,
+/// `#`, or `%` (would break URL semantics on encode/decode), then
+/// percent-encoded against [`URL_VALUE_ENCODE_SET`]. A `{name}` whose
+/// `name` is missing from `path_params` is a programmer error and
+/// surfaces as [`XurlError::Internal`].
+pub(crate) fn render_template_path(
+    template: &str,
+    path_params: &HashMap<String, String>,
+) -> Result<String> {
+    let mut out = String::with_capacity(template.len());
+    let bytes = template.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'{' {
+            // Find matching closing brace
+            if let Some(end) = template[i + 1..].find('}') {
+                let name = &template[i + 1..i + 1 + end];
+                let value = path_params.get(name).ok_or_else(|| {
+                    XurlError::Internal(format!(
+                        "path template {template:?} references {{{name}}} but path_params has no such key"
+                    ))
+                })?;
+                if value.contains('/')
+                    || value.contains('?')
+                    || value.contains('#')
+                    || value.contains('%')
+                {
+                    return Err(XurlError::InvalidPathParam {
+                        name: name.to_string(),
+                        value: value.clone(),
+                    });
+                }
+                write_encoded(&mut out, value);
+                i += 1 + end + 1;
+                continue;
+            }
+        }
+        // Push raw byte (template literal char). Safe because template
+        // segments outside braces are ASCII per spec.
+        out.push(char::from(bytes[i]));
+        i += 1;
+    }
+    Ok(out)
+}
+
+/// Validates that a raw URL uses the `http` or `https` scheme.
+///
+/// Refuses `file://`, `ftp://`, `data:` etc. before any handle to the
+/// filesystem or external service is created. Case-insensitive match
+/// on the scheme prefix.
+fn validate_raw_url_scheme(url: &str) -> Result<()> {
+    let lower = url.trim_start().to_ascii_lowercase();
+    if lower.starts_with("https://") || lower.starts_with("http://") {
+        return Ok(());
+    }
+    Err(XurlError::InvalidUrl(format!(
+        "URL must start with http:// or https://: {url}"
+    )))
+}
+
+/// Appends a percent-encoded value to `out` using [`URL_VALUE_ENCODE_SET`].
+fn write_encoded(out: &mut String, value: &str) {
+    for chunk in utf8_percent_encode(value, URL_VALUE_ENCODE_SET) {
+        out.push_str(chunk);
     }
 }
 
@@ -639,7 +1011,18 @@ mod tests {
         assert_eq!(req.pagination_token, "abc123");
         // Request-specific fields should be at defaults
         assert!(req.method.is_empty());
-        assert!(req.endpoint.is_empty());
+        match &req.target {
+            RequestTarget::Template {
+                path,
+                path_params,
+                query,
+            } => {
+                assert!(path.is_empty());
+                assert!(path_params.is_empty());
+                assert!(query.is_empty());
+            }
+            RequestTarget::RawUrl(_) => panic!("default target must be Template"),
+        }
         assert!(req.data.is_empty());
         assert!(req.headers.is_empty());
     }
@@ -662,5 +1045,176 @@ mod tests {
             opts.timeout_secs, DEFAULT_TIMEOUT_SECS,
             "timeout_secs should default to {DEFAULT_TIMEOUT_SECS}"
         );
+    }
+
+    // ── build_url tests ────────────────────────────────────────────────
+
+    const TEST_BASE_URL: &str = "https://api.x.com";
+
+    fn tmpl(path: &str) -> RequestTarget {
+        RequestTarget::Template {
+            path: path.to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn build_url_template_empty_params_and_query() {
+        let url = build_url_for_target(TEST_BASE_URL, &tmpl("/2/users/me")).unwrap();
+        assert_eq!(url, "https://api.x.com/2/users/me");
+    }
+
+    #[test]
+    fn build_url_template_substitutes_path_param() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "12345".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let url = build_url_for_target(TEST_BASE_URL, &target).unwrap();
+        assert_eq!(url, "https://api.x.com/2/users/12345/likes");
+    }
+
+    #[test]
+    fn build_url_template_query_preserves_insertion_order() {
+        let target = RequestTarget::Template {
+            path: "/2/tweets/search/recent".to_string(),
+            path_params: HashMap::new(),
+            query: vec![
+                ("query".to_string(), "rustlang".to_string()),
+                ("max_results".to_string(), "10".to_string()),
+            ],
+        };
+        let url = build_url_for_target(TEST_BASE_URL, &target).unwrap();
+        assert_eq!(
+            url,
+            "https://api.x.com/2/tweets/search/recent?query=rustlang&max_results=10"
+        );
+    }
+
+    #[test]
+    fn build_url_template_percent_encodes_value_with_spaces() {
+        let target = RequestTarget::Template {
+            path: "/2/tweets/search/recent".to_string(),
+            path_params: HashMap::new(),
+            query: vec![("query".to_string(), "hello world".to_string())],
+        };
+        let url = build_url_for_target(TEST_BASE_URL, &target).unwrap();
+        assert_eq!(
+            url,
+            "https://api.x.com/2/tweets/search/recent?query=hello%20world"
+        );
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_slash() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "abc/etc/passwd".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        match err {
+            XurlError::InvalidPathParam { name, value } => {
+                assert_eq!(name, "id");
+                assert_eq!(value, "abc/etc/passwd");
+            }
+            other => panic!("expected InvalidPathParam, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_hash() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "abc#fragment".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        match err {
+            XurlError::InvalidPathParam { name, value } => {
+                assert_eq!(name, "id");
+                assert_eq!(value, "abc#fragment");
+            }
+            other => panic!("expected InvalidPathParam, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_percent() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "already%20encoded".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        match err {
+            XurlError::InvalidPathParam { name, value } => {
+                assert_eq!(name, "id");
+                assert_eq!(value, "already%20encoded");
+            }
+            other => panic!("expected InvalidPathParam, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_question_mark() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "abc?injected".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        assert!(matches!(err, XurlError::InvalidPathParam { .. }));
+    }
+
+    #[test]
+    fn build_url_template_missing_path_param_is_internal_error() {
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: HashMap::new(),
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        assert!(matches!(err, XurlError::Internal(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn build_url_raw_url_https_returns_clone() {
+        let target = RequestTarget::RawUrl("https://api.x.com/2/raw".to_string());
+        let url = build_url_for_target(TEST_BASE_URL, &target).unwrap();
+        assert_eq!(url, "https://api.x.com/2/raw");
+    }
+
+    #[test]
+    fn build_url_raw_url_http_returns_clone() {
+        let target = RequestTarget::RawUrl("http://localhost:8080/dev".to_string());
+        let url = build_url_for_target(TEST_BASE_URL, &target).unwrap();
+        assert_eq!(url, "http://localhost:8080/dev");
+    }
+
+    #[test]
+    fn build_url_raw_url_file_scheme_rejected() {
+        let target = RequestTarget::RawUrl("file:///etc/passwd".to_string());
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        assert!(matches!(err, XurlError::InvalidUrl(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn build_url_raw_url_ftp_scheme_rejected() {
+        let target = RequestTarget::RawUrl("ftp://attacker.com/payload".to_string());
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        assert!(matches!(err, XurlError::InvalidUrl(_)), "got {err:?}");
     }
 }

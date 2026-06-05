@@ -42,7 +42,7 @@ pub(super) fn stream_request_with_output(
 
     let method = options.method.to_uppercase();
     let method = if method.is_empty() { "GET" } else { &method };
-    let url = client.build_url_public(&options.endpoint);
+    let url = client.build_url_public(&options.target)?;
 
     let req_method = reqwest::Method::from_bytes(method.as_bytes())
         .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
@@ -71,10 +71,12 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    if !options.no_auth
-        && let Ok(auth_header) =
-            client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
-    {
+    // Propagate auth errors rather than silently sending unauthenticated.
+    // Mirrors send_request's policy: an AuthMethodMismatch envelope (or any
+    // other auth failure) must reach the caller, not get swallowed into a
+    // request the user's app cannot satisfy.
+    if !options.no_auth {
+        let auth_header = client.get_auth_header_public(options)?;
         builder = builder.header("Authorization", auth_header);
     }
 
@@ -92,10 +94,7 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status(
-        stderr,
-        &format!("Connecting to streaming endpoint: {}", options.endpoint),
-    );
+    out.status(stderr, &format!("Connecting to streaming endpoint: {url}"));
 
     let resp = builder.send()?;
 

@@ -1,0 +1,195 @@
+# Detects drift between the vendored X OpenAPI spec at
+# vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
+#
+# Triggers:
+#   - schedule: weekly Mon 09:00 UTC — informational issue on divergence
+#   - workflow_dispatch: manual re-run
+#   - pull_request: only when the vendor/build/matrix surface changes —
+#     surface drift in the PR before the matrix takes a stale snapshot
+#
+# Permissions are minimum-scoped per trigger; the schedule run can open or
+# update an issue, the PR run can comment on the PR. Neither path mutates
+# code. Non-blocking on every trigger — drift is informational, not gating.
+name: Spec Drift
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/x-api-openapi.json'
+      - 'build.rs'
+      - 'src/api/auth_matrix.rs'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Compare vendored spec against upstream
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      UPSTREAM_URL: https://api.x.com/2/openapi.json
+      VENDOR_PATH: vendor/x-api-openapi.json
+      ISSUE_TITLE_PREFIX: '[spec-drift]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Fetch upstream spec (with retry)
+        id: fetch
+        run: |
+          set -uo pipefail
+          tmp="$(mktemp)"
+          echo "tmp=${tmp}" >> "$GITHUB_OUTPUT"
+          # Up to 3 attempts with linear backoff. curl --fail returns non-zero
+          # on 4xx/5xx; --max-time bounds slow responses.
+          attempt=0
+          while [ $attempt -lt 3 ]; do
+            attempt=$((attempt + 1))
+            if curl -sS --fail --max-time 60 -o "${tmp}" "${UPSTREAM_URL}"; then
+              echo "fetched=1" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "attempt ${attempt} failed; sleeping $((attempt * 5))s"
+            sleep $((attempt * 5))
+          done
+          echo "fetched=0" >> "$GITHUB_OUTPUT"
+
+      - name: Report unreachable upstream
+        if: steps.fetch.outputs.fetched != '1'
+        run: |
+          {
+            echo "## Spec drift: upstream unreachable"
+            echo ""
+            echo "Could not fetch \`${UPSTREAM_URL}\` after 3 attempts."
+            echo "This is informational; the vendored spec is unchanged."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate fetched spec is JSON
+        if: steps.fetch.outputs.fetched == '1'
+        id: validate
+        run: |
+          set -uo pipefail
+          if jq -e '.info.version' "${{ steps.fetch.outputs.tmp }}" > /dev/null 2>&1; then
+            echo "valid=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report invalid upstream response
+        if: steps.fetch.outputs.fetched == '1' && steps.validate.outputs.valid != '1'
+        run: |
+          {
+            echo "## Spec drift: upstream returned non-JSON"
+            echo ""
+            echo "\`${UPSTREAM_URL}\` returned a payload that does not parse"
+            echo "as JSON or lacks \`.info.version\`. Treating as transient;"
+            echo "the vendored spec is unchanged."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Compare against vendored
+        if: steps.fetch.outputs.fetched == '1' && steps.validate.outputs.valid == '1'
+        id: diff
+        run: |
+          set -uo pipefail
+          tmp='${{ steps.fetch.outputs.tmp }}'
+          if cmp -s "${VENDOR_PATH}" "${tmp}"; then
+            echo "drift=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=1" >> "$GITHUB_OUTPUT"
+            # Capture drift metadata via jq so spec-controlled strings cannot
+            # influence shell expansion. All values written to GITHUB_ENV via
+            # heredoc; never echo'd into a command line.
+            local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
+            upstream_version="$(jq -r '.info.version' "${tmp}")"
+            local_paths="$(jq -r '.paths | length' "${VENDOR_PATH}")"
+            upstream_paths="$(jq -r '.paths | length' "${tmp}")"
+            {
+              echo "LOCAL_VERSION<<EOF"
+              echo "${local_version}"
+              echo "EOF"
+              echo "UPSTREAM_VERSION<<EOF"
+              echo "${upstream_version}"
+              echo "EOF"
+              echo "LOCAL_PATHS<<EOF"
+              echo "${local_paths}"
+              echo "EOF"
+              echo "UPSTREAM_PATHS<<EOF"
+              echo "${upstream_paths}"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Report no drift
+        if: steps.diff.outputs.drift == '0'
+        run: |
+          {
+            echo "## Spec drift: none"
+            echo ""
+            echo "Vendored spec matches upstream byte-for-byte."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build drift report body
+        if: steps.diff.outputs.drift == '1'
+        id: body
+        run: |
+          set -uo pipefail
+          body_file="$(mktemp)"
+          {
+            echo "Vendored \`${VENDOR_PATH}\` does not match upstream \`${UPSTREAM_URL}\`."
+            echo ""
+            echo "| Field | Vendored | Upstream |"
+            echo "| ----- | -------- | -------- |"
+            echo "| \`info.version\` | \`${LOCAL_VERSION}\` | \`${UPSTREAM_VERSION}\` |"
+            echo "| Path count | ${LOCAL_PATHS} | ${UPSTREAM_PATHS} |"
+            echo ""
+            echo "Refresh:"
+            echo ""
+            echo '```bash'
+            echo 'scripts/refresh-x-openapi.sh'
+            echo '```'
+          } > "${body_file}"
+          echo "body_file=${body_file}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Spec drift detected"
+            echo ""
+            cat "${body_file}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: steps.diff.outputs.drift == '1' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "${PR_NUMBER}" --body-file "${{ steps.body.outputs.body_file }}"
+
+      - name: Open or update drift issue
+        if: steps.diff.outputs.drift == '1' && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          # Dedupe by title-prefix match — independent of label state so the
+          # workflow does not require a pre-existing label.
+          existing="$(gh issue list \
+            --state open \
+            --search "in:title ${ISSUE_TITLE_PREFIX}" \
+            --json number,title \
+            --jq '[.[] | select(.title | startswith("'"${ISSUE_TITLE_PREFIX}"'"))][0].number // empty')"
+          title="${ISSUE_TITLE_PREFIX} upstream spec v${UPSTREAM_VERSION} diverged from vendored v${LOCAL_VERSION}"
+          if [ -n "${existing}" ]; then
+            gh issue edit "${existing}" \
+              --title "${title}" \
+              --body-file "${{ steps.body.outputs.body_file }}"
+          else
+            gh issue create \
+              --title "${title}" \
+              --body-file "${{ steps.body.outputs.body_file }}"
+          fi

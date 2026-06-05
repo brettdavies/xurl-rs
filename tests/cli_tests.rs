@@ -748,9 +748,16 @@ fn test_redirect_uri_get_text_output() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
+    // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
+    // would override the stored value and fail the URI assertion below.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
+
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
 
     // Add "myapp" and explicitly set it as the default so the no-NAME `get`
     // resolves through it. (TokenStore seeds a "default" placeholder on a
@@ -1445,16 +1452,42 @@ fn populate_bearer_store(store_path: &Path) {
     let _ = ts.remove_app("default");
 }
 
+/// Seeds a tempdir-rooted store with a single app carrying an OAuth1 token.
+///
+/// Counterpart to [`populate_bearer_store`]: user-context endpoints like
+/// `POST /2/users/{id}/likes` and `DELETE /2/tweets/{id}` accept OAuth1 (and
+/// OAuth2) but NOT Bearer per the spec-derived matrix, so tests that drive
+/// those endpoints under `--auth oauth1` need this fixture.
+fn populate_oauth1_store(store_path: &Path) {
+    use xurl::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_oauth1_tokens_for_app(
+        "myapp",
+        "OA1-ACCESS-TOKEN",
+        "TOKEN-SECRET",
+        "OA1-CONSUMER-KEY",
+        "CONSUMER-SECRET",
+    )
+    .expect("save_oauth1");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+}
+
 #[test]
 #[serial_test::serial]
 fn test_like_with_username_flag_calls_lookup_by_username() {
     // `-u alice` routes through `/2/users/by/username/alice`; the resolved id
     // (67890) drives the like POST. `expect(1)` on each mock fails the test
     // (on server drop) if either endpoint is hit zero times or > 1.
+    //
+    // Uses OAuth1 because `POST /2/users/{id}/likes` accepts OAuth1 + OAuth2
+    // per the spec matrix but rejects Bearer (v2.0.0 enforcement).
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("GET"))
@@ -1478,7 +1511,7 @@ fn test_like_with_username_flag_calls_lookup_by_username() {
     }
     let (code, stdout, stderr) = run_at(
         &store,
-        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+        &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
     );
     unsafe {
         std::env::remove_var("API_BASE_URL");
@@ -1491,10 +1524,12 @@ fn test_like_with_username_flag_calls_lookup_by_username() {
 #[serial_test::serial]
 fn test_like_without_username_flag_calls_me() {
     // No `-u` → empty `opts.username` → resolver hits `/2/users/me`.
+    // OAuth1 because both `/2/users/me` and the like POST accept it but
+    // reject Bearer under v2.0.0 enforcement.
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("GET"))
@@ -1516,7 +1551,7 @@ fn test_like_without_username_flag_calls_me() {
     unsafe {
         std::env::set_var("API_BASE_URL", ts.uri());
     }
-    let (code, stdout, stderr) = run_at(&store, &["xr", "like", "12345", "--auth", "app"]);
+    let (code, stdout, stderr) = run_at(&store, &["xr", "like", "12345", "--auth", "oauth1"]);
     unsafe {
         std::env::remove_var("API_BASE_URL");
     }
@@ -1531,10 +1566,13 @@ fn test_like_with_username_flag_lookup_404() {
     // and the like POST is never issued. Mock the lookup only; if anything
     // else hits the server, wiremock returns 404 by default and the test
     // still surfaces a non-zero exit.
+    //
+    // Uses OAuth1 because the like-flow endpoints reject Bearer under v2.0.0
+    // enforcement, and reaching the 404 path requires validation to yield.
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("GET"))
@@ -1553,7 +1591,7 @@ fn test_like_with_username_flag_lookup_404() {
     }
     let (code, _stdout, stderr) = run_at(
         &store,
-        &["xr", "like", "12345", "-u", "alice", "--auth", "app"],
+        &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
     );
     unsafe {
         std::env::remove_var("API_BASE_URL");
@@ -1572,10 +1610,13 @@ fn test_like_with_empty_username_falls_back_to_me() {
     // `opts.username`, which falls into the `/me` branch. Documents the
     // current contract: a future change that treats `Some("")` differently
     // from `None` is intentional, not accidental.
+    //
+    // OAuth1 because `/2/users/me` + `/2/users/{id}/likes` accept it but
+    // reject Bearer under v2.0.0 enforcement.
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("GET"))
@@ -1597,8 +1638,10 @@ fn test_like_with_empty_username_falls_back_to_me() {
     unsafe {
         std::env::set_var("API_BASE_URL", ts.uri());
     }
-    let (code, stdout, stderr) =
-        run_at(&store, &["xr", "like", "12345", "-u", "", "--auth", "app"]);
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "like", "12345", "-u", "", "--auth", "oauth1"],
+    );
     unsafe {
         std::env::remove_var("API_BASE_URL");
     }
@@ -1613,10 +1656,13 @@ fn test_like_with_at_prefix_username_strips_at() {
     // building the path. The mock matches the bare handle; if the strip were
     // skipped, wiremock would 404 the `@alice` request and exit would be
     // non-zero.
+    //
+    // OAuth1 because `/2/users/by/username/{username}` + the like POST accept
+    // it but reject Bearer under v2.0.0 enforcement.
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("GET"))
@@ -1640,7 +1686,7 @@ fn test_like_with_at_prefix_username_strips_at() {
     }
     let (code, stdout, stderr) = run_at(
         &store,
-        &["xr", "like", "12345", "-u", "@alice", "--auth", "app"],
+        &["xr", "like", "12345", "-u", "@alice", "--auth", "oauth1"],
     );
     unsafe {
         std::env::remove_var("API_BASE_URL");
@@ -2280,10 +2326,13 @@ fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope
 #[test]
 #[serial_test::serial]
 fn test_delete_force_no_interactive_calls_api_and_succeeds() {
+    // `DELETE /2/tweets/{id}` accepts OAuth1 + OAuth2 but rejects Bearer
+    // per the spec matrix (v2.0.0 enforcement). Seed an OAuth1 store and
+    // pass `--auth oauth1` to clear validation.
     let ts = CliMockServer::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     ts.mount(
         Mock::given(method("DELETE"))
@@ -2301,7 +2350,7 @@ fn test_delete_force_no_interactive_calls_api_and_succeeds() {
     let (code, stdout, stderr) = run_at(
         &store,
         &[
-            "xr", "--output", "json", "delete", "12345", "--force", "--auth", "app",
+            "xr", "--output", "json", "delete", "12345", "--force", "--auth", "oauth1",
         ],
     );
     unsafe {

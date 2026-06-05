@@ -69,8 +69,7 @@ MANAGE SOCIAL GRAPH:
     xr repost 1234567890
     xr bookmark 1234567890 --output json
 
-  Block / mute (irreversible from CLI side without confirm):
-    xr block @spammer --output json
+  Mute (irreversible from CLI side without confirm):
     xr mute @noisy --output json
 
 INSPECT YOUR ACCOUNT:

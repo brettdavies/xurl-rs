@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-06-05
+
+### Added
+
+- Endpoint-aware auth-method validator (`xurl::api::auth_matrix`) refuses `--auth X` invocations against endpoints whose spec entry does not list `X`, with a typed `XurlError::AuthMethodMismatch` and `auth-method-mismatch` envelope by @brettdavies in [#56](https://github.com/brettdavies/xurl-rs/pull/56)
+- Auto-detect intersects the active app's stored credentials with the endpoint's accepted schemes and prefers OAuth2 → OAuth1 → Bearer; three envelope shapes surface the outcome: - **Explicit mismatch**: user passed `--auth X` against an endpoint that doesn't accept `X` - **Empty intersection**: active app has creds but none overlap with the endpoint's supported set - **Wrong app**: active app holds nothing, but other apps in the store do; carries `other_apps_with_creds` so the recovery hint can name them
+- AuthMethodMismatch envelope carries `endpoint` (spec template, for agent pattern-matching), `rendered_url` (substituted path, for user-facing messages), `app` (active app name), `requested`, `supported`, `available_in_app`, and `other_apps_with_creds`
+- `EXIT_AUTH_MISMATCH = 2` (`EX_USAGE`) for the new error variant; distinct from `EXIT_AUTH_REQUIRED = 77`
+- CI drift-check workflow (`.github/workflows/spec-drift.yml`): weekly cron + PR-touches-vendor trigger; opens or updates a `[spec-drift]` issue on divergence
+- Build-time shortcut coverage check fails `cargo test` when any shortcut targets a path absent from the spec
+- `MIGRATING.md` at the repo root documenting the v1 → v2 migration for library consumers
+- `vendor/x-api-openapi.json` + `scripts/refresh-x-openapi.sh` + `vendor/README.md`
+- `scripts/generate-changelog.py --dry-run` idempotency check that runs the regen pipeline against `CHANGELOG.md`, compares against the current file, restores the original on exit, and exits 1 with a unified diff if regeneration would drift. by @brettdavies in [#57](https://github.com/brettdavies/xurl-rs/pull/57)
+
+### Changed
+
+- Release flow documentation (`RELEASES.md`, `RELEASES-RATIONALE.md`) names `generate-changelog.py` as the entry point. by @brettdavies in [#55](https://github.com/brettdavies/xurl-rs/pull/55)
+- BREAKING: `xurl::api::RequestOptions.endpoint: String` replaced by `target: RequestTarget` (`Template { path, path_params, query } | RawUrl(String)`); shortcut callers and direct library consumers MUST construct the new shape by @brettdavies in [#56](https://github.com/brettdavies/xurl-rs/pull/56)
+- BREAKING: `ApiClient::get_auth_header_public` takes `&RequestOptions` instead of the four stringly-typed parameters
+- `RawUrl` targets now enforce an `http(s)://` scheme allowlist; non-HTTP(S) values return `XurlError::InvalidUrl`
+- `cliff.toml` routes `feat!:`/`fix!:` and `BREAKING CHANGE:` footers into a `[Breaking]` changelog section
+
+### Fixed
+
+- `scripts/generate-changelog.py` now ships alongside the docs that reference it; the previous `generate-changelog.sh` delegated to a missing Python helper and could not be run as documented. by @brettdavies in [#55](https://github.com/brettdavies/xurl-rs/pull/55)
+- Auto-detect no longer attempts OAuth2 for endpoints the spec lists as Bearer-only (or vice versa); the intersection refuses incompatible combinations before the HTTP round-trip rather than letting X reject with a generic 403 by @brettdavies in [#56](https://github.com/brettdavies/xurl-rs/pull/56)
+- When the active app holds no credentials but other apps in the store hold some, the resolver surfaces the wrong-app envelope (exit 2) instead of the misleading generic `auth-required` (exit 77)
+- `scripts/generate-changelog.py` no longer prepends a duplicate `## [X.Y.Z]` section when one already exists for the requested tag. by @brettdavies in [#57](https://github.com/brettdavies/xurl-rs/pull/57)
+
+### Removed
+
+- BREAKING: `block_user` and `unblock_user` shortcuts (target paths absent from the current OpenAPI spec); use raw mode if you need the behavior, see MIGRATING.md by @brettdavies in [#56](https://github.com/brettdavies/xurl-rs/pull/56)
+
+**Full Changelog**: [v1.3.0...v2.0.0](https://github.com/brettdavies/xurl-rs/compare/v1.3.0...v2.0.0)
+
 ## [1.3.0] - 2026-06-04
 
 ### Added
