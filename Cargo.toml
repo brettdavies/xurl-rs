@@ -61,7 +61,7 @@ thiserror = "2"
 anyhow = "1"
 dirs = "6"
 percent-encoding = "2"
-phf = "0.11"
+phf = "0.13"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
