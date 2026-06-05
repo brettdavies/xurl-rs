@@ -328,9 +328,16 @@ pub fn handle_media_append_request(
 ) -> Result<serde_json::Value> {
     // Raw mode is the only caller — its target is a `RawUrl` carrying
     // the user-supplied URL with the media_id embedded in the path.
+    // Template targets reach this function only via misuse; their `{id}`
+    // segment would silently propagate as the media_id, so we reject
+    // explicitly with the path template named in the error.
     let url_for_id = match &options.target {
         RequestTarget::RawUrl(u) => u.clone(),
-        RequestTarget::Template { path, .. } => path.clone(),
+        RequestTarget::Template { path, .. } => {
+            return Err(XurlError::validation(format!(
+                "handle_media_append_request requires a RawUrl target; got Template {{ path: {path:?} }} — call this only from the raw-mode path"
+            )));
+        }
     };
     let media_id = extract_media_id(&url_for_id);
     if media_id.is_empty() {

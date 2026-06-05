@@ -30,9 +30,11 @@ pub enum AuthScheme {
 }
 
 // phf_codegen emits `&STATIC_NAME` references inside the generated map,
-// which clippy flags as `needless_borrow`. Suppress in this module — the
-// generated source is not edited by hand.
-#[allow(clippy::needless_borrow)]
+// which clippy flags as `needless_borrow`. The included file is machine-
+// generated and not edited by hand, so suppress every clippy lint in this
+// sub-module — a future toolchain bump that adds a new lint cannot drift
+// the CI's `-Dwarnings` gate red on code we cannot meaningfully edit.
+#[allow(clippy::all)]
 mod generated {
     use super::AuthScheme;
     include!(concat!(env!("OUT_DIR"), "/auth_matrix.rs"));

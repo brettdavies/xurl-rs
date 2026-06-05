@@ -42,6 +42,15 @@ pub(super) fn stream_request_with_output(
 
     let method = options.method.to_uppercase();
     let method = if method.is_empty() { "GET" } else { &method };
+    // Fail-fast auth-matrix validation before any URL render or socket open.
+    // ApiClient::stream_request runs the same gate (R4); the CLI streaming
+    // wrapper otherwise bypasses it because it builds the request inline
+    // rather than delegating to ApiClient::stream_request. Gated on
+    // !no_auth so explicit auth-skip invocations still work even when the
+    // matrix would reject the auth_type.
+    if !options.no_auth {
+        crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
+    }
     let url = client.build_url_public(&options.target)?;
 
     let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -71,9 +80,12 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    if !options.no_auth
-        && let Ok(auth_header) = client.get_auth_header_public(options)
-    {
+    // Propagate auth errors rather than silently sending unauthenticated.
+    // Mirrors send_request's policy: an AuthMethodMismatch envelope (or any
+    // other auth failure) must reach the caller, not get swallowed into a
+    // request the user's app cannot satisfy.
+    if !options.no_auth {
+        let auth_header = client.get_auth_header_public(options)?;
         builder = builder.header("Authorization", auth_header);
     }
 
