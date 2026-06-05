@@ -160,6 +160,22 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use xurl::api::{ApiClient, CallOptions};
+    /// use xurl::auth::Auth;
+    /// use xurl::config::Config;
+    ///
+    /// let cfg = Config::new();
+    /// let auth = Auth::new(&cfg);
+    /// let mut client = ApiClient::new(&cfg, auth);
+    ///
+    /// let resp = client.create_post("hello from xurl", &[], &CallOptions::default())?;
+    /// println!("created post id={}", resp.data.id);
+    /// # Ok::<(), xurl::error::XurlError>(())
+    /// ```
     pub fn create_post(
         &mut self,
         text: &str,
@@ -323,6 +339,24 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use xurl::api::{ApiClient, CallOptions};
+    /// use xurl::auth::Auth;
+    /// use xurl::config::Config;
+    ///
+    /// let cfg = Config::new();
+    /// let auth = Auth::new(&cfg);
+    /// let mut client = ApiClient::new(&cfg, auth);
+    ///
+    /// let resp = client.search_posts("rustlang", 25, &CallOptions::default())?;
+    /// for tweet in &resp.data {
+    ///     println!("{}: {}", tweet.id, tweet.text);
+    /// }
+    /// # Ok::<(), xurl::error::XurlError>(())
+    /// ```
     pub fn search_posts(
         &mut self,
         query: &str,
@@ -363,6 +397,22 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use xurl::api::{ApiClient, CallOptions};
+    /// use xurl::auth::Auth;
+    /// use xurl::config::Config;
+    ///
+    /// let cfg = Config::new();
+    /// let auth = Auth::new(&cfg);
+    /// let mut client = ApiClient::new(&cfg, auth);
+    ///
+    /// let resp = client.get_me(&CallOptions::default())?;
+    /// println!("@{} ({})", resp.data.username, resp.data.id);
+    /// # Ok::<(), xurl::error::XurlError>(())
+    /// ```
     pub fn get_me(&mut self, opts: &CallOptions) -> Result<ApiResponse<User>> {
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();

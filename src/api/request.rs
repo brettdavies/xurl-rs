@@ -207,6 +207,34 @@ pub struct MultipartOptions {
 }
 
 /// Handles API requests with authentication.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::api::{ApiClient, RequestOptions, RequestTarget};
+/// use xurl::auth::Auth;
+/// use xurl::config::Config;
+/// use xurl::error::XurlError;
+/// use std::collections::HashMap;
+///
+/// let cfg = Config::new();
+/// let auth = Auth::new(&cfg);
+/// let mut client = ApiClient::new(&cfg, auth);
+///
+/// let mut opts = RequestOptions::default();
+/// opts.method = "GET".to_string();
+/// opts.target = RequestTarget::Template {
+///     path: "/2/users/me".to_string(),
+///     path_params: HashMap::new(),
+///     query: Vec::new(),
+/// };
+///
+/// match client.send_request(&opts) {
+///     Ok(json) => println!("{json}"),
+///     Err(XurlError::Api { status, body }) => eprintln!("API {status}: {body}"),
+///     Err(e) => eprintln!("error: {e}"),
+/// }
+/// ```
 pub struct ApiClient {
     base_url: String,
     client: Client,

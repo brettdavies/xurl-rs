@@ -63,6 +63,22 @@ impl OutputFormat {
 ///
 /// `raw` (from `--raw`) forces compact JSON (no pretty-printing) and strips
 /// ANSI styling from text output. Useful for pipelines that line-buffer.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::cli::ColorChoice;
+/// use xurl::output::{OutputConfig, OutputFormat};
+///
+/// let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+///
+/// let mut buf: Vec<u8> = Vec::new();
+/// let payload = serde_json::json!({ "status": "ok" });
+/// cfg.print_response(&mut buf, &payload);
+///
+/// let rendered = String::from_utf8(buf).unwrap();
+/// assert!(rendered.contains("\"status\""));
+/// ```
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
     /// Resolved output format from `--output` / `--json` / `--jsonl` /

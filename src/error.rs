@@ -12,6 +12,22 @@ use thiserror::Error;
 /// (`AuthMethodMismatch`) carries multiple `String`/`Vec<String>` fields.
 /// Boxing the variant would change the public construction surface; allow
 /// the lint on the enum so consumers can keep building the variant inline.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::error::XurlError;
+/// # fn run() -> Result<(), XurlError> {
+/// # let result: Result<(), XurlError> = Err(XurlError::validation("missing field"));
+/// match result {
+///     Ok(()) => println!("ok"),
+///     Err(XurlError::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(XurlError::Validation(msg)) => eprintln!("validation: {msg}"),
+///     Err(XurlError::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
+/// }
+/// # Ok(()) }
+/// ```
 #[allow(clippy::result_large_err)]
 #[derive(Debug, Error)]
 pub enum XurlError {

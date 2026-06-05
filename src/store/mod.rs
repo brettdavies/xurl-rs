@@ -28,6 +28,18 @@ use crate::error::{Result, XurlError};
 /// consumers construct via [`TokenStore::new`] (legacy default path),
 /// [`TokenStore::new_with_path`] (explicit path, no auto-import), or
 /// [`TokenStore::with_credentials`] (auto-backfill).
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::store::TokenStore;
+///
+/// let store = TokenStore::new_with_path("/tmp/my-xurl-store.yaml");
+/// let active = store.get_default_app();
+/// if let Some(app) = store.get_app(active) {
+///     println!("active app {active} has {} oauth2 users", app.oauth2_tokens.len());
+/// }
+/// ```
 pub struct TokenStore {
     /// All registered apps, keyed by name.
     pub apps: BTreeMap<String, App>,
