@@ -18,7 +18,7 @@ xr request GET /2/users/me
 xr request POST /2/tweets --data '{"text":"hello"}'
 xr request GET '/2/tweets/search/recent?query=from:jack'
 
-# Shortcut command — one of 29 high-level wrappers over common endpoints
+# Shortcut command — one of the high-level wrappers over common endpoints
 xr me
 xr post "hello"
 xr search "from:jack"
@@ -85,11 +85,13 @@ then close.
 
 ## Shortcut commands
 
-`src/api/shortcuts.rs` ships 29 `pub fn` wrappers over the most common X API endpoints (`create_post`, `delete_post`,
-`like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `block_user`, `send_dm`, `lookup_user`, `get_timeline`,
-`get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`, `get_liked_posts`,
-`get_bookmarks`, `get_dm_events`, `get_usage`, and their `un*` inverses). Each maps to one CLI command via `src/cli/`
-and returns a typed response via `src/api/response/types.rs`.
+`src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in `vendor/x-api-openapi.json`
+(`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `send_dm`, `lookup_user`,
+`get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
+`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, and their `un*` inverses where the spec documents
+them). Each maps to one CLI command via `src/cli/` and returns a typed response via `src/api/response/types.rs`. The
+build-time auth matrix at `src/api/auth_matrix.rs` panics if a shortcut targets an endpoint absent from the vendored
+spec — block/unblock are absent from the spec and have no shortcut surface.
 
 Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed response in `response/types.rs` (or
 reuse), register in `src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response type derives

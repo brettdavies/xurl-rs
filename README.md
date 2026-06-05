@@ -99,7 +99,6 @@ xr follow @user                                # Follow
 xr unfollow @user                              # Unfollow
 xr following                                   # Who you follow
 xr followers                                   # Your followers
-xr block @user                                 # Block
 xr mute @user                                  # Mute
 ```
 

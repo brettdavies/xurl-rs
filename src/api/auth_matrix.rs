@@ -2,22 +2,24 @@
 /// spec at build time.
 ///
 /// Source of truth: `vendor/x-api-openapi.json`. Codegen lives in
-/// `build.rs::emit_auth_matrix`; the same `SHORTCUT_TEMPLATES` allowlist is
-/// duplicated here for runtime callers (notably U8's coverage check). Both
-/// copies must list the same `(method, path)` pairs — the build panics if
-/// a spec lookup misses, which surfaces drift between the two.
+/// `build.rs::emit_auth_matrix`; the same `SHORTCUT_TEMPLATES` allowlist
+/// is duplicated here for runtime callers. Both copies must list the same
+/// `(method, path)` pairs — the build panics if a spec lookup misses,
+/// which surfaces drift between the two.
 ///
 /// Lookup is a direct hash on the packed key `"METHOD\0/path/template"`;
 /// no path-template precedence resolution. Unknown `(method, path)` pairs
-/// return `None`, which the validator treats as permissive per R19.
+/// return `None`, which the validator treats as permissive (the request
+/// goes out and X arbitrates).
 use std::fmt::Write as _;
 
 use crate::api::request::RequestTarget;
 use crate::error::{Result, XurlError};
 
 /// Auth schemes an X API endpoint accepts, as declared by its OpenAPI
-/// `security:` list. Scope lists are captured verbatim for v2 scope
-/// checking — v1 ignores them (KTD-4, KTD-P3).
+/// `security:` list. Scope lists are captured verbatim so a future
+/// scope-checking pass can intersect against the active token's grants
+/// without a matrix regeneration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AuthScheme {
     /// App-only Bearer token (`type: http, scheme: bearer`).
@@ -43,8 +45,8 @@ mod generated {
 pub use generated::AUTH_MATRIX;
 
 /// `(METHOD, spec path)` pairs the shortcut + media layer targets, mirroring
-/// the build-time allowlist verbatim. Consumed by U8's coverage check, which
-/// asserts every shortcut site lands in the matrix.
+/// the build-time allowlist verbatim. Consumed by `tests/auth_matrix_coverage.rs`
+/// which asserts every shortcut site lands in the matrix.
 pub const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     ("POST", "/2/tweets"),
     ("GET", "/2/tweets/{id}"),
@@ -93,7 +95,7 @@ const MAX_METHOD_LEN: usize = 8;
 
 /// Look up the auth schemes an endpoint accepts. Returns `None` when the
 /// `(method, path)` pair isn't in the matrix — the validator treats that
-/// as permissive (R19).
+/// as permissive (the request goes out and X arbitrates).
 ///
 /// `method` is uppercased into a stack buffer before the hash lookup;
 /// non-ASCII or oversize methods short-circuit to `None` because they
@@ -122,8 +124,9 @@ pub fn supported_auth(method: &str, path: &str) -> Option<&'static [AuthScheme]>
 ///
 /// - [`AuthScheme::Bearer`] → `"app"` (matches the CLI's `--auth app`).
 /// - [`AuthScheme::OAuth1User`] → `"oauth1"`.
-/// - [`AuthScheme::OAuth2User`] → `"oauth2"` (scope list ignored — v1
-///   doesn't surface scopes; KTD-4 / KTD-P3).
+/// - [`AuthScheme::OAuth2User`] → `"oauth2"` (scope list ignored at the
+///   envelope boundary; scope-checking would intersect at the auth-resolve
+///   site, not here).
 #[must_use]
 pub fn auth_scheme_wire_str(scheme: AuthScheme) -> &'static str {
     match scheme {
@@ -154,21 +157,21 @@ pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
 /// Validates that `requested_auth` is accepted at `(method, path)` per the
 /// spec-derived auth matrix.
 ///
-/// Rules (per brainstorm R10, R18, R19 and plan U6):
-/// 1. [`RequestTarget::RawUrl`] → `Ok(())` unconditionally (R18 — raw mode
-///    bypasses the matrix).
-/// 2. [`RequestTarget::Template`] with matrix-miss → `Ok(())` (R19 —
-///    unknown endpoints are permissive).
+/// Rules:
+/// 1. [`RequestTarget::RawUrl`] → `Ok(())` unconditionally — raw mode is the
+///    user's escape hatch and bypasses the matrix.
+/// 2. [`RequestTarget::Template`] with matrix-miss → `Ok(())` — unknown
+///    endpoints are permissive so spec drift never blocks a request.
 /// 3. [`RequestTarget::Template`] with matrix-hit AND empty `requested_auth`
-///    → `Ok(())` (auto-detect path; U7 owns the dispatch).
+///    → `Ok(())` — the auto-detect path owns dispatch in `get_auth_header`.
 /// 4. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` in
 ///    the supported set → `Ok(())`.
 /// 5. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` NOT
 ///    in the supported set → `Err(XurlError::AuthMethodMismatch{...})`.
 ///
-/// The error variant is U6's "explicit-mismatch" shape: `requested =
-/// Some(requested_auth)`, `available_in_app = None`. U7's empty-intersection
-/// shape is constructed elsewhere.
+/// The error variant carries `requested = Some(requested_auth)` and
+/// `available_in_app = None`. The auto-detect empty-intersection envelope
+/// (with `requested = None`) is constructed at the resolver call site.
 ///
 /// `method` is uppercased before lookup; the matrix key is case-insensitive
 /// on method per [`supported_auth`].
@@ -187,7 +190,7 @@ pub fn validate(target: &RequestTarget, method: &str, requested_auth: &str) -> R
         return Ok(());
     };
 
-    // Rule 3: empty requested_auth is the auto-detect path — U7 owns it.
+    // Rule 3: empty requested_auth is the auto-detect path; resolver dispatches.
     if requested_auth.is_empty() {
         return Ok(());
     }
@@ -322,7 +325,7 @@ mod tests {
 
     #[test]
     fn validate_raw_url_always_ok() {
-        // Rule 1 (R18): raw mode bypasses the matrix regardless of method,
+        // Rule 1: raw mode bypasses the matrix regardless of method,
         // path, or requested auth — including auth strings that would fail
         // for any template path.
         let target = RequestTarget::RawUrl("https://api.x.com/2/media/upload".to_string());
@@ -333,16 +336,16 @@ mod tests {
 
     #[test]
     fn validate_template_empty_requested_is_ok() {
-        // Rule 3: empty `requested_auth` is the auto-detect path (U7 owns
-        // dispatch). Validator must not reject — even for endpoints with a
-        // restrictive supported set.
+        // Rule 3: empty `requested_auth` is the auto-detect path; resolver
+        // owns dispatch. Validator must not reject — even for endpoints with
+        // a restrictive supported set.
         let target = tmpl("/2/media/upload");
         assert!(validate(&target, "POST", "").is_ok());
     }
 
     #[test]
     fn validate_template_matrix_miss_is_ok() {
-        // Rule 2 (R19): unknown endpoints are permissive even when the user
+        // Rule 2: unknown endpoints are permissive even when the user
         // pinned an `--auth` value. The validator yields to upstream
         // semantics rather than fabricating supported lists.
         let target = tmpl("/2/never/heard/of");
@@ -373,7 +376,7 @@ mod tests {
     fn validate_template_requested_not_in_supported_errors() {
         // Rule 5: this is the explicit-mismatch path. `/2/media/upload`
         // POST accepts OAuth1 + OAuth2 but not Bearer. Validator must emit
-        // the U6 envelope shape: `requested = Some("app")`,
+        // the explicit-mismatch envelope shape: `requested = Some("app")`,
         // `available_in_app = None`.
         let target = tmpl("/2/media/upload");
         let err = validate(&target, "POST", "app").unwrap_err();
@@ -392,7 +395,7 @@ mod tests {
                 assert_eq!(supported, vec!["oauth2".to_string(), "oauth1".to_string()]);
                 assert!(
                     available_in_app.is_none(),
-                    "U6 explicit-mismatch shape must leave `available_in_app` at None"
+                    "explicit-mismatch shape must leave `available_in_app` at None"
                 );
             }
             other => panic!("expected AuthMethodMismatch, got {other:?}"),

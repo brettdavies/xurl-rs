@@ -71,7 +71,7 @@ pub enum XurlError {
     /// Sentinel: a structured envelope was already emitted by the call site.
     ///
     /// The runner short-circuits its trailing `print_error` for this variant
-    /// and propagates the carried exit code unchanged. Used by U7's
+    /// and propagates the carried exit code unchanged. Used by
     /// `print_confirmation_required` so the canonical envelope
     /// `{"status":"error","reason":"confirmation-required",…}` is the only
     /// thing the agent sees on stderr (no duplicated `{"error":...,"kind":...}`
@@ -86,16 +86,16 @@ pub enum XurlError {
     /// an auth method the endpoint's matrix entry doesn't accept.
     ///
     /// Two shapes share the variant:
-    /// - **Explicit-mismatch** (U6): `requested = Some("app"|"oauth1"|"oauth2")`,
+    /// - **Explicit-mismatch**: `requested = Some("app"|"oauth1"|"oauth2")`,
     ///   `available_in_app = None`. The user passed `--auth X` and `X` isn't
     ///   in the endpoint's supported set.
-    /// - **Empty-intersection** (U7): `requested = None`,
+    /// - **Empty-intersection**: `requested = None`,
     ///   `available_in_app = Some([...])`. Auto-detect resolved a non-empty
     ///   `available_in_app` against `supported` to an empty intersection — no
     ///   stored credential on the active app satisfies the endpoint.
     ///
     /// The `Display` impl renders the same body that fills the envelope's
-    /// `message` field (R12).
+    /// `message` field.
     #[error("{}", auth_method_mismatch_message(.endpoint, .method, .requested.as_deref(), .supported, .available_in_app.as_deref()))]
     AuthMethodMismatch {
         /// Path template (e.g. `/2/media/upload`) — keyed verbatim against
@@ -356,9 +356,10 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// Auth method mismatch. `EX_USAGE` from sysexits — `2`.
 ///
 /// Surfaces when `--auth X` is in the user's invocation and the endpoint's
-/// matrix entry does not accept `X`. Also surfaces in U7's empty-intersection
-/// path when auto-detect finds no compatible stored credential. Distinct
-/// from [`EXIT_AUTH_REQUIRED`] (= `77`, missing credential).
+/// matrix entry does not accept `X`. Also surfaces on the auto-detect
+/// empty-intersection path when no stored credential on the active app
+/// satisfies the endpoint. Distinct from [`EXIT_AUTH_REQUIRED`] (= `77`,
+/// missing credential).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
 /// Authentication required. `EX_NOPERM` from sysexits — `77`.

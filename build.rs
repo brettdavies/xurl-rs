@@ -199,20 +199,13 @@ fn pascal_case(snake: &str) -> Result<String, String> {
 // emits a `phf::Map<&'static str, &'static [AuthScheme]>` keyed on
 // `"METHOD\0/path/template"`. Wrapped at runtime by `src/api/auth_matrix.rs`.
 //
-// Missing or empty `security:` arrays are treated as "no entry" — runtime
-// (R19) covers them permissively. Unknown spec security-scheme keys panic
-// the build so silent matrix corruption is impossible.
+// Missing or empty `security:` arrays are treated as "no entry" — the
+// runtime treats those as permissive. Unknown spec security-scheme keys
+// panic the build so silent matrix corruption is impossible.
 
 /// (METHOD, spec path) tuples the shortcut + media layer actually calls.
 /// Param names match the spec verbatim — code that uses different local
 /// names normalizes at the shortcut site.
-///
-/// `block_user` POST `/2/users/{source_user_id}/blocking` is intentionally
-/// absent: the spec only documents GET on `/2/users/{id}/blocking`. The
-/// shortcut targets an undocumented path and U5 will address it.
-///
-/// `unblock_user` DELETE `/2/users/{source_user_id}/blocking/{target_user_id}`
-/// is intentionally absent per R26 (U5 removes the shortcut).
 const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     // tweets
     ("POST", "/2/tweets"),

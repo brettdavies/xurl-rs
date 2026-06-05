@@ -73,6 +73,24 @@ fn methods_are_uppercase_and_standard() {
 }
 
 #[test]
+fn supported_auth_returns_none_for_unknown_shortcut() {
+    // Negative-path proof for the coverage check: an unknown (method, path)
+    // pair returns None, which the coverage check above would flag if any
+    // SHORTCUT_TEMPLATES entry resolved this way. Locks the assertion's
+    // protective intent — if `supported_auth` ever began returning Some(_)
+    // for unknown paths, the coverage check would pass vacuously and the
+    // build-time guarantee would be silently broken.
+    assert!(supported_auth("GET", "/2/never/heard/of").is_none());
+    assert!(
+        supported_auth(
+            "DELETE",
+            "/2/users/{source_user_id}/blocking/{target_user_id}"
+        )
+        .is_none()
+    );
+}
+
+#[test]
 fn paths_start_with_slash() {
     // The matrix key is `format!("{method}\0{path}")`. A bare path without
     // leading slash would silently miss every lookup at runtime because the

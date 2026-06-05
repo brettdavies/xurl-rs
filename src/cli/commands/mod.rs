@@ -315,7 +315,7 @@ fn run_raw_mode(
         )));
     };
     // Raw mode threads the (now absolute) URL through as a `RawUrl` target.
-    // The matrix validator short-circuits for RawUrl (R18); the
+    // The matrix validator short-circuits for RawUrl; the
     // streaming/media-append heuristics below inspect the URL string
     // directly — they pre-date the typed target and still make sense for
     // raw curl-style mode.

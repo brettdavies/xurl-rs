@@ -68,8 +68,9 @@ pub enum RequestTarget {
         query: Vec<(String, String)>,
     },
     /// Fully-formed URL — used by raw mode (`xr <URL>`) and by shortcuts
-    /// whose path is intentionally outside the spec. The matrix
-    /// validator short-circuits for `RawUrl` (R18).
+    /// whose path is intentionally outside the spec. The matrix validator
+    /// short-circuits for `RawUrl` — the user accepted the contract by
+    /// reaching for raw mode.
     RawUrl(String),
 }
 
@@ -180,8 +181,7 @@ pub struct ApiClient {
     /// Output configuration used to route verbose request/response logs
     /// through the single owner in `src/output.rs`. Library callers that
     /// haven't supplied one get the [`OutputConfig::default`] (text, no
-    /// verbose) — equivalent to the pre-U8 behavior where `verbose=false`
-    /// suppressed diagnostics.
+    /// verbose) — `verbose=false` suppresses diagnostics.
     out: OutputConfig,
 }
 
@@ -226,8 +226,7 @@ impl ApiClient {
     ///
     /// The CLI runner calls this after constructing the client so the
     /// verbose logs route through the single output owner. Library callers
-    /// that skip this get a default config (text, verbose off), which
-    /// matches the pre-U8 behavior.
+    /// that skip this get a default config (text, verbose off).
     pub fn set_output(&mut self, out: OutputConfig) {
         self.out = out;
     }
@@ -282,10 +281,10 @@ impl ApiClient {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Fail-fast auth-matrix validation BEFORE URL rendering or body
-        // construction (plan U6). Rejects requests where `--auth X` is
-        // explicitly supplied for an endpoint that does not accept `X`.
-        // Gated on !no_auth so explicit auth-skip invocations still work
-        // even when a stale auth_type is set on the RequestOptions.
+        // construction. Rejects requests where `--auth X` is explicitly
+        // supplied for an endpoint that does not accept `X`. Gated on
+        // !no_auth so explicit auth-skip invocations still work even when
+        // a stale auth_type is set on the RequestOptions.
         if !options.no_auth {
             crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
         }
@@ -389,9 +388,9 @@ impl ApiClient {
     ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
-        // Fail-fast auth-matrix validation BEFORE form/file construction
-        // (plan U6). Gated on !no_auth so explicit auth-skip invocations
-        // still work even when a stale auth_type is set.
+        // Fail-fast auth-matrix validation BEFORE form/file construction.
+        // Gated on !no_auth so explicit auth-skip invocations still work
+        // even when a stale auth_type is set.
         if !options.request.no_auth {
             crate::api::auth_matrix::validate(
                 &options.request.target,
@@ -495,9 +494,9 @@ impl ApiClient {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Fail-fast auth-matrix validation BEFORE URL rendering or
-        // connection setup (plan U6). Streaming honours the same rule: an
-        // explicit `--auth X` against an endpoint that doesn't accept `X`
-        // must reject before any socket is opened. Gated on !no_auth so
+        // connection setup. Streaming honours the same rule: an explicit
+        // `--auth X` against an endpoint that doesn't accept `X` must
+        // reject before any socket is opened. Gated on !no_auth so
         // explicit auth-skip invocations still work even when a stale
         // auth_type is set.
         if !options.no_auth {
@@ -608,12 +607,13 @@ impl ApiClient {
     /// Gets the authorization header for a request.
     ///
     /// When `options.auth_type` is non-empty, dispatches directly to that
-    /// scheme. When empty, runs the U7 endpoint-aware auto-detect:
-    /// intersects the active app's stored credentials with the endpoint's
-    /// accepted auth schemes per the matrix, picks the first match in
-    /// OAuth2 → OAuth1 → Bearer preference order, and falls back to that
-    /// fixed order for [`RequestTarget::RawUrl`] and matrix-miss
-    /// [`RequestTarget::Template`] targets (R19).
+    /// scheme. When empty, runs the endpoint-aware auto-detect: intersects
+    /// the active app's stored credentials with the endpoint's accepted
+    /// auth schemes per the matrix, picks the first match in OAuth2 →
+    /// OAuth1 → Bearer preference order, and falls back to that fixed
+    /// order for [`RequestTarget::RawUrl`] and matrix-miss
+    /// [`RequestTarget::Template`] targets (the permissive surface for
+    /// unknown endpoints).
     fn get_auth_header(&mut self, options: &RequestOptions) -> Result<String> {
         let auth_type = &options.auth_type;
         let method_raw = options.method.to_uppercase();
@@ -636,16 +636,17 @@ impl ApiClient {
         // Auto-detect: scope every check to the active app (set by
         // `--app NAME` via `Auth::with_app_name`) so a `--app NAME`
         // invocation without `--auth` picks NAME's tokens, not the
-        // default app's. The legacy no-arg `get_first_oauth2_token` /
-        // `get_oauth1_tokens` / `has_bearer_token` calls resolved to the
-        // default app and silently bypassed NAME's stored credentials.
+        // default app's. Per-app probes route through `_for_app(app_name)`
+        // accessors on the token store so the active-app contract holds
+        // even when the active app differs from the default.
         let app_name = self.auth.app_name().to_string();
         let available_in_app = self.available_auth_in_app(&app_name);
 
         // Endpoint-aware intersection only fires for `Template` targets whose
         // (method, path) lands in the matrix. `RawUrl` and matrix-miss
         // `Template` targets fall back to the fixed OAuth2 → OAuth1 → Bearer
-        // order gated on availability (R19, R7-R9).
+        // order gated on availability — permissive on unknown endpoints so
+        // raw mode and spec drift remain dispatchable.
         let endpoint_schemes = match &options.target {
             RequestTarget::Template { path, .. } => {
                 crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
