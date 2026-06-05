@@ -748,9 +748,16 @@ fn test_redirect_uri_get_text_output() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
+    // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
+    // would override the stored value and fail the URI assertion below.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
+
+    unsafe {
+        std::env::remove_var("REDIRECT_URI");
+    }
 
     // Add "myapp" and explicitly set it as the default so the no-NAME `get`
     // resolves through it. (TokenStore seeds a "default" placeholder on a
