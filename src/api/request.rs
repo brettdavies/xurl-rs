@@ -85,16 +85,33 @@ impl Default for RequestTarget {
 }
 
 /// Common options for API requests.
+///
+/// Threaded into [`ApiClient::send_request`], [`ApiClient::send_multipart_request`],
+/// and [`ApiClient::stream_request`]; carries everything those calls need
+/// beyond the client itself.
 #[derive(Debug, Clone, Default)]
 pub struct RequestOptions {
+    /// HTTP method (`"GET"`, `"POST"`, etc). Empty defaults to `"GET"`.
     pub method: String,
+    /// Typed request target — either a path template or a raw URL.
     pub target: RequestTarget,
+    /// Extra HTTP headers in `"Name: Value"` form.
     pub headers: Vec<String>,
+    /// Request body. JSON-shaped strings are sent as `application/json`;
+    /// otherwise as `application/x-www-form-urlencoded`.
     pub data: String,
+    /// Explicit auth scheme — `"oauth1"`, `"oauth2"`, `"app"`, or empty for
+    /// auto-detect against the endpoint's accepted set.
     pub auth_type: String,
+    /// OAuth2 username for the active app. Empty selects the active app's
+    /// first stored OAuth2 token.
     pub username: String,
+    /// Skip auth-header attachment entirely. Used for unauthenticated probes.
     pub no_auth: bool,
+    /// Emit verbose request / response diagnostics through the client's
+    /// [`OutputConfig`].
     pub verbose: bool,
+    /// Emit the `X-B3-Flags: 1` header to flag the request for upstream tracing.
     pub trace: bool,
     /// Cursor / `pagination_token` query parameter for list endpoints.
     ///
@@ -113,10 +130,17 @@ pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 /// request construction details like `method`, `endpoint`, `headers`, and `data`.
 #[derive(Debug, Clone)]
 pub struct CallOptions {
+    /// Explicit auth scheme — `"oauth1"`, `"oauth2"`, `"app"`, or empty for
+    /// auto-detect.
     pub auth_type: String,
+    /// OAuth2 username for the active app. Empty selects the active app's
+    /// first stored OAuth2 token.
     pub username: String,
+    /// Skip auth-header attachment entirely.
     pub no_auth: bool,
+    /// Emit verbose request / response diagnostics.
     pub verbose: bool,
+    /// Emit the `X-B3-Flags: 1` header for upstream tracing.
     pub trace: bool,
     /// Per-call HTTP timeout in seconds. Mirrors the `--timeout` flag /
     /// `XURL_TIMEOUT` env var. Used by the streaming and per-call refresh
@@ -162,13 +186,23 @@ impl CallOptions {
 }
 
 /// Options specific to multipart requests.
+///
+/// Used by the media upload path to ship a single file plus form fields
+/// in one `multipart/form-data` POST.
 #[derive(Debug, Clone)]
 pub struct MultipartOptions {
+    /// Base request configuration (target, headers, auth, verbose, trace).
     pub request: RequestOptions,
+    /// Non-file form fields keyed by field name.
     pub form_fields: std::collections::HashMap<String, String>,
+    /// Form field name to attach the file under (e.g. `"media"`).
     pub file_field: String,
+    /// Path to the file to upload. Mutually exclusive with `file_data`.
     pub file_path: String,
+    /// Filename surfaced to the server in the multipart part header. Only
+    /// consulted when `file_data` carries the bytes.
     pub file_name: String,
+    /// In-memory file bytes. Mutually exclusive with `file_path`.
     pub file_data: Vec<u8>,
 }
 

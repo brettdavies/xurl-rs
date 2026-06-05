@@ -1,9 +1,10 @@
-/// API shortcut functions — high-level X API v2 operations.
-///
-/// Each function maps to one of the 27 shortcut commands, building the
-/// appropriate endpoint target and request body. Paths are spec-shaped
-/// templates (e.g. `/2/users/{id}/likes`) so the auth-matrix validator
-/// can key on the same string the build-time codegen ingests.
+//! API shortcut functions — high-level X API v2 operations.
+//!
+//! Each function maps to one of the 27 shortcut commands, building the
+//! appropriate endpoint target and request body. Paths are spec-shaped
+//! templates (e.g. `/2/users/{id}/likes`) so the auth-matrix validator
+//! can key on the same string the build-time codegen ingests.
+
 use std::collections::HashMap;
 
 use serde::Serialize;
