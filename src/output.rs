@@ -1,16 +1,17 @@
-/// Output formatting helpers for `--output`, `--quiet`, `--color`, and
-/// `NO_COLOR` support.
-///
-/// `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
-/// owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
-/// so the same config can drive real stdout, real stderr, or a captured
-/// `Vec<u8>` in library tests.
-///
-/// This module is the single owner of `println!` / `eprintln!`. Every other
-/// `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
-/// [`warn_stderr`] for the rare deep call sites that cannot carry an
-/// `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
-/// invariant.
+//! Output formatting helpers for `--output`, `--quiet`, `--color`, and
+//! `NO_COLOR` support.
+//!
+//! `OutputConfig` is a pure `Send + Sync + Clone` configuration object — it
+//! owns no I/O handles. Print methods accept `&mut dyn Write` at the call site
+//! so the same config can drive real stdout, real stderr, or a captured
+//! `Vec<u8>` in library tests.
+//!
+//! This module is the single owner of `println!` / `eprintln!`. Every other
+//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
+//! [`warn_stderr`] for the rare deep call sites that cannot carry an
+//! `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
+//! invariant.
+
 use std::io::{IsTerminal, Write};
 
 use clap::ValueEnum;
@@ -62,13 +63,41 @@ impl OutputFormat {
 ///
 /// `raw` (from `--raw`) forces compact JSON (no pretty-printing) and strips
 /// ANSI styling from text output. Useful for pipelines that line-buffer.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::cli::ColorChoice;
+/// use xurl::output::{OutputConfig, OutputFormat};
+///
+/// let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+///
+/// let mut buf: Vec<u8> = Vec::new();
+/// let payload = serde_json::json!({ "status": "ok" });
+/// cfg.print_response(&mut buf, &payload);
+///
+/// let rendered = String::from_utf8(buf).unwrap();
+/// assert!(rendered.contains("\"status\""));
+/// ```
 #[derive(Clone, Debug)]
 pub struct OutputConfig {
+    /// Resolved output format from `--output` / `--json` / `--jsonl` /
+    /// `XURL_OUTPUT`.
     pub format: OutputFormat,
+    /// Suppress non-essential human chatter (`--quiet` / `XURL_QUIET`).
     pub quiet: bool,
+    /// Negation of [`Self::use_color`], kept for source compatibility with
+    /// call sites that pattern-match on the negative form.
     pub no_color: bool,
+    /// Resolved color decision after combining `--color`, `NO_COLOR`, and
+    /// stderr's TTY-ness. The single source of truth for "should I emit
+    /// ANSI escapes".
     pub use_color: bool,
+    /// Enable verbose request/response logging
+    /// (`--verbose` / `-v` / `XURL_VERBOSE`).
     pub verbose: bool,
+    /// Emit unstyled, compact output (`--raw` / `XURL_RAW`). Strips ANSI in
+    /// text mode and forces compact JSON in machine modes.
     pub raw: bool,
     /// Set when the user passed `--no-interactive` (or `XURL_NO_INTERACTIVE`).
     ///

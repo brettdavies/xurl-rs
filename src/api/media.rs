@@ -13,6 +13,7 @@ use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_respo
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
 
+/// Base path for the X API media upload endpoint family.
 pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
 
 /// Handles the full media upload lifecycle.

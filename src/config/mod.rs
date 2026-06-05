@@ -1,3 +1,9 @@
+//! Application configuration resolved from environment variables.
+//!
+//! `Config` mirrors the Go `config.Config` struct. All fields come from
+//! env vars with sensible defaults for the X API; the redirect URI is
+//! resolved per app at construction.
+
 use std::path::Path;
 
 use serde::Serialize;

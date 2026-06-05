@@ -1,5 +1,6 @@
+//! Token CRUD operations — save, get, clear for Bearer, OAuth2, OAuth1.
+
 use super::TokenStore;
-/// Token CRUD operations — save, get, clear for Bearer, OAuth2, OAuth1.
 use super::types::{OAuth1Token, OAuth2Token, Token, TokenType};
 use crate::error::Result;
 

@@ -1,8 +1,9 @@
-/// Typed API response structs for X API v2 endpoints.
-///
-/// Every response struct includes `#[serde(flatten)] extra: BTreeMap<String, Value>`
-/// for forward compatibility — unknown API fields are captured during deserialization
-/// and re-emitted during serialization.
+//! Typed API response structs for X API v2 endpoints.
+//!
+//! Every response struct includes `#[serde(flatten)] extra: BTreeMap<String, Value>`
+//! for forward compatibility — unknown API fields are captured during deserialization
+//! and re-emitted during serialization.
+
 use std::collections::BTreeMap;
 
 use schemars::JsonSchema;
@@ -17,13 +18,20 @@ use serde_json::Value;
 /// `ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ApiResponse<T: Default> {
+    /// Primary payload — a single object or a `Vec<T>` for list endpoints.
     pub data: T,
+    /// Expanded objects referenced by `data` when the caller requested
+    /// `expansions=...`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub includes: Option<Includes>,
+    /// Pagination and result-count metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<ResponseMeta>,
+    /// Partial errors returned alongside a 200 response.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<ApiError>>,
+    /// Forward-compatibility bucket — captures unknown top-level fields so a
+    /// new spec field round-trips through serialize/deserialize unchanged.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -31,10 +39,13 @@ pub struct ApiResponse<T: Default> {
 /// Expanded objects included alongside the primary data.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Includes {
+    /// User objects referenced by `author_id`, `sender_id`, etc.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
+    /// Tweet objects referenced by `referenced_tweets`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tweets: Option<Vec<Tweet>>,
+    /// Forward-compatibility bucket — captures unknown include keys.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -42,12 +53,17 @@ pub struct Includes {
 /// Pagination and result count metadata.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ResponseMeta {
+    /// Total items returned in `data` for list endpoints.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result_count: Option<u64>,
+    /// Opaque cursor for the next page; pass to a follow-up call as
+    /// `pagination_token`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_token: Option<String>,
+    /// Opaque cursor for the previous page.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub previous_token: Option<String>,
+    /// Forward-compatibility bucket — captures unknown meta fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -55,14 +71,19 @@ pub struct ResponseMeta {
 /// Partial error returned alongside valid data in 200 responses.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ApiError {
+    /// Short human-readable error description.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Error category title (e.g. `"Not Found Error"`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// Longer human-readable detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    /// URI identifying the error type (problem-details style).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
+    /// Forward-compatibility bucket — captures unknown error fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -75,24 +96,35 @@ pub struct ApiError {
 /// Optional fields depend on which `tweet.fields` the caller requests.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Tweet {
+    /// Tweet identifier (X API snowflake string).
     pub id: String,
+    /// Tweet body text.
     pub text: String,
+    /// ISO-8601 timestamp the tweet was created.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    /// Author's user ID; resolve via `includes.users` when expanded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author_id: Option<String>,
+    /// Root tweet ID of the conversation thread.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conversation_id: Option<String>,
+    /// User ID this tweet replies to, when applicable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub in_reply_to_user_id: Option<String>,
+    /// Engagement counts (likes, replies, retweets, etc).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<TweetPublicMetrics>,
+    /// Tweets this one references (reply, quote, retweet).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub referenced_tweets: Option<Vec<ReferencedTweet>>,
+    /// Parsed entities (URLs, mentions, hashtags) — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entities: Option<Value>,
+    /// Media / poll attachment references — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attachments: Option<Value>,
+    /// Forward-compatibility bucket — captures unknown tweet fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -100,18 +132,25 @@ pub struct Tweet {
 /// Public engagement metrics for a tweet.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct TweetPublicMetrics {
+    /// Retweet count.
     #[serde(default)]
     pub retweet_count: u64,
+    /// Reply count.
     #[serde(default)]
     pub reply_count: u64,
+    /// Like count.
     #[serde(default)]
     pub like_count: u64,
+    /// Quote-tweet count.
     #[serde(default)]
     pub quote_count: u64,
+    /// Bookmark count.
     #[serde(default)]
     pub bookmark_count: u64,
+    /// View count.
     #[serde(default)]
     pub impression_count: u64,
+    /// Forward-compatibility bucket — captures unknown metric fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -119,8 +158,11 @@ pub struct TweetPublicMetrics {
 /// A referenced tweet (reply-to, quote, retweet).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ReferencedTweet {
+    /// Referenced tweet identifier.
     pub id: String,
+    /// Reference kind — `"replied_to"`, `"quoted"`, or `"retweeted"`.
     pub r#type: String,
+    /// Forward-compatibility bucket — captures unknown reference fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -133,19 +175,28 @@ pub struct ReferencedTweet {
 /// Optional fields depend on which `user.fields` the caller requests.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct User {
+    /// User identifier (X API snowflake string).
     pub id: String,
+    /// Display name.
     pub name: String,
+    /// Handle without the leading `@`.
     pub username: String,
+    /// ISO-8601 account creation timestamp.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    /// Bio / profile description.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Whether the account carries a verified badge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub verified: Option<bool>,
+    /// Profile image URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profile_image_url: Option<String>,
+    /// Engagement counts (followers, following, tweets).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<UserPublicMetrics>,
+    /// Forward-compatibility bucket — captures unknown user fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -153,14 +204,19 @@ pub struct User {
 /// Public engagement metrics for a user.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UserPublicMetrics {
+    /// Follower count.
     #[serde(default)]
     pub followers_count: u64,
+    /// Following count.
     #[serde(default)]
     pub following_count: u64,
+    /// Tweet count for the user.
     #[serde(default)]
     pub tweet_count: u64,
+    /// Number of public lists the user is on.
     #[serde(default)]
     pub listed_count: u64,
+    /// Forward-compatibility bucket — captures unknown metric fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -170,17 +226,24 @@ pub struct UserPublicMetrics {
 /// A direct message event from the X API v2.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct DmEvent {
+    /// Event identifier.
     pub id: String,
+    /// Message body, for text events.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
+    /// Event kind (e.g. `"MessageCreate"`, `"ParticipantsJoin"`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_type: Option<String>,
+    /// ISO-8601 timestamp the event occurred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    /// Conversation the event belongs to.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dm_conversation_id: Option<String>,
+    /// Sender's user ID.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sender_id: Option<String>,
+    /// Forward-compatibility bucket — captures unknown event fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -190,7 +253,9 @@ pub struct DmEvent {
 /// Confirmation for like/unlike actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct LikedResult {
+    /// Whether the target is now liked.
     pub liked: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -198,7 +263,9 @@ pub struct LikedResult {
 /// Confirmation for follow/unfollow actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct FollowingResult {
+    /// Whether the target is now followed.
     pub following: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -206,7 +273,9 @@ pub struct FollowingResult {
 /// Confirmation for delete actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct DeletedResult {
+    /// Whether the resource was deleted.
     pub deleted: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -214,7 +283,9 @@ pub struct DeletedResult {
 /// Confirmation for repost/unrepost actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct RetweetedResult {
+    /// Whether the target is now reposted.
     pub retweeted: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -222,7 +293,9 @@ pub struct RetweetedResult {
 /// Confirmation for bookmark/unbookmark actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct BookmarkedResult {
+    /// Whether the target is now bookmarked.
     pub bookmarked: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -230,7 +303,9 @@ pub struct BookmarkedResult {
 /// Confirmation for block/unblock actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct BlockingResult {
+    /// Whether the target is now blocked.
     pub blocking: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -238,7 +313,9 @@ pub struct BlockingResult {
 /// Confirmation for mute/unmute actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MutingResult {
+    /// Whether the target is now muted.
     pub muting: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -248,13 +325,18 @@ pub struct MutingResult {
 /// Response from media upload INIT and FINALIZE steps.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaUploadResponse {
+    /// Media identifier — thread this into APPEND, FINALIZE, and STATUS calls.
     pub id: String,
+    /// Stable media key surfaced once FINALIZE succeeds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media_key: Option<String>,
+    /// Seconds until the upload session expires.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_after_secs: Option<u64>,
+    /// Server-side processing status for async media (video, GIF).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub processing_info: Option<MediaProcessingInfo>,
+    /// Forward-compatibility bucket — captures unknown upload fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -262,13 +344,18 @@ pub struct MediaUploadResponse {
 /// Media processing status returned during upload polling.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaProcessingInfo {
+    /// Processing state — `"pending"`, `"in_progress"`, `"succeeded"`, `"failed"`.
     pub state: String,
+    /// Recommended wait before polling again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub check_after_secs: Option<u64>,
+    /// Server-reported processing progress (0..=100).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub progress_percent: Option<u64>,
+    /// Error details when `state` is `"failed"` — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<Value>,
+    /// Forward-compatibility bucket — captures unknown status fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -281,18 +368,25 @@ pub struct MediaProcessingInfo {
 /// and the data is deeply nested with mixed types (strings for numbers).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UsageData {
+    /// Project tweet cap (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_cap: Option<String>,
+    /// Project identifier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
+    /// Project tweet usage so far this period (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_usage: Option<String>,
+    /// Day of month the cap resets.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cap_reset_day: Option<u64>,
+    /// Per-day project usage breakdown — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub daily_project_usage: Option<Value>,
+    /// Per-day client-app usage breakdown — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub daily_client_app_usage: Option<Value>,
+    /// Forward-compatibility bucket — captures unknown usage fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
