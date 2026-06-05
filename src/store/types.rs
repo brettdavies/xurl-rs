@@ -54,12 +54,16 @@ pub struct App {
     pub client_secret: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub default_user: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub redirect_uri: String,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub oauth2_tokens: BTreeMap<String, Token>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oauth1_token: Option<Token>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bearer_token: Option<Token>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unnamed_oauth2_token: Option<Token>,
 }
 
 impl App {
@@ -68,9 +72,11 @@ impl App {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: None,
+            unnamed_oauth2_token: None,
         }
     }
 
@@ -83,7 +89,10 @@ impl App {
     }
 
     pub(crate) fn has_tokens(&self) -> bool {
-        !self.oauth2_tokens.is_empty() || self.oauth1_token.is_some() || self.bearer_token.is_some()
+        !self.oauth2_tokens.is_empty()
+            || self.oauth1_token.is_some()
+            || self.bearer_token.is_some()
+            || self.unnamed_oauth2_token.is_some()
     }
 }
 

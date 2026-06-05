@@ -1,13 +1,42 @@
 /// Streaming request handler — SSE / chunked transfer support.
+use std::io::Write;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use crate::api::{ApiClient, RequestOptions};
+use crate::auth::callback::shutdown_signal;
 use crate::error::{Result, XurlError};
 use crate::output::OutputConfig;
+
+/// Spawns a background thread that waits for SIGINT/SIGTERM and flips the
+/// returned `AtomicBool` to true. The thread holds its own current-thread
+/// tokio runtime so the synchronous streaming path can observe signals
+/// without itself being async.
+fn spawn_shutdown_watcher() -> Arc<AtomicBool> {
+    let flag = Arc::new(AtomicBool::new(false));
+    let flag_for_thread = Arc::clone(&flag);
+    std::thread::spawn(move || {
+        let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        else {
+            return;
+        };
+        rt.block_on(async move {
+            shutdown_signal().await;
+            flag_for_thread.store(true, Ordering::SeqCst);
+        });
+    });
+    flag
+}
 
 /// Sends a streaming request with output-format awareness.
 pub(super) fn stream_request_with_output(
     client: &mut ApiClient,
     options: &RequestOptions,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     use std::io::{BufRead, BufReader};
 
@@ -42,12 +71,11 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    if !options.no_auth {
-        if let Ok(auth_header) =
+    if !options.no_auth
+        && let Ok(auth_header) =
             client.get_auth_header_public(method, &url, &options.auth_type, &options.username)
-        {
-            builder = builder.header("Authorization", auth_header);
-        }
+    {
+        builder = builder.header("Authorization", auth_header);
     }
 
     builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -57,26 +85,40 @@ pub(super) fn stream_request_with_output(
     }
 
     if options.verbose {
-        eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+        if out.use_color {
+            out.verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+        } else {
+            out.verbose(stderr, &format!("> {method} {url}"));
+        }
     }
 
-    out.status(&format!(
-        "Connecting to streaming endpoint: {}",
-        options.endpoint
-    ));
+    out.status(
+        stderr,
+        &format!("Connecting to streaming endpoint: {}", options.endpoint),
+    );
 
     let resp = builder.send()?;
 
     if options.verbose {
-        eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-        for (key, value) in resp.headers() {
-            eprintln!(
-                "\x1b[1;32m< {}\x1b[0m: {}",
-                key,
-                value.to_str().unwrap_or("")
-            );
+        let status = resp.status();
+        if out.use_color {
+            out.verbose(stderr, &format!("\x1b[1;31m< {status}\x1b[0m"));
+            for (key, value) in resp.headers() {
+                out.verbose(
+                    stderr,
+                    &format!("\x1b[1;32m< {key}\x1b[0m: {}", value.to_str().unwrap_or("")),
+                );
+            }
+        } else {
+            out.verbose(stderr, &format!("< {status}"));
+            for (key, value) in resp.headers() {
+                out.verbose(
+                    stderr,
+                    &format!("< {key}: {}", value.to_str().unwrap_or("")),
+                );
+            }
         }
-        eprintln!();
+        out.verbose(stderr, "");
     }
 
     let resp_status = resp.status();
@@ -88,17 +130,33 @@ pub(super) fn stream_request_with_output(
         return Err(XurlError::api(resp_status.as_u16(), body));
     }
 
-    out.status("--- Streaming response started ---");
-    out.status("--- Press Ctrl+C to stop ---");
+    out.status(stderr, "--- Streaming response started ---");
+    out.status(stderr, "--- Press Ctrl+C to stop ---");
 
+    let shutdown = spawn_shutdown_watcher();
     let reader = BufReader::with_capacity(1024 * 1024, resp);
     for line in reader.lines() {
+        if shutdown.load(Ordering::SeqCst) {
+            // Flush buffered output, emit a cancellation envelope under JSON
+            // modes, and exit cleanly. Text mode keeps stdout silent — the
+            // status banner on stderr already signals shutdown.
+            let _ = stdout.flush();
+            if out.format.is_structured() {
+                let envelope = serde_json::json!({
+                    "status": "cancelled",
+                    "reason": "sigterm",
+                });
+                out.print_response(stdout, &envelope);
+            }
+            out.status(stderr, "--- Stream cancelled by signal ---");
+            return Ok(());
+        }
         match line {
             Ok(line) => {
                 if line.is_empty() {
                     continue;
                 }
-                out.print_stream_line(&line);
+                out.print_stream_line(stdout, &line);
             }
             Err(e) => {
                 return Err(XurlError::Io(e.to_string()));
@@ -106,6 +164,6 @@ pub(super) fn stream_request_with_output(
         }
     }
 
-    out.status("--- End of stream ---");
+    out.status(stderr, "--- End of stream ---");
     Ok(())
 }

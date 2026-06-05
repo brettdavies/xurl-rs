@@ -10,6 +10,7 @@ use reqwest::blocking::{Client, multipart};
 use crate::auth::Auth;
 use crate::config::Config;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 /// Common options for API requests.
 #[derive(Debug, Clone, Default)]
@@ -23,19 +24,52 @@ pub struct RequestOptions {
     pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+    /// Cursor / `pagination_token` query parameter for list endpoints.
+    ///
+    /// Threaded in from the global `--cursor` / `--after` flag (or
+    /// `XURL_CURSOR` / `XURL_AFTER` env vars). List shortcuts append it to
+    /// the URL when non-empty; non-paginated endpoints ignore it.
+    pub pagination_token: String,
 }
+
+/// Default request timeout in seconds when none is supplied.
+pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// Consumer-facing options for shortcut methods.
 ///
 /// Exposes only the fields relevant to crate consumers, hiding internal
 /// request construction details like `method`, `endpoint`, `headers`, and `data`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CallOptions {
     pub auth_type: String,
     pub username: String,
     pub no_auth: bool,
     pub verbose: bool,
     pub trace: bool,
+    /// Per-call HTTP timeout in seconds. Mirrors the `--timeout` flag /
+    /// `XURL_TIMEOUT` env var. Used by the streaming and per-call refresh
+    /// paths; non-streaming requests inherit the timeout that was passed to
+    /// [`ApiClient::new`].
+    pub timeout_secs: u64,
+    /// Cursor / `pagination_token` query parameter for list endpoints.
+    ///
+    /// Threaded in from the global `--cursor` flag. List shortcuts append
+    /// it to the URL when non-empty; non-paginated endpoints ignore it.
+    pub pagination_token: String,
+}
+
+impl Default for CallOptions {
+    fn default() -> Self {
+        Self {
+            auth_type: String::new(),
+            username: String::new(),
+            no_auth: false,
+            verbose: false,
+            trace: false,
+            timeout_secs: DEFAULT_TIMEOUT_SECS,
+            pagination_token: String::new(),
+        }
+    }
 }
 
 impl CallOptions {
@@ -49,6 +83,7 @@ impl CallOptions {
             no_auth: self.no_auth,
             verbose: self.verbose,
             trace: self.trace,
+            pagination_token: self.pagination_token.clone(),
             ..Default::default()
         }
     }
@@ -70,13 +105,34 @@ pub struct ApiClient {
     base_url: String,
     client: Client,
     auth: Auth,
+    timeout_secs: u64,
+    /// Output configuration used to route verbose request/response logs
+    /// through the single owner in `src/output.rs`. Library callers that
+    /// haven't supplied one get the [`OutputConfig::default`] (text, no
+    /// verbose) — equivalent to the pre-U8 behavior where `verbose=false`
+    /// suppressed diagnostics.
+    out: OutputConfig,
 }
 
 impl ApiClient {
-    /// Creates a new `ApiClient`.
+    /// Creates a new `ApiClient` using the timeout configured on `config`.
+    ///
+    /// The CLI runner writes `--timeout` / `XURL_TIMEOUT` into
+    /// [`Config::http_timeout_secs`]; library consumers that want a different
+    /// timeout can use [`ApiClient::with_timeout`].
     pub fn new(config: &Config, auth: Auth) -> Self {
+        Self::with_timeout(config, auth, config.http_timeout_secs)
+    }
+
+    /// Creates a new `ApiClient` with an explicit request timeout.
+    ///
+    /// The timeout bounds every non-streaming HTTP call dispatched by this
+    /// client. Streaming requests intentionally retain `.timeout(None)` — the
+    /// long-running shape is the point — and bound runtime via signal handlers
+    /// in the streaming handler.
+    pub fn with_timeout(config: &Config, auth: Auth, timeout_secs: u64) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(timeout_secs))
             .build()
             .unwrap_or_else(|_| Client::new());
 
@@ -84,7 +140,25 @@ impl ApiClient {
             base_url: config.api_base_url.clone(),
             client,
             auth,
+            timeout_secs,
+            out: OutputConfig::default(),
         }
+    }
+
+    /// Returns the per-call timeout used by this client (seconds).
+    #[must_use]
+    pub fn timeout_secs(&self) -> u64 {
+        self.timeout_secs
+    }
+
+    /// Installs an `OutputConfig` for verbose request/response diagnostics.
+    ///
+    /// The CLI runner calls this after constructing the client so the
+    /// verbose logs route through the single output owner. Library callers
+    /// that skip this get a default config (text, verbose off), which
+    /// matches the pre-U8 behavior.
+    pub fn set_output(&mut self, out: OutputConfig) {
+        self.out = out;
     }
 
     /// Creates an `ApiClient` from environment variables.
@@ -171,13 +245,16 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set)
+        // Add auth header (skip if no_auth is set). When auth resolution
+        // fails (e.g., TokenNotFound for the resolved app), propagate the
+        // error so the user sees the real problem instead of letting the
+        // request go out unauthenticated and surfacing as a confusing 401
+        // from upstream. The older "silently skip on Err" form let auth
+        // bugs masquerade as upstream auth rejections.
         if !options.no_auth {
-            if let Ok(auth_header) =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)
-            {
-                builder = builder.header("Authorization", auth_header);
-            }
+            let auth_header =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            builder = builder.header("Authorization", auth_header);
         }
 
         // Add common headers
@@ -188,21 +265,20 @@ impl ApiClient {
         }
 
         if options.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            let mut err = std::io::stderr().lock();
+            if self.out.use_color {
+                self.out
+                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(&mut err, &format!("> {method} {url}"));
+            }
         }
 
         let resp = builder.send()?;
 
         if options.verbose {
-            eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-            for (key, value) in resp.headers() {
-                eprintln!(
-                    "\x1b[1;32m< {}\x1b[0m: {}",
-                    key,
-                    value.to_str().unwrap_or("")
-                );
-            }
-            eprintln!();
+            let mut err = std::io::stderr().lock();
+            log_response_headers(&self.out, &mut err, resp.status(), resp.headers());
         }
 
         let status = resp.status();
@@ -273,16 +349,17 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set)
+        // Add auth header (skip if no_auth is set). Propagate auth errors
+        // rather than silently sending the request unauthenticated; see the
+        // matching propagation site in `send_request` for the rationale.
         if !options.request.no_auth {
-            if let Ok(auth_header) = self.get_auth_header(
+            let auth_header = self.get_auth_header(
                 method,
                 &url,
                 &options.request.auth_type,
                 &options.request.username,
-            ) {
-                builder = builder.header("Authorization", auth_header);
-            }
+            )?;
+            builder = builder.header("Authorization", auth_header);
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -292,7 +369,13 @@ impl ApiClient {
         }
 
         if options.request.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            let mut err = std::io::stderr().lock();
+            if self.out.use_color {
+                self.out
+                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(&mut err, &format!("> {method} {url}"));
+            }
         }
 
         let resp = builder.send()?;
@@ -314,16 +397,24 @@ impl ApiClient {
 
     /// Sends a streaming request — reads lines until EOF.
     ///
-    /// Note: The binary uses `stream_request_with_output` in `cli::commands`
-    /// for output-format awareness. This method is retained for library usage
-    /// and tests.
+    /// All output flows through this client's configured `OutputConfig`
+    /// (set via [`ApiClient::set_output`]); the CLI binary calls the
+    /// `stream_request_with_output` helper in `cli::commands` which threads
+    /// the runner's `OutputConfig` and writers in directly. Library callers
+    /// pass their own `stdout`/`stderr` here so a streaming session can be
+    /// captured in tests or redirected to a custom sink.
     ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// the API returns an error status (>= 400), or a read error occurs.
     #[allow(dead_code)] // Public library API — used by consumers and integration tests
-    pub fn stream_request(&mut self, options: &RequestOptions) -> Result<()> {
+    pub fn stream_request(
+        &mut self,
+        options: &RequestOptions,
+        stdout: &mut dyn std::io::Write,
+        stderr: &mut dyn std::io::Write,
+    ) -> Result<()> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         let url = self.build_url(&options.endpoint);
@@ -356,11 +447,9 @@ impl ApiClient {
         }
 
         if !options.no_auth {
-            if let Ok(auth_header) =
-                self.get_auth_header(method, &url, &options.auth_type, &options.username)
-            {
-                builder = builder.header("Authorization", auth_header);
-            }
+            let auth_header =
+                self.get_auth_header(method, &url, &options.auth_type, &options.username)?;
+            builder = builder.header("Authorization", auth_header);
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -370,23 +459,23 @@ impl ApiClient {
         }
 
         if options.verbose {
-            eprintln!("\x1b[1;34m> {method}\x1b[0m {url}");
+            if self.out.use_color {
+                self.out
+                    .verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
+            } else {
+                self.out.verbose(stderr, &format!("> {method} {url}"));
+            }
         }
 
-        eprintln!("Connecting to streaming endpoint: {}", options.endpoint);
+        self.out.status(
+            stderr,
+            &format!("Connecting to streaming endpoint: {}", options.endpoint),
+        );
 
         let resp = builder.send()?;
 
         if options.verbose {
-            eprintln!("\x1b[1;31m< {}\x1b[0m", resp.status());
-            for (key, value) in resp.headers() {
-                eprintln!(
-                    "\x1b[1;32m< {}\x1b[0m: {}",
-                    key,
-                    value.to_str().unwrap_or("")
-                );
-            }
-            eprintln!();
+            log_response_headers(&self.out, stderr, resp.status(), resp.headers());
         }
 
         let resp_status = resp.status();
@@ -398,8 +487,9 @@ impl ApiClient {
             return Err(XurlError::api(resp_status.as_u16(), body));
         }
 
-        eprintln!("--- Streaming response started ---");
-        eprintln!("--- Press Ctrl+C to stop ---");
+        self.out
+            .status(stderr, "--- Streaming response started ---");
+        self.out.status(stderr, "--- Press Ctrl+C to stop ---");
 
         let reader = BufReader::with_capacity(1024 * 1024, resp);
         for line in reader.lines() {
@@ -408,7 +498,7 @@ impl ApiClient {
                     if line.is_empty() {
                         continue;
                     }
-                    println!("{line}");
+                    self.out.print_stream_line(stdout, &line);
                 }
                 Err(e) => {
                     return Err(XurlError::Io(e.to_string()));
@@ -416,7 +506,7 @@ impl ApiClient {
             }
         }
 
-        eprintln!("--- End of stream ---");
+        self.out.status(stderr, "--- End of stream ---");
         Ok(())
     }
 
@@ -452,18 +542,41 @@ impl ApiClient {
             };
         }
 
-        // Try OAuth2 first — propagate errors if a token exists
-        if self.auth.token_store.get_first_oauth2_token().is_some() {
+        // Auto-detect: scope every check to the active app (set by
+        // `--app NAME` via `Auth::with_app_name`) so a `--app NAME`
+        // invocation without `--auth` picks NAME's tokens, not the
+        // default app's. The legacy no-arg `get_first_oauth2_token` /
+        // `get_oauth1_tokens` / `has_bearer_token` calls resolved to the
+        // default app and silently bypassed NAME's stored credentials.
+        let app_name = self.auth.app_name();
+
+        // Try OAuth2 first — propagate errors if a token exists.
+        if self
+            .auth
+            .token_store
+            .get_first_oauth2_token_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_oauth2_header(username);
         }
 
-        // Try OAuth1 — propagate errors if a token exists
-        if self.auth.token_store.get_oauth1_tokens().is_some() {
+        // Try OAuth1 — propagate errors if a token exists.
+        if self
+            .auth
+            .token_store
+            .get_oauth1_tokens_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_oauth1_header(method, url, None);
         }
 
-        // Try Bearer
-        if self.auth.token_store.has_bearer_token() {
+        // Try Bearer.
+        if self
+            .auth
+            .token_store
+            .get_bearer_token_for_app(app_name)
+            .is_some()
+        {
             return self.auth.get_bearer_token_header();
         }
 
@@ -471,6 +584,33 @@ impl ApiClient {
             "NoAuthMethod: no authentication method available",
         ))
     }
+}
+
+/// Emits the verbose response-header dump (`< STATUS`, `< key: value`, blank
+/// line) through the supplied `OutputConfig`. Lives at module scope so
+/// `send_request`, `send_multipart_request`, and `stream_request` share one
+/// implementation.
+fn log_response_headers(
+    out: &OutputConfig,
+    err: &mut dyn std::io::Write,
+    status: reqwest::StatusCode,
+    headers: &reqwest::header::HeaderMap,
+) {
+    if out.use_color {
+        out.verbose(err, &format!("\x1b[1;31m< {status}\x1b[0m"));
+        for (key, value) in headers {
+            out.verbose(
+                err,
+                &format!("\x1b[1;32m< {key}\x1b[0m: {}", value.to_str().unwrap_or("")),
+            );
+        }
+    } else {
+        out.verbose(err, &format!("< {status}"));
+        for (key, value) in headers {
+            out.verbose(err, &format!("< {key}: {}", value.to_str().unwrap_or("")));
+        }
+    }
+    out.verbose(err, "");
 }
 
 #[cfg(test)]
@@ -485,6 +625,8 @@ mod tests {
             no_auth: true,
             verbose: true,
             trace: true,
+            timeout_secs: 45,
+            pagination_token: "abc123".to_string(),
         };
 
         let req = opts.to_request_options();
@@ -494,6 +636,7 @@ mod tests {
         assert!(req.no_auth);
         assert!(req.verbose);
         assert!(req.trace);
+        assert_eq!(req.pagination_token, "abc123");
         // Request-specific fields should be at defaults
         assert!(req.method.is_empty());
         assert!(req.endpoint.is_empty());
@@ -511,5 +654,13 @@ mod tests {
         assert!(!req.trace);
         assert!(req.auth_type.is_empty());
         assert!(req.username.is_empty());
+        assert!(
+            opts.pagination_token.is_empty(),
+            "pagination_token should default to empty so non-paginated endpoints stay clean"
+        );
+        assert_eq!(
+            opts.timeout_secs, DEFAULT_TIMEOUT_SECS,
+            "timeout_secs should default to {DEFAULT_TIMEOUT_SECS}"
+        );
     }
 }

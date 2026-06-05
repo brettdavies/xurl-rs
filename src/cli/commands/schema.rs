@@ -1,5 +1,6 @@
 /// Schema subcommand — outputs JSON Schema for command response types.
 use std::collections::BTreeMap;
+use std::io::Write;
 
 use schemars::schema_for;
 use serde_json::Value;
@@ -8,7 +9,10 @@ use crate::api::{
     ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
     LikedResult, MutingResult, RetweetedResult, Tweet, UsageData, User,
 };
+use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
+use crate::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -76,6 +80,26 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["usage"],
         type_name: "ApiResponse<UsageData>",
     },
+    SchemaEntry {
+        commands: &["auth-status", "auth-apps-list"],
+        type_name: "Vec<AppStatusEntry>",
+    },
+    SchemaEntry {
+        commands: &["redirect-uri-get"],
+        type_name: "RedirectUriGetResponse",
+    },
+    SchemaEntry {
+        commands: &["redirect-uri-set"],
+        type_name: "RedirectUriSetResponse",
+    },
+    SchemaEntry {
+        commands: &["skill-install"],
+        type_name: "InstallEnvelope",
+    },
+    SchemaEntry {
+        commands: &["skill-install-all"],
+        type_name: "InstallMultiEnvelope",
+    },
 ];
 
 /// Returns the JSON Schema for a given command name.
@@ -99,6 +123,11 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "dm" => schema_for!(ApiResponse<DmEvent>),
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
+        "auth-status" | "auth-apps-list" => schema_for!(Vec<AppStatusEntry>),
+        "redirect-uri-get" => schema_for!(RedirectUriGetResponse),
+        "redirect-uri-set" => schema_for!(RedirectUriSetResponse),
+        "skill-install" => schema_for!(InstallEnvelope),
+        "skill-install-all" => schema_for!(InstallMultiEnvelope),
         "auth" | "media" | "completions" | "version" | "schema" => {
             return Err(XurlError::validation(format!(
                 "schema not available for '{command}' (no typed response)"
@@ -120,30 +149,57 @@ fn schema_for_command(command: &str) -> Result<Value> {
 }
 
 /// Runs the schema subcommand.
-pub fn run_schema(command: Option<&str>, list: bool, all: bool) -> Result<()> {
+///
+/// JSON-emitting paths route through `OutputConfig::print_response` so a
+/// schema body is not double-wrapped in `{"message": "..."}` under
+/// `--output json`. The human-readable `--list` path routes through
+/// `OutputConfig::print_message`. The `envelope` flag (or `command =
+/// "envelope"`) dumps the canonical output envelope schema instead of a
+/// response-type schema.
+///
+/// # Errors
+///
+/// Returns an error if the requested command is unknown, has no typed
+/// response, or no argument/`--list`/`--all`/`--envelope` is supplied.
+pub fn run_schema(
+    command: Option<&str>,
+    list: bool,
+    all: bool,
+    envelope: bool,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> Result<()> {
     if all {
-        return print_all_schemas();
+        return print_all_schemas(out, stdout);
+    }
+    if envelope || command == Some("envelope") {
+        let schema = crate::envelope::envelope_schema();
+        out.print_response(stdout, &schema);
+        return Ok(());
     }
     if list {
-        return print_schema_list();
+        return print_schema_list(out, stdout);
     }
     match command {
         Some(cmd) => {
             let schema = schema_for_command(cmd)?;
-            println!("{}", serde_json::to_string_pretty(&schema)?);
+            out.print_response(stdout, &schema);
             Ok(())
         }
         None => {
             // No argument: show help text (same as `xr schema --help`)
             Err(XurlError::validation(
-                "usage: xr schema <COMMAND> | xr schema --list | xr schema --all",
+                "usage: xr schema <COMMAND> | xr schema envelope | xr schema --list | xr schema --all",
             ))
         }
     }
 }
 
-/// Prints all commands and their response type names.
-fn print_schema_list() -> Result<()> {
+/// Writes all commands and their response type names to `stdout`.
+///
+/// The trailing `envelope` row advertises the canonical agent-native
+/// output envelope schema; consumers query it via `xr schema envelope`.
+fn print_schema_list(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     let mut entries: Vec<(&str, &str)> = Vec::new();
     for entry in SCHEMA_ENTRIES {
         for &cmd in entry.commands {
@@ -152,16 +208,17 @@ fn print_schema_list() -> Result<()> {
     }
     // Sort by command name for consistent output
     entries.sort_by_key(|(cmd, _)| *cmd);
+    entries.push(("envelope", "Envelope"));
 
     let max_cmd_len = entries.iter().map(|(cmd, _)| cmd.len()).max().unwrap_or(0);
     for (cmd, type_name) in &entries {
-        println!("{cmd:<max_cmd_len$}  {type_name}");
+        out.print_message(stdout, &format!("{cmd:<max_cmd_len$}  {type_name}"));
     }
     Ok(())
 }
 
-/// Prints all schemas as a single JSON object keyed by command name.
-fn print_all_schemas() -> Result<()> {
+/// Writes all schemas as a single JSON object keyed by command name to `stdout`.
+fn print_all_schemas(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     let mut all: BTreeMap<String, Value> = BTreeMap::new();
     for entry in SCHEMA_ENTRIES {
         for &cmd in entry.commands {
@@ -169,6 +226,7 @@ fn print_all_schemas() -> Result<()> {
             all.insert(cmd.to_string(), schema);
         }
     }
-    println!("{}", serde_json::to_string_pretty(&all)?);
+    let value = serde_json::to_value(&all)?;
+    out.print_response(stdout, &value);
     Ok(())
 }

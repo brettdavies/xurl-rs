@@ -13,6 +13,7 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{Result, XurlError};
+use crate::output::OutputConfig;
 
 /// `OAuth2` scopes requested for xurl.
 #[must_use]
@@ -82,13 +83,24 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Exchanges an authorization code for an access token and saves it.
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
-/// parse response, resolve username (fetching from API if empty), compute
-/// expiration, and save to the token store.
+/// parse response, resolve the storage key, compute expiration, and save to
+/// the token store. The storage-key resolution mirrors
+/// [`refresh_oauth2_token`]'s three-branch shape (KTD7):
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
+///   via [`crate::output::warn_stderr`] so the access token isn't discarded
+///   along with the lookup failure.
 ///
 /// # Errors
 ///
-/// Returns an error if the token exchange request fails, the response is
-/// missing an access token, or the username cannot be resolved.
+/// Returns an error if the token-exchange request fails or the response is
+/// missing an access token. `fetch_username` failures no longer propagate.
 pub(crate) fn exchange_code_for_token(
     auth: &mut Auth,
     code: &str,
@@ -96,7 +108,7 @@ pub(crate) fn exchange_code_for_token(
     username: &str,
 ) -> Result<String> {
     let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .build()
         .unwrap_or_else(|_| reqwest::blocking::Client::new());
     let token_resp = client
@@ -137,36 +149,82 @@ pub(crate) fn exchange_code_for_token(
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&access_token)?
-    } else {
-        username.to_string()
-    };
-
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &access_token,
-        &refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                crate::output::warn_stderr(
+                    "token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot",
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &access_token,
+                    &refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &access_token,
+            &refresh_token,
+            expiration_time,
+        )?;
+    }
+
+    // First-signed-in-app auto-default: if the user authenticated against a
+    // named app and the previous default app holds no credentials, promote
+    // the just-signed-in app to default so subsequent invocations resolve
+    // it without an explicit `--app NAME`. No-op on subsequent sign-ins or
+    // when the user has already configured a credentialed default.
+    let _ = auth
+        .token_store
+        .promote_to_default_if_first_credentialed(&app_name)?;
 
     Ok(access_token)
 }
 
 /// Runs the full `OAuth2` PKCE authorization flow.
 ///
+/// Browser-failure prompts are written to `out`/`stdout` via
+/// `OutputConfig::print_message`, so library callers can capture them
+/// instead of seeing real-process stdout pollution.
+///
+/// `browser_opener` is the injection point for the listener-before-browser
+/// ordering test (KTD13). The production caller passes `open::that`; tests
+/// pass a recording closure. The opener is invoked after the listener has
+/// bound and entered its accept loop, guaranteeing the browser cannot reach
+/// the callback URL before the socket is actively draining.
+///
 /// # Errors
 ///
 /// Returns an error if the authorization URL is invalid, the callback server
 /// fails, the token exchange fails, or the username cannot be resolved.
-pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
+pub fn run_oauth2_flow(
+    auth: &mut Auth,
+    username: &str,
+    out: &OutputConfig,
+    stdout: &mut dyn std::io::Write,
+    browser_opener: fn(&str) -> std::io::Result<()>,
+) -> Result<String> {
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
     let state = BASE64_STANDARD.encode(state_bytes);
@@ -175,20 +233,59 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 
     let auth_url_str = build_auth_url(auth, &state, &challenge)?;
 
-    // Try to open browser
-    if let Err(_e) = open::that(&auth_url_str) {
-        println!("Failed to open browser automatically. Please visit this URL manually:");
-        println!("{auth_url_str}");
-    }
-
-    // Parse redirect URI to get callback port
+    // Parse the resolved redirect URI; the listener binds host, port, and path
+    // from it (KTD6 + R25). Validation already accepted https or http+loopback
+    // at U2/R8 write/resolve time, so a parse failure here is a programmer error.
     let redirect_parsed = Url::parse(auth.redirect_uri())
         .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
-    let port = redirect_parsed.port().unwrap_or(8080);
 
-    // Start callback server and wait for code
-    let code = callback::wait_for_callback(port, &state)?;
+    // Browser-open closure: runs on the listener's bind-success hook so the
+    // socket is actively in `accept().await` before the URL is dispatched
+    // (KTD5). Stdout messages on opener failure remain user-visible because
+    // the closure can capture the OutputConfig; here we keep the closure
+    // signature simple by returning io::Result and handling the message
+    // OUTSIDE the closure via the recorded outcome.
+    //
+    // The shared cell carries the opener's io::Result back to the parent so
+    // the failure-message print happens once the runtime exits — this avoids
+    // holding `&mut dyn Write` across the runtime's lifetime.
+    let opener_outcome = std::sync::Arc::new(std::sync::Mutex::new(None::<std::io::Result<()>>));
+    let opener_outcome_for_closure = std::sync::Arc::clone(&opener_outcome);
+    let auth_url_for_closure = auth_url_str.clone();
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let cancel_for_closure = cancel.clone();
+    let on_bound = move || {
+        let result = browser_opener(&auth_url_for_closure);
+        let failed = result.is_err();
+        if let Ok(mut slot) = opener_outcome_for_closure.lock() {
+            *slot = Some(result);
+        }
+        if failed {
+            // Auto-open chose this code path; if open fails there is no
+            // mechanism here for the user to paste the URL back. Cancel the
+            // listener immediately rather than waiting out the 5-minute
+            // CALLBACK_TIMEOUT. Callers wanting a paste flow use --no-browser
+            // (cli/commands/auth.rs), which routes through remote_oauth2_step1.
+            cancel_for_closure.cancel();
+        }
+    };
 
+    let code_result = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound);
+
+    let opener_err = opener_outcome.lock().ok().and_then(|mut s| s.take());
+    if let Some(Err(_e)) = &opener_err {
+        out.print_message(
+            stdout,
+            "Failed to open browser automatically. Re-run with --no-browser \
+             to use the paste-the-URL flow:",
+        );
+        out.print_message(stdout, &auth_url_str);
+        return Err(XurlError::auth(
+            "browser-open failed; re-run with --no-browser to paste the URL manually",
+        ));
+    }
+
+    let code = code_result?;
     exchange_code_for_token(auth, &code, &verifier, username)
 }
 
@@ -207,7 +304,12 @@ pub fn run_oauth2_flow(auth: &mut Auth, username: &str) -> Result<String> {
 /// state file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
     if pending_path.exists() {
-        eprintln!("Warning: Overwriting previous pending auth flow");
+        // Deferred per U4 / KTD6 plan task description. Plumbing a writer
+        // through `remote_oauth2_step1` (called from `cli/commands/auth.rs`)
+        // would require expanding the `Auth::remote_oauth2_step1` signature
+        // for a single warning line. Library tests covering remote OAuth2
+        // step 1 don't exercise the overwrite branch.
+        crate::output::warn_stderr("overwriting previous pending auth flow");
     }
 
     let state_bytes: [u8; 32] = rand::random();
@@ -309,15 +411,49 @@ pub fn run_remote_step2(
 
 /// Refreshes an `OAuth2` token if expired.
 ///
+/// The refresh-token POST result is the sole source of truth for "is the
+/// refresh successful" (`KTD2`). The refreshed access token is persisted in
+/// all three success branches:
+///
+/// - caller supplied non-empty `username` -> save under that username, skip
+///   `fetch_username` entirely;
+/// - caller supplied empty `username` and `fetch_username` succeeds -> save
+///   under the discovered name;
+/// - caller supplied empty `username` and `fetch_username` fails -> save into
+///   the active app's unnamed (`/me`-failed salvage) slot via
+///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
+///   via [`crate::output::warn_stderr`] (the function lacks an
+///   `OutputConfig`; the persisted store state is the load-bearing observable).
+///
 /// # Errors
 ///
-/// Returns an error if no token is found, the refresh request fails, or the
-/// username cannot be resolved after refresh.
+/// Returns an error when no cached token is found or the refresh-token POST
+/// itself fails. `fetch_username` failures no longer propagate.
 pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
+    let app_name_lookup = auth.app_name().to_string();
     let token = if username.is_empty() {
-        auth.token_store.get_first_oauth2_token().cloned()
+        // Empty-caller precedence mirrors `Auth::get_oauth2_header` (KTD5):
+        // default_user/arbitrary-first in the named map first, then the
+        // unnamed (`/me`-failed salvage) slot. Both lookups MUST be
+        // scoped to `app_name_lookup` so a `--app NAME` invocation reads
+        // NAME's tokens, not whichever app happens to be the default. The
+        // previous `get_first_oauth2_token()` call (no arg) defaulted the
+        // lookup to the empty app name, which `resolve_app` resolved to
+        // the default app, causing a freshly minted token in a named app
+        // to be invisible to the refresh path. Fixed alongside the
+        // `--app NAME` client_id regression (#51).
+        auth.token_store
+            .get_first_oauth2_token_for_app(&app_name_lookup)
+            .cloned()
+            .or_else(|| {
+                auth.token_store
+                    .get_oauth2_token_unnamed_for_app(&app_name_lookup)
+                    .cloned()
+            })
     } else {
-        auth.token_store.get_oauth2_token(username).cloned()
+        auth.token_store
+            .get_oauth2_token_for_app(&app_name_lookup, username)
+            .cloned()
     };
 
     let token = token.ok_or_else(|| XurlError::auth("TokenNotFound: oauth2 token not found"))?;
@@ -337,7 +473,10 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
     }
 
     // Token is expired, refresh it
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
+        .build()
+        .unwrap_or_else(|_| reqwest::blocking::Client::new());
     let token_resp = client
         .post(auth.token_url())
         .form(&[
@@ -365,26 +504,46 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    // Resolve username
-    let username_str = if username.is_empty() {
-        auth.fetch_username(&new_access_token)
-            .map_err(|e| XurlError::auth_with_cause("UsernameFetchError", &e))?
-    } else {
-        username.to_string()
-    };
-
     let new_now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     let expiration_time = new_now + expires_in;
 
-    auth.token_store.save_oauth2_token(
-        &username_str,
-        &new_access_token,
-        &new_refresh_token,
-        expiration_time,
-    )?;
+    let app_name = auth.app_name().to_string();
+
+    if username.is_empty() {
+        match auth.fetch_username(&new_access_token) {
+            Ok(discovered) => {
+                auth.token_store.save_oauth2_token_for_app(
+                    &app_name,
+                    &discovered,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+            Err(_) => {
+                crate::output::warn_stderr(
+                    "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot",
+                );
+                auth.token_store.save_oauth2_token_unnamed_for_app(
+                    &app_name,
+                    &new_access_token,
+                    &new_refresh_token,
+                    expiration_time,
+                )?;
+            }
+        }
+    } else {
+        auth.token_store.save_oauth2_token_for_app(
+            &app_name,
+            username,
+            &new_access_token,
+            &new_refresh_token,
+            expiration_time,
+        )?;
+    }
 
     Ok(new_access_token)
 }

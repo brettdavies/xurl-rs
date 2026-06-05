@@ -24,22 +24,38 @@ _xr() {
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[Username for \`OAuth2\` authentication]:USERNAME:_default' \
 '--username=[Username for \`OAuth2\` authentication]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose information]' \
-'--verbose[Print verbose information]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add trace header to request]' \
 '--trace[Add trace header to request]' \
 '-s[Force streaming mode]' \
 '--stream[Force streaming mode]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '-V[Print version]' \
@@ -60,18 +76,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':text -- The text to post:_default' \
@@ -83,18 +115,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL to reply to:_default' \
@@ -106,18 +154,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL to quote:_default' \
@@ -129,18 +193,35 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL to delete:_default' \
@@ -151,18 +232,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL to read:_default' \
@@ -170,23 +267,39 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (search)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (min 10, max 100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (min 10, max 100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':query -- Search query:_default' \
@@ -197,18 +310,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -218,18 +347,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to look up:_default' \
@@ -237,46 +382,78 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (timeline)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (mentions)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (5-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (5-100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -286,18 +463,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -308,18 +501,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -330,18 +539,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -352,18 +577,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -374,18 +615,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -396,18 +653,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL:_default' \
@@ -415,46 +688,78 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (bookmarks)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (likes)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -464,18 +769,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to follow:_default' \
@@ -486,18 +807,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to unfollow:_default' \
@@ -505,48 +842,80 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (following)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list following for (default\: you)]:OF:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (followers)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list followers for (default\: you)]:OF:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -556,18 +925,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to block:_default' \
@@ -578,18 +963,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to unblock:_default' \
@@ -600,18 +1001,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to mute:_default' \
@@ -622,18 +1039,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to unmute:_default' \
@@ -644,18 +1077,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -665,18 +1114,34 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to DM:_default' \
@@ -685,37 +1150,71 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (dms)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100)]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Print verbose request/response info]' \
-'--verbose[Print verbose request/response info]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (auth)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ":: :_xr__auth_commands" \
@@ -730,19 +1229,38 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
         case $line[1] in
             (oauth2)
 _arguments "${_arguments_options[@]}" : \
+'--no-browser=[Enable manual two-step flow for headless machines (SSH, containers)]::NO_BROWSER:(true false)' \
 '--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
 '--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--no-browser[Enable manual two-step flow for headless machines (SSH, containers)]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
+'::username -- Username to label the saved token (bypasses `/2/users/me` lookup when supplied):_default' \
 && ret=0
 ;;
 (oauth1)
@@ -751,14 +1269,32 @@ _arguments "${_arguments_options[@]}" : \
 '--consumer-secret=[Consumer secret]:CONSUMER_SECRET:_default' \
 '--access-token=[Access token]:ACCESS_TOKEN:_default' \
 '--token-secret=[Token secret]:TOKEN_SECRET:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -766,28 +1302,64 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 (app)
 _arguments "${_arguments_options[@]}" : \
 '--bearer-token=[Bearer token]:BEARER_TOKEN:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (status)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -795,31 +1367,68 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 (clear)
 _arguments "${_arguments_options[@]}" : \
 '--oauth2-username=[Clear \`OAuth2\` token for username]:OAUTH2_USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--all[Clear all authentication]' \
 '--oauth1[Clear \`OAuth1\` tokens]' \
 '--bearer[Clear bearer token]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (apps)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ":: :_xr__auth__apps_commands" \
@@ -836,14 +1445,33 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':name -- App name:_default' \
@@ -853,14 +1481,33 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':name -- App name:_default' \
@@ -868,14 +1515,33 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':name -- App name:_default' \
@@ -883,17 +1549,174 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (list)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
+;;
+(redirect-uri)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__auth__apps__redirect-uri_commands" \
+"*::: :->redirect-uri" \
+&& ret=0
+
+    case $state in
+    (redirect-uri)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-auth-apps-redirect-uri-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::name -- App name (defaults to the configured default app):_default' \
+&& ret=0
+;;
+(set)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':name -- App name:_default' \
+':uri -- Redirect URI (https or http on loopback):_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__auth__apps__redirect-uri__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-auth-apps-redirect-uri-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
@@ -923,6 +1746,30 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(redirect-uri)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__auth__apps__help__redirect-uri_commands" \
+"*::: :->redirect-uri" \
+&& ret=0
+
+    case $state in
+    (redirect-uri)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-auth-apps-help-redirect-uri-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -937,14 +1784,32 @@ esac
 ;;
 (default)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::app_name -- App name (optional):_default' \
@@ -1011,6 +1876,30 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(redirect-uri)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__auth__help__apps__redirect-uri_commands" \
+"*::: :->redirect-uri" \
+&& ret=0
+
+    case $state in
+    (redirect-uri)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-auth-help-apps-redirect-uri-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -1033,14 +1922,32 @@ esac
 ;;
 (media)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ":: :_xr__media_commands" \
@@ -1062,19 +1969,35 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[Username]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--wait[Wait for media processing to complete]' \
-'-v[Verbose output]' \
-'--verbose[Verbose output]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':file -- File path:_default' \
@@ -1087,20 +2010,36 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[Username]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-v[Verbose output]' \
-'--verbose[Verbose output]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-w[Wait for processing]' \
 '--wait[Wait for processing]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':media_id -- Media ID:_default' \
@@ -1138,33 +2077,210 @@ esac
     ;;
 esac
 ;;
-(schema)
+(skill)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--list[List all commands and their response types]' \
-'--all[Output all schemas as a single JSON document]' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'::command -- Command name to get the schema for (e.g. "post", "whoami"):_default' \
+":: :_xr__skill_commands" \
+"*::: :->skill" \
+&& ret=0
+
+    case $state in
+    (skill)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-skill-command-$line[1]:"
+        case $line[1] in
+            (install)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'()--all[Install into every known host in one invocation]' \
+'--dry-run[Print the resolved git command without spawning]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::host -- Target host (e.g. claude_code, codex, cursor). Required unless `--all`:(claude_code codex cursor factory kiro opencode)' \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'()--all[Update every known host in one invocation]' \
+'--dry-run[Print the resolved plan without removing or cloning]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::host -- Target host (e.g. claude_code, codex, cursor). Required unless `--all`:(claude_code codex cursor factory kiro opencode)' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__skill__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-skill-help-command-$line[1]:"
+        case $line[1] in
+            (install)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(schema)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--list[List all commands and their response types]' \
+'--all[Output all schemas as a single JSON document]' \
+'--envelope[Output the canonical agent-native output envelope schema]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::command -- Command name to get the schema for (e.g. "post", "whoami", "envelope"):_default' \
 && ret=0
 ;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':shell -- Shell to generate completions for:(bash elvish fish powershell zsh)' \
@@ -1172,16 +2288,100 @@ jsonl\:"JSON Lines (useful for streaming)"))' \
 ;;
 (version)
 _arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format\: text (default), json (machine-readable), jsonl (streaming)]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"))' \
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'-q[Suppress all non-essential output (errors still go to stderr)]' \
-'--quiet[Suppress all non-essential output (errors still go to stderr)]' \
-'--no-interactive[Disable interactive prompts; fail with error instead]' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(examples)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(validate)
+_arguments "${_arguments_options[@]}" : \
+'--schema=[Schema name to validate against (\`tweet\`, \`tweets\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`usage\`, \`envelope\`). Omit for auto-detection]:NAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::file -- File path to read JSON from. Pass `-` or omit to read from stdin:_default' \
 && ret=0
 ;;
 (help)
@@ -1372,6 +2572,30 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(redirect-uri)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__help__auth__apps__redirect-uri_commands" \
+"*::: :->redirect-uri" \
+&& ret=0
+
+    case $state in
+    (redirect-uri)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-auth-apps-redirect-uri-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -1408,6 +2632,30 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(skill)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__help__skill_commands" \
+"*::: :->skill" \
+&& ret=0
+
+    case $state in
+    (skill)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-skill-command-$line[1]:"
+        case $line[1] in
+            (install)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
 (schema)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -1417,6 +2665,14 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (version)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(examples)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(validate)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -1467,9 +2723,12 @@ _xr_commands() {
 'dms:List recent direct messages' \
 'auth:Authentication management' \
 'media:Media upload operations' \
+'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
 'version:Show xurl version information' \
+'examples:Print a curated gallery of invocation examples grouped by use case' \
+'validate:Validate a JSON document against a bundled response schema' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr commands' commands "$@"
@@ -1500,6 +2759,7 @@ _xr__auth__apps_commands() {
 'update:Update credentials for an existing app' \
 'remove:Remove a registered app' \
 'list:List registered apps' \
+'redirect-uri:Inspect or set the stored \`OAuth2\` redirect URI for an app' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr auth apps commands' commands "$@"
@@ -1516,6 +2776,7 @@ _xr__auth__apps__help_commands() {
 'update:Update credentials for an existing app' \
 'remove:Remove a registered app' \
 'list:List registered apps' \
+'redirect-uri:Inspect or set the stored \`OAuth2\` redirect URI for an app' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr auth apps help commands' commands "$@"
@@ -1535,6 +2796,24 @@ _xr__auth__apps__help__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps help list commands' commands "$@"
 }
+(( $+functions[_xr__auth__apps__help__redirect-uri_commands] )) ||
+_xr__auth__apps__help__redirect-uri_commands() {
+    local commands; commands=(
+'get:Show the effective redirect URI, its source, and the stored value' \
+'set:Set the stored redirect URI for an app (empty string clears)' \
+    )
+    _describe -t commands 'xr auth apps help redirect-uri commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__help__redirect-uri__get_commands] )) ||
+_xr__auth__apps__help__redirect-uri__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps help redirect-uri get commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__help__redirect-uri__set_commands] )) ||
+_xr__auth__apps__help__redirect-uri__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps help redirect-uri set commands' commands "$@"
+}
 (( $+functions[_xr__auth__apps__help__remove_commands] )) ||
 _xr__auth__apps__help__remove_commands() {
     local commands; commands=()
@@ -1549,6 +2828,49 @@ _xr__auth__apps__help__update_commands() {
 _xr__auth__apps__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth apps list commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri_commands] )) ||
+_xr__auth__apps__redirect-uri_commands() {
+    local commands; commands=(
+'get:Show the effective redirect URI, its source, and the stored value' \
+'set:Set the stored redirect URI for an app (empty string clears)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr auth apps redirect-uri commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__get_commands] )) ||
+_xr__auth__apps__redirect-uri__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps redirect-uri get commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__help_commands] )) ||
+_xr__auth__apps__redirect-uri__help_commands() {
+    local commands; commands=(
+'get:Show the effective redirect URI, its source, and the stored value' \
+'set:Set the stored redirect URI for an app (empty string clears)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr auth apps redirect-uri help commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__help__get_commands] )) ||
+_xr__auth__apps__redirect-uri__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps redirect-uri help get commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__help__help_commands] )) ||
+_xr__auth__apps__redirect-uri__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps redirect-uri help help commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__help__set_commands] )) ||
+_xr__auth__apps__redirect-uri__help__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps redirect-uri help set commands' commands "$@"
+}
+(( $+functions[_xr__auth__apps__redirect-uri__set_commands] )) ||
+_xr__auth__apps__redirect-uri__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth apps redirect-uri set commands' commands "$@"
 }
 (( $+functions[_xr__auth__apps__remove_commands] )) ||
 _xr__auth__apps__remove_commands() {
@@ -1596,6 +2918,7 @@ _xr__auth__help__apps_commands() {
 'update:Update credentials for an existing app' \
 'remove:Remove a registered app' \
 'list:List registered apps' \
+'redirect-uri:Inspect or set the stored \`OAuth2\` redirect URI for an app' \
     )
     _describe -t commands 'xr auth help apps commands' commands "$@"
 }
@@ -1608,6 +2931,24 @@ _xr__auth__help__apps__add_commands() {
 _xr__auth__help__apps__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth help apps list commands' commands "$@"
+}
+(( $+functions[_xr__auth__help__apps__redirect-uri_commands] )) ||
+_xr__auth__help__apps__redirect-uri_commands() {
+    local commands; commands=(
+'get:Show the effective redirect URI, its source, and the stored value' \
+'set:Set the stored redirect URI for an app (empty string clears)' \
+    )
+    _describe -t commands 'xr auth help apps redirect-uri commands' commands "$@"
+}
+(( $+functions[_xr__auth__help__apps__redirect-uri__get_commands] )) ||
+_xr__auth__help__apps__redirect-uri__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth help apps redirect-uri get commands' commands "$@"
+}
+(( $+functions[_xr__auth__help__apps__redirect-uri__set_commands] )) ||
+_xr__auth__help__apps__redirect-uri__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr auth help apps redirect-uri set commands' commands "$@"
 }
 (( $+functions[_xr__auth__help__apps__remove_commands] )) ||
 _xr__auth__help__apps__remove_commands() {
@@ -1699,6 +3040,11 @@ _xr__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr dms commands' commands "$@"
 }
+(( $+functions[_xr__examples_commands] )) ||
+_xr__examples_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr examples commands' commands "$@"
+}
 (( $+functions[_xr__follow_commands] )) ||
 _xr__follow_commands() {
     local commands; commands=()
@@ -1748,9 +3094,12 @@ _xr__help_commands() {
 'dms:List recent direct messages' \
 'auth:Authentication management' \
 'media:Media upload operations' \
+'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
 'version:Show xurl version information' \
+'examples:Print a curated gallery of invocation examples grouped by use case' \
+'validate:Validate a JSON document against a bundled response schema' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr help commands' commands "$@"
@@ -1780,6 +3129,7 @@ _xr__help__auth__apps_commands() {
 'update:Update credentials for an existing app' \
 'remove:Remove a registered app' \
 'list:List registered apps' \
+'redirect-uri:Inspect or set the stored \`OAuth2\` redirect URI for an app' \
     )
     _describe -t commands 'xr help auth apps commands' commands "$@"
 }
@@ -1792,6 +3142,24 @@ _xr__help__auth__apps__add_commands() {
 _xr__help__auth__apps__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth apps list commands' commands "$@"
+}
+(( $+functions[_xr__help__auth__apps__redirect-uri_commands] )) ||
+_xr__help__auth__apps__redirect-uri_commands() {
+    local commands; commands=(
+'get:Show the effective redirect URI, its source, and the stored value' \
+'set:Set the stored redirect URI for an app (empty string clears)' \
+    )
+    _describe -t commands 'xr help auth apps redirect-uri commands' commands "$@"
+}
+(( $+functions[_xr__help__auth__apps__redirect-uri__get_commands] )) ||
+_xr__help__auth__apps__redirect-uri__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help auth apps redirect-uri get commands' commands "$@"
+}
+(( $+functions[_xr__help__auth__apps__redirect-uri__set_commands] )) ||
+_xr__help__auth__apps__redirect-uri__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help auth apps redirect-uri set commands' commands "$@"
 }
 (( $+functions[_xr__help__auth__apps__remove_commands] )) ||
 _xr__help__auth__apps__remove_commands() {
@@ -1862,6 +3230,11 @@ _xr__help__dm_commands() {
 _xr__help__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr help dms commands' commands "$@"
+}
+(( $+functions[_xr__help__examples_commands] )) ||
+_xr__help__examples_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help examples commands' commands "$@"
 }
 (( $+functions[_xr__help__follow_commands] )) ||
 _xr__help__follow_commands() {
@@ -1956,6 +3329,24 @@ _xr__help__search_commands() {
     local commands; commands=()
     _describe -t commands 'xr help search commands' commands "$@"
 }
+(( $+functions[_xr__help__skill_commands] )) ||
+_xr__help__skill_commands() {
+    local commands; commands=(
+'install:Install the skill bundle into a host'\''s canonical skills directory' \
+'update:Refresh an existing skill-bundle install in place' \
+    )
+    _describe -t commands 'xr help skill commands' commands "$@"
+}
+(( $+functions[_xr__help__skill__install_commands] )) ||
+_xr__help__skill__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help skill install commands' commands "$@"
+}
+(( $+functions[_xr__help__skill__update_commands] )) ||
+_xr__help__skill__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help skill update commands' commands "$@"
+}
 (( $+functions[_xr__help__timeline_commands] )) ||
 _xr__help__timeline_commands() {
     local commands; commands=()
@@ -2000,6 +3391,11 @@ _xr__help__usage_commands() {
 _xr__help__user_commands() {
     local commands; commands=()
     _describe -t commands 'xr help user commands' commands "$@"
+}
+(( $+functions[_xr__help__validate_commands] )) ||
+_xr__help__validate_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help validate commands' commands "$@"
 }
 (( $+functions[_xr__help__version_commands] )) ||
 _xr__help__version_commands() {
@@ -2109,6 +3505,49 @@ _xr__search_commands() {
     local commands; commands=()
     _describe -t commands 'xr search commands' commands "$@"
 }
+(( $+functions[_xr__skill_commands] )) ||
+_xr__skill_commands() {
+    local commands; commands=(
+'install:Install the skill bundle into a host'\''s canonical skills directory' \
+'update:Refresh an existing skill-bundle install in place' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr skill commands' commands "$@"
+}
+(( $+functions[_xr__skill__help_commands] )) ||
+_xr__skill__help_commands() {
+    local commands; commands=(
+'install:Install the skill bundle into a host'\''s canonical skills directory' \
+'update:Refresh an existing skill-bundle install in place' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr skill help commands' commands "$@"
+}
+(( $+functions[_xr__skill__help__help_commands] )) ||
+_xr__skill__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr skill help help commands' commands "$@"
+}
+(( $+functions[_xr__skill__help__install_commands] )) ||
+_xr__skill__help__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr skill help install commands' commands "$@"
+}
+(( $+functions[_xr__skill__help__update_commands] )) ||
+_xr__skill__help__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr skill help update commands' commands "$@"
+}
+(( $+functions[_xr__skill__install_commands] )) ||
+_xr__skill__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr skill install commands' commands "$@"
+}
+(( $+functions[_xr__skill__update_commands] )) ||
+_xr__skill__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr skill update commands' commands "$@"
+}
 (( $+functions[_xr__timeline_commands] )) ||
 _xr__timeline_commands() {
     local commands; commands=()
@@ -2153,6 +3592,11 @@ _xr__usage_commands() {
 _xr__user_commands() {
     local commands; commands=()
     _describe -t commands 'xr user commands' commands "$@"
+}
+(( $+functions[_xr__validate_commands] )) ||
+_xr__validate_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr validate commands' commands "$@"
 }
 (( $+functions[_xr__version_commands] )) ||
 _xr__version_commands() {

@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "AppStatusEntry": {
+      "description": "Per-app status/list entry rendered under `--output json`.\n\nBuilt field-by-field from named accessors on `App` and `TokenStore`.\n`From<&App>` and `Serialize`-on-`App` are forbidden: `App` holds\n`client_secret`, OAuth2/OAuth1 tokens, and the bearer string, so\nwholesale-forwarding would leak credentials.\n\nA secret-exclusion test in `tests/cli_tests.rs` asserts no credential\nfield name or value appears in the rendered JSON.",
+      "properties": {
+        "bearer": {
+          "description": "Whether the app has a bearer token present (presence only).",
+          "type": "boolean"
+        },
+        "client_id_hint": {
+          "description": "First 8 characters of `client_id` (never the full value, never `client_secret`).",
+          "type": "string"
+        },
+        "default": {
+          "description": "Whether this app is the default.",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "App name as stored in `~/.xurl`.",
+          "type": "string"
+        },
+        "oauth1": {
+          "description": "Whether the app has `OAuth1` credentials present (presence only).",
+          "type": "boolean"
+        },
+        "oauth2_unnamed": {
+          "description": "Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.\n\nOmitted from JSON output when `false` per KTD9 — a `true` value signals\nthat `App.unnamed_oauth2_token.is_some()`.",
+          "type": "boolean"
+        },
+        "oauth2_users": {
+          "description": "`OAuth2` usernames present in the app (no tokens, just names).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "redirect_uri": {
+          "description": "Effective `OAuth2` redirect URI from the resolver.",
+          "type": "string"
+        },
+        "redirect_uri_source": {
+          "$ref": "#/$defs/ResolveSource",
+          "description": "Precedence layer that produced [`Self::redirect_uri`]."
+        },
+        "redirect_uri_stored": {
+          "description": "Stored per-app redirect URI; only present when the env var overrides it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "client_id_hint",
+        "redirect_uri",
+        "redirect_uri_source",
+        "oauth2_users",
+        "oauth1",
+        "bearer",
+        "default",
+        "oauth2_unnamed"
+      ],
+      "type": "object"
+    },
+    "ResolveSource": {
+      "description": "Origin of a resolved redirect URI.\n\nMirrors the upstream Go xurl labels at `config/config.go:62-72`.\nThe `#[serde(rename_all = \"kebab-case\")]` directive produces\n`\"env-var\"`, `\"app-config\"`, and `\"built-in-default\"` in JSON output\n(the machine-readable shape consumed by `--output json`); the\nhuman-readable text rendering uses [`ResolveSource::as_text_label`].",
+      "oneOf": [
+        {
+          "const": "env-var",
+          "description": "Resolved from the `REDIRECT_URI` environment variable.",
+          "type": "string"
+        },
+        {
+          "const": "app-config",
+          "description": "Resolved from the per-app value stored in `~/.xurl`.",
+          "type": "string"
+        },
+        {
+          "const": "built-in-default",
+          "description": "Fell through to [`DEFAULT_REDIRECT_URI`].",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "items": {
+    "$ref": "#/$defs/AppStatusEntry"
+  },
+  "title": "Array_of_AppStatusEntry",
+  "type": "array"
+}

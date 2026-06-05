@@ -63,16 +63,20 @@ impl TestServer {
 // ── Test helpers ───────────────────────────────────────────────────────
 
 fn create_test_config(base_url: &str) -> Config {
-    Config {
-        client_id: "test-client-id".to_string(),
-        client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
-        auth_url: "https://x.com/i/oauth2/authorize".to_string(),
-        token_url: "https://api.x.com/2/oauth2/token".to_string(),
-        api_base_url: base_url.to_string(),
-        info_url: format!("{base_url}/2/users/me"),
-        app_name: String::new(),
-    }
+    // `Config` has `pub(crate)` resolver fields that external callers cannot
+    // name in a struct literal; start from `Config::new()` and assign the
+    // public fields explicitly. The resolver fields are overwritten by
+    // `Auth::new_with_store_path` downstream.
+    let mut cfg = Config::new();
+    cfg.client_id = "test-client-id".to_string();
+    cfg.client_secret = "test-client-secret".to_string();
+    cfg.redirect_uri = "http://localhost:8080/callback".to_string();
+    cfg.auth_url = "https://x.com/i/oauth2/authorize".to_string();
+    cfg.token_url = "https://api.x.com/2/oauth2/token".to_string();
+    cfg.api_base_url = base_url.to_string();
+    cfg.info_url = format!("{base_url}/2/users/me");
+    cfg.app_name = String::new();
+    cfg
 }
 
 fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
@@ -93,6 +97,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
             client_id: "test-client-id".to_string(),
             client_secret: "test-client-secret".to_string(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: None,
             bearer_token: Some(Token {
@@ -101,6 +106,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
                 oauth2: None,
                 oauth1: None,
             }),
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -126,6 +132,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
             client_id: String::new(),
             client_secret: String::new(),
             default_user: String::new(),
+            redirect_uri: String::new(),
             oauth2_tokens: BTreeMap::new(),
             oauth1_token: Some(Token {
                 token_type: TokenType::Oauth1,
@@ -139,6 +146,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
                 }),
             }),
             bearer_token: None,
+            unnamed_oauth2_token: None,
         },
     );
 
@@ -168,9 +176,11 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
         client_id: "cid".to_string(),
         client_secret: "csec".to_string(),
         default_user: "testuser".to_string(),
+        redirect_uri: String::new(),
         oauth2_tokens: BTreeMap::new(),
         oauth1_token: None,
         bearer_token: None,
+        unnamed_oauth2_token: None,
     };
     app.oauth2_tokens.insert(
         "testuser".to_string(),
@@ -486,6 +496,60 @@ fn test_send_request_json_parse_error() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Timeout wiring — --timeout / XURL_TIMEOUT bound network calls
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn slow_endpoint_trips_explicit_timeout() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/slow"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_delay(std::time::Duration::from_secs(10))
+                    .set_body_json(serde_json::json!({"ok": true})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::with_timeout(&cfg, auth, 1);
+    assert_eq!(client.timeout_secs(), 1);
+
+    let started = std::time::Instant::now();
+    let err = client
+        .send_request(&RequestOptions {
+            method: "GET".to_string(),
+            endpoint: "/2/slow".to_string(),
+            ..Default::default()
+        })
+        .expect_err("a 1s timeout must fire before the 10s server delay");
+    let elapsed = started.elapsed();
+
+    assert!(
+        elapsed < std::time::Duration::from_secs(5),
+        "timeout should fire well under the server's 10s delay; elapsed = {elapsed:?}"
+    );
+    let msg = err.to_string();
+    assert!(
+        msg.contains("HTTP Error"),
+        "expected an HTTP/transport error, got: {msg}"
+    );
+}
+
+#[test]
+fn config_default_timeout_carries_through_apiclient_new() {
+    // Regression guard for the runner-to-ApiClient timeout plumbing: the value
+    // on `Config::http_timeout_secs` must drive `ApiClient::timeout_secs()`.
+    let mut cfg = create_test_config("http://127.0.0.1:9");
+    cfg.http_timeout_secs = 7;
+    let (auth, _tmp) = create_mock_auth_with_bearer("http://127.0.0.1:9");
+    let client = ApiClient::new(&cfg, auth);
+    assert_eq!(client.timeout_secs(), 7);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Auth header routing tests
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -663,6 +727,57 @@ fn test_search_posts() {
         .search_posts("golang", 10, &base_call_opts())
         .unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
+}
+
+/// Threads `CallOptions::pagination_token` through to the
+/// `pagination_token` query parameter on the search URL — wiremock asserts
+/// the parameter is present and carries the URL-decoded token.
+#[test]
+fn test_search_posts_threads_pagination_token() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(query_param("pagination_token", "next_abc_token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":[{"id":"2","text":"page2"}],"meta":{"result_count":1}}),
+            )),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        pagination_token: "next_abc_token".into(),
+        ..base_call_opts()
+    };
+    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    assert_eq!(resp.data.first().unwrap().id, "2");
+}
+
+/// Same wiremock probe as above, but verifies the URL-encoder runs on
+/// special characters (spaces → `%20`).
+#[test]
+fn test_search_posts_url_encodes_pagination_token() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(query_param("pagination_token", "page 2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":[{"id":"3","text":"p"}],"meta":{"result_count":1}}),
+            )),
+    );
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = CallOptions {
+        pagination_token: "page 2".into(),
+        ..base_call_opts()
+    };
+    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    assert_eq!(resp.data.first().unwrap().id, "3");
 }
 
 #[test]
@@ -851,12 +966,18 @@ fn test_stream_request_error() {
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
     let err = client
-        .stream_request(&RequestOptions {
-            method: "GET".to_string(),
-            endpoint: "/2/tweets/search/stream/error".to_string(),
-            ..Default::default()
-        })
+        .stream_request(
+            &RequestOptions {
+                method: "GET".to_string(),
+                endpoint: "/2/tweets/search/stream/error".to_string(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
         .unwrap_err();
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
@@ -1748,5 +1869,93 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
         exit_code_for_error(&err),
         xurl::error::EXIT_RATE_LIMITED,
         "429 should map to EXIT_RATE_LIMITED"
+    );
+}
+
+// ── TestAuthErrorPropagation (Bug B) ──────────────────────────────────────
+//
+// `ApiClient::send_request` (and its sibling paths) must propagate the
+// `get_auth_header` error rather than silently sending the request
+// unauthenticated. The older `if let Ok(...)` form let auth bugs masquerade
+// as upstream 401s; the new path returns the real `XurlError::Auth` so the
+// user can tell the difference between "we couldn't sign the request" and
+// "we signed it and X rejected it".
+
+fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
+    let cfg = create_test_config(base_url);
+    let auth = Auth::new(&cfg);
+
+    let tmp = TempDir::new().expect("temp dir");
+    let file_path = tmp.path().join(".xurl");
+
+    let mut store = TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path,
+    };
+    store.apps.insert(
+        "default".to_string(),
+        App {
+            client_id: "test-client-id".to_string(),
+            client_secret: "test-client-secret".to_string(),
+            default_user: String::new(),
+            redirect_uri: String::new(),
+            oauth2_tokens: BTreeMap::new(),
+            oauth1_token: None,
+            bearer_token: None,
+            unnamed_oauth2_token: None,
+        },
+    );
+    let auth = auth.with_token_store(store);
+    (auth, tmp)
+}
+
+#[test]
+fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
+    let ts = TestServer::new();
+    // If Bug B regresses (request sent unauthenticated), the wiremock would
+    // need to be mounted; we deliberately mount nothing so a regression
+    // surfaces as a network-layer error against an unmatched path rather
+    // than as `XurlError::Auth`. The assertion then catches the regression.
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut opts = base_call_opts();
+    opts.auth_type = "app".to_string(); // bearer path; no token in store
+    let err = client.get_me(&opts).unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("bearer token not found") || msg.contains("TokenNotFound"),
+        "expected bearer-not-found auth error, got: {msg}"
+    );
+}
+
+#[test]
+fn auth_error_propagates_for_oauth2_path_with_no_token() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut opts = base_call_opts();
+    opts.auth_type = "oauth2".to_string();
+    // get_me with --auth oauth2 and an explicit username triggers the
+    // named-caller branch; with no stored token the flow attempts to start
+    // an interactive OAuth2 PKCE flow which fails (no DISPLAY in tests).
+    // The end state is `XurlError::Auth`, not a request to wiremock.
+    opts.username = "ghost-user".to_string();
+    let err = client.get_me(&opts).unwrap_err();
+    // Accept either the TokenNotFound from refresh_oauth2_token or any
+    // browser-open / network error from the implicit PKCE flow that fires
+    // when no token is cached. The point of this test is that the call
+    // returns Err without silently sending a request — not the exact
+    // failure mode.
+    assert!(
+        matches!(
+            err,
+            xurl::error::XurlError::Auth(_) | xurl::error::XurlError::Http(_)
+        ),
+        "expected auth-layer error, got: {err:?}"
     );
 }

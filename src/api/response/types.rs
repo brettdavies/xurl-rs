@@ -321,10 +321,11 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
     // the raw JSON as a validation error — these are not HTTP errors
     // (status was 200) but semantic failures from the API.
-    if let Some(obj) = value.as_object() {
-        if !obj.contains_key("data") && obj.contains_key("errors") {
-            return Err(crate::error::XurlError::validation(value.to_string()));
-        }
+    if let Some(obj) = value.as_object()
+        && !obj.contains_key("data")
+        && obj.contains_key("errors")
+    {
+        return Err(crate::error::XurlError::validation(value.to_string()));
     }
     Ok(serde_json::from_value(value)?)
 }
@@ -354,14 +355,18 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("Tweet response must deserialize");
         assert_eq!(resp.data.id, "123");
         assert_eq!(resp.data.text, "Hello world");
         assert_eq!(
             resp.data.created_at.as_deref(),
             Some("2026-01-01T00:00:00.000Z")
         );
-        let metrics = resp.data.public_metrics.unwrap();
+        let metrics = resp
+            .data
+            .public_metrics
+            .expect("public_metrics must be present");
         assert_eq!(metrics.like_count, 10);
         assert_eq!(metrics.impression_count, 100);
     }
@@ -375,17 +380,22 @@ mod tests {
             ],
             "meta": {"result_count": 2}
         });
-        let resp: ApiResponse<Vec<Tweet>> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Vec<Tweet>> =
+            serde_json::from_value(json).expect("Tweet list response must deserialize");
         assert_eq!(resp.data.len(), 2);
         assert_eq!(resp.data[0].id, "1");
         assert_eq!(resp.data[1].text, "second");
-        assert_eq!(resp.meta.unwrap().result_count, Some(2));
+        assert_eq!(
+            resp.meta.expect("meta must be present").result_count,
+            Some(2)
+        );
     }
 
     #[test]
     fn deserialize_action_liked() {
         let json = json!({"data": {"liked": true}});
-        let resp: ApiResponse<LikedResult> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<LikedResult> =
+            serde_json::from_value(json).expect("LikedResult response must deserialize");
         assert!(resp.data.liked);
     }
 
@@ -398,11 +408,18 @@ mod tests {
             },
             "meta": {"result_count": 1, "next_token": "abc123"}
         });
-        let resp: ApiResponse<Vec<Tweet>> = serde_json::from_value(json).unwrap();
-        let includes = resp.includes.unwrap();
-        let users = includes.users.unwrap();
+        let resp: ApiResponse<Vec<Tweet>> =
+            serde_json::from_value(json).expect("Tweet list with includes/meta must deserialize");
+        let includes = resp.includes.expect("includes must be present");
+        let users = includes.users.expect("includes.users must be present");
         assert_eq!(users[0].id, "42");
-        assert_eq!(resp.meta.unwrap().next_token.as_deref(), Some("abc123"));
+        assert_eq!(
+            resp.meta
+                .expect("meta must be present")
+                .next_token
+                .as_deref(),
+            Some("abc123")
+        );
     }
 
     #[test]
@@ -421,11 +438,15 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<User> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<User> =
+            serde_json::from_value(json).expect("User response must deserialize");
         assert_eq!(resp.data.id, "42");
         assert_eq!(resp.data.username, "testuser");
         assert_eq!(resp.data.verified, Some(true));
-        let metrics = resp.data.public_metrics.unwrap();
+        let metrics = resp
+            .data
+            .public_metrics
+            .expect("user.public_metrics must be present");
         assert_eq!(metrics.followers_count, 100);
     }
 
@@ -440,7 +461,8 @@ mod tests {
                 "sender_id": "42"
             }
         });
-        let resp: ApiResponse<DmEvent> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<DmEvent> =
+            serde_json::from_value(json).expect("DmEvent response must deserialize");
         assert_eq!(resp.data.id, "dm1");
         assert_eq!(resp.data.text.as_deref(), Some("hello"));
         assert_eq!(resp.data.sender_id.as_deref(), Some("42"));
@@ -456,7 +478,8 @@ mod tests {
                 "cap_reset_day": 19
             }
         });
-        let resp: ApiResponse<UsageData> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<UsageData> =
+            serde_json::from_value(json).expect("UsageData response must deserialize");
         assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
         assert_eq!(resp.data.cap_reset_day, Some(19));
     }
@@ -470,7 +493,8 @@ mod tests {
                 "expires_after_secs": 3600
             }
         });
-        let resp: ApiResponse<MediaUploadResponse> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<MediaUploadResponse> =
+            serde_json::from_value(json).expect("MediaUploadResponse must deserialize");
         assert_eq!(resp.data.id, "media_123");
         assert_eq!(resp.data.media_key.as_deref(), Some("key_456"));
         assert_eq!(resp.data.expires_after_secs, Some(3600));
@@ -488,8 +512,12 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<MediaUploadResponse> = serde_json::from_value(json).unwrap();
-        let info = resp.data.processing_info.unwrap();
+        let resp: ApiResponse<MediaUploadResponse> = serde_json::from_value(json)
+            .expect("MediaUploadResponse with processing_info must deserialize");
+        let info = resp
+            .data
+            .processing_info
+            .expect("processing_info must be present");
         assert_eq!(info.state, "in_progress");
         assert_eq!(info.check_after_secs, Some(5));
         assert_eq!(info.progress_percent, Some(45));
@@ -507,7 +535,8 @@ mod tests {
             },
             "top_level_extra": 42
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
+            .expect("Tweet response with unknown fields must deserialize");
         assert_eq!(resp.data.extra["brand_new_field"], "surprise");
         assert_eq!(resp.extra["top_level_extra"], 42);
     }
@@ -522,8 +551,9 @@ mod tests {
             },
             "top_extra": "value"
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
-        let serialized = serde_json::to_value(&resp).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("Tweet round-trip fixture must deserialize");
+        let serialized = serde_json::to_value(&resp).expect("Tweet response must serialize");
         assert_eq!(serialized["data"]["new_field"], 42);
         assert_eq!(serialized["top_extra"], "value");
     }
@@ -546,28 +576,36 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
+            .expect("Tweet response with nested unknown fields must deserialize");
         assert_eq!(resp.data.extra["tweet_extra"], "a");
-        let metrics = resp.data.public_metrics.unwrap();
+        let metrics = resp
+            .data
+            .public_metrics
+            .expect("public_metrics must be present");
         assert_eq!(metrics.extra["metrics_extra"], "b");
     }
 
     #[test]
     fn extra_is_empty_when_no_unknown_fields() {
         let json = json!({"data": {"id": "1", "text": "hi"}});
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("minimal Tweet response must deserialize");
         assert!(resp.extra.is_empty());
         assert!(resp.data.extra.is_empty());
         // Verify serialization produces no extra keys
-        let out = serde_json::to_value(&resp).unwrap();
-        let data = out["data"].as_object().unwrap();
+        let out = serde_json::to_value(&resp).expect("Tweet response must serialize");
+        let data = out["data"]
+            .as_object()
+            .expect("serialized data must be a JSON object");
         assert!(!data.contains_key("extra"));
     }
 
     #[test]
     fn missing_optional_fields_are_none() {
         let json = json!({"data": {"id": "1", "text": "minimal"}});
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("minimal Tweet must deserialize");
         assert!(resp.data.created_at.is_none());
         assert!(resp.data.public_metrics.is_none());
         assert!(resp.data.author_id.is_none());
@@ -623,31 +661,38 @@ mod tests {
             // Verify they all parse — use a match to dispatch
             match ty {
                 "LikedResult" => {
-                    let r: ApiResponse<LikedResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<LikedResult> = serde_json::from_value(json)
+                        .expect("LikedResult action response must deserialize");
                     assert!(r.data.liked);
                 }
                 "FollowingResult" => {
-                    let r: ApiResponse<FollowingResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<FollowingResult> = serde_json::from_value(json)
+                        .expect("FollowingResult action response must deserialize");
                     assert!(r.data.following);
                 }
                 "DeletedResult" => {
-                    let r: ApiResponse<DeletedResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<DeletedResult> = serde_json::from_value(json)
+                        .expect("DeletedResult action response must deserialize");
                     assert!(r.data.deleted);
                 }
                 "RetweetedResult" => {
-                    let r: ApiResponse<RetweetedResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<RetweetedResult> = serde_json::from_value(json)
+                        .expect("RetweetedResult action response must deserialize");
                     assert!(r.data.retweeted);
                 }
                 "BookmarkedResult" => {
-                    let r: ApiResponse<BookmarkedResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<BookmarkedResult> = serde_json::from_value(json)
+                        .expect("BookmarkedResult action response must deserialize");
                     assert!(r.data.bookmarked);
                 }
                 "BlockingResult" => {
-                    let r: ApiResponse<BlockingResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<BlockingResult> = serde_json::from_value(json)
+                        .expect("BlockingResult action response must deserialize");
                     assert!(r.data.blocking);
                 }
                 "MutingResult" => {
-                    let r: ApiResponse<MutingResult> = serde_json::from_value(json).unwrap();
+                    let r: ApiResponse<MutingResult> = serde_json::from_value(json)
+                        .expect("MutingResult action response must deserialize");
                     assert!(r.data.muting);
                 }
                 _ => unreachable!(),
@@ -677,8 +722,9 @@ mod tests {
             data: tweet,
             ..Default::default()
         };
-        let value = serde_json::to_value(&resp).unwrap();
-        let back: ApiResponse<Tweet> = serde_json::from_value(value).unwrap();
+        let value = serde_json::to_value(&resp).expect("Tweet must serialize");
+        let back: ApiResponse<Tweet> =
+            serde_json::from_value(value).expect("round-tripped Tweet must deserialize");
         assert_eq!(back.data.id, "456");
         assert_eq!(back.data.text, "round trip");
     }
@@ -734,9 +780,13 @@ mod tests {
             }
         });
         // This should succeed — 99_999_999_999_999 fits in u64
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("Tweet with large u64 must deserialize");
         assert_eq!(
-            resp.data.public_metrics.unwrap().like_count,
+            resp.data
+                .public_metrics
+                .expect("public_metrics must be present")
+                .like_count,
             99_999_999_999_999
         );
     }
@@ -770,7 +820,8 @@ mod tests {
                 "a": {"b": {"c": [1, 2, 3]}}
             }
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> =
+            serde_json::from_value(json).expect("Tweet with deep unknown fields must deserialize");
         assert!(resp.extra.contains_key("extra_field"));
     }
 
@@ -778,7 +829,8 @@ mod tests {
     fn adversarial_empty_string_required_fields() {
         // Empty strings are valid String values — consumer must validate semantics
         let json = json!({"data": {"id": "", "text": ""}});
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
+            .expect("Tweet with empty string required fields must deserialize");
         assert_eq!(resp.data.id, "");
         assert_eq!(resp.data.text, "");
     }
@@ -820,7 +872,8 @@ mod tests {
             "data": {"liked": true},
             "extra_top_level": "ignored_by_consumer"
         });
-        let resp: ApiResponse<LikedResult> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<LikedResult> = serde_json::from_value(json)
+            .expect("LikedResult with extra top-level fields must deserialize");
         assert!(resp.data.liked);
         assert_eq!(resp.extra["extra_top_level"], "ignored_by_consumer");
     }
@@ -840,9 +893,10 @@ mod tests {
             "data": {"id": "123", "text": "partial"},
             "errors": [{"message": "some field unavailable", "title": "Partial Error"}]
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
+            .expect("Tweet with partial errors payload must deserialize");
         assert_eq!(resp.data.id, "123");
-        let errors = resp.errors.unwrap();
+        let errors = resp.errors.expect("errors field must be present");
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message.as_deref(), Some("some field unavailable"));
     }
@@ -854,7 +908,8 @@ mod tests {
             .map(|i| json!({"id": i.to_string(), "text": format!("tweet {i}")}))
             .collect();
         let json = json!({"data": tweets});
-        let resp: ApiResponse<Vec<Tweet>> = serde_json::from_value(json).unwrap();
+        let resp: ApiResponse<Vec<Tweet>> =
+            serde_json::from_value(json).expect("1000-element Tweet list must deserialize");
         assert_eq!(resp.data.len(), 1000);
     }
 
@@ -875,8 +930,9 @@ mod tests {
                 "new_error_field": "surprise"
             }]
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json).unwrap();
-        let error = &resp.errors.unwrap()[0];
+        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
+            .expect("Tweet with errors containing extra fields must deserialize");
+        let error = &resp.errors.expect("errors field must be present")[0];
         assert_eq!(error.extra["new_error_field"], "surprise");
     }
 }

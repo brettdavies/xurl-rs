@@ -1,30 +1,204 @@
 /// Auth subcommand handlers — OAuth2, OAuth1, Bearer, app management.
+use std::io::{IsTerminal, Write};
+
+use serde::Serialize;
+use serde_json::json;
+
+use super::{Gate, gate_destructive};
 use crate::auth::Auth;
-use crate::cli::{AppCommands, AuthCommands};
-use crate::error::{Result, XurlError};
+use crate::cli::{AppCommands, AuthCommands, RedirectUriCommands};
+use crate::config::{self, ResolveSource};
+use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
-#[allow(clippy::too_many_lines)]
+/// Lists `items` on stderr with numeric indices and prompts the user to pick
+/// one via stdin. Returns the chosen item on success or `Ok(None)` on EOF /
+/// blank input / out-of-range / non-numeric input.
+///
+/// Stays dialoguer-free so the binary doesn't carry an interactive prompt
+/// library dependency. Callers must verify TTY readiness independently.
+fn prompt_select(label: &str, items: &[String]) -> Result<Option<String>> {
+    use std::io::BufRead;
+    let stderr = std::io::stderr();
+    let mut handle = stderr.lock();
+    writeln!(handle, "{label}:")
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    for (idx, item) in items.iter().enumerate() {
+        writeln!(handle, "  {}) {item}", idx + 1)
+            .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    }
+    write!(handle, "Choice [1-{}]: ", items.len())
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    handle
+        .flush()
+        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    drop(handle);
+
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).is_err() {
+        return Ok(None);
+    }
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let Ok(idx) = trimmed.parse::<usize>() else {
+        return Ok(None);
+    };
+    if idx == 0 || idx > items.len() {
+        return Ok(None);
+    }
+    Ok(Some(items[idx - 1].clone()))
+}
+
+/// Bundle of global flags relevant to auth subcommands.
+///
+/// Mirrors the parent module's `GlobalFlags`, scoped to the subset auth needs.
+/// `verbose` is reserved for future auth handlers that surface verbose request
+/// tracing (e.g. the manual OAuth2 step exchange).
+#[derive(Debug, Clone, Copy)]
+pub(super) struct AuthGlobalFlags {
+    pub(super) no_interactive: bool,
+    #[allow(dead_code)]
+    pub(super) verbose: bool,
+    pub(super) dry_run: bool,
+    pub(super) quiet: bool,
+    pub(super) app_explicit: bool,
+}
+
+/// Per-app status/list entry rendered under `--output json`.
+///
+/// Built field-by-field from named accessors on `App` and `TokenStore`.
+/// `From<&App>` and `Serialize`-on-`App` are forbidden: `App` holds
+/// `client_secret`, OAuth2/OAuth1 tokens, and the bearer string, so
+/// wholesale-forwarding would leak credentials.
+///
+/// A secret-exclusion test in `tests/cli_tests.rs` asserts no credential
+/// field name or value appears in the rendered JSON.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct AppStatusEntry {
+    /// App name as stored in `~/.xurl`.
+    name: String,
+    /// First 8 characters of `client_id` (never the full value, never `client_secret`).
+    client_id_hint: String,
+    /// Effective `OAuth2` redirect URI from the resolver.
+    redirect_uri: String,
+    /// Precedence layer that produced [`Self::redirect_uri`].
+    redirect_uri_source: ResolveSource,
+    /// Stored per-app redirect URI; only present when the env var overrides it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    redirect_uri_stored: Option<String>,
+    /// `OAuth2` usernames present in the app (no tokens, just names).
+    oauth2_users: Vec<String>,
+    /// Whether the app has `OAuth1` credentials present (presence only).
+    oauth1: bool,
+    /// Whether the app has a bearer token present (presence only).
+    bearer: bool,
+    /// Whether this app is the default.
+    default: bool,
+    /// Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.
+    ///
+    /// Omitted from JSON output when `false` per KTD9 — a `true` value signals
+    /// that `App.unnamed_oauth2_token.is_some()`.
+    #[serde(skip_serializing_if = "is_false")]
+    oauth2_unnamed: bool,
+}
+
+/// Helper for `#[serde(skip_serializing_if)]` on `bool` fields that default false.
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// Response shape for `xr auth apps redirect-uri get` under `--output json`.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct RedirectUriGetResponse {
+    /// App name the lookup targeted.
+    pub app: String,
+    /// Effective redirect URI after applying the precedence chain.
+    pub effective_redirect_uri: String,
+    /// Precedence layer that produced [`Self::effective_redirect_uri`].
+    pub effective_source: ResolveSource,
+    /// Stored per-app redirect URI; `None` when no value is stored.
+    pub stored_redirect_uri: Option<String>,
+}
+
+/// Response shape for `xr auth apps redirect-uri set` under `--output json`.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct RedirectUriSetResponse {
+    /// Always `"ok"` on success.
+    pub status: &'static str,
+    /// App name the write targeted.
+    pub app: String,
+    /// Redirect URI that was persisted.
+    pub redirect_uri: String,
+}
+
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 pub(super) fn run_auth_command(
     cmd: AuthCommands,
     mut auth: Auth,
-    no_interactive: bool,
+    flags: AuthGlobalFlags,
     out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
+    let AuthGlobalFlags {
+        no_interactive,
+        verbose: _,
+        dry_run,
+        quiet,
+        app_explicit,
+    } = flags;
     match cmd {
         AuthCommands::Oauth2 {
             no_browser,
             step,
             auth_url,
+            username,
         } => {
-            if !no_browser {
+            if dry_run {
+                let ctx = json!({
+                    "command": "auth-oauth2",
+                    "no_browser": no_browser,
+                    "step": step,
+                    "username": username,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+            let username_arg = username.as_deref().unwrap_or("");
+            // R13/KTD4: credential-less-default warning. Fires when the user
+            // did not pass `--app`, the default app has no `client_id`, and at
+            // least one other registered app does. Routed via
+            // `OutputConfig::info` so `--quiet` and `--output json` suppress it.
+            if !app_explicit && let Some(msg) = credential_less_default_warning(&auth.token_store) {
+                out.info(stderr, &msg);
+            }
+            // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
+            // harness) and the user did not pass `--no-browser` (or set
+            // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
+            // silently strand the flow, so promote to the remote two-step
+            // path and surface the auth URL on stdout.
+            let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
+            let effective_no_browser = no_browser || auto_engage_no_browser;
+            if !effective_no_browser {
                 // Standard interactive flow
-                auth.oauth2_flow("")?;
-                out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                auth.oauth2_flow(username_arg, out, stdout)?;
+                out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
                 let pending_path = crate::auth::pending::default_pending_path()?;
-                match step {
+                // When the user opted into `--no-browser` without an explicit
+                // `--step`, or when auto-engage promoted us here, run step 1
+                // and emit the canonical `awaiting_callback` envelope.
+                let effective_step = if step.is_none() && auth_url.is_none() {
+                    Some(1u8)
+                } else {
+                    step
+                };
+                match effective_step {
                     Some(1) => {
                         if auth_url.is_some() {
                             return Err(crate::error::XurlError::auth(
@@ -32,34 +206,47 @@ pub(super) fn run_auth_command(
                             ));
                         }
                         let url = auth.remote_oauth2_step1(&pending_path)?;
-                        match out.format {
-                            crate::output::OutputFormat::Json
-                            | crate::output::OutputFormat::Jsonl => {
-                                let json = serde_json::json!({
+                        if out.format.is_structured() {
+                            // U9: explicit `--no-browser` (no `--step`) and
+                            // the auto-engaged path both emit the canonical
+                            // `awaiting_callback` envelope; the existing
+                            // `--step 1` path keeps its legacy shape so
+                            // agents that pinned against it don't drift.
+                            let envelope = if step.is_none() {
+                                serde_json::json!({
+                                    "status": "awaiting_callback",
+                                    "url": url,
+                                    "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
+                                })
+                            } else {
+                                serde_json::json!({
                                     "auth_url": url,
                                     "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
-                                });
-                                println!("{json}");
-                            }
-                            crate::output::OutputFormat::Text => {
-                                out.print_message(
-                                    "Open this URL in a browser on a machine with a display:",
-                                );
-                                out.print_message("");
-                                out.print_message(&format!("  {url}"));
-                                out.print_message("");
-                                out.print_message(
-                                    "After authorizing, copy the redirect URL from your browser's address bar",
-                                );
-                                out.print_message(
-                                    "(it will show an error page — that's expected).",
-                                );
-                                out.print_message("");
-                                out.print_message("Then run:");
-                                out.print_message(
-                                    "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
-                                );
-                            }
+                                })
+                            };
+                            out.print_response(stdout, &envelope);
+                        } else {
+                            out.print_message(
+                                stdout,
+                                "Open this URL in a browser on a machine with a display:",
+                            );
+                            out.print_message(stdout, "");
+                            out.print_message(stdout, &format!("  {url}"));
+                            out.print_message(stdout, "");
+                            out.print_message(
+                                stdout,
+                                "After authorizing, copy the redirect URL from your browser's address bar",
+                            );
+                            out.print_message(
+                                stdout,
+                                "(it will show an error page — that's expected).",
+                            );
+                            out.print_message(stdout, "");
+                            out.print_message(stdout, "Then run:");
+                            out.print_message(
+                                stdout,
+                                "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
+                            );
                         }
                     }
                     Some(2) => {
@@ -90,10 +277,17 @@ pub(super) fn run_auth_command(
                             url_value
                         };
 
-                        auth.remote_oauth2_step2(&redirect_url, "", &pending_path)?;
-                        out.print_message("\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                        auth.remote_oauth2_step2(&redirect_url, username_arg, &pending_path)?;
+                        out.print_message(
+                            stdout,
+                            "\x1b[32mOAuth2 authentication successful!\x1b[0m",
+                        );
                     }
                     None => {
+                        // Unreachable in practice: when `--step` is omitted and
+                        // `--auth-url` is also omitted, `effective_step` is set
+                        // to `Some(1)` above; when `--auth-url` is given without
+                        // `--step`, clap rejects it via `requires = "step"`.
                         return Err(crate::error::XurlError::auth(
                             "--no-browser requires --step 1 or --step 2",
                         ));
@@ -108,65 +302,134 @@ pub(super) fn run_auth_command(
             access_token,
             token_secret,
         } => {
-            auth.token_store.save_oauth1_tokens(
+            if dry_run {
+                let ctx = json!({"command": "auth-oauth1"});
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+            // Multi-app save: route OAuth1 tokens to the active app
+            // (set by `--app NAME` or default). The no-arg variant fell
+            // back to the default app even with `--app NAME` set, so a
+            // user running `xr auth oauth1 --app NAME …` would silently
+            // overwrite default's OAuth1 instead of populating NAME.
+            let candidate = auth.app_name().to_string();
+            auth.token_store.save_oauth1_tokens_for_app(
+                &candidate,
                 &access_token,
                 &token_secret,
                 &consumer_key,
                 &consumer_secret,
             )?;
-            out.print_message("\x1b[32mOAuth1 credentials saved successfully!\x1b[0m");
+            // Auto-default the first signed-in app so the user does not
+            // need an explicit `xr auth default <name>` follow-up. Clone
+            // the app name first; `promote_...` takes `&mut self` on the
+            // store which would otherwise alias the immutable `&str`
+            // borrow from `auth.app_name()`.
+            let _ = auth
+                .token_store
+                .promote_to_default_if_first_credentialed(&candidate)?;
+            out.print_message(
+                stdout,
+                "\x1b[32mOAuth1 credentials saved successfully!\x1b[0m",
+            );
         }
         AuthCommands::App { bearer_token } => {
-            auth.token_store.save_bearer_token(&bearer_token)?;
-            out.print_message("\x1b[32mApp authentication successful!\x1b[0m");
+            if dry_run {
+                let ctx = json!({"command": "auth-app"});
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+            // Multi-app save: route the bearer to the active app
+            // (set by `--app NAME` or default). The no-arg variant
+            // silently fell back to the default app even with `--app
+            // NAME` set, so `xr auth app --bearer-token … --app NAME`
+            // would overwrite default's bearer instead of populating
+            // NAME's entry.
+            let candidate = auth.app_name().to_string();
+            auth.token_store
+                .save_bearer_token_for_app(&candidate, &bearer_token)?;
+            let _ = auth
+                .token_store
+                .promote_to_default_if_first_credentialed(&candidate)?;
+            out.print_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
         }
         AuthCommands::Status => {
-            let ts = TokenStore::new();
+            // Read through the runner-constructed store so tempdir-based
+            // CLI tests observe the same `~/.xurl` the runner saw (KTD7).
+            let ts = &auth.token_store;
             let apps = ts.list_apps();
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
+                out.print_message(
+                    stdout,
+                    "No apps registered. Use 'xr auth apps add' to register one.",
+                );
                 return Ok(());
             }
 
-            for (i, name) in apps.iter().enumerate() {
-                if let Some(app) = ts.get_app(name) {
+            let entries = build_app_status_entries(ts, &apps, default_app);
+
+            if out.format.is_structured() {
+                let value = serde_json::to_value(&entries)?;
+                out.print_response(stdout, &value);
+            } else {
+                for (i, (name, entry)) in apps.iter().zip(entries.iter()).enumerate() {
+                    let Some(app) = ts.get_app(name) else {
+                        continue;
+                    };
                     let marker = if name == default_app { "\u{25b8}" } else { " " };
                     let client_hint = if app.client_id.is_empty() {
                         "(no credentials)".to_string()
                     } else {
-                        format!("client_id: {}...", truncate(&app.client_id, 8))
+                        format!("client_id: {}...", entry.client_id_hint)
                     };
-                    out.print_message(&format!("{marker} {name}  [{client_hint}]"));
+                    out.print_message(stdout, &format!("{marker} {name}  [{client_hint}]"));
 
-                    let usernames = ts.get_oauth2_usernames_for_app(name);
-                    if usernames.is_empty() {
-                        out.print_message("      oauth2: (none)");
+                    // R19 + R24: surface the effective redirect URI + source.
+                    out.print_message(
+                        stdout,
+                        &format!(
+                            "      redirect_uri: {} [{}]",
+                            entry.redirect_uri,
+                            entry.redirect_uri_source.as_text_label()
+                        ),
+                    );
+                    if let Some(stored) = entry.redirect_uri_stored.as_deref() {
+                        out.print_message(stdout, &format!("      stored_redirect_uri: {stored}"));
+                    }
+
+                    if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
+                        out.print_message(stdout, "      oauth2: (none)");
                     } else {
-                        for u in &usernames {
+                        for u in &entry.oauth2_users {
                             if *u == app.default_user {
-                                out.print_message(&format!("    \u{25b8} oauth2: {u}"));
+                                out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
                             } else {
-                                out.print_message(&format!("      oauth2: {u}"));
+                                out.print_message(stdout, &format!("      oauth2: {u}"));
                             }
+                        }
+                        // KTD8: render the unnamed (`/me`-failed salvage)
+                        // slot after named users, labelled `(unknown user)`.
+                        if entry.oauth2_unnamed {
+                            out.print_message(stdout, "      oauth2: (unknown user)");
                         }
                     }
 
-                    if app.oauth1_token.is_some() {
-                        out.print_message("      oauth1: \u{2713}");
+                    if entry.oauth1 {
+                        out.print_message(stdout, "      oauth1: \u{2713}");
                     } else {
-                        out.print_message("      oauth1: \u{2013}");
+                        out.print_message(stdout, "      oauth1: \u{2013}");
                     }
 
-                    if app.bearer_token.is_some() {
-                        out.print_message("      bearer: \u{2713}");
+                    if entry.bearer {
+                        out.print_message(stdout, "      bearer: \u{2713}");
                     } else {
-                        out.print_message("      bearer: \u{2013}");
+                        out.print_message(stdout, "      bearer: \u{2013}");
                     }
 
                     if i < apps.len() - 1 {
-                        out.print_message("");
+                        out.print_message(stdout, "");
                     }
                 }
             }
@@ -176,19 +439,60 @@ pub(super) fn run_auth_command(
             oauth1,
             oauth2_username,
             bearer,
+            force,
         } => {
+            let ctx = json!({
+                "command": "auth-clear",
+                "all": all,
+                "oauth1": oauth1,
+                "oauth2_username": oauth2_username,
+                "bearer": bearer,
+            });
+
+            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
+            // destructive op in interactive mode does not leak a dry-run
+            // envelope. Dry-run still composes with --force.
+            let target = if all {
+                "all credentials"
+            } else if oauth1 {
+                "OAuth1 tokens"
+            } else if oauth2_username.is_some() {
+                "OAuth2 token"
+            } else if bearer {
+                "bearer token"
+            } else {
+                ""
+            };
+            if !target.is_empty() {
+                match gate_destructive(force, no_interactive, quiet, &format!("Clear {target}?"))? {
+                    Gate::Proceed => {}
+                    Gate::Declined => return Ok(()),
+                    Gate::ConfirmationRequired => {
+                        out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
+                        return Err(XurlError::EnvelopeAlreadyEmitted {
+                            exit_code: EXIT_GENERAL_ERROR,
+                        });
+                    }
+                }
+            }
+
+            if dry_run {
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+
             if all {
                 auth.token_store.clear_all()?;
-                out.print_message("All authentication cleared!");
+                out.print_message(stdout, "All authentication cleared!");
             } else if oauth1 {
                 auth.token_store.clear_oauth1_tokens()?;
-                out.print_message("OAuth1 tokens cleared!");
+                out.print_message(stdout, "OAuth1 tokens cleared!");
             } else if let Some(username) = oauth2_username {
                 auth.token_store.clear_oauth2_token(&username)?;
-                out.print_message(&format!("OAuth2 token cleared for {username}!"));
+                out.print_message(stdout, &format!("OAuth2 token cleared for {username}!"));
             } else if bearer {
                 auth.token_store.clear_bearer_token()?;
-                out.print_message("Bearer token cleared!");
+                out.print_message(stdout, "Bearer token cleared!");
             } else {
                 return Err(XurlError::validation(
                     "No authentication cleared! Use --all to clear all authentication.",
@@ -196,57 +500,95 @@ pub(super) fn run_auth_command(
             }
         }
         AuthCommands::Apps { command } => {
-            return run_app_command(command, &mut auth, out);
+            return run_app_command(
+                command,
+                &mut auth,
+                AppGlobalFlags {
+                    no_interactive,
+                    dry_run,
+                    quiet,
+                },
+                out,
+                stdout,
+                stderr,
+            );
         }
         AuthCommands::Default { app_name, username } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "auth-default",
+                    "app_name": app_name,
+                    "username": username,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             if let Some(app_name) = app_name {
                 auth.token_store.set_default_app(&app_name)?;
-                out.print_message(&format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"));
+                out.print_message(
+                    stdout,
+                    &format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"),
+                );
                 if let Some(user) = username {
                     auth.token_store.set_default_user(&app_name, &user)?;
-                    out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
+                    out.print_message(
+                        stdout,
+                        &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
+                    );
                 }
             } else {
-                // Interactive picker
-                if no_interactive {
-                    return Err(XurlError::auth(
-                        "Interactive prompt required. Pass app name as argument: xr auth default <app-name>",
-                    ));
+                // Interactive picker — gate on `--no-interactive` AND on
+                // TTY-ness of stdin/stderr (the dialoguer transports). Without
+                // a real terminal the dialoguer state machine would block on
+                // `/dev/null` or panic; emit the canonical `no-tty` envelope
+                // and return `EnvelopeAlreadyEmitted` so the runner skips its
+                // generic error path.
+                if !out.is_interactive_terminal() {
+                    out.print_error_envelope(
+                        stderr,
+                        "no-tty",
+                        EXIT_GENERAL_ERROR,
+                        "no default app set; pass --app or run 'xr auth default <name>' interactively",
+                    );
+                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                        exit_code: EXIT_GENERAL_ERROR,
+                    });
                 }
 
                 let apps = auth.token_store.list_apps();
                 if apps.is_empty() {
                     out.print_message(
+                        stdout,
                         "No apps registered. Use 'xr auth apps add' to register one.",
                     );
                     return Ok(());
                 }
 
-                let app_choice = match dialoguer::Select::new()
-                    .with_prompt("Select default app")
-                    .items(&apps)
-                    .interact_opt()
-                {
-                    Ok(Some(idx)) => apps[idx].clone(),
-                    Ok(None) => return Ok(()),
-                    Err(e) => {
-                        return Err(XurlError::validation(format!("Selection error: {e}")));
-                    }
+                let app_choice = match prompt_select("Select default app", &apps)? {
+                    Some(name) => name,
+                    None => return Ok(()),
                 };
 
                 auth.token_store.set_default_app(&app_choice)?;
-                out.print_message(&format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"));
+                out.print_message(
+                    stdout,
+                    &format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
+                );
 
+                // Defensive TTY re-check before the second dialoguer prompt
+                // (the user picker). The outer gate already guarantees this in
+                // the current flow; the explicit check keeps the invariant
+                // local to the call site so future refactors can't drop it.
                 let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
                 if !users.is_empty()
-                    && let Ok(Some(idx)) = dialoguer::Select::new()
-                        .with_prompt("Select default OAuth2 user")
-                        .items(&users)
-                        .interact_opt()
+                    && out.is_interactive_terminal()
+                    && let Ok(Some(user)) = prompt_select("Select default OAuth2 user", &users)
                 {
-                    let user = &users[idx];
-                    auth.token_store.set_default_user(&app_choice, user)?;
-                    out.print_message(&format!("\x1b[32mDefault user set to {user:?}\x1b[0m"));
+                    auth.token_store.set_default_user(&app_choice, &user)?;
+                    out.print_message(
+                        stdout,
+                        &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
+                    );
                 }
             }
         }
@@ -254,53 +596,142 @@ pub(super) fn run_auth_command(
     Ok(())
 }
 
-fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Result<()> {
+/// Subset of `AuthGlobalFlags` needed by app management.
+#[derive(Debug, Clone, Copy)]
+struct AppGlobalFlags {
+    no_interactive: bool,
+    dry_run: bool,
+    quiet: bool,
+}
+
+fn run_app_command(
+    cmd: AppCommands,
+    auth: &mut Auth,
+    flags: AppGlobalFlags,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Result<()> {
+    let AppGlobalFlags {
+        no_interactive,
+        dry_run,
+        quiet,
+    } = flags;
     match cmd {
         AppCommands::Add {
             name,
             client_id,
             client_secret,
+            redirect_uri,
         } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "app-add",
+                    "name": name,
+                    "has_redirect_uri": redirect_uri.is_some(),
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store
                 .add_app(&name, &client_id, &client_secret)?;
-            out.print_message(&format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
+            if let Some(ref uri) = redirect_uri {
+                auth.token_store.set_app_redirect_uri(&name, uri)?;
+            }
+            out.print_message(stdout, &format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
             if auth.token_store.list_apps().len() == 1 {
-                out.print_message("  (set as default app)");
+                out.print_message(stdout, "  (set as default app)");
             }
         }
         AppCommands::Update {
             name,
             client_id,
             client_secret,
+            redirect_uri,
         } => {
-            if client_id.is_none() && client_secret.is_none() {
+            if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
                 return Err(XurlError::validation(
-                    "Nothing to update. Provide --client-id and/or --client-secret.",
+                    "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
                 ));
             }
-            auth.token_store.update_app(
-                &name,
-                &client_id.unwrap_or_default(),
-                &client_secret.unwrap_or_default(),
-            )?;
-            out.print_message(&format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
+            if dry_run {
+                let ctx = json!({
+                    "command": "app-update",
+                    "name": name,
+                    "has_client_id": client_id.is_some(),
+                    "has_client_secret": client_secret.is_some(),
+                    "has_redirect_uri": redirect_uri.is_some(),
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+            if client_id.is_some() || client_secret.is_some() {
+                auth.token_store.update_app(
+                    &name,
+                    &client_id.unwrap_or_default(),
+                    &client_secret.unwrap_or_default(),
+                )?;
+            }
+            if let Some(ref uri) = redirect_uri {
+                auth.token_store.set_app_redirect_uri(&name, uri)?;
+            }
+            out.print_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
         }
-        AppCommands::Remove { name } => {
+        AppCommands::Remove { name, force } => {
+            let ctx = json!({"command": "app-remove", "name": name});
+            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
+            // destructive op in interactive mode does not leak a dry-run
+            // envelope.
+            match gate_destructive(
+                force,
+                no_interactive,
+                quiet,
+                &format!("Remove app {name:?}?"),
+            )? {
+                Gate::Proceed => {}
+                Gate::Declined => return Ok(()),
+                Gate::ConfirmationRequired => {
+                    out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
+                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                        exit_code: EXIT_GENERAL_ERROR,
+                    });
+                }
+            }
+            if dry_run {
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
             auth.token_store.remove_app(&name)?;
-            out.print_message(&format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
+            out.print_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
+        }
+        AppCommands::RedirectUri { command } => {
+            return run_redirect_uri_command(command, auth, dry_run, out, stdout);
         }
         AppCommands::List => {
-            let ts = TokenStore::new();
+            // Read through the runner-constructed store so tempdir-based
+            // CLI tests observe the same `~/.xurl` the runner saw (KTD7).
+            let ts = &auth.token_store;
             let apps = ts.list_apps();
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message("No apps registered. Use 'xr auth apps add' to register one.");
+                out.print_message(
+                    stdout,
+                    "No apps registered. Use 'xr auth apps add' to register one.",
+                );
                 return Ok(());
             }
 
-            for name in &apps {
-                if let Some(app) = ts.get_app(name) {
+            let entries = build_app_status_entries(ts, &apps, default_app);
+
+            if out.format.is_structured() {
+                let value = serde_json::to_value(&entries)?;
+                out.print_response(stdout, &value);
+            } else {
+                for (name, entry) in apps.iter().zip(entries.iter()) {
+                    let Some(app) = ts.get_app(name) else {
+                        continue;
+                    };
                     let marker = if name == default_app {
                         "\u{25b8} "
                     } else {
@@ -309,14 +740,73 @@ fn run_app_command(cmd: AppCommands, auth: &mut Auth, out: &OutputConfig) -> Res
                     let client_hint = if app.client_id.is_empty() {
                         String::new()
                     } else {
-                        format!(" (client_id: {}...)", truncate(&app.client_id, 8))
+                        format!(" (client_id: {}...)", entry.client_id_hint)
                     };
-                    out.print_message(&format!("{marker}{name}{client_hint}"));
+                    // R20: inline the effective redirect URI + source hint.
+                    out.print_message(
+                        stdout,
+                        &format!(
+                            "{marker}{name}{client_hint} [redirect_uri: {} ({})]",
+                            entry.redirect_uri,
+                            entry.redirect_uri_source.as_text_label()
+                        ),
+                    );
                 }
             }
         }
     }
     Ok(())
+}
+
+/// Builds the credential-less-default-app warning when applicable.
+///
+/// Returns `Some(message)` when the default app exists with an empty
+/// `client_id` AND at least one other registered app has a non-empty
+/// `client_id`. Returns `None` otherwise.
+///
+/// Caller decides whether to emit (callers gate this on the user not having
+/// passed `--app` per R13). The message uses plain ASCII (no ANSI escape
+/// codes) per KTD4 and is routed through `OutputConfig::info` so `--quiet`
+/// and `--output json` suppress it.
+fn credential_less_default_warning(ts: &TokenStore) -> Option<String> {
+    let default_name = ts.get_default_app();
+    let default_app = ts.get_app(default_name)?;
+    if !default_app.client_id.is_empty() {
+        return None;
+    }
+
+    let credentialed: Vec<(String, String)> = ts
+        .list_apps()
+        .into_iter()
+        .filter(|name| name != default_name)
+        .filter_map(|name| {
+            let app = ts.get_app(&name)?;
+            if app.client_id.is_empty() {
+                None
+            } else {
+                Some((name, truncate(&app.client_id, 8).to_string()))
+            }
+        })
+        .collect();
+
+    if credentialed.is_empty() {
+        return None;
+    }
+
+    let mut msg = String::new();
+    msg.push_str(&format!(
+        "warning: --app not specified. The OAuth2 token will be saved to the \"{default_name}\" app,\n"
+    ));
+    msg.push_str("which has no client credentials stored. API calls will fail with 401 errors.\n");
+    msg.push('\n');
+    msg.push_str("App(s) with credentials available:\n");
+    for (name, hint) in &credentialed {
+        msg.push_str(&format!("  --app {name}  [client_id: {hint}...]\n"));
+    }
+    msg.push('\n');
+    let first = &credentialed[0].0;
+    msg.push_str(&format!("Run instead:  xr auth oauth2 --app {first}"));
+    Some(msg)
 }
 
 /// Truncates a string to a maximum length.
@@ -329,4 +819,115 @@ fn truncate(s: &str, max_len: usize) -> &str {
             None => s,
         }
     }
+}
+
+/// Builds the typed JSON intermediate for `auth status` and `auth apps list`.
+///
+/// Constructs each `AppStatusEntry` field-by-field from named accessors per
+/// R23 + KTD11; no `From<&App>` and no `Serialize`-on-`App`. The
+/// `REDIRECT_URI` env var is read once per entry to drive the resolver.
+fn build_app_status_entries(
+    ts: &TokenStore,
+    apps: &[String],
+    default_app: &str,
+) -> Vec<AppStatusEntry> {
+    let env = std::env::var("REDIRECT_URI").ok();
+    apps.iter()
+        .filter_map(|name| {
+            let app = ts.get_app(name)?;
+            let stored = ts.get_app_redirect_uri(name).map(str::to_string);
+            let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
+            let stored_field = if resolved.source.is_env_var() && stored.is_some() {
+                stored
+            } else {
+                None
+            };
+            Some(AppStatusEntry {
+                name: name.clone(),
+                client_id_hint: truncate(&app.client_id, 8).to_string(),
+                redirect_uri: resolved.uri,
+                redirect_uri_source: resolved.source,
+                redirect_uri_stored: stored_field,
+                oauth2_users: ts.get_oauth2_usernames_for_app(name),
+                oauth1: app.oauth1_token.is_some(),
+                bearer: app.bearer_token.is_some(),
+                default: name == default_app,
+                oauth2_unnamed: app.unnamed_oauth2_token.is_some(),
+            })
+        })
+        .collect()
+}
+
+fn run_redirect_uri_command(
+    cmd: RedirectUriCommands,
+    auth: &mut Auth,
+    dry_run: bool,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> Result<()> {
+    match cmd {
+        RedirectUriCommands::Get { name } => {
+            let target = match name.as_deref() {
+                Some(n) => n.to_string(),
+                None => {
+                    let default = auth.token_store.get_default_app();
+                    if default.is_empty() {
+                        return Err(XurlError::validation("no default app set; specify NAME"));
+                    }
+                    default.to_string()
+                }
+            };
+
+            let env = std::env::var("REDIRECT_URI").ok();
+            let stored = auth
+                .token_store
+                .get_app_redirect_uri(&target)
+                .map(str::to_string);
+            let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
+
+            if out.format.is_structured() {
+                let response = RedirectUriGetResponse {
+                    app: target.clone(),
+                    effective_redirect_uri: resolved.uri.clone(),
+                    effective_source: resolved.source,
+                    stored_redirect_uri: stored.clone(),
+                };
+                let value = serde_json::to_value(&response)?;
+                out.print_response(stdout, &value);
+            } else {
+                out.print_message(stdout, &format!("app: {target}"));
+                out.print_message(stdout, &format!("effective_redirect_uri: {}", resolved.uri));
+                out.print_message(
+                    stdout,
+                    &format!("effective_source: {}", resolved.source.as_text_label()),
+                );
+                let stored_display = stored.as_deref().unwrap_or("(none)");
+                out.print_message(stdout, &format!("stored_redirect_uri: {stored_display}"));
+            }
+        }
+        RedirectUriCommands::Set { name, uri } => {
+            if dry_run {
+                let ctx = json!({
+                    "command": "redirect-uri-set",
+                    "app": name,
+                    "redirect_uri": uri,
+                });
+                out.print_dry_run(stdout, true, 0, &ctx);
+                return Ok(());
+            }
+            auth.token_store.set_app_redirect_uri(&name, &uri)?;
+            if out.format.is_structured() {
+                let response = RedirectUriSetResponse {
+                    status: "ok",
+                    app: name.clone(),
+                    redirect_uri: uri.clone(),
+                };
+                let value = serde_json::to_value(&response)?;
+                out.print_response(stdout, &value);
+            } else {
+                out.print_message(stdout, &format!("Set redirect URI for {name:?}"));
+            }
+        }
+    }
+    Ok(())
 }

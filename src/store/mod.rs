@@ -95,7 +95,7 @@ impl TokenStore {
             if twurlrc_path.exists()
                 && let Err(e) = store.import_from_twurlrc(&twurlrc_path)
             {
-                eprintln!("Error importing from .twurlrc: {e}");
+                crate::output::warn_stderr(&format!("error importing from .twurlrc: {e}"));
             }
         }
 
@@ -249,6 +249,58 @@ impl TokenStore {
         self.save_to_file()
     }
 
+    /// Returns `true` when the currently-resolved default app holds no
+    /// credentials of any kind: no `OAuth2` user tokens, no `OAuth1` token,
+    /// no bearer token, and no unnamed `OAuth2` salvage token. The signal
+    /// used by [`Self::promote_to_default_if_first_credentialed`] to detect
+    /// the placeholder default that a fresh install starts with so the very
+    /// first authenticated app can transparently take over.
+    #[must_use]
+    pub fn default_app_is_uninitialized(&self) -> bool {
+        let app = self.resolve_app("");
+        app.oauth2_tokens.is_empty()
+            && app.oauth1_token.is_none()
+            && app.bearer_token.is_none()
+            && app.unnamed_oauth2_token.is_none()
+    }
+
+    /// Promotes `candidate_app` to the default app iff the current default
+    /// is uninitialized (per [`Self::default_app_is_uninitialized`]) and
+    /// `candidate_app` is registered and different from the current default.
+    /// Returns the new default name when promotion happened, `None` otherwise.
+    ///
+    /// Idempotent: callers can invoke unconditionally after any
+    /// authentication save. No-op on already-credentialed defaults, on
+    /// unknown candidates, on empty candidate names, and when the candidate
+    /// already IS the default.
+    ///
+    /// Drives the "first signed-in app becomes the default" UX so a fresh
+    /// `xr auth oauth2 --app NAME` (or `oauth1`, or `auth app --bearer-token
+    /// --app NAME`) does not leave the placeholder `default` ahead of NAME
+    /// in the resolution chain. Users who want a different default later
+    /// can still run `xr auth default <name>` explicitly; this helper only
+    /// fires on the first authenticated save.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if [`Self::set_default_app`] fails to persist.
+    pub fn promote_to_default_if_first_credentialed(
+        &mut self,
+        candidate_app: &str,
+    ) -> Result<Option<String>> {
+        if candidate_app.is_empty() || candidate_app == self.default_app {
+            return Ok(None);
+        }
+        if !self.apps.contains_key(candidate_app) {
+            return Ok(None);
+        }
+        if !self.default_app_is_uninitialized() {
+            return Ok(None);
+        }
+        self.set_default_app(candidate_app)?;
+        Ok(Some(candidate_app.to_string()))
+    }
+
     /// Returns sorted app names.
     #[must_use]
     pub fn list_apps(&self) -> Vec<String> {
@@ -282,6 +334,47 @@ impl TokenStore {
     pub fn get_default_user(&self, app_name: &str) -> &str {
         let app = self.resolve_app(app_name);
         &app.default_user
+    }
+
+    /// Sets the stored `OAuth2` redirect URI for the named (or default) app.
+    ///
+    /// An empty `uri` clears the stored value; the next serialize omits the
+    /// field thanks to `#[serde(skip_serializing_if = "String::is_empty")]`.
+    /// A non-empty `uri` is validated via [`crate::config::Config::validate_redirect_uri`]
+    /// before persisting; on validation failure the store is not modified.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URI fails validation or the store cannot be saved.
+    pub fn set_app_redirect_uri(&mut self, name: &str, uri: &str) -> Result<()> {
+        if !name.is_empty() && !self.apps.contains_key(name) {
+            return Err(XurlError::token_store(format!("app {name:?} not found")));
+        }
+
+        if uri.is_empty() {
+            let app = self.resolve_app_mut(name);
+            app.redirect_uri.clear();
+            return self.save_to_file();
+        }
+
+        let _ = crate::config::Config::validate_redirect_uri(uri)?;
+
+        let app = self.resolve_app_mut(name);
+        app.redirect_uri = uri.to_string();
+        self.save_to_file()
+    }
+
+    /// Returns the stored `OAuth2` redirect URI for the named (or default) app.
+    ///
+    /// Returns `None` when the app is absent or its stored URI is empty.
+    #[must_use]
+    pub fn get_app_redirect_uri(&self, name: &str) -> Option<&str> {
+        let app = self.resolve_app(name);
+        if app.redirect_uri.is_empty() {
+            None
+        } else {
+            Some(app.redirect_uri.as_str())
+        }
     }
 
     /// Returns the default app name.

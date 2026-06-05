@@ -3,7 +3,7 @@ mod endpoints;
 mod media;
 mod request;
 pub mod response;
-mod shortcuts;
+pub mod shortcuts;
 
 pub use endpoints::is_streaming_endpoint;
 #[allow(unused_imports)]
@@ -12,7 +12,7 @@ pub use media::{
     extract_segment_index, handle_media_append_request, is_media_append_request,
 };
 #[allow(unused_imports)]
-pub use request::{ApiClient, CallOptions, MultipartOptions, RequestOptions};
+pub use request::{ApiClient, CallOptions, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions};
 #[allow(unused_imports)]
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,

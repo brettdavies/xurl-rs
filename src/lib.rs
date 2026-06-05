@@ -1,6 +1,9 @@
 pub mod api;
 pub mod auth;
+pub mod cli;
 pub mod config;
+pub mod envelope;
 pub mod error;
 pub mod output;
+pub mod skill_install;
 pub mod store;
