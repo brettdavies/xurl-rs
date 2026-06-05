@@ -31,6 +31,40 @@ git log "$LAST_TAG..dev" --grep '^[a-z]\+!:' --oneline          # Conventional-C
 
 Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
 
+## Quick start: run the automated gates
+
+Most of this checklist now runs from one script. Build `xr` first, then:
+
+```bash
+cargo build --release --bin xr
+scripts/release-preflight all          # surface + api-contract + smoke + multi-app + mechanics
+scripts/release-preflight post-tag     # run after `git push origin vX.Y.Z`
+```
+
+The script (`scripts/release-preflight`) covers 28 of the 31 automatable gates. It exits non-zero if any gate fails;
+human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
+the recipe below. Sub-commands let you re-run one gate group in isolation:
+
+| Sub-command    | What it runs                                                                                                               | Live API?                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                    | no                        |
+| `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                            | no (builds prev tag once) |
+| `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                              | yes                       |
+| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                     | yes                       |
+| `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check | no                        |
+| `post-tag`     | GitHub Release existence + `make_latest` flip after homebrew dispatch                                                      | no                        |
+| `all`          | every above except `post-tag`                                                                                              | yes                       |
+
+Flags:
+
+- `--smoke-home PATH` — reuse an existing seeded store (skip the 1Password seed)
+- `--no-cleanup` — keep the temp store after exit (useful for follow-up `xr` probes)
+- `--tag TAG` — override LAST_TAG auto-detection
+
+The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and `gio trash`es it on exit. The
+detailed recipes in the gate sections below still document what the script does and serve as the manual fallback when
+1Password is unavailable or you want to iterate on a single gate by hand.
+
 ## Checklist
 
 ### API-contract surface
