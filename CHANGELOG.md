@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-06-05
+
+### Added
+
+- Document the entire `xurl` library public surface (crate-level overview, per-module headers, per-item prose, per-field and per-variant docs) so docs.rs renders complete reference material for downstream Rust consumers. by @brettdavies in [#70](https://github.com/brettdavies/xurl-rs/pull/70)
+- Enforce `#![deny(missing_docs)]` on the library surface so new undocumented `pub` items fail `cargo build` at compile time.
+- Add `no_run` usage examples on the seven entry-point types (`ApiClient`, `OutputConfig`, `TokenStore`, `XurlError`, `get_me`, `create_post`, `search_posts`) so downstream consumers have copyable on-ramps that compile against the public API.
+- Five top-level `pub const`s on the `xurl` library surface: `CRATE_VERSION` (this crate's version), `CRATE_GIT_SHA` (`Option<&str>`, the git HEAD SHA at build time when one is available), `API_SPEC_VERSION` (`info.version` of the vendored X API spec), `API_SPEC_SHA256` (content hash of the vendored spec file), and `API_SPEC_DATE` (UTC date of the last refresh). Downstream library consumers can read linked-crate identity and X API spec identity without invoking `xr --version` as a subprocess. by @brettdavies in [#71](https://github.com/brettdavies/xurl-rs/pull/71)
+- `vendor/spec-metadata.json`: a checked-in sidecar carrying the vendored spec's identity (info_version, content_sha256, refreshed_at, source_url). `scripts/refresh-x-openapi.sh` writes this atomically alongside `vendor/x-api-openapi.json` so build-time metadata always describes the actual bytes that ship.
+- `scripts/diff-x-openapi-spec.sh`: standalone diff/render tool for X OpenAPI snapshots. Surfaces path, schema, and categorical-value (enum + discriminator-mapping) additions and removals as a markdown body, used by the spec-drift workflow and callable manually.
+
+### Changed
+
+- Bump `hmac` 0.12.1 → 0.13.0 and `sha1` 0.10.6 → 0.11.0 so OAuth1 HMAC-SHA1 signing now runs on the `digest` 0.11 line alongside `sha2`. No user-observable behavior change in `xr`; downstream Rust consumers of the `xurl` library that link these crates directly will see the major version bumps. by @dependabot[bot] in [#61](https://github.com/brettdavies/xurl-rs/pull/61)
+- Vendored X API spec refreshed to upstream as of 2026-06-05. `info.version` still 2.165; path count still 139. New schema `PostDeleteActivityResponsePayload`; new `post.create`/`post.delete` values in the `ActivityStreamingResponsePayload.discriminator.mapping` and `ActivitySubscriptionCreateRequest.properties.event_type.enum`; new `includes: Expansions` field on the streaming payload. by @brettdavies in [#71](https://github.com/brettdavies/xurl-rs/pull/71)
+- Spec-drift workflow report now distinguishes "silent content bump" (`info.version` matches on both sides) from "real version bump," lists path / schema / categorical-value diffs with `+`/`-` value markers, and renders the refresh-locally footer only when no structural diff surfaced.
+
+### Documentation
+
+- Fix four mis-targeted `///` blocks in `src/api/mod.rs`, `src/auth/mod.rs`, `src/cli/mod.rs`, `src/store/mod.rs` where the doc bound to the next item (a `pub mod foo;` or `use ...;`) rather than the enclosing module. Same pattern fixed across additional files surfaced during implementation. by @brettdavies in [#70](https://github.com/brettdavies/xurl-rs/pull/70)
+
+**Full Changelog**: [v2.0.0...v2.1.0](https://github.com/brettdavies/xurl-rs/compare/v2.0.0...v2.1.0)
+
 ## [2.0.0] - 2026-06-05
 
 ### Added
