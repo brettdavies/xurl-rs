@@ -75,13 +75,31 @@ read_1p() {
 SMOKE_HOME=""
 NO_CLEANUP=0
 
+shred_tmpdir() {
+    # Any tempdir created by this script that may hold a seeded ~/.xurl gets
+    # shredded, not trashed. `gio trash` is recoverable; `rm` only unlinks
+    # (inode + blocks may persist on-disk through journal crash windows).
+    # `shred -u` overwrites bytes before unlinking — closes the exfil window
+    # for cred recovery off the FS, backups, or the trash bin.
+    local dir="$1"
+    [[ -n "$dir" && -d "$dir" ]] || return 0
+    # Safety: refuse to operate outside /tmp or $HOME (path-typo guardrail,
+    # mirrors the 1Password skill's stage_secret.sh shred contract).
+    case "$dir" in
+        /tmp/*|"$HOME"/*) ;;
+        *) echo "refusing to shred outside /tmp or \$HOME: $dir" >&2; return 1;;
+    esac
+    if command -v shred >/dev/null 2>&1; then
+        find "$dir" -type f -exec shred -u {} + 2>/dev/null || true
+    else
+        find "$dir" -type f -exec sh -c 'dd if=/dev/urandom of="$1" bs=1 count=$(stat -c%s "$1") conv=notrunc 2>/dev/null; rm -f "$1"' _ {} \;
+    fi
+    find "$dir" -depth -type d -exec rmdir {} + 2>/dev/null || true
+}
+
 cleanup_smoke() {
     [[ $NO_CLEANUP -eq 0 && -n "$SMOKE_HOME" && -d "$SMOKE_HOME" ]] || return 0
-    if command -v gio >/dev/null 2>&1; then
-        gio trash "$SMOKE_HOME" 2>/dev/null || rm -rf "$SMOKE_HOME"
-    else
-        rm -rf "$SMOKE_HOME"
-    fi
+    shred_tmpdir "$SMOKE_HOME"
 }
 trap cleanup_smoke EXIT
 
@@ -168,7 +186,10 @@ gate_api_contract() {
             removed=$(comm -23 "$tmpdir/prev-cmds.txt" "$tmpdir/head-cmds.txt" | tr '\n' ' ' | sed 's/ $//')
             added=$(comm -13 "$tmpdir/prev-cmds.txt" "$tmpdir/head-cmds.txt" | tr '\n' ' ' | sed 's/ $//')
             gate_pass "xr help: removed=[${removed:-none}]  added=[${added:-none}]  (confirm any removed has !: + Breaking row)"
-            command -v gio >/dev/null && gio trash "$empty" 2>/dev/null
+            # `$empty` for `xr --help` is a no-creds tempdir, but xr may write a
+            # default `~/.xurl` skeleton. Shred for consistency with the seeded
+            # paths so cleanup policy is the same everywhere.
+            shred_tmpdir "$empty"
         else
             gate_skip "xr help diff" "prev build failed"
         fi
@@ -182,7 +203,12 @@ gate_api_contract() {
     exports=$(git diff "$last_tag..HEAD" -- src/lib.rs src/api/mod.rs | grep -cE '^[+-]\s*pub\s+(use|fn|struct|enum|mod)' || true)
     gate_pass "lib re-export delta: $exports lines (review against MIGRATING.md breaking rows)"
 
-    command -v gio >/dev/null && gio trash "$tmpdir" 2>/dev/null
+    # $tmpdir held a git worktree of source — no creds, regular trash is fine
+    if command -v gio >/dev/null 2>&1; then
+        gio trash "$tmpdir" 2>/dev/null || rm -rf "$tmpdir"
+    else
+        rm -rf "$tmpdir"
+    fi
 }
 
 # Gate: smoke ----------------------------------------------------------------
@@ -208,7 +234,9 @@ gate_smoke() {
     out=$(HOME=$empty XURL_BEARER_TOKEN="$app_bearer" "$XR_BIN" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
     unset app_bearer
     [[ "$out" == "true" ]] && gate_pass "Bearer env one-shot" || gate_fail "Bearer env" "no data"
-    command -v gio >/dev/null && gio trash "$empty" 2>/dev/null
+    # $empty only saw XURL_BEARER_TOKEN as env, never written to disk — but
+    # shred anyway in case xr created a sentinel file with the bearer.
+    shred_tmpdir "$empty"
 
     # Bearer stored
     out=$(HOME="$SMOKE_HOME" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
@@ -303,7 +331,8 @@ gate_multi_app() {
     after=$(yq '.default_app' "$fresh/.xurl")
     [[ "$after" == "bird_dev" ]] && gate_pass "Promotion idempotence (second sign-in did not overwrite default)" || gate_fail "Idempotence" "default became $after"
     unset dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
-    command -v gio >/dev/null && gio trash "$fresh" 2>/dev/null
+    # $fresh/.xurl was seeded with bird_dev OAuth1 creds — shred, not trash.
+    shred_tmpdir "$fresh"
 
     # Auth-error envelope vs upstream 401
     out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
