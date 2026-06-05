@@ -2134,6 +2134,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
             requested,
             supported,
             available_in_app,
+            ..
         } => {
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(method, "POST");
@@ -2141,7 +2142,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
             assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
             assert!(
                 available_in_app.is_none(),
-                "U6 explicit-mismatch shape must leave `available_in_app` at None"
+                "explicit-mismatch shape must leave `available_in_app` at None"
             );
         }
         other => panic!("expected AuthMethodMismatch, got {other:?}"),
@@ -2195,7 +2196,181 @@ fn u6_ae2_passthrough_oauth1_against_media_upload() {
     );
 }
 
-/// AE5 — raw mode bypasses the matrix (R18).
+/// AE1 mirror for the multipart send path.
+///
+/// `send_multipart_request` shares the same fail-fast validator wiring as
+/// `send_request`. Bearer-only app + `--auth app` against `/2/media/upload`
+/// must surface `AuthMethodMismatch` before the multipart body is built and
+/// wiremock receives zero traffic. Pre-merge insurance against a future
+/// edit that drops the gate from one of the three send paths.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
+    use std::collections::HashMap;
+    use xurl::api::MultipartOptions;
+
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mp_opts = MultipartOptions {
+        request: RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        },
+        form_fields: HashMap::new(),
+        file_field: "media".to_string(),
+        file_path: String::new(),
+        file_name: "x.jpg".to_string(),
+        file_data: b"fake-jpeg".to_vec(),
+    };
+
+    let err = client.send_multipart_request(&mp_opts).unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            method,
+            requested,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(method, "POST");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    assert_eq!(err.exit_code(), 2, "exit code must be EXIT_AUTH_MISMATCH");
+    assert_eq!(err.kind(), "auth-method-mismatch");
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "multipart validator must reject BEFORE any HTTP I/O"
+    );
+}
+
+/// AE1 mirror for the streaming send path.
+///
+/// `ApiClient::stream_request` wires the same fail-fast validator as
+/// `send_request`. Bearer-only app + `--auth app` against a streaming
+/// endpoint that only accepts OAuth1/OAuth2 must surface
+/// `AuthMethodMismatch` before any socket is opened. The CLI streaming
+/// wrapper (`cli::commands::streaming::stream_request_with_output`) makes
+/// the identical validator call at its own entry, so locking this
+/// invariant on the library side covers both.
+#[test]
+fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    // /2/media/upload accepts OAuth2 + OAuth1 but rejects Bearer. Even
+    // though it isn't a "real" streaming endpoint, stream_request applies
+    // the validator before opening any connection, so the matrix surface
+    // is what matters here.
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let err = client
+        .stream_request(
+            &RequestOptions {
+                method: "POST".to_string(),
+                target: target_path("/2/media/upload"),
+                auth_type: "app".to_string(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
+        .unwrap_err();
+
+    match &err {
+        xurl::error::XurlError::AuthMethodMismatch {
+            endpoint,
+            requested,
+            supported,
+            available_in_app,
+            ..
+        } => {
+            assert_eq!(endpoint, "/2/media/upload");
+            assert_eq!(requested.as_deref(), Some("app"));
+            assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
+            assert!(
+                available_in_app.is_none(),
+                "explicit-mismatch shape must leave `available_in_app` at None"
+            );
+        }
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
+    }
+
+    assert_eq!(err.exit_code(), 2);
+    assert_eq!(err.kind(), "auth-method-mismatch");
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "streaming validator must reject BEFORE any socket is opened"
+    );
+}
+
+/// Streaming auth-error propagation.
+///
+/// The CLI streaming wrapper switched from `if let Ok(auth_header) = ...`
+/// (silently swallowing every auth error) to `?` propagation. The library
+/// `ApiClient::stream_request` shares the contract: when auth resolution
+/// fails (e.g. token-not-found on the active app), the error must surface
+/// rather than the request going out unauthenticated.
+#[test]
+fn u7_streaming_propagates_auth_resolution_errors() {
+    let ts = TestServer::new();
+    let cfg = create_test_config(ts.uri());
+    // No tokens stored on any app. Auto-detect has nothing to dispatch
+    // against a matrix-hit endpoint and must surface auth-required rather
+    // than letting an unauthenticated request leak through.
+    let tmp = TempDir::new().expect("temp dir");
+    let auth = Auth::new(&cfg).with_token_store(TokenStore {
+        apps: BTreeMap::new(),
+        default_app: "default".to_string(),
+        file_path: tmp.path().join(".xurl"),
+    });
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let err = client
+        .stream_request(
+            &RequestOptions {
+                method: "POST".to_string(),
+                target: target_path("/2/media/upload"),
+                // No --auth set; auto-detect path. Empty token store →
+                // auth-required (exit 77), not silent unauth request.
+                auth_type: String::new(),
+                ..Default::default()
+            },
+            &mut stdout,
+            &mut stderr,
+        )
+        .unwrap_err();
+
+    assert_eq!(err.kind(), "auth-required");
+    assert_eq!(err.exit_code(), 77);
+    assert_eq!(
+        ts.received_request_count(),
+        0,
+        "auth-resolution failure on the streaming path must not let the request through"
+    );
+}
+
+/// AE5 — raw mode bypasses the matrix.
 ///
 /// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
 /// must NOT reject even though the same `(method, path)` would reject under a
@@ -2300,12 +2475,19 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
             requested,
             supported,
             available_in_app,
+            app,
+            ..
         } => {
             assert_eq!(endpoint, "/2/media/upload/initialize");
             assert_eq!(m, "POST");
             assert_eq!(requested, None);
             assert_eq!(supported, vec!["oauth2", "oauth1"]);
             assert_eq!(available_in_app, Some(vec!["app".to_string()]));
+            assert_eq!(
+                app,
+                Some("default".to_string()),
+                "envelope must carry the active app name"
+            );
         }
         other => panic!("AE4: expected AuthMethodMismatch, got {other:?}"),
     }

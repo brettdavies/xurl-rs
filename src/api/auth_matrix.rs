@@ -174,14 +174,24 @@ pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<String> {
 /// (with `requested = None`) is constructed at the resolver call site.
 ///
 /// `method` is uppercased before lookup; the matrix key is case-insensitive
-/// on method per [`supported_auth`].
+/// on method per [`supported_auth`]. `app` is threaded through so the user-
+/// facing message can name the active app; pass `None` when no active app
+/// context is in scope.
 ///
 /// # Errors
 ///
 /// Returns [`XurlError::AuthMethodMismatch`] when rule 5 fires.
-pub fn validate(target: &RequestTarget, method: &str, requested_auth: &str) -> Result<()> {
+pub fn validate(
+    target: &RequestTarget,
+    method: &str,
+    requested_auth: &str,
+    app: Option<&str>,
+) -> Result<()> {
     // Rule 1: raw mode bypasses the matrix.
-    let RequestTarget::Template { path, .. } = target else {
+    let RequestTarget::Template {
+        path, path_params, ..
+    } = target
+    else {
         return Ok(());
     };
 
@@ -202,12 +212,16 @@ pub fn validate(target: &RequestTarget, method: &str, requested_auth: &str) -> R
         return Ok(());
     }
 
+    let rendered_url = crate::api::request::render_template_path(path, path_params).ok();
     Err(XurlError::AuthMethodMismatch {
         endpoint: path.clone(),
+        rendered_url,
         method: method.to_ascii_uppercase(),
         requested: Some(requested_norm),
         supported,
         available_in_app: None,
+        app: app.map(str::to_string),
+        other_apps_with_creds: None,
     })
 }
 
@@ -313,6 +327,30 @@ mod tests {
         assert_eq!(upper, lower, "method comparison must be case-insensitive");
     }
 
+    #[test]
+    fn supported_auth_empty_method_returns_none() {
+        // The stack-buffer uppercase short-circuits on empty input. A
+        // typo'd or default-constructed method must miss the matrix
+        // rather than match the all-zero packed key.
+        assert_eq!(supported_auth("", "/2/tweets"), None);
+    }
+
+    #[test]
+    fn supported_auth_oversize_method_returns_none() {
+        // MAX_METHOD_LEN=8. A longer method cannot match any emitted entry
+        // and short-circuits to None before any allocation.
+        assert_eq!(supported_auth("PROPPATCH", "/2/tweets"), None);
+    }
+
+    #[test]
+    fn supported_auth_non_ascii_method_returns_none() {
+        // Stack-buffer uppercase only handles ASCII; any non-ASCII byte
+        // short-circuits to None to prevent malformed-UTF8 lookup keys.
+        // U+00C9 ('É') is two bytes; G followed by 'É' is 3 bytes and
+        // would otherwise fit the buffer.
+        assert_eq!(supported_auth("GÉT", "/2/tweets"), None);
+    }
+
     // ── validate() tests ────────────────────────────────────────────────
 
     fn tmpl(path: &str) -> RequestTarget {
@@ -329,9 +367,9 @@ mod tests {
         // path, or requested auth — including auth strings that would fail
         // for any template path.
         let target = RequestTarget::RawUrl("https://api.x.com/2/media/upload".to_string());
-        assert!(validate(&target, "POST", "app").is_ok());
-        assert!(validate(&target, "GET", "oauth1").is_ok());
-        assert!(validate(&target, "DELETE", "").is_ok());
+        assert!(validate(&target, "POST", "app", None).is_ok());
+        assert!(validate(&target, "GET", "oauth1", None).is_ok());
+        assert!(validate(&target, "DELETE", "", None).is_ok());
     }
 
     #[test]
@@ -340,7 +378,7 @@ mod tests {
         // owns dispatch. Validator must not reject — even for endpoints with
         // a restrictive supported set.
         let target = tmpl("/2/media/upload");
-        assert!(validate(&target, "POST", "").is_ok());
+        assert!(validate(&target, "POST", "", None).is_ok());
     }
 
     #[test]
@@ -349,8 +387,8 @@ mod tests {
         // pinned an `--auth` value. The validator yields to upstream
         // semantics rather than fabricating supported lists.
         let target = tmpl("/2/never/heard/of");
-        assert!(validate(&target, "POST", "app").is_ok());
-        assert!(validate(&target, "GET", "oauth2").is_ok());
+        assert!(validate(&target, "POST", "app", None).is_ok());
+        assert!(validate(&target, "GET", "oauth2", None).is_ok());
     }
 
     #[test]
@@ -359,8 +397,8 @@ mod tests {
         // through. `/2/media/upload` POST accepts OAuth2 (media.write) and
         // OAuth1 per the spec — both must be accepted.
         let target = tmpl("/2/media/upload");
-        assert!(validate(&target, "POST", "oauth1").is_ok());
-        assert!(validate(&target, "POST", "oauth2").is_ok());
+        assert!(validate(&target, "POST", "oauth1", None).is_ok());
+        assert!(validate(&target, "POST", "oauth2", None).is_ok());
     }
 
     #[test]
@@ -369,7 +407,7 @@ mod tests {
         // is normalised the same way so `OAuth1` matches `oauth1` even
         // though clap conventionally lowercases the value.
         let target = tmpl("/2/media/upload");
-        assert!(validate(&target, "post", "OAuth1").is_ok());
+        assert!(validate(&target, "post", "OAuth1", None).is_ok());
     }
 
     #[test]
@@ -379,7 +417,7 @@ mod tests {
         // the explicit-mismatch envelope shape: `requested = Some("app")`,
         // `available_in_app = None`.
         let target = tmpl("/2/media/upload");
-        let err = validate(&target, "POST", "app").unwrap_err();
+        let err = validate(&target, "POST", "app", None).unwrap_err();
         match err {
             XurlError::AuthMethodMismatch {
                 endpoint,
@@ -387,6 +425,7 @@ mod tests {
                 requested,
                 supported,
                 available_in_app,
+                ..
             } => {
                 assert_eq!(endpoint, "/2/media/upload");
                 assert_eq!(method, "POST");
@@ -408,7 +447,7 @@ mod tests {
         // the actionable `--auth ...` alternatives so a user can fix the
         // invocation without consulting the matrix by hand.
         let target = tmpl("/2/media/upload");
-        let err = validate(&target, "POST", "app").unwrap_err();
+        let err = validate(&target, "POST", "app", None).unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("Bearer (app)"),

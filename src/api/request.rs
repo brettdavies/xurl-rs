@@ -266,6 +266,16 @@ impl ApiClient {
         self.build_url(target)
     }
 
+    /// Returns the active app name carried by the underlying [`Auth`].
+    ///
+    /// Library-public so callers building requests outside `ApiClient` (e.g.
+    /// the CLI streaming wrapper) can thread the active app into
+    /// `auth_matrix::validate` for the user-facing message.
+    #[must_use]
+    pub fn auth_app_name(&self) -> &str {
+        self.auth.app_name()
+    }
+
     /// Builds the full URL from a target.
     fn build_url(&self, target: &RequestTarget) -> Result<String> {
         build_url_for_target(&self.base_url, target)
@@ -286,7 +296,12 @@ impl ApiClient {
         // !no_auth so explicit auth-skip invocations still work even when
         // a stale auth_type is set on the RequestOptions.
         if !options.no_auth {
-            crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
+            crate::api::auth_matrix::validate(
+                &options.target,
+                method,
+                &options.auth_type,
+                Some(self.auth.app_name()),
+            )?;
         }
         let url = self.build_url(&options.target)?;
 
@@ -396,6 +411,7 @@ impl ApiClient {
                 &options.request.target,
                 method,
                 &options.request.auth_type,
+                Some(self.auth.app_name()),
             )?;
         }
         let url = self.build_url(&options.request.target)?;
@@ -500,7 +516,12 @@ impl ApiClient {
         // explicit auth-skip invocations still work even when a stale
         // auth_type is set.
         if !options.no_auth {
-            crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
+            crate::api::auth_matrix::validate(
+                &options.target,
+                method,
+                &options.auth_type,
+                Some(self.auth.app_name()),
+            )?;
         }
         let url = self.build_url(&options.target)?;
 
@@ -639,7 +660,16 @@ impl ApiClient {
         // default app's. Per-app probes route through `_for_app(app_name)`
         // accessors on the token store so the active-app contract holds
         // even when the active app differs from the default.
-        let app_name = self.auth.app_name().to_string();
+        let raw_app = self.auth.app_name();
+        // Empty active app name is the "use default app" convention. Resolve
+        // it to the store's actual default_app name so the envelope's `app`
+        // field carries something the user can act on (e.g. "default" rather
+        // than "").
+        let app_name = if raw_app.is_empty() {
+            self.auth.token_store.default_app.clone()
+        } else {
+            raw_app.to_string()
+        };
         let available_in_app = self.available_auth_in_app(&app_name);
 
         // Endpoint-aware intersection only fires for `Template` targets whose
@@ -666,23 +696,41 @@ impl ApiClient {
                     .collect();
 
                 if intersection.is_empty() {
-                    // App holds zero credentials → the user has not logged in
-                    // at all; surface AuthRequired (exit 77) rather than
-                    // mismatch (exit 2). Mismatch is the wrong-credential
-                    // signal; required is the no-credential signal.
+                    let rendered_url = render_template_template(&options.target).ok();
                     if available_in_app.is_empty() {
-                        return Err(XurlError::auth(
-                            "NoAuthMethod: no authentication method available",
-                        ));
+                        // Active app holds nothing. Check whether OTHER apps
+                        // in the store hold credentials. If so, surface a
+                        // wrong-app envelope (exit 2) instead of generic
+                        // auth-required (exit 77) — the user logged in, just
+                        // not against the app they invoked.
+                        let other_apps = self.other_apps_with_credentials(&app_name);
+                        if other_apps.is_empty() {
+                            return Err(XurlError::auth(
+                                "NoAuthMethod: no authentication method available",
+                            ));
+                        }
+                        return Err(XurlError::AuthMethodMismatch {
+                            endpoint: path.clone(),
+                            rendered_url,
+                            method: method.to_string(),
+                            requested: None,
+                            supported: endpoint_supported,
+                            available_in_app: Some(Vec::new()),
+                            app: Some(app_name.clone()),
+                            other_apps_with_creds: Some(other_apps),
+                        });
                     }
                     return Err(XurlError::AuthMethodMismatch {
                         endpoint: path.clone(),
+                        rendered_url,
                         method: method.to_string(),
                         requested: None,
                         supported: endpoint_supported,
                         available_in_app: Some(
                             available_in_app.iter().map(|s| (*s).to_string()).collect(),
                         ),
+                        app: Some(app_name.clone()),
+                        other_apps_with_creds: None,
                     });
                 }
                 intersection
@@ -745,6 +793,41 @@ impl ApiClient {
         }
         out
     }
+
+    /// Names of apps OTHER than `active` that hold at least one stored
+    /// credential.
+    ///
+    /// Used by `get_auth_header` to surface a "wrong-app" envelope when the
+    /// active app is empty but the user has credentials elsewhere. Returns
+    /// the apps in stable BTreeMap iteration order so the resulting message
+    /// is deterministic.
+    fn other_apps_with_credentials(&self, active: &str) -> Vec<String> {
+        self.auth
+            .token_store
+            .apps_with_credentials()
+            .into_iter()
+            .filter(|name| name != active)
+            .collect()
+    }
+}
+
+/// Renders the path portion of a [`RequestTarget::Template`] without the
+/// `base_url` prefix or query string.
+///
+/// Used by error-envelope construction so user-facing messages show the
+/// substituted path (`/2/users/12345/likes`) instead of the spec template
+/// (`/2/users/{id}/likes`). Returns `Err` when the target is `RawUrl` (no
+/// substitution applies) or when substitution itself fails — both surface
+/// as `None` at the call site so the envelope falls back to `endpoint`.
+fn render_template_template(target: &RequestTarget) -> Result<String> {
+    match target {
+        RequestTarget::Template {
+            path, path_params, ..
+        } => render_template_path(path, path_params),
+        RequestTarget::RawUrl(_) => Err(XurlError::Internal(
+            "RawUrl target has no template to render".to_string(),
+        )),
+    }
 }
 
 /// Renders a [`RequestTarget`] against `base_url` into a full URL string.
@@ -797,7 +880,10 @@ fn build_url_for_target(base_url: &str, target: &RequestTarget) -> Result<String
 /// percent-encoded against [`URL_VALUE_ENCODE_SET`]. A `{name}` whose
 /// `name` is missing from `path_params` is a programmer error and
 /// surfaces as [`XurlError::Internal`].
-fn render_template_path(template: &str, path_params: &HashMap<String, String>) -> Result<String> {
+pub(crate) fn render_template_path(
+    template: &str,
+    path_params: &HashMap<String, String>,
+) -> Result<String> {
     let mut out = String::with_capacity(template.len());
     let bytes = template.as_bytes();
     let mut i = 0;
@@ -1021,6 +1107,44 @@ mod tests {
             XurlError::InvalidPathParam { name, value } => {
                 assert_eq!(name, "id");
                 assert_eq!(value, "abc/etc/passwd");
+            }
+            other => panic!("expected InvalidPathParam, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_hash() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "abc#fragment".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        match err {
+            XurlError::InvalidPathParam { name, value } => {
+                assert_eq!(name, "id");
+                assert_eq!(value, "abc#fragment");
+            }
+            other => panic!("expected InvalidPathParam, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_url_template_rejects_path_param_with_percent() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "already%20encoded".to_string());
+        let target = RequestTarget::Template {
+            path: "/2/users/{id}/likes".to_string(),
+            path_params: params,
+            query: Vec::new(),
+        };
+        let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
+        match err {
+            XurlError::InvalidPathParam { name, value } => {
+                assert_eq!(name, "id");
+                assert_eq!(value, "already%20encoded");
             }
             other => panic!("expected InvalidPathParam, got {other:?}"),
         }

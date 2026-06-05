@@ -49,7 +49,12 @@ pub(super) fn stream_request_with_output(
     // !no_auth so explicit auth-skip invocations still work even when the
     // matrix would reject the auth_type.
     if !options.no_auth {
-        crate::api::auth_matrix::validate(&options.target, method, &options.auth_type)?;
+        crate::api::auth_matrix::validate(
+            &options.target,
+            method,
+            &options.auth_type,
+            Some(client.auth_app_name()),
+        )?;
     }
     let url = client.build_url_public(&options.target)?;
 

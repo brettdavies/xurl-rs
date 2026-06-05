@@ -150,18 +150,37 @@ when auto-detect's intersection of stored credentials and endpoint-accepted sche
 
 ```rust
 XurlError::AuthMethodMismatch {
-    endpoint: String,                       // path template
+    endpoint: String,                       // path template, e.g. "/2/users/{id}/likes"
+    rendered_url: Option<String>,           // substituted path, e.g. "/2/users/12345/likes"
     method: String,                         // HTTP method, uppercase
     requested: Option<String>,              // None when auto-detect fired
     supported: Vec<String>,                 // schemes the endpoint accepts
     available_in_app: Option<Vec<String>>,  // None when --auth was explicit;
-                                            // Some(..) for empty-intersection
+                                            // Some([nonempty]) for empty-intersection;
+                                            // Some([]) for wrong-app
+    app: Option<String>,                    // active app name (when known)
+    other_apps_with_creds: Option<Vec<String>>, // populated only in the wrong-app shape
 }
 ```
 
-If you pattern-match on `XurlError`, add an arm for the new variant. `XurlError::kind()` returns
-`"auth-method-mismatch"` as a stable closed-set string for downstream tooling. `XurlError::exit_code()` returns `2`
-(`EX_USAGE`) — distinct from `EXIT_AUTH_REQUIRED` (`77`), which still surfaces when no credentials are stored at all.
+If you pattern-match on `XurlError`, add an arm for the new variant (use `..` to ignore the optional fields you don't
+read). `XurlError::kind()` returns `"auth-method-mismatch"` as a stable closed-set string for downstream tooling.
+`XurlError::exit_code()` returns `2` (`EX_USAGE`), distinct from `EXIT_AUTH_REQUIRED` (`77`), which still surfaces when
+no credentials are stored at all on any app.
+
+### Envelope shapes
+
+The variant carries three shapes, signalled by which fields are populated:
+
+- **Explicit mismatch** — `requested: Some(_)`, `available_in_app: None`. The user passed `--auth X` and `X` isn't in
+  the endpoint's supported set.
+- **Empty intersection** — `requested: None`, `available_in_app: Some([nonempty])`. Auto-detect found the active app has
+  credentials, but none overlap with what the endpoint accepts.
+- **Wrong app** — `requested: None`, `available_in_app: Some([])`, `other_apps_with_creds: Some([nonempty])`. The active
+  app holds nothing but other apps in the store do. The user likely forgot `--app NAME`.
+
+`endpoint` carries the spec template for agent pattern-matching; `rendered_url` carries the substituted path for user-
+facing messages so `{id}` placeholders don't leak.
 
 ## CLI behavior changes
 

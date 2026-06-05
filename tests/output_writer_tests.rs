@@ -268,10 +268,13 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
     let mut err_buf: Vec<u8> = Vec::new();
     let err = XurlError::AuthMethodMismatch {
         endpoint: "/2/media/upload".to_string(),
+        rendered_url: None,
         method: "POST".to_string(),
         requested: Some("app".to_string()),
         supported: vec!["oauth1".to_string(), "oauth2".to_string()],
         available_in_app: None,
+        app: None,
+        other_apps_with_creds: None,
     };
     cfg.print_error(&mut err_buf, &err, 2);
     let s = String::from_utf8(err_buf).expect("utf8");
@@ -290,7 +293,15 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
     );
     assert!(
         parsed.get("available_in_app").is_none(),
-        "U6 explicit-mismatch envelope must omit available_in_app (U7 adds it)"
+        "explicit-mismatch envelope must omit available_in_app"
+    );
+    assert!(
+        parsed.get("rendered_url").is_none(),
+        "rendered_url is optional and omitted when None"
+    );
+    assert!(
+        parsed.get("app").is_none(),
+        "app is optional and omitted when None"
     );
 
     let msg = parsed["message"].as_str().expect("message string");
@@ -326,10 +337,13 @@ fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
     let mut err_buf: Vec<u8> = Vec::new();
     let err = XurlError::AuthMethodMismatch {
         endpoint: "/2/media/upload".to_string(),
+        rendered_url: None,
         method: "POST".to_string(),
         requested: None,
         supported: vec!["oauth2".to_string()],
         available_in_app: Some(vec!["oauth1".to_string()]),
+        app: Some("default".to_string()),
+        other_apps_with_creds: None,
     };
     cfg.print_error(&mut err_buf, &err, 2);
     let s = String::from_utf8(err_buf).expect("utf8");

@@ -258,20 +258,26 @@ impl OutputConfig {
         obj.insert("status".into(), Value::String("error".into()));
         obj.insert("reason".into(), Value::String(error.kind().to_string()));
         obj.insert("exit_code".into(), Value::from(exit_code));
-        // `AuthMethodMismatch` carries structured fields per R10: the
-        // envelope folds `endpoint`, `method`, `requested`, `supported`, and
-        // (in U7's empty-intersection shape) `available_in_app` in alongside
-        // the standard `message`. Agents pattern-match on these without
-        // re-parsing the human message.
+        // `AuthMethodMismatch` carries structured fields: the envelope folds
+        // `endpoint` (template), `rendered_url` (substituted), `method`,
+        // `requested`, `supported`, `available_in_app`, `app`, and
+        // `other_apps_with_creds` alongside the standard `message`. Agents
+        // pattern-match on these without re-parsing the human message.
         if let XurlError::AuthMethodMismatch {
             endpoint,
+            rendered_url,
             method,
             requested,
             supported,
             available_in_app,
+            app,
+            other_apps_with_creds,
         } = error
         {
             obj.insert("endpoint".into(), Value::String(endpoint.clone()));
+            if let Some(url) = rendered_url {
+                obj.insert("rendered_url".into(), Value::String(url.clone()));
+            }
             obj.insert("method".into(), Value::String(method.clone()));
             obj.insert(
                 "requested".into(),
@@ -288,6 +294,15 @@ impl OutputConfig {
                 obj.insert(
                     "available_in_app".into(),
                     Value::Array(avail.iter().cloned().map(Value::String).collect()),
+                );
+            }
+            if let Some(app_name) = app {
+                obj.insert("app".into(), Value::String(app_name.clone()));
+            }
+            if let Some(others) = other_apps_with_creds {
+                obj.insert(
+                    "other_apps_with_creds".into(),
+                    Value::Array(others.iter().cloned().map(Value::String).collect()),
                 );
             }
         }
