@@ -14,6 +14,7 @@
 #   finalize     finalize-release.yml callback ran (cross-repo dispatch loop closed)
 #   make-latest  GitHub Release v<X.Y.Z> is non-draft, non-prerelease, releases/latest matches
 #   crates       crates.io index shows xurl-rs v<X.Y.Z> published
+#   backport     dev has the released CHANGELOG section, or a merged PR brought it across
 #   all          run every above sequentially
 #
 # Flags:
@@ -76,7 +77,7 @@ while [[ $# -gt 0 ]]; do
         --tap-repo) TAP_REPO="$2"; shift 2;;
         --tag)      TAG="$2"; shift 2;;
         -h|--help)  usage;;
-        release|tap|finalize|make-latest|crates|all) SUBCMD="$1"; shift;;
+        release|tap|finalize|make-latest|crates|backport|all) SUBCMD="$1"; shift;;
         *) echo "unknown arg: $1" >&2; usage;;
     esac
 done
@@ -246,6 +247,38 @@ gate_make_latest() {
     fi
 }
 
+# Gate: main → dev backport --------------------------------------------------
+
+gate_backport() {
+    header "main → dev backport"
+    require_bin gh; require_bin jaq
+    local repo tag version
+    repo=$(resolve_repo); tag=$(resolve_tag); version="${tag#v}"
+
+    # Look for a merged PR to dev with the version in the title. The backport
+    # carries more than CHANGELOG.md (cliff.toml, README polish, RELEASES.md
+    # meta-edits, etc. — anything the release-branch flow touched on main that
+    # didn't round-trip to dev), so checking a single file's content can lie
+    # both ways. The merged PR is the durable signal that the backport
+    # operation ran, regardless of which files it included.
+    local pr=""
+    pr=$(gh pr list --repo "$repo" --base dev --state merged --limit 20 \
+        --search "$version in:title" \
+        --json number,title,mergedAt,headRefName --jq '.[0]' 2>/dev/null || true)
+    [[ "$pr" == "null" ]] && pr=""
+
+    if [[ -n "$pr" ]]; then
+        local pr_num pr_title pr_head
+        pr_num=$(printf '%s' "$pr" | jaq -r .number)
+        pr_title=$(printf '%s' "$pr" | jaq -r .title)
+        pr_head=$(printf '%s' "$pr" | jaq -r .headRefName)
+        gate_pass "backport PR #$pr_num merged to dev from $pr_head: $pr_title"
+    else
+        gate_skip "main → dev backport" \
+            "no PR titled '$version*' merged to dev — see RELEASES-POSTFLIGHT.md § backport"
+    fi
+}
+
 # Gate: crates.io ------------------------------------------------------------
 
 gate_crates() {
@@ -279,7 +312,8 @@ case "$SUBCMD" in
     finalize)    gate_finalize;;
     make-latest) gate_make_latest;;
     crates)      gate_crates;;
-    all)         gate_release; gate_tap; gate_finalize; gate_make_latest; gate_crates;;
+    backport)    gate_backport;;
+    all)         gate_release; gate_tap; gate_finalize; gate_make_latest; gate_crates; gate_backport;;
 esac
 
 printf "\n%sSummary:%s  %s%d passed%s  %s%d failed%s  %s%d skipped%s\n" \

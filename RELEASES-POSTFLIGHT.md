@@ -29,6 +29,7 @@ Sub-commands let you re-run one verification in isolation:
 | `finalize`    | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed)                               | `gh run list -e repository_dispatch`      |
 | `make-latest` | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it                       | `gh api /releases/latest`                 |
 | `crates`      | `crates.io` shows `xurl-rs vX.Y.Z` published (`cargo search xurl-rs` returns the tag)                            | `crates.io` index API                     |
+| `backport`    | a merged PR to `dev` with the version in its title (durable signal that the backport operation ran)              | `gh pr list --base dev --state merged`    |
 | `all`         | every above                                                                                                      | —                                         |
 
 Flags:
@@ -68,18 +69,22 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **`cargo binstall xurl-rs`** (without `--version`) resolves to the new tag and installs the matching prebuilt
   binary. Confirms the GitHub Release asset layout (binary + completions + licenses, expected archive naming) matches
   binstall's asset-resolution rules. Drive on a clean container.
-- [ ] **Backport `main` → `dev`.** Per the documented learning at
-  `docs/solutions/workflow-issues/post-release-backport-prevents-diff-b-false-positives-2026-05-07.md`: sync the
-  release-only files (`CHANGELOG.md`, `cliff.toml`, any release-prep prose) from `main` to `dev` via a direct commit on
-  `dev`. Keeps the next release's PREFLIGHT `diff-B` step quiet so a real missed cherry-pick stands out instead of
-  hiding in expected divergence noise.
+- [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Per the documented
+  learning at `docs/solutions/workflow-issues/post-release-backport-prevents-diff-b-false-positives-2026-05-07.md`,
+  bring the release-only changes (CHANGELOG sections, generator config edits, README polish, RELEASES.md meta-edits —
+  whatever the release-branch flow touched on `main` that didn't round-trip to `dev`) across to `dev`. Keeps the next
+  release's PREFLIGHT `diff-B` step quiet so a real missed cherry-pick stands out instead of hiding in expected
+  divergence noise.
+
+  The gate (`scripts/release-postflight.sh backport`) is signal-agnostic about which files moved — it looks for the
+  merged PR alone, since "which files" varies release-to-release. Branch-name convention is flexible
+  (`sync/main-to-dev-vX.Y.Z`, `backport/vX.Y.Z`, head=`main`, etc.); the only requirement is the version string in the
+  PR title.
 
   ```bash
-  git switch dev && git pull
-  git checkout origin/main -- CHANGELOG.md cliff.toml   # add other release-only files as they emerge
-  git status --short                                    # confirm only the expected files changed
-  git commit -m "docs: sync release-only files from main post-v<X.Y.Z> (backport)"
-  git push
+  git switch -c backport/v<X.Y.Z> origin/main      # or whatever naming convention you prefer
+  # ...any other release-only edits you want to backport...
+  gh pr create --base dev --title "backport v<X.Y.Z> release-only files from main"
   ```
 
 ## Related docs
