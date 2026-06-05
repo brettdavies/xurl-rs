@@ -1,11 +1,12 @@
-/// Token persistence layer — multi-app YAML store at `~/.xurl`.
-///
-/// Supports:
-/// - Multi-app credential and token management
-/// - `OAuth2`, `OAuth1`, and Bearer token types
-/// - Legacy JSON migration (auto-converts old format)
-/// - `.twurlrc` import (legacy Twitter CLI compatibility)
-/// - Credential backfill from environment variables
+//! Token persistence layer — multi-app YAML store at `~/.xurl`.
+//!
+//! Supports:
+//! - Multi-app credential and token management
+//! - `OAuth2`, `OAuth1`, and Bearer token types
+//! - Legacy JSON migration (auto-converts old format)
+//! - `.twurlrc` import (legacy Twitter CLI compatibility)
+//! - Credential backfill from environment variables
+
 mod migration;
 mod tokens;
 pub mod types;
@@ -22,13 +23,35 @@ use crate::error::{Result, XurlError};
 // ── TokenStore ───────────────────────────────────────────────────────
 
 /// Manages authentication tokens across multiple apps.
+///
+/// The in-memory shape mirrors the on-disk YAML at `~/.xurl`. Library
+/// consumers construct via [`TokenStore::new`] (legacy default path),
+/// [`TokenStore::new_with_path`] (explicit path, no auto-import), or
+/// [`TokenStore::with_credentials`] (auto-backfill).
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use xurl::store::TokenStore;
+///
+/// let store = TokenStore::new_with_path("/tmp/my-xurl-store.yaml");
+/// let active = store.get_default_app();
+/// if let Some(app) = store.get_app(active) {
+///     println!("active app {active} has {} oauth2 users", app.oauth2_tokens.len());
+/// }
+/// ```
 pub struct TokenStore {
+    /// All registered apps, keyed by name.
     pub apps: BTreeMap<String, App>,
+    /// Name of the default app selected when `--app` is not supplied.
     pub default_app: String,
+    /// Path to the YAML file backing this store.
     pub file_path: PathBuf,
 }
 
 impl Default for TokenStore {
+    /// Constructs a `TokenStore` from the default location, identical to
+    /// calling [`TokenStore::new`].
     fn default() -> Self {
         Self::new()
     }

@@ -1,18 +1,20 @@
-/// Library CLI entrypoints — the canonical implementation lives in
-/// [`run_with_store_path`]; [`run`] and [`run_argv`] are layered wrappers.
-///
-/// The three entrypoints together form the public library surface for the
-/// `xr` CLI dispatcher:
-///
-/// - [`run_argv`]: reads `std::env::args_os()` and uses real stdio. The binary
-///   calls this from `main`.
-/// - [`run`]: takes args + writers; resolves the default token-store path.
-/// - [`run_with_store_path`]: the canonical implementation. Takes args, writers,
-///   and an explicit token-store path. Tests pass a `TempDir`-rooted path so
-///   they never touch the real `~/.xurl`.
-///
-/// All three return a structured exit code per `XurlError::exit_code`,
-/// matching the binary's exit-code contract. They never call `process::exit`.
+//! Library CLI entrypoints — the canonical implementation lives in
+//! [`run_with_store_path`]; [`run`] and [`run_argv`] are layered wrappers.
+//!
+//! The three entrypoints together form the public library surface for the
+//! `xr` CLI dispatcher:
+//!
+//! - [`run_argv`]: reads `std::env::args_os()` and uses real stdio. The binary
+//!   calls this from `main`.
+//! - [`run`]: takes args + writers; resolves the default token-store path.
+//! - [`run_with_store_path`]: the canonical implementation. Takes args, writers,
+//!   and an explicit token-store path. Tests pass a `TempDir`-rooted path so
+//!   they never touch the real `~/.xurl`.
+//!
+//! All three return a structured exit code per
+//! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
+//! contract. They never call `process::exit`.
+
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::Path;

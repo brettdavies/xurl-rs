@@ -1,7 +1,8 @@
-/// `OAuth2` PKCE flow and token refresh.
-///
-/// Implements the browser-based `OAuth2` authorization code flow with PKCE
-/// (Proof Key for Code Exchange) as used by the X API.
+//! `OAuth2` PKCE flow and token refresh.
+//!
+//! Implements the browser-based `OAuth2` authorization code flow with PKCE
+//! (Proof Key for Code Exchange) as used by the X API.
+
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
