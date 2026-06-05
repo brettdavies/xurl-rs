@@ -870,12 +870,12 @@ crates.io consumers.
 **Test scenarios:**
 
 - Happy path: `git cliff` against a test commit with `feat!:` prefix lists it under `[Breaking]` in the generated
-  CHANGELOG. Manual validation via `scripts/generate-changelog.sh`.
+  CHANGELOG. Manual validation via `scripts/generate-changelog.py`.
 - Happy path: `MIGRATING.md` renders cleanly in markdown preview; links resolve.
 - Edge: a commit with type `fix(deps)!:` (combination scope) still routes to `[Breaking]`.
 - Edge: a commit without `!` but with a `BREAKING CHANGE:` body footer routes to `[Breaking]`.
 
-**Verification:** Manual `scripts/generate-changelog.sh` dry-run against a synthetic test commit produces the expected
+**Verification:** Manual `scripts/generate-changelog.py` dry-run against a synthetic test commit produces the expected
 `[Breaking]` section.
 
 ---
@@ -894,7 +894,7 @@ validated end-to-end on 2026-04-16).
 
 - `Cargo.toml` (modify — `version = "2.0.0"`)
 - `Cargo.lock` (auto-updated by `cargo build`)
-- `CHANGELOG.md` (auto-regenerated via `scripts/generate-changelog.sh`)
+- `CHANGELOG.md` (auto-regenerated via `scripts/generate-changelog.py`)
 
 **Approach:**
 
@@ -902,7 +902,7 @@ validated end-to-end on 2026-04-16).
 - Cherry-pick (not merge) squash commits from dev onto `release/v2.0.0-auth-method-enforcement` (origin
   docs/solutions/workflow-issues/release-branch-cherry-pick-vs-merge-squash-orphans-2026-04-15.md).
 - PR to main; main only accepts via PR.
-- Validate CHANGELOG locally before opening PR: `scripts/generate-changelog.sh` produces a `[Breaking]` section with
+- Validate CHANGELOG locally before opening PR: `scripts/generate-changelog.py` produces a `[Breaking]` section with
   U4/U5's commits.
 - Confirm `homebrew-tap` dispatch fires on the release tag (rust-release.yml reusable workflow).
 - After release: `finalize-release.yml` flips `make_latest: true` once bottles are built.
@@ -997,7 +997,7 @@ docs.rs/xurl-rs.
   the issue if needed.
 - **R-6. First SemVer-major on this release pipeline.** xurl-rs has only done 0.x/1.x. The pipeline is version-agnostic
   but the cliff.toml entry, MIGRATING.md routing, and homebrew bottle workflow on a major bump are first-time.
-  Mitigation: validate `scripts/generate-changelog.sh` produces the expected `[Breaking]` section in U10 before opening
+  Mitigation: validate `scripts/generate-changelog.py` produces the expected `[Breaking]` section in U10 before opening
   the PR to main. Watch finalize-release.yml's homebrew dispatch carefully on tag push.
 
 ### Dependencies
