@@ -386,15 +386,24 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set). When auth resolution
-        // fails (e.g., TokenNotFound for the resolved app), propagate the
-        // error so the user sees the real problem instead of letting the
-        // request go out unauthenticated and surfacing as a confusing 401
-        // from upstream. The older "silently skip on Err" form let auth
-        // bugs masquerade as upstream auth rejections.
-        if !options.no_auth {
+        // Add auth header (skip if no_auth is set, or if the caller already
+        // supplied an `Authorization` header in `options.headers`). When auth
+        // resolution fails (e.g., TokenNotFound for the resolved app),
+        // propagate the error so the user sees the real problem instead of
+        // letting the request go out unauthenticated and surfacing as a
+        // confusing 401 from upstream. The older "silently skip on Err" form
+        // let auth bugs masquerade as upstream auth rejections.
+        let user_supplied_auth = headers_have_authorization(&options.headers);
+        if !options.no_auth && !user_supplied_auth {
             let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
+        }
+        if user_supplied_auth && options.verbose {
+            let mut err = std::io::stderr().lock();
+            self.out.verbose(
+                &mut err,
+                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
+            );
         }
 
         // Add common headers
@@ -491,12 +500,21 @@ impl ApiClient {
             }
         }
 
-        // Add auth header (skip if no_auth is set). Propagate auth errors
-        // rather than silently sending the request unauthenticated; see the
-        // matching propagation site in `send_request` for the rationale.
-        if !options.request.no_auth {
+        // Add auth header (skip if no_auth is set, or if the caller already
+        // supplied an `Authorization` header). Propagate auth errors rather
+        // than silently sending the request unauthenticated; see the matching
+        // propagation site in `send_request` for the rationale.
+        let user_supplied_auth = headers_have_authorization(&options.request.headers);
+        if !options.request.no_auth && !user_supplied_auth {
             let auth_header = self.get_auth_header(&options.request)?;
             builder = builder.header("Authorization", auth_header);
+        }
+        if user_supplied_auth && options.request.verbose {
+            let mut err = std::io::stderr().lock();
+            self.out.verbose(
+                &mut err,
+                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
+            );
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -587,9 +605,16 @@ impl ApiClient {
             }
         }
 
-        if !options.no_auth {
+        let user_supplied_auth = headers_have_authorization(&options.headers);
+        if !options.no_auth && !user_supplied_auth {
             let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
+        }
+        if user_supplied_auth && options.verbose {
+            self.out.verbose(
+                stderr,
+                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
+            );
         }
 
         builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
@@ -1013,6 +1038,20 @@ fn validate_raw_url_scheme(url: &str) -> Result<()> {
     )))
 }
 
+/// Returns `true` when any `"Name: Value"` entry has `"Authorization"` as its
+/// key, compared case-insensitively (ASCII).
+///
+/// Used by the three send paths to suppress xurl's own `Authorization`
+/// append when the caller already supplied one — `reqwest::RequestBuilder::header`
+/// is `HeaderMap::append`, so unconditional appending would send two
+/// `Authorization` headers and most servers reject or pick arbitrarily.
+fn headers_have_authorization(headers: &[String]) -> bool {
+    headers
+        .iter()
+        .filter_map(|h| h.split_once(':'))
+        .any(|(key, _)| key.trim().eq_ignore_ascii_case("authorization"))
+}
+
 /// Appends a percent-encoded value to `out` using [`URL_VALUE_ENCODE_SET`].
 fn write_encoded(out: &mut String, value: &str) {
     for chunk in utf8_percent_encode(value, URL_VALUE_ENCODE_SET) {
@@ -1278,5 +1317,65 @@ mod tests {
         let target = RequestTarget::RawUrl("ftp://attacker.com/payload".to_string());
         let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
         assert!(matches!(err, XurlError::InvalidUrl(_)), "got {err:?}");
+    }
+
+    // ── headers_have_authorization tests ───────────────────────────────
+
+    #[test]
+    fn headers_have_authorization_detects_canonical_case() {
+        let headers = vec!["Authorization: Bearer foo".to_string()];
+        assert!(headers_have_authorization(&headers));
+    }
+
+    #[test]
+    fn headers_have_authorization_is_case_insensitive() {
+        for raw in [
+            "authorization: Bearer foo",
+            "AUTHORIZATION: Bearer foo",
+            "aUtHoRiZaTiOn: Bearer foo",
+        ] {
+            assert!(
+                headers_have_authorization(&[raw.to_string()]),
+                "did not detect: {raw}"
+            );
+        }
+    }
+
+    #[test]
+    fn headers_have_authorization_ignores_surrounding_whitespace_on_key() {
+        let headers = vec!["  Authorization  : Bearer foo".to_string()];
+        assert!(headers_have_authorization(&headers));
+    }
+
+    #[test]
+    fn headers_have_authorization_false_for_empty_list() {
+        let headers: Vec<String> = Vec::new();
+        assert!(!headers_have_authorization(&headers));
+    }
+
+    #[test]
+    fn headers_have_authorization_false_for_other_headers() {
+        let headers = vec![
+            "Cookie: session=abc".to_string(),
+            "User-Agent: custom/1.0".to_string(),
+            "X-Authorization-Hint: ignored".to_string(),
+        ];
+        assert!(!headers_have_authorization(&headers));
+    }
+
+    #[test]
+    fn headers_have_authorization_false_for_unparseable_entry() {
+        let headers = vec!["malformed-no-colon".to_string()];
+        assert!(!headers_have_authorization(&headers));
+    }
+
+    #[test]
+    fn headers_have_authorization_detects_when_mixed_with_others() {
+        let headers = vec![
+            "Content-Type: application/json".to_string(),
+            "Authorization: Bearer foo".to_string(),
+            "X-B3-Flags: 1".to_string(),
+        ];
+        assert!(headers_have_authorization(&headers));
     }
 }

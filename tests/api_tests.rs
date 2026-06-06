@@ -73,6 +73,32 @@ impl TestServer {
                 .unwrap_or(0)
         })
     }
+
+    /// Returns the values of a given header from every received request, in
+    /// arrival order. Each inner `Vec<String>` collects all values for that
+    /// header on a single request (HTTP allows multiple headers with the same
+    /// name; the Authorization-double-header bug surfaces here as a vec with
+    /// two entries).
+    fn received_header_values(&self, name: &str) -> Vec<Vec<String>> {
+        let lookup = name.to_string();
+        self._rt.block_on(async {
+            self.server
+                .received_requests()
+                .await
+                .map(|reqs| {
+                    reqs.into_iter()
+                        .map(|r| {
+                            r.headers
+                                .get_all(&lookup)
+                                .iter()
+                                .filter_map(|v| v.to_str().ok().map(str::to_owned))
+                                .collect::<Vec<_>>()
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+    }
 }
 
 // ── Test helpers ───────────────────────────────────────────────────────
@@ -1833,6 +1859,255 @@ fn test_no_auth_with_raw_send_request() {
     assert!(
         result2.is_ok(),
         "no_auth=false should include auth header: {result2:?}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// User-supplied Authorization header — suppression of xurl auth append
+//
+// `reqwest::RequestBuilder::header` uses `HeaderMap::append` semantics; if
+// the caller passes `Authorization` via `options.headers` and xurl appends
+// its own, the outgoing request carries two `Authorization` headers (HTTP
+// undefined; most servers reject or pick arbitrarily). When the caller
+// explicitly supplies `Authorization`, treat it as the effective auth and
+// skip xurl's append — equivalent to `no_auth: true` for that one header,
+// without forcing the user to remember the escape hatch.
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        target: target_path("/2/users/me"),
+        headers: vec!["Authorization: Bearer user-token".to_string()],
+        ..Default::default()
+    };
+    let result = client.send_request(&opts);
+    assert!(result.is_ok(), "request must succeed: {result:?}");
+
+    let auths = ts.received_header_values("Authorization");
+    assert_eq!(auths.len(), 1, "expected exactly one received request");
+    assert_eq!(
+        auths[0],
+        vec!["Bearer user-token".to_string()],
+        "user-supplied Authorization must be the only value sent — got {:?}",
+        auths[0]
+    );
+}
+
+#[test]
+fn user_supplied_authorization_detection_is_case_insensitive() {
+    for raw_header in [
+        "authorization: Bearer user-token",
+        "AUTHORIZATION: Bearer user-token",
+        "aUtHoRiZaTiOn: Bearer user-token",
+    ] {
+        let ts = TestServer::new();
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(
+                    serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
+                )),
+        );
+
+        let cfg = create_test_config(ts.uri());
+        let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+        let mut client = ApiClient::new(&cfg, auth);
+
+        let opts = RequestOptions {
+            method: "GET".to_string(),
+            target: target_path("/2/users/me"),
+            headers: vec![raw_header.to_string()],
+            ..Default::default()
+        };
+        client
+            .send_request(&opts)
+            .expect("request must succeed regardless of header-key case");
+
+        let auths = ts.received_header_values("Authorization");
+        assert_eq!(
+            auths[0],
+            vec!["Bearer user-token".to_string()],
+            "case-insensitive header detection failed for input {raw_header:?} — got {:?}",
+            auths[0]
+        );
+    }
+}
+
+#[test]
+fn no_auth_with_user_supplied_authorization_sends_users_value() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        target: target_path("/2/users/me"),
+        headers: vec!["Authorization: Bearer override".to_string()],
+        no_auth: true,
+        ..Default::default()
+    };
+    client
+        .send_request(&opts)
+        .expect("request must succeed with no_auth + user-supplied Authorization");
+
+    let auths = ts.received_header_values("Authorization");
+    assert_eq!(
+        auths[0],
+        vec!["Bearer override".to_string()],
+        "no_auth=true must not suppress user-supplied Authorization — got {:?}",
+        auths[0]
+    );
+}
+
+#[test]
+fn user_supplied_authorization_does_not_affect_other_custom_headers() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
+            )),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    // Non-Authorization custom headers must NOT suppress xurl's auth append.
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        target: target_path("/2/users/me"),
+        headers: vec![
+            "Cookie: session=abc".to_string(),
+            "X-Authorization-Hint: not-the-real-header".to_string(),
+        ],
+        ..Default::default()
+    };
+    client
+        .send_request(&opts)
+        .expect("request must succeed when no Authorization is user-supplied");
+
+    let auths = ts.received_header_values("Authorization");
+    assert_eq!(
+        auths[0].len(),
+        1,
+        "expected exactly one Authorization (xurl's), got {:?}",
+        auths[0]
+    );
+    assert!(
+        auths[0][0].starts_with("Bearer ") || auths[0][0].starts_with("OAuth "),
+        "xurl-appended Authorization must be a real auth scheme, got {:?}",
+        auths[0][0]
+    );
+
+    let cookies = ts.received_header_values("Cookie");
+    assert_eq!(cookies[0], vec!["session=abc".to_string()]);
+}
+
+#[test]
+fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
+    use xurl::api::MultipartOptions;
+
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"id": "media-1"}})),
+            ),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let mp_opts = MultipartOptions {
+        request: RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            headers: vec!["Authorization: Bearer multipart-user-token".to_string()],
+            ..Default::default()
+        },
+        form_fields: HashMap::new(),
+        file_field: "media".to_string(),
+        file_path: String::new(),
+        file_name: "x.jpg".to_string(),
+        file_data: b"fake-jpeg".to_vec(),
+    };
+
+    client
+        .send_multipart_request(&mp_opts)
+        .expect("multipart request must succeed with user-supplied Authorization");
+
+    let auths = ts.received_header_values("Authorization");
+    assert_eq!(auths.len(), 1, "expected exactly one received request");
+    assert_eq!(
+        auths[0],
+        vec!["Bearer multipart-user-token".to_string()],
+        "multipart path must honor user-supplied Authorization — got {:?}",
+        auths[0]
+    );
+}
+
+#[test]
+fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/stream"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("data: hello\n\n")),
+    );
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        target: target_path("/2/tweets/search/stream"),
+        headers: vec!["Authorization: Bearer stream-user-token".to_string()],
+        ..Default::default()
+    };
+
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    client
+        .stream_request(&opts, &mut stdout, &mut stderr)
+        .expect("stream request must succeed with user-supplied Authorization");
+
+    let auths = ts.received_header_values("Authorization");
+    assert_eq!(auths.len(), 1, "expected exactly one received request");
+    assert_eq!(
+        auths[0],
+        vec!["Bearer stream-user-token".to_string()],
+        "stream path must honor user-supplied Authorization — got {:?}",
+        auths[0]
     );
 }
 
