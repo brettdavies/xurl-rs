@@ -365,18 +365,22 @@ impl ApiClient {
 
         let mut builder = self.client.request(req_method.clone(), &url);
 
-        // Add body for POST/PUT/PATCH
-        if !options.data.is_empty() && (method == "POST" || method == "PUT" || method == "PATCH") {
-            // Detect content type
-            if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
-                builder = builder
-                    .header("Content-Type", "application/json")
-                    .body(options.data.clone());
-            } else {
-                builder = builder
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(options.data.clone());
+        // Add body for POST/PUT/PATCH. Content-Type is xurl's auto-detect
+        // unless the caller already supplied one; the body itself is always
+        // attached regardless.
+        let xurl_would_set_content_type =
+            !options.data.is_empty() && (method == "POST" || method == "PUT" || method == "PATCH");
+        if xurl_would_set_content_type {
+            if !user_supplied_header(&options.headers, "Content-Type") {
+                let content_type =
+                    if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
+                        "application/json"
+                    } else {
+                        "application/x-www-form-urlencoded"
+                    };
+                builder = builder.header("Content-Type", content_type);
             }
+            builder = builder.body(options.data.clone());
         }
 
         // Add custom headers
@@ -393,24 +397,30 @@ impl ApiClient {
         // letting the request go out unauthenticated and surfacing as a
         // confusing 401 from upstream. The older "silently skip on Err" form
         // let auth bugs masquerade as upstream auth rejections.
-        let user_supplied_auth = headers_have_authorization(&options.headers);
-        if !options.no_auth && !user_supplied_auth {
+        if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
             let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
-        if user_supplied_auth && options.verbose {
-            let mut err = std::io::stderr().lock();
-            self.out.verbose(
-                &mut err,
-                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
-            );
+
+        // Add common headers (skip when the caller already supplied them).
+        if !user_supplied_header(&options.headers, "User-Agent") {
+            builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
         }
 
-        // Add common headers
-        builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
-
-        if options.trace {
+        if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
             builder = builder.header("X-B3-Flags", "1");
+        }
+
+        if options.verbose {
+            let mut err = std::io::stderr().lock();
+            log_header_overrides(
+                &self.out,
+                &mut err,
+                &options.headers,
+                xurl_would_set_content_type,
+                !options.no_auth,
+                options.trace,
+            );
         }
 
         if options.verbose {
@@ -504,27 +514,34 @@ impl ApiClient {
         // supplied an `Authorization` header). Propagate auth errors rather
         // than silently sending the request unauthenticated; see the matching
         // propagation site in `send_request` for the rationale.
-        let user_supplied_auth = headers_have_authorization(&options.request.headers);
-        if !options.request.no_auth && !user_supplied_auth {
+        if !options.request.no_auth
+            && !user_supplied_header(&options.request.headers, "Authorization")
+        {
             let auth_header = self.get_auth_header(&options.request)?;
             builder = builder.header("Authorization", auth_header);
         }
-        if user_supplied_auth && options.request.verbose {
-            let mut err = std::io::stderr().lock();
-            self.out.verbose(
-                &mut err,
-                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
-            );
+
+        if !user_supplied_header(&options.request.headers, "User-Agent") {
+            builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
         }
 
-        builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
-
-        if options.request.trace {
+        if options.request.trace && !user_supplied_header(&options.request.headers, "X-B3-Flags") {
             builder = builder.header("X-B3-Flags", "1");
         }
 
         if options.request.verbose {
             let mut err = std::io::stderr().lock();
+            // Multipart's Content-Type is owned by `reqwest`'s multipart
+            // builder (carries the boundary); xurl never explicitly sets it
+            // here, so the override advisory skips Content-Type for this path.
+            log_header_overrides(
+                &self.out,
+                &mut err,
+                &options.request.headers,
+                false,
+                !options.request.no_auth,
+                options.request.trace,
+            );
             if self.out.use_color {
                 self.out
                     .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
@@ -587,16 +604,18 @@ impl ApiClient {
             .unwrap_or_else(|_| Client::new())
             .request(req_method, &url);
 
-        if !options.data.is_empty() {
-            if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
-                builder = builder
-                    .header("Content-Type", "application/json")
-                    .body(options.data.clone());
-            } else {
-                builder = builder
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(options.data.clone());
+        let xurl_would_set_content_type = !options.data.is_empty();
+        if xurl_would_set_content_type {
+            if !user_supplied_header(&options.headers, "Content-Type") {
+                let content_type =
+                    if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
+                        "application/json"
+                    } else {
+                        "application/x-www-form-urlencoded"
+                    };
+                builder = builder.header("Content-Type", content_type);
             }
+            builder = builder.body(options.data.clone());
         }
 
         for header in &options.headers {
@@ -605,25 +624,28 @@ impl ApiClient {
             }
         }
 
-        let user_supplied_auth = headers_have_authorization(&options.headers);
-        if !options.no_auth && !user_supplied_auth {
+        if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
             let auth_header = self.get_auth_header(options)?;
             builder = builder.header("Authorization", auth_header);
         }
-        if user_supplied_auth && options.verbose {
-            self.out.verbose(
-                stderr,
-                "info: user-supplied Authorization detected; skipping xurl auth append for this request",
-            );
+
+        if !user_supplied_header(&options.headers, "User-Agent") {
+            builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
         }
 
-        builder = builder.header("User-Agent", format!("xurl/{}", env!("CARGO_PKG_VERSION")));
-
-        if options.trace {
+        if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
             builder = builder.header("X-B3-Flags", "1");
         }
 
         if options.verbose {
+            log_header_overrides(
+                &self.out,
+                stderr,
+                &options.headers,
+                xurl_would_set_content_type,
+                !options.no_auth,
+                options.trace,
+            );
             if self.out.use_color {
                 self.out
                     .verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
@@ -1038,24 +1060,60 @@ fn validate_raw_url_scheme(url: &str) -> Result<()> {
     )))
 }
 
-/// Returns `true` when any `"Name: Value"` entry has `"Authorization"` as its
-/// key, compared case-insensitively (ASCII).
+/// Returns `true` when any `"Name: Value"` entry in `headers` matches `name`
+/// on a case-insensitive (ASCII) compare of the trimmed key.
 ///
-/// Used by the three send paths to suppress xurl's own `Authorization`
-/// append when the caller already supplied one — `reqwest::RequestBuilder::header`
-/// is `HeaderMap::append`, so unconditional appending would send two
-/// `Authorization` headers and most servers reject or pick arbitrarily.
-fn headers_have_authorization(headers: &[String]) -> bool {
+/// Used by the three send paths to suppress xurl's own append of any header
+/// the caller already supplied. `reqwest::RequestBuilder::header` uses
+/// `HeaderMap::append`, so without this guard a header the caller passed
+/// (Authorization, User-Agent, Content-Type, X-B3-Flags) would go out
+/// alongside xurl's own value. HTTP allows multi-valued headers in the
+/// abstract; many servers (and HTTP signatures like Authorization) treat
+/// duplicates as undefined.
+fn user_supplied_header(headers: &[String], name: &str) -> bool {
     headers
         .iter()
         .filter_map(|h| h.split_once(':'))
-        .any(|(key, _)| key.trim().eq_ignore_ascii_case("authorization"))
+        .any(|(key, _)| key.trim().eq_ignore_ascii_case(name))
 }
 
 /// Appends a percent-encoded value to `out` using [`URL_VALUE_ENCODE_SET`].
 fn write_encoded(out: &mut String, value: &str) {
     for chunk in utf8_percent_encode(value, URL_VALUE_ENCODE_SET) {
         out.push_str(chunk);
+    }
+}
+
+/// Emits an `info:` advisory for each xurl-added header that was suppressed
+/// because the caller already supplied one via `options.headers`.
+///
+/// The four xurl-added headers are `Content-Type` (only when there's a body
+/// to send), `Authorization` (only when `no_auth` is false), `User-Agent`
+/// (always), and `X-B3-Flags` (only when `trace` is true). The corresponding
+/// `would_*` booleans gate which headers are eligible for advisory in this
+/// call site — `send_multipart_request` passes `would_set_content_type: false`
+/// because reqwest's multipart builder owns the Content-Type.
+fn log_header_overrides(
+    out: &OutputConfig,
+    err: &mut dyn std::io::Write,
+    headers: &[String],
+    would_set_content_type: bool,
+    would_set_auth: bool,
+    would_set_trace: bool,
+) {
+    let candidates: [(&str, bool); 4] = [
+        ("Content-Type", would_set_content_type),
+        ("Authorization", would_set_auth),
+        ("User-Agent", true),
+        ("X-B3-Flags", would_set_trace),
+    ];
+    for (name, xurl_wanted) in candidates {
+        if xurl_wanted && user_supplied_header(headers, name) {
+            out.verbose(
+                err,
+                &format!("info: user-supplied {name} detected; skipping xurl append"),
+            );
+        }
     }
 }
 
@@ -1319,63 +1377,78 @@ mod tests {
         assert!(matches!(err, XurlError::InvalidUrl(_)), "got {err:?}");
     }
 
-    // ── headers_have_authorization tests ───────────────────────────────
+    // ── user_supplied_header tests ───────────────────────────────
 
     #[test]
-    fn headers_have_authorization_detects_canonical_case() {
+    fn user_supplied_header_detects_canonical_case() {
         let headers = vec!["Authorization: Bearer foo".to_string()];
-        assert!(headers_have_authorization(&headers));
+        assert!(user_supplied_header(&headers, "Authorization"));
     }
 
     #[test]
-    fn headers_have_authorization_is_case_insensitive() {
+    fn user_supplied_header_is_case_insensitive_on_input_key() {
         for raw in [
             "authorization: Bearer foo",
             "AUTHORIZATION: Bearer foo",
             "aUtHoRiZaTiOn: Bearer foo",
         ] {
             assert!(
-                headers_have_authorization(&[raw.to_string()]),
+                user_supplied_header(&[raw.to_string()], "Authorization"),
                 "did not detect: {raw}"
             );
         }
     }
 
     #[test]
-    fn headers_have_authorization_ignores_surrounding_whitespace_on_key() {
+    fn user_supplied_header_is_case_insensitive_on_query_name() {
+        let headers = vec!["Authorization: Bearer foo".to_string()];
+        for query in ["authorization", "AUTHORIZATION", "aUtHoRiZaTiOn"] {
+            assert!(
+                user_supplied_header(&headers, query),
+                "did not detect with query: {query}"
+            );
+        }
+    }
+
+    #[test]
+    fn user_supplied_header_ignores_surrounding_whitespace_on_key() {
         let headers = vec!["  Authorization  : Bearer foo".to_string()];
-        assert!(headers_have_authorization(&headers));
+        assert!(user_supplied_header(&headers, "Authorization"));
     }
 
     #[test]
-    fn headers_have_authorization_false_for_empty_list() {
+    fn user_supplied_header_false_for_empty_list() {
         let headers: Vec<String> = Vec::new();
-        assert!(!headers_have_authorization(&headers));
+        assert!(!user_supplied_header(&headers, "Authorization"));
+        assert!(!user_supplied_header(&headers, "User-Agent"));
     }
 
     #[test]
-    fn headers_have_authorization_false_for_other_headers() {
+    fn user_supplied_header_does_not_match_substring_keys() {
         let headers = vec![
             "Cookie: session=abc".to_string(),
-            "User-Agent: custom/1.0".to_string(),
             "X-Authorization-Hint: ignored".to_string(),
         ];
-        assert!(!headers_have_authorization(&headers));
+        assert!(!user_supplied_header(&headers, "Authorization"));
     }
 
     #[test]
-    fn headers_have_authorization_false_for_unparseable_entry() {
+    fn user_supplied_header_false_for_unparseable_entry() {
         let headers = vec!["malformed-no-colon".to_string()];
-        assert!(!headers_have_authorization(&headers));
+        assert!(!user_supplied_header(&headers, "Authorization"));
     }
 
     #[test]
-    fn headers_have_authorization_detects_when_mixed_with_others() {
+    fn user_supplied_header_detects_each_xurl_added_header() {
         let headers = vec![
-            "Content-Type: application/json".to_string(),
+            "Content-Type: application/xml".to_string(),
             "Authorization: Bearer foo".to_string(),
-            "X-B3-Flags: 1".to_string(),
+            "User-Agent: custom/1.0".to_string(),
+            "X-B3-Flags: 0".to_string(),
         ];
-        assert!(headers_have_authorization(&headers));
+        assert!(user_supplied_header(&headers, "Content-Type"));
+        assert!(user_supplied_header(&headers, "Authorization"));
+        assert!(user_supplied_header(&headers, "User-Agent"));
+        assert!(user_supplied_header(&headers, "X-B3-Flags"));
     }
 }
