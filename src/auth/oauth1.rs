@@ -9,7 +9,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use hmac::{Hmac, KeyInit, Mac};
-use rand::Rng;
 use sha1::Sha1;
 use url::Url;
 
@@ -145,7 +144,7 @@ fn generate_signature(
 /// Generates a random nonce.
 #[must_use]
 pub fn generate_nonce() -> String {
-    let n: u64 = rand::rng().random_range(0..1_000_000_000);
+    let n: u64 = rand::random_range(0..1_000_000_000);
     n.to_string()
 }
 
