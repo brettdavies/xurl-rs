@@ -385,6 +385,7 @@ fn test_resolve_username(#[case] input: &str, #[case] expected: &str) {
 // api/client_test.go — TestNewApiClient
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_new_api_client() {
     let ts = TestServer::new();
@@ -397,6 +398,7 @@ fn test_new_api_client() {
 // api/client_test.go — TestBuildRequest
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_build_request_get() {
     let ts = TestServer::new();
@@ -424,6 +426,7 @@ fn test_build_request_get() {
     assert_eq!(resp["data"]["username"], "testuser");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_build_request_post() {
     let ts = TestServer::new();
@@ -456,6 +459,7 @@ fn test_build_request_post() {
 // Auth type routing tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_build_request_with_auth_bearer() {
     // The intent: `--auth app` routes the Bearer auth header. Targeted at
@@ -485,6 +489,7 @@ fn test_build_request_with_auth_bearer() {
     assert_eq!(resp["data"]["id"], "1");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_build_request_with_auth_oauth1() {
     let ts = TestServer::new();
@@ -511,6 +516,7 @@ fn test_build_request_with_auth_oauth1() {
     assert_eq!(resp["data"]["id"], "1");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_build_request_with_auth_oauth2() {
     let ts = TestServer::new();
@@ -542,6 +548,7 @@ fn test_build_request_with_auth_oauth2() {
 // api/client_test.go — TestSendRequest
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_send_request_success() {
     let ts = TestServer::new();
@@ -569,6 +576,7 @@ fn test_send_request_success() {
     assert_eq!(resp["data"]["id"], "12345");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_send_request_http_error() {
     let ts = TestServer::new();
@@ -595,6 +603,7 @@ fn test_send_request_http_error() {
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_send_request_json_parse_error() {
     let ts = TestServer::new();
@@ -623,6 +632,7 @@ fn test_send_request_json_parse_error() {
 // Timeout wiring — --timeout / XURL_TIMEOUT bound network calls
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn slow_endpoint_trips_explicit_timeout() {
     let ts = TestServer::new();
@@ -662,6 +672,7 @@ fn slow_endpoint_trips_explicit_timeout() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn config_default_timeout_carries_through_apiclient_new() {
     // Regression guard for the runner-to-ApiClient timeout plumbing: the value
@@ -677,6 +688,7 @@ fn config_default_timeout_carries_through_apiclient_new() {
 // Auth header routing tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_get_auth_header_oauth1() {
     let (auth, _tmp) = create_mock_auth_with_oauth1("https://api.x.com");
@@ -687,6 +699,7 @@ fn test_get_auth_header_oauth1() {
     assert!(header.contains("oauth_consumer_key"));
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_auth_header_oauth2() {
     let (mut auth, _tmp) = create_mock_auth_with_oauth2("https://api.x.com");
@@ -697,6 +710,7 @@ fn test_get_auth_header_oauth2() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_auth_header_bearer() {
     let (auth, _tmp) = create_mock_auth_with_bearer("https://api.x.com");
@@ -708,6 +722,7 @@ fn test_get_auth_header_bearer() {
 // api/shortcuts_test.go — Shortcut integration tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_create_post() {
     let ts = TestServer::new();
@@ -730,6 +745,7 @@ fn test_create_post() {
     assert_eq!(resp.data.text, "Hello!");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_reply_to_post() {
     let ts = TestServer::new();
@@ -751,6 +767,7 @@ fn test_reply_to_post() {
     assert_eq!(resp.data.id, "88888");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_reply_to_post_with_url() {
     let ts = TestServer::new();
@@ -778,6 +795,7 @@ fn test_reply_to_post_with_url() {
     assert_eq!(resp.data.id, "77777");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_quote_post() {
     let ts = TestServer::new();
@@ -799,6 +817,7 @@ fn test_quote_post() {
     assert_eq!(resp.data.id, "66666");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_delete_post() {
     let ts = TestServer::new();
@@ -818,6 +837,7 @@ fn test_delete_post() {
     assert!(resp.data.deleted);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_read_post() {
     let ts = TestServer::new();
@@ -835,6 +855,7 @@ fn test_read_post() {
     assert_eq!(resp.data.text, "existing post");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_search_posts() {
     let ts = TestServer::new();
@@ -856,6 +877,7 @@ fn test_search_posts() {
 /// Threads `CallOptions::pagination_token` through to the
 /// `pagination_token` query parameter on the search URL — wiremock asserts
 /// the parameter is present and carries the URL-decoded token.
+#[serial_test::parallel]
 #[test]
 fn test_search_posts_threads_pagination_token() {
     let ts = TestServer::new();
@@ -881,6 +903,7 @@ fn test_search_posts_threads_pagination_token() {
 
 /// Same wiremock probe as above, but verifies the URL-encoder runs on
 /// special characters (spaces → `%20`).
+#[serial_test::parallel]
 #[test]
 fn test_search_posts_url_encodes_pagination_token() {
     let ts = TestServer::new();
@@ -904,6 +927,7 @@ fn test_search_posts_url_encodes_pagination_token() {
     assert_eq!(resp.data.first().unwrap().id, "3");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_me() {
     let ts = TestServer::new();
@@ -923,6 +947,7 @@ fn test_get_me() {
     assert_eq!(resp.data.username, "testbot");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_lookup_user() {
     let ts = TestServer::new();
@@ -942,6 +967,7 @@ fn test_lookup_user() {
     assert_eq!(resp.data.username, "lookedup");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_create_post_with_media() {
     let ts = TestServer::new();
@@ -1003,6 +1029,7 @@ fn test_is_media_append_request(
     assert_eq!(is_media_append_request(url, media_file), expected);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_media_upload_init() {
     let ts = TestServer::new();
@@ -1026,6 +1053,7 @@ fn test_media_upload_init() {
     assert_eq!(resp["data"]["id"], "test_media_id");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_media_upload_finalize() {
     let ts = TestServer::new();
@@ -1050,6 +1078,7 @@ fn test_media_upload_finalize() {
     assert_eq!(resp["data"]["id"], "test_media_id");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_media_upload_check_status() {
     let ts = TestServer::new();
@@ -1083,6 +1112,7 @@ fn test_media_upload_check_status() {
     assert_eq!(resp["data"]["processing_info"]["state"], "succeeded");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_stream_request_error() {
     let ts = TestServer::new();
@@ -1127,11 +1157,13 @@ fn test_resolve_post_id_edge_cases(#[case] input: &str, #[case] expected: &str) 
     assert_eq!(api::resolve_post_id(input), expected);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_resolve_username_empty() {
     assert_eq!(api::resolve_username(""), "");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_resolve_username_at_only() {
     assert_eq!(api::resolve_username("@"), "");
@@ -1144,6 +1176,7 @@ fn test_is_streaming_endpoint_rules_not_streaming(#[case] endpoint: &str, #[case
     assert_eq!(is_streaming_endpoint(endpoint), expected);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_extract_media_id_with_extra_path() {
     let result = extract_media_id("/2/media/upload/999/append/extra");
@@ -1152,6 +1185,7 @@ fn test_extract_media_id_with_extra_path() {
 
 // ── Usage shortcut tests ────────────────────────────────────────────────
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_happy_path() {
     let ts = TestServer::new();
@@ -1207,6 +1241,7 @@ fn test_get_usage_happy_path() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_requires_usage_fields_query_param() {
     // Verify the shortcut sends the required query parameter.
@@ -1233,6 +1268,7 @@ fn test_get_usage_requires_usage_fields_query_param() {
     assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_uses_get_method() {
     // Ensure the shortcut uses GET, not POST or another method.
@@ -1253,6 +1289,7 @@ fn test_get_usage_uses_get_method() {
     assert!(resp.is_ok());
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_api_error_401() {
     // Unauthorized — e.g., missing or invalid bearer token.
@@ -1275,6 +1312,7 @@ fn test_get_usage_api_error_401() {
     assert!(resp.is_err());
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_api_error_429() {
     // Rate limited — 50 requests per 15-minute window.
@@ -1297,6 +1335,7 @@ fn test_get_usage_api_error_429() {
     assert!(resp.is_err());
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_with_bearer() {
     // `/2/usage/tweets` is Bearer-only per the OpenAPI spec; previous tests
@@ -1320,6 +1359,7 @@ fn test_get_usage_with_bearer() {
     assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_rejects_oauth_only_app() {
     // /2/usage/tweets accepts only Bearer per the spec. An app that only
@@ -1352,6 +1392,7 @@ fn test_get_usage_rejects_oauth_only_app() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_daily_project_usage_structure() {
     // Verify the daily_project_usage nested structure is preserved.
@@ -1385,6 +1426,7 @@ fn test_get_usage_daily_project_usage_structure() {
     assert_eq!(usage[2]["usage"], "100");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_daily_client_app_usage_structure() {
     // Verify the daily_client_app_usage array with per-app breakdowns.
@@ -1426,6 +1468,7 @@ fn test_get_usage_daily_client_app_usage_structure() {
     assert_eq!(apps[1]["client_app_id"], "app_2");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_get_usage_clears_request_data() {
     // Ensure no stale request body leaks into the GET request.
@@ -1451,6 +1494,7 @@ fn test_get_usage_clears_request_data() {
 // Red team — adversarial API responses via wiremock
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn redteam_create_post_array_where_object_expected() {
     // API returns array in data field for a single-item shortcut
@@ -1474,6 +1518,7 @@ fn redteam_create_post_array_where_object_expected() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_get_me_no_data_field() {
     // API returns errors-only 200 with no data field
@@ -1498,6 +1543,7 @@ fn redteam_get_me_no_data_field() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_delete_post_wrong_type_in_data() {
     // API returns string instead of object in data field
@@ -1521,6 +1567,7 @@ fn redteam_delete_post_wrong_type_in_data() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_search_posts_null_data() {
     // API returns null data
@@ -1540,6 +1587,7 @@ fn redteam_search_posts_null_data() {
     assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_empty_body_returns_descriptive_error() {
     // send_request returns empty {} for non-JSON 2xx — shortcut should give clear error
@@ -1562,6 +1610,7 @@ fn redteam_empty_body_returns_descriptive_error() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_unknown_fields_survive_shortcut_round_trip() {
     // Verify serde(flatten) preserves unknown fields through the full shortcut path
@@ -1595,6 +1644,7 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
     assert_eq!(value["top_level_extra"], 42);
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_like_post_extra_fields_on_action() {
     // Action confirmation with extra unknown fields
@@ -1618,6 +1668,7 @@ fn redteam_like_post_extra_fields_on_action() {
     assert_eq!(resp.extra["rate_limit_remaining"], 99);
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_lookup_user_wrong_bool_type() {
     // String "true" where boolean expected in a nested field
@@ -1645,6 +1696,7 @@ fn redteam_lookup_user_wrong_bool_type() {
 // from_env() constructor tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::serial]
 #[test]
 fn test_from_env_missing_client_id_returns_validation_error() {
     // Temporarily clear CLIENT_ID to test error path
@@ -1671,6 +1723,7 @@ fn test_from_env_missing_client_id_returns_validation_error() {
     }
 }
 
+#[serial_test::serial]
 #[test]
 fn test_from_env_empty_client_id_returns_validation_error() {
     let original = std::env::var("CLIENT_ID").ok();
@@ -1691,6 +1744,7 @@ fn test_from_env_empty_client_id_returns_validation_error() {
     }
 }
 
+#[serial_test::serial]
 #[test]
 fn test_from_env_with_client_id_set_returns_ok() {
     let original_id = std::env::var("CLIENT_ID").ok();
@@ -1717,6 +1771,7 @@ fn test_from_env_with_client_id_set_returns_ok() {
     }
 }
 
+#[serial_test::serial]
 #[test]
 fn test_from_env_with_client_id_but_no_secret_returns_ok() {
     // Best-effort: CLIENT_SECRET not required at construction time
@@ -1747,6 +1802,7 @@ fn test_from_env_with_client_id_but_no_secret_returns_ok() {
 // no_auth behavior tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_no_auth_skips_authorization_header() {
     // With no_auth=true, the request should NOT include an Authorization header.
@@ -1773,6 +1829,7 @@ fn test_no_auth_skips_authorization_header() {
     assert!(result.is_ok(), "no_auth=true should not fail: {result:?}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_no_auth_false_includes_authorization_header() {
     // With no_auth=false (default), the Authorization header should be present.
@@ -1801,6 +1858,7 @@ fn test_no_auth_false_includes_authorization_header() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_no_auth_with_raw_send_request() {
     // Verify no_auth works at the send_request level too, not just shortcuts
@@ -1875,6 +1933,7 @@ fn test_no_auth_with_raw_send_request() {
 // the user's value as authoritative and skip xurl's append.
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
     let ts = TestServer::new();
@@ -1909,6 +1968,7 @@ fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_authorization_detection_is_case_insensitive() {
     for raw_header in [
@@ -1949,6 +2009,7 @@ fn user_supplied_authorization_detection_is_case_insensitive() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn no_auth_with_user_supplied_authorization_sends_users_value() {
     let ts = TestServer::new();
@@ -1984,6 +2045,7 @@ fn no_auth_with_user_supplied_authorization_sends_users_value() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_authorization_does_not_affect_other_custom_headers() {
     let ts = TestServer::new();
@@ -2030,6 +2092,7 @@ fn user_supplied_authorization_does_not_affect_other_custom_headers() {
     assert_eq!(cookies[0], vec!["session=abc".to_string()]);
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
     use xurl::api::MultipartOptions;
@@ -2076,6 +2139,7 @@ fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
     let ts = TestServer::new();
@@ -2112,6 +2176,7 @@ fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
     let ts = TestServer::new();
@@ -2146,6 +2211,7 @@ fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
     let ts = TestServer::new();
@@ -2183,6 +2249,7 @@ fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
     let ts = TestServer::new();
@@ -2218,6 +2285,7 @@ fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     use xurl::api::MultipartOptions;
@@ -2262,6 +2330,7 @@ fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
     let ts = TestServer::new();
@@ -2296,6 +2365,7 @@ fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn xurl_default_user_agent_is_sent_when_not_overridden() {
     use wiremock::matchers::header_regex;
@@ -2336,6 +2406,7 @@ fn xurl_default_user_agent_is_sent_when_not_overridden() {
 // Red team — library ergonomics edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
     // Conflicting: no_auth=true + auth_type="oauth2" — no_auth should win
@@ -2365,6 +2436,7 @@ fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_sequential_calls_on_same_client() {
     // Verify that making multiple calls on the same client instance works
@@ -2405,6 +2477,7 @@ fn redteam_sequential_calls_on_same_client() {
     assert_eq!(me2.data.id, "42");
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_api_error_preserves_status_and_body() {
     // Verify that HTTP errors carry both status code and body through the pipeline
@@ -2436,6 +2509,7 @@ fn redteam_api_error_preserves_status_and_body() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_api_error_401_gives_auth_exit_code() {
     // Verify the full pipeline: HTTP 401 → Api { status: 401 } → EXIT_AUTH_REQUIRED
@@ -2463,6 +2537,7 @@ fn redteam_api_error_401_gives_auth_exit_code() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn redteam_api_error_429_gives_rate_limit_exit_code() {
     use xurl::error::exit_code_for_error;
@@ -2527,6 +2602,7 @@ fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
+#[serial_test::parallel]
 #[test]
 fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     let ts = TestServer::new();
@@ -2558,6 +2634,7 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn auth_error_propagates_for_oauth2_path_with_no_token() {
     let ts = TestServer::new();
@@ -2604,6 +2681,7 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
 /// must short-circuit with `XurlError::AuthMethodMismatch` carrying the
 /// U6 explicit-mismatch shape (`requested = Some("app")`,
 /// `available_in_app = None`), and wiremock must observe zero requests.
+#[serial_test::parallel]
 #[test]
 fn u6_ae1_explicit_mismatch_app_against_media_upload() {
     let ts = TestServer::new();
@@ -2661,6 +2739,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
 /// OAuth1 creds + `--auth oauth1` + `POST /2/media/upload`. The validator
 /// must yield, the request must reach wiremock, and the mocked 200
 /// response should propagate back as JSON.
+#[serial_test::parallel]
 #[test]
 fn u6_ae2_passthrough_oauth1_against_media_upload() {
     let ts = TestServer::new();
@@ -2699,6 +2778,7 @@ fn u6_ae2_passthrough_oauth1_against_media_upload() {
 /// must surface `AuthMethodMismatch` before the multipart body is built and
 /// wiremock receives zero traffic. Pre-merge insurance against a future
 /// edit that drops the gate from one of the three send paths.
+#[serial_test::parallel]
 #[test]
 fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     use std::collections::HashMap;
@@ -2764,6 +2844,7 @@ fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
 /// wrapper (`cli::commands::streaming::stream_request_with_output`) makes
 /// the identical validator call at its own entry, so locking this
 /// invariant on the library side covers both.
+#[serial_test::parallel]
 #[test]
 fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
     let ts = TestServer::new();
@@ -2825,6 +2906,7 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
 /// `ApiClient::stream_request` shares the contract: when auth resolution
 /// fails (e.g. token-not-found on the active app), the error must surface
 /// rather than the request going out unauthenticated.
+#[serial_test::parallel]
 #[test]
 fn u7_streaming_propagates_auth_resolution_errors() {
     let ts = TestServer::new();
@@ -2871,6 +2953,7 @@ fn u7_streaming_propagates_auth_resolution_errors() {
 /// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
 /// must NOT reject even though the same `(method, path)` would reject under a
 /// `Template` target. Raw mode is the user's escape hatch.
+#[serial_test::parallel]
 #[test]
 fn u6_ae5_raw_url_skips_validation() {
     let ts = TestServer::new();
@@ -2906,6 +2989,7 @@ fn u6_ae5_raw_url_skips_validation() {
 /// AE3 — auto-detect against an OAuth1-only app at an OAuth1+OAuth2 endpoint.
 /// Intersection yields {OAuth1}; the request must dispatch on OAuth1 without
 /// prompting and reach the wiremock.
+#[serial_test::parallel]
 #[test]
 fn u7_ae3_auto_detect_oauth1_only_app() {
     let ts = TestServer::new();
@@ -2940,6 +3024,7 @@ fn u7_ae3_auto_detect_oauth1_only_app() {
 /// Intersection is empty; the request must fail with the typed envelope
 /// shape (R8) carrying `requested: None`, `available_in_app: Some(["app"])`,
 /// and the endpoint's supported set.
+#[serial_test::parallel]
 #[test]
 fn u7_ae4_auto_detect_empty_intersection_envelope() {
     let ts = TestServer::new();
@@ -2998,6 +3083,7 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
 /// endpoint accepting both. OAuth2 wins per the locked preference order.
 /// Verified by mounting two distinct mocks that match on the Authorization
 /// header prefix and asserting the OAuth2-shaped header lands.
+#[serial_test::parallel]
 #[test]
 fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
     use wiremock::matchers::header;
@@ -3034,6 +3120,7 @@ fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
 /// `AuthRequired` (exit 77, "log in first"), not `AuthMethodMismatch`
 /// (exit 2, "wrong credential"). The empty-intersection branch fires only
 /// when the user has SOMETHING stored that happens not to overlap.
+#[serial_test::parallel]
 #[test]
 fn u7_no_stored_credentials_returns_auth_required() {
     let ts = TestServer::new();

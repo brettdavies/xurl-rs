@@ -55,6 +55,7 @@ fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
 // Basic CLI sanity tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_help_flag() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
@@ -65,6 +66,7 @@ fn test_help_flag() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_version_flag() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--version"]);
@@ -75,6 +77,7 @@ fn test_version_flag() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_invalid_flag() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]);
@@ -103,6 +106,7 @@ fn assert_invalid_args_envelope(stderr: &str) {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_clap_error_emits_envelope_under_output_json() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]);
@@ -110,6 +114,7 @@ fn test_clap_error_emits_envelope_under_output_json() {
     assert_invalid_args_envelope(&stderr);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_clap_error_emits_envelope_under_json_alias() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]);
@@ -117,6 +122,7 @@ fn test_clap_error_emits_envelope_under_json_alias() {
     assert_invalid_args_envelope(&stderr);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_clap_error_emits_envelope_under_jsonl_alias() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--jsonl"]);
@@ -124,6 +130,7 @@ fn test_clap_error_emits_envelope_under_jsonl_alias() {
     assert_invalid_args_envelope(&stderr);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_clap_error_falls_back_to_text_without_json_intent() {
     // No --output json, no --json, no XURL_OUTPUT — clap's default text
@@ -137,6 +144,7 @@ fn test_clap_error_falls_back_to_text_without_json_intent() {
     assert!(stderr.contains("error"));
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_help_under_output_json_still_writes_to_stdout() {
     // DisplayHelp short-circuit: --help bypasses envelope routing.
@@ -145,6 +153,7 @@ fn test_help_under_output_json_still_writes_to_stdout() {
     assert!(stdout.contains("Usage"), "help on stdout: {stdout}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_version_under_output_json_still_writes_to_stdout() {
     let (code, stdout, _stderr) = run_isolated(&["xr", "--version", "--output", "json"]);
@@ -152,6 +161,7 @@ fn test_version_under_output_json_still_writes_to_stdout() {
     assert!(stdout.contains("xr"), "version on stdout: {stdout}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_envelope_consistency_clap_error_has_status_key() {
     // R6 / p2-should-consistent-envelope: clap-error JSON and runtime-error
@@ -164,6 +174,7 @@ fn test_envelope_consistency_clap_error_has_status_key() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_raw_flag_accepted() {
     // --raw is a global boolean flag; smoke-tests parse path.
@@ -171,6 +182,7 @@ fn test_raw_flag_accepted() {
     assert_eq!(code, 0);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_json_and_output_conflict() {
     // clap should reject `--output json --json` together (validated after
@@ -179,12 +191,14 @@ fn test_json_and_output_conflict() {
     assert_ne!(code, 0, "--json + --output must conflict: {stderr}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_json_and_jsonl_conflict() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]);
     assert_ne!(code, 0, "--json + --jsonl must conflict: {stderr}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_json_alias_envelope_equivalent_to_output_json() {
     // On a clap parse failure, `--json` and `--output json` produce
@@ -203,18 +217,21 @@ fn test_json_alias_envelope_equivalent_to_output_json() {
 // Subcommand help tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_post_help() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
     assert_eq!(code, 0, "expected 0 for post --help; stderr: {stderr}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_search_help() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
     assert_eq!(code, 0, "expected 0 for search --help; stderr: {stderr}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_auth_help() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "--help"]);
@@ -225,6 +242,7 @@ fn test_auth_help() {
 // Command error handling tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_post_without_text_fails() {
     // Post command requires text argument
@@ -232,6 +250,7 @@ fn test_post_without_text_fails() {
     assert_ne!(code, 0, "expected non-zero exit for `post` with no args");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_search_without_query_fails() {
     // Search command requires a query
@@ -239,12 +258,14 @@ fn test_search_without_query_fails() {
     assert_ne!(code, 0, "expected non-zero exit for `search` with no args");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_delete_without_id_fails() {
     let (code, _stdout, _stderr) = run_isolated(&["xr", "delete"]);
     assert_ne!(code, 0, "expected non-zero exit for `delete` with no args");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_reply_without_args_fails() {
     let (code, _stdout, _stderr) = run_isolated(&["xr", "reply"]);
@@ -255,6 +276,7 @@ fn test_reply_without_args_fails() {
 // Usage command tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_usage_help() {
     let (code, stdout, stderr) = run_isolated(&["xr", "usage", "--help"]);
@@ -269,6 +291,7 @@ fn test_usage_help() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_usage_without_auth_fails() {
     // Isolated empty token store via tempdir — no env mutation needed.
@@ -280,6 +303,7 @@ fn test_usage_without_auth_fails() {
 // Auth-required commands should fail without credentials
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_whoami_without_auth_fails() {
     // Isolated empty token store via tempdir — no env mutation needed.
@@ -291,6 +315,7 @@ fn test_whoami_without_auth_fails() {
 // App management subcommands
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_apps_list_help() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "apps", "--help"]);
@@ -301,12 +326,14 @@ fn test_apps_list_help() {
 // Exit code parity tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_exit_code_success_on_help() {
     let (code, _stdout, _stderr) = run_isolated(&["xr", "--help"]);
     assert_eq!(code, 0, "Expected exit code 0 for --help");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_exit_code_failure_on_bad_flag() {
     let (code, _stdout, _stderr) = run_isolated(&["xr", "--nonexistent"]);
@@ -317,6 +344,7 @@ fn test_exit_code_failure_on_bad_flag() {
 // Verbose / trace flag tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_verbose_flag_accepted() {
     // --verbose should be accepted even if the command ultimately fails
@@ -325,6 +353,7 @@ fn test_verbose_flag_accepted() {
     assert_eq!(code, 0, "expected 0 for --verbose --help; stderr: {stderr}");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_trace_flag_accepted() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--trace", "--help"]);
@@ -435,6 +464,7 @@ fn test_apps_add_without_redirect_uri_leaves_empty() {
     assert_eq!(v["effective_source"], "built-in-default");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_apps_add_with_invalid_redirect_uri_rejected() {
     let tmp = TempDir::new().unwrap();
@@ -465,6 +495,7 @@ fn test_apps_add_with_invalid_redirect_uri_rejected() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_apps_update_with_redirect_uri_changes_value() {
     let tmp = TempDir::new().unwrap();
@@ -518,6 +549,7 @@ fn test_apps_update_with_redirect_uri_changes_value() {
     assert_eq!(v["stored_redirect_uri"], "https://example.com/cb");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_apps_update_with_empty_redirect_uri_clears() {
     let tmp = TempDir::new().unwrap();
@@ -576,6 +608,7 @@ fn test_apps_update_with_empty_redirect_uri_clears() {
     assert_eq!(v["stored_redirect_uri"], serde_json::Value::Null);
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_apps_update_no_fields_errors() {
     let tmp = TempDir::new().unwrap();
@@ -605,6 +638,7 @@ fn test_apps_update_no_fields_errors() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_redirect_uri_set_persists() {
     let tmp = TempDir::new().unwrap();
@@ -658,6 +692,7 @@ fn test_redirect_uri_set_persists() {
     assert_eq!(v["stored_redirect_uri"], "https://example.com/cb");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_redirect_uri_set_invalid_rejected() {
     let tmp = TempDir::new().unwrap();
@@ -700,6 +735,7 @@ fn test_redirect_uri_set_invalid_rejected() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_redirect_uri_get_text_output() {
     let tmp = TempDir::new().unwrap();
@@ -951,6 +987,7 @@ fn assert_no_credentials(stdout: &str, context: &str) {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_auth_status_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
@@ -973,6 +1010,7 @@ fn test_auth_status_json_excludes_all_credentials() {
     assert_eq!(arr[0]["oauth2_users"], serde_json::json!(["alice"]));
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_auth_apps_list_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
@@ -990,6 +1028,7 @@ fn test_auth_apps_list_json_excludes_all_credentials() {
     assert_eq!(arr[0]["name"], "myapp");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_redirect_uri_get_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
@@ -1699,6 +1738,7 @@ fn test_like_with_at_prefix_username_strips_at() {
 // `auth oauth2 [USERNAME]` positional (U4)
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[serial_test::parallel]
 #[test]
 fn test_oauth2_positional_username_threads_through() {
     // Parse-level assertion: `xr auth oauth2 alice --no-browser --step 1`
@@ -1741,6 +1781,7 @@ fn test_oauth2_positional_username_threads_through() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_oauth2_positional_invalid_extra_args() {
     // Two positionals on `auth oauth2` must fail with a clap usage error
@@ -1790,6 +1831,7 @@ fn seed_default_with_credentials(store_path: &Path) {
         .expect("update_app");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_credential_less_default_warning_fires() {
     let tmp = TempDir::new().unwrap();
@@ -1813,6 +1855,7 @@ fn test_credential_less_default_warning_fires() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_credential_less_default_warning_suppressed_by_explicit_app() {
     let tmp = TempDir::new().unwrap();
@@ -1838,6 +1881,7 @@ fn test_credential_less_default_warning_suppressed_by_explicit_app() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_credential_less_default_warning_suppressed_no_credentialed_alternative() {
     let tmp = TempDir::new().unwrap();
@@ -1854,6 +1898,7 @@ fn test_credential_less_default_warning_suppressed_no_credentialed_alternative()
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_credential_less_default_warning_suppressed_when_default_has_credentials() {
     let tmp = TempDir::new().unwrap();
@@ -1888,6 +1933,7 @@ fn seed_app_with_unnamed_oauth2(store_path: &Path) {
     let _ = ts.remove_app("default");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_status_text_shows_unnamed_oauth2() {
     let tmp = TempDir::new().unwrap();
@@ -1902,6 +1948,7 @@ fn test_status_text_shows_unnamed_oauth2() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_status_json_emits_oauth2_unnamed_true() {
     let tmp = TempDir::new().unwrap();
@@ -1926,6 +1973,7 @@ fn test_status_json_emits_oauth2_unnamed_true() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_status_json_omits_oauth2_unnamed_when_false() {
     let tmp = TempDir::new().unwrap();
@@ -1987,6 +2035,7 @@ fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
     result
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_help_advertises_host_all_dry_run() {
     let (code, stdout, stderr) = run_isolated(&["xr", "skill", "install", "--help"]);
@@ -2009,6 +2058,7 @@ fn skill_install_help_advertises_host_all_dry_run() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_dry_run_emits_envelope_without_spawning_git() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2056,6 +2106,7 @@ fn skill_install_dry_run_emits_envelope_without_spawning_git() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_existing_non_empty_destination_errors() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2077,6 +2128,7 @@ fn skill_install_existing_non_empty_destination_errors() {
     assert_eq!(v["destination_status"], "non-empty-dir");
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_all_dry_run_lists_every_host() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2112,6 +2164,7 @@ fn skill_install_all_dry_run_lists_every_host() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_home_unset_emits_home_not_set_reason() {
     let (code, stdout, stderr) = run_with_home(
@@ -2125,6 +2178,7 @@ fn skill_install_home_unset_emits_home_not_set_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_no_args_lists_supported_hosts() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2142,6 +2196,7 @@ fn skill_install_no_args_lists_supported_hosts() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2162,6 +2217,7 @@ fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_dry_run_text_output_is_single_line_command() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2182,6 +2238,7 @@ fn skill_install_dry_run_text_output_is_single_line_command() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn skill_install_dest_is_regular_file_errors() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2214,6 +2271,7 @@ fn examples_line_index(lines: &[&str]) -> Option<usize> {
         .position(|l| l.trim_start().starts_with("Examples:"))
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_post_help_includes_paired_text_and_json_examples() {
     let (code, stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
@@ -2252,6 +2310,7 @@ fn test_post_help_includes_paired_text_and_json_examples() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_auth_oauth2_help_shows_no_browser_example() {
     let (code, stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
@@ -2567,6 +2626,7 @@ fn test_search_per_cmd_max_results_overrides_global_limit() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_examples_subcommand_runs() {
     let (code, stdout, stderr) = run_isolated(&["xr", "examples"]);
@@ -2586,6 +2646,7 @@ fn test_examples_subcommand_runs() {
     }
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_search_help_demonstrates_env_var_precedence() {
     let (code, stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
@@ -2665,6 +2726,7 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
     assert_eq!(v["status"], "dry_run");
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_dry_run_help_advertised_on_post() {
     // Sanity: the help text MUST mention --dry-run so anc's p5-must-dry-run
@@ -2677,6 +2739,7 @@ fn test_dry_run_help_advertised_on_post() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_root_help_lists_env_vars_and_exit_codes() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
@@ -2716,6 +2779,7 @@ fn test_root_help_lists_env_vars_and_exit_codes() {
 /// each `--help` carries an Examples block. Parametric coverage: a future
 /// new subcommand without examples fails this test instead of silently
 /// regressing the P3 audit.
+#[serial_test::parallel]
 #[test]
 fn test_every_subcommand_help_has_examples_block() {
     use clap::CommandFactory;
@@ -2763,6 +2827,7 @@ fn test_every_subcommand_help_has_examples_block() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_force_help_advertised_on_delete() {
     let (code, stdout, _stderr) = run_isolated(&["xr", "delete", "--help"]);
@@ -2773,6 +2838,7 @@ fn test_force_help_advertised_on_delete() {
     );
 }
 
+#[serial_test::parallel]
 #[test]
 fn test_limit_help_advertised_globally() {
     let (code, stdout, _stderr) = run_isolated(&["xr", "--help"]);
@@ -2790,6 +2856,7 @@ fn test_limit_help_advertised_globally() {
 /// `xr auth default --no-interactive --output json` (no app_name supplied)
 /// must emit the canonical `no-tty` envelope on stderr and skip any dialoguer
 /// call.  Two apps are seeded so the picker would otherwise prompt.
+#[serial_test::parallel]
 #[test]
 fn test_auth_default_no_interactive_emits_no_tty_envelope() {
     use xurl::store::TokenStore;
@@ -2836,6 +2903,7 @@ fn test_auth_default_no_interactive_emits_no_tty_envelope() {
 /// stdin/stderr are not real TTYs (cargo test) must still skip dialoguer and
 /// emit the `no-tty` envelope. The TTY check is independent of the
 /// `--no-interactive` flag.
+#[serial_test::parallel]
 #[test]
 fn test_auth_default_non_tty_emits_no_tty_envelope() {
     use xurl::store::TokenStore;
@@ -2858,6 +2926,7 @@ fn test_auth_default_non_tty_emits_no_tty_envelope() {
 }
 
 /// `xr auth oauth2 --help` must advertise the new `XURL_NO_BROWSER` env var.
+#[serial_test::parallel]
 #[test]
 fn test_auth_oauth2_help_advertises_no_browser_env_var() {
     let (code, stdout, _stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
@@ -2877,6 +2946,7 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 /// step-1 pending-state file lives at `$HOME/.xurl.pending` — the library
 /// entrypoint does not isolate that path, so an in-process call would
 /// pollute the user's real home directory.
+#[serial_test::parallel]
 #[test]
 fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2912,6 +2982,7 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 
 /// `XURL_NO_BROWSER=1 xr auth oauth2 --output json` is equivalent to passing
 /// `--no-browser` explicitly — env-var routing for headless runners.
+#[serial_test::parallel]
 #[test]
 fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2940,6 +3011,7 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 /// `--no-browser` nor `XURL_NO_BROWSER` is set, `xr auth oauth2 --output
 /// json` must auto-engage the headless path rather than attempting to spawn
 /// a browser. Confirms scenario 5 of the U9 plan.
+#[serial_test::parallel]
 #[test]
 fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
