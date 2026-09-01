@@ -1,6 +1,9 @@
 //! Tests for Config loading and environment variable handling.
 //!
-//! These tests mutate environment variables and must run serially.
+//! Most tests here inject values through `EnvOverrides` and run in parallel.
+//! The ones proving `Config::new`'s own contract read the process, so they
+//! mutate the environment and stay `#[serial]`; `tests/env_mutation_guard.rs`
+//! is the allowlist that keeps that set from growing by accident.
 
 use serial_test::serial;
 use xurl::config::{Config, EnvOverrides};
@@ -115,7 +118,6 @@ fn test_config_default_trait() {
 
 // ── Config::from_overrides ──────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_from_overrides_empty_yields_builtin_defaults() {
     let cfg = Config::from_overrides(&EnvOverrides::default());
@@ -130,7 +132,6 @@ fn test_from_overrides_empty_yields_builtin_defaults() {
     assert_eq!(cfg.app_name, "");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_from_overrides_info_url_derives_from_supplied_api_base() {
     let cfg = Config::from_overrides(&EnvOverrides {
@@ -145,7 +146,6 @@ fn test_from_overrides_info_url_derives_from_supplied_api_base() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_from_overrides_explicit_info_url_wins_over_derivation() {
     let cfg = Config::from_overrides(&EnvOverrides {
@@ -157,7 +157,6 @@ fn test_from_overrides_explicit_info_url_wins_over_derivation() {
     assert_eq!(cfg.info_url, "http://elsewhere.test/me");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_from_overrides_carries_every_supplied_value() {
     let cfg = Config::from_overrides(&EnvOverrides {
@@ -229,53 +228,45 @@ fn test_new_matches_from_overrides_for_every_value() {
 
 // ── validate_redirect_uri ───────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_accepts_https() {
     let url = Config::validate_redirect_uri("https://example.com/cb").expect("https accepted");
     assert_eq!(url.scheme(), "https");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_accepts_http_localhost() {
     Config::validate_redirect_uri("http://localhost:9090/cb").expect("localhost accepted");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_accepts_http_127_0_0_1() {
     Config::validate_redirect_uri("http://127.0.0.1:9090/cb").expect("127.0.0.1 accepted");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_accepts_http_ipv6_loopback() {
     Config::validate_redirect_uri("http://[::1]:9090/cb").expect("[::1] accepted");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_rejects_http_remote() {
     let err = Config::validate_redirect_uri("http://example.com/cb");
     assert!(err.is_err(), "http+remote should be rejected");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_rejects_ftp() {
     let err = Config::validate_redirect_uri("ftp://localhost/cb");
     assert!(err.is_err(), "ftp scheme should be rejected");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_rejects_unparseable() {
     let err = Config::validate_redirect_uri("not-a-url");
     assert!(err.is_err(), "unparseable URI should be rejected");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_validate_redirect_uri_rejects_file_scheme() {
     let err = Config::validate_redirect_uri("file:///etc/passwd");
