@@ -15,7 +15,7 @@
 //!   process. Tests use it with a `TempDir`-rooted path so they never touch the
 //!   real `~/.xurl` and never depend on ambient variables.
 //!
-//! All three return a structured exit code per
+//! All four return a structured exit code per
 //! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
 //! contract. They never call `process::exit`.
 
@@ -225,7 +225,7 @@ where
     cfg.http_timeout_secs = cli.timeout;
     let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
 
-    match crate::cli::commands::run_with_overrides(cli, &out, stdout, stderr, auth, overrides) {
+    match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
             let code = e.exit_code();

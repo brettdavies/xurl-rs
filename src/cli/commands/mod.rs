@@ -186,36 +186,13 @@ fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
 /// and `stderr` are the runner's writers; passing them through every command
 /// handler lets library tests capture all output into `Vec<u8>`.
 ///
+/// `overrides` carries the environment the run resolved at its entrypoint, so
+/// nothing below this call reads the process.
+///
 /// # Errors
 ///
 /// Returns an error if the command fails.
 pub fn run(
-    cli: Cli,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-    auth: Auth,
-) -> Result<()> {
-    run_with_overrides(
-        cli,
-        out,
-        stdout,
-        stderr,
-        auth,
-        &crate::config::EnvOverrides::from_env(),
-    )
-}
-
-/// Same as [`run`], with the environment supplied explicitly.
-///
-/// The CLI runner calls this so a whole run resolves the environment once at
-/// its entrypoint; [`run`] is the shim that reads the process for callers
-/// that have no overrides of their own.
-///
-/// # Errors
-///
-/// Returns an error if the command fails.
-pub fn run_with_overrides(
     cli: Cli,
     out: &OutputConfig,
     stdout: &mut dyn Write,
