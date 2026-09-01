@@ -4,11 +4,16 @@
 # cross-compiled target is discovered while cutting the release. That is the
 # wrong moment: the tag exists, and the fix lands after a failed publish.
 #
-# This runs the same seven targets on demand and on any change to the
-# dependency graph or the toolchain pin, which is what breaks cross builds.
-# reqwest 0.13 brought in aws-lc-sys, which compiles C and needs a working
-# cross toolchain per target; a change of that shape reaches this workflow
-# before it reaches a tag.
+# This runs the same seven targets at the two moments that matter: when the
+# dependency graph or toolchain pin changes, which is what breaks a cross
+# build, and on every release branch, which is the last point before a tag
+# exists. reqwest 0.13 brought in aws-lc-sys, which compiles C and needs a
+# working cross toolchain per target; a change of that shape reaches this
+# workflow before it reaches a tag.
+#
+# The full matrix runs in roughly five minutes, and the two long poles are
+# Windows and the cross rows, so tightening the trigger further would buy
+# little.
 #
 # Every row is hard-fail here. The release workflow soft-fails its two musl
 # rows and omits their artifacts, so a red musl row in this check means
@@ -17,18 +22,20 @@ name: Release matrix check
 
 on:
   workflow_dispatch:
+  # Dependency and toolchain changes are what break a cross-compiled target,
+  # so those PRs pay the matrix and nothing else does.
   pull_request:
     paths:
       - Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
       - .github/workflows/release-matrix-check.yml
+  # Every release branch runs the full matrix regardless of what changed. This
+  # is the last point before a tag exists, and a release carries commits the
+  # path filter above may never have seen together.
   push:
-    branches: [dev]
-    paths:
-      - Cargo.toml
-      - Cargo.lock
-      - rust-toolchain.toml
+    branches:
+      - 'release/**'
 
 permissions:
   contents: read
