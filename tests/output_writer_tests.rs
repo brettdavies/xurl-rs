@@ -668,3 +668,36 @@ fn info_suppressed_under_every_structured_format() {
         assert!(buf.is_empty(), "info() must be silent under {fmt:?}");
     }
 }
+
+// ── NO_COLOR edge proof ─────────────────────────────────────────────────────
+
+// ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
+//
+// `OutputConfig::new_with_raw` reads `NO_COLOR` from the process and hands the
+// result to `new_with_no_color`, which every other color test drives directly.
+// This is the only test covering that read, so it exports the variable. It is
+// the sole mutation in this binary, so nothing races it.
+#[test]
+fn no_color_env_reaches_the_resolved_color_decision() {
+    let prior = std::env::var_os("NO_COLOR");
+    unsafe {
+        std::env::set_var("NO_COLOR", "1");
+    }
+    let cfg = OutputConfig::new(
+        OutputFormat::Text,
+        false,
+        false,
+        xurl::cli::ColorChoice::Always,
+    );
+    unsafe {
+        match prior {
+            Some(v) => std::env::set_var("NO_COLOR", v),
+            None => std::env::remove_var("NO_COLOR"),
+        }
+    }
+
+    assert!(
+        !cfg.use_color,
+        "an exported NO_COLOR must reach the constructor and defeat --color always"
+    );
+}
