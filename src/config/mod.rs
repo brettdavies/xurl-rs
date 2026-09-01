@@ -88,6 +88,16 @@ pub struct EnvOverrides {
     pub api_base_url: Option<String>,
     /// `INFO_URL` — user-info endpoint; derived from `api_base_url` when unset.
     pub info_url: Option<String>,
+    /// `XURL_BEARER_TOKEN` — app-only bearer token, top of the bearer precedence.
+    ///
+    /// Consumed by [`Auth::get_bearer_token_header`](crate::auth::Auth::get_bearer_token_header)
+    /// rather than by [`Config`], so it has no corresponding `Config` field.
+    pub bearer_token: Option<String>,
+    /// `XURL_OUTPUT` — output format, read before clap parsing so a parse
+    /// error can pick its envelope shape.
+    ///
+    /// Consumed by the CLI runner rather than by [`Config`].
+    pub output: Option<String>,
 }
 
 impl EnvOverrides {
@@ -106,6 +116,8 @@ impl EnvOverrides {
             token_url: std::env::var("TOKEN_URL").ok(),
             api_base_url: std::env::var("API_BASE_URL").ok(),
             info_url: std::env::var("INFO_URL").ok(),
+            bearer_token: std::env::var("XURL_BEARER_TOKEN").ok(),
+            output: std::env::var("XURL_OUTPUT").ok(),
         }
     }
 }

@@ -35,6 +35,24 @@ fn run_isolated(args: &[&str]) -> (i32, String, String) {
     )
 }
 
+/// Run the entrypoint against an existing store path with explicit
+/// environment values, reading nothing from the process.
+fn run_at_with(
+    store_path: &Path,
+    overrides: &xurl::config::EnvOverrides,
+    args: &[&str],
+) -> (i32, String, String) {
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code =
+        cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store_path, overrides);
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}
+
 /// Run the entrypoint against an existing `TempDir`-rooted store path.
 ///
 /// Lets a single test issue multiple invocations against the same `.xurl`
@@ -3037,4 +3055,96 @@ fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
         "auto-engaged envelope must match explicit --no-browser shape: {trimmed}"
     );
     assert!(v["url"].is_string(), "url present: {trimmed}");
+}
+
+// ── Injected environment overrides (U2) ─────────────────────────────────────
+
+#[serial_test::parallel]
+#[test]
+fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+
+    let (code, _, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret",
+            "xyz",
+            "--redirect-uri",
+            "https://stored.example.com/cb",
+        ],
+    );
+    assert_eq!(code, 0, "setup failed; stderr: {stderr}");
+
+    let overrides = xurl::config::EnvOverrides {
+        redirect_uri: Some("https://injected.example.com/cb".into()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code2, stdout2, stderr2) = run_at_with(
+        &store,
+        &overrides,
+        &["xr", "auth", "apps", "redirect-uri", "get", "myapp"],
+    );
+
+    assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
+    assert!(
+        stdout2.contains("https://injected.example.com/cb"),
+        "injected value must win over the stored one: {stdout2}"
+    );
+    assert!(
+        stdout2.contains("REDIRECT_URI environment variable"),
+        "injected value carries env provenance: {stdout2}"
+    );
+    assert!(
+        stdout2.contains("https://stored.example.com/cb"),
+        "stored value is still reported alongside: {stdout2}"
+    );
+}
+
+#[serial_test::parallel]
+#[test]
+fn test_absent_redirect_uri_override_lets_stored_value_win() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+
+    let (code, _, _) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret",
+            "xyz",
+            "--redirect-uri",
+            "https://stored.example.com/cb",
+        ],
+    );
+    assert_eq!(code, 0);
+
+    let (code2, stdout2, _) = run_at_with(
+        &store,
+        &xurl::config::EnvOverrides::default(),
+        &["xr", "auth", "apps", "redirect-uri", "get", "myapp"],
+    );
+
+    assert_eq!(code2, 0);
+    assert!(
+        stdout2.contains("https://stored.example.com/cb"),
+        "with no override the stored value wins: {stdout2}"
+    );
+    assert!(
+        stdout2.contains("app config"),
+        "and reports app-config provenance: {stdout2}"
+    );
 }

@@ -666,11 +666,15 @@ fn get_bearer_token_header_reads_real_env() {
     // is unconditional so a panic mid-test still restores process state.
     let cfg = empty_config();
     let (token_store, _tmp) = create_temp_token_store();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
 
+    // The process read happens when `Auth` is constructed, not when the
+    // header is requested, so the variable is exported first. A run resolves
+    // its environment once at the entrypoint and carries it, which is what
+    // makes every other test in this file able to inject instead of export.
     unsafe {
         std::env::set_var("XURL_BEARER_TOKEN", "integration-env-bearer");
     }
+    let auth = Auth::new(&cfg).with_token_store(token_store);
     let header_with_env = auth.get_bearer_token_header();
     unsafe {
         std::env::remove_var("XURL_BEARER_TOKEN");

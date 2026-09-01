@@ -195,8 +195,9 @@ pub fn run(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     mut auth: Auth,
+    overrides: &crate::config::EnvOverrides,
 ) -> Result<()> {
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;

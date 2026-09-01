@@ -168,6 +168,8 @@ fn test_from_overrides_carries_every_supplied_value() {
         token_url: Some("https://auth.test/token".into()),
         api_base_url: Some("https://api.test".into()),
         info_url: Some("https://api.test/me".into()),
+        bearer_token: None,
+        output: None,
     });
 
     assert_eq!(cfg.client_id, "CID");
