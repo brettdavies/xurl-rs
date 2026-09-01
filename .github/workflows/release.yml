@@ -20,5 +20,9 @@ jobs:
     with:
       crate: xurl-rs
       bin: xr
+      # Both musl rows build clean (verified by release-matrix-check), so a
+      # musl failure now blocks the release instead of silently omitting two
+      # artifacts from it.
+      linux_musl_required: true
     secrets:
       CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
