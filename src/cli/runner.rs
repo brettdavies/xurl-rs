@@ -1,15 +1,19 @@
 //! Library CLI entrypoints — the canonical implementation lives in
-//! [`run_with_store_path`]; [`run`] and [`run_argv`] are layered wrappers.
+//! [`run_with_overrides`]; the others are layered wrappers, each resolving one
+//! input the layer below cannot invent.
 //!
-//! The three entrypoints together form the public library surface for the
+//! The four entrypoints together form the public library surface for the
 //! `xr` CLI dispatcher:
 //!
 //! - [`run_argv`]: reads `std::env::args_os()` and uses real stdio. The binary
 //!   calls this from `main`.
 //! - [`run`]: takes args + writers; resolves the default token-store path.
-//! - [`run_with_store_path`]: the canonical implementation. Takes args, writers,
-//!   and an explicit token-store path. Tests pass a `TempDir`-rooted path so
-//!   they never touch the real `~/.xurl`.
+//! - [`run_with_store_path`]: takes an explicit token-store path; resolves the
+//!   environment from the process.
+//! - [`run_with_overrides`]: the canonical implementation. Takes args, writers,
+//!   a token-store path, and the environment as data, reading nothing from the
+//!   process. Tests use it with a `TempDir`-rooted path so they never touch the
+//!   real `~/.xurl` and never depend on ambient variables.
 //!
 //! All three return a structured exit code per
 //! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
@@ -221,7 +225,7 @@ where
     cfg.http_timeout_secs = cli.timeout;
     let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
 
-    match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
+    match crate::cli::commands::run_with_overrides(cli, &out, stdout, stderr, auth, overrides) {
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
             let code = e.exit_code();

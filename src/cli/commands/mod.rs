@@ -194,6 +194,32 @@ pub fn run(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
+    auth: Auth,
+) -> Result<()> {
+    run_with_overrides(
+        cli,
+        out,
+        stdout,
+        stderr,
+        auth,
+        &crate::config::EnvOverrides::from_env(),
+    )
+}
+
+/// Same as [`run`], with the environment supplied explicitly.
+///
+/// The CLI runner calls this so a whole run resolves the environment once at
+/// its entrypoint; [`run`] is the shim that reads the process for callers
+/// that have no overrides of their own.
+///
+/// # Errors
+///
+/// Returns an error if the command fails.
+pub fn run_with_overrides(
+    cli: Cli,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
     mut auth: Auth,
     overrides: &crate::config::EnvOverrides,
 ) -> Result<()> {
