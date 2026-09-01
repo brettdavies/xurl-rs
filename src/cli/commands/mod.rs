@@ -186,6 +186,9 @@ fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
 /// and `stderr` are the runner's writers; passing them through every command
 /// handler lets library tests capture all output into `Vec<u8>`.
 ///
+/// `overrides` carries the environment the run resolved at its entrypoint, so
+/// nothing below this call reads the process.
+///
 /// # Errors
 ///
 /// Returns an error if the command fails.
@@ -195,8 +198,9 @@ pub fn run(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     mut auth: Auth,
+    overrides: &crate::config::EnvOverrides,
 ) -> Result<()> {
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;

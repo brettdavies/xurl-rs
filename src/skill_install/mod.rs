@@ -290,12 +290,16 @@ const STATUS_ERROR: &str = "error";
 
 /// Compute the envelope without performing I/O (dry-run) or, in install mode,
 /// after spawning `git`.
-pub fn compute_install_envelope(host: SkillHost, dry_run: bool) -> InstallEnvelope {
+pub fn compute_install_envelope(
+    host: SkillHost,
+    dry_run: bool,
+    home: Option<&str>,
+) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
     let host_str = host_envelope_str(host);
 
     // Step 1: tilde expand. MissingHome surfaces as an envelope error.
-    let dest = match expand_tilde(dest_template) {
+    let dest = match expand_tilde_with(dest_template, home) {
         Ok(p) => p,
         Err(InstallError::MissingHome) => {
             // Without $HOME we cannot show the resolved destination. Surface
@@ -472,8 +476,9 @@ pub fn run_install(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    home: Option<&str>,
 ) -> i32 {
-    let envelope = compute_install_envelope(host, dry_run);
+    let envelope = compute_install_envelope(host, dry_run, home);
     let rendered = render_envelope(&envelope, &out.format);
     let _ = writeln!(stdout, "{rendered}");
     if envelope.status == STATUS_ERROR {
@@ -493,26 +498,32 @@ pub fn run_install_multi(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    home: Option<&str>,
 ) -> i32 {
     if all {
-        return run_for_all_hosts(dry_run, out, stdout);
+        return run_for_all_hosts(dry_run, out, stdout, home);
     }
     let Some(host) = host else {
         // Missing host AND missing --all. Emit a hint envelope listing the
         // known hosts and return EXIT_USAGE_ERROR (2).
         return emit_missing_host_envelope(out, stdout);
     };
-    run_install(host, dry_run, out, stdout)
+    run_install(host, dry_run, out, stdout, home)
 }
 
 /// Render a per-host envelope sequence as a single multi envelope.
-fn run_for_all_hosts(dry_run: bool, out: &OutputConfig, stdout: &mut dyn Write) -> i32 {
+fn run_for_all_hosts(
+    dry_run: bool,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    home: Option<&str>,
+) -> i32 {
     use clap::ValueEnum as _;
 
     let mut installations = Vec::with_capacity(KNOWN_HOSTS.len());
     let mut worst: i32 = 0;
     for host in SkillHost::value_variants() {
-        let env = compute_install_envelope(*host, dry_run);
+        let env = compute_install_envelope(*host, dry_run, home);
         if env.status == STATUS_ERROR {
             worst = worst.max(env.exit_code.unwrap_or(1));
         }
@@ -571,11 +582,12 @@ pub fn run_update(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    home: Option<&str>,
 ) -> i32 {
     let (_, dest_template) = resolve_host(host);
     let host_str = host_envelope_str(host);
 
-    let dest = match expand_tilde(dest_template) {
+    let dest = match expand_tilde_with(dest_template, home) {
         Ok(p) => p,
         Err(InstallError::MissingHome) => {
             let rendered = render_update_error(host_str, dest_template, dry_run, "home-not-set");
@@ -604,7 +616,7 @@ pub fn run_update(
         return 1;
     }
 
-    let env = compute_install_envelope(host, false);
+    let env = compute_install_envelope(host, false, home);
     let mut rendered = render_envelope(&env, &out.format);
     if env.status == STATUS_OK {
         rendered = rendered.replace(ACTION_INSTALL, ACTION_UPDATE);
@@ -627,12 +639,13 @@ pub fn run_update_multi(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    home: Option<&str>,
 ) -> i32 {
     if all {
         use clap::ValueEnum as _;
         let mut worst: i32 = 0;
         for h in SkillHost::value_variants() {
-            let code = run_update(*h, dry_run, out, stdout);
+            let code = run_update(*h, dry_run, out, stdout, home);
             if code != 0 {
                 worst = worst.max(code);
             }
@@ -642,7 +655,7 @@ pub fn run_update_multi(
     let Some(host) = host else {
         return emit_missing_host_envelope(out, stdout);
     };
-    run_update(host, dry_run, out, stdout)
+    run_update(host, dry_run, out, stdout, home)
 }
 
 fn emit_envelope(stdout: &mut dyn Write, rendered: &str, _format: &OutputFormat) {

@@ -1,7 +1,11 @@
 {
-  "name": "Protect dev",
-  "target": "branch",
-  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
   "conditions": {
     "ref_name": {
       "exclude": [],
@@ -10,6 +14,8 @@
       ]
     }
   },
+  "enforcement": "active",
+  "name": "Protect dev",
   "rules": [
     {
       "type": "required_signatures"
@@ -19,13 +25,37 @@
     },
     {
       "type": "non_fast_forward"
+    },
+    {
+      "parameters": {
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "ci / Fmt, clippy, test"
+          },
+          {
+            "context": "ci / Windows check"
+          },
+          {
+            "context": "ci / Package check"
+          },
+          {
+            "context": "ci / Security audit (advisories)"
+          },
+          {
+            "context": "ci / Security audit (bans licenses sources)"
+          },
+          {
+            "context": "ci / Shellcheck"
+          },
+          {
+            "context": "Output discipline"
+          }
+        ],
+        "strict_required_status_checks_policy": false
+      },
+      "type": "required_status_checks"
     }
   ],
-  "bypass_actors": [
-    {
-      "actor_id": 5,
-      "actor_type": "RepositoryRole",
-      "bypass_mode": "always"
-    }
-  ]
+  "target": "branch"
 }

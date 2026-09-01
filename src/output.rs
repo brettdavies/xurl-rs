@@ -138,6 +138,26 @@ impl OutputConfig {
         raw: bool,
     ) -> Self {
         let no_color_env = std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty());
+        Self::new_with_no_color(format, quiet, verbose, color, raw, no_color_env)
+    }
+
+    /// Pure core of [`new_with_raw`], with the `NO_COLOR` decision supplied.
+    ///
+    /// `no_color_env` is the value [`new_with_raw`] derives from the process:
+    /// `true` when `NO_COLOR` is set to a non-empty value. Callers that already
+    /// resolved their environment, and tests, pass it directly rather than
+    /// exporting the variable.
+    ///
+    /// [`new_with_raw`]: Self::new_with_raw
+    #[must_use]
+    pub fn new_with_no_color(
+        format: OutputFormat,
+        quiet: bool,
+        verbose: bool,
+        color: ColorChoice,
+        raw: bool,
+        no_color_env: bool,
+    ) -> Self {
         let use_color = if raw || no_color_env {
             false
         } else {
@@ -796,62 +816,42 @@ mod tests {
 
     #[test]
     fn test_no_color_env_overrides_color_always() {
-        // Save and clear any existing NO_COLOR so the assertion is deterministic
-        // in the unlikely case the test runner has it set.
-        // SAFETY: tests in this module are single-threaded under cargo test by default;
-        // no other thread reads NO_COLOR concurrently.
-        let prior = std::env::var_os("NO_COLOR");
-        // SAFETY: see above.
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
-        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Always);
+        let cfg = OutputConfig::new_with_no_color(
+            OutputFormat::Text,
+            false,
+            false,
+            ColorChoice::Always,
+            false,
+            true,
+        );
         assert!(!cfg.use_color, "NO_COLOR must defeat --color always");
         assert!(cfg.no_color, "no_color mirrors !use_color");
-        // SAFETY: see above.
-        unsafe {
-            match prior {
-                Some(v) => std::env::set_var("NO_COLOR", v),
-                None => std::env::remove_var("NO_COLOR"),
-            }
-        }
     }
 
     #[test]
     fn test_color_never_disables_color() {
-        // Force NO_COLOR off so the --color flag is the only driver here.
-        // SAFETY: tests in this module are single-threaded under cargo test by default.
-        let prior = std::env::var_os("NO_COLOR");
-        // SAFETY: see above.
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
-        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
+        let cfg = OutputConfig::new_with_no_color(
+            OutputFormat::Text,
+            false,
+            false,
+            ColorChoice::Never,
+            false,
+            false,
+        );
         assert!(!cfg.use_color);
-        // SAFETY: see above.
-        unsafe {
-            if let Some(v) = prior {
-                std::env::set_var("NO_COLOR", v);
-            }
-        }
     }
 
     #[test]
     fn test_color_always_enables_color_when_no_color_unset() {
-        // SAFETY: tests in this module are single-threaded under cargo test by default.
-        let prior = std::env::var_os("NO_COLOR");
-        // SAFETY: see above.
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
-        let cfg = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Always);
+        let cfg = OutputConfig::new_with_no_color(
+            OutputFormat::Text,
+            false,
+            false,
+            ColorChoice::Always,
+            false,
+            false,
+        );
         assert!(cfg.use_color, "--color always must enable color");
-        // SAFETY: see above.
-        unsafe {
-            if let Some(v) = prior {
-                std::env::set_var("NO_COLOR", v);
-            }
-        }
     }
 
     #[test]

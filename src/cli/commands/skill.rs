@@ -8,13 +8,21 @@ use crate::output::OutputConfig;
 use crate::skill_install;
 
 /// Run the `skill` subcommand. Returns the process exit code.
-pub fn run_skill(cmd: SkillCmd, out: &OutputConfig, stdout: &mut dyn Write) -> i32 {
+///
+/// `home` is the directory a `~`-prefixed destination expands against,
+/// resolved by the caller rather than read from the process here.
+pub fn run_skill(
+    cmd: SkillCmd,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    home: Option<&str>,
+) -> i32 {
     match cmd {
         SkillCmd::Install { host, all, dry_run } => {
-            skill_install::run_install_multi(host, all, dry_run, out, stdout)
+            skill_install::run_install_multi(host, all, dry_run, out, stdout, home)
         }
         SkillCmd::Update { host, all, dry_run } => {
-            skill_install::run_update_multi(host, all, dry_run, out, stdout)
+            skill_install::run_update_multi(host, all, dry_run, out, stdout, home)
         }
     }
 }
