@@ -91,6 +91,11 @@ const ALLOWLIST: &[Allowed] = &[
         test: "test_new_matches_from_overrides_for_every_value",
         reason: "the edge proof that the process path and the injected path agree",
     },
+    Allowed {
+        file: "conformance_runner.rs",
+        test: "run_differential_conformance_suite",
+        reason: "sole test in its binary; the variable points a comparison harness at the Go binary, not the CLI under test",
+    },
 ];
 
 /// Files the guard reads. A new integration test file is added here.
@@ -99,6 +104,7 @@ const SCANNED: &[&str] = &[
     "api_tests.rs",
     "auth_tests.rs",
     "config_tests.rs",
+    "conformance_runner.rs",
 ];
 
 /// Returns the name of the `fn` a given byte offset falls inside.
