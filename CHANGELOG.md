@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-09-01
+
+### Added
+
+- `run_with_overrides`, `Config::from_overrides`, `EnvOverrides`, and `Auth::new_with_store_path_and_overrides` let a library consumer drive a run with the environment supplied explicitly, instead of inheriting whatever the host process exported. by @brettdavies in [#91](https://github.com/brettdavies/xurl-rs/pull/91)
+
+### Changed
+
+- Add a 7-day cooldown before Dependabot opens version-update pull requests. by @brettdavies in [#82](https://github.com/brettdavies/xurl-rs/pull/82)
+- TLS certificate verification now uses the operating system trust store instead of the Mozilla root certificates that were compiled into the binary. Corporate TLS-inspecting proxies work without extra configuration; a machine with a missing or stale system CA store needs it repaired. by @brettdavies in [#89](https://github.com/brettdavies/xurl-rs/pull/89)
+- The TLS crypto provider is now aws-lc-rs rather than ring, following reqwest 0.13's only supported provider path.
+- `Auth` resolves `XURL_BEARER_TOKEN` when it is constructed rather than when a header is requested. A run resolves its environment once at the entrypoint, so the binary is unaffected; a consumer that mutated the variable between constructing `Auth` and requesting a header would see the value from construction. by @brettdavies in [#91](https://github.com/brettdavies/xurl-rs/pull/91)
+
+### Fixed
+
+- Honor caller-supplied `Authorization`, `Content-Type`, `User-Agent`, and `X-B3-Flags` headers passed via `-H` or `RequestOptions::headers` by suppressing xurl's own auto-append for that request. Eliminates duplicate-header requests that servers either reject or resolve arbitrarily. `--auth none` is no longer required as a workaround for `Authorization`. Affects `send_request`, `send_multipart_request`, and `stream_request`. by @brettdavies in [#73](https://github.com/brettdavies/xurl-rs/pull/73)
+- Update `h2` to 0.4.19 in the lockfile, clearing RUSTSEC-2026-0258 (unbounded queueing of empty HTTP/2 DATA frames). The crate enters through a dev-dependency and is not linked into `xr`, so this affects `cargo install --locked` builds and the advisory gate rather than the shipped binary. by @brettdavies in [#88](https://github.com/brettdavies/xurl-rs/pull/88)
+- Update `quinn-proto` to 0.11.17, clearing the advisory on the lockfile entry that `reqwest`'s unused http3 feature contributes.
+- `OutputConfig` gains `new_with_no_color`, which resolves the color decision from a supplied value rather than the process environment. `new_with_raw` keeps reading `NO_COLOR` and delegates to it. by @brettdavies in [#92](https://github.com/brettdavies/xurl-rs/pull/92)
+
+**Full Changelog**: [v2.1.0...v2.2.0](https://github.com/brettdavies/xurl-rs/compare/v2.1.0...v2.2.0)
+
 ## [2.1.0] - 2026-06-05
 
 ### Added
