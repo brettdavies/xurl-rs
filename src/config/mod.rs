@@ -155,9 +155,9 @@ impl Config {
     /// resolved `api_base_url`, so overriding only the base URL keeps the
     /// user-info endpoint pointed at the same origin.
     ///
-    /// A present `redirect_uri` records [`ResolveSource::EnvVar`] provenance,
-    /// matching an exported `REDIRECT_URI`; an absent one records the built-in
-    /// default. That distinction decides whether a stored per-app value can win
+    /// A present `redirect_uri` records env-supplied provenance, matching an
+    /// exported `REDIRECT_URI`; an absent one records the built-in default.
+    /// That distinction decides whether a stored per-app value can win
     /// during the three-level resolution, so supplying a value here is not the
     /// same as leaving it out.
     #[must_use]
