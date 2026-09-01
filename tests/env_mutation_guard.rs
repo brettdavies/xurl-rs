@@ -96,16 +96,42 @@ const ALLOWLIST: &[Allowed] = &[
         test: "run_differential_conformance_suite",
         reason: "sole test in its binary; the variable points a comparison harness at the Go binary, not the CLI under test",
     },
+    Allowed {
+        file: "output_writer_tests.rs",
+        test: "no_color_env_reaches_the_resolved_color_decision",
+        reason: "the only proof that OutputConfig::new_with_raw reads NO_COLOR from the process",
+    },
+    Allowed {
+        file: "src/config/mod.rs",
+        test: "resolve_redirect_uri_env_wins",
+        reason: "proves the resolve_redirect_uri wrapper reads REDIRECT_URI from the process",
+    },
+    Allowed {
+        file: "src/config/mod.rs",
+        test: "resolve_redirect_uri_stored_when_no_env",
+        reason: "the wrapper's unset-variable leg, which needs the variable actually unset",
+    },
+    Allowed {
+        file: "src/config/mod.rs",
+        test: "resolve_redirect_uri_default_fallback",
+        reason: "the wrapper's no-env no-stored leg, which needs the variable actually unset",
+    },
 ];
 
-/// Files the guard reads. A new integration test file is added here.
+/// Integration test files the guard reads, relative to `tests/`.
 const SCANNED: &[&str] = &[
     "cli_tests.rs",
     "api_tests.rs",
     "auth_tests.rs",
     "config_tests.rs",
     "conformance_runner.rs",
+    "output_writer_tests.rs",
 ];
+
+/// Library sources with inline `#[cfg(test)]` modules, relative to the repo
+/// root. Unit tests share the library test binary, so a mutation here races
+/// every other test in that binary exactly as it did in the integration ones.
+const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/output.rs"];
 
 /// Returns the name of the `fn` a given byte offset falls inside.
 fn enclosing_test(source: &str, offset: usize) -> String {
@@ -127,8 +153,13 @@ fn integration_tests_do_not_mutate_the_process_environment() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     let mut violations = Vec::new();
 
-    for file in SCANNED {
-        let path = dir.join(file);
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    for file in SCANNED.iter().chain(SCANNED_SRC.iter()) {
+        let path = if file.starts_with("src/") {
+            root.join(file)
+        } else {
+            dir.join(file)
+        };
         let source = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
 
@@ -158,8 +189,13 @@ fn allowlist_entries_still_exist() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     let mut stale = Vec::new();
 
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     for entry in ALLOWLIST {
-        let path = dir.join(entry.file);
+        let path = if entry.file.starts_with("src/") {
+            root.join(entry.file)
+        } else {
+            dir.join(entry.file)
+        };
         let source = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
         if !source.contains(&format!("fn {}(", entry.test)) {
