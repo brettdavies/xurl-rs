@@ -368,7 +368,8 @@ pub(super) fn run_auth_command(
                 return Ok(());
             }
 
-            let entries = build_app_status_entries(ts, &apps, default_app);
+            let entries =
+                build_app_status_entries(ts, &apps, default_app, auth.redirect_uri_override());
 
             if out.format.is_structured() {
                 let value = serde_json::to_value(&entries)?;
@@ -722,7 +723,8 @@ fn run_app_command(
                 return Ok(());
             }
 
-            let entries = build_app_status_entries(ts, &apps, default_app);
+            let entries =
+                build_app_status_entries(ts, &apps, default_app, auth.redirect_uri_override());
 
             if out.format.is_structured() {
                 let value = serde_json::to_value(&entries)?;
@@ -824,14 +826,15 @@ fn truncate(s: &str, max_len: usize) -> &str {
 /// Builds the typed JSON intermediate for `auth status` and `auth apps list`.
 ///
 /// Constructs each `AppStatusEntry` field-by-field from named accessors per
-/// R23 + KTD11; no `From<&App>` and no `Serialize`-on-`App`. The
-/// `REDIRECT_URI` env var is read once per entry to drive the resolver.
+/// R23 + KTD11; no `From<&App>` and no `Serialize`-on-`App`. The caller
+/// supplies the `REDIRECT_URI` value that drives the resolver.
 fn build_app_status_entries(
     ts: &TokenStore,
     apps: &[String],
     default_app: &str,
+    redirect_uri_override: Option<&str>,
 ) -> Vec<AppStatusEntry> {
-    let env = std::env::var("REDIRECT_URI").ok();
+    let env = redirect_uri_override.map(str::to_string);
     apps.iter()
         .filter_map(|name| {
             let app = ts.get_app(name)?;
@@ -878,7 +881,7 @@ fn run_redirect_uri_command(
                 }
             };
 
-            let env = std::env::var("REDIRECT_URI").ok();
+            let env = auth.redirect_uri_override().map(str::to_string);
             let stored = auth
                 .token_store
                 .get_app_redirect_uri(&target)

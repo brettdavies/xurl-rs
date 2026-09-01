@@ -43,6 +43,16 @@ pub struct Auth {
     /// Counterpart to [`Self::client_id_from_env`] for client_secret.
     client_secret_from_env: bool,
     app_name: String,
+    /// The `REDIRECT_URI` value supplied at construction, retained raw.
+    ///
+    /// [`Self::with_app_name`] re-runs the three-level resolution against the
+    /// new app, so it needs the original top-of-precedence input rather than
+    /// the previous resolution's output. A value that failed validation is
+    /// retained too, so the re-resolution reports it the same way the first
+    /// one did.
+    redirect_uri_override: Option<String>,
+    /// The `XURL_BEARER_TOKEN` value supplied at construction.
+    bearer_token_override: Option<String>,
 }
 
 impl Auth {
@@ -68,6 +78,25 @@ impl Auth {
     /// of truth invariant.
     #[must_use]
     pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
+        Self::new_with_store_path_and_overrides(
+            cfg,
+            store_path,
+            &crate::config::EnvOverrides::from_env(),
+        )
+    }
+
+    /// Same as [`Auth::new_with_store_path`], with the environment supplied
+    /// explicitly instead of read from the process.
+    ///
+    /// The redirect URI and bearer token keep their documented precedence;
+    /// `overrides` only decides what the top level of each precedence chain
+    /// sees, so an absent value behaves exactly as an unset variable does.
+    #[must_use]
+    pub fn new_with_store_path_and_overrides(
+        cfg: &Config,
+        store_path: &std::path::Path,
+        overrides: &crate::config::EnvOverrides,
+    ) -> Self {
         let path_str = store_path.to_str().unwrap_or(".");
         let ts =
             TokenStore::new_with_credentials_and_path(&cfg.client_id, &cfg.client_secret, path_str);
@@ -92,7 +121,7 @@ impl Auth {
 
         let mut config = cfg.clone();
         let resolved = crate::config::resolve_redirect_uri_from(
-            std::env::var("REDIRECT_URI").ok(),
+            overrides.redirect_uri.clone(),
             ts.get_app_redirect_uri(&app_name),
         );
         config.redirect_uri = resolved.uri;
@@ -107,7 +136,20 @@ impl Auth {
             client_id_from_env,
             client_secret_from_env,
             app_name,
+            redirect_uri_override: overrides.redirect_uri.clone(),
+            bearer_token_override: overrides.bearer_token.clone(),
         }
+    }
+
+    /// Returns the `REDIRECT_URI` value this `Auth` was constructed with.
+    ///
+    /// Command handlers that run their own redirect-URI resolution — the
+    /// status listing and `auth apps redirect-uri get` — take the top of the
+    /// precedence chain from here instead of reading the process, so every
+    /// resolution in a run sees the same input.
+    #[must_use]
+    pub fn redirect_uri_override(&self) -> Option<&str> {
+        self.redirect_uri_override.as_deref()
     }
 
     /// Sets the explicit app name override and re-resolves the redirect URI.
@@ -131,7 +173,7 @@ impl Auth {
         }
 
         let resolved = crate::config::resolve_redirect_uri_from(
-            std::env::var("REDIRECT_URI").ok(),
+            self.redirect_uri_override.clone(),
             self.token_store.get_app_redirect_uri(app_name),
         );
         self.config.redirect_uri = resolved.uri;
@@ -339,7 +381,7 @@ impl Auth {
     /// bearer token is stored for the resolved app.
     pub fn get_bearer_token_header(&self) -> Result<String> {
         resolve_bearer_token(
-            std::env::var("XURL_BEARER_TOKEN").ok(),
+            self.bearer_token_override.clone(),
             &self.token_store,
             &self.app_name,
         )

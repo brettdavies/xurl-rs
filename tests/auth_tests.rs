@@ -75,7 +75,6 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
 
 // ── TestNewAuth ────────────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_new_auth() {
     let cfg = test_config();
@@ -87,7 +86,6 @@ fn test_new_auth() {
 
 // ── TestWithTokenStore ─────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_with_token_store() {
     let cfg = test_config();
@@ -101,7 +99,6 @@ fn test_with_token_store() {
 
 // ── TestBearerToken ────────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_bearer_token_no_token() {
     let cfg = empty_config();
@@ -117,7 +114,6 @@ fn test_bearer_token_no_token() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_bearer_token_with_token() {
     let cfg = empty_config();
@@ -138,7 +134,6 @@ fn test_bearer_token_with_token() {
 
 // ── TestGenerateNonce ──────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_generate_nonce() {
     let nonce1 = generate_nonce();
@@ -150,7 +145,6 @@ fn test_generate_nonce() {
 
 // ── TestGenerateTimestamp ──────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_generate_timestamp() {
     let timestamp = generate_timestamp();
@@ -184,7 +178,6 @@ fn test_encode(#[case] input: &str, #[case] expected: &str) {
 
 // ── TestGenerateCodeVerifierAndChallenge ────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_generate_code_verifier_and_challenge() {
     let (verifier, challenge) = generate_code_verifier_and_challenge();
@@ -199,7 +192,6 @@ fn test_generate_code_verifier_and_challenge() {
 
 // ── TestGetOAuth2Scopes ────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_get_oauth2_scopes() {
     let scopes = get_oauth2_scopes();
@@ -217,7 +209,6 @@ fn test_get_oauth2_scopes() {
 
 // ── TestCredentialResolutionPriority ────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_env_vars_take_priority_over_store() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -234,7 +225,6 @@ fn test_env_vars_take_priority_over_store() {
     assert_eq!(auth.client_secret(), "env-secret");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_store_used_when_env_vars_empty() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -251,7 +241,6 @@ fn test_store_used_when_env_vars_empty() {
 
 // ── TestWithAppName ────────────────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_with_app_name() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -273,7 +262,6 @@ fn test_with_app_name() {
     assert_eq!(auth.client_secret(), "other-secret");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_with_app_name_nonexistent() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -288,7 +276,6 @@ fn test_with_app_name_nonexistent() {
 
 // ── TestOAuth1HeaderWithTokenStore ─────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_oauth1_header_no_token_fails() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -301,7 +288,6 @@ fn test_oauth1_header_no_token_fails() {
     assert!(result.is_err());
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_oauth1_header_with_token_succeeds() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -322,7 +308,6 @@ fn test_oauth1_header_with_token_succeeds() {
 
 // ── TestGetOAuth2HeaderNoToken ─────────────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_get_oauth2_header_no_token() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -334,7 +319,6 @@ fn test_get_oauth2_header_no_token() {
 
 // ── Edge cases NOT covered in Go tests ─────────────────────────────────────
 
-#[serial_test::parallel]
 #[test]
 fn test_nonce_length() {
     let nonce = generate_nonce();
@@ -342,7 +326,6 @@ fn test_nonce_length() {
     assert!(!nonce.is_empty(), "Nonce should not be empty");
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_timestamp_is_recent() {
     let timestamp = generate_timestamp();
@@ -366,7 +349,6 @@ fn test_encode_edge_cases(#[case] input: &str, #[case] expected: &str) {
     assert_eq!(result, expected);
 }
 
-#[serial_test::parallel]
 #[test]
 fn test_oauth1_header_format() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -402,14 +384,17 @@ fn test_oauth1_header_format() {
 // `Auth::new_with_store_path` honours an explicit `TempDir` path so library
 // tests need no `HOME` / `XDG_CONFIG_HOME` env-var mutation. Parallel-safe.
 
-#[serial_test::parallel]
 #[test]
 fn test_new_with_store_path_honors_explicit_path() {
     let tmp = TempDir::new().expect("Failed to create temp directory");
     let store_path = tmp.path().join(".xurl");
 
     let cfg = test_config();
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let mut auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     auth.token_store
         .save_bearer_token("explicit-path-bearer")
@@ -462,6 +447,12 @@ fn test_redirect_uri_env_wins_via_new_with_store_path() {
     write_store_with_redirect_uri(&store_path, "default", "http://localhost:7777/cb");
 
     let cfg = empty_config();
+    // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
+    //
+    // This is the proof that `new_with_store_path` reads the process at all.
+    // Every other redirect-URI test here injects through
+    // `new_with_store_path_and_overrides`; if this one injected too, nothing
+    // would cover the shim.
     unsafe {
         std::env::set_var("REDIRECT_URI", "https://example.com/cb");
     }
@@ -474,23 +465,22 @@ fn test_redirect_uri_env_wins_via_new_with_store_path() {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_redirect_uri_stored_wins_when_env_unset() {
     let tmp = TempDir::new().expect("temp dir");
     let store_path = tmp.path().join(".xurl");
     write_store_with_redirect_uri(&store_path, "default", "http://localhost:9090/cb");
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let auth = Auth::new_with_store_path(&cfg, &store_path);
+    let auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     assert_eq!(auth.redirect_uri(), "http://localhost:9090/cb");
 }
 
 #[test]
-#[serial_test::serial]
 fn test_redirect_uri_falls_back_to_default_when_no_env_and_no_stored() {
     let tmp = TempDir::new().expect("temp dir");
     let store_path = tmp.path().join(".xurl");
@@ -499,16 +489,16 @@ fn test_redirect_uri_falls_back_to_default_when_no_env_and_no_stored() {
     std::fs::write(&store_path, yaml).expect("write store");
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let auth = Auth::new_with_store_path(&cfg, &store_path);
+    let auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     assert_eq!(auth.redirect_uri(), "http://localhost:8080/callback");
 }
 
 #[test]
-#[serial_test::serial]
 fn test_with_app_name_re_resolves_per_app_stored_uri() {
     let tmp = TempDir::new().expect("temp dir");
     let store_path = tmp.path().join(".xurl");
@@ -521,10 +511,11 @@ fn test_with_app_name_re_resolves_per_app_stored_uri() {
     );
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let mut auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     // Default app is "alpha" — resolver picks alpha's stored URI.
     assert_eq!(auth.redirect_uri(), "http://localhost:7001/cb");
@@ -539,7 +530,6 @@ fn test_with_app_name_re_resolves_per_app_stored_uri() {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_with_app_name_env_override_survives_app_switch() {
     let tmp = TempDir::new().expect("temp dir");
     let store_path = tmp.path().join(".xurl");
@@ -552,10 +542,11 @@ fn test_with_app_name_env_override_survives_app_switch() {
     );
 
     let cfg = empty_config();
-    unsafe {
-        std::env::set_var("REDIRECT_URI", "https://envvar.example.com/cb");
-    }
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let overrides = xurl::config::EnvOverrides {
+        redirect_uri: Some("https://envvar.example.com/cb".into()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let mut auth = Auth::new_with_store_path_and_overrides(&cfg, &store_path, &overrides);
 
     // Env wins for the default app.
     assert_eq!(auth.redirect_uri(), "https://envvar.example.com/cb");
@@ -565,10 +556,6 @@ fn test_with_app_name_env_override_survives_app_switch() {
     // precedence each time.
     auth.with_app_name("beta");
     let still_env_after_switch = auth.redirect_uri().to_string();
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     assert_eq!(still_env_after_switch, "https://envvar.example.com/cb");
 }
@@ -582,7 +569,6 @@ fn test_with_app_name_env_override_survives_app_switch() {
 // (`get_bearer_token_header_reads_real_env`) explicitly sets the env var
 // behind an `unsafe { set_var }` guard to verify the production wrapper.
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_returns_env_when_set_and_store_empty() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -591,7 +577,6 @@ fn resolve_bearer_returns_env_when_set_and_store_empty() {
     assert_eq!(header, "Bearer env-only-bearer");
 }
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_env_overrides_stored_bearer() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -607,7 +592,6 @@ fn resolve_bearer_env_overrides_stored_bearer() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_falls_back_to_store_when_env_empty() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -623,7 +607,6 @@ fn resolve_bearer_falls_back_to_store_when_env_empty() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_falls_back_to_store_when_env_unset() {
     let (mut token_store, _tmp) = create_temp_token_store();
@@ -635,7 +618,6 @@ fn resolve_bearer_falls_back_to_store_when_env_unset() {
     assert_eq!(header, "Bearer stored-bearer");
 }
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_errors_when_neither_set() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -647,7 +629,6 @@ fn resolve_bearer_errors_when_neither_set() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn resolve_bearer_errors_when_env_empty_and_store_empty() {
     let (token_store, _tmp) = create_temp_token_store();
@@ -666,11 +647,15 @@ fn get_bearer_token_header_reads_real_env() {
     // is unconditional so a panic mid-test still restores process state.
     let cfg = empty_config();
     let (token_store, _tmp) = create_temp_token_store();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
 
+    // The process read happens when `Auth` is constructed, not when the
+    // header is requested, so the variable is exported first. A run resolves
+    // its environment once at the entrypoint and carries it, which is what
+    // makes every other test in this file able to inject instead of export.
     unsafe {
         std::env::set_var("XURL_BEARER_TOKEN", "integration-env-bearer");
     }
+    let auth = Auth::new(&cfg).with_token_store(token_store);
     let header_with_env = auth.get_bearer_token_header();
     unsafe {
         std::env::remove_var("XURL_BEARER_TOKEN");
@@ -720,7 +705,6 @@ fn token_store_with_two_apps(
     (ts, tmp)
 }
 
-#[serial_test::parallel]
 #[test]
 fn with_app_name_loads_new_app_client_id_when_no_env() {
     // cfg.client_id empty => Auth picks default app's "default-id" from store.
@@ -744,7 +728,6 @@ fn with_app_name_loads_new_app_client_id_when_no_env() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn with_app_name_loads_new_app_client_secret_when_no_env() {
     let cfg = empty_config();
@@ -755,7 +738,6 @@ fn with_app_name_loads_new_app_client_secret_when_no_env() {
     assert_eq!(auth.client_secret(), "bird-id-secret");
 }
 
-#[serial_test::parallel]
 #[test]
 fn with_app_name_preserves_env_supplied_client_id_across_switches() {
     // cfg.client_id non-empty => env-supplied. After switching to bird-dev,
@@ -785,7 +767,6 @@ fn with_app_name_preserves_env_supplied_client_id_across_switches() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn with_app_name_back_to_default_re_resolves_from_default_app() {
     // Round-trip: default => bird-dev => default. Without the env flag,
@@ -817,7 +798,6 @@ fn with_app_name_back_to_default_re_resolves_from_default_app() {
 // surface for this bug fires only when the token is still valid and the
 // refresh becomes a fast no-op return of the cached access_token.
 
-#[serial_test::parallel]
 #[test]
 fn refresh_finds_named_app_token_when_active_app_set() {
     use xurl::auth::oauth2::refresh_oauth2_token;
@@ -854,7 +834,6 @@ fn refresh_finds_named_app_token_when_active_app_set() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn refresh_finds_first_token_in_named_app_when_username_empty() {
     use xurl::auth::oauth2::refresh_oauth2_token;
@@ -879,7 +858,6 @@ fn refresh_finds_first_token_in_named_app_when_username_empty() {
     assert_eq!(token, "u1-token");
 }
 
-#[serial_test::parallel]
 #[test]
 fn refresh_falls_back_to_unnamed_slot_within_active_app() {
     use xurl::auth::oauth2::refresh_oauth2_token;
@@ -915,7 +893,6 @@ fn refresh_falls_back_to_unnamed_slot_within_active_app() {
 // lives above; these tests cover the parallel cases for OAuth1, bearer,
 // and the request layer's auto-detect.
 
-#[serial_test::parallel]
 #[test]
 fn bearer_resolution_targets_active_app_not_default() {
     use xurl::auth::resolve_bearer_token;
@@ -940,7 +917,6 @@ fn bearer_resolution_targets_active_app_not_default() {
     assert_eq!(beta_header, "Bearer beta-bearer");
 }
 
-#[serial_test::parallel]
 #[test]
 fn bearer_env_var_overrides_active_app_store() {
     use xurl::auth::resolve_bearer_token;
@@ -957,7 +933,6 @@ fn bearer_env_var_overrides_active_app_store() {
     assert_eq!(header, "Bearer env-wins");
 }
 
-#[serial_test::parallel]
 #[test]
 fn oauth1_header_routes_to_active_app() {
     let (mut store, _tmp) = create_temp_token_store();
@@ -991,7 +966,6 @@ fn oauth1_header_routes_to_active_app() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn oauth1_header_errors_when_active_app_has_no_token() {
     let (mut store, _tmp) = create_temp_token_store();
@@ -1010,7 +984,6 @@ fn oauth1_header_errors_when_active_app_has_no_token() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn bearer_header_via_auth_routes_to_active_app() {
     let (mut store, _tmp) = create_temp_token_store();
@@ -1038,7 +1011,6 @@ fn bearer_header_via_auth_routes_to_active_app() {
     );
 }
 
-#[serial_test::parallel]
 #[test]
 fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
     use xurl::auth::oauth2::refresh_oauth2_token;

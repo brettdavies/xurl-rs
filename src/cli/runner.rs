@@ -1,17 +1,21 @@
 //! Library CLI entrypoints — the canonical implementation lives in
-//! [`run_with_store_path`]; [`run`] and [`run_argv`] are layered wrappers.
+//! [`run_with_overrides`]; the others are layered wrappers, each resolving one
+//! input the layer below cannot invent.
 //!
-//! The three entrypoints together form the public library surface for the
+//! The four entrypoints together form the public library surface for the
 //! `xr` CLI dispatcher:
 //!
 //! - [`run_argv`]: reads `std::env::args_os()` and uses real stdio. The binary
 //!   calls this from `main`.
 //! - [`run`]: takes args + writers; resolves the default token-store path.
-//! - [`run_with_store_path`]: the canonical implementation. Takes args, writers,
-//!   and an explicit token-store path. Tests pass a `TempDir`-rooted path so
-//!   they never touch the real `~/.xurl`.
+//! - [`run_with_store_path`]: takes an explicit token-store path; resolves the
+//!   environment from the process.
+//! - [`run_with_overrides`]: the canonical implementation. Takes args, writers,
+//!   a token-store path, and the environment as data, reading nothing from the
+//!   process. Tests use it with a `TempDir`-rooted path so they never touch the
+//!   real `~/.xurl` and never depend on ambient variables.
 //!
-//! All three return a structured exit code per
+//! All four return a structured exit code per
 //! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
 //! contract. They never call `process::exit`.
 
@@ -82,6 +86,36 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
+    run_with_overrides(
+        args,
+        stdout,
+        stderr,
+        store_path,
+        &crate::config::EnvOverrides::from_env(),
+    )
+}
+
+/// The worker entrypoint — everything [`run_with_store_path`] does, with the
+/// environment supplied as data instead of read from the process.
+///
+/// This is the only entrypoint that reads no environment variables. The layers
+/// above it exist to resolve the two inputs it cannot invent: the token-store
+/// path and `overrides`. A library consumer that embeds `xr`, or a test that
+/// must stay isolated from whatever else the process is doing, calls this.
+///
+/// Parse-error behavior matches [`run_with_store_path`], with the output
+/// intent taken from `overrides` rather than `XURL_OUTPUT`.
+pub fn run_with_overrides<I, S>(
+    args: I,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &crate::config::EnvOverrides,
+) -> i32
+where
+    I: IntoIterator<Item = S>,
+    S: Into<OsString> + Clone,
+{
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
 
     let cli = match Cli::try_parse_from(args_vec.iter()) {
@@ -97,7 +131,7 @@ where
                     EXIT_SUCCESS
                 }
                 _ => {
-                    if json_intent(&args_vec) {
+                    if json_intent(&args_vec, overrides.output.as_deref()) {
                         emit_invalid_args_envelope(stderr, &rendered);
                     } else {
                         let _ = write!(stderr, "{rendered}");
@@ -164,7 +198,12 @@ where
                 let Some(Commands::Skill { cmd }) = cli.command else {
                     unreachable!("matched Commands::Skill above")
                 };
-                return crate::cli::commands::skill::run_skill(cmd, &out, stdout);
+                return crate::cli::commands::skill::run_skill(
+                    cmd,
+                    &out,
+                    stdout,
+                    overrides.home.as_deref(),
+                );
             }
             Commands::Validate { file, schema } => {
                 return crate::cli::commands::validate::run_validate(
@@ -180,13 +219,13 @@ where
     }
 
     // ── Tier 3: Everything else (needs config + auth) ──────────────────
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;
-    let auth = Auth::new_with_store_path(&cfg, store_path);
+    let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
 
-    match crate::cli::commands::run(cli, &out, stdout, stderr, auth) {
+    match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
             let code = e.exit_code();
@@ -212,8 +251,9 @@ where
 /// - `--jsonl`
 /// - `--output json` / `--output jsonl`
 /// - `--output=json` / `--output=jsonl`
-/// - `XURL_OUTPUT=json` / `XURL_OUTPUT=jsonl` (case-insensitive)
-fn json_intent(args: &[OsString]) -> bool {
+/// - `XURL_OUTPUT=json` / `XURL_OUTPUT=jsonl` (case-insensitive), supplied by
+///   the caller as `output` rather than read from the process
+fn json_intent(args: &[OsString], output: Option<&str>) -> bool {
     let mut iter = args.iter().peekable();
     while let Some(a) = iter.next() {
         let s = a.to_string_lossy();
@@ -234,9 +274,7 @@ fn json_intent(args: &[OsString]) -> bool {
             return true;
         }
     }
-    std::env::var("XURL_OUTPUT")
-        .map(|v| v.eq_ignore_ascii_case("json") || v.eq_ignore_ascii_case("jsonl"))
-        .unwrap_or(false)
+    output.is_some_and(|v| v.eq_ignore_ascii_case("json") || v.eq_ignore_ascii_case("jsonl"))
 }
 
 /// Writes the canonical `invalid-args` envelope to `stderr`.

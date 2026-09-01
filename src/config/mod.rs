@@ -59,8 +59,82 @@ pub struct Config {
 /// `REDIRECT_URI` env var nor a stored per-app value is set.
 pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";
 
+/// The values `xurl` reads from the process environment, as data.
+///
+/// [`EnvOverrides::from_env`] is the single place in the crate that reads
+/// these variables; every other layer receives an already-resolved value.
+/// A caller that embeds the library — or a test that must stay isolated from
+/// whatever else the process is doing — builds this directly and passes it to
+/// [`Config::from_overrides`] or to
+/// [`run_with_overrides`](crate::cli::runner::run_with_overrides).
+///
+/// `None` means the variable was unset, which is distinct from `Some(String::new())`
+/// for `redirect_uri`: an unset value falls through to the next precedence
+/// level, while a set-but-empty one is an env-sourced value that fails
+/// validation.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct EnvOverrides {
+    /// `CLIENT_ID` — `OAuth2` client ID.
+    pub client_id: Option<String>,
+    /// `CLIENT_SECRET` — `OAuth2` client secret.
+    pub client_secret: Option<String>,
+    /// `REDIRECT_URI` — `OAuth2` PKCE redirect URI, top of the three-level precedence.
+    pub redirect_uri: Option<String>,
+    /// `AUTH_URL` — `OAuth2` authorization endpoint.
+    pub auth_url: Option<String>,
+    /// `TOKEN_URL` — `OAuth2` token exchange endpoint.
+    pub token_url: Option<String>,
+    /// `API_BASE_URL` — API origin every request is built against.
+    pub api_base_url: Option<String>,
+    /// `INFO_URL` — user-info endpoint; derived from `api_base_url` when unset.
+    pub info_url: Option<String>,
+    /// `XURL_BEARER_TOKEN` — app-only bearer token, top of the bearer precedence.
+    ///
+    /// Consumed by [`Auth::get_bearer_token_header`](crate::auth::Auth::get_bearer_token_header)
+    /// rather than by [`Config`], so it has no corresponding `Config` field.
+    pub bearer_token: Option<String>,
+    /// `XURL_OUTPUT` — output format, read before clap parsing so a parse
+    /// error can pick its envelope shape.
+    ///
+    /// Consumed by the CLI runner rather than by [`Config`].
+    pub output: Option<String>,
+    /// `HOME` — the directory a `~`-prefixed skill destination expands against.
+    ///
+    /// Supplied here so a caller can install into a directory of its choosing
+    /// without redirecting a core system variable for the whole process.
+    /// Consumed by [`crate::skill_install`] rather than by [`Config`].
+    pub home: Option<String>,
+}
+
+impl EnvOverrides {
+    /// Reads every supported variable from the process environment.
+    ///
+    /// The binary calls this once per run. Nothing else in the crate reads
+    /// these variables, so a caller that supplies its own `EnvOverrides` is
+    /// unaffected by the process environment.
+    #[must_use]
+    pub fn from_env() -> Self {
+        Self {
+            client_id: std::env::var("CLIENT_ID").ok(),
+            client_secret: std::env::var("CLIENT_SECRET").ok(),
+            redirect_uri: std::env::var("REDIRECT_URI").ok(),
+            auth_url: std::env::var("AUTH_URL").ok(),
+            token_url: std::env::var("TOKEN_URL").ok(),
+            api_base_url: std::env::var("API_BASE_URL").ok(),
+            info_url: std::env::var("INFO_URL").ok(),
+            bearer_token: std::env::var("XURL_BEARER_TOKEN").ok(),
+            output: std::env::var("XURL_OUTPUT").ok(),
+            home: std::env::var("HOME").ok(),
+        }
+    }
+}
+
 impl Config {
     /// Creates a new `Config` from environment variables, falling back to defaults.
+    ///
+    /// Reads the process environment through [`EnvOverrides::from_env`] and
+    /// delegates to [`Config::from_overrides`]; the two paths are equivalent
+    /// for identical inputs.
     ///
     /// `redirect_uri` resolution is env-only here: `REDIRECT_URI` if set,
     /// otherwise [`DEFAULT_REDIRECT_URI`]. The token-store-aware three-level
@@ -71,27 +145,54 @@ impl Config {
     /// no consumer reads `redirect_uri` from a pre-resolution `Config`.
     #[must_use]
     pub fn new() -> Self {
-        let client_id = env_or_default("CLIENT_ID", "");
-        let client_secret = env_or_default("CLIENT_SECRET", "");
-        let redirect_uri_env = std::env::var("REDIRECT_URI").ok();
-        let redirect_uri_from_env = redirect_uri_env.is_some();
-        let redirect_uri = redirect_uri_env.unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_string());
+        Self::from_overrides(&EnvOverrides::from_env())
+    }
+
+    /// Creates a `Config` from explicitly supplied values, reading no environment.
+    ///
+    /// An absent field takes the same built-in default `Config::new()` applies
+    /// when its variable is unset. An absent `info_url` derives from the
+    /// resolved `api_base_url`, so overriding only the base URL keeps the
+    /// user-info endpoint pointed at the same origin.
+    ///
+    /// A present `redirect_uri` records [`ResolveSource::EnvVar`] provenance,
+    /// matching an exported `REDIRECT_URI`; an absent one records the built-in
+    /// default. That distinction decides whether a stored per-app value can win
+    /// during the three-level resolution, so supplying a value here is not the
+    /// same as leaving it out.
+    #[must_use]
+    pub fn from_overrides(overrides: &EnvOverrides) -> Self {
+        let redirect_uri_from_env = overrides.redirect_uri.is_some();
+        let redirect_uri = overrides
+            .redirect_uri
+            .clone()
+            .unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_string());
         let redirect_uri_source = if redirect_uri_from_env {
             ResolveSource::EnvVar
         } else {
             ResolveSource::BuiltInDefault
         };
-        let auth_url = env_or_default("AUTH_URL", "https://x.com/i/oauth2/authorize");
-        let token_url = env_or_default("TOKEN_URL", "https://api.x.com/2/oauth2/token");
-        let api_base_url = env_or_default("API_BASE_URL", "https://api.x.com");
-        let info_url = env_or_default("INFO_URL", &format!("{api_base_url}/2/users/me"));
+        let api_base_url = overrides
+            .api_base_url
+            .clone()
+            .unwrap_or_else(|| "https://api.x.com".to_string());
+        let info_url = overrides
+            .info_url
+            .clone()
+            .unwrap_or_else(|| format!("{api_base_url}/2/users/me"));
 
         Self {
-            client_id,
-            client_secret,
+            client_id: overrides.client_id.clone().unwrap_or_default(),
+            client_secret: overrides.client_secret.clone().unwrap_or_default(),
             redirect_uri,
-            auth_url,
-            token_url,
+            auth_url: overrides
+                .auth_url
+                .clone()
+                .unwrap_or_else(|| "https://x.com/i/oauth2/authorize".to_string()),
+            token_url: overrides
+                .token_url
+                .clone()
+                .unwrap_or_else(|| "https://api.x.com/2/oauth2/token".to_string()),
             api_base_url,
             info_url,
             app_name: String::new(),
@@ -266,11 +367,6 @@ pub fn resolve_redirect_uri(store_path: &Path, app_name: &str) -> ResolvedRedire
     resolve_redirect_uri_from(env, stored.as_deref())
 }
 
-/// Returns an environment variable's value, or `default` if unset.
-fn env_or_default(key: &str, default: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| default.to_string())
-}
-
 // In-source unit tests cover the `pub(crate)` resolver internals that the
 // external integration-test crate cannot reach without breaking visibility.
 // Tests touching only the public API (`resolve_redirect_uri`,
@@ -279,6 +375,26 @@ fn env_or_default(key: &str, default: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn from_overrides_present_redirect_uri_records_env_provenance() {
+        let cfg = Config::from_overrides(&EnvOverrides {
+            redirect_uri: Some("https://example.com/cb".to_string()),
+            ..EnvOverrides::default()
+        });
+
+        assert_eq!(cfg.redirect_uri_source, ResolveSource::EnvVar);
+        assert!(cfg.redirect_uri_from_env);
+    }
+
+    #[test]
+    fn from_overrides_absent_redirect_uri_records_builtin_provenance() {
+        let cfg = Config::from_overrides(&EnvOverrides::default());
+
+        assert_eq!(cfg.redirect_uri_source, ResolveSource::BuiltInDefault);
+        assert!(!cfg.redirect_uri_from_env);
+        assert_eq!(cfg.redirect_uri, DEFAULT_REDIRECT_URI);
+    }
 
     #[test]
     fn resolve_redirect_uri_from_env_wins_over_stored() {
