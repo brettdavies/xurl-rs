@@ -409,7 +409,11 @@ fn test_new_with_store_path_honors_explicit_path() {
     let store_path = tmp.path().join(".xurl");
 
     let cfg = test_config();
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let mut auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     auth.token_store
         .save_bearer_token("explicit-path-bearer")
@@ -462,6 +466,12 @@ fn test_redirect_uri_env_wins_via_new_with_store_path() {
     write_store_with_redirect_uri(&store_path, "default", "http://localhost:7777/cb");
 
     let cfg = empty_config();
+    // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
+    //
+    // This is the proof that `new_with_store_path` reads the process at all.
+    // Every other redirect-URI test here injects through
+    // `new_with_store_path_and_overrides`; if this one injected too, nothing
+    // would cover the shim.
     unsafe {
         std::env::set_var("REDIRECT_URI", "https://example.com/cb");
     }
@@ -481,10 +491,11 @@ fn test_redirect_uri_stored_wins_when_env_unset() {
     write_store_with_redirect_uri(&store_path, "default", "http://localhost:9090/cb");
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let auth = Auth::new_with_store_path(&cfg, &store_path);
+    let auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     assert_eq!(auth.redirect_uri(), "http://localhost:9090/cb");
 }
@@ -499,10 +510,11 @@ fn test_redirect_uri_falls_back_to_default_when_no_env_and_no_stored() {
     std::fs::write(&store_path, yaml).expect("write store");
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let auth = Auth::new_with_store_path(&cfg, &store_path);
+    let auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     assert_eq!(auth.redirect_uri(), "http://localhost:8080/callback");
 }
@@ -521,10 +533,11 @@ fn test_with_app_name_re_resolves_per_app_stored_uri() {
     );
 
     let cfg = empty_config();
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let mut auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
 
     // Default app is "alpha" — resolver picks alpha's stored URI.
     assert_eq!(auth.redirect_uri(), "http://localhost:7001/cb");
@@ -552,10 +565,11 @@ fn test_with_app_name_env_override_survives_app_switch() {
     );
 
     let cfg = empty_config();
-    unsafe {
-        std::env::set_var("REDIRECT_URI", "https://envvar.example.com/cb");
-    }
-    let mut auth = Auth::new_with_store_path(&cfg, &store_path);
+    let overrides = xurl::config::EnvOverrides {
+        redirect_uri: Some("https://envvar.example.com/cb".into()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let mut auth = Auth::new_with_store_path_and_overrides(&cfg, &store_path, &overrides);
 
     // Env wins for the default app.
     assert_eq!(auth.redirect_uri(), "https://envvar.example.com/cb");
@@ -565,10 +579,6 @@ fn test_with_app_name_env_override_survives_app_switch() {
     // precedence each time.
     auth.with_app_name("beta");
     let still_env_after_switch = auth.redirect_uri().to_string();
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     assert_eq!(still_env_after_switch, "https://envvar.example.com/cb");
 }

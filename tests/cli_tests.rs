@@ -27,7 +27,13 @@ fn run_isolated(args: &[&str]) -> (i32, String, String) {
     let store = tmp.path().join(".xurl");
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
-    let code = cli::run_with_store_path(args, &mut stdout, &mut stderr, &store);
+    let code = cli::runner::run_with_overrides(
+        args,
+        &mut stdout,
+        &mut stderr,
+        &store,
+        &xurl::config::EnvOverrides::default(),
+    );
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -53,6 +59,14 @@ fn run_at_with(
     )
 }
 
+/// Overrides pointing the client at a stubbed server.
+fn api_env(base_url: &str) -> xurl::config::EnvOverrides {
+    xurl::config::EnvOverrides {
+        api_base_url: Some(base_url.to_string()),
+        ..xurl::config::EnvOverrides::default()
+    }
+}
+
 /// Run the entrypoint against an existing `TempDir`-rooted store path.
 ///
 /// Lets a single test issue multiple invocations against the same `.xurl`
@@ -61,7 +75,13 @@ fn run_at_with(
 fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
-    let code = cli::run_with_store_path(args, &mut stdout, &mut stderr, store_path);
+    let code = cli::runner::run_with_overrides(
+        args,
+        &mut stdout,
+        &mut stderr,
+        store_path,
+        &xurl::config::EnvOverrides::default(),
+    );
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -394,10 +414,6 @@ fn test_apps_add_with_redirect_uri_persists() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     let (code, _stdout, stderr) = run_at(
         &store,
         &[
@@ -442,10 +458,6 @@ fn test_apps_add_with_redirect_uri_persists() {
 fn test_apps_add_without_redirect_uri_leaves_empty() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     let (code, _stdout, stderr) = run_at(
         &store,
@@ -809,10 +821,6 @@ fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     // Add "myapp" and explicitly set it as the default so the no-NAME `get`
     // resolves through it. (TokenStore seeds a "default" placeholder on a
     // fresh tempdir, so add_app alone does not flip the default.)
@@ -860,10 +868,6 @@ fn test_redirect_uri_get_uses_placeholder_default_when_store_empty() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
     assert_eq!(code, 0, "get failed; stderr: {stderr}");
     assert!(stdout.contains("app:"), "missing app: line: {stdout}");
@@ -884,10 +888,6 @@ fn test_redirect_uri_get_json_output_app_config_source() {
     // the env-override test in the same binary.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     let (code, _, _) = run_at(
         &store,
@@ -1079,10 +1079,6 @@ fn test_auth_status_text_includes_redirect_uri_line() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     let (code, _, _) = run_at(
         &store,
         &[
@@ -1124,10 +1120,6 @@ fn test_auth_status_text_default_built_in_when_no_stored_uri() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     let (code, _, _) = run_at(
         &store,
         &[
@@ -1161,10 +1153,6 @@ fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
     // would flip the asserted source to `env-var`.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     let (code, _, _) = run_at(
         &store,
@@ -1232,14 +1220,15 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
     let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]);
     assert_eq!(code_d, 0);
 
-    unsafe {
-        std::env::set_var("REDIRECT_URI", "https://override.example.com/cb");
-    }
-    let (code2, stdout2, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
+    let overrides = xurl::config::EnvOverrides {
+        redirect_uri: Some("https://override.example.com/cb".into()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code2, stdout2, _) = run_at_with(
+        &store,
+        &overrides,
+        &["xr", "--output", "json", "auth", "status"],
+    );
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
     let arr = v.as_array().expect("status emits a JSON array");
@@ -1261,10 +1250,6 @@ fn test_auth_status_json_default_flag_per_app() {
     // assertion, but the discipline keeps the snapshot stable).
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     let (c1, _, _) = run_at(
         &store,
@@ -1327,10 +1312,6 @@ fn test_auth_apps_list_json_shape_per_app() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
-
     let (c1, _, _) = run_at(
         &store,
         &[
@@ -1385,10 +1366,6 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
     // tests in the same binary.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
-
-    unsafe {
-        std::env::remove_var("REDIRECT_URI");
-    }
 
     let (c1, _, _) = run_at(
         &store,
@@ -1563,16 +1540,11 @@ fn test_like_with_username_flag_calls_lookup_by_username() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
@@ -1605,13 +1577,11 @@ fn test_like_without_username_flag_calls_me() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, stdout, stderr) = run_at(&store, &["xr", "like", "12345", "--auth", "oauth1"]);
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "like", "12345", "--auth", "oauth1"],
+    );
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
@@ -1643,16 +1613,11 @@ fn test_like_with_username_flag_lookup_404() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, _stdout, stderr) = run_at(
+    let (code, _stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_ne!(
         code, 0,
@@ -1692,16 +1657,11 @@ fn test_like_with_empty_username_falls_back_to_me() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "", "--auth", "oauth1"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
@@ -1738,16 +1698,11 @@ fn test_like_with_at_prefix_username_strips_at() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "@alice", "--auth", "oauth1"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
@@ -2363,18 +2318,20 @@ fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope
             .expect(0),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-        std::env::set_var("XURL_NO_INTERACTIVE", "1");
-    }
-    let (code, _stdout, stderr) = run_at(
+    let (code, _stdout, stderr) = run_at_with(
         &store,
-        &["xr", "--output", "json", "delete", "12345", "--auth", "app"],
+        &api_env(ts.uri()),
+        &[
+            "xr",
+            "--no-interactive",
+            "--output",
+            "json",
+            "delete",
+            "12345",
+            "--auth",
+            "app",
+        ],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-        std::env::remove_var("XURL_NO_INTERACTIVE");
-    }
 
     assert_eq!(
         code, 1,
@@ -2408,20 +2365,13 @@ fn test_delete_force_no_interactive_calls_api_and_succeeds() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-        std::env::set_var("XURL_NO_INTERACTIVE", "1");
-    }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &[
             "xr", "--output", "json", "delete", "12345", "--force", "--auth", "oauth1",
         ],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-        std::env::remove_var("XURL_NO_INTERACTIVE");
-    }
 
     assert_eq!(
         code, 0,
@@ -2447,18 +2397,20 @@ fn test_post_dry_run_emits_envelope_and_skips_api() {
             .expect(0),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
-        &["xr", "--output", "json", "post", "Hello", "--auth", "app"],
+        &api_env(ts.uri()),
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "post",
+            "Hello",
+            "--auth",
+            "app",
+        ],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-        std::env::remove_var("XURL_DRY_RUN");
-    }
 
     assert_eq!(
         code, 0,
@@ -2479,16 +2431,19 @@ fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
 
-    unsafe {
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
     let (code, stdout, stderr) = run_at(
         &store,
-        &["xr", "--output", "json", "post", "", "--auth", "app"],
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "post",
+            "",
+            "--auth",
+            "app",
+        ],
     );
-    unsafe {
-        std::env::remove_var("XURL_DRY_RUN");
-    }
 
     assert_eq!(
         code, 0,
@@ -2510,16 +2465,19 @@ fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
 
     // 281 chars: one past the 280-char limit.
     let too_long: String = std::iter::repeat_n('x', 281).collect();
-    unsafe {
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
     let (code, stdout, _stderr) = run_at(
         &store,
-        &["xr", "--output", "json", "post", &too_long, "--auth", "app"],
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "post",
+            &too_long,
+            "--auth",
+            "app",
+        ],
     );
-    unsafe {
-        std::env::remove_var("XURL_DRY_RUN");
-    }
 
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
@@ -2547,16 +2505,11 @@ fn test_search_global_limit_50_respected() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, _stdout, stderr) = run_at(
+    let (code, _stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "--limit", "50", "search", "x", "--auth", "app"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(code, 0, "search --limit 50 failed; stderr: {stderr}");
 }
@@ -2580,16 +2533,11 @@ fn test_search_global_limit_500_clamped_to_100() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, _stdout, stderr) = run_at(
+    let (code, _stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "--limit", "500", "search", "x", "--auth", "app"],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(code, 0, "search --limit 500 must clamp; stderr: {stderr}");
 }
@@ -2613,18 +2561,13 @@ fn test_search_per_cmd_max_results_overrides_global_limit() {
             .expect(1),
     );
 
-    unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
-    }
-    let (code, _stdout, stderr) = run_at(
+    let (code, _stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &[
             "xr", "--limit", "80", "search", "x", "-n", "20", "--auth", "app",
         ],
     );
-    unsafe {
-        std::env::remove_var("API_BASE_URL");
-    }
 
     assert_eq!(
         code, 0,
@@ -2670,20 +2613,20 @@ fn test_auth_clear_force_no_interactive_dry_run_envelope() {
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
 
-    unsafe {
-        std::env::set_var("XURL_NO_INTERACTIVE", "1");
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
     let (code, stdout, stderr) = run_at(
         &store,
         &[
-            "xr", "--output", "json", "auth", "clear", "--all", "--force",
+            "xr",
+            "--no-interactive",
+            "--dry-run",
+            "--output",
+            "json",
+            "auth",
+            "clear",
+            "--all",
+            "--force",
         ],
     );
-    unsafe {
-        std::env::remove_var("XURL_NO_INTERACTIVE");
-        std::env::remove_var("XURL_DRY_RUN");
-    }
 
     assert_eq!(
         code, 0,
@@ -2711,16 +2654,23 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
             .expect(0),
     );
 
+    // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
+    //
+    // `--dry-run` binds to `XURL_DRY_RUN` through clap's `env =` attribute,
+    // which reads the process at parse time and is not fed by `EnvOverrides`.
+    // Injection cannot reach that binding, so proving it works means exporting
+    // the variable. Do not convert this to the flag: the flag path is covered
+    // by `test_post_dry_run_emits_envelope_and_skips_api`, and converting this
+    // one would leave the env binding untested.
     unsafe {
-        std::env::set_var("API_BASE_URL", ts.uri());
         std::env::set_var("XURL_DRY_RUN", "1");
     }
-    let (code, stdout, stderr) = run_at(
+    let (code, stdout, stderr) = run_at_with(
         &store,
+        &api_env(ts.uri()),
         &["xr", "--output", "json", "post", "Hi", "--auth", "app"],
     );
     unsafe {
-        std::env::remove_var("API_BASE_URL");
         std::env::remove_var("XURL_DRY_RUN");
     }
 
@@ -2729,7 +2679,10 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
         "XURL_DRY_RUN=1 must engage dry-run; stderr: {stderr}; stdout: {stdout}"
     );
     let v = parse_json(&stdout);
-    assert_eq!(v["status"], "dry_run");
+    assert_eq!(
+        v["status"], "dry_run",
+        "the env binding, not the flag, must have engaged dry-run"
+    );
 }
 
 #[serial_test::parallel]
