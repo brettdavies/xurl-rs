@@ -170,6 +170,7 @@ fn test_from_overrides_carries_every_supplied_value() {
         info_url: Some("https://api.test/me".into()),
         bearer_token: None,
         output: None,
+        home: None,
     });
 
     assert_eq!(cfg.client_id, "CID");

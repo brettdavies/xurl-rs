@@ -98,6 +98,12 @@ pub struct EnvOverrides {
     ///
     /// Consumed by the CLI runner rather than by [`Config`].
     pub output: Option<String>,
+    /// `HOME` — the directory a `~`-prefixed skill destination expands against.
+    ///
+    /// Supplied here so a caller can install into a directory of its choosing
+    /// without redirecting a core system variable for the whole process.
+    /// Consumed by [`crate::skill_install`] rather than by [`Config`].
+    pub home: Option<String>,
 }
 
 impl EnvOverrides {
@@ -118,6 +124,7 @@ impl EnvOverrides {
             info_url: std::env::var("INFO_URL").ok(),
             bearer_token: std::env::var("XURL_BEARER_TOKEN").ok(),
             output: std::env::var("XURL_OUTPUT").ok(),
+            home: std::env::var("HOME").ok(),
         }
     }
 }

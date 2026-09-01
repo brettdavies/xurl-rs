@@ -2024,33 +2024,21 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
 // with `HOME` redirected to a fresh `TempDir`, so the tests never read or
 // write the developer's real `~/.claude/skills/...`.
 
-/// Helper: run `xr` with a caller-supplied `HOME` env var. Mirrors
-/// `run_isolated` but also overrides `HOME` for the duration of the call. The
-/// child process is `cli::run_with_store_path`, which reads `HOME` only via
-/// `skill_install::expand_tilde`. Tests serialize via `serial_test` because
-/// process-wide env mutation races otherwise.
+/// Helper: run `xr` with a caller-supplied home directory.
+///
+/// The value is injected through `EnvOverrides`, so the process `HOME` is
+/// neither read nor written and these tests run alongside everything else.
 fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
-    use std::sync::Mutex;
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
-    let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-
-    let prior = std::env::var_os("HOME");
-    // SAFETY: ENV_LOCK serialises all env mutations across these tests.
-    unsafe {
-        match home {
-            Some(v) => std::env::set_var("HOME", v),
-            None => std::env::remove_var("HOME"),
-        }
-    }
-    let result = run_isolated(args);
-    // SAFETY: see above.
-    unsafe {
-        match prior {
-            Some(v) => std::env::set_var("HOME", v),
-            None => std::env::remove_var("HOME"),
-        }
-    }
-    result
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    run_at_with(
+        &store,
+        &xurl::config::EnvOverrides {
+            home: home.map(str::to_string),
+            ..xurl::config::EnvOverrides::default()
+        },
+        args,
+    )
 }
 
 #[serial_test::parallel]

@@ -194,7 +194,12 @@ where
                 let Some(Commands::Skill { cmd }) = cli.command else {
                     unreachable!("matched Commands::Skill above")
                 };
-                return crate::cli::commands::skill::run_skill(cmd, &out, stdout);
+                return crate::cli::commands::skill::run_skill(
+                    cmd,
+                    &out,
+                    stdout,
+                    overrides.home.as_deref(),
+                );
             }
             Commands::Validate { file, schema } => {
                 return crate::cli::commands::validate::run_validate(
