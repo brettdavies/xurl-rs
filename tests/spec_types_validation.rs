@@ -22,7 +22,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
-use xurl::api::response::types::{DmEvent, Tweet, UsageData, User};
+use xurl::api::response::types::{DmEvent, Post, UsageData, User};
 
 /// Documented divergences from the vendored spec, keyed by
 /// (`<SchemaName> :: <dotted struct path>`, field). Every entry needs a
@@ -181,8 +181,8 @@ fn typed_responses_match_vendored_spec() {
     // The shortcut->schema mapping: typed payload -> spec component schema.
     let mappings: Vec<(&str, Value)> = vec![
         (
-            "Tweet",
-            serde_json::to_value(schemars::schema_for!(Tweet)).unwrap(),
+            "Post",
+            serde_json::to_value(schemars::schema_for!(Post)).unwrap(),
         ),
         (
             "User",

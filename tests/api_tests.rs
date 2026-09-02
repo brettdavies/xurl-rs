@@ -1470,7 +1470,7 @@ fn redteam_create_post_array_where_object_expected() {
     let result = client.create_post("test", &[], &base_call_opts());
     assert!(
         result.is_err(),
-        "Should fail: array where single Tweet expected"
+        "Should fail: array where single Post expected"
     );
 }
 
@@ -1537,7 +1537,7 @@ fn redteam_search_posts_null_data() {
     let mut client = ApiClient::new(&cfg, auth);
 
     let result = client.search_posts("test", 10, &base_call_opts());
-    assert!(result.is_err(), "Should fail: null data for Vec<Tweet>");
+    assert!(result.is_err(), "Should fail: null data for Vec<Post>");
 }
 
 #[test]

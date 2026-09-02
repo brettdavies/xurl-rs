@@ -23,7 +23,7 @@ fn schema_post_outputs_valid_json_schema() {
 }
 
 #[test]
-fn schema_post_contains_tweet_fields() {
+fn schema_post_contains_post_fields() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["schema", "post"])
@@ -147,8 +147,8 @@ fn schema_list_shows_type_names() {
         .output()
         .unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("ApiResponse<Tweet>"));
-    assert!(stdout.contains("ApiResponse<Vec<Tweet>>"));
+    assert!(stdout.contains("ApiResponse<Post>"));
+    assert!(stdout.contains("ApiResponse<Vec<Post>>"));
     assert!(stdout.contains("ApiResponse<User>"));
     assert!(stdout.contains("ApiResponse<LikedResult>"));
 }

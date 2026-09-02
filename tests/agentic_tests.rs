@@ -545,7 +545,7 @@ fn test_validate_subcommand_fails_on_invalid_input() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("invalid.json");
     let mut f = std::fs::File::create(&path).unwrap();
-    // Missing required `text` field — ApiResponse<Tweet> will fail to deserialize.
+    // Missing required `text` field — ApiResponse<Post> will fail to deserialize.
     writeln!(f, r#"{{"data":{{"id":"1"}}}}"#).unwrap();
     drop(f);
 

@@ -21,7 +21,7 @@ pub use request::{
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
+    Post, PostPublicMetrics, ReferencedPost, ResponseMeta, RetweetedResult, UsageData, User,
     UserPublicMetrics, deserialize_response,
 };
 #[allow(unused_imports)]

@@ -14,7 +14,7 @@ use serde::de::DeserializeOwned;
 
 use crate::api::{
     ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, RetweetedResult, Tweet, UsageData, User,
+    MutingResult, Post, RetweetedResult, UsageData, User,
 };
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 use crate::output::OutputConfig;
@@ -179,9 +179,9 @@ fn read_input(path: Option<&str>) -> Result<String, String> {
 /// Dispatches `value` against the requested schema name.
 fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), String> {
     match schema {
-        "tweet" => try_into::<ApiResponse<Tweet>>(value).or_else(|_| try_into::<Tweet>(value)),
+        "tweet" => try_into::<ApiResponse<Post>>(value).or_else(|_| try_into::<Post>(value)),
         "tweets" => {
-            try_into::<ApiResponse<Vec<Tweet>>>(value).or_else(|_| try_into::<Vec<Tweet>>(value))
+            try_into::<ApiResponse<Vec<Post>>>(value).or_else(|_| try_into::<Vec<Post>>(value))
         }
         "user" => try_into::<ApiResponse<User>>(value).or_else(|_| try_into::<User>(value)),
         "users" => {
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn rejects_malformed_envelope() {
-        // `text` field missing → ApiResponse<Tweet> fails to deserialize.
+        // `text` field missing → ApiResponse<Post> fails to deserialize.
         let v = serde_json::json!({
             "data": {"id": "1"},
         });
