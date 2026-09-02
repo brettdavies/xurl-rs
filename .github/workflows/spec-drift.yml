@@ -216,6 +216,7 @@ jobs:
           # the createCommitOnBranch mutation: GitHub signs commits it
           # creates, where a workflow-side git commit stays unsigned and
           # unmergeable.
+          result=""
           dev_sha="$(git rev-parse origin/dev)"
           if [ -n "${existing_num}" ]; then
             # Update stacks the new commit on the branch head: resetting the
@@ -224,10 +225,8 @@ jobs:
             git fetch --depth 1 origin "${REFRESH_BRANCH}:refs/remotes/origin/${REFRESH_BRANCH}"
             head_sha="$(git rev-parse "refs/remotes/origin/${REFRESH_BRANCH}")"
             if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- vendor/; then
-              echo "Open refresh PR #${existing_num} already carries this upstream revision; nothing to update." >> "$GITHUB_STEP_SUMMARY"
-              echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
-              echo "result=current" >> "$GITHUB_OUTPUT"
-              exit 0
+              result="current"
+              echo "Open refresh PR #${existing_num} already carries this upstream revision; branch content untouched." >> "$GITHUB_STEP_SUMMARY"
             fi
           else
             head_sha="${dev_sha}"
@@ -236,42 +235,54 @@ jobs:
               || gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${REFRESH_BRANCH}" \
                 -f sha="${dev_sha}" -F force=true >/dev/null
           fi
-          # File contents route through files, never argv: a single argument
-          # caps at 128KB on Linux and the base64 spec is ~1.2MB.
-          additions_file="$(mktemp)"
-          git diff --cached --name-only | while IFS= read -r f; do
-            b64="$(mktemp)"
-            base64 -w0 "$f" > "${b64}"
-            jq -n --arg p "$f" --rawfile c "${b64}" '{path: $p, contents: $c}'
-          done | jq -s . > "${additions_file}"
-          payload="$(mktemp)"
-          jq -n \
-            --arg repo "${GITHUB_REPOSITORY}" \
-            --arg branch "${REFRESH_BRANCH}" \
-            --arg head "${head_sha}" \
-            --arg msg "${title}" \
-            --slurpfile additions "${additions_file}" \
-            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
-              variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch}, expectedHeadOid: $head, message: {headline: $msg}, fileChanges: {additions: $additions[0]}}}}' \
-            > "${payload}"
-          # GraphQL returns HTTP 200 with an errors array, so a swallowed
-          # response hides a failed mutation.
-          resp="$(mktemp)"
-          gh api graphql --input "${payload}" > "${resp}"
-          if jq -e '.errors' "${resp}" >/dev/null 2>&1; then
-            echo "createCommitOnBranch failed:" >&2
-            jq -r '.errors[].message' "${resp}" >&2
-            exit 1
+
+          if [ -z "${result}" ]; then
+            # File contents route through files, never argv: a single
+            # argument caps at 128KB on Linux and the base64 spec is ~1.2MB.
+            additions_file="$(mktemp)"
+            git diff --cached --name-only | while IFS= read -r f; do
+              b64="$(mktemp)"
+              base64 -w0 "$f" > "${b64}"
+              jq -n --arg p "$f" --rawfile c "${b64}" '{path: $p, contents: $c}'
+            done | jq -s . > "${additions_file}"
+            payload="$(mktemp)"
+            jq -n \
+              --arg repo "${GITHUB_REPOSITORY}" \
+              --arg branch "${REFRESH_BRANCH}" \
+              --arg head "${head_sha}" \
+              --arg msg "${title}" \
+              --slurpfile additions "${additions_file}" \
+              '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+                variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch}, expectedHeadOid: $head, message: {headline: $msg}, fileChanges: {additions: $additions[0]}}}}' \
+              > "${payload}"
+            # GraphQL returns HTTP 200 with an errors array, so a swallowed
+            # response hides a failed mutation.
+            resp="$(mktemp)"
+            gh api graphql --input "${payload}" > "${resp}"
+            if jq -e '.errors' "${resp}" >/dev/null 2>&1; then
+              echo "createCommitOnBranch failed:" >&2
+              jq -r '.errors[].message' "${resp}" >&2
+              exit 1
+            fi
           fi
 
           # The body is an agent runbook, not the repo PR template: the
           # agent that reconciles the codebase rewrites it to
-          # .github/pull_request_template.md when the PR is merge-ready.
+          # .github/pull_request_template.md when the PR is merge-ready. The
+          # marker on the first line records that the workflow still owns
+          # the body; the tail below rewrites only marker-owned bodies on a
+          # no-change run, so an agent's template rewrite survives until a
+          # real content update invalidates the reconciliation.
+          body_marker='<!-- spec-drift-runbook -->'
           pr_body="$(mktemp)"
           {
+            echo "${body_marker}"
+            echo ""
             echo "## Spec refresh (agent runbook)"
             echo ""
             echo "Opened by the spec-drift workflow. This PR vendors upstream ${upstream_version}; the diff carries only vendored artifacts. Reconcile the codebase with the new spec before merge, then rewrite this body to \`.github/pull_request_template.md\`. This runbook is working instructions, not a merge-ready description."
+            echo ""
+            echo "Latest workflow pass: [run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) on $(date -u +%Y-%m-%d)."
             echo ""
             echo "### Files in this PR"
             echo ""
@@ -298,9 +309,19 @@ jobs:
             echo ""
             echo "- All CI checks green; every commit signed (workflow commits land pre-signed via the API)."
             echo "- Rewrite this PR body per \`.github/pull_request_template.md\` with a real Summary, Changelog, Type of Change, Related Issues/Stories, Testing, and Files Modified."
+            echo "- A later run that vendors newer upstream content rewrites this body with fresh instructions, since the reconciliation restarts against the new spec."
           } > "${pr_body}"
 
-          if [ -n "${existing_num}" ]; then
+          if [ "${result}" = "current" ]; then
+            first_line="$(gh pr view "${existing_num}" --json body --jq '.body | gsub("\r"; "") | split("\n")[0]')"
+            if [ "${first_line}" = "${body_marker}" ]; then
+              gh pr edit "${existing_num}" --body-file "${pr_body}"
+            else
+              echo "PR #${existing_num} body is agent-owned; left untouched." >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
+            echo "result=current" >> "$GITHUB_OUTPUT"
+          elif [ -n "${existing_num}" ]; then
             gh pr edit "${existing_num}" --title "${title}" --body-file "${pr_body}"
             echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
             echo "result=updated" >> "$GITHUB_OUTPUT"
@@ -326,25 +347,19 @@ jobs:
           target="${NEW_NUM:-${DEDUPE_NUM}}"
           upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
           if [ "${MODE}" = "standdown" ]; then
-            status="This PR covers the currently detected drift; the scheduled run stood down without touching it."
+            status="Drift covered by this PR; the run stood down."
           else
             case "${RESULT}" in
-              current) status="This PR already carries upstream ${upstream_version}; nothing to update." ;;
-              updated) status="Refreshed this PR against upstream ${upstream_version}." ;;
-              *)       status="Opened by the scheduled drift run against upstream ${upstream_version}." ;;
+              current) status="Still current with upstream ${upstream_version}." ;;
+              updated) status="Refreshed against upstream ${upstream_version}." ;;
+              *)       status="Opened against upstream ${upstream_version}." ;;
             esac
           fi
+          # One line only: the runbook body carries the detail; this is the
+          # heartbeat, and the only surface written on a human-owned PR.
           marker='<!-- spec-drift-status -->'
           comment="$(mktemp)"
-          {
-            echo "${marker}"
-            echo ""
-            echo "**Spec drift status, $(date -u +%Y-%m-%d) ([run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}))**"
-            echo ""
-            echo "${status}"
-            echo ""
-            cat "${{ steps.body.outputs.body_file }}"
-          } > "${comment}"
+          echo "${marker} **$(date -u +%Y-%m-%d):** ${status} ([run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}))" > "${comment}"
           cid="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${target}/comments" --paginate \
             --jq "[.[] | select(.body | startswith(\"${marker}\"))][0].id // empty")"
           if [ -n "${cid}" ]; then
