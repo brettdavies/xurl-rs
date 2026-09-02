@@ -2,7 +2,7 @@
 # vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
 #
 # Triggers:
-#   - schedule: weekly Mon 09:00 UTC — opens (or updates) a refresh PR to dev
+#   - schedule: daily 09:00 UTC — opens (or updates) a refresh PR to dev
 #     carrying the new vendored spec on divergence; never merges it
 #   - workflow_dispatch: manual re-run
 #   - pull_request: only when the vendor/build/matrix surface changes —
@@ -17,7 +17,7 @@ name: Spec Drift
 
 on:
   schedule:
-    - cron: '0 9 * * 1'
+    - cron: '0 9 * * *'
   workflow_dispatch:
   pull_request:
     paths:
@@ -101,7 +101,12 @@ jobs:
         run: |
           set -uo pipefail
           tmp='${{ steps.fetch.outputs.tmp }}'
-          if cmp -s "${VENDOR_PATH}" "${tmp}"; then
+          # Both sides run through the canonicalizer: the endpoint shuffles
+          # OAuth scope arrays per request, and a vendored copy written
+          # before normalization existed must not read as drift either.
+          if cmp -s \
+            <(scripts/normalize-x-openapi.sh "${VENDOR_PATH}") \
+            <(scripts/normalize-x-openapi.sh "${tmp}"); then
             echo "drift=0" >> "$GITHUB_OUTPUT"
           else
             echo "drift=1" >> "$GITHUB_OUTPUT"
