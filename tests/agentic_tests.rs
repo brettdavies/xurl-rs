@@ -510,7 +510,7 @@ fn test_after_flag_accepted() {
 fn test_validate_subcommand_passes_on_valid_input() {
     use std::io::Write;
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("tweet.json");
+    let path = dir.path().join("post.json");
     let mut f = std::fs::File::create(&path).unwrap();
     writeln!(f, r#"{{"data":{{"id":"1","text":"hi"}}}}"#).unwrap();
     drop(f);
@@ -521,7 +521,7 @@ fn test_validate_subcommand_passes_on_valid_input() {
             "validate",
             path.to_str().unwrap(),
             "--schema",
-            "tweet",
+            "post",
             "--output",
             "json",
         ])
@@ -555,7 +555,7 @@ fn test_validate_subcommand_fails_on_invalid_input() {
             "validate",
             path.to_str().unwrap(),
             "--schema",
-            "tweet",
+            "post",
             "--output",
             "json",
         ])

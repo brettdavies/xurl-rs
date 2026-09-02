@@ -11,6 +11,6 @@ pub use format::format_response;
 pub use types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    Post, PostPublicMetrics, ReferencedPost, ResponseMeta, RetweetedResult, UsageData, User,
-    UserPublicMetrics, deserialize_response,
+    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
+    UsageData, User, UserPublicMetrics, deserialize_response,
 };

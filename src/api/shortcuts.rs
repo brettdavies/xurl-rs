@@ -12,7 +12,7 @@ use serde::Serialize;
 use super::request::{ApiClient, CallOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, Post, RetweetedResult, UsageData, User, deserialize_response,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, deserialize_response,
 };
 use crate::error::Result;
 
@@ -580,7 +580,7 @@ impl ApiClient {
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<RetweetedResult>> {
+    ) -> Result<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
@@ -604,7 +604,7 @@ impl ApiClient {
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<RetweetedResult>> {
+    ) -> Result<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
@@ -936,7 +936,7 @@ impl ApiClient {
         deserialize_response(self.send_request(&req)?)
     }
 
-    /// Fetches API usage data (tweet caps, daily breakdowns).
+    /// Fetches API usage data (post caps, daily breakdowns).
     ///
     /// # Errors
     ///
@@ -951,6 +951,27 @@ impl ApiClient {
                 "usage.fields".to_string(),
                 "daily_project_usage,daily_client_app_usage".to_string(),
             )],
+        };
+        req.data.clear();
+
+        deserialize_response(self.send_request(&req)?)
+    }
+
+    /// Fetches credits-based usage for the project.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn get_usage_credits(
+        &mut self,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<UsageCreditsData>> {
+        let mut req = opts.to_request_options();
+        req.method = "GET".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/usage/credits".to_string(),
+            path_params: HashMap::new(),
+            query: vec![],
         };
         req.data.clear();
 

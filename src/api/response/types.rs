@@ -282,7 +282,7 @@ pub struct DeletedResult {
 
 /// Confirmation for repost/unrepost actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct RetweetedResult {
+pub struct RepostedResult {
     /// Whether the target is now reposted.
     pub retweeted: bool,
     /// Forward-compatibility bucket — captures unknown response fields.
@@ -368,13 +368,13 @@ pub struct MediaProcessingInfo {
 /// and the data is deeply nested with mixed types (strings for numbers).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UsageData {
-    /// Project tweet cap (string-encoded integer).
+    /// Project post cap (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_cap: Option<String>,
     /// Project identifier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
-    /// Project tweet usage so far this period (string-encoded integer).
+    /// Project post usage so far this period (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_usage: Option<String>,
     /// Day of month the cap resets.
@@ -387,6 +387,26 @@ pub struct UsageData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub daily_client_app_usage: Option<Value>,
     /// Forward-compatibility bucket — captures unknown usage fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Credits-based usage for the project, from `GET /2/usage/credits`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UsageCreditsData {
+    /// Remaining free credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free_balance: Option<f64>,
+    /// Free credit grants applied to the project, opaque JSON.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free_grants: Option<Value>,
+    /// Remaining prepaid credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepaid_balance: Option<f64>,
+    /// Total remaining credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_balance: Option<f64>,
+    /// Forward-compatibility bucket — captures unknown credits fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -496,7 +516,7 @@ mod tests {
     #[test]
     fn deserialize_with_includes_and_meta() {
         let json = json!({
-            "data": [{"id": "1", "text": "tweet"}],
+            "data": [{"id": "1", "text": "post"}],
             "includes": {
                 "users": [{"id": "42", "name": "Bot", "username": "bot"}]
             },
@@ -658,7 +678,7 @@ mod tests {
             "data": {
                 "id": "123",
                 "text": "hello",
-                "tweet_extra": "a",
+                "post_extra": "a",
                 "public_metrics": {
                     "repost_count": 0,
                     "reply_count": 0,
@@ -672,7 +692,7 @@ mod tests {
         });
         let resp: ApiResponse<Post> = serde_json::from_value(json)
             .expect("Post response with nested unknown fields must deserialize");
-        assert_eq!(resp.data.extra["tweet_extra"], "a");
+        assert_eq!(resp.data.extra["post_extra"], "a");
         let metrics = resp
             .data
             .public_metrics
@@ -737,7 +757,7 @@ mod tests {
         let _: LikedResult = Default::default();
         let _: FollowingResult = Default::default();
         let _: DeletedResult = Default::default();
-        let _: RetweetedResult = Default::default();
+        let _: RepostedResult = Default::default();
         let _: BookmarkedResult = Default::default();
         let _: BlockingResult = Default::default();
         let _: MutingResult = Default::default();
@@ -746,7 +766,7 @@ mod tests {
             ("liked", "LikedResult"),
             ("following", "FollowingResult"),
             ("deleted", "DeletedResult"),
-            ("retweeted", "RetweetedResult"),
+            ("retweeted", "RepostedResult"),
             ("bookmarked", "BookmarkedResult"),
             ("blocking", "BlockingResult"),
             ("muting", "MutingResult"),
@@ -769,9 +789,9 @@ mod tests {
                         .expect("DeletedResult action response must deserialize");
                     assert!(r.data.deleted);
                 }
-                "RetweetedResult" => {
-                    let r: ApiResponse<RetweetedResult> = serde_json::from_value(json)
-                        .expect("RetweetedResult action response must deserialize");
+                "RepostedResult" => {
+                    let r: ApiResponse<RepostedResult> = serde_json::from_value(json)
+                        .expect("RepostedResult action response must deserialize");
                     assert!(r.data.retweeted);
                 }
                 "BookmarkedResult" => {
@@ -998,10 +1018,10 @@ mod tests {
     #[test]
     fn adversarial_huge_array_in_data() {
         // Large but valid list
-        let tweets: Vec<Value> = (0..1000)
-            .map(|i| json!({"id": i.to_string(), "text": format!("tweet {i}")}))
+        let posts: Vec<Value> = (0..1000)
+            .map(|i| json!({"id": i.to_string(), "text": format!("post {i}")}))
             .collect();
-        let json = json!({"data": tweets});
+        let json = json!({"data": posts});
         let resp: ApiResponse<Vec<Post>> =
             serde_json::from_value(json).expect("1000-element Post list must deserialize");
         assert_eq!(resp.data.len(), 1000);

@@ -71,8 +71,8 @@ INPUT FROM STDIN:
   Subcommands that accept JSON input (currently `xr validate`) read from
   stdin when no file argument is given or when `-` is passed as the path.
   This matches the standard CLI convention for piping data:
-    cat tweet.json | xr validate --schema tweet --output json
-    cat tweet.json | xr validate - --schema tweet --output json
+    cat post.json | xr validate --schema post --output json
+    cat post.json | xr validate - --schema post --output json
 
 EXIT CODES:
   0    success
@@ -439,11 +439,11 @@ Examples:
 const VALIDATE_HELP: &str = "\
 Examples:
   Read JSON from stdin (no file argument):
-    cat tweet.json | xr validate --output json
+    cat post.json | xr validate --output json
   Same, written as `xr validate -` for explicit stdin:
-    cat tweet.json | xr validate - --schema tweet --output json
+    cat post.json | xr validate - --schema post --output json
   Validate a file against a specific schema:
-    xr validate tweets.json --schema tweets --output json
+    xr validate posts.json --schema posts --output json
   Validate the canonical xurl error envelope:
     echo '{\"status\":\"error\",\"reason\":\"x\",\"exit_code\":1,\"message\":\"y\"}' | xr validate --schema envelope --output json
 ";
@@ -1196,9 +1196,13 @@ pub enum Commands {
     },
 
     // ── Usage ─────────────────────────────────────────────────────────
-    /// Show API usage (tweet caps, daily breakdown)
+    /// Show API usage (post caps, daily breakdown)
     #[command(after_help = USAGE_HELP)]
     Usage {
+        /// Usage family subcommand; bare `xr usage` reads `/2/usage/tweets`.
+        #[command(subcommand)]
+        target: Option<UsageCommands>,
+
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -1301,7 +1305,7 @@ pub enum Commands {
     /// Reads JSON from stdin (when no file argument is given or `-` is
     /// passed) or from the supplied file, deserializes it into the
     /// requested typed response, and emits an `ok` / `validation-failed`
-    /// envelope. Use `--schema` to pin a specific shape (e.g. `tweet`,
+    /// envelope. Use `--schema` to pin a specific shape (e.g. `post`,
     /// `user`); without it the command auto-detects from the top-level
     /// shape.
     #[command(after_help = VALIDATE_HELP)]
@@ -1310,10 +1314,33 @@ pub enum Commands {
         #[arg(value_name = "FILE")]
         file: Option<String>,
 
-        /// Schema name to validate against (`tweet`, `tweets`, `user`,
-        /// `users`, `dm`, `dms`, `usage`, `envelope`). Omit for auto-detection.
+        /// Schema name to validate against (`post`, `posts`, `user`,
+        /// `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for
+        /// auto-detection.
         #[arg(long = "schema", value_name = "NAME")]
         schema: Option<String>,
+    },
+}
+
+/// Examples block for `xr usage credits --help`.
+const USAGE_CREDITS_HELP: &str = "\
+Examples:
+  Your credits-based usage:
+    xr usage credits --output json
+
+  With an explicit app:
+    xr usage credits --app mydev --output json
+";
+
+/// `xr usage` family subcommands.
+#[derive(Subcommand, Debug)]
+pub enum UsageCommands {
+    /// Show credits-based usage for the project
+    #[command(after_help = USAGE_CREDITS_HELP)]
+    Credits {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
 }
 

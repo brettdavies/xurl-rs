@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use xurl::api::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MediaUploadResponse, MutingResult, Post, RetweetedResult, UsageData, User,
+    LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult, UsageData, User,
 };
 
 /// Loads the cached example responses fixture.
@@ -79,7 +79,7 @@ fn spec_action_deleted() {
 #[test]
 fn spec_action_retweeted() {
     let examples = load_examples();
-    let resp: ApiResponse<RetweetedResult> =
+    let resp: ApiResponse<RepostedResult> =
         serde_json::from_value(examples["action_retweeted"].clone()).unwrap();
     assert!(resp.data.retweeted);
 }

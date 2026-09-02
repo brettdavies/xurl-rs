@@ -1031,7 +1031,80 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__usage_commands" \
+"*::: :->usage" \
 && ret=0
+
+    case $state in
+    (usage)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-usage-command-$line[1]:"
+        case $line[1] in
+            (credits)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__usage__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-usage-help-command-$line[1]:"
+        case $line[1] in
+            (credits)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 ;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
@@ -2276,7 +2349,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`tweet\`, \`tweets\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`usage\`, \`envelope\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`usage\`, \`credits\`, \`envelope\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print verbose information]::VERBOSE:(true false)' \
 '--verbose=[Print verbose information]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -2418,7 +2491,23 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__usage_commands" \
+"*::: :->usage" \
 && ret=0
+
+    case $state in
+    (usage)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-usage-command-$line[1]:"
+        case $line[1] in
+            (credits)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 ;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
@@ -2632,7 +2721,7 @@ _xr_commands() {
 'followers:List your followers' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
-'usage:Show API usage (tweet caps, daily breakdown)' \
+'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
@@ -2996,7 +3085,7 @@ _xr__subcmd__help_commands() {
 'followers:List your followers' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
-'usage:Show API usage (tweet caps, daily breakdown)' \
+'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'auth:Authentication management' \
@@ -3281,8 +3370,15 @@ _xr__subcmd__help__subcmd__unrepost_commands() {
 }
 (( $+functions[_xr__subcmd__help__subcmd__usage_commands] )) ||
 _xr__subcmd__help__subcmd__usage_commands() {
-    local commands; commands=()
+    local commands; commands=(
+'credits:Show credits-based usage for the project' \
+    )
     _describe -t commands 'xr help usage commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__usage__subcmd__credits_commands] )) ||
+_xr__subcmd__help__subcmd__usage__subcmd__credits_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help usage credits commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__user_commands] )) ||
 _xr__subcmd__help__subcmd__user_commands() {
@@ -3477,8 +3573,34 @@ _xr__subcmd__unrepost_commands() {
 }
 (( $+functions[_xr__subcmd__usage_commands] )) ||
 _xr__subcmd__usage_commands() {
-    local commands; commands=()
+    local commands; commands=(
+'credits:Show credits-based usage for the project' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
     _describe -t commands 'xr usage commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__usage__subcmd__credits_commands] )) ||
+_xr__subcmd__usage__subcmd__credits_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr usage credits commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__usage__subcmd__help_commands] )) ||
+_xr__subcmd__usage__subcmd__help_commands() {
+    local commands; commands=(
+'credits:Show credits-based usage for the project' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr usage help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__usage__subcmd__help__subcmd__credits_commands] )) ||
+_xr__subcmd__usage__subcmd__help__subcmd__credits_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr usage help credits commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__usage__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__usage__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr usage help help commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__user_commands] )) ||
 _xr__subcmd__user_commands() {

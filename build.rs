@@ -250,6 +250,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     ("GET", "/2/dm_events"),
     // usage
     ("GET", "/2/usage/tweets"),
+    ("GET", "/2/usage/credits"),
     // media
     ("POST", "/2/media/upload"),
     ("GET", "/2/media/upload"),

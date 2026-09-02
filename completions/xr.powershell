@@ -82,7 +82,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('followers', 'followers', [CompletionResultType]::ParameterValue, 'List your followers')
             [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
             [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
-            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (tweet caps, daily breakdown)')
+            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (post caps, daily breakdown)')
             [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
@@ -813,6 +813,47 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('credits', 'credits', [CompletionResultType]::ParameterValue, 'Show credits-based usage for the project')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;usage;credits' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose information')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose information')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Validate inputs and skip the API call (U7)')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100 (U7)')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;usage;help' {
+            [CompletionResult]::new('credits', 'credits', [CompletionResultType]::ParameterValue, 'Show credits-based usage for the project')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;usage;help;credits' {
+            break
+        }
+        'xr;usage;help;help' {
             break
         }
         'xr;dm' {
@@ -1659,7 +1700,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;validate' {
-            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`tweet`, `tweets`, `user`, `users`, `dm`, `dms`, `usage`, `envelope`). Omit for auto-detection')
+            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print verbose information')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print verbose information')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1707,7 +1748,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('followers', 'followers', [CompletionResultType]::ParameterValue, 'List your followers')
             [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute a user')
             [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute a user')
-            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (tweet caps, daily breakdown)')
+            [CompletionResult]::new('usage', 'usage', [CompletionResultType]::ParameterValue, 'Show API usage (post caps, daily breakdown)')
             [CompletionResult]::new('dm', 'dm', [CompletionResultType]::ParameterValue, 'Send a direct message')
             [CompletionResult]::new('dms', 'dms', [CompletionResultType]::ParameterValue, 'List recent direct messages')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
@@ -1794,6 +1835,10 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;usage' {
+            [CompletionResult]::new('credits', 'credits', [CompletionResultType]::ParameterValue, 'Show credits-based usage for the project')
+            break
+        }
+        'xr;help;usage;credits' {
             break
         }
         'xr;help;dm' {

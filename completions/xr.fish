@@ -87,7 +87,7 @@ complete -c xr -n "__fish_xr_needs_command" -a "following" -d 'List users you fo
 complete -c xr -n "__fish_xr_needs_command" -a "followers" -d 'List your followers'
 complete -c xr -n "__fish_xr_needs_command" -a "mute" -d 'Mute a user'
 complete -c xr -n "__fish_xr_needs_command" -a "unmute" -d 'Unmute a user'
-complete -c xr -n "__fish_xr_needs_command" -a "usage" -d 'Show API usage (tweet caps, daily breakdown)'
+complete -c xr -n "__fish_xr_needs_command" -a "usage" -d 'Show API usage (post caps, daily breakdown)'
 complete -c xr -n "__fish_xr_needs_command" -a "dm" -d 'Send a direct message'
 complete -c xr -n "__fish_xr_needs_command" -a "dms" -d 'List recent direct messages'
 complete -c xr -n "__fish_xr_needs_command" -a "auth" -d 'Authentication management'
@@ -903,39 +903,76 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand usage" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand usage" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand usage" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand usage" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand usage" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "credits" -d 'Show credits-based usage for the project'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "credits" -d 'Show credits-based usage for the project'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
@@ -1606,7 +1643,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`tweet`, `tweets`, `user`, `users`, `dm`, `dms`, `usage`, `envelope`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -1661,7 +1698,7 @@ complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "followers" -d 'List your followers'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "mute" -d 'Mute a user'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unmute" -d 'Unmute a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (tweet caps, daily breakdown)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (post caps, daily breakdown)'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "dm" -d 'Send a direct message'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "dms" -d 'List recent direct messages'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "auth" -d 'Authentication management'
@@ -1673,6 +1710,7 @@ complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "examples" -d 'Print a curated gallery of invocation examples grouped by use case'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "validate" -d 'Validate a JSON document against a bundled response schema'
 complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from usage" -f -a "credits" -d 'Show credits-based usage for the project'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth2" -d 'Configure `OAuth2` authentication'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth1" -d 'Configure `OAuth1` authentication'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "app" -d 'Configure app-auth (bearer token)'

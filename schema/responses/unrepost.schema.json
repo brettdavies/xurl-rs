@@ -204,6 +204,20 @@
       ],
       "type": "object"
     },
+    "RepostedResult": {
+      "additionalProperties": true,
+      "description": "Confirmation for repost/unrepost actions.",
+      "properties": {
+        "retweeted": {
+          "description": "Whether the target is now reposted.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "retweeted"
+      ],
+      "type": "object"
+    },
     "ResponseMeta": {
       "additionalProperties": true,
       "description": "Pagination and result count metadata.",
@@ -232,20 +246,6 @@
           ]
         }
       },
-      "type": "object"
-    },
-    "RetweetedResult": {
-      "additionalProperties": true,
-      "description": "Confirmation for repost/unrepost actions.",
-      "properties": {
-        "retweeted": {
-          "description": "Whether the target is now reposted.",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "retweeted"
-      ],
       "type": "object"
     },
     "User": {
@@ -352,7 +352,7 @@
   "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/RetweetedResult",
+      "$ref": "#/$defs/RepostedResult",
       "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
     },
     "errors": {

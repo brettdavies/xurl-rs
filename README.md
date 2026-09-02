@@ -325,7 +325,7 @@ xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
 xurl-rs = "1"
 ```
 
-All 29 shortcut commands return typed responses via `ApiResponse<T>`:
+All 30 shortcut commands return typed responses via `ApiResponse<T>`:
 
 ```rust
 use xurl::api::{ApiResponse, Post, User, LikedResult, deserialize_response};
@@ -341,8 +341,8 @@ for post in &resp.data {
 }
 ```
 
-Available types: `Post`, `User`, `DmEvent`, `UsageData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
-`RetweetedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
+Available types: `Post`, `User`, `DmEvent`, `UsageData`, `UsageCreditsData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
+`RepostedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
 `ResponseMeta`, `ApiError`.
 
 All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forward compatibility with new API fields.

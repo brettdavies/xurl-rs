@@ -254,7 +254,7 @@
           "description": "Per-day project usage breakdown — opaque JSON."
         },
         "project_cap": {
-          "description": "Project tweet cap (string-encoded integer).",
+          "description": "Project post cap (string-encoded integer).",
           "type": [
             "string",
             "null"
@@ -268,7 +268,7 @@
           ]
         },
         "project_usage": {
-          "description": "Project tweet usage so far this period (string-encoded integer).",
+          "description": "Project post usage so far this period (string-encoded integer).",
           "type": [
             "string",
             "null"
