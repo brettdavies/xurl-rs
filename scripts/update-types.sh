@@ -1,37 +1,32 @@
 #!/usr/bin/env bash
-# update-types.sh — Fetch the latest X API v2 OpenAPI spec, optionally run
-# cargo-typify to generate reference types, and diff against hand-written types.
+# update-types.sh — Diff the hand-written response types against reference
+# types generated from the vendored X API OpenAPI spec.
 #
 # Usage:
-#   scripts/update-types.sh              # Fetch spec + diff (no typify)
-#   scripts/update-types.sh --typify     # Fetch spec + generate + diff
+#   scripts/update-types.sh              # spec summary only
+#   scripts/update-types.sh --typify     # generate reference types + diff
 #
-# The cached spec is stored at tests/fixtures/openapi/ for CI reproducibility.
+# Reads vendor/x-api-openapi.json — the same vendored snapshot build.rs
+# consumes for auth-matrix codegen. scripts/refresh-x-openapi.sh is the only
+# place the spec is fetched; this script never touches the network, so the
+# diff always describes the spec revision the crate actually builds against.
+#
+# The generated types are a reference for a human pass, never a drop-in:
+# the hand-written types in src/api/response/types.rs carry serde attrs,
+# extra-field capture, and docs that generation would destroy.
 
 set -euo pipefail
 
-SPEC_URL="https://raw.githubusercontent.com/xdevplatform/twitter-api-openapi/main/openapi/openapi.json"
-SPEC_DIR="tests/fixtures/openapi"
-SPEC_FILE="${SPEC_DIR}/twitter-api-openapi.json"
+cd "$(dirname "$0")/.."
+
+SPEC_FILE="vendor/x-api-openapi.json"
 TYPES_FILE="src/api/response/types.rs"
 
 echo "=== update-types.sh ==="
 
-# Fetch latest spec
-echo "Fetching latest X API v2 OpenAPI spec..."
-mkdir -p "${SPEC_DIR}"
-if curl -sSfL "${SPEC_URL}" -o "${SPEC_FILE}.tmp" 2>/dev/null; then
-    mv "${SPEC_FILE}.tmp" "${SPEC_FILE}"
-    echo "  Saved to ${SPEC_FILE}"
-else
-    echo "  Warning: Could not fetch spec from ${SPEC_URL}"
-    echo "  Using cached copy if available."
-    rm -f "${SPEC_FILE}.tmp"
-fi
-
 if [ ! -f "${SPEC_FILE}" ]; then
-    echo "  No spec file available. Skipping diff."
-    exit 0
+    echo "error: ${SPEC_FILE} not found — run scripts/refresh-x-openapi.sh first" >&2
+    exit 1
 fi
 
 # Optionally run cargo-typify

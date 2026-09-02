@@ -2,19 +2,22 @@
 # vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
 #
 # Triggers:
-#   - schedule: weekly Mon 09:00 UTC — informational issue on divergence
+#   - schedule: daily 09:00 UTC — opens (or updates) a refresh PR to dev
+#     carrying the new vendored spec on divergence; never merges it
 #   - workflow_dispatch: manual re-run
 #   - pull_request: only when the vendor/build/matrix surface changes —
 #     surface drift in the PR before the matrix takes a stale snapshot
 #
-# Permissions are minimum-scoped per trigger; the schedule run can open or
-# update an issue, the PR run can comment on the PR. Neither path mutates
-# code. Non-blocking on every trigger — drift is informational, not gating.
+# The schedule/dispatch path pushes the refresh branch and opens the PR with
+# CI_RELEASE_TOKEN (a GITHUB_TOKEN push would not trigger CI on the PR); the
+# PR run can comment on the PR with the workflow token. Non-blocking on
+# every trigger — drift is informational, not gating; a human reviews and
+# merges the refresh PR.
 name: Spec Drift
 
 on:
   schedule:
-    - cron: '0 9 * * 1'
+    - cron: '0 9 * * *'
   workflow_dispatch:
   pull_request:
     paths:
@@ -31,12 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
       pull-requests: write
     env:
       UPSTREAM_URL: https://api.x.com/2/openapi.json
       VENDOR_PATH: vendor/x-api-openapi.json
-      ISSUE_TITLE_PREFIX: '[spec-drift]'
+      REFRESH_BRANCH: spec-refresh
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,7 +101,12 @@ jobs:
         run: |
           set -uo pipefail
           tmp='${{ steps.fetch.outputs.tmp }}'
-          if cmp -s "${VENDOR_PATH}" "${tmp}"; then
+          # Both sides run through the canonicalizer: the endpoint shuffles
+          # OAuth scope arrays per request, and a vendored copy written
+          # before normalization existed must not read as drift either.
+          if cmp -s \
+            <(scripts/normalize-x-openapi.sh "${VENDOR_PATH}") \
+            <(scripts/normalize-x-openapi.sh "${tmp}"); then
             echo "drift=0" >> "$GITHUB_OUTPUT"
           else
             echo "drift=1" >> "$GITHUB_OUTPUT"
@@ -143,28 +150,202 @@ jobs:
         run: |
           gh pr comment "${PR_NUMBER}" --body-file "${{ steps.body.outputs.body_file }}"
 
-      - name: Open or update drift issue
+      # Restores run on every schedule/dispatch run, drift or not: a restore
+      # counts as cache access and resets GitHub's 7-day eviction clock, so
+      # the caches stay warm across no-drift weeks. Saves stay gated on a
+      # drift run that actually installed, so a no-drift week can never save
+      # the runner image's preinstalled toolchain under our key.
+      - name: Restore Rust toolchain cache
+        id: cache-rustup
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+          key: rustup-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
+
+      # The binary changes only when the version pin below bumps; keep the
+      # cache key in sync with the pin.
+      - name: Restore cargo-typify cache
+        id: cache-typify
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-typify
+          key: cargo-typify-0.7.0-${{ runner.os }}
+
+      - name: Install Rust
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+
+      - name: Save Rust toolchain cache
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && steps.cache-rustup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+          key: rustup-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
+
+      # rust-cache stays behind the drift gate: its key embeds Cargo.lock and
+      # the compiler version, so it rotates too often for warmth to matter,
+      # and restoring it costs a large download each run.
+      - name: Cache dependencies
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: spec-refresh
+
+      # Advisory tooling only — the reference-type diff is a review aid, so
+      # a failed install degrades the PR body rather than the run.
+      - name: Install cargo-typify
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && steps.cache-typify.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cargo-typify --version 0.7.0 --no-confirm --force
+
+      - name: Save cargo-typify cache
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && steps.cache-typify.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-typify
+          key: cargo-typify-0.7.0-${{ runner.os }}
+
+      - name: Open or update spec refresh PR
         if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
         run: |
           set -uo pipefail
-          local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
           upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
-          # Dedupe by title-prefix match — independent of label state so the
-          # workflow does not require a pre-existing label.
-          existing="$(gh issue list \
-            --state open \
-            --search "in:title ${ISSUE_TITLE_PREFIX}" \
-            --json number,title \
-            --jq '[.[] | select(.title | startswith("'"${ISSUE_TITLE_PREFIX}"'"))][0].number // empty')"
-          title="${ISSUE_TITLE_PREFIX} upstream spec v${upstream_version} diverged from vendored v${local_version}"
+          title="feat(spec): refresh vendored X API spec to upstream ${upstream_version}"
+
+          # Dedupe by title match across any head branch: a human-owned
+          # refresh PR (different head) wins and this run stands down;
+          # the workflow's own branch gets force-pushed and its PR updated.
+          existing="$(gh pr list \
+            --state open --base dev \
+            --search 'refresh vendored X API spec in:title' \
+            --json number,headRefName --jq '.[0] // empty')"
+          existing_num=""
           if [ -n "${existing}" ]; then
-            gh issue edit "${existing}" \
-              --title "${title}" \
-              --body-file "${{ steps.body.outputs.body_file }}"
+            existing_num="$(jq -r '.number' <<<"${existing}")"
+            existing_head="$(jq -r '.headRefName' <<<"${existing}")"
+            if [ "${existing_head}" != "${REFRESH_BRANCH}" ]; then
+              echo "Open refresh PR #${existing_num} (head \`${existing_head}\`) already covers the drift; not opening another." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The drift gate compares against this run's own ref (main on the
+          # cron), but the PR lands on dev, so the refresh branch is cut from
+          # origin/dev. The no-change guard below stands down when dev
+          # already carries the upstream revision.
+          git fetch --depth 1 origin dev:refs/remotes/origin/dev
+          git switch -c "${REFRESH_BRANCH}" origin/dev
+          scripts/refresh-x-openapi.sh
+
+          # Process the new spec with every consumer in the repo. The build
+          # regenerates the auth-method matrix from the spec and panics if a
+          # shortcut template no longer resolves — a red run here is the
+          # drift guard firing, not an infrastructure failure.
+          cargo build --release --locked --bin xr
+          scripts/generate-response-schemas.sh
+          git add vendor/ schema/
+
+          # Reference-type diff for the hand-written response structs.
+          # Generated types are a review aid, never applied automatically.
+          typify_file="$(mktemp)"
+          if command -v cargo-typify >/dev/null 2>&1; then
+            typify_out="$(scripts/update-types.sh --typify || true)"
+            {
+              # shellcheck disable=SC2016 # backticks are literal markdown
+              echo '<details><summary>Reference-type diff vs hand-written response types (first 60 lines; full diff via scripts/update-types.sh --typify)</summary>'
+              echo ''
+              echo '```diff'
+              printf '%s\n' "${typify_out}" | sed -n '/^=== Diff/,$p' | awk 'NR>1 && NR<=61'
+              echo '```'
+              echo ''
+              echo '</details>'
+            } > "${typify_file}"
           else
-            gh issue create \
-              --title "${title}" \
-              --body-file "${{ steps.body.outputs.body_file }}"
+            # shellcheck disable=SC2016 # backticks are literal markdown
+            echo 'cargo-typify unavailable in this run; execute `scripts/update-types.sh --typify` locally for the reference-type diff.' > "${typify_file}"
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Refresh produced no change against dev; nothing to open." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # shellcheck disable=SC2016 # backticks are literal markdown
+          changed_files="$(git diff --cached --name-only | sed 's/^/- `/; s/$/`/')"
+          git commit -m "${title}"
+          # The branch is automation-owned and fully regenerated each run, so
+          # replacing any stale remote copy is the desired semantic.
+          git push --force origin "${REFRESH_BRANCH}"
+
+          pr_body="$(mktemp)"
+          {
+            echo "## Summary"
+            echo ""
+            echo "Refreshes the vendored X API OpenAPI spec to upstream ${upstream_version}. \`vendor/spec-metadata.json\` and \`vendor/README.md\` carry the new identity, and the build-time auth-method matrix regenerates from the new spec. Drift detail:"
+            echo ""
+            cat "${{ steps.body.outputs.body_file }}"
+            echo ""
+            cat "${typify_file}"
+            echo ""
+            echo "## Changelog"
+            echo ""
+            echo "### Changed"
+            echo ""
+            echo "- Refresh the vendored X API OpenAPI spec to upstream ${upstream_version}: \`xr schema\`, the spec-identity constants (\`API_SPEC_VERSION\`, \`API_SPEC_SHA256\`, \`API_SPEC_DATE\`), and the build-time auth-method matrix reflect the new surface."
+            echo ""
+            echo "## Type of Change"
+            echo ""
+            echo "- [x] \`feat\`: New feature (non-breaking change which adds functionality)"
+            echo ""
+            echo "## Related Issues/Stories"
+            echo ""
+            echo "- Story: n/a"
+            echo "- Issue: n/a"
+            echo "- Architecture: n/a"
+            echo "- Related PRs: n/a"
+            echo ""
+            echo "## Testing"
+            echo ""
+            echo "- [ ] All tests passing"
+            echo ""
+            echo "**Test Summary:**"
+            echo ""
+            echo "- CI builds the auth-method matrix from the refreshed spec and runs the full test suite on this PR."
+            echo "- The hand-written response types in \`src/api/response/types.rs\` are not auto-updated; the reference-type diff in the Summary is the review aid for that pass."
+            echo ""
+            echo "## Files Modified"
+            echo ""
+            echo "**Modified:**"
+            echo ""
+            printf '%s\n' "${changed_files}"
+            echo ""
+            echo "**Created:**"
+            echo ""
+            echo "- None."
+            echo ""
+            echo "**Renamed:**"
+            echo ""
+            echo "- None."
+            echo ""
+            echo "**Deleted:**"
+            echo ""
+            echo "- None."
+          } > "${pr_body}"
+
+          if [ -n "${existing_num}" ]; then
+            gh pr edit "${existing_num}" --title "${title}" --body-file "${pr_body}"
+          else
+            gh pr create --base dev --head "${REFRESH_BRANCH}" --title "${title}" --body-file "${pr_body}"
           fi
