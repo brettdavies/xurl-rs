@@ -160,10 +160,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -uo pipefail
+          # The list API reflects a just-created PR immediately, where the
+          # search index lags minutes behind and can miss it.
           existing="$(gh pr list \
             --state open --base dev \
-            --search 'refresh vendored X API spec in:title' \
-            --json number,headRefName --jq '.[0] // empty')"
+            --json number,headRefName,title \
+            --jq '[.[] | select(.title | test("refresh vendored X API spec"))][0] // empty')"
           if [ -z "${existing}" ]; then
             echo "mode=create" >> "$GITHUB_OUTPUT"
           else
@@ -213,13 +215,26 @@ jobs:
           # dev requires verified signatures, so the commit is created with
           # the createCommitOnBranch mutation: GitHub signs commits it
           # creates, where a workflow-side git commit stays unsigned and
-          # unmergeable. The branch is automation-owned and force-reset to
-          # the dev tip first, so each run regenerates it from scratch.
+          # unmergeable.
           dev_sha="$(git rev-parse origin/dev)"
-          if ! gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-            -f ref="refs/heads/${REFRESH_BRANCH}" -f sha="${dev_sha}" >/dev/null 2>&1; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${REFRESH_BRANCH}" \
-              -f sha="${dev_sha}" -F force=true >/dev/null
+          if [ -n "${existing_num}" ]; then
+            # Update stacks the new commit on the branch head: resetting the
+            # branch to the dev tip first would momentarily empty the PR,
+            # and GitHub auto-closes a PR whose head reaches its base.
+            git fetch --depth 1 origin "${REFRESH_BRANCH}:refs/remotes/origin/${REFRESH_BRANCH}"
+            head_sha="$(git rev-parse "refs/remotes/origin/${REFRESH_BRANCH}")"
+            if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- vendor/; then
+              echo "Open refresh PR #${existing_num} already carries this upstream revision; nothing to update." >> "$GITHUB_STEP_SUMMARY"
+              echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
+              echo "result=current" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            head_sha="${dev_sha}"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/heads/${REFRESH_BRANCH}" -f sha="${dev_sha}" >/dev/null 2>&1 \
+              || gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${REFRESH_BRANCH}" \
+                -f sha="${dev_sha}" -F force=true >/dev/null
           fi
           # File contents route through files, never argv: a single argument
           # caps at 128KB on Linux and the base64 spec is ~1.2MB.
@@ -233,13 +248,21 @@ jobs:
           jq -n \
             --arg repo "${GITHUB_REPOSITORY}" \
             --arg branch "${REFRESH_BRANCH}" \
-            --arg head "${dev_sha}" \
+            --arg head "${head_sha}" \
             --arg msg "${title}" \
             --slurpfile additions "${additions_file}" \
             '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
               variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch}, expectedHeadOid: $head, message: {headline: $msg}, fileChanges: {additions: $additions[0]}}}}' \
             > "${payload}"
-          gh api graphql --input "${payload}" > /dev/null
+          # GraphQL returns HTTP 200 with an errors array, so a swallowed
+          # response hides a failed mutation.
+          resp="$(mktemp)"
+          gh api graphql --input "${payload}" > "${resp}"
+          if jq -e '.errors' "${resp}" >/dev/null 2>&1; then
+            echo "createCommitOnBranch failed:" >&2
+            jq -r '.errors[].message' "${resp}" >&2
+            exit 1
+          fi
 
           pr_body="$(mktemp)"
           {
@@ -297,9 +320,11 @@ jobs:
           if [ -n "${existing_num}" ]; then
             gh pr edit "${existing_num}" --title "${title}" --body-file "${pr_body}"
             echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
+            echo "result=updated" >> "$GITHUB_OUTPUT"
           else
             pr_url="$(gh pr create --base dev --head "${REFRESH_BRANCH}" --title "${title}" --body-file "${pr_body}")"
             echo "number=${pr_url##*/}" >> "$GITHUB_OUTPUT"
+            echo "result=created" >> "$GITHUB_OUTPUT"
           fi
 
       # The job summary is invisible from the PR thread, so each run upserts
@@ -310,17 +335,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODE: ${{ steps.dedupe.outputs.mode }}
+          RESULT: ${{ steps.refresh_pr.outputs.result }}
           DEDUPE_NUM: ${{ steps.dedupe.outputs.number }}
           NEW_NUM: ${{ steps.refresh_pr.outputs.number }}
         run: |
           set -uo pipefail
           target="${NEW_NUM:-${DEDUPE_NUM}}"
           upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
-          case "${MODE}" in
-            standdown) status="This PR covers the currently detected drift; the scheduled run stood down without touching it." ;;
-            update)    status="Refreshed this PR against upstream ${upstream_version}." ;;
-            *)         status="Opened by the scheduled drift run against upstream ${upstream_version}." ;;
-          esac
+          if [ "${MODE}" = "standdown" ]; then
+            status="This PR covers the currently detected drift; the scheduled run stood down without touching it."
+          else
+            case "${RESULT}" in
+              current) status="This PR already carries upstream ${upstream_version}; nothing to update." ;;
+              updated) status="Refreshed this PR against upstream ${upstream_version}." ;;
+              *)       status="Opened by the scheduled drift run against upstream ${upstream_version}." ;;
+            esac
+          fi
           marker='<!-- spec-drift-status -->'
           comment="$(mktemp)"
           {
