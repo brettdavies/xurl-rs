@@ -149,6 +149,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -uo pipefail
+          # The drift check runs for every trigger path, but the comment is
+          # only about the PR when the PR itself changes the vendored spec;
+          # on a build.rs or auth-matrix PR it reads as off-topic noise.
+          touches_vendor="$(gh pr view "${PR_NUMBER}" --json files --jq '[.files[].path] | any(. == "vendor/x-api-openapi.json")')"
+          if [ "${touches_vendor}" != "true" ]; then
+            echo "Drift exists but this PR does not change the vendored spec; no comment posted." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           # Marker upsert: a long-lived PR gets one drift comment edited in
           # place, not a stack of one per push.
           marker='<!-- spec-drift-pr-comment -->'
