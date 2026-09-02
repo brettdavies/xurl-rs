@@ -167,10 +167,11 @@ See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations fr
 
 ## Documented solutions
 
-`docs/solutions/` is a symlink to `~/dev/solutions-docs/`, a shared, searchable archive of past solutions and best
-practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query
+On `dev`, `docs/solutions/` is a symlink to `~/dev/solutions-docs/`, a shared, searchable archive of past solutions and
+best practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query
 "<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses repos and
 already captures known pitfalls.
 
-[`CONCEPTS.md`](CONCEPTS.md) holds the shared domain vocabulary (entities, named processes, and status concepts with
-project-specific meaning), relevant when orienting to the codebase or discussing domain concepts.
+`CONCEPTS.md`, on `dev` alongside the engineering docs, holds the shared domain vocabulary (entities, named processes,
+and status concepts with project-specific meaning), relevant when orienting to the codebase or discussing domain
+concepts. Neither the symlink nor `CONCEPTS.md` ships to `main`; `guard-main-docs` blocks both.

@@ -114,8 +114,10 @@ manual edit when the reusable changes, because it lives in another repo.
 
 The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A new
 engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D lists
-every file the release adds to `main` outside the guarded set and puts the `docs/` entries in front of a human; each one
-needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch.
+every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in front of
+a human; each one needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch. Root-level
+markdown is in scope because an agent-facing glossary at the repo root is exactly the kind of addition a `docs/`-only
+listing misses.
 
 ### Why patch-id cherry-check output is noisy
 

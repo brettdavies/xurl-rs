@@ -302,11 +302,12 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   ```
 
 - [ ] **Every doc this release adds to `main` is meant to ship.** The leak check screens against the registered set, so
-  it cannot flag a category nobody registered yet. Enumerate the additions and read them; an entry that should not ship
-  gets registered in the workflow's `extra_paths` and removed from the branch.
+  it cannot flag a category nobody registered yet. Enumerate the additions under `docs/` and every added markdown file
+  anywhere, and read them; an entry that should not ship gets registered in the workflow's `extra_paths` and removed
+  from the branch.
 
   ```bash
-  git diff origin/main..HEAD --diff-filter=A --name-only | grep '^docs/' | grep -Ev "$GUARDED" || echo "(none unguarded)"
+  git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
   ```
 
 - [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped `Cargo.toml` version.

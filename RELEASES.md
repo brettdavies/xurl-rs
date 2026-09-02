@@ -45,9 +45,10 @@ PR. The `guard-main-docs` workflow blocks them from `main` PRs regardless. The e
 
 - Engineering docs: `docs/architecture/`, `docs/brainstorms/`, `docs/ideation/`, `docs/plans/`, `docs/research/`,
   `docs/reviews/`, `docs/solutions/`, and anything under `.context/`.
+- Agent-facing glossary: `CONCEPTS.md`.
 
 `scripts/release-guarded-paths.sh` prints the authoritative set, resolved from the workflow. Run it rather than trusting
-this list, which is a reading aid. A path that must stay off `main` but is not in the reusable workflow's base list is
+this list, which is a reading aid. A path that stays off `main` but is not in the reusable workflow's base list is
 registered through the caller's `extra_paths` input in `.github/workflows/guard-main-docs.yml`.
 
 The standard feature → PR → squash-merge flow remains required for everything else, including consumer-facing markdown
@@ -116,9 +117,10 @@ git diff origin/main..HEAD --name-only \
 
 # D: what this release ADDS to main. The leak check screens against the
 #    registered set, so it is blind to a category nobody registered yet. Read
-#    the list: every docs/ entry needs a reason to ship, or it needs
-#    registering in the workflow's extra_paths and removing from the branch.
-git diff origin/main..HEAD --diff-filter=A --name-only | grep '^docs/' | grep -Ev "$GUARDED" || echo "(none unguarded)"
+#    the list: every docs/ entry and every added markdown file needs a reason
+#    to ship, or it needs registering in the workflow's extra_paths and
+#    removing from the branch.
+git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
 
 # Patch-id cherry check (noisy in squash-merge workflow; triage per-line).
 git cherry HEAD origin/dev | grep '^+' || echo "(none)"
