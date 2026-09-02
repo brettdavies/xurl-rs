@@ -126,7 +126,9 @@ enum_diff_tsv="$(jq -n -r \
     | (($u - $l) | sort) as $added
     | (($l - $u) | sort) as $removed
     | select(($added | length) + ($removed | length) > 0)
-    | [$key, ($added | join(",")), ($removed | join(","))] | @tsv
+    | [$key,
+       (if ($added | length) > 0 then ($added | join(",")) else "-" end),
+       (if ($removed | length) > 0 then ($removed | join(",")) else "-" end)] | @tsv
     ')"
 
 count_lines() {
@@ -203,11 +205,14 @@ if [ "${enum_changes_count}" -gt 0 ]; then
     printf '%s\n' "${enum_diff_tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r ptr added removed; do
         line="- \`${ptr}\`"
         sep=": "
-        if [ -n "${added}" ]; then
+        # "-" is the explicit empty marker: tab is IFS whitespace, so an
+        # empty middle column would collapse and shift removals into the
+        # added slot, rendering removal-only rows with the wrong sign.
+        if [ "${added}" != "-" ]; then
             line="${line}${sep}$(fmt_signed_values "${added}" "+")"
             sep=", "
         fi
-        if [ -n "${removed}" ]; then
+        if [ "${removed}" != "-" ]; then
             line="${line}${sep}$(fmt_signed_values "${removed}" "-")"
         fi
         echo "${line}"

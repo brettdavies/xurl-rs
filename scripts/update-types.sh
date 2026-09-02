@@ -41,4 +41,4 @@ fi
 
 echo ""
 echo "Review the spec and promote new fields from 'extra' to named struct fields as needed."
-echo "Then run: cargo test --test spec_validation"
+echo "Then run: cargo test --test spec_types_validation"
