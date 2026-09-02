@@ -148,7 +148,23 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr comment "${PR_NUMBER}" --body-file "${{ steps.body.outputs.body_file }}"
+          set -uo pipefail
+          # Marker upsert: a long-lived PR gets one drift comment edited in
+          # place, not a stack of one per push.
+          marker='<!-- spec-drift-pr-comment -->'
+          comment="$(mktemp)"
+          {
+            echo "${marker}"
+            echo ""
+            cat "${{ steps.body.outputs.body_file }}"
+          } > "${comment}"
+          cid="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"${marker}\"))][0].id // empty")"
+          if [ -n "${cid}" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${cid}" -F body=@"${comment}" > /dev/null
+          else
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@"${comment}" > /dev/null
+          fi
 
       # A human-owned refresh PR (different head) wins and this run stands
       # down; the workflow's own branch gets force-pushed and its PR
@@ -196,6 +212,11 @@ jobs:
           # already carries the upstream revision.
           git fetch --depth 1 origin dev:refs/remotes/origin/dev
           git switch -c "${REFRESH_BRANCH}" origin/dev
+          # The gate's report compared against this run's own ref (main on
+          # the cron); the body's detail regenerates here against dev, the
+          # revision this PR actually changes.
+          body_dev="$(mktemp)"
+          scripts/diff-x-openapi-spec.sh "${VENDOR_PATH}" "${{ steps.fetch.outputs.tmp }}" "${UPSTREAM_URL}" > "${body_dev}"
           scripts/refresh-x-openapi.sh
           # The refresh is script-only by design: the auth-method matrix
           # regenerates from the vendored spec inside the opened PR's own CI
@@ -279,7 +300,7 @@ jobs:
             echo ""
             echo "## Spec refresh (agent runbook)"
             echo ""
-            echo "Opened by the spec-drift workflow. This PR vendors upstream ${upstream_version}; the diff carries only vendored artifacts. Reconcile the codebase with the new spec before merge, then rewrite this body to \`.github/pull_request_template.md\`. This runbook is working instructions, not a merge-ready description."
+            echo "You are the reconciling agent for this spec refresh. Executing this runbook is the deliverable; a review or a report is not. This PR vendors upstream ${upstream_version}; the diff carries only vendored artifacts, and the codebase must be reconciled to them on this branch before merge."
             echo ""
             echo "Latest workflow pass: [run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) on $(date -u +%Y-%m-%d)."
             echo ""
@@ -289,32 +310,56 @@ jobs:
             echo ""
             echo "### Drift detail"
             echo ""
-            cat "${{ steps.body.outputs.body_file }}"
+            cat "${body_dev}"
             echo ""
             echo "### Automated gates (this PR's CI)"
             echo ""
             echo "- \`cargo build\` regenerates the auth-method matrix from the new spec; a build panic names a shortcut template that no longer resolves. Update the endpoint in \`src/api/shortcuts.rs\` and the \`SHORTCUT_TEMPLATES\` allowlist in \`src/api/auth_matrix.rs\`."
-            echo "- \`tests/spec_types_validation.rs\` fails when a typed response still declares a field, or maps a component schema, that the spec renamed or removed. Fix \`src/api/response/types.rs\` and the test's mapping table, or extend \`ALLOWED_DIVERGENCES\` with a documented upstream reason."
+            echo "- \`tests/spec_types_validation.rs\` fails when a typed response still declares a field, or maps a component schema, that the spec renamed or removed. \`ALLOWED_DIVERGENCES\` applies only to field-level divergences with a documented upstream reason; it cannot suppress a missing component schema. For a renamed schema, repoint the test's mapping table and rework the affected struct in \`src/api/response/types.rs\`."
             echo ""
-            echo "### Manual reconciliation"
+            echo "### Execute, in order"
             echo ""
-            echo "- Added paths: decide whether any warrant new shortcut commands (\`src/cli/\`, \`src/api/shortcuts.rs\`, typed responses in \`src/api/response/types.rs\`, help examples)."
-            echo "- Removed paths: retire the affected shortcuts and their typed responses."
-            echo "- Schema and categorical-value changes: rename struct fields the spec renamed; promote newly meaningful response fields out of the structs' \`extra\` buckets."
-            echo "- After any type or CLI change, regenerate derived artifacts: \`scripts/generate-response-schemas.sh\` and \`scripts/generate-completions.sh\`."
-            echo "- Update \`README.md\` and \`AGENTS.md\` when the CLI surface changes."
+            echo "1. Run the gates locally (\`cargo build\`, \`cargo test\`) and fix everything they force."
+            echo "2. Apply every rename the spec mandates: wire params and expansions in \`src/api/shortcuts.rs\`, field and schema names in \`src/api/response/types.rs\`. Grep for old names across \`src/\` so no call site survives. Record each under Breaking changes below."
+            echo "3. Retire shortcuts whose endpoints the spec removed, including their typed responses and help examples. Record under Breaking changes."
+            echo "4. Do not create shortcuts for added endpoints; list worthwhile candidates under Open decisions instead."
+            echo "5. You may verify a renamed wire param with read-only calls against the live API using stored credentials (\`xr whoami\`, \`xr search\` with the renamed param); never mutating calls."
+            echo "6. Regenerate derived artifacts: \`scripts/generate-response-schemas.sh\` and \`scripts/generate-completions.sh\`."
+            echo "7. Update \`README.md\` and \`AGENTS.md\` where the CLI surface changed."
+            echo "8. Rewrite this PR body per \`.github/pull_request_template.md\`, carrying Breaking changes and Open decisions into it."
             echo ""
-            echo "### Before merge"
+            echo "### Decision authority"
             echo ""
-            echo "- All CI checks green; every commit signed (workflow commits land pre-signed via the API)."
-            echo "- Rewrite this PR body per \`.github/pull_request_template.md\` with a real Summary, Changelog, Type of Change, Related Issues/Stories, Testing, and Files Modified."
-            echo "- A later run that vendors newer upstream content rewrites this body with fresh instructions, since the reconciliation restarts against the new spec."
+            echo "- Decide and implement without asking: spec-mandated renames, mapping repoints, retirements forced by removed endpoints, derived-artifact regeneration, documentation updates."
+            echo "- Propose under Open decisions, never implement unprompted: new shortcut commands, \`ALLOWED_DIVERGENCES\` entries, version-bump classification, anything the spec leaves ambiguous. Every proposal carries your recommendation and the contextual reasoning behind it, grounded in repo precedent (for example: this endpoint resembles existing shortcuts X and Y, or similar endpoints deliberately have no shortcut)."
+            echo ""
+            echo "### Open decisions"
+            echo ""
+            echo "(none yet; append entries as: the question, your recommendation, and the precedent-based reasoning. A human resolves each by editing this section or commenting.)"
+            echo ""
+            echo "### Breaking changes"
+            echo ""
+            echo "(none yet; append each user-observable change here as you make it)"
+            echo ""
+            echo "### Completion criteria"
+            echo ""
+            echo "- [ ] All CI checks green"
+            echo "- [ ] Breaking changes enumerated above"
+            echo "- [ ] Derived artifacts regenerated"
+            echo "- [ ] Body rewritten to the repo template, commits signed"
+            echo ""
+            echo "A later run that vendors newer upstream content rewrites this body and restarts the reconciliation. A no-change run refreshes only the run-link line, so sections appended under the marker survive."
           } > "${pr_body}"
 
           if [ "${result}" = "current" ]; then
-            first_line="$(gh pr view "${existing_num}" --json body --jq '.body | gsub("\r"; "") | split("\n")[0]')"
-            if [ "${first_line}" = "${body_marker}" ]; then
-              gh pr edit "${existing_num}" --body-file "${pr_body}"
+            # Refresh only the run-link line: a full rewrite would wipe the
+            # Open decisions and Breaking changes sections an agent appends
+            # while reconciling under the marker.
+            existing_body="$(mktemp)"
+            gh pr view "${existing_num}" --json body --jq '.body | gsub("\r"; "")' > "${existing_body}"
+            if [ "$(head -n1 "${existing_body}")" = "${body_marker}" ] && grep -q '^Latest workflow pass:' "${existing_body}"; then
+              sed -i "s|^Latest workflow pass:.*|Latest workflow pass: [run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) on $(date -u +%Y-%m-%d).|" "${existing_body}"
+              gh pr edit "${existing_num}" --body-file "${existing_body}"
             else
               echo "PR #${existing_num} body is agent-owned; left untouched." >> "$GITHUB_STEP_SUMMARY"
             fi
