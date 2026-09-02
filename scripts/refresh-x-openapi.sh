@@ -70,7 +70,7 @@ fi
 
 # Canonicalize before vendoring so refresh diffs and the CI drift gate
 # never see the endpoint's nondeterministic scope-array ordering.
-"$(dirname "$0")/normalize-x-openapi.sh" "${TMP_FILE}" > "${TMP_FILE}.norm"
+"${SCRIPT_DIR}/normalize-x-openapi.sh" "${TMP_FILE}" > "${TMP_FILE}.norm"
 mv "${TMP_FILE}.norm" "${TMP_FILE}"
 
 mv "${TMP_FILE}" "${VENDOR_PATH}"
