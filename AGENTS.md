@@ -142,6 +142,12 @@ pre-cut go/no-go checklist, and [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md)
 short version: feature branch → PR to `dev` (squash) → cherry-pick to `release/v<version>` cut from `main` → PR to
 `main` (squash) → annotated tag push triggers `release.yml`.
 
+### Spec-refresh PRs
+
+The spec-drift workflow opens draft PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the
+reconciling agent as "Triage and fix PR #N", never "review PR #N": review-shaped prompts route agents into report-only
+review skills before the runbook is read, and the deliverable is the executed reconciliation, not a report.
+
 ## Known differences from the Go original
 
 See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations from
