@@ -6,9 +6,10 @@ each file in version order.
 
 ## Guides
 
-| Target version                       | Guide                      | Highlights                                                                                                                                                                                                       |
-| ------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`v2.0.0`](docs/migrating/v2.0.0.md) | `docs/migrating/v2.0.0.md` | Client-side auth-method enforcement; `RequestOptions.endpoint: String` -> `target: RequestTarget`; `AuthMethodMismatch` error variant; `EXIT_AUTH_MISMATCH = 2`; `block_user` / `unblock_user` shortcuts removed |
+| Target version                       | Guide                      | Highlights                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`v2.0.0`](docs/migrating/v2.0.0.md) | `docs/migrating/v2.0.0.md` | Client-side auth-method enforcement; `RequestOptions.endpoint: String` -> `target: RequestTarget`; `AuthMethodMismatch` error variant; `EXIT_AUTH_MISMATCH = 2`; `block_user` / `unblock_user` shortcuts removed                                                                                                    |
+| [`v3.0.0`](docs/migrating/v3.0.0.md) | `docs/migrating/v3.0.0.md` | X API spec 2.168 post vocabulary; `Tweet` / `TweetPublicMetrics` / `ReferencedTweet` / `RetweetedResult` -> `Post` / `PostPublicMetrics` / `ReferencedPost` / `RepostedResult`; `referenced_posts`, `repost_count`, `post_count`, `includes.posts`; `xr validate --schema post` / `posts`; `xr usage credits` added |
 
 ## Convention
 
