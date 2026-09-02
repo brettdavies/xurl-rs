@@ -43,11 +43,15 @@ gh pr create --base dev --title "feat(scope): what changed"
 Paths that live only on `dev` and never ship to `main` can be committed directly to `dev` without a feature branch or
 PR. The `guard-main-docs` workflow blocks them from `main` PRs regardless. The exception applies to:
 
-- Engineering docs: `docs/brainstorms/`, `docs/ideation/`, `docs/plans/`, `docs/research/`, `docs/reviews/`,
-  `docs/solutions/`, and anything under `.context/`.
+- Engineering docs: `docs/architecture/`, `docs/brainstorms/`, `docs/ideation/`, `docs/plans/`, `docs/research/`,
+  `docs/reviews/`, `docs/solutions/`, and anything under `.context/`.
+
+`scripts/release-guarded-paths.sh` prints the authoritative set, resolved from the workflow. Run it rather than trusting
+this list, which is a reading aid. A path that must stay off `main` but is not in the reusable workflow's base list is
+registered through the caller's `extra_paths` input in `.github/workflows/guard-main-docs.yml`.
 
 The standard feature → PR → squash-merge flow remains required for everything else, including consumer-facing markdown
-(README, AGENTS, CONTRIBUTING, CHANGELOG, in-repo runbooks).
+(README, AGENTS, CONTRIBUTING, CHANGELOG, in-repo runbooks). `docs/migrating/` ships to `main`.
 
 ## PR body
 
@@ -96,15 +100,25 @@ git log --oneline dev --not origin/main
 # 3. Cherry-pick the ones to ship. Docs commits stay on dev.
 git cherry-pick <sha1> <sha2> ...
 
-# 4. Triple-diff verification.
+# 4. Triple-diff verification. Guarded paths resolve from
+#    .github/workflows/guard-main-docs.yml; never restate the pattern inline,
+#    because every hand-kept copy drifted from what CI enforces.
+GUARDED="$(scripts/release-guarded-paths.sh)"
+
 git diff origin/main..HEAD --stat                                              # A: ship surface
-git diff HEAD..origin/dev --name-only | grep -v '^docs/' || echo "(none)"      # B: no missed picks
+git diff HEAD..origin/dev --name-only | grep -Ev "$GUARDED" || echo "(none)"   # B: no missed picks
 git diff origin/dev..origin/main --stat | tail -5                              # C: phantom-commits sanity
 
 # Re-confirm no guarded paths leaked.
 git diff origin/main..HEAD --name-only \
-  | grep -E '^(docs/plans|docs/brainstorms|docs/ideation|docs/reviews|docs/solutions|\.context)' \
+  | grep -E "$GUARDED" \
   && echo "LEAKED — reset and redo" || echo "(clean)"
+
+# D: what this release ADDS to main. The leak check screens against the
+#    registered set, so it is blind to a category nobody registered yet. Read
+#    the list: every docs/ entry needs a reason to ship, or it needs
+#    registering in the workflow's extra_paths and removing from the branch.
+git diff origin/main..HEAD --diff-filter=A --name-only | grep '^docs/' | grep -Ev "$GUARDED" || echo "(none unguarded)"
 
 # Patch-id cherry check (noisy in squash-merge workflow; triage per-line).
 git cherry HEAD origin/dev | grep '^+' || echo "(none)"
