@@ -9,7 +9,7 @@
 #   api-contract  xr help command surface diff, lib re-export diff vs last tag
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
-#   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check)
+#   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check, unguarded additions, diff-B)
 #   all           Run surface, api-contract, smoke, multi-app, mechanics
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
@@ -165,7 +165,7 @@ gate_surface() {
     [[ -n "$last_tag" ]] || { gate_fail "LAST_TAG" "no tags in repo"; return; }
     commits=$(git log "$last_tag..HEAD" --oneline | wc -l)
     files=$(git diff "$last_tag..HEAD" --name-only | wc -l)
-    breaking=$(git log "$last_tag..HEAD" --grep '^[a-z]\+!:' --oneline | wc -l)
+    breaking=$(git log "$last_tag..HEAD" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline | wc -l)
     gate_pass "LAST_TAG = $last_tag  ($commits commits, $files files, $breaking breaking)"
 }
 
@@ -385,10 +385,43 @@ gate_mechanics() {
         gate_fail "cargo deny check advisories" "see cargo deny check advisories"
     fi
 
+    # Guarded paths resolve from the workflow so this copy cannot drift from
+    # what guard-main-docs enforces.
+    local guarded
+    if ! guarded=$("$REPO_ROOT/scripts/release-guarded-paths.sh" 2>/dev/null); then
+        gate_fail "guarded-path list" "scripts/release-guarded-paths.sh resolved no pattern"
+        return
+    fi
+
     local leaked
-    last_tag="${LAST_TAG:-origin/main}"
-    leaked=$(git diff "$last_tag..HEAD" --name-only | grep -cE '^(docs/plans|docs/brainstorms|docs/ideation|docs/reviews|docs/solutions|\.context)' || true)
-    [[ "$leaked" -eq 0 ]] && gate_pass "leak check (guarded paths): clean" || gate_fail "leak check" "$leaked guarded paths in diff vs $last_tag"
+    leaked=$(git diff origin/main..HEAD --name-only 2>/dev/null | grep -E "$guarded" || true)
+    if [[ -z "$leaked" ]]; then
+        gate_pass "leak check (guarded paths): clean"
+    else
+        gate_fail "leak check" "guarded paths in diff vs origin/main: $(echo "$leaked" | tr '\n' ' ')"
+    fi
+
+    # The leak check screens against the registered set, so it is blind to a
+    # category nobody registered yet. Enumerate what the release adds to main
+    # and put every unguarded doc in front of a human.
+    local added_docs
+    added_docs=$(git diff origin/main..HEAD --diff-filter=A --name-only 2>/dev/null | grep '^docs/' | grep -Ev "$guarded" || true)
+    if [[ -z "$added_docs" ]]; then
+        gate_pass "no unguarded docs newly added to main"
+    else
+        gate_skip "unguarded docs added to main (confirm each is meant to ship)" "$(echo "$added_docs" | tr '\n' ' ')"
+    fi
+
+    # Excluding all of docs/ would hide a missed pick under docs/migrating,
+    # which ships to main; exclude only what is guarded. The version bump and
+    # the regenerated changelog are release-only by design.
+    local missed
+    missed=$(git diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" | grep -Ev '^(Cargo\.toml|Cargo\.lock|CHANGELOG\.md)$' || true)
+    if [[ -z "$missed" ]]; then
+        gate_pass "diff-B: no missed picks vs origin/dev"
+    else
+        gate_skip "diff-B: files on dev but not on this branch (review)" "$(echo "$missed" | head -5 | tr '\n' ' ')"
+    fi
 }
 
 # Main dispatcher ------------------------------------------------------------

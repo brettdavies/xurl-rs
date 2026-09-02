@@ -26,7 +26,7 @@ LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
 git log "$LAST_TAG..dev" --oneline                              # commits going out
 git diff "$LAST_TAG..dev" --stat                                # file-level scope
 git diff "$LAST_TAG..dev" -- src/api/ src/auth/ src/cli/        # surface area: HTTP, auth, CLI
-git log "$LAST_TAG..dev" --grep '^[a-z]\+!:' --oneline          # Conventional-Commits breaking markers
+git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
 Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
@@ -47,14 +47,14 @@ The script (`scripts/release-preflight.sh`) covers 28 of the 31 automatable pre-
 fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a
 pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
-| Sub-command    | What it runs                                                                                                               | Live API?                 |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                    | no                        |
-| `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                            | no (builds prev tag once) |
-| `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                              | yes                       |
-| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                     | yes                       |
-| `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check | no                        |
-| `all`          | every above                                                                                                                | yes                       |
+| Sub-command    | What it runs                                                                                                                                                                       | Live API?                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
+| `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                                                                                    | no (builds prev tag once) |
+| `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                                                                                      | yes                       |
+| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                             | yes                       |
+| `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
+| `all`          | every above                                                                                                                                                                        | yes                       |
 
 Flags:
 
@@ -291,9 +291,24 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   or revert it before tagging.
 - [ ] No unmerged dependency advisories from `cargo deny check advisories`. The full local pre-push check
   (`scripts/hooks/pre-push`) mirrors CI; run it explicitly before pushing the release branch.
-- [ ] Leak check: `git diff origin/main..HEAD --name-only | grep -E
-  '^(docs/plans|docs/brainstorms|docs/ideation|docs/reviews|docs/solutions|\.context)'` returns nothing. If cherry-picks
-  pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick conflicts on guarded paths.
+- [ ] **Leak check before pushing the release branch.** No guarded path may surface in the cherry-picked diff. The set
+  resolves from `.github/workflows/guard-main-docs.yml`, so it cannot drift from what CI enforces; never restate the
+  pattern inline. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick
+  conflicts on guarded paths.
+
+  ```bash
+  GUARDED="$(scripts/release-guarded-paths.sh)"
+  git diff origin/main..HEAD --name-only | grep -E "$GUARDED" && echo "LEAKED: reset and redo" || echo "(clean)"
+  ```
+
+- [ ] **Every doc this release adds to `main` is meant to ship.** The leak check screens against the registered set, so
+  it cannot flag a category nobody registered yet. Enumerate the additions and read them; an entry that should not ship
+  gets registered in the workflow's `extra_paths` and removed from the branch.
+
+  ```bash
+  git diff origin/main..HEAD --diff-filter=A --name-only | grep '^docs/' | grep -Ev "$GUARDED" || echo "(none unguarded)"
+  ```
+
 - [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped `Cargo.toml` version.
 
 ### Post-tag verification
