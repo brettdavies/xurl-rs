@@ -68,6 +68,11 @@ if ! ${json_get} '.info.version' "${TMP_FILE}" >/dev/null 2>&1; then
     exit 2
 fi
 
+# Canonicalize before vendoring so refresh diffs and the CI drift gate
+# never see the endpoint's nondeterministic scope-array ordering.
+"${SCRIPT_DIR}/normalize-x-openapi.sh" "${TMP_FILE}" > "${TMP_FILE}.norm"
+mv "${TMP_FILE}.norm" "${TMP_FILE}"
+
 mv "${TMP_FILE}" "${VENDOR_PATH}"
 # mktemp creates the temp file with 600 permissions; the vendored copy is a
 # checked-in artifact and should be world-readable.

@@ -51,10 +51,10 @@ perspective; they belong in this file, the script outputs, and the commit histor
 
 ### Why `feat`/`fix` are preferred over `chore`
 
-`cliff.toml` drops commits whose subject starts with `chore`, `style`, `test`, `ci`, or `build` regardless of body
-content. Mistyping a user-facing change as `chore` silently strips it from release notes. Prefer `feat` / `fix` when the
-change has any user-observable effect (config defaults, env vars, default behaviors, new shortcut commands, OAuth flow
-changes).
+`cliff.toml` drops commits whose subject starts with `chore`, `style`, `test`, `ci`, or `build`, unless the subject
+carries `!` or the body carries `BREAKING CHANGE:`, which route to the Breaking group first. Mistyping a user-facing
+change as `chore` silently strips it from release notes. Prefer `feat` / `fix` when the change has any user-observable
+effect (config defaults, env vars, default behaviors, new shortcut commands, OAuth flow changes).
 
 Security advisory bumps in particular use `fix(deps):`, never `chore(deps):`, so they appear in the changelog. A bumped
 dependency that closes a CVE is user-visible value, not internal tooling.
@@ -94,9 +94,30 @@ not in the source-of-truth release notes.
 
 ## Triple-diff verification
 
-The release-PR procedure runs three diffs (A: main→release, B: release→dev for non-doc paths, C: dev→main) plus a
-patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main` on this and
-sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
+The release-PR procedure runs three diffs (A: main→release, B: release→dev for paths outside the guarded set, C:
+dev→main) plus a patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main`
+on this and sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
+
+B excludes only the guarded set, not all of `docs/`. `docs/migrating/` ships to `main`, so a wholesale `docs/` exclusion
+hides a missed migration-guide pick.
+
+### Why the guarded set resolves from the workflow
+
+`guard-main-docs` is what CI enforces on a PR to `main`: the reusable workflow's hardcoded base list plus this repo's
+`extra_paths`. Every hand-kept copy of that union (runbook, checklist, preflight script) drifted from it, and a copy
+that omits a guarded path reports a real leak as clean while CI turns red after the push.
+`scripts/release-guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so registering
+a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still needs a
+manual edit when the reusable changes, because it lives in another repo.
+
+### Why the release enumerates what it adds
+
+The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A new
+engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D lists
+every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in front of
+a human; each one needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch. Root-level
+markdown is in scope because an agent-facing glossary at the repo root is exactly the kind of addition a `docs/`-only
+listing misses.
 
 ### Why patch-id cherry-check output is noisy
 
@@ -144,8 +165,8 @@ Release body.
 These commit types do not produce user-facing content. If a cherry-picked PR has user-facing `## Changelog` content but
 its commit subject starts with one of those types, its bullets get silently dropped. After running the script,
 cross-check the generated section against `gh pr view <num> --json body` for each cherry-picked PR; correct mistyped PR
-titles (e.g. `chore` → `feat`) and re-amend the cherry-pick subject before re-running. See "Prefer `feat`/`fix` over
-`chore`" in global CLAUDE.md for prevention.
+titles (e.g. `chore` → `feat`) and re-amend the cherry-pick subject before re-running. See § Why `feat`/`fix` are
+preferred over `chore` above for prevention.
 
 ## Release pipeline
 
@@ -173,27 +194,21 @@ Once `finalize-release.yml` has flipped the GitHub Release to `published`, the r
 (`Cargo.toml` version, `Cargo.lock`, `CHANGELOG.md`) need to reach `dev` so future builds from `dev` report the released
 version and so the next dev work starts from the released baseline.
 
-This repo backports with a `git merge` from `main` into `dev` (the v1.2.0 release used `Merge remote-tracking branch
-'origin/main' into dev`). The merge preserves full history on both branches, lands the release commits on dev as
-expected, and is signed via the normal commit-signing path. No surgical script is needed; the squash-merge structure on
-both sides means the merge is effectively trivial.
-
-```bash
-git checkout dev && git pull
-git merge --no-ff origin/main -m "Merge remote-tracking branch 'origin/main' into dev"
-git push origin dev
-```
-
-If a dependency or rust-version bump on `dev` is newer than the released version on `main`, the merge resolves cleanly
-in favor of `dev`'s newer values; only `version`, `Cargo.lock`, and `CHANGELOG.md` actually change.
+The backport is a PR to `dev` whose branch copies those files from `main` (`git checkout origin/main -- <files>`),
+titled with the version so `scripts/release-postflight.sh backport` can find it. A direct `git merge` of `main` into
+`dev` is not used: the two branches share no recent history (every release lands on `main` as one squash commit), so the
+merge conflicts on every file both sides touched, and a direct push to `dev` bypasses its required status checks.
+Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of the copy, so the backport cannot remove it.
 
 ### Cross-compile target matrix
 
-Five targets, no musl rows: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`,
-`aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. xurl-rs is a network CLI against a hosted API (X / Twitter); the
-binaries are consumed by interactive shell users on the three desktop platforms and on Linux CI runners. The musl
-static-link rows (added in sibling repos for Alpine and other glibc-free hosts) carry an additional cross-compile cost
-and no demand signal here yet. Add them when a real Alpine consumer surfaces.
+Seven targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`,
+`aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. xurl-rs is a
+network CLI against a hosted API (X / Twitter); the binaries are consumed by interactive shell users on the three
+desktop platforms and on Linux CI runners, including Alpine and other glibc-free hosts, which the musl rows serve.
+`release.yml` passes `linux_musl_required: true`, so a musl build failure blocks the release, and
+`release-matrix-check.yml` builds the same seven rows on every push to a `release/*` branch so a broken row surfaces
+before the tag.
 
 The Windows row uses `x86_64-pc-windows-msvc` (MSVC ABI) rather than GNU because the X API uses TLS with a vendored
 rustls and rustls-platform-verifier; the MSVC ABI is the path of least resistance for that stack on Windows. CI also
@@ -212,8 +227,8 @@ Three release-flow artifacts live outside any automated prose check and need a m
   `CHANGELOG.md` has been generated, and the same out-of-repo gap applies.
 
 The canonical Vale + LanguageTool rule packs and orchestrator behavior live in the agentnative-spec repo at
-[`~/dev/agentnative-spec/docs/architecture/voice-enforcement.md`](../agentnative-spec/docs/architecture/voice-enforcement.md).
-This repo does not vendor a local copy of those packs; point Vale at the spec checkout via `--config`.
+`docs/architecture/voice-enforcement.md` (local checkout at `~/dev/agentnative-spec`). This repo does not vendor a local
+copy of those packs; point Vale at the spec checkout via `--config`.
 
 Scrub-before-submit (author in `/tmp/`, scrub there, submit via `--body-file`) avoids the round-trip of "submit, scrub,
 edit, scrub again". Every fix lands locally and the public PR sees only clean text. The auto-format hook skips `/tmp/`

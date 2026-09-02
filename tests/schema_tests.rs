@@ -23,7 +23,7 @@ fn schema_post_outputs_valid_json_schema() {
 }
 
 #[test]
-fn schema_post_contains_tweet_fields() {
+fn schema_post_contains_post_fields() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["schema", "post"])
@@ -89,8 +89,8 @@ fn schema_list_shows_all_commands_plus_envelope() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
-    // 33 typed response commands + 1 envelope schema row.
-    assert_eq!(lines.len(), 34, "Expected 34 rows, got {}", lines.len());
+    // 34 typed response commands + 1 envelope schema row.
+    assert_eq!(lines.len(), 35, "Expected 35 rows, got {}", lines.len());
     assert!(
         stdout.contains("envelope"),
         "--list should advertise the envelope schema"
@@ -133,6 +133,7 @@ fn schema_list_contains_expected_commands() {
         "dm",
         "dms",
         "usage",
+        "usage-credits",
     ];
     for cmd in expected {
         assert!(stdout.contains(cmd), "--list output missing command: {cmd}");
@@ -147,8 +148,8 @@ fn schema_list_shows_type_names() {
         .output()
         .unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("ApiResponse<Tweet>"));
-    assert!(stdout.contains("ApiResponse<Vec<Tweet>>"));
+    assert!(stdout.contains("ApiResponse<Post>"));
+    assert!(stdout.contains("ApiResponse<Vec<Post>>"));
     assert!(stdout.contains("ApiResponse<User>"));
     assert!(stdout.contains("ApiResponse<LikedResult>"));
 }
@@ -167,7 +168,7 @@ fn schema_all_outputs_json_with_all_commands() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
-    assert_eq!(obj.len(), 33, "Expected 33 entries, got {}", obj.len());
+    assert_eq!(obj.len(), 34, "Expected 34 entries, got {}", obj.len());
     // Each value should be a valid schema object — either an object schema
     // with `properties` or an array schema with `items`.
     for (cmd, schema) in obj {
@@ -368,6 +369,40 @@ fn committed_response_schemas_match_runtime() {
         checked += 1;
     }
     assert!(checked > 0, "no per-command schemas were checked");
+}
+
+#[test]
+fn committed_response_schemas_have_no_orphans() {
+    // The generator only writes files for commands in SCHEMA_ENTRIES; a
+    // command removed from the list leaves its committed schema behind.
+    let list = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "--list", "--output", "text"])
+        .output()
+        .unwrap();
+    assert!(list.status.success());
+    let list_text = String::from_utf8(list.stdout).unwrap();
+    let known: std::collections::BTreeSet<String> = list_text
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+        .filter(|cmd| !cmd.is_empty() && *cmd != "envelope")
+        .map(str::to_string)
+        .collect();
+
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/schema/responses");
+    let orphans: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter_map(|name| {
+            name.strip_suffix(".schema.json")
+                .filter(|cmd| !known.contains(*cmd))
+                .map(|_| name.clone())
+        })
+        .collect();
+    assert!(
+        orphans.is_empty(),
+        "schema/responses/ has files for commands `xr schema --list` does not know: {orphans:?}; delete them"
+    );
 }
 
 #[test]

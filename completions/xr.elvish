@@ -79,7 +79,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand followers 'List your followers'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
-            cand usage 'Show API usage (tweet caps, daily breakdown)'
+            cand usage 'Show API usage (post caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
@@ -785,6 +785,43 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
+            cand credits 'Show credits-based usage for the project'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;usage;credits'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;usage;help'= {
+            cand credits 'Show credits-based usage for the project'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;usage;help;credits'= {
+        }
+        &'xr;usage;help;help'= {
         }
         &'xr;dm'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
@@ -1566,7 +1603,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`tweet`, `tweets`, `user`, `users`, `dm`, `dms`, `usage`, `envelope`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection'
             cand -v 'Print verbose information'
             cand --verbose 'Print verbose information'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1613,7 +1650,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand followers 'List your followers'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
-            cand usage 'Show API usage (tweet caps, daily breakdown)'
+            cand usage 'Show API usage (post caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
             cand auth 'Authentication management'
@@ -1675,6 +1712,9 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;unmute'= {
         }
         &'xr;help;usage'= {
+            cand credits 'Show credits-based usage for the project'
+        }
+        &'xr;help;usage;credits'= {
         }
         &'xr;help;dm'= {
         }

@@ -1,61 +1,35 @@
 #!/usr/bin/env bash
-# update-types.sh — Fetch the latest X API v2 OpenAPI spec, optionally run
-# cargo-typify to generate reference types, and diff against hand-written types.
+# update-types.sh — Summarize the vendored X API OpenAPI spec for the manual
+# typed-response review pass.
 #
 # Usage:
-#   scripts/update-types.sh              # Fetch spec + diff (no typify)
-#   scripts/update-types.sh --typify     # Fetch spec + generate + diff
+#   scripts/update-types.sh
 #
-# The cached spec is stored at tests/fixtures/openapi/ for CI reproducibility.
+# Reads vendor/x-api-openapi.json — the same vendored snapshot build.rs
+# consumes for auth-matrix codegen. scripts/refresh-x-openapi.sh is the only
+# place the spec is fetched; this script never touches the network, so the
+# summary always describes the spec revision the crate actually builds
+# against.
+#
+# The hand-written types in src/api/response/types.rs are reviewed by hand:
+# cargo-typify consumes JSON Schema documents, not OpenAPI, so generating
+# reference types from the spec produces a typeless stub. Field-level drift
+# review runs against the structural report from
+# scripts/diff-x-openapi-spec.sh instead.
 
 set -euo pipefail
 
-SPEC_URL="https://raw.githubusercontent.com/xdevplatform/twitter-api-openapi/main/openapi/openapi.json"
-SPEC_DIR="tests/fixtures/openapi"
-SPEC_FILE="${SPEC_DIR}/twitter-api-openapi.json"
-TYPES_FILE="src/api/response/types.rs"
+cd "$(dirname "$0")/.."
+
+SPEC_FILE="vendor/x-api-openapi.json"
 
 echo "=== update-types.sh ==="
 
-# Fetch latest spec
-echo "Fetching latest X API v2 OpenAPI spec..."
-mkdir -p "${SPEC_DIR}"
-if curl -sSfL "${SPEC_URL}" -o "${SPEC_FILE}.tmp" 2>/dev/null; then
-    mv "${SPEC_FILE}.tmp" "${SPEC_FILE}"
-    echo "  Saved to ${SPEC_FILE}"
-else
-    echo "  Warning: Could not fetch spec from ${SPEC_URL}"
-    echo "  Using cached copy if available."
-    rm -f "${SPEC_FILE}.tmp"
-fi
-
 if [ ! -f "${SPEC_FILE}" ]; then
-    echo "  No spec file available. Skipping diff."
-    exit 0
+    echo "error: ${SPEC_FILE} not found — run scripts/refresh-x-openapi.sh first" >&2
+    exit 1
 fi
 
-# Optionally run cargo-typify
-if [ "${1:-}" = "--typify" ]; then
-    if command -v cargo-typify &>/dev/null; then
-        echo "Running cargo-typify..."
-        GENERATED="/tmp/xurl-typify-generated.rs"
-        cargo typify "${SPEC_FILE}" -o "${GENERATED}" 2>/dev/null || true
-        if [ -f "${GENERATED}" ]; then
-            echo ""
-            echo "=== Diff: generated types vs hand-written types ==="
-            diff -u "${GENERATED}" "${TYPES_FILE}" || true
-            echo ""
-            echo "Generated types saved to: ${GENERATED}"
-        else
-            echo "  cargo-typify produced no output."
-        fi
-    else
-        echo "  cargo-typify not installed. Install with: cargo install cargo-typify"
-        echo "  Skipping type generation."
-    fi
-fi
-
-# Show spec stats
 echo ""
 echo "=== Spec summary ==="
 if command -v jaq &>/dev/null; then
@@ -67,4 +41,4 @@ fi
 
 echo ""
 echo "Review the spec and promote new fields from 'extra' to named struct fields as needed."
-echo "Then run: cargo test --test spec_validation"
+echo "Then run: cargo test --test spec_types_validation"

@@ -1,6 +1,6 @@
 //! Typed API response structs and response formatting.
 //!
-//! - `types` — Typed structs for X API v2 responses (`Tweet`, `User`, `ApiResponse<T>`, etc.)
+//! - `types` — Typed structs for X API v2 responses (`Post`, `User`, `ApiResponse<T>`, etc.)
 //! - `format` — JSON pretty-printing with syntax highlighting
 
 mod format;
@@ -11,6 +11,6 @@ pub use format::format_response;
 pub use types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
-    UserPublicMetrics, deserialize_response,
+    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
+    UsageData, User, UserPublicMetrics, deserialize_response,
 };

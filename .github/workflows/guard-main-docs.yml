@@ -1,7 +1,12 @@
 # Source repo guard-main-docs wrapper — calls the centralized reusable workflow.
 #
 # Blocks compound-engineering docs (plans, solutions, brainstorms, reviews)
-# from being merged into main. Only needs pull-requests: read.
+# from being merged into main, plus this repo's extra_paths. Only needs
+# pull-requests: read.
+#
+# extra_paths entries ending in `/` match by prefix; others match one exact
+# filename. scripts/release-guarded-paths.sh reads this line, so keep it on
+# one line in single quotes.
 name: Guard main from engineering docs
 
 on:
@@ -14,3 +19,5 @@ permissions:
 jobs:
   guard-docs:
     uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@main
+    with:
+      extra_paths: 'CONCEPTS.md'

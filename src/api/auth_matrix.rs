@@ -262,10 +262,10 @@ mod tests {
     use crate::api::request::RequestTarget;
     use crate::error::XurlError;
 
-    /// Shortcut + media layer currently targets 32 (method, path) pairs.
+    /// Shortcut + media layer currently targets 33 (method, path) pairs.
     /// Updating this requires updating both the build-time allowlist in
     /// `build.rs` and the runtime mirror at the top of this file.
-    const EXPECTED_SHORTCUT_COUNT: usize = 32;
+    const EXPECTED_SHORTCUT_COUNT: usize = 33;
 
     #[test]
     fn shortcut_templates_anchor_count() {
@@ -308,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn supported_auth_delete_tweet() {
+    fn supported_auth_delete_post() {
         let schemes = supported_auth("DELETE", "/2/tweets/{id}")
             .expect("DELETE /2/tweets/{{id}} must be in the matrix");
         assert!(

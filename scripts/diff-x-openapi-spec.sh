@@ -126,7 +126,9 @@ enum_diff_tsv="$(jq -n -r \
     | (($u - $l) | sort) as $added
     | (($l - $u) | sort) as $removed
     | select(($added | length) + ($removed | length) > 0)
-    | [$key, ($added | join(",")), ($removed | join(","))] | @tsv
+    | [$key,
+       (if ($added | length) > 0 then ($added | join(",")) else "-" end),
+       (if ($removed | length) > 0 then ($removed | join(",")) else "-" end)] | @tsv
     ')"
 
 count_lines() {
@@ -147,7 +149,9 @@ fmt_list() {
     local head
     # shellcheck disable=SC2016 # backticks are literal markdown, not
     # command substitution.
-    head="$(printf '%s\n' "${input}" | head -n 10 \
+    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
+    # printf under pipefail when the list is large.
+    head="$(printf '%s\n' "${input}" | awk 'NR<=10' \
         | sed 's/^/`/; s/$/`/' \
         | paste -sd ',' - \
         | sed 's/,/, /g')"
@@ -196,14 +200,19 @@ if [ "${enum_changes_count}" -gt 0 ]; then
     echo ""
     echo "**Categorical-value changes:** ${enum_changes_count} location(s) with enum or discriminator-mapping additions or removals."
     echo ""
-    printf '%s\n' "${enum_diff_tsv}" | head -n 10 | while IFS=$'\t' read -r ptr added removed; do
+    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
+    # printf under pipefail when the drift is large.
+    printf '%s\n' "${enum_diff_tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r ptr added removed; do
         line="- \`${ptr}\`"
         sep=": "
-        if [ -n "${added}" ]; then
+        # "-" is the explicit empty marker: tab is IFS whitespace, so an
+        # empty middle column would collapse and shift removals into the
+        # added slot, rendering removal-only rows with the wrong sign.
+        if [ "${added}" != "-" ]; then
             line="${line}${sep}$(fmt_signed_values "${added}" "+")"
             sep=", "
         fi
-        if [ -n "${removed}" ]; then
+        if [ "${removed}" != "-" ]; then
             line="${line}${sep}$(fmt_signed_values "${removed}" "-")"
         fi
         echo "${line}"
