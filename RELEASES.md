@@ -56,8 +56,11 @@ The standard feature → PR → squash-merge flow remains required for everythin
 
 ## PR body
 
-Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six sections, no inventions:
-`## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`, `## Files Modified`, `## Testing`.
+Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six required sections, in
+template order, no inventions: `## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`, `##
+Testing`, `## Files Modified`. The template's other sections (`## Key Features`, `## Benefits`, `## Breaking Changes`,
+`## Deployment Notes`, `## Screenshots/Recordings`, `## Checklist`, `## Additional Context`) are optional: fill `##
+Breaking Changes` on a major, delete the rest when they do not apply.
 
 - **No explainer prose anywhere in the body.** User-facing substance only.
 - **Summary describes the net diff only**: what merged `main` looks like vs the base branch. Not commit history,
@@ -193,14 +196,14 @@ git push origin main --tags
 Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which calls the reusable
 `brettdavies/.github/.github/workflows/rust-release.yml@main` and runs:
 
-| Step            | What                                                                                                                                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-version` | Verify the tag matches `Cargo.toml` version (gate).                                                                                                                                                                              |
-| `audit`         | `cargo deny check` (license + advisory + ban).                                                                                                                                                                                   |
-| `build`         | Cross-compile binaries for 5 targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. Each archive includes binary, completions, and licenses. |
-| `publish-crate` | `cargo publish` to crates.io via Trusted Publishing (OIDC, no static token after first publish).                                                                                                                                 |
-| `release`       | Create a **non-draft** GitHub Release with `make_latest: false`. Includes all 5 archives + `sha256sum.txt`.                                                                                                                      |
-| `homebrew`      | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                |
+| Step            | What                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check-version` | Verify the tag matches `Cargo.toml` version (gate).                                                                                                                                                                                                                                                                                                                                         |
+| `audit`         | `cargo deny check` (license + advisory + ban).                                                                                                                                                                                                                                                                                                                                              |
+| `build`         | Cross-compile binaries for 7 targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. The musl rows are required (`linux_musl_required: true`), so a musl failure blocks the release. Each archive includes binary, completions, and licenses. |
+| `publish-crate` | `cargo publish` to crates.io via Trusted Publishing (OIDC, no static token after first publish).                                                                                                                                                                                                                                                                                            |
+| `release`       | Create a **non-draft** GitHub Release with `make_latest: false`. Includes all 7 archives + `sha256sum.txt`.                                                                                                                                                                                                                                                                                 |
+| `homebrew`      | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                                                                                                                                                                           |
 
 After the homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to
 this repo, which idempotently flips `make_latest: true`.
@@ -208,15 +211,19 @@ this repo, which idempotently flips `make_latest: true`.
 → Rationale (`make_latest` flow, target matrix, annotated-tag gotcha):
 [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 
-### After publish: sync `dev` with the release
+### After publish: backport `main` → `dev`
 
-Once `finalize-release.yml` has flipped the GitHub Release to `published`, merge `main` back into `dev` so the release
-bookkeeping (`Cargo.toml` version, `Cargo.lock`, `CHANGELOG.md`) lands on the integration branch:
+Once `finalize-release.yml` has flipped the GitHub Release to `published`, open a PR to `dev` with the version in its
+title that copies the release-only files from `main`: `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, and whatever else the
+release branch edited that never round-tripped to `dev` (`git diff origin/dev..origin/main --name-only` lists them).
+`scripts/release-postflight.sh backport` gates on that merged PR. Dev-only content is never part of the copy, so the
+backport cannot remove it.
 
 ```bash
-git checkout dev && git pull
-git merge --no-ff origin/main -m "Merge remote-tracking branch 'origin/main' into dev"
-git push origin dev
+git switch -c backport/v3.0.0 origin/dev
+git checkout origin/main -- Cargo.toml Cargo.lock CHANGELOG.md <other release-only files>
+git commit --file /tmp/msg.md
+gh pr create --base dev --title "backport v3.0.0 release-only files from main" --body-file /tmp/body.md
 ```
 
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
@@ -244,8 +251,8 @@ Three release-flow artifacts live outside any automated prose check and need a m
 - Release-PR bodies (composed after `CHANGELOG.md` has been generated).
 
 The canonical Vale + LanguageTool rule packs live in the agentnative-spec repo at
-[`~/dev/agentnative-spec/docs/architecture/voice-enforcement.md`](../agentnative-spec/docs/architecture/voice-enforcement.md).
-This repo does not ship a local copy; point Vale at the spec checkout via `--config`.
+`docs/architecture/voice-enforcement.md` (local checkout at `~/dev/agentnative-spec`). This repo does not ship a local
+copy; point Vale at the spec checkout via `--config`.
 
 ```bash
 # 1. Save the artifact to /tmp/.
@@ -280,10 +287,12 @@ drift the next regeneration overwrites.
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
 - `protect-main.json` (required signatures, linear history, squash-only merges via PR, required status checks (`ci /
-  Fmt, clippy, test`, `ci / Package check`, `ci / Security audit (bans licenses sources)`, `ci / Changelog`, `guard-docs
-  / check-forbidden-docs`, `guard-provenance / check-provenance`, `guard-release / check-release-branch-name`),
-  creation/deletion blocked, non-fast-forward blocked).
-- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked). PR-only norm is convention +
+  Fmt, clippy, test`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security audit (bans licenses
+  sources)`, `ci / Changelog`, `guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`,
+  `guard-release / check-release-branch-name`), creation/deletion blocked, non-fast-forward blocked).
+- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, required status checks (`ci /
+  Fmt, clippy, test`, `ci / Windows check`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security
+  audit (bans licenses sources)`, `ci / Shellcheck`, `Output discipline`)). PR-only norm is convention +
   `guard-release-branch` on the main side.
 
 ### Applying changes
@@ -306,7 +315,7 @@ gh api -X PUT repos/brettdavies/xurl-rs/rulesets/<id> --input .github/rulesets/p
 | `CI_RELEASE_TOKEN`     | Fine-grained PAT, Contents R+W, Pull requests R+W. Used by `release.yml` to dispatch the Homebrew formula update. | Rotated annually. 1Password vault: `secrets-dev`. |
 | `CARGO_REGISTRY_TOKEN` | crates.io API token. Required only for the first publish.                                                         | Removed after Trusted Publishing was enforced.    |
 
-`GITHUB_TOKEN` is automatic; CI (`ci.yml`) only needs `contents: read` and uses no extra secrets.
+`GITHUB_TOKEN` is automatic; CI (`ci.yml`) needs `contents: read` and `pull-requests: read` and uses no extra secrets.
 
 ## Distribution channels
 
