@@ -372,6 +372,40 @@ fn committed_response_schemas_match_runtime() {
 }
 
 #[test]
+fn committed_response_schemas_have_no_orphans() {
+    // The generator only writes files for commands in SCHEMA_ENTRIES; a
+    // command removed from the list leaves its committed schema behind.
+    let list = Command::cargo_bin("xr")
+        .unwrap()
+        .args(["schema", "--list", "--output", "text"])
+        .output()
+        .unwrap();
+    assert!(list.status.success());
+    let list_text = String::from_utf8(list.stdout).unwrap();
+    let known: std::collections::BTreeSet<String> = list_text
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+        .filter(|cmd| !cmd.is_empty() && *cmd != "envelope")
+        .map(str::to_string)
+        .collect();
+
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/schema/responses");
+    let orphans: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter_map(|name| {
+            name.strip_suffix(".schema.json")
+                .filter(|cmd| !known.contains(*cmd))
+                .map(|_| name.clone())
+        })
+        .collect();
+    assert!(
+        orphans.is_empty(),
+        "schema/responses/ has files for commands `xr schema --list` does not know: {orphans:?}; delete them"
+    );
+}
+
+#[test]
 fn schema_commands_sharing_type_produce_identical_output() {
     // post, reply, quote, read should all return the same schema
     let post = Command::cargo_bin("xr")
