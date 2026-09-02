@@ -171,3 +171,6 @@ See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations fr
 practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query
 "<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses repos and
 already captures known pitfalls.
+
+[`CONCEPTS.md`](CONCEPTS.md) holds the shared domain vocabulary (entities, named processes, and status concepts with
+project-specific meaning), relevant when orienting to the codebase or discussing domain concepts.
