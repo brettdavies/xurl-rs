@@ -147,7 +147,9 @@ fmt_list() {
     local head
     # shellcheck disable=SC2016 # backticks are literal markdown, not
     # command substitution.
-    head="$(printf '%s\n' "${input}" | head -n 10 \
+    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
+    # printf under pipefail when the list is large.
+    head="$(printf '%s\n' "${input}" | awk 'NR<=10' \
         | sed 's/^/`/; s/$/`/' \
         | paste -sd ',' - \
         | sed 's/,/, /g')"
@@ -196,7 +198,9 @@ if [ "${enum_changes_count}" -gt 0 ]; then
     echo ""
     echo "**Categorical-value changes:** ${enum_changes_count} location(s) with enum or discriminator-mapping additions or removals."
     echo ""
-    printf '%s\n' "${enum_diff_tsv}" | head -n 10 | while IFS=$'\t' read -r ptr added removed; do
+    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
+    # printf under pipefail when the drift is large.
+    printf '%s\n' "${enum_diff_tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r ptr added removed; do
         line="- \`${ptr}\`"
         sep=": "
         if [ -n "${added}" ]; then

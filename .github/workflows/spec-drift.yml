@@ -144,11 +144,13 @@ jobs:
           gh pr comment "${PR_NUMBER}" --body-file "${{ steps.body.outputs.body_file }}"
 
       - name: Open or update drift issue
-        if: steps.diff.outputs.drift == '1' && github.event_name == 'schedule'
+        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -uo pipefail
+          local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
+          upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
           # Dedupe by title-prefix match — independent of label state so the
           # workflow does not require a pre-existing label.
           existing="$(gh issue list \
@@ -156,7 +158,7 @@ jobs:
             --search "in:title ${ISSUE_TITLE_PREFIX}" \
             --json number,title \
             --jq '[.[] | select(.title | startswith("'"${ISSUE_TITLE_PREFIX}"'"))][0].number // empty')"
-          title="${ISSUE_TITLE_PREFIX} upstream spec v${UPSTREAM_VERSION} diverged from vendored v${LOCAL_VERSION}"
+          title="${ISSUE_TITLE_PREFIX} upstream spec v${upstream_version} diverged from vendored v${local_version}"
           if [ -n "${existing}" ]; then
             gh issue edit "${existing}" \
               --title "${title}" \
