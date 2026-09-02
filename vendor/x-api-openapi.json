@@ -15106,6 +15106,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "like.read",
               "tweet.read"
@@ -15113,9 +15116,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get X activity subscriptions",
@@ -15168,13 +15168,13 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": []
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Create X activity subscription",
@@ -17883,6 +17883,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -17891,9 +17894,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Communities by ID",
@@ -20136,6 +20136,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -20144,9 +20147,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Lists by ID",
@@ -20301,6 +20301,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -20309,9 +20312,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Lists Followers",
@@ -20395,6 +20395,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -20403,9 +20406,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Lists Members",
@@ -20638,6 +20638,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -20646,9 +20649,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Lists Posts",
@@ -20710,15 +20710,15 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read"
             ]
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Media by media keys",
@@ -21080,7 +21080,7 @@
         ]
       },
       "post": {
-        "description": "Uploads a media file for use in posts, direct messages, or ads. The response carries the media identifiers, including the media_key used to reference the asset in later calls.",
+        "description": "Uploads a media file for use in posts, direct messages, or ads. The response carries the media identifiers, including the media_key used to reference the asset in later calls. The media field carries the file content base64-encoded in JSON bodies (raw bytes in multipart bodies); media_category is tweet_image, tweet_video, or tweet_gif for posts and ads, dm_image/dm_video/dm_gif for DMs, or subtitles. For X Ads accounts, register the returned media_key via create_media_library_item to add it to the account's media library and use it in campaigns.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -21137,7 +21137,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Upload a media file and get back its identifiers, including a media_key. The media field carries the file content base64-encoded in JSON bodies (raw bytes in multipart bodies); media_category is tweet_image, tweet_video, or tweet_gif for posts and ads, dm_image/dm_video/dm_gif for DMs, or subtitles. For X Ads accounts, register the returned media_key via create_media_library_item to add it to the account's media library and use it in campaigns.",
+        "summary": "Upload media",
         "tags": [
           "Media"
         ]
@@ -21385,15 +21385,15 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read"
             ]
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Media by media key",
@@ -21476,6 +21476,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -21483,9 +21486,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Search News",
@@ -21545,6 +21545,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -21552,9 +21555,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get news stories by ID",
@@ -22009,14 +22009,14 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "space.read",
               "tweet.read",
               "users.read"
             ]
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Spaces by IDs",
@@ -22087,14 +22087,14 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "space.read",
               "tweet.read",
               "users.read"
             ]
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Spaces by Creator IDs",
@@ -22192,14 +22192,14 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "space.read",
               "tweet.read",
               "users.read"
             ]
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Search Spaces",
@@ -22264,14 +22264,14 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "space.read",
               "tweet.read",
               "users.read"
             ]
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Spaces by ID",
@@ -22463,14 +22463,14 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "space.read",
               "tweet.read",
               "users.read"
             ]
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Space Posts",
@@ -22539,10 +22539,10 @@
         },
         "security": [
           {
-            "OAuth2UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Get Trends by Woeid",
@@ -22618,6 +22618,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -22625,9 +22628,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Posts by IDs",
@@ -23162,10 +23162,10 @@
         },
         "security": [
           {
-            "OAuth2UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Get Posts Counts Recent",
@@ -25481,6 +25481,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -25488,9 +25491,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Search Posts All",
@@ -25652,6 +25652,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -25659,9 +25662,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Search Posts Recent",
@@ -26448,6 +26448,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -26455,9 +26458,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Posts by ID",
@@ -26662,6 +26662,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -26669,9 +26672,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Posts Quoted Posts",
@@ -26756,6 +26756,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -26763,9 +26766,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Posts Reposted by",
@@ -26859,6 +26859,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -26866,9 +26869,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Posts Reposts",
@@ -26983,10 +26983,10 @@
         },
         "security": [
           {
-            "OAuth2UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Get usage credits",
@@ -27112,6 +27112,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -27119,9 +27122,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users by IDs",
@@ -27189,6 +27189,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -27196,9 +27199,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users by Usernames",
@@ -27260,6 +27260,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -27267,9 +27270,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users by Username",
@@ -27787,6 +27787,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -27794,9 +27797,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users by ID",
@@ -27879,6 +27879,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -27886,9 +27889,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Affiliates",
@@ -28650,6 +28650,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -28658,9 +28661,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Followed Lists",
@@ -28883,6 +28883,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "follows.read",
               "tweet.read",
@@ -28891,9 +28894,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Followers",
@@ -28977,6 +28977,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "follows.read",
               "tweet.read",
@@ -28985,9 +28988,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Following",
@@ -29374,6 +29374,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -29382,9 +29385,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users List Memberships",
@@ -29520,6 +29520,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -29527,9 +29530,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Mentions",
@@ -29770,6 +29770,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "list.read",
               "tweet.read",
@@ -29778,9 +29781,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Owned Lists",
@@ -30589,6 +30589,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "tweet.read",
               "users.read"
@@ -30596,9 +30599,6 @@
           },
           {
             "UserToken": []
-          },
-          {
-            "BearerToken": []
           }
         ],
         "summary": "Get Users Posts",
@@ -30845,10 +30845,10 @@
         },
         "security": [
           {
-            "UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "UserToken": []
           }
         ],
         "summary": "Create webhook",
@@ -30960,10 +30960,10 @@
         },
         "security": [
           {
-            "UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "UserToken": []
           }
         ],
         "summary": "Delete webhook",
@@ -31018,10 +31018,10 @@
         },
         "security": [
           {
-            "UserToken": []
+            "BearerToken": []
           },
           {
-            "BearerToken": []
+            "UserToken": []
           }
         ],
         "summary": "Validate webhook",
