@@ -234,6 +234,40 @@
       },
       "type": "object"
     },
+    "UsageCreditsData": {
+      "additionalProperties": true,
+      "description": "Credits-based usage for the project, from `GET /2/usage/credits`.",
+      "properties": {
+        "free_balance": {
+          "description": "Remaining free credit balance.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "free_grants": {
+          "description": "Free credit grants applied to the project, opaque JSON."
+        },
+        "prepaid_balance": {
+          "description": "Remaining prepaid credit balance.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total_balance": {
+          "description": "Total remaining credit balance.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "User": {
       "additionalProperties": true,
       "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
@@ -338,11 +372,8 @@
   "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
   "properties": {
     "data": {
-      "description": "Primary payload — a single object or a `Vec<T>` for list endpoints.",
-      "items": {
-        "$ref": "#/$defs/Post"
-      },
-      "type": "array"
+      "$ref": "#/$defs/UsageCreditsData",
+      "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
     },
     "errors": {
       "description": "Partial errors returned alongside a 200 response.",

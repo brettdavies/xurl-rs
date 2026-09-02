@@ -14,7 +14,7 @@ use serde::de::DeserializeOwned;
 
 use crate::api::{
     ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, RetweetedResult, Tweet, UsageData, User,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 use crate::output::OutputConfig;
@@ -32,11 +32,11 @@ const SCHEMA_UNKNOWN: &str = "unknown";
 /// Singular and plural aliases both resolve to the typed-response variant
 /// that round-trips a non-empty value. The order in the auto-detection
 /// fallback (`detect_schema`) follows the same precedence: object-with-id
-/// looks like a `tweet`, an array → `tweets`, etc.
+/// looks like a `post`, an array → `posts`, etc.
 fn known_schemas() -> &'static [&'static str] {
     &[
-        "tweet", "tweets", "user", "users", "dm", "dms", "usage", "envelope", "like", "follow",
-        "delete", "repost", "bookmark", "mute",
+        "post", "posts", "user", "users", "dm", "dms", "usage", "credits", "envelope", "like",
+        "follow", "delete", "repost", "bookmark", "mute",
     ]
 }
 
@@ -52,7 +52,7 @@ fn detect_schema(value: &serde_json::Value) -> &'static str {
         serde_json::Value::Array(arr) => {
             if let Some(first) = arr.first() {
                 if first.get("text").is_some() {
-                    "tweets"
+                    "posts"
                 } else if first.get("username").is_some() || first.get("name").is_some() {
                     "users"
                 } else if first.get("event_type").is_some() {
@@ -61,20 +61,22 @@ fn detect_schema(value: &serde_json::Value) -> &'static str {
                     SCHEMA_UNKNOWN
                 }
             } else {
-                "tweets"
+                "posts"
             }
         }
         serde_json::Value::Object(map) => {
             if map.contains_key("status") && map.contains_key("reason") {
                 "envelope"
             } else if map.contains_key("text") {
-                "tweet"
+                "post"
             } else if map.contains_key("username") || map.contains_key("name") {
                 "user"
             } else if map.contains_key("event_type") {
                 "dm"
             } else if map.contains_key("project_cap") || map.contains_key("cap_reset_day") {
                 "usage"
+            } else if map.contains_key("total_balance") || map.contains_key("free_balance") {
+                "credits"
             } else {
                 SCHEMA_UNKNOWN
             }
@@ -179,9 +181,9 @@ fn read_input(path: Option<&str>) -> Result<String, String> {
 /// Dispatches `value` against the requested schema name.
 fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), String> {
     match schema {
-        "tweet" => try_into::<ApiResponse<Tweet>>(value).or_else(|_| try_into::<Tweet>(value)),
-        "tweets" => {
-            try_into::<ApiResponse<Vec<Tweet>>>(value).or_else(|_| try_into::<Vec<Tweet>>(value))
+        "post" => try_into::<ApiResponse<Post>>(value).or_else(|_| try_into::<Post>(value)),
+        "posts" => {
+            try_into::<ApiResponse<Vec<Post>>>(value).or_else(|_| try_into::<Vec<Post>>(value))
         }
         "user" => try_into::<ApiResponse<User>>(value).or_else(|_| try_into::<User>(value)),
         "users" => {
@@ -193,6 +195,8 @@ fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), Strin
         "usage" => {
             try_into::<ApiResponse<UsageData>>(value).or_else(|_| try_into::<UsageData>(value))
         }
+        "credits" => try_into::<ApiResponse<UsageCreditsData>>(value)
+            .or_else(|_| try_into::<UsageCreditsData>(value)),
         "envelope" => validate_envelope(value),
         "like" => {
             try_into::<ApiResponse<LikedResult>>(value).or_else(|_| try_into::<LikedResult>(value))
@@ -201,8 +205,8 @@ fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), Strin
             .or_else(|_| try_into::<FollowingResult>(value)),
         "delete" => try_into::<ApiResponse<DeletedResult>>(value)
             .or_else(|_| try_into::<DeletedResult>(value)),
-        "repost" => try_into::<ApiResponse<RetweetedResult>>(value)
-            .or_else(|_| try_into::<RetweetedResult>(value)),
+        "repost" => try_into::<ApiResponse<RepostedResult>>(value)
+            .or_else(|_| try_into::<RepostedResult>(value)),
         "bookmark" => try_into::<ApiResponse<BookmarkedResult>>(value)
             .or_else(|_| try_into::<BookmarkedResult>(value)),
         "mute" => try_into::<ApiResponse<MutingResult>>(value)
@@ -292,14 +296,14 @@ mod tests {
     }
 
     #[test]
-    fn validates_a_tweet_envelope() {
+    fn validates_a_post_envelope() {
         let v = serde_json::json!({
             "data": {"id": "1", "text": "hi"},
         });
-        let (code, stdout, _) = run(&v, Some("tweet"), OutputFormat::Json);
+        let (code, stdout, _) = run(&v, Some("post"), OutputFormat::Json);
         assert_eq!(code, 0);
         assert!(stdout.contains("\"valid\": true"), "got: {stdout}");
-        assert!(stdout.contains("\"schema\": \"tweet\""), "got: {stdout}");
+        assert!(stdout.contains("\"schema\": \"post\""), "got: {stdout}");
     }
 
     #[test]
@@ -314,11 +318,11 @@ mod tests {
 
     #[test]
     fn rejects_malformed_envelope() {
-        // `text` field missing → ApiResponse<Tweet> fails to deserialize.
+        // `text` field missing → ApiResponse<Post> fails to deserialize.
         let v = serde_json::json!({
             "data": {"id": "1"},
         });
-        let (code, _stdout, stderr) = run(&v, Some("tweet"), OutputFormat::Json);
+        let (code, _stdout, stderr) = run(&v, Some("post"), OutputFormat::Json);
         assert_eq!(code, 1);
         assert!(
             stderr.contains("validation-failed"),

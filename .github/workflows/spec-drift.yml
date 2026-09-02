@@ -334,7 +334,7 @@ jobs:
             echo "5. You may verify a renamed wire param with read-only calls against the live API using stored credentials (\`xr whoami\`, \`xr search\` with the renamed param); never mutating calls."
             echo "6. Regenerate derived artifacts: \`scripts/generate-response-schemas.sh\` and \`scripts/generate-completions.sh\`."
             echo "7. Update \`README.md\` and \`AGENTS.md\` where the CLI surface changed."
-            echo "8. Rewrite this PR body per \`.github/pull_request_template.md\`, carrying Breaking changes and Open decisions into it."
+            echo "8. Rewrite this PR body per \`.github/pull_request_template.md\`, carrying Breaking changes and Open decisions into it. Use the template verbatim: its first line is \`## Summary\`; add no headings of your own above or around it."
             echo ""
             echo "### Decision authority"
             echo ""

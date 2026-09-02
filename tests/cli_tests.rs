@@ -306,8 +306,8 @@ fn test_usage_help() {
         "stdout should contain 'usage': {stdout}"
     );
     assert!(
-        stdout.contains("tweet caps"),
-        "stdout should contain 'tweet caps': {stdout}"
+        stdout.contains("post caps"),
+        "stdout should contain 'post caps': {stdout}"
     );
 }
 

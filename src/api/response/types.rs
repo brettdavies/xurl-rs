@@ -14,8 +14,8 @@ use serde_json::Value;
 
 /// Standard X API v2 response envelope.
 ///
-/// Single-item endpoints use `ApiResponse<Tweet>`, list endpoints use
-/// `ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.
+/// Single-item endpoints use `ApiResponse<Post>`, list endpoints use
+/// `ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ApiResponse<T: Default> {
     /// Primary payload — a single object or a `Vec<T>` for list endpoints.
@@ -42,9 +42,9 @@ pub struct Includes {
     /// User objects referenced by `author_id`, `sender_id`, etc.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
-    /// Tweet objects referenced by `referenced_tweets`.
+    /// Post objects referenced by `referenced_posts`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tweets: Option<Vec<Tweet>>,
+    pub posts: Option<Vec<Post>>,
     /// Forward-compatibility bucket — captures unknown include keys.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
@@ -88,60 +88,60 @@ pub struct ApiError {
     pub extra: BTreeMap<String, Value>,
 }
 
-// ── Tweet ───────────────────────────────────────────────────────────
+// ── Post ────────────────────────────────────────────────────────────
 
-/// A tweet object from the X API v2.
+/// A post object from the X API v2.
 ///
 /// Required fields: `id`, `text` (always present in API responses).
-/// Optional fields depend on which `tweet.fields` the caller requests.
+/// Optional fields depend on which `post.fields` the caller requests.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct Tweet {
-    /// Tweet identifier (X API snowflake string).
+pub struct Post {
+    /// Post identifier (X API snowflake string).
     pub id: String,
-    /// Tweet body text.
+    /// Post body text.
     pub text: String,
-    /// ISO-8601 timestamp the tweet was created.
+    /// ISO-8601 timestamp the post was created.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
     /// Author's user ID; resolve via `includes.users` when expanded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author_id: Option<String>,
-    /// Root tweet ID of the conversation thread.
+    /// Root post ID of the conversation thread.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conversation_id: Option<String>,
-    /// User ID this tweet replies to, when applicable.
+    /// User ID this post replies to, when applicable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub in_reply_to_user_id: Option<String>,
-    /// Engagement counts (likes, replies, retweets, etc).
+    /// Engagement counts (likes, replies, reposts, etc).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub public_metrics: Option<TweetPublicMetrics>,
-    /// Tweets this one references (reply, quote, retweet).
+    pub public_metrics: Option<PostPublicMetrics>,
+    /// Posts this one references (reply, quote, repost).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub referenced_tweets: Option<Vec<ReferencedTweet>>,
+    pub referenced_posts: Option<Vec<ReferencedPost>>,
     /// Parsed entities (URLs, mentions, hashtags) — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entities: Option<Value>,
     /// Media / poll attachment references — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attachments: Option<Value>,
-    /// Forward-compatibility bucket — captures unknown tweet fields.
+    /// Forward-compatibility bucket — captures unknown post fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
 
-/// Public engagement metrics for a tweet.
+/// Public engagement metrics for a post.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct TweetPublicMetrics {
-    /// Retweet count.
+pub struct PostPublicMetrics {
+    /// Repost count.
     #[serde(default)]
-    pub retweet_count: u64,
+    pub repost_count: u64,
     /// Reply count.
     #[serde(default)]
     pub reply_count: u64,
     /// Like count.
     #[serde(default)]
     pub like_count: u64,
-    /// Quote-tweet count.
+    /// Quote-post count.
     #[serde(default)]
     pub quote_count: u64,
     /// Bookmark count.
@@ -155,10 +155,10 @@ pub struct TweetPublicMetrics {
     pub extra: BTreeMap<String, Value>,
 }
 
-/// A referenced tweet (reply-to, quote, retweet).
+/// A referenced post (reply-to, quote, repost).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct ReferencedTweet {
-    /// Referenced tweet identifier.
+pub struct ReferencedPost {
+    /// Referenced post identifier.
     pub id: String,
     /// Reference kind — `"replied_to"`, `"quoted"`, or `"retweeted"`.
     pub r#type: String,
@@ -193,7 +193,7 @@ pub struct User {
     /// Profile image URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profile_image_url: Option<String>,
-    /// Engagement counts (followers, following, tweets).
+    /// Engagement counts (followers, following, posts).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<UserPublicMetrics>,
     /// Forward-compatibility bucket — captures unknown user fields.
@@ -210,9 +210,9 @@ pub struct UserPublicMetrics {
     /// Following count.
     #[serde(default)]
     pub following_count: u64,
-    /// Tweet count for the user.
+    /// Post count for the user.
     #[serde(default)]
-    pub tweet_count: u64,
+    pub post_count: u64,
     /// Number of public lists the user is on.
     #[serde(default)]
     pub listed_count: u64,
@@ -282,7 +282,7 @@ pub struct DeletedResult {
 
 /// Confirmation for repost/unrepost actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct RetweetedResult {
+pub struct RepostedResult {
     /// Whether the target is now reposted.
     pub retweeted: bool,
     /// Forward-compatibility bucket — captures unknown response fields.
@@ -368,13 +368,13 @@ pub struct MediaProcessingInfo {
 /// and the data is deeply nested with mixed types (strings for numbers).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct UsageData {
-    /// Project tweet cap (string-encoded integer).
+    /// Project post cap (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_cap: Option<String>,
     /// Project identifier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
-    /// Project tweet usage so far this period (string-encoded integer).
+    /// Project post usage so far this period (string-encoded integer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_usage: Option<String>,
     /// Day of month the cap resets.
@@ -387,6 +387,26 @@ pub struct UsageData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub daily_client_app_usage: Option<Value>,
     /// Forward-compatibility bucket — captures unknown usage fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Credits-based usage for the project, from `GET /2/usage/credits`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UsageCreditsData {
+    /// Remaining free credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free_balance: Option<f64>,
+    /// Free credit grants applied to the project, opaque JSON.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free_grants: Option<Value>,
+    /// Remaining prepaid credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepaid_balance: Option<f64>,
+    /// Total remaining credit balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_balance: Option<f64>,
+    /// Forward-compatibility bucket — captures unknown credits fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -433,14 +453,14 @@ mod tests {
     // ── Happy path ──────────────────────────────────────────────────
 
     #[test]
-    fn deserialize_single_tweet() {
+    fn deserialize_single_post() {
         let json = json!({
             "data": {
                 "id": "123",
                 "text": "Hello world",
                 "created_at": "2026-01-01T00:00:00.000Z",
                 "public_metrics": {
-                    "retweet_count": 5,
+                    "repost_count": 5,
                     "reply_count": 2,
                     "like_count": 10,
                     "quote_count": 1,
@@ -449,8 +469,8 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("Tweet response must deserialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("Post response must deserialize");
         assert_eq!(resp.data.id, "123");
         assert_eq!(resp.data.text, "Hello world");
         assert_eq!(
@@ -466,7 +486,7 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_tweet_list() {
+    fn deserialize_post_list() {
         let json = json!({
             "data": [
                 {"id": "1", "text": "first"},
@@ -474,8 +494,8 @@ mod tests {
             ],
             "meta": {"result_count": 2}
         });
-        let resp: ApiResponse<Vec<Tweet>> =
-            serde_json::from_value(json).expect("Tweet list response must deserialize");
+        let resp: ApiResponse<Vec<Post>> =
+            serde_json::from_value(json).expect("Post list response must deserialize");
         assert_eq!(resp.data.len(), 2);
         assert_eq!(resp.data[0].id, "1");
         assert_eq!(resp.data[1].text, "second");
@@ -496,14 +516,14 @@ mod tests {
     #[test]
     fn deserialize_with_includes_and_meta() {
         let json = json!({
-            "data": [{"id": "1", "text": "tweet"}],
+            "data": [{"id": "1", "text": "post"}],
             "includes": {
                 "users": [{"id": "42", "name": "Bot", "username": "bot"}]
             },
             "meta": {"result_count": 1, "next_token": "abc123"}
         });
-        let resp: ApiResponse<Vec<Tweet>> =
-            serde_json::from_value(json).expect("Tweet list with includes/meta must deserialize");
+        let resp: ApiResponse<Vec<Post>> =
+            serde_json::from_value(json).expect("Post list with includes/meta must deserialize");
         let includes = resp.includes.expect("includes must be present");
         let users = includes.users.expect("includes.users must be present");
         assert_eq!(users[0].id, "42");
@@ -527,7 +547,7 @@ mod tests {
                 "public_metrics": {
                     "followers_count": 100,
                     "following_count": 50,
-                    "tweet_count": 1000,
+                    "post_count": 1000,
                     "listed_count": 5
                 }
             }
@@ -629,8 +649,8 @@ mod tests {
             },
             "top_level_extra": 42
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
-            .expect("Tweet response with unknown fields must deserialize");
+        let resp: ApiResponse<Post> = serde_json::from_value(json)
+            .expect("Post response with unknown fields must deserialize");
         assert_eq!(resp.data.extra["brand_new_field"], "surprise");
         assert_eq!(resp.extra["top_level_extra"], 42);
     }
@@ -645,9 +665,9 @@ mod tests {
             },
             "top_extra": "value"
         });
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("Tweet round-trip fixture must deserialize");
-        let serialized = serde_json::to_value(&resp).expect("Tweet response must serialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("Post round-trip fixture must deserialize");
+        let serialized = serde_json::to_value(&resp).expect("Post response must serialize");
         assert_eq!(serialized["data"]["new_field"], 42);
         assert_eq!(serialized["top_extra"], "value");
     }
@@ -658,9 +678,9 @@ mod tests {
             "data": {
                 "id": "123",
                 "text": "hello",
-                "tweet_extra": "a",
+                "post_extra": "a",
                 "public_metrics": {
-                    "retweet_count": 0,
+                    "repost_count": 0,
                     "reply_count": 0,
                     "like_count": 0,
                     "quote_count": 0,
@@ -670,9 +690,9 @@ mod tests {
                 }
             }
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
-            .expect("Tweet response with nested unknown fields must deserialize");
-        assert_eq!(resp.data.extra["tweet_extra"], "a");
+        let resp: ApiResponse<Post> = serde_json::from_value(json)
+            .expect("Post response with nested unknown fields must deserialize");
+        assert_eq!(resp.data.extra["post_extra"], "a");
         let metrics = resp
             .data
             .public_metrics
@@ -683,12 +703,12 @@ mod tests {
     #[test]
     fn extra_is_empty_when_no_unknown_fields() {
         let json = json!({"data": {"id": "1", "text": "hi"}});
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("minimal Tweet response must deserialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("minimal Post response must deserialize");
         assert!(resp.extra.is_empty());
         assert!(resp.data.extra.is_empty());
         // Verify serialization produces no extra keys
-        let out = serde_json::to_value(&resp).expect("Tweet response must serialize");
+        let out = serde_json::to_value(&resp).expect("Post response must serialize");
         let data = out["data"]
             .as_object()
             .expect("serialized data must be a JSON object");
@@ -698,8 +718,8 @@ mod tests {
     #[test]
     fn missing_optional_fields_are_none() {
         let json = json!({"data": {"id": "1", "text": "minimal"}});
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("minimal Tweet must deserialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("minimal Post must deserialize");
         assert!(resp.data.created_at.is_none());
         assert!(resp.data.public_metrics.is_none());
         assert!(resp.data.author_id.is_none());
@@ -709,13 +729,13 @@ mod tests {
 
     #[test]
     fn default_produces_valid_structs() {
-        let tweet = Tweet {
+        let post = Post {
             id: "test".into(),
             text: "hello".into(),
             ..Default::default()
         };
-        assert_eq!(tweet.id, "test");
-        assert!(tweet.created_at.is_none());
+        assert_eq!(post.id, "test");
+        assert!(post.created_at.is_none());
 
         let user = User {
             id: "42".into(),
@@ -725,8 +745,8 @@ mod tests {
         };
         assert_eq!(user.username, "bot");
 
-        let _resp: ApiResponse<Tweet> = ApiResponse {
-            data: tweet,
+        let _resp: ApiResponse<Post> = ApiResponse {
+            data: post,
             ..Default::default()
         };
     }
@@ -737,7 +757,7 @@ mod tests {
         let _: LikedResult = Default::default();
         let _: FollowingResult = Default::default();
         let _: DeletedResult = Default::default();
-        let _: RetweetedResult = Default::default();
+        let _: RepostedResult = Default::default();
         let _: BookmarkedResult = Default::default();
         let _: BlockingResult = Default::default();
         let _: MutingResult = Default::default();
@@ -746,7 +766,7 @@ mod tests {
             ("liked", "LikedResult"),
             ("following", "FollowingResult"),
             ("deleted", "DeletedResult"),
-            ("retweeted", "RetweetedResult"),
+            ("retweeted", "RepostedResult"),
             ("bookmarked", "BookmarkedResult"),
             ("blocking", "BlockingResult"),
             ("muting", "MutingResult"),
@@ -769,9 +789,9 @@ mod tests {
                         .expect("DeletedResult action response must deserialize");
                     assert!(r.data.deleted);
                 }
-                "RetweetedResult" => {
-                    let r: ApiResponse<RetweetedResult> = serde_json::from_value(json)
-                        .expect("RetweetedResult action response must deserialize");
+                "RepostedResult" => {
+                    let r: ApiResponse<RepostedResult> = serde_json::from_value(json)
+                        .expect("RepostedResult action response must deserialize");
                     assert!(r.data.retweeted);
                 }
                 "BookmarkedResult" => {
@@ -800,25 +820,25 @@ mod tests {
     fn invalid_json_missing_required_field() {
         // Missing required `id` field
         let json = json!({"data": {"text": "no id"}});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err());
     }
 
     #[test]
     fn round_trip_serialize_deserialize() {
-        let tweet = Tweet {
+        let post = Post {
             id: "456".into(),
             text: "round trip".into(),
             created_at: Some("2026-01-01T00:00:00Z".into()),
             ..Default::default()
         };
         let resp = ApiResponse {
-            data: tweet,
+            data: post,
             ..Default::default()
         };
-        let value = serde_json::to_value(&resp).expect("Tweet must serialize");
-        let back: ApiResponse<Tweet> =
-            serde_json::from_value(value).expect("round-tripped Tweet must deserialize");
+        let value = serde_json::to_value(&resp).expect("Post must serialize");
+        let back: ApiResponse<Post> =
+            serde_json::from_value(value).expect("round-tripped Post must deserialize");
         assert_eq!(back.data.id, "456");
         assert_eq!(back.data.text, "round trip");
     }
@@ -826,7 +846,7 @@ mod tests {
     #[test]
     fn deserialize_helper_rejects_empty_object() {
         let value = json!({});
-        let result = deserialize_response::<Tweet>(value);
+        let result = deserialize_response::<Post>(value);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("empty response body"), "Got: {err}");
@@ -836,23 +856,23 @@ mod tests {
 
     #[test]
     fn adversarial_array_where_object_expected() {
-        // data is an array but we expect a single Tweet
+        // data is an array but we expect a single Post
         let json = json!({"data": [{"id": "1", "text": "oops"}]});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: array where object expected");
     }
 
     #[test]
     fn adversarial_string_where_object_expected() {
         let json = json!({"data": "not an object"});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: string where object expected");
     }
 
     #[test]
     fn adversarial_null_data_field() {
         let json = json!({"data": null});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: null data");
     }
 
@@ -865,7 +885,7 @@ mod tests {
                 "text": "hi",
                 "public_metrics": {
                     "like_count": 99_999_999_999_999u64,
-                    "retweet_count": 0,
+                    "repost_count": 0,
                     "reply_count": 0,
                     "quote_count": 0,
                     "bookmark_count": 0,
@@ -874,8 +894,8 @@ mod tests {
             }
         });
         // This should succeed — 99_999_999_999_999 fits in u64
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("Tweet with large u64 must deserialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("Post with large u64 must deserialize");
         assert_eq!(
             resp.data
                 .public_metrics
@@ -894,7 +914,7 @@ mod tests {
                 "text": "hi",
                 "public_metrics": {
                     "like_count": -1,
-                    "retweet_count": 0,
+                    "repost_count": 0,
                     "reply_count": 0,
                     "quote_count": 0,
                     "bookmark_count": 0,
@@ -902,7 +922,7 @@ mod tests {
                 }
             }
         });
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: negative u64");
     }
 
@@ -914,8 +934,8 @@ mod tests {
                 "a": {"b": {"c": [1, 2, 3]}}
             }
         });
-        let resp: ApiResponse<Tweet> =
-            serde_json::from_value(json).expect("Tweet with deep unknown fields must deserialize");
+        let resp: ApiResponse<Post> =
+            serde_json::from_value(json).expect("Post with deep unknown fields must deserialize");
         assert!(resp.extra.contains_key("extra_field"));
     }
 
@@ -923,8 +943,8 @@ mod tests {
     fn adversarial_empty_string_required_fields() {
         // Empty strings are valid String values — consumer must validate semantics
         let json = json!({"data": {"id": "", "text": ""}});
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
-            .expect("Tweet with empty string required fields must deserialize");
+        let resp: ApiResponse<Post> = serde_json::from_value(json)
+            .expect("Post with empty string required fields must deserialize");
         assert_eq!(resp.data.id, "");
         assert_eq!(resp.data.text, "");
     }
@@ -933,7 +953,7 @@ mod tests {
     fn adversarial_errors_field_no_data_raw_serde() {
         // Raw serde (not deserialize_response) — should fail on missing data
         let json = json!({"errors": [{"message": "forbidden"}]});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: no data field");
     }
 
@@ -949,7 +969,7 @@ mod tests {
                 "type": "https://api.twitter.com/2/problems/resource-not-found"
             }]
         });
-        let result = deserialize_response::<Tweet>(json);
+        let result = deserialize_response::<Post>(json);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.is_validation(), "Expected Validation error, got: {err}");
@@ -987,8 +1007,8 @@ mod tests {
             "data": {"id": "123", "text": "partial"},
             "errors": [{"message": "some field unavailable", "title": "Partial Error"}]
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
-            .expect("Tweet with partial errors payload must deserialize");
+        let resp: ApiResponse<Post> = serde_json::from_value(json)
+            .expect("Post with partial errors payload must deserialize");
         assert_eq!(resp.data.id, "123");
         let errors = resp.errors.expect("errors field must be present");
         assert_eq!(errors.len(), 1);
@@ -998,12 +1018,12 @@ mod tests {
     #[test]
     fn adversarial_huge_array_in_data() {
         // Large but valid list
-        let tweets: Vec<Value> = (0..1000)
-            .map(|i| json!({"id": i.to_string(), "text": format!("tweet {i}")}))
+        let posts: Vec<Value> = (0..1000)
+            .map(|i| json!({"id": i.to_string(), "text": format!("post {i}")}))
             .collect();
-        let json = json!({"data": tweets});
-        let resp: ApiResponse<Vec<Tweet>> =
-            serde_json::from_value(json).expect("1000-element Tweet list must deserialize");
+        let json = json!({"data": posts});
+        let resp: ApiResponse<Vec<Post>> =
+            serde_json::from_value(json).expect("1000-element Post list must deserialize");
         assert_eq!(resp.data.len(), 1000);
     }
 
@@ -1011,7 +1031,7 @@ mod tests {
     fn adversarial_completely_wrong_shape() {
         // Total garbage for data
         let json = json!({"data": 42});
-        let result = serde_json::from_value::<ApiResponse<Tweet>>(json);
+        let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err());
     }
 
@@ -1024,8 +1044,8 @@ mod tests {
                 "new_error_field": "surprise"
             }]
         });
-        let resp: ApiResponse<Tweet> = serde_json::from_value(json)
-            .expect("Tweet with errors containing extra fields must deserialize");
+        let resp: ApiResponse<Post> = serde_json::from_value(json)
+            .expect("Post with errors containing extra fields must deserialize");
         let error = &resp.errors.expect("errors field must be present")[0];
         assert_eq!(error.extra["new_error_field"], "surprise");
     }

@@ -12,7 +12,7 @@ use serde::Serialize;
 use super::request::{ApiClient, CallOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, RetweetedResult, Tweet, UsageData, User, deserialize_response,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, deserialize_response,
 };
 use crate::error::Result;
 
@@ -181,7 +181,7 @@ impl ApiClient {
         text: &str,
         media_ids: &[String],
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Tweet>> {
+    ) -> Result<ApiResponse<Post>> {
         let mut body = PostBody {
             text: text.to_string(),
             reply: None,
@@ -218,7 +218,7 @@ impl ApiClient {
         text: &str,
         media_ids: &[String],
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Tweet>> {
+    ) -> Result<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
         let mut body = PostBody {
             text: text.to_string(),
@@ -257,7 +257,7 @@ impl ApiClient {
         post_id: &str,
         text: &str,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Tweet>> {
+    ) -> Result<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
         let body = PostBody {
             text: text.to_string(),
@@ -307,7 +307,7 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn read_post(&mut self, post_id: &str, opts: &CallOptions) -> Result<ApiResponse<Tweet>> {
+    pub fn read_post(&mut self, post_id: &str, opts: &CallOptions) -> Result<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
@@ -316,12 +316,12 @@ impl ApiClient {
             path_params: HashMap::from([("id".to_string(), post_id)]),
             query: vec![
                 (
-                    "tweet.fields".to_string(),
-                    "created_at,public_metrics,conversation_id,in_reply_to_user_id,referenced_tweets,entities,attachments".to_string(),
+                    "post.fields".to_string(),
+                    "created_at,public_metrics,conversation_id,entities,attachments".to_string(),
                 ),
                 (
                     "expansions".to_string(),
-                    "author_id,referenced_tweets.id".to_string(),
+                    "author_id,in_reply_to_user_id,referenced_posts".to_string(),
                 ),
                 (
                     "user.fields".to_string(),
@@ -352,8 +352,8 @@ impl ApiClient {
     /// let mut client = ApiClient::new(&cfg, auth);
     ///
     /// let resp = client.search_posts("rustlang", 25, &CallOptions::default())?;
-    /// for tweet in &resp.data {
-    ///     println!("{}: {}", tweet.id, tweet.text);
+    /// for post in &resp.data {
+    ///     println!("{}: {}", post.id, post.text);
     /// }
     /// # Ok::<(), xurl::error::XurlError>(())
     /// ```
@@ -362,14 +362,14 @@ impl ApiClient {
         query: &str,
         max_results: i32,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Vec<Tweet>>> {
+    ) -> Result<ApiResponse<Vec<Post>>> {
         let max_results = max_results.clamp(10, 100);
 
         let mut q = vec![
             ("query".to_string(), query.to_string()),
             ("max_results".to_string(), max_results.to_string()),
             (
-                "tweet.fields".to_string(),
+                "post.fields".to_string(),
                 "created_at,public_metrics,conversation_id,entities".to_string(),
             ),
             ("expansions".to_string(), "author_id".to_string()),
@@ -461,11 +461,11 @@ impl ApiClient {
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Vec<Tweet>>> {
+    ) -> Result<ApiResponse<Vec<Post>>> {
         let mut q = vec![
             ("max_results".to_string(), max_results.to_string()),
             (
-                "tweet.fields".to_string(),
+                "post.fields".to_string(),
                 "created_at,public_metrics,conversation_id,entities".to_string(),
             ),
             ("expansions".to_string(), "author_id".to_string()),
@@ -495,11 +495,11 @@ impl ApiClient {
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Vec<Tweet>>> {
+    ) -> Result<ApiResponse<Vec<Post>>> {
         let mut q = vec![
             ("max_results".to_string(), max_results.to_string()),
             (
-                "tweet.fields".to_string(),
+                "post.fields".to_string(),
                 "created_at,public_metrics,conversation_id,entities".to_string(),
             ),
             ("expansions".to_string(), "author_id".to_string()),
@@ -580,7 +580,7 @@ impl ApiClient {
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<RetweetedResult>> {
+    ) -> Result<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "POST".to_string();
@@ -604,7 +604,7 @@ impl ApiClient {
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<RetweetedResult>> {
+    ) -> Result<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "DELETE".to_string();
@@ -682,11 +682,11 @@ impl ApiClient {
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Vec<Tweet>>> {
+    ) -> Result<ApiResponse<Vec<Post>>> {
         let mut q = vec![
             ("max_results".to_string(), max_results.to_string()),
             (
-                "tweet.fields".to_string(),
+                "post.fields".to_string(),
                 "created_at,public_metrics,entities".to_string(),
             ),
             ("expansions".to_string(), "author_id".to_string()),
@@ -860,7 +860,7 @@ impl ApiClient {
             ("max_results".to_string(), max_results.to_string()),
             (
                 "dm_event.fields".to_string(),
-                "created_at,dm_conversation_id,sender_id,text".to_string(),
+                "created_at,dm_conversation_id,text".to_string(),
             ),
             ("expansions".to_string(), "sender_id".to_string()),
             ("user.fields".to_string(), "username,name".to_string()),
@@ -889,11 +889,11 @@ impl ApiClient {
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
-    ) -> Result<ApiResponse<Vec<Tweet>>> {
+    ) -> Result<ApiResponse<Vec<Post>>> {
         let mut q = vec![
             ("max_results".to_string(), max_results.to_string()),
             (
-                "tweet.fields".to_string(),
+                "post.fields".to_string(),
                 "created_at,public_metrics,entities".to_string(),
             ),
             ("expansions".to_string(), "author_id".to_string()),
@@ -936,7 +936,7 @@ impl ApiClient {
         deserialize_response(self.send_request(&req)?)
     }
 
-    /// Fetches API usage data (tweet caps, daily breakdowns).
+    /// Fetches API usage data (post caps, daily breakdowns).
     ///
     /// # Errors
     ///
@@ -951,6 +951,27 @@ impl ApiClient {
                 "usage.fields".to_string(),
                 "daily_project_usage,daily_client_app_usage".to_string(),
             )],
+        };
+        req.data.clear();
+
+        deserialize_response(self.send_request(&req)?)
+    }
+
+    /// Fetches credits-based usage for the project.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn get_usage_credits(
+        &mut self,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<UsageCreditsData>> {
+        let mut req = opts.to_request_options();
+        req.method = "GET".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/usage/credits".to_string(),
+            path_params: HashMap::new(),
+            query: vec![],
         };
         req.data.clear();
 

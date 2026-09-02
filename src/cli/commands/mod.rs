@@ -16,7 +16,7 @@ use serde_json::json;
 use crate::api::shortcuts;
 use crate::api::{self, ApiClient, CallOptions, RequestOptions, RequestTarget};
 use crate::auth::Auth;
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, UsageCommands};
 use crate::config::Config;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::OutputConfig;
@@ -789,12 +789,20 @@ fn run_subcommand(
         }
 
         // ── Usage ─────────────────────────────────────────────────────
-        Commands::Usage { common } => {
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
-            let response = client.get_usage(&opts)?;
-            print_typed(out, stdout, &response)?;
-        }
+        Commands::Usage { target, common } => match target {
+            Some(UsageCommands::Credits { common }) => {
+                let mut client = make_client(cfg, auth, out);
+                let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+                let response = client.get_usage_credits(&opts)?;
+                print_typed(out, stdout, &response)?;
+            }
+            None => {
+                let mut client = make_client(cfg, auth, out);
+                let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+                let response = client.get_usage(&opts)?;
+                print_typed(out, stdout, &response)?;
+            }
+        },
 
         // ── Direct Messages ──────────────────────────────────────────
         Commands::Dm {

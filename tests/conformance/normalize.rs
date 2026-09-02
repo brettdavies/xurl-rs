@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_normalize_ids_combined() {
-        let input = "uuid=550e8400-e29b-41d4-a716-446655440000 tweet=1234567890123456789";
+        let input = "uuid=550e8400-e29b-41d4-a716-446655440000 post=1234567890123456789";
         let result = normalize_output(input, &["ids".to_string()]);
         assert!(result.contains("UUID"));
         assert!(result.contains("SNOWFLAKE_ID"));
