@@ -40,14 +40,8 @@ jobs:
       VENDOR_PATH: vendor/x-api-openapi.json
       REFRESH_BRANCH: spec-refresh
     steps:
-      # git push authenticates with the credentials checkout persists, not
-      # GH_TOKEN, so schedule/dispatch runs check out with CI_RELEASE_TOKEN
-      # (the refresh-branch push needs contents: write and must trigger CI).
-      # PR runs keep the read-only workflow token.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          token: ${{ github.event_name == 'pull_request' && github.token || secrets.CI_RELEASE_TOKEN }}
 
       - name: Fetch upstream spec (with retry)
         id: fetch
@@ -195,8 +189,6 @@ jobs:
           title="feat(spec): refresh vendored X API spec to upstream ${upstream_version}"
           existing_num='${{ steps.dedupe.outputs.number }}'
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # The drift gate compares against this run's own ref (main on the
           # cron), but the PR lands on dev, so the refresh branch is cut from
           # origin/dev. The no-change guard below stands down when dev
@@ -217,10 +209,32 @@ jobs:
           fi
           # shellcheck disable=SC2016 # backticks are literal markdown
           changed_files="$(git diff --cached --name-only | sed 's/^/- `/; s/$/`/')"
-          git commit -m "${title}"
-          # The branch is automation-owned and fully regenerated each run, so
-          # replacing any stale remote copy is the desired semantic.
-          git push --force origin "${REFRESH_BRANCH}"
+
+          # dev requires verified signatures, so the commit is created with
+          # the createCommitOnBranch mutation: GitHub signs commits it
+          # creates, where a workflow-side git commit stays unsigned and
+          # unmergeable. The branch is automation-owned and force-reset to
+          # the dev tip first, so each run regenerates it from scratch.
+          dev_sha="$(git rev-parse origin/dev)"
+          if ! gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/heads/${REFRESH_BRANCH}" -f sha="${dev_sha}" >/dev/null 2>&1; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${REFRESH_BRANCH}" \
+              -f sha="${dev_sha}" -F force=true >/dev/null
+          fi
+          additions="$(git diff --cached --name-only | while IFS= read -r f; do
+            jq -n --arg p "$f" --arg c "$(base64 -w0 "$f")" '{path: $p, contents: $c}'
+          done | jq -s .)"
+          payload="$(mktemp)"
+          jq -n \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg branch "${REFRESH_BRANCH}" \
+            --arg head "${dev_sha}" \
+            --arg msg "${title}" \
+            --argjson additions "${additions}" \
+            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch}, expectedHeadOid: $head, message: {headline: $msg}, fileChanges: {additions: $additions}}}}' \
+            > "${payload}"
+          gh api graphql --input "${payload}" > /dev/null
 
           pr_body="$(mktemp)"
           {
