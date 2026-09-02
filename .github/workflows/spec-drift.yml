@@ -181,7 +181,6 @@ jobs:
           fi
 
       - name: Open or update spec refresh PR
-        id: refresh_pr
         if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && steps.dedupe.outputs.mode != 'standdown'
         env:
           GH_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
@@ -319,51 +318,8 @@ jobs:
             else
               echo "PR #${existing_num} body is agent-owned; left untouched." >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
-            echo "result=current" >> "$GITHUB_OUTPUT"
           elif [ -n "${existing_num}" ]; then
             gh pr edit "${existing_num}" --title "${title}" --body-file "${pr_body}"
-            echo "number=${existing_num}" >> "$GITHUB_OUTPUT"
-            echo "result=updated" >> "$GITHUB_OUTPUT"
           else
-            pr_url="$(gh pr create --base dev --head "${REFRESH_BRANCH}" --title "${title}" --body-file "${pr_body}")"
-            echo "number=${pr_url##*/}" >> "$GITHUB_OUTPUT"
-            echo "result=created" >> "$GITHUB_OUTPUT"
-          fi
-
-      # The job summary is invisible from the PR thread, so each run upserts
-      # one marker-keyed status comment on the open refresh PR instead of
-      # stacking a new comment per day.
-      - name: Post drift status on the refresh PR
-        if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (steps.dedupe.outputs.number != '' || steps.refresh_pr.outputs.number != '')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MODE: ${{ steps.dedupe.outputs.mode }}
-          RESULT: ${{ steps.refresh_pr.outputs.result }}
-          DEDUPE_NUM: ${{ steps.dedupe.outputs.number }}
-          NEW_NUM: ${{ steps.refresh_pr.outputs.number }}
-        run: |
-          set -uo pipefail
-          target="${NEW_NUM:-${DEDUPE_NUM}}"
-          upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
-          if [ "${MODE}" = "standdown" ]; then
-            status="Drift covered by this PR; the run stood down."
-          else
-            case "${RESULT}" in
-              current) status="Still current with upstream ${upstream_version}." ;;
-              updated) status="Refreshed against upstream ${upstream_version}." ;;
-              *)       status="Opened against upstream ${upstream_version}." ;;
-            esac
-          fi
-          # One line only: the runbook body carries the detail; this is the
-          # heartbeat, and the only surface written on a human-owned PR.
-          marker='<!-- spec-drift-status -->'
-          comment="$(mktemp)"
-          echo "${marker} **$(date -u +%Y-%m-%d):** ${status} ([run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}))" > "${comment}"
-          cid="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${target}/comments" --paginate \
-            --jq "[.[] | select(.body | startswith(\"${marker}\"))][0].id // empty")"
-          if [ -n "${cid}" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${cid}" -F body=@"${comment}" > /dev/null
-          else
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${target}/comments" -F body=@"${comment}" > /dev/null
+            gh pr create --base dev --head "${REFRESH_BRANCH}" --title "${title}" --body-file "${pr_body}"
           fi
