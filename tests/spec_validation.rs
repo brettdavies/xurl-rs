@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use xurl::api::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MediaUploadResponse, MutingResult, RetweetedResult, Tweet, UsageData, User,
+    LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult, UsageData, User,
 };
 
 /// Loads the cached example responses fixture.
@@ -20,10 +20,9 @@ fn load_examples() -> Value {
 }
 
 #[test]
-fn spec_tweet_single() {
+fn spec_post_single() {
     let examples = load_examples();
-    let resp: ApiResponse<Tweet> =
-        serde_json::from_value(examples["tweet_single"].clone()).unwrap();
+    let resp: ApiResponse<Post> = serde_json::from_value(examples["post_single"].clone()).unwrap();
     assert_eq!(resp.data.id, "1346889436626259968");
     assert!(resp.data.created_at.is_some());
     assert!(resp.data.public_metrics.is_some());
@@ -31,10 +30,10 @@ fn spec_tweet_single() {
 }
 
 #[test]
-fn spec_tweet_list() {
+fn spec_post_list() {
     let examples = load_examples();
-    let resp: ApiResponse<Vec<Tweet>> =
-        serde_json::from_value(examples["tweet_list"].clone()).unwrap();
+    let resp: ApiResponse<Vec<Post>> =
+        serde_json::from_value(examples["post_list"].clone()).unwrap();
     assert_eq!(resp.data.len(), 2);
     assert_eq!(resp.data[0].id, "1346889436626259968");
     assert!(resp.meta.is_some());
@@ -80,7 +79,7 @@ fn spec_action_deleted() {
 #[test]
 fn spec_action_retweeted() {
     let examples = load_examples();
-    let resp: ApiResponse<RetweetedResult> =
+    let resp: ApiResponse<RepostedResult> =
         serde_json::from_value(examples["action_retweeted"].clone()).unwrap();
     assert!(resp.data.retweeted);
 }

@@ -21,8 +21,8 @@ pub use request::{
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    ReferencedTweet, ResponseMeta, RetweetedResult, Tweet, TweetPublicMetrics, UsageData, User,
-    UserPublicMetrics, deserialize_response,
+    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
+    UsageData, User, UserPublicMetrics, deserialize_response,
 };
 #[allow(unused_imports)]
 pub use shortcuts::{resolve_post_id, resolve_username};

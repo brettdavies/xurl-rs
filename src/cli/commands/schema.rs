@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::api::{
     ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, RetweetedResult, Tweet, UsageData, User,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::error::{Result, XurlError};
@@ -27,11 +27,11 @@ struct SchemaEntry {
 const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &["post", "reply", "quote", "read"],
-        type_name: "ApiResponse<Tweet>",
+        type_name: "ApiResponse<Post>",
     },
     SchemaEntry {
         commands: &["search", "timeline", "mentions", "bookmarks", "likes"],
-        type_name: "ApiResponse<Vec<Tweet>>",
+        type_name: "ApiResponse<Vec<Post>>",
     },
     SchemaEntry {
         commands: &["whoami", "user"],
@@ -55,7 +55,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     },
     SchemaEntry {
         commands: &["repost", "unrepost"],
-        type_name: "ApiResponse<RetweetedResult>",
+        type_name: "ApiResponse<RepostedResult>",
     },
     SchemaEntry {
         commands: &["bookmark", "unbookmark"],
@@ -76,6 +76,10 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &["usage"],
         type_name: "ApiResponse<UsageData>",
+    },
+    SchemaEntry {
+        commands: &["usage-credits"],
+        type_name: "ApiResponse<UsageCreditsData>",
     },
     SchemaEntry {
         commands: &["auth-status", "auth-apps-list"],
@@ -104,21 +108,22 @@ fn schema_for_command(command: &str) -> Result<Value> {
     // schema_for!() requires monomorphized types at compile time,
     // so this must be a match expression, not a data-driven lookup.
     let schema = match command {
-        "post" | "reply" | "quote" | "read" => schema_for!(ApiResponse<Tweet>),
+        "post" | "reply" | "quote" | "read" => schema_for!(ApiResponse<Post>),
         "search" | "timeline" | "mentions" | "bookmarks" | "likes" => {
-            schema_for!(ApiResponse<Vec<Tweet>>)
+            schema_for!(ApiResponse<Vec<Post>>)
         }
         "whoami" | "user" => schema_for!(ApiResponse<User>),
         "following" | "followers" => schema_for!(ApiResponse<Vec<User>>),
         "like" | "unlike" => schema_for!(ApiResponse<LikedResult>),
         "follow" | "unfollow" => schema_for!(ApiResponse<FollowingResult>),
         "delete" => schema_for!(ApiResponse<DeletedResult>),
-        "repost" | "unrepost" => schema_for!(ApiResponse<RetweetedResult>),
+        "repost" | "unrepost" => schema_for!(ApiResponse<RepostedResult>),
         "bookmark" | "unbookmark" => schema_for!(ApiResponse<BookmarkedResult>),
         "mute" | "unmute" => schema_for!(ApiResponse<MutingResult>),
         "dm" => schema_for!(ApiResponse<DmEvent>),
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
+        "usage-credits" => schema_for!(ApiResponse<UsageCreditsData>),
         "auth-status" | "auth-apps-list" => schema_for!(Vec<AppStatusEntry>),
         "redirect-uri-get" => schema_for!(RedirectUriGetResponse),
         "redirect-uri-set" => schema_for!(RedirectUriSetResponse),

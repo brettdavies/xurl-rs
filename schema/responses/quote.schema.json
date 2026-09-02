@@ -39,10 +39,10 @@
       "additionalProperties": true,
       "description": "Expanded objects included alongside the primary data.",
       "properties": {
-        "tweets": {
-          "description": "Tweet objects referenced by `referenced_tweets`.",
+        "posts": {
+          "description": "Post objects referenced by `referenced_posts`.",
           "items": {
-            "$ref": "#/$defs/Tweet"
+            "$ref": "#/$defs/Post"
           },
           "type": [
             "array",
@@ -62,12 +62,135 @@
       },
       "type": "object"
     },
-    "ReferencedTweet": {
+    "Post": {
       "additionalProperties": true,
-      "description": "A referenced tweet (reply-to, quote, retweet).",
+      "description": "A post object from the X API v2.\n\nRequired fields: `id`, `text` (always present in API responses).\nOptional fields depend on which `post.fields` the caller requests.",
+      "properties": {
+        "attachments": {
+          "description": "Media / poll attachment references — opaque JSON."
+        },
+        "author_id": {
+          "description": "Author's user ID; resolve via `includes.users` when expanded.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conversation_id": {
+          "description": "Root post ID of the conversation thread.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "ISO-8601 timestamp the post was created.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entities": {
+          "description": "Parsed entities (URLs, mentions, hashtags) — opaque JSON."
+        },
+        "id": {
+          "description": "Post identifier (X API snowflake string).",
+          "type": "string"
+        },
+        "in_reply_to_user_id": {
+          "description": "User ID this post replies to, when applicable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PostPublicMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Engagement counts (likes, replies, reposts, etc)."
+        },
+        "referenced_posts": {
+          "description": "Posts this one references (reply, quote, repost).",
+          "items": {
+            "$ref": "#/$defs/ReferencedPost"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Post body text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "type": "object"
+    },
+    "PostPublicMetrics": {
+      "additionalProperties": true,
+      "description": "Public engagement metrics for a post.",
+      "properties": {
+        "bookmark_count": {
+          "default": 0,
+          "description": "Bookmark count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "impression_count": {
+          "default": 0,
+          "description": "View count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "like_count": {
+          "default": 0,
+          "description": "Like count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote_count": {
+          "default": 0,
+          "description": "Quote-post count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reply_count": {
+          "default": 0,
+          "description": "Reply count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "repost_count": {
+          "default": 0,
+          "description": "Repost count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ReferencedPost": {
+      "additionalProperties": true,
+      "description": "A referenced post (reply-to, quote, repost).",
       "properties": {
         "id": {
-          "description": "Referenced tweet identifier.",
+          "description": "Referenced post identifier.",
           "type": "string"
         },
         "type": {
@@ -107,129 +230,6 @@
             "integer",
             "null"
           ]
-        }
-      },
-      "type": "object"
-    },
-    "Tweet": {
-      "additionalProperties": true,
-      "description": "A tweet object from the X API v2.\n\nRequired fields: `id`, `text` (always present in API responses).\nOptional fields depend on which `tweet.fields` the caller requests.",
-      "properties": {
-        "attachments": {
-          "description": "Media / poll attachment references — opaque JSON."
-        },
-        "author_id": {
-          "description": "Author's user ID; resolve via `includes.users` when expanded.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "conversation_id": {
-          "description": "Root tweet ID of the conversation thread.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "created_at": {
-          "description": "ISO-8601 timestamp the tweet was created.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "entities": {
-          "description": "Parsed entities (URLs, mentions, hashtags) — opaque JSON."
-        },
-        "id": {
-          "description": "Tweet identifier (X API snowflake string).",
-          "type": "string"
-        },
-        "in_reply_to_user_id": {
-          "description": "User ID this tweet replies to, when applicable.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "public_metrics": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TweetPublicMetrics"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Engagement counts (likes, replies, retweets, etc)."
-        },
-        "referenced_tweets": {
-          "description": "Tweets this one references (reply, quote, retweet).",
-          "items": {
-            "$ref": "#/$defs/ReferencedTweet"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "text": {
-          "description": "Tweet body text.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "text"
-      ],
-      "type": "object"
-    },
-    "TweetPublicMetrics": {
-      "additionalProperties": true,
-      "description": "Public engagement metrics for a tweet.",
-      "properties": {
-        "bookmark_count": {
-          "default": 0,
-          "description": "Bookmark count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "impression_count": {
-          "default": 0,
-          "description": "View count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "like_count": {
-          "default": 0,
-          "description": "Like count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "quote_count": {
-          "default": 0,
-          "description": "Quote-tweet count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "reply_count": {
-          "default": 0,
-          "description": "Reply count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "retweet_count": {
-          "default": 0,
-          "description": "Retweet count.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": "integer"
         }
       },
       "type": "object"
@@ -276,7 +276,7 @@
               "type": "null"
             }
           ],
-          "description": "Engagement counts (followers, following, tweets)."
+          "description": "Engagement counts (followers, following, posts)."
         },
         "username": {
           "description": "Handle without the leading `@`.",
@@ -322,9 +322,9 @@
           "minimum": 0,
           "type": "integer"
         },
-        "tweet_count": {
+        "post_count": {
           "default": 0,
-          "description": "Tweet count for the user.",
+          "description": "Post count for the user.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -335,10 +335,10 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Tweet>`, list endpoints use\n`ApiResponse<Vec<Tweet>>`. Serde handles both shapes transparently.",
+  "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/Tweet",
+      "$ref": "#/$defs/Post",
       "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
     },
     "errors": {

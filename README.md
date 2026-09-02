@@ -325,24 +325,24 @@ xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
 xurl-rs = "1"
 ```
 
-All 29 shortcut commands return typed responses via `ApiResponse<T>`:
+All 30 shortcut commands return typed responses via `ApiResponse<T>`:
 
 ```rust
-use xurl::api::{ApiResponse, Tweet, User, LikedResult, deserialize_response};
+use xurl::api::{ApiResponse, Post, User, LikedResult, deserialize_response};
 
 // Typed response from deserialization
-let resp: ApiResponse<Tweet> = deserialize_response(json_value)?;
+let resp: ApiResponse<Post> = deserialize_response(json_value)?;
 println!("{}", resp.data.text);
 
 // List responses
-let resp: ApiResponse<Vec<Tweet>> = deserialize_response(json_value)?;
-for tweet in &resp.data {
-    println!("{}: {}", tweet.id, tweet.text);
+let resp: ApiResponse<Vec<Post>> = deserialize_response(json_value)?;
+for post in &resp.data {
+    println!("{}: {}", post.id, post.text);
 }
 ```
 
-Available types: `Tweet`, `User`, `DmEvent`, `UsageData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
-`RetweetedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
+Available types: `Post`, `User`, `DmEvent`, `UsageData`, `UsageCreditsData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
+`RepostedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
 `ResponseMeta`, `ApiError`.
 
 All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forward compatibility with new API fields.

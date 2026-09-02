@@ -85,6 +85,9 @@ INSPECT YOUR ACCOUNT:
   Your API usage (caps + daily breakdown):
     xr usage --output json
 
+  Your credits-based usage:
+    xr usage credits --output json
+
 DIRECT MESSAGES:
   Send a DM:
     xr dm @recipient \"Hello\"

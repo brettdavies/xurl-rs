@@ -1,7 +1,7 @@
 ---
 name: xurl-rs
 binary: xr
-description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, 29 high-level shortcut commands, chunked media upload, and streaming.
+description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, 30 high-level shortcut commands, chunked media upload, and streaming.
 homepage: https://github.com/brettdavies/xurl-rs
 repository: https://github.com/brettdavies/xurl-rs
 ---
@@ -88,7 +88,7 @@ then close.
 `src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in `vendor/x-api-openapi.json`
 (`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `send_dm`, `lookup_user`,
 `get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
-`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, and their `un*` inverses where the spec documents
+`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, `get_usage_credits`, and their `un*` inverses where the spec documents
 them). Each maps to one CLI command via `src/cli/` and returns a typed response via `src/api/response/types.rs`. The
 build-time auth matrix at `src/api/auth_matrix.rs` panics if a shortcut targets an endpoint absent from the vendored
 spec — block/unblock are absent from the spec and have no shortcut surface.
@@ -96,6 +96,19 @@ spec — block/unblock are absent from the spec and have no shortcut surface.
 Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed response in `response/types.rs` (or
 reuse), register in `src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response type derives
 `schemars::JsonSchema`.
+
+### Command grammar: flags vs subcommands
+
+- Flags never select endpoints. A flag tunes one endpoint's request (auth method, output shape, pagination, fields);
+  it never retargets the path.
+- A standalone action or read in the core domain gets its own top-level command word: `dm`/`dms`,
+  `bookmark`/`bookmarks`, and `timeline`/`mentions` are separate commands because they are separate endpoints.
+- A subcommand family groups a noun that owns several operations: tooling nouns (`auth`, `skill`, `schema`,
+  `completions`) and API namespaces with sibling endpoints (`media` over `/2/media/*`, `usage` over `/2/usage/*`).
+
+Routing a new endpoint: when an existing family noun owns it (an API-namespace sibling), add a subcommand there; when
+it stands alone in the core domain, add a top-level command; never add an endpoint-selecting flag to an existing
+command.
 
 ## Architecture
 
@@ -141,6 +154,11 @@ See [`RELEASES.md`](RELEASES.md) for the operational runbook, [`RELEASES-PREFLIG
 pre-cut go/no-go checklist, and [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md) for the why behind every rule. The
 short version: feature branch → PR to `dev` (squash) → cherry-pick to `release/v<version>` cut from `main` → PR to
 `main` (squash) → annotated tag push triggers `release.yml`.
+
+### Spec-refresh PRs
+
+The spec-drift workflow opens draft PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the
+reconciling agent as "Triage and fix PR #N".
 
 ## Known differences from the Go original
 
