@@ -25,10 +25,10 @@ causing 404 responses to return `EXIT_GENERAL_ERROR` (1) instead of `EXIT_NOT_FO
 The Rust version uses structured pattern matching on `XurlError::Api { status, .. }`, which correctly maps HTTP status
 codes to exit codes regardless of response body content. This means some edge-case exit codes differ:
 
-| Scenario | Go exit code | Rust exit code | Rust is more correct |
-|---|---|---|---|
-| 404 with JSON body (no literal "404" in body) | 1 (general) | 4 (not found) | Yes |
-| 401 with JSON body (no literal "401" in body) | 1 (general) | 2 (auth required) | Yes |
-| 429 with JSON body (no literal "429" in body) | 1 (general) | 3 (rate limited) | Yes |
+| Scenario                                      | Go exit code | Rust exit code     | Rust is more correct |
+| --------------------------------------------- | ------------ | ------------------ | -------------------- |
+| 404 with JSON body (no literal "404" in body) | 1 (general)  | 4 (not found)      | Yes                  |
+| 401 with JSON body (no literal "401" in body) | 1 (general)  | 77 (auth required) | Yes                  |
+| 429 with JSON body (no literal "429" in body) | 1 (general)  | 3 (rate limited)   | Yes                  |
 
-This is an intentional improvement introduced in the library ergonomics work (R8).
+The structural mapping is intentional.

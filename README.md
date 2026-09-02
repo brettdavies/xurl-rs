@@ -74,7 +74,7 @@ xr delete 1234567890                           # Delete
 
 ```bash
 xr read 1234567890                             # Read a post
-xr search "golang" -n 20                       # Search (10-100 results)
+xr search "golang" -n 20                       # Search (1-100 results)
 xr whoami                                      # Your profile
 xr user @elonmusk                              # Look up user
 xr timeline                                    # Home timeline
@@ -87,7 +87,9 @@ xr mentions                                    # Your mentions
 xr like 1234567890                             # Like
 xr unlike 1234567890                           # Unlike
 xr repost 1234567890                           # Repost
+xr unrepost 1234567890                         # Undo repost
 xr bookmark 1234567890                         # Bookmark
+xr unbookmark 1234567890                       # Remove bookmark
 xr bookmarks                                   # List bookmarks
 xr likes                                       # List likes
 ```
@@ -100,6 +102,7 @@ xr unfollow @user                              # Unfollow
 xr following                                   # Who you follow
 xr followers                                   # Your followers
 xr mute @user                                  # Mute
+xr unmute @user                                # Unmute
 ```
 
 ### Direct Messages
@@ -107,6 +110,15 @@ xr mute @user                                  # Mute
 ```bash
 xr dm @user "Hey!"                             # Send DM
 xr dms                                         # List DMs
+```
+
+### Usage and Validation
+
+```bash
+xr usage                                       # Post-cap usage for the project
+xr usage credits                               # Credits-based usage
+xr validate --schema post < post.json          # Validate JSON against a response schema
+xr examples                                    # Curated invocation examples
 ```
 
 ### Schema Discovery
@@ -274,20 +286,21 @@ xr -q search "topic"                           # Short form
 ### Non-Interactive Mode
 
 ```bash
-xr --no-interactive whoami                     # Error instead of prompt
-# Exit code 2 if auth needed: "authentication required: run xr auth login"
+xr whoami --no-interactive                     # Error instead of prompt
+# Exit code 77 with reason `auth-required` when no credentials are stored
 ```
 
 ### Structured Exit Codes
 
-| Code | Meaning       | Agent Action           |
-| ---- | ------------- | ---------------------- |
-| 0    | Success       | Continue               |
-| 1    | General error | Log and handle         |
-| 2    | Auth required | Run `xr auth oauth2`   |
-| 3    | Rate limited  | Retry with backoff     |
-| 4    | Not found     | Resource doesn't exist |
-| 5    | Network error | Check connectivity     |
+| Code | Meaning                                   | Agent Action                              |
+| ---- | ----------------------------------------- | ----------------------------------------- |
+| 0    | Success                                   | Continue                                  |
+| 1    | General error                             | Log and handle                            |
+| 2    | Invalid arguments or auth-method mismatch | Fix the flag or pick an accepted `--auth` |
+| 3    | Rate limited                              | Retry with backoff                        |
+| 4    | Not found                                 | Resource doesn't exist                    |
+| 5    | Network error                             | Check connectivity                        |
+| 77   | Auth required                             | Run `xr auth oauth2`                      |
 
 ### NO_COLOR Support
 
@@ -322,10 +335,10 @@ xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xurl-rs = "1"
+xurl-rs = "3"
 ```
 
-All 30 shortcut commands return typed responses via `ApiResponse<T>`:
+All 27 shortcut commands (plus `usage credits`) return typed responses via `ApiResponse<T>`:
 
 ```rust
 use xurl::api::{ApiResponse, Post, User, LikedResult, deserialize_response};
@@ -341,9 +354,9 @@ for post in &resp.data {
 }
 ```
 
-Available types: `Post`, `User`, `DmEvent`, `UsageData`, `UsageCreditsData`, `LikedResult`, `FollowingResult`, `DeletedResult`,
-`RepostedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`, `Includes`,
-`ResponseMeta`, `ApiError`.
+Available types: `Post`, `User`, `DmEvent`, `UsageData`, `UsageCreditsData`, `LikedResult`, `FollowingResult`,
+`DeletedResult`, `RepostedResult`, `BookmarkedResult`, `BlockingResult`, `MutingResult`, `MediaUploadResponse`,
+`Includes`, `ResponseMeta`, `ApiError`.
 
 All structs include `#[serde(flatten)] extra: BTreeMap<String, Value>` for forward compatibility with new API fields.
 
@@ -375,14 +388,14 @@ valid.
 | Memory safety             | GC               | Compile-time             |
 | Binary size               | ~15 MB           | ~8 MB                    |
 | Shell completions         | Built-in (cobra) | Built-in (clap_complete) |
-| `--output json`           | ❌                | ✅                        |
-| `--quiet`                 | ❌                | ✅                        |
-| `--no-interactive`        | ❌                | ✅                        |
-| Structured exit codes     | ❌                | ✅                        |
-| `NO_COLOR` support        | ❌                | ✅                        |
-| `XURL_OUTPUT` env var     | ❌                | ✅                        |
-| Typed response structs    | ❌                | ✅                        |
-| `xr schema` (JSON Schema) | ❌                | ✅                        |
+| `--output json`           | No               | Yes                      |
+| `--quiet`                 | No               | Yes                      |
+| `--no-interactive`        | No               | Yes                      |
+| Structured exit codes     | No               | Yes                      |
+| `NO_COLOR` support        | No               | Yes                      |
+| `XURL_OUTPUT` env var     | No               | Yes                      |
+| Typed response structs    | No               | Yes                      |
+| `xr schema` (JSON Schema) | No               | Yes                      |
 
 ## Contributing
 
@@ -393,7 +406,7 @@ cargo test
 cargo clippy
 ```
 
-See [RELEASING.md](RELEASING.md) for release procedures.
+See [RELEASES.md](RELEASES.md) for release procedures.
 
 ## License
 
