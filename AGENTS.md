@@ -97,6 +97,19 @@ Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed r
 reuse), register in `src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response type derives
 `schemars::JsonSchema`.
 
+### Command grammar: flags vs subcommands
+
+- Flags never select endpoints. A flag tunes one endpoint's request (auth method, output shape, pagination, fields);
+  it never retargets the path.
+- A standalone action or read in the core domain gets its own top-level command word: `dm`/`dms`,
+  `bookmark`/`bookmarks`, and `timeline`/`mentions` are separate commands because they are separate endpoints.
+- A subcommand family groups a noun that owns several operations: tooling nouns (`auth`, `skill`, `schema`,
+  `completions`) and API namespaces with sibling endpoints (`media` over `/2/media/*`, `usage` over `/2/usage/*`).
+
+Routing a new endpoint: when an existing family noun owns it (an API-namespace sibling), add a subcommand there; when
+it stands alone in the core domain, add a top-level command; never add an endpoint-selecting flag to an existing
+command.
+
 ## Architecture
 
 - `src/api/`: HTTP client (`request.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`), media upload
