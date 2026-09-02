@@ -40,8 +40,14 @@ jobs:
       VENDOR_PATH: vendor/x-api-openapi.json
       REFRESH_BRANCH: spec-refresh
     steps:
+      # git push authenticates with the credentials checkout persists, not
+      # GH_TOKEN, so schedule/dispatch runs check out with CI_RELEASE_TOKEN
+      # (the refresh-branch push needs contents: write and must trigger CI).
+      # PR runs keep the read-only workflow token.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ github.event_name == 'pull_request' && github.token || secrets.CI_RELEASE_TOKEN }}
 
       - name: Fetch upstream spec (with retry)
         id: fetch
