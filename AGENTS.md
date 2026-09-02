@@ -145,8 +145,7 @@ short version: feature branch → PR to `dev` (squash) → cherry-pick to `relea
 ### Spec-refresh PRs
 
 The spec-drift workflow opens draft PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the
-reconciling agent as "Triage and fix PR #N", never "review PR #N": review-shaped prompts route agents into report-only
-review skills before the runbook is read, and the deliverable is the executed reconciliation, not a report.
+reconciling agent as "Triage and fix PR #N".
 
 ## Known differences from the Go original
 
