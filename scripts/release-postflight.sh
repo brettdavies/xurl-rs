@@ -14,7 +14,7 @@
 #   finalize     finalize-release.yml callback ran (cross-repo dispatch loop closed)
 #   make-latest  GitHub Release v<X.Y.Z> is non-draft, non-prerelease, releases/latest matches
 #   crates       crates.io index shows xurl-rs v<X.Y.Z> published
-#   backport     dev has the released CHANGELOG section, or a merged PR brought it across
+#   backport     a merged PR to dev carrying the version in its title
 #   all          run every above sequentially
 #
 # Flags:
