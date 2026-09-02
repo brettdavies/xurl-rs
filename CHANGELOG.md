@@ -22,7 +22,6 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
-- Add `CONCEPTS.md`, a shared domain-vocabulary glossary seeded with the spec-automation concepts, linked from AGENTS.md. by @brettdavies in [#110](https://github.com/brettdavies/xurl-rs/pull/110)
 - Add `docs/migrating/v3.0.0.md`, the post-vocabulary migration guide for library consumers and `xr` script authors, linked from MIGRATING.md. by @brettdavies in [#111](https://github.com/brettdavies/xurl-rs/pull/111)
 
 **Full Changelog**: [v2.2.0...v3.0.0](https://github.com/brettdavies/xurl-rs/compare/v2.2.0...v3.0.0)
