@@ -94,9 +94,28 @@ not in the source-of-truth release notes.
 
 ## Triple-diff verification
 
-The release-PR procedure runs three diffs (A: main→release, B: release→dev for non-doc paths, C: dev→main) plus a
-patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main` on this and
-sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
+The release-PR procedure runs three diffs (A: main→release, B: release→dev for paths outside the guarded set, C:
+dev→main) plus a patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main`
+on this and sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
+
+B excludes only the guarded set, not all of `docs/`. `docs/migrating/` ships to `main`, so a wholesale `docs/` exclusion
+hides a missed migration-guide pick.
+
+### Why the guarded set resolves from the workflow
+
+`guard-main-docs` is what CI enforces on a PR to `main`: the reusable workflow's hardcoded base list plus this repo's
+`extra_paths`. Every hand-kept copy of that union (runbook, checklist, preflight script) drifted from it, and a copy
+that omits a guarded path reports a real leak as clean while CI turns red after the push.
+`scripts/release-guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so registering
+a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still needs a
+manual edit when the reusable changes, because it lives in another repo.
+
+### Why the release enumerates what it adds
+
+The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A new
+engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D lists
+every file the release adds to `main` outside the guarded set and puts the `docs/` entries in front of a human; each one
+needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch.
 
 ### Why patch-id cherry-check output is noisy
 
