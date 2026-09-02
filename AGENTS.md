@@ -1,7 +1,7 @@
 ---
 name: xurl-rs
 binary: xr
-description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, 29 high-level shortcut commands, chunked media upload, and streaming.
+description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, 30 high-level shortcut commands, chunked media upload, and streaming.
 homepage: https://github.com/brettdavies/xurl-rs
 repository: https://github.com/brettdavies/xurl-rs
 ---
@@ -88,7 +88,7 @@ then close.
 `src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in `vendor/x-api-openapi.json`
 (`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `send_dm`, `lookup_user`,
 `get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
-`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, and their `un*` inverses where the spec documents
+`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, `get_usage_credits`, and their `un*` inverses where the spec documents
 them). Each maps to one CLI command via `src/cli/` and returns a typed response via `src/api/response/types.rs`. The
 build-time auth matrix at `src/api/auth_matrix.rs` panics if a shortcut targets an endpoint absent from the vendored
 spec — block/unblock are absent from the spec and have no shortcut surface.
