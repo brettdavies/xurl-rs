@@ -2,14 +2,17 @@
 # vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
 #
 # Triggers:
-#   - schedule: weekly Mon 09:00 UTC — informational issue on divergence
+#   - schedule: weekly Mon 09:00 UTC — opens (or updates) a refresh PR to dev
+#     carrying the new vendored spec on divergence; never merges it
 #   - workflow_dispatch: manual re-run
 #   - pull_request: only when the vendor/build/matrix surface changes —
 #     surface drift in the PR before the matrix takes a stale snapshot
 #
-# Permissions are minimum-scoped per trigger; the schedule run can open or
-# update an issue, the PR run can comment on the PR. Neither path mutates
-# code. Non-blocking on every trigger — drift is informational, not gating.
+# The schedule/dispatch path pushes the refresh branch and opens the PR with
+# CI_RELEASE_TOKEN (a GITHUB_TOKEN push would not trigger CI on the PR); the
+# PR run can comment on the PR with the workflow token. Non-blocking on
+# every trigger — drift is informational, not gating; a human reviews and
+# merges the refresh PR.
 name: Spec Drift
 
 on:
@@ -31,15 +34,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
       pull-requests: write
     env:
       UPSTREAM_URL: https://api.x.com/2/openapi.json
       VENDOR_PATH: vendor/x-api-openapi.json
-      ISSUE_TITLE_PREFIX: '[spec-drift]'
+      REFRESH_BRANCH: spec-refresh
     steps:
+      # Scheduled and dispatched runs compare against (and branch from) dev,
+      # the integration branch the refresh PR targets; the default branch is
+      # main, whose vendor copy lags dev between releases.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || 'dev' }}
 
       - name: Fetch upstream spec (with retry)
         id: fetch
@@ -143,28 +150,100 @@ jobs:
         run: |
           gh pr comment "${PR_NUMBER}" --body-file "${{ steps.body.outputs.body_file }}"
 
-      - name: Open or update drift issue
+      - name: Open or update spec refresh PR
         if: steps.diff.outputs.drift == '1' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
         run: |
           set -uo pipefail
-          local_version="$(jq -r '.info.version' "${VENDOR_PATH}")"
           upstream_version="$(jq -r '.info.version' "${{ steps.fetch.outputs.tmp }}")"
-          # Dedupe by title-prefix match — independent of label state so the
-          # workflow does not require a pre-existing label.
-          existing="$(gh issue list \
-            --state open \
-            --search "in:title ${ISSUE_TITLE_PREFIX}" \
-            --json number,title \
-            --jq '[.[] | select(.title | startswith("'"${ISSUE_TITLE_PREFIX}"'"))][0].number // empty')"
-          title="${ISSUE_TITLE_PREFIX} upstream spec v${upstream_version} diverged from vendored v${local_version}"
+          title="feat(spec): refresh vendored X API spec to upstream ${upstream_version}"
+
+          # Dedupe by title match across any head branch: a human-owned
+          # refresh PR (different head) wins and this run stands down;
+          # the workflow's own branch gets force-pushed and its PR updated.
+          existing="$(gh pr list \
+            --state open --base dev \
+            --search 'refresh vendored X API spec in:title' \
+            --json number,headRefName --jq '.[0] // empty')"
+          existing_num=""
           if [ -n "${existing}" ]; then
-            gh issue edit "${existing}" \
-              --title "${title}" \
-              --body-file "${{ steps.body.outputs.body_file }}"
+            existing_num="$(jq -r '.number' <<<"${existing}")"
+            existing_head="$(jq -r '.headRefName' <<<"${existing}")"
+            if [ "${existing_head}" != "${REFRESH_BRANCH}" ]; then
+              echo "Open refresh PR #${existing_num} (head \`${existing_head}\`) already covers the drift; not opening another." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "${REFRESH_BRANCH}"
+          scripts/refresh-x-openapi.sh
+          git add vendor/
+          if git diff --cached --quiet; then
+            echo "Refresh produced no change against dev; nothing to open." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "${title}"
+          # The branch is automation-owned and fully regenerated each run, so
+          # replacing any stale remote copy is the desired semantic.
+          git push --force origin "${REFRESH_BRANCH}"
+
+          pr_body="$(mktemp)"
+          {
+            echo "## Summary"
+            echo ""
+            echo "Refreshes the vendored X API OpenAPI spec to upstream ${upstream_version}. \`vendor/spec-metadata.json\` and \`vendor/README.md\` carry the new identity, and the build-time auth-method matrix regenerates from the new spec. Drift detail:"
+            echo ""
+            cat "${{ steps.body.outputs.body_file }}"
+            echo ""
+            echo "## Changelog"
+            echo ""
+            echo "### Changed"
+            echo ""
+            echo "- Refresh the vendored X API OpenAPI spec to upstream ${upstream_version}: \`xr schema\`, the spec-identity constants (\`API_SPEC_VERSION\`, \`API_SPEC_SHA256\`, \`API_SPEC_DATE\`), and the build-time auth-method matrix reflect the new surface."
+            echo ""
+            echo "## Type of Change"
+            echo ""
+            echo "- [x] \`feat\`: New feature (non-breaking change which adds functionality)"
+            echo ""
+            echo "## Related Issues/Stories"
+            echo ""
+            echo "- Story: n/a"
+            echo "- Issue: n/a"
+            echo "- Architecture: n/a"
+            echo "- Related PRs: n/a"
+            echo ""
+            echo "## Testing"
+            echo ""
+            echo "- [ ] All tests passing"
+            echo ""
+            echo "**Test Summary:**"
+            echo ""
+            echo "- CI builds the auth-method matrix from the refreshed spec and runs the full test suite on this PR."
+            echo ""
+            echo "## Files Modified"
+            echo ""
+            echo "**Modified:**"
+            echo ""
+            echo "- \`vendor/x-api-openapi.json\`, \`vendor/spec-metadata.json\`, \`vendor/README.md\`"
+            echo ""
+            echo "**Created:**"
+            echo ""
+            echo "- None."
+            echo ""
+            echo "**Renamed:**"
+            echo ""
+            echo "- None."
+            echo ""
+            echo "**Deleted:**"
+            echo ""
+            echo "- None."
+          } > "${pr_body}"
+
+          if [ -n "${existing_num}" ]; then
+            gh pr edit "${existing_num}" --title "${title}" --body-file "${pr_body}"
           else
-            gh issue create \
-              --title "${title}" \
-              --body-file "${{ steps.body.outputs.body_file }}"
+            gh pr create --base dev --head "${REFRESH_BRANCH}" --title "${title}" --body-file "${pr_body}"
           fi
