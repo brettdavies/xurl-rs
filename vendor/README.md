@@ -9,11 +9,11 @@ build time to generate the auth-method matrix in `src/api/auth_matrix.rs` (see
 | Field              | Value                                  |
 | ------------------ | -------------------------------------- |
 | Upstream URL       | https://api.x.com/2/openapi.json |
-| Spec `info.version` | 2.165                          |
-| Path count         | 139                                    |
-| File size          | 791265 bytes                            |
-| SHA256             | `1310e03050c7fcc76b1617f2558080f21e8edd8f6f6c52a188e78354310156d5` |
-| Refreshed (UTC)    | 2026-06-05                             |
+| Spec `info.version` | 2.168                          |
+| Path count         | 156                                    |
+| File size          | 894349 bytes                            |
+| SHA256             | `62a1bf781e677d770220c91eedd51bec30cf04f3e15a4d1ea040b898adb01d18` |
+| Refreshed (UTC)    | 2026-09-02                             |
 
 ## Refresh
 
