@@ -41,6 +41,18 @@ pub struct PendingOAuth2State {
     pub created_at: u64,
 }
 
+/// Returns the pending-state path that sits beside a token store: `<store>.pending`.
+///
+/// Deriving it from the store path keeps every file the auth flow writes under
+/// the one location the caller chose, so an injected store path isolates the
+/// pending state too.
+#[must_use]
+pub fn pending_path_for_store(store_path: &Path) -> PathBuf {
+    let mut os = store_path.as_os_str().to_os_string();
+    os.push(".pending");
+    PathBuf::from(os)
+}
+
 /// Returns the default path for the pending-state file (`~/.xurl.pending`).
 ///
 /// # Errors
@@ -49,7 +61,7 @@ pub struct PendingOAuth2State {
 /// containers or CI environments without `HOME` set).
 pub fn default_pending_path() -> Result<PathBuf> {
     dirs::home_dir()
-        .map(|h| h.join(".xurl.pending"))
+        .map(|h| pending_path_for_store(&h.join(".xurl")))
         .ok_or_else(|| {
             XurlError::auth(
                 "could not determine home directory for pending state file. \

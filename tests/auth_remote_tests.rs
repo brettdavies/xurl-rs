@@ -50,6 +50,13 @@ impl TestServer {
     }
 }
 
+/// Builds an `Auth` on the temp-dir store it will carry, so construction never
+/// resolves the real `~/.xurl`.
+fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
+    let store_path = token_store.file_path.clone();
+    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+}
+
 fn create_test_config(base_url: &str) -> Config {
     // `Config` has `pub(crate)` resolver fields that external callers cannot
     // name in a struct literal; start from `Config::new()` and assign the
@@ -69,7 +76,6 @@ fn create_test_config(base_url: &str) -> Config {
 
 fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
 
     let file_path = tmp.path().join(".xurl");
     let mut store = TokenStore {
@@ -91,7 +97,7 @@ fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
         },
     );
 
-    auth.with_token_store(store)
+    auth_for(&cfg, store)
 }
 
 // ── Step 1 tests ──────────────────────────────────────────────────────
@@ -348,7 +354,6 @@ fn step2_client_id_mismatch_returns_error() {
     cfg2.api_base_url = ts.uri().to_string();
     cfg2.info_url = format!("{}/2/users/me", ts.uri());
     cfg2.app_name = String::new();
-    let auth2 = Auth::new(&cfg2);
     let file_path2 = tmp.path().join(".xurl2");
     let mut store2 = TokenStore {
         apps: BTreeMap::new(),
@@ -368,7 +373,7 @@ fn step2_client_id_mismatch_returns_error() {
             unnamed_oauth2_token: None,
         },
     );
-    let mut auth2 = auth2.with_token_store(store2);
+    let mut auth2 = auth_for(&cfg2, store2);
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
