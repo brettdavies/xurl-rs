@@ -6,16 +6,11 @@
 //! `cli_run_tests.rs`; this file exists only to catch drift at the process
 //! boundary (clap-error routing, exit-code propagation, SIGPIPE restoration).
 
-use assert_cmd::Command;
+mod common;
 
 #[test]
 fn help_flag_exits_zero_with_stdout() {
-    let assert = Command::cargo_bin("xr")
-        .expect("xr binary built")
-        .arg("--help")
-        .assert()
-        .success()
-        .code(0);
+    let assert = common::xr().arg("--help").assert().success().code(0);
     let out = assert.get_output();
     assert!(!out.stdout.is_empty(), "stdout should be non-empty");
     assert!(
@@ -28,12 +23,7 @@ fn help_flag_exits_zero_with_stdout() {
 #[test]
 fn version_flag_exits_zero_with_stdout() {
     // clap's `DisplayVersion` path: `--help`/`--version` write to stdout, exit 0.
-    let assert = Command::cargo_bin("xr")
-        .expect("xr binary built")
-        .arg("--version")
-        .assert()
-        .success()
-        .code(0);
+    let assert = common::xr().arg("--version").assert().success().code(0);
     let out = assert.get_output();
     assert!(!out.stdout.is_empty(), "stdout should be non-empty");
 }
@@ -41,12 +31,7 @@ fn version_flag_exits_zero_with_stdout() {
 #[test]
 fn version_subcommand_exits_zero_with_stdout() {
     // Tier-1 `Version` path: routes through OutputConfig::print_message, not clap.
-    let assert = Command::cargo_bin("xr")
-        .expect("xr binary built")
-        .arg("version")
-        .assert()
-        .success()
-        .code(0);
+    let assert = common::xr().arg("version").assert().success().code(0);
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
     assert!(
         stdout.starts_with("xr "),
@@ -56,12 +41,7 @@ fn version_subcommand_exits_zero_with_stdout() {
 
 #[test]
 fn bad_flag_exits_two_with_stderr() {
-    let assert = Command::cargo_bin("xr")
-        .expect("xr binary built")
-        .arg("--bogus")
-        .assert()
-        .failure()
-        .code(2);
+    let assert = common::xr().arg("--bogus").assert().failure().code(2);
     let out = assert.get_output();
     assert!(
         !out.stderr.is_empty(),
@@ -72,11 +52,7 @@ fn bad_flag_exits_two_with_stderr() {
 #[test]
 fn missing_url_exits_one() {
     // Raw mode (no subcommand, no URL) — EXIT_GENERAL_ERROR.
-    let assert = Command::cargo_bin("xr")
-        .expect("xr binary built")
-        .assert()
-        .failure()
-        .code(1);
+    let assert = common::xr().assert().failure().code(1);
     let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
     assert!(
         stderr.contains("No URL provided"),
@@ -94,10 +70,9 @@ fn missing_url_exits_one() {
 #[test]
 fn sigpipe_smoke() {
     use std::io::Read;
-    use std::process::{Command as StdCommand, Stdio};
+    use std::process::Stdio;
 
-    let bin = assert_cmd::cargo::cargo_bin("xr");
-    let mut child = StdCommand::new(&bin)
+    let mut child = common::xr_std()
         .arg("--help")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

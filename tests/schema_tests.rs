@@ -1,6 +1,7 @@
 //! Integration tests for the `xr schema` subcommand.
 
-use assert_cmd::Command;
+mod common;
+
 use predicates::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -9,11 +10,7 @@ use predicates::prelude::*;
 
 #[test]
 fn schema_post_outputs_valid_json_schema() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "post"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "post"]).output().unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     // Must have standard JSON Schema fields
@@ -24,11 +21,7 @@ fn schema_post_outputs_valid_json_schema() {
 
 #[test]
 fn schema_post_contains_post_fields() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "post"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "post"]).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("\"text\""));
     assert!(stdout.contains("\"author_id\""));
@@ -38,11 +31,7 @@ fn schema_post_contains_post_fields() {
 
 #[test]
 fn schema_whoami_contains_user_fields() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "whoami"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "whoami"]).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("\"username\""));
     assert!(stdout.contains("\"name\""));
@@ -50,11 +39,7 @@ fn schema_whoami_contains_user_fields() {
 
 #[test]
 fn schema_like_contains_liked_field() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "like"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "like"]).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("\"liked\""));
 }
@@ -62,11 +47,7 @@ fn schema_like_contains_liked_field() {
 #[test]
 fn schema_no_extra_named_property() {
     // #[serde(flatten)] BTreeMap should produce additionalProperties, not a named "extra" field
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "post"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "post"]).output().unwrap();
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let props = json["properties"].as_object().unwrap();
     assert!(
@@ -81,11 +62,7 @@ fn schema_no_extra_named_property() {
 
 #[test]
 fn schema_list_shows_all_commands_plus_envelope() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "--list"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "--list"]).output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
@@ -99,11 +76,7 @@ fn schema_list_shows_all_commands_plus_envelope() {
 
 #[test]
 fn schema_list_contains_expected_commands() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "--list"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "--list"]).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     let expected = [
         "post",
@@ -142,11 +115,7 @@ fn schema_list_contains_expected_commands() {
 
 #[test]
 fn schema_list_shows_type_names() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "--list"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "--list"]).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("ApiResponse<Post>"));
     assert!(stdout.contains("ApiResponse<Vec<Post>>"));
@@ -160,11 +129,7 @@ fn schema_list_shows_type_names() {
 
 #[test]
 fn schema_all_outputs_json_with_all_commands() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "--all"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "--all"]).output().unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
@@ -180,8 +145,7 @@ fn schema_all_outputs_json_with_all_commands() {
 #[test]
 fn schema_all_takes_precedence_over_list() {
     // When both --all and --list are provided, --all takes precedence
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["schema", "--all", "--list"])
         .output()
         .unwrap();
@@ -196,8 +160,7 @@ fn schema_all_takes_precedence_over_list() {
 
 #[test]
 fn schema_unknown_command_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["schema", "bogus"])
         .assert()
         .failure()
@@ -206,8 +169,7 @@ fn schema_unknown_command_fails() {
 
 #[test]
 fn schema_auth_not_available() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["schema", "auth"])
         .assert()
         .failure()
@@ -216,8 +178,7 @@ fn schema_auth_not_available() {
 
 #[test]
 fn schema_media_not_available() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["schema", "media"])
         .assert()
         .failure()
@@ -226,8 +187,7 @@ fn schema_media_not_available() {
 
 #[test]
 fn schema_completions_not_available() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["schema", "completions"])
         .assert()
         .failure()
@@ -236,8 +196,7 @@ fn schema_completions_not_available() {
 
 #[test]
 fn schema_version_not_available() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["schema", "version"])
         .assert()
         .failure()
@@ -246,8 +205,7 @@ fn schema_version_not_available() {
 
 #[test]
 fn schema_no_args_shows_usage() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .arg("schema")
         .assert()
         .failure()
@@ -266,11 +224,7 @@ fn schema_no_args_shows_usage() {
 fn envelope_schema_is_draft_2020_12_with_oneof() {
     // `xr schema envelope` emits the canonical envelope JSON Schema; agents
     // pin against `$schema` + the three-variant `oneOf`.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "envelope"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["schema", "envelope"]).output().unwrap();
     assert!(output.status.success());
     let parsed: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(
@@ -289,13 +243,8 @@ fn envelope_schema_is_draft_2020_12_with_oneof() {
 
 #[test]
 fn envelope_schema_via_flag_equals_positional() {
-    let by_pos = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "envelope"])
-        .output()
-        .unwrap();
-    let by_flag = Command::cargo_bin("xr")
-        .unwrap()
+    let by_pos = common::xr().args(["schema", "envelope"]).output().unwrap();
+    let by_flag = common::xr()
         .args(["schema", "--envelope"])
         .output()
         .unwrap();
@@ -309,8 +258,7 @@ fn committed_envelope_schema_matches_runtime() {
     // Drift guard: schema/output.schema.json must match the runtime-emitted
     // schema byte-for-byte. Regenerate via:
     //   cargo run --bin xr -- schema envelope --output json > schema/output.schema.json
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["schema", "envelope", "--output", "json"])
         .output()
         .unwrap();
@@ -333,8 +281,7 @@ fn committed_response_schemas_match_runtime() {
     // Drift guard: every schema/responses/<cmd>.schema.json must match the
     // runtime-emitted shape for that command. Regenerate via:
     //   ./scripts/generate-response-schemas.sh
-    let list = Command::cargo_bin("xr")
-        .unwrap()
+    let list = common::xr()
         .args(["schema", "--list", "--output", "text"])
         .output()
         .unwrap();
@@ -348,8 +295,7 @@ fn committed_response_schemas_match_runtime() {
         if cmd.is_empty() || cmd == "envelope" {
             continue;
         }
-        let runtime = Command::cargo_bin("xr")
-            .unwrap()
+        let runtime = common::xr()
             .args(["schema", cmd, "--output", "json"])
             .output()
             .unwrap();
@@ -375,8 +321,7 @@ fn committed_response_schemas_match_runtime() {
 fn committed_response_schemas_have_no_orphans() {
     // The generator only writes files for commands in SCHEMA_ENTRIES; a
     // command removed from the list leaves its committed schema behind.
-    let list = Command::cargo_bin("xr")
-        .unwrap()
+    let list = common::xr()
         .args(["schema", "--list", "--output", "text"])
         .output()
         .unwrap();
@@ -408,16 +353,8 @@ fn committed_response_schemas_have_no_orphans() {
 #[test]
 fn schema_commands_sharing_type_produce_identical_output() {
     // post, reply, quote, read should all return the same schema
-    let post = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "post"])
-        .output()
-        .unwrap();
-    let reply = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["schema", "reply"])
-        .output()
-        .unwrap();
+    let post = common::xr().args(["schema", "post"]).output().unwrap();
+    let reply = common::xr().args(["schema", "reply"]).output().unwrap();
     assert_eq!(
         post.stdout, reply.stdout,
         "post and reply should share the same schema"
