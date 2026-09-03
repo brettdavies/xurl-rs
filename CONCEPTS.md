@@ -54,4 +54,41 @@ broke the command surface.
 The test-suite gate that compares each typed response's declared fields against the corresponding schema in the vendored
 spec, failing when the spec renamed or removed a field the hand-written types still declare. Direction is struct→spec
 only: new upstream fields never fail the gate, since forward compatibility is handled by the types' unknown-field
-capture. Documented divergences from a buggy upstream spec are carried on an explicit allowlist with reasons.
+capture. Documented divergences from a buggy upstream spec are carried on an explicit allowlist with reasons. It cannot
+see the spec itself diverging from what the API sends on the wire; that is the live smoke gate's job.
+
+## Credential store and test isolation
+
+### Token store
+
+The per-machine credential file the CLI reads and writes: a set of registered apps, each holding its client credentials
+and any OAuth1, per-user OAuth2, or bearer tokens, plus the name of the default app. One store backs a run. The binary
+resolves it under the home directory unless the operator names another file through the supported variable; library
+callers pass the path explicitly.
+
+Loading an up-to-date store never rewrites it: credentials supplied through the environment are backfilled in memory and
+reach disk only on the next explicit save. Only converting a legacy-format file writes during load. Every sibling file
+the auth flow needs, such as the headless OAuth2 pending state, derives its path from the store's path.
+
+### Spawn seam
+
+The single door through which the test suite runs the built binary. It strips every configuration variable of its own
+that the binary reads from the inherited environment, leaving the home directory alone, and points the token store at a
+path the child cannot write, unless the test supplies its own temporary store, so a spawn that never asked for a store
+fails loudly rather than reaching a shared or real file.
+
+### Store isolation guard
+
+The test-suite gate that fails when any test resolves the real token store or spawns the binary outside the spawn seam.
+It scans test sources and inline test modules for the idioms that reach the home directory or spawn raw, attributes each
+hit to its test, and permits only tests named on an allowlist with a stated reason; a companion check fails when an
+allowlisted test no longer exists. The idiom list is a denylist that grows one idiom at a time, each addition proven red
+before it counts.
+
+### Live smoke gate
+
+The release-preflight check that reads one post and one user from the live API with the operator's real login and fails
+when a typed field reads back empty, a legacy field name appears, or a value lands in the unknown-field bucket. It is
+the only check that can see the vendored spec naming a field the API does not send. It never runs under the default
+suite, refuses without an explicit opt-in because each run spends paid reads, and is the named exception the store
+isolation guard permits.
