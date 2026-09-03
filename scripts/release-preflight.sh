@@ -115,8 +115,8 @@ seed_smoke_store() {
     prod_cid=$(read_1p "X App - Bird (prod)" oauth2_client_id)
     prod_csec=$(read_1p "X App - Bird (prod)" oauth2_client_secret)
 
-    HOME="$SMOKE_HOME" "$XR_BIN" auth apps add bird_dev  --client-id "$dev_cid"  --client-secret "$dev_csec"  >/dev/null
-    HOME="$SMOKE_HOME" "$XR_BIN" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
+    XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" auth apps add bird_dev  --client-id "$dev_cid"  --client-secret "$dev_csec"  >/dev/null
+    XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
 
     local dev_bearer prod_bearer dev_ck dev_cs dev_at dev_ts
     dev_bearer=$(read_1p "X App - Bird (dev)" credential)
@@ -126,9 +126,9 @@ seed_smoke_store() {
     dev_at=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN")
     dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
-    HOME="$SMOKE_HOME" "$XR_BIN" auth app    --bearer-token "$dev_bearer"  --app bird_dev  >/dev/null
-    HOME="$SMOKE_HOME" "$XR_BIN" auth app    --bearer-token "$prod_bearer" --app bird_prod >/dev/null
-    HOME="$SMOKE_HOME" "$XR_BIN" auth oauth1 \
+    XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" auth app    --bearer-token "$dev_bearer"  --app bird_dev  >/dev/null
+    XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" auth app    --bearer-token "$prod_bearer" --app bird_prod >/dev/null
+    XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" auth oauth1 \
         --consumer-key "$dev_ck" --consumer-secret "$dev_cs" \
         --access-token "$dev_at" --token-secret "$dev_ts" \
         --app bird_dev >/dev/null
@@ -183,8 +183,8 @@ gate_api_contract() {
         if (cd "$tmpdir/prev" && cargo build --release --bin xr >/dev/null 2>&1); then
             local empty
             empty=$(mktemp -d)
-            HOME=$empty "$tmpdir/prev/target/release/xr" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u > "$tmpdir/prev-cmds.txt"
-            HOME=$empty "$XR_BIN" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u > "$tmpdir/head-cmds.txt"
+            XURL_TOKEN_STORE="$empty/.xurl" "$tmpdir/prev/target/release/xr" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u > "$tmpdir/prev-cmds.txt"
+            XURL_TOKEN_STORE="$empty/.xurl" "$XR_BIN" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u > "$tmpdir/head-cmds.txt"
             local removed added
             removed=$(comm -23 "$tmpdir/prev-cmds.txt" "$tmpdir/head-cmds.txt" | tr '\n' ' ' | sed 's/ $//')
             added=$(comm -13 "$tmpdir/prev-cmds.txt" "$tmpdir/head-cmds.txt" | tr '\n' ' ' | sed 's/ $//')
@@ -223,7 +223,7 @@ gate_smoke() {
     local out
 
     # OAuth1
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
     [[ -n "$out" ]] && gate_pass "OAuth1 whoami (HMAC-SHA1) → $out" || gate_fail "OAuth1 whoami" "no username returned"
 
     # OAuth2 PKCE — needs human
@@ -234,7 +234,7 @@ gate_smoke() {
     local app_bearer empty
     app_bearer=$(read_1p "X App - Bird (dev)" credential)
     empty=$(mktemp -d)
-    out=$(HOME=$empty XURL_BEARER_TOKEN="$app_bearer" "$XR_BIN" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
+    out=$(XURL_TOKEN_STORE="$empty/.xurl" XURL_BEARER_TOKEN="$app_bearer" "$XR_BIN" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
     unset app_bearer
     [[ "$out" == "true" ]] && gate_pass "Bearer env one-shot" || gate_fail "Bearer env" "no data"
     # $empty only saw XURL_BEARER_TOKEN as env, never written to disk — but
@@ -242,7 +242,7 @@ gate_smoke() {
     shred_tmpdir "$empty"
 
     # Bearer stored
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
     [[ "$out" == "true" ]] && gate_pass "Bearer stored (per-app)" || gate_fail "Bearer stored" "no data"
 
     # Typed wire vocabulary. The compiled test binary runs directly so the
@@ -252,14 +252,14 @@ gate_smoke() {
     live_exe=$(cargo test --test live_smoke --no-run --message-format=json 2>/dev/null \
         | jaq -r 'select(.executable != null) | .executable' | tail -n 1 || true)
     if [[ -x "$live_exe" ]] \
-        && out=$(HOME="$SMOKE_HOME" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev "$live_exe" --ignored 2>&1); then
+        && out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev "$live_exe" --ignored 2>&1); then
         gate_pass "Typed wire vocabulary (one post read + one user read deserialize into the 3.x types)"
     else
         gate_fail "Typed wire vocabulary" "$(printf '%s\n' "$out" | grep -m1 -E 'panicked|error' || printf '%s' "$out" | tail -n 3)"
     fi
 
     # Media upload
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" media upload tests/fixtures/media/smoke-test.jpg \
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" media upload tests/fixtures/media/smoke-test.jpg \
         --media-type image/jpeg --category tweet_image --wait \
         --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
     [[ -n "$out" ]] && gate_pass "Media upload (chunked INIT/APPEND/FINALIZE) → media_id=$out" || gate_fail "Media upload" "no media_id"
@@ -269,19 +269,19 @@ gate_smoke() {
 
     # Error envelopes — xr exits non-zero by design here; `|| true` keeps `set -e` happy
     local envelope
-    envelope=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --auth app --app bird_dev --output json 2>&1 || true)
+    envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --auth app --app bird_dev --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
     [[ "$envelope" == "auth-method-mismatch" ]] && gate_pass "auth-method-mismatch envelope (exit 2)" || gate_fail "auth-method-mismatch" "got reason='$envelope'"
 
     cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
     yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$SMOKE_HOME/.xurl"
-    envelope=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_prod --output json 2>&1 || true)
+    envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
     [[ "$envelope" == "auth-method-mismatch" ]] && gate_pass "empty-intersection envelope (exit 2)" || gate_fail "empty-intersection" "got reason='$envelope'"
     mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
 
     yq -i '.default_app = "default"' "$SMOKE_HOME/.xurl"
-    envelope=$(HOME="$SMOKE_HOME" "$XR_BIN" search "x" --max-results 1 --output json 2>&1 || true)
+    envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "x" --max-results 1 --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.other_apps_with_creds // [] | length' 2>/dev/null || echo 0)
     yq -i '.default_app = "bird_dev"' "$SMOKE_HOME/.xurl"
     [[ "$envelope" -gt 0 ]] 2>/dev/null && gate_pass "wrong-app envelope ($envelope other_apps_with_creds)" || gate_fail "wrong-app" "no other_apps_with_creds in envelope"
@@ -298,17 +298,17 @@ gate_multi_app() {
     local out
 
     # OAuth1 isolation
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_dev --auth oauth1 --output json 2>&1 | jaq -r '.data.username // ""')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_dev --auth oauth1 --output json 2>&1 | jaq -r '.data.username // ""')
     [[ -n "$out" ]] && gate_pass "OAuth1 routes to bird_dev → $out" || gate_fail "OAuth1 bird_dev" "no username"
 
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
     out=$(printf '%s' "$out" | jaq -r '.reason // ""' 2>/dev/null || true)
     [[ "$out" == "auth-required" ]] && gate_pass "OAuth1 isolated (bird_prod has none → auth-required)" || gate_fail "OAuth1 isolation" "expected auth-required, got '$out'"
 
     # Bearer isolation
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
     [[ "$out" == "true" ]] && gate_pass "Bearer routes to bird_dev" || gate_fail "Bearer bird_dev" "no data"
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_prod --output json 2>&1 | jaq -c '.data | length > 0')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_prod --output json 2>&1 | jaq -c '.data | length > 0')
     [[ "$out" == "true" ]] && gate_pass "Bearer routes to bird_prod" || gate_fail "Bearer bird_prod" "no data"
 
     # OAuth2 sideload structural isolation
@@ -318,7 +318,7 @@ gate_multi_app() {
     # Auto-detect with --app NAME
     cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
     yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$SMOKE_HOME/.xurl"
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
     mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
     [[ -n "$out" ]] && gate_pass "Auto-detect falls through OAuth2→OAuth1 when OAuth2 absent → $out" || gate_fail "Auto-detect fallthrough" "no username"
 
@@ -334,16 +334,16 @@ gate_multi_app() {
     dev_at=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN")
     dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
-    HOME="$fresh" "$XR_BIN" auth apps add bird_dev  --client-id "$dev_cid"  --client-secret "$dev_csec"  >/dev/null
-    HOME="$fresh" "$XR_BIN" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
+    XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth apps add bird_dev  --client-id "$dev_cid"  --client-secret "$dev_csec"  >/dev/null
+    XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
     local before after
     before=$(yq '.default_app' "$fresh/.xurl")
-    HOME="$fresh" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_dev >/dev/null
+    XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_dev >/dev/null
     after=$(yq '.default_app' "$fresh/.xurl")
     [[ "$before" == "default" && "$after" == "bird_dev" ]] && gate_pass "First-signed-in auto-default ($before → $after)" || gate_fail "Auto-default" "$before → $after"
 
     # Promotion idempotence
-    HOME="$fresh" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_prod >/dev/null
+    XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_prod >/dev/null
     after=$(yq '.default_app' "$fresh/.xurl")
     [[ "$after" == "bird_dev" ]] && gate_pass "Promotion idempotence (second sign-in did not overwrite default)" || gate_fail "Idempotence" "default became $after"
     unset dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
@@ -351,7 +351,7 @@ gate_multi_app() {
     shred_tmpdir "$fresh"
 
     # Auth-error envelope vs upstream 401
-    out=$(HOME="$SMOKE_HOME" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
+    out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
     out=$(printf '%s' "$out" | jaq -r '.message // ""' 2>/dev/null || true)
     [[ "$out" == *"TokenNotFound"* ]] && gate_pass "Auth-error envelope surfaces TokenNotFound (not raw upstream 401)" || gate_fail "Auth-error envelope" "got '$out'"
 }
