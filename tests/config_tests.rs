@@ -170,6 +170,7 @@ fn test_from_overrides_carries_every_supplied_value() {
         bearer_token: None,
         output: None,
         home: None,
+        token_store: None,
     });
 
     assert_eq!(cfg.client_id, "CID");

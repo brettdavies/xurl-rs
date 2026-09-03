@@ -104,6 +104,12 @@ pub struct EnvOverrides {
     /// without redirecting a core system variable for the whole process.
     /// Consumed by [`crate::skill_install`] rather than by [`Config`].
     pub home: Option<String>,
+    /// `XURL_TOKEN_STORE` — path of the token-store file the binary uses in
+    /// place of `~/.xurl`. The OAuth2 pending state sits beside it.
+    ///
+    /// Consumed by [`crate::cli::runner::run`] rather than by [`Config`]; the
+    /// explicit-path entrypoints ignore it.
+    pub token_store: Option<String>,
 }
 
 impl EnvOverrides {
@@ -125,6 +131,7 @@ impl EnvOverrides {
             bearer_token: std::env::var("XURL_BEARER_TOKEN").ok(),
             output: std::env::var("XURL_OUTPUT").ok(),
             home: std::env::var("HOME").ok(),
+            token_store: std::env::var("XURL_TOKEN_STORE").ok(),
         }
     }
 }
@@ -213,7 +220,7 @@ impl Config {
     /// Returns the legacy default token-store path: `~/.xurl`.
     ///
     /// Falls back to `./.xurl` when the home directory cannot be resolved.
-    /// This is the canonical legacy path resolver — the binary uses it; tests
+    /// This is the canonical legacy path resolver — the binary uses it when `XURL_TOKEN_STORE` is unset; tests
     /// pass explicit tempdir paths to `Auth::new_with_store_path` instead.
     #[must_use]
     pub fn default_store_path() -> std::path::PathBuf {

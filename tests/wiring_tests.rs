@@ -56,7 +56,7 @@ fn test_json_output_error_format() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["whoami", "--output", "json"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("CLIENT_ID")
         .env_remove("CLIENT_SECRET")
         .output()
@@ -125,14 +125,14 @@ fn test_no_color_env_strips_ansi() {
 fn test_xurl_output_env_sets_json_format() {
     // XURL_OUTPUT=json should make auth status output JSON.
     // The status renderer emits a JSON array of per-app entries
-    // (`print_response`); on a fresh `$HOME` the store seeds a `"default"`
+    // (`print_response`); a fresh store seeds a `"default"`
     // placeholder app, so the array carries one entry.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "status"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env("XURL_OUTPUT", "json")
         .env_remove("REDIRECT_URI")
         .output()
@@ -224,7 +224,7 @@ fn test_no_interactive_blocks_auth_default_picker() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "default", "--no-interactive"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .output()
         .unwrap();
 
@@ -261,7 +261,7 @@ fn test_exit_code_auth_required_is_77() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["whoami"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("CLIENT_ID")
         .env_remove("CLIENT_SECRET")
         .output()
@@ -283,7 +283,7 @@ fn test_exit_code_json_error_includes_code() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["whoami", "--output", "json"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("CLIENT_ID")
         .env_remove("CLIENT_SECRET")
         .output()
@@ -309,7 +309,7 @@ fn test_json_quiet_combined() {
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "status", "--output", "json", "--quiet"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
@@ -339,7 +339,7 @@ fn test_all_agentic_flags_wired_correctly() {
             "--timeout",
             "5",
         ])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
@@ -356,13 +356,13 @@ fn test_all_agentic_flags_wired_correctly() {
 #[test]
 fn test_auth_status_json_output() {
     // `xurl auth status --output json` emits a JSON array of per-app
-    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
+    // entries. A fresh store seeds a `"default"` placeholder.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "status", "--output", "json"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
@@ -380,13 +380,13 @@ fn test_auth_status_json_output() {
 #[test]
 fn test_auth_apps_list_json_output() {
     // `xurl auth apps list --output json` emits a JSON array of per-app
-    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
+    // entries. A fresh store seeds a `"default"` placeholder.
     let tmp = TempDir::new().unwrap();
 
     let output = Command::cargo_bin("xr")
         .unwrap()
         .args(["auth", "apps", "list", "--output", "json"])
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
@@ -398,5 +398,41 @@ fn test_auth_apps_list_json_output() {
     assert!(
         arr.iter().any(|e| e["name"] == "default"),
         "expected the default placeholder app: {stdout}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// XURL_TOKEN_STORE environment variable
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_xurl_token_store_env_selects_store_file() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join("store.yaml");
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args([
+            "auth",
+            "apps",
+            "add",
+            "probe",
+            "--client-id",
+            "id",
+            "--client-secret",
+            "secret",
+        ])
+        .env("XURL_TOKEN_STORE", &store)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let saved = std::fs::read_to_string(&store).unwrap();
+    assert!(
+        saved.contains("probe"),
+        "the store named by XURL_TOKEN_STORE must hold the app: {saved}"
     );
 }
