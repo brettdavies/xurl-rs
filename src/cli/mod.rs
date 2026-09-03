@@ -61,7 +61,15 @@ ENVIRONMENT VARIABLES:
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
+  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
+  CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
+  CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value
   REDIRECT_URI           OAuth2 redirect URI override for the active app
+  AUTH_URL               OAuth2 authorization endpoint override
+  TOKEN_URL              OAuth2 token exchange endpoint override
+  API_BASE_URL           API origin every request is built against
+  INFO_URL               User-info endpoint override; derived from API_BASE_URL when unset
 
 Flags override env vars when both are set. NO_COLOR=1 always wins over
 --color/XURL_COLOR (https://no-color.org). --no-pager is a documented
