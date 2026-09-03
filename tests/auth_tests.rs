@@ -34,6 +34,13 @@ fn test_config() -> Config {
     cfg
 }
 
+/// Builds an `Auth` on the temp-dir store it will carry, so construction never
+/// resolves the real `~/.xurl`.
+fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
+    let store_path = token_store.file_path.clone();
+    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+}
+
 fn empty_config() -> Config {
     let mut cfg = Config::new();
     cfg.client_id = String::new();
@@ -78,7 +85,8 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
 #[test]
 fn test_new_auth() {
     let cfg = test_config();
-    let auth = Auth::new(&cfg);
+    let (token_store, _tmp) = create_temp_token_store();
+    let auth = auth_for(&cfg, token_store);
 
     // token_store() now returns &TokenStore directly (always valid)
     let _ = auth.token_store();
@@ -89,7 +97,8 @@ fn test_new_auth() {
 #[test]
 fn test_with_token_store() {
     let cfg = test_config();
-    let auth = Auth::new(&cfg);
+    let tmp = TempDir::new().expect("temp dir");
+    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"));
 
     let (token_store, _tmp) = create_temp_token_store();
     let new_auth = auth.with_token_store(token_store);
@@ -102,9 +111,8 @@ fn test_with_token_store() {
 #[test]
 fn test_bearer_token_no_token() {
     let cfg = empty_config();
-    let auth = Auth::new(&cfg);
     let (token_store, _tmp) = create_temp_token_store();
-    let auth = auth.with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
 
     // Test with no bearer token
     let result = auth.get_bearer_token_header();
@@ -117,14 +125,13 @@ fn test_bearer_token_no_token() {
 #[test]
 fn test_bearer_token_with_token() {
     let cfg = empty_config();
-    let auth = Auth::new(&cfg);
     let (mut token_store, _tmp) = create_temp_token_store();
 
     token_store
         .save_bearer_token("test-bearer-token")
         .expect("Failed to save bearer token");
 
-    let auth = auth.with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
 
     let header = auth
         .get_bearer_token_header()
@@ -220,7 +227,7 @@ fn test_env_vars_take_priority_over_store() {
     let mut cfg = empty_config();
     cfg.client_id = "env-id".to_string();
     cfg.client_secret = "env-secret".to_string();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
     assert_eq!(auth.client_id(), "env-id");
     assert_eq!(auth.client_secret(), "env-secret");
 }
@@ -251,7 +258,7 @@ fn test_with_app_name() {
         .unwrap();
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     // Initially no app override
     assert!(auth.client_id().is_empty());
@@ -267,7 +274,7 @@ fn test_with_app_name_nonexistent() {
     let (token_store, _tmp) = create_temp_token_store();
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     // Setting a nonexistent app name should not panic
     auth.with_app_name("doesnt-exist");
@@ -281,7 +288,7 @@ fn test_oauth1_header_no_token_fails() {
     let (token_store, _tmp) = create_temp_token_store();
 
     let cfg = empty_config();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
 
     // No OAuth1 token — should fail
     let result = auth.get_oauth1_header("GET", "https://api.x.com/2/users/me", None);
@@ -297,7 +304,7 @@ fn test_oauth1_header_with_token_succeeds() {
         .unwrap();
 
     let cfg = empty_config();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
 
     let header = auth
         .get_oauth1_header("GET", "https://api.x.com/2/users/me", None)
@@ -362,7 +369,7 @@ fn test_oauth1_header_format() {
         .unwrap();
 
     let cfg = empty_config();
-    let auth = Auth::new(&cfg).with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
 
     let header = auth
         .get_oauth1_header("POST", "https://api.x.com/2/tweets", None)
@@ -655,7 +662,7 @@ fn get_bearer_token_header_reads_real_env() {
     unsafe {
         std::env::set_var("XURL_BEARER_TOKEN", "integration-env-bearer");
     }
-    let auth = Auth::new(&cfg).with_token_store(token_store);
+    let auth = auth_for(&cfg, token_store);
     let header_with_env = auth.get_bearer_token_header();
     unsafe {
         std::env::remove_var("XURL_BEARER_TOKEN");
@@ -712,7 +719,7 @@ fn with_app_name_loads_new_app_client_id_when_no_env() {
     // "bird-id", not silently retained as "default-id".
     let cfg = empty_config();
     let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     assert_eq!(
         auth.client_id(),
@@ -732,7 +739,7 @@ fn with_app_name_loads_new_app_client_id_when_no_env() {
 fn with_app_name_loads_new_app_client_secret_when_no_env() {
     let cfg = empty_config();
     let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     auth.with_app_name("bird-dev");
     assert_eq!(auth.client_secret(), "bird-id-secret");
@@ -749,7 +756,7 @@ fn with_app_name_preserves_env_supplied_client_id_across_switches() {
     cfg.client_secret = "secret-from-env".to_string();
 
     let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     assert_eq!(auth.client_id(), "from-env");
     assert_eq!(auth.client_secret(), "secret-from-env");
@@ -774,7 +781,7 @@ fn with_app_name_back_to_default_re_resolves_from_default_app() {
     // "if empty" check. The fix re-resolves correctly.
     let cfg = empty_config();
     let (token_store, _tmp) = token_store_with_two_apps("default-id", "bird-dev", "bird-id");
-    let mut auth = Auth::new(&cfg).with_token_store(token_store);
+    let mut auth = auth_for(&cfg, token_store);
 
     auth.with_app_name("bird-dev");
     assert_eq!(auth.client_id(), "bird-id");
@@ -823,7 +830,7 @@ fn refresh_finds_named_app_token_when_active_app_set() {
     // path resolving lookups to the default app and missing the bird-dev
     // token entirely.
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("bird-dev");
 
     let token =
@@ -848,7 +855,7 @@ fn refresh_finds_first_token_in_named_app_when_username_empty() {
         .expect("save");
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("bird-dev");
 
     // Empty username = "use the first token in the active app". The fix
@@ -873,7 +880,7 @@ fn refresh_falls_back_to_unnamed_slot_within_active_app() {
         .expect("save unnamed");
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("bird-dev");
 
     let token = refresh_oauth2_token(&mut auth, "").expect("refresh must fall back to unnamed");
@@ -948,7 +955,7 @@ fn oauth1_header_routes_to_active_app() {
         .unwrap();
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("alpha");
 
     // OAuth1 header construction reaches into the active app's stored
@@ -972,7 +979,7 @@ fn oauth1_header_errors_when_active_app_has_no_token() {
     store.add_app("alpha", "a-id", "a-secret").unwrap();
     // alpha has no OAuth1 tokens; default also has none. Active app is alpha.
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("alpha");
 
     let err = auth
@@ -997,7 +1004,7 @@ fn bearer_header_via_auth_routes_to_active_app() {
         .unwrap();
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
     auth.with_app_name("alpha");
     assert_eq!(
         auth.get_bearer_token_header().expect("alpha bearer"),
@@ -1027,7 +1034,7 @@ fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
         .unwrap();
 
     let cfg = empty_config();
-    let mut auth = Auth::new(&cfg).with_token_store(store);
+    let mut auth = auth_for(&cfg, store);
 
     auth.with_app_name("alpha");
     assert_eq!(

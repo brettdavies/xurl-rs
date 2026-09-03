@@ -148,6 +148,12 @@ cargo test -- --ignored       # slower / network-dependent tests
 scripts/hooks/pre-push        # full local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy)
 ```
 
+Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
+(`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`). `tests/store_isolation_guard.rs`
+fails the suite when a test file names `Auth::new(`, `TokenStore::new()`, `TokenStore::with_credentials(`,
+`default_store_path()`, `default_pending_path()`, or `dirs::home_dir()`; a test that must touch the real path goes on
+its allowlist with the reason.
+
 The pre-push hook mirrors CI 1:1. Run it before pushing if `core.hooksPath = scripts/hooks` is not set locally.
 
 ## Releasing

@@ -44,7 +44,8 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
 
 #[test]
 fn test_new_token_store() {
-    let store = TokenStore::new();
+    let tmp = TempDir::new().unwrap();
+    let store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
 
     assert!(!store.apps.is_empty(), "Expected non-nil Apps map");
     assert!(

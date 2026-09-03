@@ -103,6 +103,13 @@ impl TestServer {
 
 // ── Test helpers ───────────────────────────────────────────────────────
 
+/// Builds an `Auth` on the temp-dir store it will carry, so construction never
+/// resolves the real `~/.xurl`.
+fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
+    let store_path = token_store.file_path.clone();
+    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+}
+
 fn create_test_config(base_url: &str) -> Config {
     // `Config` has `pub(crate)` resolver fields that external callers cannot
     // name in a struct literal; start from `Config::new()` and assign the
@@ -122,8 +129,6 @@ fn create_test_config(base_url: &str) -> Config {
 
 fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
-
     let tmp = TempDir::new().expect("temp dir");
     let file_path = tmp.path().join(".xurl");
 
@@ -151,14 +156,12 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
         },
     );
 
-    let auth = auth.with_token_store(store);
+    let auth = auth_for(&cfg, store);
     (auth, tmp)
 }
 
 fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
-
     let tmp = TempDir::new().expect("temp dir");
     let file_path = tmp.path().join(".xurl");
 
@@ -191,14 +194,12 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
         },
     );
 
-    let auth = auth.with_token_store(store);
+    let auth = auth_for(&cfg, store);
     (auth, tmp)
 }
 
 fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
-
     let tmp = TempDir::new().expect("temp dir");
     let file_path = tmp.path().join(".xurl");
 
@@ -238,7 +239,7 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     );
     store.apps.insert("default".to_string(), app);
 
-    let auth = auth.with_token_store(store);
+    let auth = auth_for(&cfg, store);
     (auth, tmp)
 }
 
@@ -249,8 +250,6 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
 /// any given `(method, path)` — the intersection always resolves.
 fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
-
     let tmp = TempDir::new().expect("temp dir");
     let file_path = tmp.path().join(".xurl");
 
@@ -305,7 +304,7 @@ fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
     );
     store.apps.insert("default".to_string(), app);
 
-    let auth = auth.with_token_store(store);
+    let auth = auth_for(&cfg, store);
     (auth, tmp)
 }
 
@@ -2504,8 +2503,6 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
 
 fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
-
     let tmp = TempDir::new().expect("temp dir");
     let file_path = tmp.path().join(".xurl");
 
@@ -2527,7 +2524,7 @@ fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
             unnamed_oauth2_token: None,
         },
     );
-    let auth = auth.with_token_store(store);
+    let auth = auth_for(&cfg, store);
     (auth, tmp)
 }
 
@@ -2837,11 +2834,14 @@ fn u7_streaming_propagates_auth_resolution_errors() {
     // against a matrix-hit endpoint and must surface auth-required rather
     // than letting an unauthenticated request leak through.
     let tmp = TempDir::new().expect("temp dir");
-    let auth = Auth::new(&cfg).with_token_store(TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path: tmp.path().join(".xurl"),
-    });
+    let auth = auth_for(
+        &cfg,
+        TokenStore {
+            apps: BTreeMap::new(),
+            default_app: "default".to_string(),
+            file_path: tmp.path().join(".xurl"),
+        },
+    );
     let mut client = ApiClient::new(&cfg, auth);
 
     let mut stdout: Vec<u8> = Vec::new();
@@ -3043,11 +3043,14 @@ fn u7_no_stored_credentials_returns_auth_required() {
     let ts = TestServer::new();
     let cfg = create_test_config(ts.uri());
     let tmp = TempDir::new().expect("temp dir");
-    let auth = Auth::new(&cfg).with_token_store(TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path: tmp.path().join(".xurl"),
-    });
+    let auth = auth_for(
+        &cfg,
+        TokenStore {
+            apps: BTreeMap::new(),
+            default_app: "default".to_string(),
+            file_path: tmp.path().join(".xurl"),
+        },
+    );
     let mut client = ApiClient::new(&cfg, auth);
 
     let err = client
