@@ -6,6 +6,8 @@
 //! (`Auth::new_with_store_path`, `TokenStore::new_with_path`,
 //! `run_with_store_path`) are the seam; this guard keeps every test on it.
 //!
+//! A subprocess test sets `XURL_TOKEN_STORE` on the child instead of `HOME`.
+//!
 //! The allowlist names the tests that must touch the real path, with the
 //! reason. Adding an entry is a deliberate, reviewable act.
 
@@ -37,6 +39,7 @@ const PATTERNS: &[&str] = &[
     "default_store_path()",
     "default_pending_path()",
     "dirs::home_dir()",
+    ".env(\"HOME\"",
 ];
 
 /// Integration test files, plus library files that carry an inline test module.
@@ -107,7 +110,8 @@ fn tests_do_not_resolve_the_real_home_directory() {
         violations.is_empty(),
         "real home directory resolved in the test suite:\n  {}\n\n\
          Build the store or auth on a tempfile::TempDir path (`TokenStore::new_with_path`, \
-         `Auth::new_with_store_path`, `run_with_store_path`). If the test exists to exercise \
+         `Auth::new_with_store_path`, `run_with_store_path`); for a subprocess, set \
+         `XURL_TOKEN_STORE` on the child instead of `HOME`. If the test exists to exercise \
          the real path, add it to ALLOWLIST in this file with the reason.",
         violations.join("\n  ")
     );

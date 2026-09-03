@@ -398,6 +398,7 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
     let status = std::process::Command::new("bash")
         .arg(&script)
         .current_dir(root)
+        .stdin(std::process::Stdio::null())
         .status()
         .expect("spawn lint-stdio.sh");
     assert!(

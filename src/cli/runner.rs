@@ -7,7 +7,8 @@
 //!
 //! - [`run_argv`]: reads `std::env::args_os()` and uses real stdio. The binary
 //!   calls this from `main`.
-//! - [`run`]: takes args + writers; resolves the default token-store path.
+//! - [`run`]: takes args + writers; resolves the token-store path from
+//!   `XURL_TOKEN_STORE`, falling back to the default.
 //! - [`run_with_store_path`]: takes an explicit token-store path; resolves the
 //!   environment from the process.
 //! - [`run_with_overrides`]: the canonical implementation. Takes args, writers,
@@ -21,7 +22,7 @@
 
 use std::ffi::OsString;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
@@ -51,15 +52,20 @@ pub fn run_argv() -> i32 {
 
 /// Runs the `xr` CLI with caller-supplied args + writers.
 ///
-/// Resolves the default token-store path via [`Config::default_store_path`]
-/// and delegates to [`run_with_store_path`].
+/// Resolves the token-store path from `XURL_TOKEN_STORE`, falling back to
+/// [`Config::default_store_path`], and delegates to [`run_with_overrides`].
 pub fn run<I, S>(args: I, stdout: &mut dyn Write, stderr: &mut dyn Write) -> i32
 where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
-    let store_path = Config::default_store_path();
-    run_with_store_path(args, stdout, stderr, &store_path)
+    let overrides = crate::config::EnvOverrides::from_env();
+    let store_path = overrides
+        .token_store
+        .as_deref()
+        .filter(|p| !p.is_empty())
+        .map_or_else(Config::default_store_path, PathBuf::from);
+    run_with_overrides(args, stdout, stderr, &store_path, &overrides)
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
