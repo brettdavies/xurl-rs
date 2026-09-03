@@ -14,9 +14,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-# Strip line and block comments before searching. The Rust source files are
-# small enough that doing this with a one-pass awk avoids a separate
-# pre-processing step.
+# `src` is passed explicitly: with no path and a non-terminal stdin, rg
+# searches stdin instead of the tree and blocks until it closes.
 matches=$(
   rg \
     --glob 'src/**/*.rs' \
@@ -25,6 +24,7 @@ matches=$(
     --line-number \
     --pcre2 \
     '^(?!\s*///|\s*//!|\s*//|\s*\*).*\b(println|eprintln|print|eprint)!' \
+    src \
     || true
 )
 
