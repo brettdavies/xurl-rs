@@ -182,12 +182,12 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above, `xrs search "rust" --max-results 1
   --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` → expect `{"has_data":true}`.
 - [ ] **Typed wire vocabulary** (automatable): `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
-  reply post and one user through the library's typed structs and fails when a typed metric reads back zero, a legacy
+  media post and one user through the library's typed structs and fails when a typed metric reads back zero, a legacy
   key (`referenced_tweets`, `edit_history_tweet_ids`) appears on the post, or `tweet_count` lands in `extra` instead of
   `post_count`. This is the one gate that catches the vendored spec naming a field the wire does not send; the mocked
   suite validates against that same spec and cannot. Costs one post read and one user read. `XURL_APP=<app>` picks the
   store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
-  other reply or quote post if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
+  other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
   on the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
   --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**

@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn auto_detects_user_shape() {
         let v = serde_json::json!({
-            "data": {"id": "1", "username": "jack", "name": "jack"},
+            "data": {"id": "1", "username": "elonmusk", "name": "Elon Musk"},
         });
         let (code, stdout, _) = run(&v, None, OutputFormat::Json);
         assert_eq!(code, 0);
