@@ -43,7 +43,7 @@ scripts/release-preflight.sh all          # surface + api-contract + smoke + mul
 After `git push origin vX.Y.Z` triggers the release pipeline, run
 [`scripts/release-postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
 
-The script (`scripts/release-preflight.sh`) covers 30 of the 33 pre-tag gates. It exits non-zero if any gate fails;
+The script (`scripts/release-preflight.sh`) covers 31 of the 34 pre-tag gates. It exits non-zero if any gate fails;
 human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
 the recipe below. Sub-commands let you re-run one gate group in isolation:
 
@@ -51,7 +51,7 @@ the recipe below. Sub-commands let you re-run one gate group in isolation:
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
 | `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                                                                                    | no (builds prev tag once) |
-| `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                                                                                      | yes                       |
+| `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                    | yes                       |
 | `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                             | yes                       |
 | `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
 | `all`          | every above                                                                                                                                                                        | yes                       |
@@ -181,6 +181,14 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
 - [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above, `xrs search "rust" --max-results 1
   --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` → expect `{"has_data":true}`.
+- [ ] **Typed wire vocabulary** (automatable): `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
+  reply post and one user through the library's typed structs and fails when a typed metric reads back zero, a legacy
+  key (`referenced_tweets`, `edit_history_tweet_ids`) appears on the post, or `tweet_count` lands in `extra` instead of
+  `post_count`. This is the one gate that catches the vendored spec naming a field the wire does not send; the mocked
+  suite validates against that same spec and cannot. Costs one post read and one user read. `XURL_APP=<app>` picks the
+  store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
+  other reply or quote post if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
+  on the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
   --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**
   defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg --category
