@@ -9,6 +9,8 @@
 //! growing by accident. The binary's exit-code contract is pinned separately
 //! by `tests/binary_contract_tests.rs`.
 
+mod common;
+
 use std::path::Path;
 
 use tempfile::TempDir;
@@ -2815,15 +2817,7 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 #[test]
 fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
-        .env_remove("XURL_NO_BROWSER")
-        .env_remove("XURL_OUTPUT")
-        // Other tests in this binary set `XURL_DRY_RUN=1` to exercise the
-        // dry-run envelope; that env var leaks into the subprocess unless we
-        // clear it here, which would short-circuit U9's awaiting_callback
-        // path through the U7 dry-run branch.
-        .env_remove("XURL_DRY_RUN")
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "oauth2", "--no-browser", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2850,11 +2844,8 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 #[test]
 fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .env("XURL_NO_BROWSER", "1")
-        .env_remove("XURL_OUTPUT")
-        .env_remove("XURL_DRY_RUN")
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2878,11 +2869,7 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 #[test]
 fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
-        .env_remove("XURL_NO_BROWSER")
-        .env_remove("XURL_OUTPUT")
-        .env_remove("XURL_DRY_RUN")
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");
