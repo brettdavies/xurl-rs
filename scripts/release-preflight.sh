@@ -245,14 +245,9 @@ gate_smoke() {
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
     [[ "$out" == "true" ]] && gate_pass "Bearer stored (per-app)" || gate_fail "Bearer stored" "no data"
 
-    # Typed wire vocabulary. The compiled test binary runs directly so the
-    # HOME override reaches the token store without pointing cargo and rustup
-    # at the smoke home.
-    local live_exe
-    live_exe=$(cargo test --test live_smoke --no-run --message-format=json 2>/dev/null \
-        | jaq -r 'select(.executable != null) | .executable' | tail -n 1 || true)
-    if [[ -x "$live_exe" ]] \
-        && out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev "$live_exe" --ignored 2>&1); then
+    # Typed wire vocabulary
+    if out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev \
+        cargo test --test live_smoke -- --ignored 2>&1); then
         gate_pass "Typed wire vocabulary (one post read + one user read deserialize into the 3.x types)"
     else
         gate_fail "Typed wire vocabulary" "$(printf '%s\n' "$out" | grep -m1 -E 'panicked|error' || printf '%s' "$out" | tail -n 3)"
