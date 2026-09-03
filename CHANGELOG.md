@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-09-03
+
+### Added
+
+- Add `XURL_TOKEN_STORE=<path>` to point `xr` at a token-store file other than `~/.xurl`; the OAuth2 headless pending state follows it. by @brettdavies in [#119](https://github.com/brettdavies/xurl-rs/pull/119)
+
+### Fixed
+
+- Fix the token store rewriting `~/.xurl` on every load when `CLIENT_ID` is exported. Concurrent `xr` processes could race on the file and lose every stored app and token; backfilled credentials now persist on the next explicit save instead. by @brettdavies in [#117](https://github.com/brettdavies/xurl-rs/pull/117)
+- Fix the headless OAuth2 flow writing `.xurl.pending` under the home directory regardless of the token store in use. The pending state now sits beside the store.
+- Fix `UserPublicMetrics.post_count` reading 0 on live responses: X sends the field as `tweet_count`, and the typed field now accepts either key. `xr user` output carries the real value under `post_count` instead of a zero beside `tweet_count`. by @brettdavies in [#118](https://github.com/brettdavies/xurl-rs/pull/118)
+- Fix `xr --help` omitting `XURL_TOKEN_STORE`, `XURL_BEARER_TOKEN`, `CLIENT_ID`, `CLIENT_SECRET`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, and `INFO_URL`; the environment block now lists every variable `xr` reads with its precedence. by @brettdavies in [#121](https://github.com/brettdavies/xurl-rs/pull/121)
+
+### Documentation
+
+- Correct the v3.0.0 migration guide on user metrics: shortcut commands print the typed response with `post_count` filled from the `tweet_count` X sends, and raw `xr <URL>` calls still show `tweet_count`. by @brettdavies in [#118](https://github.com/brettdavies/xurl-rs/pull/118)
+
+**Full Changelog**: [v3.0.0...v3.1.0](https://github.com/brettdavies/xurl-rs/compare/v3.0.0...v3.1.0)
+
 ## [3.0.0] - 2026-09-02
 
 ### Added

@@ -43,13 +43,13 @@ POST AND READ:
     xr post \"Shipping today.\" --output json
 
   Reply to a post by ID:
-    xr reply 1234567890 \"Congrats!\"
+    xr reply 1585341984679469056 \"Congrats!\"
 
   Quote-post:
-    xr quote 1234567890 \"Worth a read.\" --output json
+    xr quote 1585341984679469056 \"Worth a read.\" --output json
 
   Read a single post and pipe to jaq:
-    xr read 1234567890 --output json | jaq '.data.text'
+    xr read 1585341984679469056 --output json | jaq '.data.text'
 
   Search recent posts:
     xr search \"rustlang\" -n 25
@@ -57,17 +57,17 @@ POST AND READ:
 
 MANAGE SOCIAL GRAPH:
   Look up a user:
-    xr user jack --output json
+    xr user elonmusk --output json
 
   Follow / unfollow:
-    xr follow @jack
-    xr unfollow @jack --output json
+    xr follow @elonmusk
+    xr unfollow @elonmusk --output json
 
   Like / unlike, repost / unrepost, bookmark / unbookmark:
-    xr like 1234567890
-    xr unlike 1234567890 --output json
-    xr repost 1234567890
-    xr bookmark 1234567890 --output json
+    xr like 1585341984679469056
+    xr unlike 1585341984679469056 --output json
+    xr repost 1585341984679469056
+    xr bookmark 1585341984679469056 --output json
 
   Mute (irreversible from CLI side without confirm):
     xr mute @noisy --output json
@@ -103,7 +103,7 @@ MEDIA UPLOAD:
     xr media upload ./clip.mp4 --wait --output json
 
   Check upload status:
-    xr media status 1234567890 --output json
+    xr media status 1585341984679469056 --output json
 
 RAW MODE (curl-style):
   Generic GET:

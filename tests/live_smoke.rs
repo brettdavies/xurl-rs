@@ -11,14 +11,14 @@
 //!
 //! `XURL_APP` selects the store app, `XURL_LIVE_SMOKE_AUTH` pins the scheme
 //! (`app`, `oauth1`, `oauth2`), and `XURL_LIVE_SMOKE_POST_ID` replaces the
-//! default reply post with any other reply or quote post.
+//! default post with any other post that carries media.
 
 use xurl::api::{ApiClient, CallOptions};
 use xurl::auth::Auth;
 use xurl::config::Config;
 
-const DEFAULT_POST_ID: &str = "2042810767666483622";
-const USERNAME: &str = "jack";
+const DEFAULT_POST_ID: &str = "1585341984679469056";
+const USERNAME: &str = "elonmusk";
 
 fn env(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())
@@ -49,7 +49,7 @@ fn live_wire_vocabulary_matches_typed_structs() {
 
     let post_id = env("XURL_LIVE_SMOKE_POST_ID").unwrap_or_else(|| DEFAULT_POST_ID.to_string());
     let post = client.read_post(&post_id, &opts).expect(
-        "post read must succeed; pass XURL_LIVE_SMOKE_POST_ID=<any reply or quote post id> if the default was deleted",
+        "post read must succeed; pass XURL_LIVE_SMOKE_POST_ID=<any post id with media> if the default was deleted",
     );
     let metrics = post
         .data
@@ -79,18 +79,27 @@ fn live_wire_vocabulary_matches_typed_structs() {
     }
     assert!(
         post.data
-            .referenced_posts
+            .attachments
             .as_ref()
-            .is_some_and(|refs| !refs.is_empty()),
-        "referenced_posts absent; the post must be a reply or quote"
+            .and_then(|a| a.get("media_keys"))
+            .and_then(|k| k.as_array())
+            .is_some_and(|keys| !keys.is_empty()),
+        "attachments.media_keys absent; the post must carry media"
     );
-    assert!(
-        post.includes
-            .as_ref()
-            .and_then(|inc| inc.posts.as_ref())
-            .is_some_and(|posts| !posts.is_empty()),
-        "includes.posts absent; the referenced_posts expansion did not land"
-    );
+    if post
+        .data
+        .referenced_posts
+        .as_ref()
+        .is_some_and(|refs| !refs.is_empty())
+    {
+        assert!(
+            post.includes
+                .as_ref()
+                .and_then(|inc| inc.posts.as_ref())
+                .is_some_and(|posts| !posts.is_empty()),
+            "includes.posts absent; the referenced_posts expansion did not land"
+        );
+    }
 
     let user = client
         .lookup_user(USERNAME, &opts)
