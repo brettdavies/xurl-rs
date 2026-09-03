@@ -285,16 +285,17 @@ gate_backport() {
     # operation ran, regardless of which files it included.
     # `gh pr list --search` is GitHub Search API syntax; "<text> in:title" silently
     # returns an empty result (verified against PR #68 = backport v2.0.0 release-only).
-    # Pass the version alone for server-side filtering, then jaq-filter the title for
-    # precision and sort by mergedAt descending so the BACKPORT PR beats the FEATURE
+    # Pass the tag for server-side filtering (the search index tokenizes `v3.0.0` as
+    # one word, so a bare `3.0.0` misses it), then jaq-filter the title for precision
+    # (`v?` accepts either spelling) and sort by mergedAt descending so the BACKPORT PR beats the FEATURE
     # PR when both carry the version in their titles (e.g., #56 was "feat(api)!: v2.0.0
     # — …" and #68 was "backport v2.0.0 …" — `--jq '.[0]'` without sort would have
     # grabbed #56 and falsely passed the gate).
     local pr=""
     pr=$(gh pr list --repo "$repo" --base dev --state merged --limit 20 \
-        --search "$version" \
+        --search "$tag" \
         --json number,title,mergedAt,headRefName \
-        --jq "[.[] | select(.title | test(\"$version\"))] | sort_by(.mergedAt) | reverse | .[0]" \
+        --jq "[.[] | select(.title | test(\"v?$version\"))] | sort_by(.mergedAt) | reverse | .[0]" \
         2>/dev/null || true)
     [[ "$pr" == "null" ]] && pr=""
 
