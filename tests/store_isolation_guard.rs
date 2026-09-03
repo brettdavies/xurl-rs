@@ -23,7 +23,11 @@ struct Allowed {
 }
 
 /// Every sanctioned real-home resolution in the suite.
-const ALLOWLIST: &[Allowed] = &[];
+const ALLOWLIST: &[Allowed] = &[Allowed {
+    file: "live_smoke.rs",
+    test: "live_client",
+    reason: "the release gate must read the operator's real login",
+}];
 
 /// Source patterns that resolve the real home directory.
 const PATTERNS: &[&str] = &[
