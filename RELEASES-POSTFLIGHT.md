@@ -69,12 +69,10 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **`cargo binstall xurl-rs`** (without `--version`) resolves to the new tag and installs the matching prebuilt
   binary. Confirms the GitHub Release asset layout (binary + completions + licenses, expected archive naming) matches
   binstall's asset-resolution rules. Drive on a clean container.
-- [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Per the documented
-  learning at `docs/solutions/workflow-issues/post-release-backport-prevents-diff-b-false-positives-2026-05-07.md`,
-  bring the release-only changes (CHANGELOG sections, generator config edits, README polish, RELEASES.md meta-edits —
-  whatever the release-branch flow touched on `main` that didn't round-trip to `dev`) across to `dev`. Keeps the next
-  release's PREFLIGHT `diff-B` step quiet so a real missed cherry-pick stands out instead of hiding in expected
-  divergence noise.
+- [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Bring the release-only
+  changes (CHANGELOG sections, generator config edits, README polish, RELEASES.md meta-edits — whatever the
+  release-branch flow touched on `main` that didn't round-trip to `dev`) across to `dev`. Keeps the next release's
+  PREFLIGHT `diff-B` step quiet so a real missed cherry-pick stands out instead of hiding in expected divergence noise.
 
   The gate (`scripts/release-postflight.sh backport`) is signal-agnostic about which files moved — it looks for the
   merged PR alone, since "which files" varies release-to-release. Branch-name convention is flexible
@@ -82,9 +80,10 @@ Run immediately after the tag push triggers `release.yml`.
   PR title.
 
   ```bash
-  git switch -c backport/v<X.Y.Z> origin/main      # or whatever naming convention you prefer
-  # ...any other release-only edits you want to backport...
-  gh pr create --base dev --title "backport v<X.Y.Z> release-only files from main"
+  git switch -c backport/v<X.Y.Z> origin/dev       # or whatever naming convention you prefer
+  git checkout origin/main -- Cargo.toml Cargo.lock CHANGELOG.md <other release-only files>
+  git commit --file /tmp/msg.md
+  gh pr create --base dev --title "backport v<X.Y.Z> release-only files from main" --body-file /tmp/body.md
   ```
 
 ## Related docs

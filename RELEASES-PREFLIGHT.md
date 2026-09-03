@@ -43,9 +43,9 @@ scripts/release-preflight.sh all          # surface + api-contract + smoke + mul
 After `git push origin vX.Y.Z` triggers the release pipeline, run
 [`scripts/release-postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
 
-The script (`scripts/release-preflight.sh`) covers 28 of the 31 automatable pre-tag gates. It exits non-zero if any gate
-fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a
-pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
+The script (`scripts/release-preflight.sh`) covers 30 of the 33 pre-tag gates. It exits non-zero if any gate fails;
+human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
+the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 | Sub-command    | What it runs                                                                                                                                                                       | Live API?                 |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
@@ -72,15 +72,14 @@ unavailable or you want to iterate on a single gate by hand.
 
 ### API-contract surface
 
-xurl-rs is a thin client over the live X API. The contract that ships is the union of the 29 shortcut commands, the
-generic `xr request` path, and the library re-exports in `src/lib.rs`.
+xurl-rs is a thin client over the live X API. The contract that ships is the union of the 27 shortcut commands (plus
+`usage credits`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the library re-exports in `src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
   Changed` (or `### Breaking changes`) bullet in the release changelog.
-- [ ] `xr schema` (typed response introspection, added in v1.1.0) still emits a parseable JSON shape; downstream agents
-  feature-detect from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a
-  breaking row.
+- [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
+  from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
 - [ ] Public library surface (`xurl_rs::*`): run `cargo public-api diff` if available, or `git diff "$LAST_TAG..dev" --
   src/lib.rs src/api/mod.rs` and confirm every removed / renamed export is captured as a breaking row. Library consumers
   feature-detect on type names.
@@ -103,7 +102,7 @@ alias xrs="HOME=$SMOKE_HOME ./target/release/xr"
 #                                   -> "OAuth2 (bird_dev app).X_API_OAUTH2_USER_ACCESS_TOKEN" + REFRESH_TOKEN
 #                                   -> "OAuth2 (bird_prod app).X_API_OAUTH2_USER_ACCESS_TOKEN" + REFRESH_TOKEN
 
-# Register two apps (replace stub values with 1P reads via scripts/read_field.sh).
+# Register two apps (replace stub values with 1P reads via ~/.claude/skills/1password/scripts/read_field.sh).
 xrs auth apps add bird_dev  --client-id "$DEV_CID"  --client-secret "$DEV_CSEC"
 xrs auth apps add bird_prod --client-id "$PROD_CID" --client-secret "$PROD_CSEC"
 
@@ -172,12 +171,11 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   silently CREATES a stub entry while the real tokens stay under the correct key, and xr's auto-refresh then finds the
   stub (or the wrong entry first via `default_user`) and dies with `RefreshTokenError: no access_token in response` or
   falls back to a fresh PKCE attempt with `client_id=` (empty in the URL — the fallback misses the `--app NAME`
-  threading). This looks like a v2.0.0 bug but is just the case-sensitivity tripwire.
+  threading). This looks like a bug but is just the case-sensitivity tripwire.
 
 - [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine — `--no-browser` auto-engages
-  when stdout isn't a TTY (the headless auto-engage shipped in v1.3.0). The two-step ceremony is the same; passing
-  `--no-browser` explicitly is the only difference. The recipe above already uses `--no-browser`, so it satisfies both
-  gates in one run.
+  when stdout isn't a TTY. The two-step ceremony is the same; passing `--no-browser` explicitly is the only difference.
+  The recipe above already uses `--no-browser`, so it satisfies both gates in one run.
 - [ ] **Bearer token (env var, one-shot)** (automatable): with an empty `$HOME`, run `HOME=$(mktemp -d)
   XURL_BEARER_TOKEN=$(read_field 'X App - Bird (dev)' credential) xr search "rust" --max-results 1 --auth app`. Confirms
   `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
@@ -189,10 +187,10 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   tweet_image` or the API returns `invalid-args`. Small images return no `processing_info` (set immediately) — `state`
   is `n/a`, presence of `media_id` is the success signal.
 - [ ] **Output formats** (partially automatable): `--output text`, `--output json`, `--output jsonl` for one
-  non-streaming endpoint (e.g. `xr search`). **Known v2.0.0 behavior:** for non-streaming endpoints, `text` and `jsonl`
-  both produce the same pretty-printed JSON as `json`. The jsonl-per-line semantic is only meaningful on streaming
-  endpoints (`/2/tweets/search/stream`, `/2/tweets/sample/stream`, `/2/tweets/firehose/*`), which require elevated X API
-  access and aren't exercisable on a dev account.
+  non-streaming endpoint (e.g. `xr search`). **Known behavior:** for non-streaming endpoints, `text` and `jsonl` both
+  produce the same pretty-printed JSON as `json`. The jsonl-per-line semantic is only meaningful on streaming endpoints
+  (`/2/tweets/search/stream`, `/2/tweets/sample/stream`, `/2/tweets/firehose/*`), which require elevated X API access
+  and aren't exercisable on a dev account.
 - [ ] **Error paths** (automatable): three envelope shapes plus an upstream propagation. All produce structured JSON
   under `--output json`:
 - **`auth-method-mismatch` (exit 2)**: `xrs whoami --auth app --app bird_dev` — Bearer rejected at `/2/users/me`.
@@ -208,20 +206,19 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   **429 (rate limited)** is hard to trigger reliably without burning quota; skip unless a specific regression suspicion
   motivates it.
 
-**v2.0.0 design observation worth noting (not a regression):** when an app has multiple stored methods and the preferred
-one fails its refresh (e.g. expired OAuth2), auto-detect does NOT fall back to the next-preferred. Method selection is
-at request-construction time; refresh failure is treated as an auth-error for the chosen method. `xrs whoami --app
+**Design observation (not a regression):** when an app has multiple stored methods and the preferred one fails its
+refresh (e.g. expired OAuth2), auto-detect does NOT fall back to the next-preferred. Method selection is at
+request-construction time; refresh failure is treated as an auth-error for the chosen method. `xrs whoami --app
 bird_dev` with stale OAuth2 + valid OAuth1 returns `auth-required` rather than retrying with OAuth1. The intersection IS
 rechecked when OAuth2 is absent from the store; the gap is specifically refresh-time failures.
 
 ### Multi-app credential routing
 
-Auth methods exist on `Auth` as `--app NAME`-aware reads and writes. The legacy code paths used the store's no-arg
-accessors, which fell back to the default app and silently bypassed NAME's credentials; the v1.3.0 multi-app credential
-routing fix scoped every read and write to the active app. These gates verify the routing stays correct across OAuth1,
-OAuth2, and bearer, and that the auto-default UX still fires on the first signed-in app. Each gate needs at least two
-registered apps to exercise the cross-app path; the `bird_dev` + `bird_prod` entries in 1Password are the canonical
-substitutes for `alpha` / `beta`.
+Auth methods exist on `Auth` as `--app NAME`-aware reads and writes: every read and write is scoped to the active app,
+and the store's no-arg accessors, which fall back to the default app, are not on the `--app NAME` paths. These gates
+verify the routing stays correct across OAuth1, OAuth2, and bearer, and that the auto-default UX still fires on the
+first signed-in app. Each gate needs at least two registered apps to exercise the cross-app path; the `bird_dev` +
+`bird_prod` entries in 1Password are the canonical substitutes for `alpha` / `beta`.
 
 All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat` `$SMOKE_HOME/.xurl`**
 — use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. | path' ...` for
@@ -302,11 +299,12 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   ```
 
 - [ ] **Every doc this release adds to `main` is meant to ship.** The leak check screens against the registered set, so
-  it cannot flag a category nobody registered yet. Enumerate the additions and read them; an entry that should not ship
-  gets registered in the workflow's `extra_paths` and removed from the branch.
+  it cannot flag a category nobody registered yet. Enumerate the additions under `docs/` and every added markdown file
+  anywhere, and read them; an entry that should not ship gets registered in the workflow's `extra_paths` and removed
+  from the branch.
 
   ```bash
-  git diff origin/main..HEAD --diff-filter=A --name-only | grep '^docs/' | grep -Ev "$GUARDED" || echo "(none unguarded)"
+  git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
   ```
 
 - [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped `Cargo.toml` version.

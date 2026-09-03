@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-09-02
+
+### Added
+
+- Add `xr usage credits`, a typed shortcut for the new `/2/usage/credits` endpoint; bare `xr usage` keeps reading `/2/usage/tweets`. by @brettdavies in [#108](https://github.com/brettdavies/xurl-rs/pull/108)
+
+### Changed
+
+- Change typed JSON output to the X API 2.168 post vocabulary: `referenced_posts`, `public_metrics.repost_count`, and `includes.posts` on post responses, `public_metrics.post_count` on user responses (breaking). by @brettdavies in [#108](https://github.com/brettdavies/xurl-rs/pull/108)
+- Change library response types `Tweet`, `TweetPublicMetrics`, and `ReferencedTweet` to `Post`, `PostPublicMetrics`, and `ReferencedPost` (breaking).
+- Change shortcut requests to send `post.fields`; `in_reply_to_user_id` and referenced posts are now requested through expansions.
+- Change `xr validate --schema` tokens from `tweet`/`tweets` to `post`/`posts` with no aliases, and add a `credits` token; auto-detect labels follow (breaking).
+- Change the library action-result type `RetweetedResult` to `RepostedResult` (breaking).
+
+### Fixed
+
+- Remove `schema/responses/block.schema.json` and `unblock.schema.json`, stale since the block shortcuts left in v2.0.0 and still describing the 2.x `Tweet` types. by @brettdavies in [#112](https://github.com/brettdavies/xurl-rs/pull/112)
+
+### Documentation
+
+- Add `docs/migrating/v3.0.0.md`, the post-vocabulary migration guide for library consumers and `xr` script authors, linked from MIGRATING.md. by @brettdavies in [#111](https://github.com/brettdavies/xurl-rs/pull/111)
+
+**Full Changelog**: [v2.2.0...v3.0.0](https://github.com/brettdavies/xurl-rs/compare/v2.2.0...v3.0.0)
+
 ## [2.2.0] - 2026-09-01
 
 ### Added

@@ -77,10 +77,11 @@ INPUT FROM STDIN:
 EXIT CODES:
   0    success
   1    general error
-  2    invalid arguments or authentication required
+  2    invalid arguments or auth-method mismatch
   3    rate-limited (HTTP 429)
   4    not found (HTTP 404)
   5    network error
+  77   authentication required
 
 TTY behavior:
   When stdout is not a TTY, color output is auto-stripped (unless

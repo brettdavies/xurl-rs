@@ -8,7 +8,7 @@ domain_verbs = [
   "like", "unlike", "repost", "unrepost",
   "bookmark", "unbookmark", "bookmarks", "likes",
   "follow", "unfollow", "following", "followers",
-  "block", "unblock", "mute", "unmute",
+  "mute", "unmute",
   "usage", "dm", "dms",
   "media", "examples", "validate",
 ]
