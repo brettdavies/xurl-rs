@@ -5,6 +5,7 @@
 //!
 //! Run with: XURL_ORIGINAL_BIN=/home/linuxbrew/.linuxbrew/bin/xurl cargo test --test conformance_runner -- --nocapture
 
+mod common;
 mod conformance;
 
 use conformance::{DifferentialRunner, TestCaseFile};

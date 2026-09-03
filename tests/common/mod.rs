@@ -31,9 +31,21 @@ pub fn xr_with_store(store: &Path) -> Command {
 /// [`xr`] as a `std::process::Command`, for a test that needs the child
 /// handle itself (piped stdio, signals).
 pub fn xr_std() -> std::process::Command {
-    let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_xr"));
+    xr_std_at(xr_bin())
+}
+
+/// [`xr_std`] for the binary at `program`, so a harness that compares builds
+/// keeps the same isolation for whichever `xr` it runs.
+pub fn xr_std_at(program: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
     hermetic(&mut cmd, &unwritable_store());
     cmd
+}
+
+/// Path of the built `xr` binary, for a harness that spawns it by path
+/// through [`xr_std_at`].
+pub fn xr_bin() -> &'static str {
+    env!("CARGO_BIN_EXE_xr")
 }
 
 /// Strips every variable `xr` reads from the inherited environment, then
