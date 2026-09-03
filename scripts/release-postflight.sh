@@ -130,19 +130,35 @@ gate_release() {
 
 # Gate: homebrew-tap ---------------------------------------------------------
 
+# Every downstream run (tap update-formula, Publish bottles, finalize-release)
+# is matched by name and start time against the release.yml run for this tag.
+# Matching by name alone returns the previous release's runs when this
+# release's are still queued, which reads as a false pass.
+release_started_at() {
+    local repo tag
+    repo=$(resolve_repo); tag=$(resolve_tag)
+    gh run list --repo "$repo" --workflow release.yml --branch "$tag" --limit 1 \
+        --json createdAt --jq '.[0].createdAt // empty' 2>/dev/null || true
+}
+
 gate_tap() {
     header "homebrew-tap dispatch + bottles publish"
     require_bin gh; require_bin jaq
-    local tap=$TAP_REPO tag
+    local tap=$TAP_REPO tag since
     tag=$(resolve_tag)
+    since=$(release_started_at)
+    if [[ -z "$since" ]]; then
+        gate_skip "tap chain" "no release.yml run for $tag yet"
+        return
+    fi
 
     # update-formula = repository_dispatch from release.yml
     local uf
     uf=$(gh run list --repo "$tap" --event repository_dispatch --limit 10 \
         --json databaseId,status,conclusion,displayTitle,createdAt \
-        --jq "[.[] | select(.displayTitle == \"update-formula\")] | .[0]" 2>/dev/null || true)
+        --jq "[.[] | select(.displayTitle == \"update-formula\" and .createdAt >= \"$since\")] | .[0]" 2>/dev/null || true)
     if [[ -z "$uf" || "$uf" == "null" ]]; then
-        gate_skip "tap update-formula dispatch" "no recent run on $tap (release.yml may still be running)"
+        gate_skip "tap update-formula dispatch" "no run on $tap since release.yml started ($since)"
     else
         local uf_status uf_conclusion uf_id
         uf_status=$(printf '%s' "$uf" | jaq -r .status)
@@ -159,11 +175,11 @@ gate_tap() {
 
     # Publish bottles = workflow_run triggered by the CI completion on the formula-bump PR
     local pb
-    pb=$(gh run list --repo "$tap" --event workflow_run --limit 5 \
-        --json databaseId,status,conclusion,displayTitle \
-        --jq "[.[] | select(.displayTitle == \"Publish bottles\")] | .[0]" 2>/dev/null || true)
+    pb=$(gh run list --repo "$tap" --event workflow_run --limit 10 \
+        --json databaseId,status,conclusion,displayTitle,createdAt \
+        --jq "[.[] | select(.displayTitle == \"Publish bottles\" and .createdAt >= \"$since\")] | .[0]" 2>/dev/null || true)
     if [[ -z "$pb" || "$pb" == "null" ]]; then
-        gate_skip "tap Publish bottles" "no recent run (CI on PR may still be running)"
+        gate_skip "tap Publish bottles" "no run since release.yml started ($since); CI on the formula PR may still be running"
         return
     fi
     local pb_status pb_conclusion pb_id
@@ -184,14 +200,20 @@ gate_tap() {
 gate_finalize() {
     header "finalize-release.yml callback"
     require_bin gh; require_bin jaq
-    local repo
+    local repo since
     repo=$(resolve_repo)
+    since=$(release_started_at)
+    if [[ -z "$since" ]]; then
+        gate_skip "finalize-release.yml run" "no release.yml run for $(resolve_tag) yet"
+        return
+    fi
 
     local fr
-    fr=$(gh run list --repo "$repo" --event repository_dispatch --workflow finalize-release.yml --limit 3 \
-        --json databaseId,status,conclusion --jq '.[0]' 2>/dev/null || true)
+    fr=$(gh run list --repo "$repo" --event repository_dispatch --workflow finalize-release.yml --limit 10 \
+        --json databaseId,status,conclusion,createdAt \
+        --jq "[.[] | select(.createdAt >= \"$since\")] | .[0]" 2>/dev/null || true)
     if [[ -z "$fr" || "$fr" == "null" ]]; then
-        gate_skip "finalize-release.yml run" "no callback yet (Publish bottles may still be running on $TAP_REPO)"
+        gate_skip "finalize-release.yml run" "no callback since release.yml started ($since); Publish bottles may still be running on $TAP_REPO"
         return
     fi
     local fr_status fr_conclusion fr_id
@@ -263,16 +285,17 @@ gate_backport() {
     # operation ran, regardless of which files it included.
     # `gh pr list --search` is GitHub Search API syntax; "<text> in:title" silently
     # returns an empty result (verified against PR #68 = backport v2.0.0 release-only).
-    # Pass the version alone for server-side filtering, then jaq-filter the title for
-    # precision and sort by mergedAt descending so the BACKPORT PR beats the FEATURE
+    # Pass the tag for server-side filtering (the search index tokenizes `v3.0.0` as
+    # one word, so a bare `3.0.0` misses it), then jaq-filter the title for precision
+    # (`v?` accepts either spelling) and sort by mergedAt descending so the BACKPORT PR beats the FEATURE
     # PR when both carry the version in their titles (e.g., #56 was "feat(api)!: v2.0.0
     # — …" and #68 was "backport v2.0.0 …" — `--jq '.[0]'` without sort would have
     # grabbed #56 and falsely passed the gate).
     local pr=""
     pr=$(gh pr list --repo "$repo" --base dev --state merged --limit 20 \
-        --search "$version" \
+        --search "$tag" \
         --json number,title,mergedAt,headRefName \
-        --jq "[.[] | select(.title | test(\"$version\"))] | sort_by(.mergedAt) | reverse | .[0]" \
+        --jq "[.[] | select(.title | test(\"v?$version\"))] | sort_by(.mergedAt) | reverse | .[0]" \
         2>/dev/null || true)
     [[ "$pr" == "null" ]] && pr=""
 

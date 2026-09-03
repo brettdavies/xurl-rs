@@ -43,7 +43,7 @@ scripts/release-preflight.sh all          # surface + api-contract + smoke + mul
 After `git push origin vX.Y.Z` triggers the release pipeline, run
 [`scripts/release-postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
 
-The script (`scripts/release-preflight.sh`) covers 30 of the 33 pre-tag gates. It exits non-zero if any gate fails;
+The script (`scripts/release-preflight.sh`) covers 31 of the 34 pre-tag gates. It exits non-zero if any gate fails;
 human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
 the recipe below. Sub-commands let you re-run one gate group in isolation:
 
@@ -51,7 +51,7 @@ the recipe below. Sub-commands let you re-run one gate group in isolation:
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
 | `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                                                                                    | no (builds prev tag once) |
-| `smoke`        | OAuth1 whoami, Bearer (env + stored), media upload, all three error envelopes                                                                                                      | yes                       |
+| `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                    | yes                       |
 | `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                             | yes                       |
 | `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
 | `all`          | every above                                                                                                                                                                        | yes                       |
@@ -93,7 +93,7 @@ live API. Pick fresh targets each release.
 
 ```bash
 SMOKE_HOME=$(mktemp -d -t xr-smoke-XXXXXX)
-alias xrs="HOME=$SMOKE_HOME ./target/release/xr"
+alias xrs="XURL_TOKEN_STORE=$SMOKE_HOME/.xurl ./target/release/xr"
 
 # Seed from 1Password (vault: secrets-dev). Items used:
 #   "X App - Bird (dev)"            -> oauth2_client_id, oauth2_client_secret, consumer_key, secret_key, credential (Bearer)
@@ -133,13 +133,13 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 
   ```bash
   FRESH=$(mktemp -d -t xr-pkce-XXXXXX)
-  HOME=$FRESH ./target/release/xr auth apps add bird_dev \
+  XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr auth apps add bird_dev \
       --client-id "$(read_field 'X App - Bird (dev)' oauth2_client_id)" \
       --client-secret "$(read_field 'X App - Bird (dev)' oauth2_client_secret)"
 
   # Step 1: agent runs, prints the authorize URL to stdout (URL is public — client_id,
   # state, code_challenge, no secrets).
-  HOME=$FRESH ./target/release/xr auth oauth2 --no-browser --step 1 --app bird_dev
+  XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr auth oauth2 --no-browser --step 1 --app bird_dev
 
   # Human action: open the printed URL in a browser logged in as the target account,
   # click Authorize, copy the full redirect URL from the address bar (browser will show
@@ -147,11 +147,11 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 
   # Step 2: pipe the redirect URL into the agent via stdin. The `?code=…` is one-shot
   # and consumed immediately by the exchange, so stdin redirection keeps it off argv.
-  echo '<paste-redirect-url-here>' | HOME=$FRESH ./target/release/xr auth oauth2 \
+  echo '<paste-redirect-url-here>' | XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr auth oauth2 \
       --no-browser --step 2 --auth-url - --app bird_dev
 
   # Verify: tokens issued + auto-default fired.
-  HOME=$FRESH ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
+  XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
     | jaq -c '{u:.data.username, exit:(.exit_code//0)}'   # expect {"u":"<handle>","exit":0}
   yq '.default_app' "$FRESH/.xurl"                         # expect "bird_dev"
 
@@ -159,7 +159,7 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   # access_token + refresh_token + expiration_time get written.
   HANDLE=$(yq '.apps.bird_dev.oauth2_tokens | keys | .[0]' "$FRESH/.xurl")
   yq -i ".apps.bird_dev.oauth2_tokens[\"$HANDLE\"].oauth2.expiration_time = 1" "$FRESH/.xurl"
-  HOME=$FRESH ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
+  XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr whoami --auth oauth2 --app bird_dev --output json \
     | jaq -c '{u:.data.username, exit:(.exit_code//0)}'   # expect same {"u":...,"exit":0}
   EXP_NOW=$(date +%s); NEW_EXP=$(yq ".apps.bird_dev.oauth2_tokens[\"$HANDLE\"].oauth2.expiration_time" "$FRESH/.xurl")
   echo "refresh wrote new expiration: $((NEW_EXP - EXP_NOW))s in the future"
@@ -176,11 +176,19 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine — `--no-browser` auto-engages
   when stdout isn't a TTY. The two-step ceremony is the same; passing `--no-browser` explicitly is the only difference.
   The recipe above already uses `--no-browser`, so it satisfies both gates in one run.
-- [ ] **Bearer token (env var, one-shot)** (automatable): with an empty `$HOME`, run `HOME=$(mktemp -d)
+- [ ] **Bearer token (env var, one-shot)** (automatable): with an empty store, run `XURL_TOKEN_STORE=$(mktemp -d)/.xurl
   XURL_BEARER_TOKEN=$(read_field 'X App - Bird (dev)' credential) xr search "rust" --max-results 1 --auth app`. Confirms
   `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
 - [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above, `xrs search "rust" --max-results 1
   --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` → expect `{"has_data":true}`.
+- [ ] **Typed wire vocabulary** (automatable): `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
+  media post and one user through the library's typed structs and fails when a typed metric reads back zero, a legacy
+  key (`referenced_tweets`, `edit_history_tweet_ids`) appears on the post, or `tweet_count` lands in `extra` instead of
+  `post_count`. This is the one gate that catches the vendored spec naming a field the wire does not send; the mocked
+  suite validates against that same spec and cannot. Costs one post read and one user read. `XURL_APP=<app>` picks the
+  store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
+  other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
+  on the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
   --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**
   defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg --category
@@ -246,14 +254,15 @@ structural probes.
   --app bird_dev --output json | jaq -c '{u:.data.username,e:(.exit_code//0)}'` → expect `{"u":"BrettDavies","e":0}`
   (auto-detect picked OAuth1 since OAuth2 is now absent). Restore from the backup before moving on.
 - [ ] **First-signed-in-app auto-default** (automatable): use a *fresh* tempdir (not `$SMOKE_HOME`). `FRESH=$(mktemp
-  -d); HOME=$FRESH xr auth apps add bird_dev --client-id … --client-secret …; HOME=$FRESH xr auth apps add bird_prod …`.
-  Confirm `yq '.default_app' "$FRESH/.xurl"` is `"default"`. Run `HOME=$FRESH xr auth oauth1 --app bird_dev …`. Confirm
-  `default_app` flipped to `"bird_dev"`. Repeat in a second fresh tempdir using `xr auth app --bearer-token …` and a
-  third using the OAuth2 PKCE flow (the OAuth2 one needs the human authorize step from § Real-world smoke). All three
-  sign-in handlers must promote.
-- [ ] **Promotion idempotence** (automatable): continue from the previous test in the *same* `$FRESH`. `HOME=$FRESH xr
-  auth oauth1 --app bird_prod …` (sign in on the OTHER app). Confirm `yq '.default_app'` is still `"bird_dev"`, not
-  `"bird_prod"`. The auto-default fires once; a credentialed default is not overwritten.
+  -d); XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_dev --client-id … --client-secret …;
+  XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_prod …`. Confirm `yq '.default_app' "$FRESH/.xurl"` is
+  `"default"`. Run `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_dev …`. Confirm `default_app` flipped to
+  `"bird_dev"`. Repeat in a second fresh tempdir using `xr auth app --bearer-token …` and a third using the OAuth2 PKCE
+  flow (the OAuth2 one needs the human authorize step from § Real-world smoke). All three sign-in handlers must promote.
+- [ ] **Promotion idempotence** (automatable): continue from the previous test in the *same* `$FRESH`.
+  `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_prod …` (sign in on the OTHER app). Confirm `yq
+  '.default_app'` is still `"bird_dev"`, not `"bird_prod"`. The auto-default fires once; a credentialed default is not
+  overwritten.
 - [ ] Auth-error envelope vs upstream 401: with no token stored for the requested auth path (e.g., `xr search "x" --auth
   oauth1` against an app that has no OAuth1 entry), the error envelope is `auth-required` with `message:` mentioning
   `TokenNotFound` rather than a wrapped X 401 body. Confirms `ApiClient::send_request` propagates auth errors instead of

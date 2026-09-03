@@ -1,12 +1,12 @@
 //! Tests for shell completion generation.
 
-use assert_cmd::Command;
+mod common;
+
 use predicates::prelude::*;
 
 #[test]
 fn test_completion_bash_generates_output() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "bash"])
         .assert()
         .success()
@@ -16,8 +16,7 @@ fn test_completion_bash_generates_output() {
 
 #[test]
 fn test_completion_zsh_generates_output() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "zsh"])
         .assert()
         .success()
@@ -27,8 +26,7 @@ fn test_completion_zsh_generates_output() {
 
 #[test]
 fn test_completion_fish_generates_output() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "fish"])
         .assert()
         .success()
@@ -38,8 +36,7 @@ fn test_completion_fish_generates_output() {
 
 #[test]
 fn test_completion_powershell_generates_output() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "powershell"])
         .assert()
         .success()
@@ -49,8 +46,7 @@ fn test_completion_powershell_generates_output() {
 
 #[test]
 fn test_completion_elvish_generates_output() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "elvish"])
         .assert()
         .success()
@@ -60,8 +56,7 @@ fn test_completion_elvish_generates_output() {
 
 #[test]
 fn test_completion_invalid_shell_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "notashell"])
         .assert()
         .failure()
@@ -70,18 +65,12 @@ fn test_completion_invalid_shell_fails() {
 
 #[test]
 fn test_completion_no_argument_exits_two() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .arg("completions")
-        .assert()
-        .failure()
-        .code(2);
+    common::xr().arg("completions").assert().failure().code(2);
 }
 
 #[test]
 fn test_completions_bash_contains_subcommand_names() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["completions", "bash"])
         .assert()
         .success()
@@ -93,8 +82,7 @@ fn test_completions_bash_contains_subcommand_names() {
 
 #[test]
 fn test_completions_bash_output_is_substantial() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["completions", "bash"])
         .output()
         .expect("failed to run xr completions bash");

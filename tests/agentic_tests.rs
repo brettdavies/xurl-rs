@@ -1,13 +1,13 @@
 //! Tests for agentic coding flags: --output, --quiet, --no-interactive, --timeout.
 
-use assert_cmd::Command;
+mod common;
+
 use predicates::prelude::*;
 
 #[test]
 fn test_output_json_flag_accepted() {
     // --output json should be accepted and change behavior
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "json", "--help"])
         .assert()
         .success();
@@ -15,8 +15,7 @@ fn test_output_json_flag_accepted() {
 
 #[test]
 fn test_output_jsonl_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "jsonl", "--help"])
         .assert()
         .success();
@@ -24,8 +23,7 @@ fn test_output_jsonl_flag_accepted() {
 
 #[test]
 fn test_output_text_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "text", "--help"])
         .assert()
         .success();
@@ -33,8 +31,7 @@ fn test_output_text_flag_accepted() {
 
 #[test]
 fn test_output_invalid_value_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "xml", "--help"])
         .assert()
         .failure()
@@ -43,26 +40,17 @@ fn test_output_invalid_value_fails() {
 
 #[test]
 fn test_quiet_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["--quiet", "--help"])
-        .assert()
-        .success();
+    common::xr().args(["--quiet", "--help"]).assert().success();
 }
 
 #[test]
 fn test_quiet_short_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
-        .args(["-q", "--help"])
-        .assert()
-        .success();
+    common::xr().args(["-q", "--help"]).assert().success();
 }
 
 #[test]
 fn test_no_interactive_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--no-interactive", "--help"])
         .assert()
         .success();
@@ -70,8 +58,7 @@ fn test_no_interactive_flag_accepted() {
 
 #[test]
 fn test_timeout_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--timeout", "60", "--help"])
         .assert()
         .success();
@@ -82,8 +69,7 @@ fn test_no_color_env_respected() {
     // NO_COLOR is an industry standard (https://no-color.org/)
     // When set, colored output should be suppressed.
     // We test that the flag doesn't cause a crash.
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("NO_COLOR", "1")
         .arg("--help")
         .assert()
@@ -93,8 +79,7 @@ fn test_no_color_env_respected() {
 #[test]
 fn test_xurl_output_env_var() {
     // XURL_OUTPUT env var should set default output format
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("XURL_OUTPUT", "json")
         .arg("--help")
         .assert()
@@ -104,8 +89,7 @@ fn test_xurl_output_env_var() {
 #[test]
 fn test_combined_agentic_flags() {
     // All agentic flags can be used together
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args([
             "--output",
             "json",
@@ -121,19 +105,14 @@ fn test_combined_agentic_flags() {
 
 #[test]
 fn test_exit_code_success_on_help() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
 
     assert_eq!(output.status.code().unwrap(), 0);
 }
 
 #[test]
 fn test_exit_code_nonzero_on_error() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .arg("--definitely-not-a-flag")
         .output()
         .unwrap();
@@ -146,11 +125,7 @@ fn test_exit_code_nonzero_on_error() {
 #[test]
 fn test_help_advertises_xurl_verbose_env() {
     // p1-must-env-var: --verbose must show [env: XURL_VERBOSE=] in --help.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("XURL_VERBOSE"),
@@ -159,38 +134,54 @@ fn test_help_advertises_xurl_verbose_env() {
 }
 
 #[test]
-fn test_help_advertises_all_xurl_env_vars() {
-    // p1-must-env-var: every agentic flag must surface its env var in --help.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    for expected in [
-        "XURL_VERBOSE",
-        "XURL_QUIET",
-        "XURL_NO_INTERACTIVE",
-        "XURL_TIMEOUT",
-        "XURL_OUTPUT",
-        "XURL_COLOR",
-        "XURL_APP",
-    ] {
-        assert!(
-            stdout.contains(expected),
-            "expected {expected} in --help: {stdout}"
-        );
+fn test_help_advertises_every_env_var_the_source_reads() {
+    // p1-must-env-var: every variable the binary reads must surface in --help.
+    // The set comes from src/ rather than a list here, so a new variable
+    // cannot land without a help entry.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let pattern = regex::Regex::new(r#"env = "([A-Z_]+)"|env::var(?:_os)?\("([A-Z_]+)"\)"#)
+        .expect("valid pattern");
+    let mut names = std::collections::BTreeSet::new();
+    let mut stack = vec![root.join("src")];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("src/ must be readable") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let source = std::fs::read_to_string(&path).expect("source must be readable");
+                let production = source.split("#[cfg(test)]").next().unwrap_or("");
+                for cap in pattern.captures_iter(production) {
+                    let name = cap
+                        .get(1)
+                        .or_else(|| cap.get(2))
+                        .expect("a capture")
+                        .as_str();
+                    names.insert(name.to_string());
+                }
+            }
+        }
     }
+    // `HOME` is the one core system variable xr reads, only to expand a
+    // `~`-prefixed skill destination; it is not an xr setting.
+    names.remove("HOME");
+
+    let output = common::xr().arg("--help").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let missing: Vec<&String> = names
+        .iter()
+        .filter(|n| !stdout.contains(n.as_str()))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "environment variables the source reads but --help does not advertise: {missing:?}"
+    );
 }
 
 #[test]
 fn test_help_advertises_color_flag() {
     // p6-may-color-flag: --color must appear in --help.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("--color"),
@@ -201,8 +192,7 @@ fn test_help_advertises_color_flag() {
 #[test]
 fn test_color_choices_accepted() {
     for choice in ["auto", "always", "never"] {
-        Command::cargo_bin("xr")
-            .unwrap()
+        common::xr()
             .args(["--color", choice, "--help"])
             .assert()
             .success();
@@ -211,8 +201,7 @@ fn test_color_choices_accepted() {
 
 #[test]
 fn test_color_invalid_value_fails() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--color", "rainbow", "--help"])
         .assert()
         .failure();
@@ -223,8 +212,7 @@ fn test_xurl_quiet_falsey_env_does_not_enable_quiet() {
     // FalseyValueParser must treat XURL_QUIET=0 as "not quiet".
     // --help itself succeeds either way; this is mostly a smoke that the
     // env-backed bool flag parses "0" without error.
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("XURL_QUIET", "0")
         .arg("--help")
         .assert()
@@ -234,8 +222,7 @@ fn test_xurl_quiet_falsey_env_does_not_enable_quiet() {
 #[test]
 fn test_xurl_quiet_truthy_env_accepts_arbitrary_string() {
     // Any non-falsey env value is truthy under FalseyValueParser.
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("XURL_QUIET", "yes")
         .arg("--help")
         .assert()
@@ -244,8 +231,7 @@ fn test_xurl_quiet_truthy_env_accepts_arbitrary_string() {
 
 #[test]
 fn test_xurl_verbose_env_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("XURL_VERBOSE", "1")
         .arg("--help")
         .assert()
@@ -254,8 +240,7 @@ fn test_xurl_verbose_env_accepted() {
 
 #[test]
 fn test_xurl_color_env_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .env("XURL_COLOR", "never")
         .arg("--help")
         .assert()
@@ -264,20 +249,15 @@ fn test_xurl_color_env_accepted() {
 
 // ── Color resolution: NO_COLOR and --color via subprocess ────────────
 //
-// Subprocess tests (via assert_cmd) give hermetic env control —
-// `.env_remove("NO_COLOR")` and `.env("NO_COLOR", "1")` apply only to the
-// child, so concurrent cargo-test threads can't race on the env var.
+// Subprocess tests give hermetic env control: the spawn seam strips
+// `NO_COLOR`, and `.env("NO_COLOR", "1")` applies only to the child, so
+// concurrent cargo-test threads can't race on the env var.
 // The runner emits a `No URL provided` validation error to stderr via
 // `OutputConfig::print_error`, which honors `use_color`.
 
 #[test]
 fn test_color_never_strips_ansi_from_stderr() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["--color", "never"])
-        .env_remove("NO_COLOR")
-        .output()
-        .unwrap();
+    let output = common::xr().args(["--color", "never"]).output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         !stderr.contains('\x1b'),
@@ -287,12 +267,7 @@ fn test_color_never_strips_ansi_from_stderr() {
 
 #[test]
 fn test_color_always_emits_ansi_on_stderr() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["--color", "always"])
-        .env_remove("NO_COLOR")
-        .output()
-        .unwrap();
+    let output = common::xr().args(["--color", "always"]).output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains('\x1b'),
@@ -302,8 +277,7 @@ fn test_color_always_emits_ansi_on_stderr() {
 
 #[test]
 fn test_no_color_env_overrides_color_always() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["--color", "always"])
         .env("NO_COLOR", "1")
         .output()
@@ -321,8 +295,7 @@ fn test_no_color_env_overrides_color_always() {
 fn test_clap_error_envelope_via_xurl_output_env() {
     // When clap parsing fails BEFORE flags are read, the runner reads
     // XURL_OUTPUT directly to decide whether to JSON-wrap the parse error.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["--bogus-flag"])
         .env("XURL_OUTPUT", "json")
         .output()
@@ -338,8 +311,7 @@ fn test_clap_error_envelope_via_xurl_output_env() {
 
 #[test]
 fn test_clap_error_envelope_via_xurl_output_jsonl_env() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["--bogus-flag"])
         .env("XURL_OUTPUT", "jsonl")
         .output()
@@ -355,8 +327,7 @@ fn test_clap_error_envelope_via_xurl_output_jsonl_env() {
 fn test_raw_with_output_json_emits_compact_json() {
     // --raw under JSON mode produces compact JSON (no whitespace) on stderr
     // for the envelope path. Schema lookup is a clean stdout-emitting verb.
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["schema", "envelope", "--output", "json", "--raw"])
         .output()
         .unwrap();
@@ -371,8 +342,7 @@ fn test_raw_with_output_json_emits_compact_json() {
 
 #[test]
 fn test_raw_without_flag_pretty_prints() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["schema", "envelope", "--output", "json"])
         .output()
         .unwrap();
@@ -398,6 +368,7 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
     let status = std::process::Command::new("bash")
         .arg(&script)
         .current_dir(root)
+        .stdin(std::process::Stdio::null())
         .status()
         .expect("spawn lint-stdio.sh");
     assert!(
@@ -420,11 +391,7 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
 /// matches anc's `p2-may-more-formats` audit shape.
 #[test]
 fn test_help_advertises_extra_output_formats() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     for token in ["csv", "tsv", "yaml", "yml", "toml", "xml", "ndjson"] {
         assert!(
@@ -436,8 +403,7 @@ fn test_help_advertises_extra_output_formats() {
 
 #[test]
 fn test_output_csv_accepted_as_value() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "csv", "--help"])
         .assert()
         .success();
@@ -445,8 +411,7 @@ fn test_output_csv_accepted_as_value() {
 
 #[test]
 fn test_output_yaml_accepted_as_value() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "yaml", "--help"])
         .assert()
         .success();
@@ -454,8 +419,7 @@ fn test_output_yaml_accepted_as_value() {
 
 #[test]
 fn test_output_ndjson_accepted_as_value() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "ndjson", "--help"])
         .assert()
         .success();
@@ -463,8 +427,7 @@ fn test_output_ndjson_accepted_as_value() {
 
 #[test]
 fn test_output_tsv_accepted_as_value() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--output", "tsv", "--help"])
         .assert()
         .success();
@@ -474,11 +437,7 @@ fn test_output_tsv_accepted_as_value() {
 /// `p7-may-cursor-pagination` substring audit passes.
 #[test]
 fn test_help_advertises_cursor_pagination_flags() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     for flag in ["--cursor", "--after", "--page"] {
         assert!(
@@ -490,8 +449,7 @@ fn test_help_advertises_cursor_pagination_flags() {
 
 #[test]
 fn test_cursor_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--cursor", "next-page-token", "--help"])
         .assert()
         .success();
@@ -499,8 +457,7 @@ fn test_cursor_flag_accepted() {
 
 #[test]
 fn test_after_flag_accepted() {
-    Command::cargo_bin("xr")
-        .unwrap()
+    common::xr()
         .args(["--after", "next-page-token", "--help"])
         .assert()
         .success();
@@ -515,8 +472,7 @@ fn test_validate_subcommand_passes_on_valid_input() {
     writeln!(f, r#"{{"data":{{"id":"1","text":"hi"}}}}"#).unwrap();
     drop(f);
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args([
             "validate",
             path.to_str().unwrap(),
@@ -549,8 +505,7 @@ fn test_validate_subcommand_fails_on_invalid_input() {
     writeln!(f, r#"{{"data":{{"id":"1"}}}}"#).unwrap();
     drop(f);
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args([
             "validate",
             path.to_str().unwrap(),
@@ -569,8 +524,7 @@ fn test_validate_subcommand_fails_on_invalid_input() {
 
 #[test]
 fn test_page_flag_emits_unsupported_pagination_envelope() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args([
             "--page",
             "2",
@@ -593,11 +547,7 @@ fn test_page_flag_emits_unsupported_pagination_envelope() {
 
 #[test]
 fn test_validate_subcommand_appears_in_help() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .arg("--help")
-        .output()
-        .unwrap();
+    let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("validate"),

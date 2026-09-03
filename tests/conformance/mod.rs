@@ -86,7 +86,7 @@ impl DifferentialRunner {
     pub fn new() -> Self {
         let original_bin = env::var("XURL_ORIGINAL_BIN").unwrap_or_else(|_| "xurl".to_string());
         let port_bin =
-            env::var("XURL_PORT_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_xr").to_string());
+            env::var("XURL_PORT_BIN").unwrap_or_else(|_| crate::common::xr_bin().to_string());
 
         Self {
             original_bin,
@@ -204,7 +204,11 @@ impl DifferentialRunner {
     }
 
     fn run_command(&self, bin: &str, case: &TestCase) -> Output {
-        let mut cmd = Command::new(bin);
+        let mut cmd = if bin == self.port_bin {
+            crate::common::xr_std_at(bin)
+        } else {
+            Command::new(bin)
+        };
         cmd.args(&case.args);
 
         for (key, value) in &case.env {

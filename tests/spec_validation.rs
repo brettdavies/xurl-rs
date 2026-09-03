@@ -51,6 +51,30 @@ fn spec_user_single() {
 }
 
 #[test]
+fn spec_user_single_wire_reads_tweet_count_into_post_count() {
+    let examples = load_examples();
+    let resp: ApiResponse<User> = serde_json::from_value(examples["user_single_wire"].clone())
+        .expect("wire-shaped user response must deserialize");
+    let metrics = resp
+        .data
+        .public_metrics
+        .as_ref()
+        .expect("user.public_metrics must be present");
+    assert_eq!(metrics.post_count, 30972);
+    assert!(
+        !metrics.extra.contains_key("tweet_count"),
+        "tweet_count must be consumed by post_count, not kept in extra"
+    );
+    assert_eq!(metrics.extra["like_count"], 40451);
+    assert_eq!(metrics.extra["media_count"], 2974);
+
+    let out = serde_json::to_value(&resp).expect("typed response must serialize");
+    let out_metrics = &out["data"]["public_metrics"];
+    assert_eq!(out_metrics["post_count"], 30972);
+    assert!(out_metrics.get("tweet_count").is_none());
+}
+
+#[test]
 fn spec_action_liked() {
     let examples = load_examples();
     let resp: ApiResponse<LikedResult> =

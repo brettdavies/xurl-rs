@@ -2,7 +2,8 @@
 //!
 //! These tests verify that the flags actually change behavior (not just parse).
 
-use assert_cmd::Command;
+mod common;
+
 use tempfile::TempDir;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -12,8 +13,7 @@ use tempfile::TempDir;
 #[test]
 fn test_version_outputs_plain_text_ignoring_json_flag() {
     // version is a Tier 1 meta-command — ignores --output json, always plain text
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["version", "--output", "json"])
         .output()
         .unwrap();
@@ -33,8 +33,7 @@ fn test_version_outputs_plain_text_ignoring_json_flag() {
 #[test]
 fn test_json_output_no_ansi_codes() {
     // JSON output should never contain ANSI escape sequences
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["version", "--output", "json"])
         .output()
         .unwrap();
@@ -53,12 +52,8 @@ fn test_json_output_error_format() {
     // "exit_code":<int>,"message":<str>}.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["whoami", "--output", "json"])
-        .env("HOME", tmp.path())
-        .env_remove("CLIENT_ID")
-        .env_remove("CLIENT_SECRET")
         .output()
         .unwrap();
 
@@ -84,12 +79,7 @@ fn test_json_output_error_format() {
 #[test]
 fn test_text_output_has_color_by_default() {
     // Default text output for version should contain the plain version string
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["version"])
-        .env_remove("NO_COLOR")
-        .output()
-        .unwrap();
+    let output = common::xr().args(["version"]).output().unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("xr"));
@@ -102,8 +92,7 @@ fn test_text_output_has_color_by_default() {
 #[test]
 fn test_no_color_env_strips_ansi() {
     // NO_COLOR=1 should strip ANSI codes even in text mode
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["version"])
         .env("NO_COLOR", "1")
         .output()
@@ -125,16 +114,13 @@ fn test_no_color_env_strips_ansi() {
 fn test_xurl_output_env_sets_json_format() {
     // XURL_OUTPUT=json should make auth status output JSON.
     // The status renderer emits a JSON array of per-app entries
-    // (`print_response`); on a fresh `$HOME` the store seeds a `"default"`
+    // (`print_response`); a fresh store seeds a `"default"`
     // placeholder app, so the array carries one entry.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "status"])
-        .env("HOME", tmp.path())
         .env("XURL_OUTPUT", "json")
-        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
@@ -149,8 +135,7 @@ fn test_xurl_output_env_sets_json_format() {
 #[test]
 fn test_explicit_output_overrides_env() {
     // --output text should override XURL_OUTPUT=json
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr()
         .args(["version", "--output", "text"])
         .env("XURL_OUTPUT", "json")
         .output()
@@ -171,11 +156,7 @@ fn test_explicit_output_overrides_env() {
 #[test]
 fn test_quiet_suppresses_version_output() {
     // version is Tier 1 — ignores --quiet, always prints
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["version", "--quiet"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["version", "--quiet"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -188,11 +169,7 @@ fn test_quiet_suppresses_version_output() {
 #[test]
 fn test_quiet_flag_no_stderr_on_success() {
     // With --quiet, successful commands should have no stderr output
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["version", "--quiet"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["version", "--quiet"]).output().unwrap();
 
     assert!(output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -221,10 +198,8 @@ fn test_no_interactive_blocks_auth_default_picker() {
     .unwrap();
     std::fs::write(xurl_dir.join("default_app"), "my-app").unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "default", "--no-interactive"])
-        .env("HOME", tmp.path())
         .output()
         .unwrap();
 
@@ -243,11 +218,7 @@ fn test_no_interactive_blocks_auth_default_picker() {
 
 #[test]
 fn test_exit_code_zero_on_success() {
-    let output = Command::cargo_bin("xr")
-        .unwrap()
-        .args(["version"])
-        .output()
-        .unwrap();
+    let output = common::xr().args(["version"]).output().unwrap();
 
     assert_eq!(output.status.code().unwrap(), 0);
 }
@@ -258,12 +229,8 @@ fn test_exit_code_auth_required_is_77() {
     // from clap usage errors (EX_USAGE = 2). Behavior change in v1.3.0.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["whoami"])
-        .env("HOME", tmp.path())
-        .env_remove("CLIENT_ID")
-        .env_remove("CLIENT_SECRET")
         .output()
         .unwrap();
 
@@ -280,12 +247,8 @@ fn test_exit_code_json_error_includes_code() {
     // exit code (77 for auth-required).
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["whoami", "--output", "json"])
-        .env("HOME", tmp.path())
-        .env_remove("CLIENT_ID")
-        .env_remove("CLIENT_SECRET")
         .output()
         .unwrap();
 
@@ -306,11 +269,8 @@ fn test_json_quiet_combined() {
     // `auth status` because `print_response` is independent of `--quiet`.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "status", "--output", "json", "--quiet"])
-        .env("HOME", tmp.path())
-        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
@@ -327,8 +287,7 @@ fn test_all_agentic_flags_wired_correctly() {
     // All flags together should work and produce a parseable JSON document.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args([
             "auth",
             "status",
@@ -339,8 +298,6 @@ fn test_all_agentic_flags_wired_correctly() {
             "--timeout",
             "5",
         ])
-        .env("HOME", tmp.path())
-        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
@@ -356,14 +313,11 @@ fn test_all_agentic_flags_wired_correctly() {
 #[test]
 fn test_auth_status_json_output() {
     // `xurl auth status --output json` emits a JSON array of per-app
-    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
+    // entries. A fresh store seeds a `"default"` placeholder.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "status", "--output", "json"])
-        .env("HOME", tmp.path())
-        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
@@ -380,14 +334,11 @@ fn test_auth_status_json_output() {
 #[test]
 fn test_auth_apps_list_json_output() {
     // `xurl auth apps list --output json` emits a JSON array of per-app
-    // entries. On a fresh `$HOME` the store seeds a `"default"` placeholder.
+    // entries. A fresh store seeds a `"default"` placeholder.
     let tmp = TempDir::new().unwrap();
 
-    let output = Command::cargo_bin("xr")
-        .unwrap()
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "apps", "list", "--output", "json"])
-        .env("HOME", tmp.path())
-        .env_remove("REDIRECT_URI")
         .output()
         .unwrap();
 
@@ -399,4 +350,64 @@ fn test_auth_apps_list_json_output() {
         arr.iter().any(|e| e["name"] == "default"),
         "expected the default placeholder app: {stdout}"
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// XURL_TOKEN_STORE environment variable
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_xurl_token_store_env_selects_store_file() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join("store.yaml");
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+        .args([
+            "auth",
+            "apps",
+            "add",
+            "probe",
+            "--client-id",
+            "id",
+            "--client-secret",
+            "secret",
+        ])
+        .env("XURL_TOKEN_STORE", &store)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let saved = std::fs::read_to_string(&store).unwrap();
+    assert!(
+        saved.contains("probe"),
+        "the store named by XURL_TOKEN_STORE must hold the app: {saved}"
+    );
+}
+
+#[test]
+fn test_xr_seam_default_store_rejects_writes() {
+    let output = common::xr()
+        .args([
+            "auth",
+            "apps",
+            "add",
+            "probe",
+            "--client-id",
+            "id",
+            "--client-secret",
+            "secret",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(
+        !output.status.success(),
+        "a spawn that never asked for a store must not be able to write one"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("No such file"), "stderr: {stderr}");
 }

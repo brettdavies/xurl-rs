@@ -373,7 +373,7 @@
         },
         "post_count": {
           "default": 0,
-          "description": "Post count for the user.",
+          "description": "Post count for the user. X sends this key as `tweet_count`; the\n2.168 spec names it `post_count`, so either key fills this field.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"

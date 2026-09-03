@@ -61,7 +61,15 @@ ENVIRONMENT VARIABLES:
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
+  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
+  CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
+  CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value
   REDIRECT_URI           OAuth2 redirect URI override for the active app
+  AUTH_URL               OAuth2 authorization endpoint override
+  TOKEN_URL              OAuth2 token exchange endpoint override
+  API_BASE_URL           API origin every request is built against
+  INFO_URL               User-info endpoint override; derived from API_BASE_URL when unset
 
 Flags override env vars when both are set. NO_COLOR=1 always wins over
 --color/XURL_COLOR (https://no-color.org). --no-pager is a documented
@@ -108,48 +116,48 @@ Examples:
 const REPLY_HELP: &str = "\
 Examples:
   Reply to a post by ID:
-    xr reply 1234567890 \"Congrats!\"
+    xr reply 1585341984679469056 \"Congrats!\"
   Reply with JSON output for scripting:
-    xr reply 1234567890 \"Congrats!\" --output json
+    xr reply 1585341984679469056 \"Congrats!\" --output json
   Reply to a post URL (xr accepts either):
-    xr reply https://x.com/jack/status/1234567890 \"Nice thread.\"
+    xr reply https://x.com/elonmusk/status/1585341984679469056 \"Nice thread.\"
   Reply with a media attachment:
-    xr reply 1234567890 \"Here's a photo\" --media-id 222 --output json
+    xr reply 1585341984679469056 \"Here's a photo\" --media-id 222 --output json
 ";
 
 /// `xr quote` examples — paired text + JSON.
 const QUOTE_HELP: &str = "\
 Examples:
   Quote-post by ID:
-    xr quote 1234567890 \"Worth a read.\"
+    xr quote 1585341984679469056 \"Worth a read.\"
   Quote-post with JSON envelope:
-    xr quote 1234567890 \"Worth a read.\" --output json
+    xr quote 1585341984679469056 \"Worth a read.\" --output json
   Quote-post from a URL:
-    xr quote https://x.com/jack/status/1234567890 \"Thread.\"
+    xr quote https://x.com/elonmusk/status/1585341984679469056 \"Thread.\"
 ";
 
 /// `xr delete` examples — destructive op; advertise non-interactive shape.
 const DELETE_HELP: &str = "\
 Examples:
   Delete a post by ID (text):
-    xr delete 1234567890
+    xr delete 1585341984679469056
   Delete with JSON envelope:
-    xr delete 1234567890 --output json
+    xr delete 1585341984679469056 --output json
   Delete in a non-interactive context (CI, agent):
-    xr delete 1234567890 --no-interactive --output json
+    xr delete 1585341984679469056 --no-interactive --output json
 ";
 
 /// `xr read` examples — paired text + JSON, plus a pipe-to-jaq invocation.
 const READ_HELP: &str = "\
 Examples:
   Read a post (text):
-    xr read 1234567890
+    xr read 1585341984679469056
   Read a post (JSON):
-    xr read 1234567890 --output json
+    xr read 1585341984679469056 --output json
   Read a post URL:
-    xr read https://x.com/jack/status/1234567890 --output json
+    xr read https://x.com/elonmusk/status/1585341984679469056 --output json
   Extract a single field via jaq:
-    xr read 1234567890 --output json | jaq '.data.text'
+    xr read 1585341984679469056 --output json | jaq '.data.text'
 ";
 
 /// `xr search` examples — text + JSON, env-var override, JSONL pipeline.
@@ -180,11 +188,11 @@ Examples:
 const USER_HELP: &str = "\
 Examples:
   Look up a user by handle (text):
-    xr user jack
+    xr user elonmusk
   Same, as JSON:
-    xr user jack --output json
+    xr user elonmusk --output json
   Use the @ prefix (xr accepts either):
-    xr user @jack --output json
+    xr user @elonmusk --output json
 ";
 
 /// `xr timeline` examples — paired text + JSON, plus JSONL pipeline.
@@ -213,9 +221,9 @@ Examples:
 const LIKE_HELP: &str = "\
 Examples:
   Like a post (text):
-    xr like 1234567890
+    xr like 1585341984679469056
   Like a post (JSON envelope):
-    xr like 1234567890 --output json
+    xr like 1585341984679469056 --output json
   Idempotent: re-liking is a server-side no-op.
 ";
 
@@ -223,45 +231,45 @@ Examples:
 const UNLIKE_HELP: &str = "\
 Examples:
   Unlike a post (text):
-    xr unlike 1234567890
+    xr unlike 1585341984679469056
   Unlike (JSON envelope):
-    xr unlike 1234567890 --output json
+    xr unlike 1585341984679469056 --output json
 ";
 
 /// `xr repost` examples — paired text + JSON.
 const REPOST_HELP: &str = "\
 Examples:
   Repost a post (text):
-    xr repost 1234567890
+    xr repost 1585341984679469056
   Repost (JSON envelope):
-    xr repost 1234567890 --output json
+    xr repost 1585341984679469056 --output json
 ";
 
 /// `xr unrepost` examples — paired text + JSON.
 const UNREPOST_HELP: &str = "\
 Examples:
   Undo a repost (text):
-    xr unrepost 1234567890
+    xr unrepost 1585341984679469056
   Undo a repost (JSON envelope):
-    xr unrepost 1234567890 --output json
+    xr unrepost 1585341984679469056 --output json
 ";
 
 /// `xr bookmark` examples — paired text + JSON.
 const BOOKMARK_HELP: &str = "\
 Examples:
   Bookmark a post (text):
-    xr bookmark 1234567890
+    xr bookmark 1585341984679469056
   Bookmark (JSON envelope):
-    xr bookmark 1234567890 --output json
+    xr bookmark 1585341984679469056 --output json
 ";
 
 /// `xr unbookmark` examples — paired text + JSON.
 const UNBOOKMARK_HELP: &str = "\
 Examples:
   Remove a bookmark (text):
-    xr unbookmark 1234567890
+    xr unbookmark 1585341984679469056
   Remove a bookmark (JSON envelope):
-    xr unbookmark 1234567890 --output json
+    xr unbookmark 1585341984679469056 --output json
 ";
 
 /// `xr bookmarks` examples — paired text + JSON, JSONL pipeline.
@@ -290,20 +298,20 @@ Examples:
 const FOLLOW_HELP: &str = "\
 Examples:
   Follow a user (text):
-    xr follow @jack
+    xr follow @elonmusk
   Follow (JSON envelope):
-    xr follow @jack --output json
+    xr follow @elonmusk --output json
   Without the @ prefix:
-    xr follow jack --output json
+    xr follow elonmusk --output json
 ";
 
 /// `xr unfollow` examples — paired text + JSON.
 const UNFOLLOW_HELP: &str = "\
 Examples:
   Unfollow a user (text):
-    xr unfollow @jack
+    xr unfollow @elonmusk
   Unfollow (JSON envelope):
-    xr unfollow @jack --output json
+    xr unfollow @elonmusk --output json
 ";
 
 /// `xr following` examples — paired text + JSON, `--of` for another user.
@@ -314,7 +322,7 @@ Examples:
   100 results, JSON envelope:
     xr following -n 100 --output json
   Who someone else follows:
-    xr following --of @jack --output json
+    xr following --of @elonmusk --output json
 ";
 
 /// `xr followers` examples — paired text + JSON, `--of` for another user.
@@ -325,7 +333,7 @@ Examples:
   100 results, JSON envelope:
     xr followers -n 100 --output json
   Someone else's followers:
-    xr followers --of @jack --output json
+    xr followers --of @elonmusk --output json
 ";
 
 /// `xr mute` examples — paired text + JSON.
@@ -400,7 +408,7 @@ Examples:
   Upload a video and wait for processing:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
-    xr media status 1234567890 --output json
+    xr media status 1585341984679469056 --output json
 ";
 
 /// `xr schema` examples — paired text + JSON, list, all.
@@ -646,11 +654,11 @@ Examples:
 const MEDIA_STATUS_HELP: &str = "\
 Examples:
   Check upload status (text):
-    xr media status 1234567890
+    xr media status 1585341984679469056
   Check status (JSON envelope):
-    xr media status 1234567890 --output json
+    xr media status 1585341984679469056 --output json
   Poll until processing completes:
-    xr media status 1234567890 --wait --output json
+    xr media status 1585341984679469056 --wait --output json
 ";
 
 /// Auth-enabled curl-like interface for the X API.
@@ -662,12 +670,12 @@ Examples:
 
 Shortcut commands (agent-friendly):
   xr post "Hello world!"                        Post to X
-  xr reply 1234567890 "Nice!"                   Reply to a post
-  xr read 1234567890                             Read a post
+  xr reply 1585341984679469056 "Nice!"                   Reply to a post
+  xr read 1585341984679469056                             Read a post
   xr search "golang" -n 20                       Search posts
   xr whoami                                      Show your profile
-  xr like 1234567890                             Like a post
-  xr repost 1234567890                           Repost
+  xr like 1585341984679469056                             Like a post
+  xr repost 1585341984679469056                           Repost
   xr follow @user                                Follow a user
   xr dm @user "Hey!"                             Send a DM
   xr timeline                                    Home timeline

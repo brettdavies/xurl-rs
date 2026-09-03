@@ -4,6 +4,8 @@
 //! PKCE state; step 2 accepts the redirect URL, exchanges the code for a token,
 //! and saves it to the token store.
 
+mod common;
+
 use std::collections::BTreeMap;
 
 use tempfile::TempDir;
@@ -50,6 +52,13 @@ impl TestServer {
     }
 }
 
+/// Builds an `Auth` on the temp-dir store it will carry, so construction never
+/// resolves the real `~/.xurl`.
+fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
+    let store_path = token_store.file_path.clone();
+    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+}
+
 fn create_test_config(base_url: &str) -> Config {
     // `Config` has `pub(crate)` resolver fields that external callers cannot
     // name in a struct literal; start from `Config::new()` and assign the
@@ -69,7 +78,6 @@ fn create_test_config(base_url: &str) -> Config {
 
 fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
     let cfg = create_test_config(base_url);
-    let auth = Auth::new(&cfg);
 
     let file_path = tmp.path().join(".xurl");
     let mut store = TokenStore {
@@ -91,7 +99,7 @@ fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
         },
     );
 
-    auth.with_token_store(store)
+    auth_for(&cfg, store)
 }
 
 // ── Step 1 tests ──────────────────────────────────────────────────────
@@ -348,7 +356,6 @@ fn step2_client_id_mismatch_returns_error() {
     cfg2.api_base_url = ts.uri().to_string();
     cfg2.info_url = format!("{}/2/users/me", ts.uri());
     cfg2.app_name = String::new();
-    let auth2 = Auth::new(&cfg2);
     let file_path2 = tmp.path().join(".xurl2");
     let mut store2 = TokenStore {
         apps: BTreeMap::new(),
@@ -368,7 +375,7 @@ fn step2_client_id_mismatch_returns_error() {
             unnamed_oauth2_token: None,
         },
     );
-    let mut auth2 = auth2.with_token_store(store2);
+    let mut auth2 = auth_for(&cfg2, store2);
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -881,17 +888,10 @@ fn cli_no_browser_without_step_auto_engages_step1() {
     // the authorize URL and exits 0 rather than rejecting at usage time.
     // The exact envelope shape is covered by the JSON-mode tests in
     // `cli_tests.rs`; this test asserts the exit code only so it survives
-    // text-mode rendering changes. Redirect HOME to a tempdir so the
-    // pending-state file (`~/.xurl.pending`) does not pollute the user's
-    // real home.
+    // text-mode rendering changes. `XURL_TOKEN_STORE` points the child at a
+    // tempdir store so the pending state lands beside it.
     let tmp = TempDir::new().expect("tempdir");
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("HOME", tmp.path())
-        // U7 dry-run tests in this binary set `XURL_DRY_RUN=1`; without an
-        // explicit removal the env var leaks into our subprocess and routes
-        // through the dry-run envelope instead of step 1.
-        .env_remove("XURL_DRY_RUN")
-        .env_remove("XURL_NO_BROWSER")
+    let output = common::xr_with_store(&tmp.path().join(".xurl"))
         .args(["auth", "oauth2", "--no-browser"])
         .output()
         .unwrap();
@@ -905,7 +905,7 @@ fn cli_no_browser_without_step_auto_engages_step1() {
 
 #[test]
 fn cli_step_without_no_browser_fails() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+    let output = common::xr()
         .args(["auth", "oauth2", "--step", "1"])
         .output()
         .unwrap();
@@ -920,7 +920,7 @@ fn cli_step_without_no_browser_fails() {
 
 #[test]
 fn cli_step_3_rejected_by_value_parser() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+    let output = common::xr()
         .args(["auth", "oauth2", "--no-browser", "--step", "3"])
         .output()
         .unwrap();
@@ -935,7 +935,7 @@ fn cli_step_3_rejected_by_value_parser() {
 
 #[test]
 fn cli_step2_without_auth_url_fails() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+    let output = common::xr()
         .args(["auth", "oauth2", "--no-browser", "--step", "2"])
         .output()
         .unwrap();
@@ -976,7 +976,7 @@ fn step2_redirect_url_with_code_but_no_state() {
 
 #[test]
 fn cli_step1_with_auth_url_rejected() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
+    let output = common::xr()
         .args([
             "auth",
             "oauth2",

@@ -44,7 +44,7 @@ xr auth oauth2
 xr post "Hello from xurl-rs!"
 
 # Read
-xr read 1234567890
+xr read 1585341984679469056
 
 # Search
 xr search "rust programming" -n 20
@@ -64,16 +64,16 @@ alice`.
 ```bash
 xr post "Hello world!"                        # Post
 xr post "With media" --media-id 12345          # Post with media
-xr reply 1234567890 "Nice!"                    # Reply
-xr reply https://x.com/user/status/123 "Nice!" # Reply by URL
-xr quote 1234567890 "My take"                  # Quote
-xr delete 1234567890                           # Delete
+xr reply 1585341984679469056 "Nice!"           # Reply
+xr reply https://x.com/elonmusk/status/1585341984679469056 "Nice!" # Reply by URL
+xr quote 1585341984679469056 "My take"         # Quote
+xr delete 1585341984679469056                  # Delete
 ```
 
 ### Reading
 
 ```bash
-xr read 1234567890                             # Read a post
+xr read 1585341984679469056                    # Read a post
 xr search "golang" -n 20                       # Search (1-100 results)
 xr whoami                                      # Your profile
 xr user @elonmusk                              # Look up user
@@ -84,12 +84,12 @@ xr mentions                                    # Your mentions
 ### Engagement
 
 ```bash
-xr like 1234567890                             # Like
-xr unlike 1234567890                           # Unlike
-xr repost 1234567890                           # Repost
-xr unrepost 1234567890                         # Undo repost
-xr bookmark 1234567890                         # Bookmark
-xr unbookmark 1234567890                       # Remove bookmark
+xr like 1585341984679469056                    # Like
+xr unlike 1585341984679469056                  # Unlike
+xr repost 1585341984679469056                  # Repost
+xr unrepost 1585341984679469056                # Undo repost
+xr bookmark 1585341984679469056                # Bookmark
+xr unbookmark 1585341984679469056              # Remove bookmark
 xr bookmarks                                   # List bookmarks
 xr likes                                       # List likes
 ```
@@ -235,6 +235,12 @@ xr auth apps redirect-uri set prod http://localhost:8080/callback
 If you run `xr auth oauth2` without `--app`, the default app has no `client_id` set, and another registered app does
 have credentials, the CLI prints a warning suggesting `xr auth oauth2 --app NAME` so the token lands on the right app
 instead of the credential-less default.
+
+### Token Store Location
+
+Credentials live in `~/.xurl`. Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending
+state (`<path>.pending`) follows it. The variable applies to the binary only: library callers pass the path to
+`run_with_store_path` or `Auth::new_with_store_path` directly.
 
 ## Agent-Native Features
 

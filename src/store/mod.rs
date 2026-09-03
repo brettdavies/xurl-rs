@@ -67,6 +67,10 @@ impl TokenStore {
 
     /// Creates a `TokenStore` and backfills the given client credentials into any
     /// app that was migrated without them.
+    ///
+    /// Backfilled values stay in memory until the next explicit save, so loading
+    /// an existing store never rewrites it and concurrent readers cannot clobber
+    /// each other.
     #[must_use]
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
@@ -83,22 +87,14 @@ impl TokenStore {
         }
 
         // Backfill credentials into any app that has tokens but no client ID/secret
-        if !client_id.is_empty() || !client_secret.is_empty() {
-            let mut dirty = false;
-            for app in store.apps.values_mut() {
-                if app.has_tokens() {
-                    if app.client_id.is_empty() && !client_id.is_empty() {
-                        app.client_id = client_id.to_string();
-                        dirty = true;
-                    }
-                    if app.client_secret.is_empty() && !client_secret.is_empty() {
-                        app.client_secret = client_secret.to_string();
-                        dirty = true;
-                    }
+        for app in store.apps.values_mut() {
+            if app.has_tokens() {
+                if app.client_id.is_empty() && !client_id.is_empty() {
+                    app.client_id = client_id.to_string();
                 }
-            }
-            if dirty {
-                let _ = store.save_to_file();
+                if app.client_secret.is_empty() && !client_secret.is_empty() {
+                    app.client_secret = client_secret.to_string();
+                }
             }
         }
 
@@ -145,21 +141,21 @@ impl TokenStore {
     }
 
     /// Creates a `TokenStore` from a specific file path with credential backfill.
+    ///
+    /// Like [`TokenStore::with_credentials`], the backfill stays in memory until
+    /// the next explicit save; loading never writes the file.
     #[must_use]
     pub fn new_with_credentials_and_path(client_id: &str, client_secret: &str, path: &str) -> Self {
         let mut store = Self::new_with_path(path);
-        if !client_id.is_empty() || !client_secret.is_empty() {
-            for app in store.apps.values_mut() {
-                if app.has_tokens() || app.client_id.is_empty() {
-                    if app.client_id.is_empty() && !client_id.is_empty() {
-                        app.client_id = client_id.to_string();
-                    }
-                    if app.client_secret.is_empty() && !client_secret.is_empty() {
-                        app.client_secret = client_secret.to_string();
-                    }
+        for app in store.apps.values_mut() {
+            if app.has_tokens() || app.client_id.is_empty() {
+                if app.client_id.is_empty() && !client_id.is_empty() {
+                    app.client_id = client_id.to_string();
+                }
+                if app.client_secret.is_empty() && !client_secret.is_empty() {
+                    app.client_secret = client_secret.to_string();
                 }
             }
-            let _ = store.save_to_file();
         }
         store
     }
