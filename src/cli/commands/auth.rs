@@ -189,7 +189,8 @@ pub(super) fn run_auth_command(
                 auth.oauth2_flow(username_arg, out, stdout)?;
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
-                let pending_path = crate::auth::pending::default_pending_path()?;
+                let pending_path =
+                    crate::auth::pending::pending_path_for_store(&auth.token_store.file_path);
                 // When the user opted into `--no-browser` without an explicit
                 // `--step`, or when auto-engage promoted us here, run step 1
                 // and emit the canonical `awaiting_callback` envelope.

@@ -15,7 +15,11 @@
 //! prove the process read itself works. Adding an entry is a deliberate,
 //! reviewable act; forgetting an attribute is not.
 
+mod common;
+
 use std::path::Path;
+
+use common::enclosing_test;
 
 /// A test permitted to mutate the process environment, with the reason.
 struct Allowed {
@@ -132,21 +136,6 @@ const SCANNED: &[&str] = &[
 /// root. Unit tests share the library test binary, so a mutation here races
 /// every other test in that binary exactly as it did in the integration ones.
 const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/output.rs"];
-
-/// Returns the name of the `fn` a given byte offset falls inside.
-fn enclosing_test(source: &str, offset: usize) -> String {
-    source[..offset]
-        .rmatch_indices("fn ")
-        .find_map(|(i, _)| {
-            let rest = &source[i + 3..];
-            let name: String = rest
-                .chars()
-                .take_while(|c| c.is_alphanumeric() || *c == '_')
-                .collect();
-            (!name.is_empty()).then_some(name)
-        })
-        .unwrap_or_else(|| "<unknown>".to_string())
-}
 
 #[test]
 fn integration_tests_do_not_mutate_the_process_environment() {

@@ -44,7 +44,8 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
 
 #[test]
 fn test_new_token_store() {
-    let store = TokenStore::new();
+    let tmp = TempDir::new().unwrap();
+    let store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
 
     assert!(!store.apps.is_empty(), "Expected non-nil Apps map");
     assert!(
@@ -399,7 +400,7 @@ fn test_credential_backfill() {
     );
 
     // Now load WITH credentials — should backfill the migrated app
-    let s2 = TokenStore::new_with_credentials_and_path(
+    let mut s2 = TokenStore::new_with_credentials_and_path(
         "env-id",
         "env-secret",
         &xurl_path.to_string_lossy(),
@@ -411,6 +412,19 @@ fn test_credential_backfill() {
     assert_eq!(
         app2.client_secret, "env-secret",
         "Should have backfilled client secret"
+    );
+
+    let on_disk = fs::read_to_string(&xurl_path).unwrap();
+    assert!(
+        !on_disk.contains("env-id"),
+        "loading with credentials must not rewrite the store"
+    );
+
+    s2.save_bearer_token_for_app("default", "bearer").unwrap();
+    let on_disk = fs::read_to_string(&xurl_path).unwrap();
+    assert!(
+        on_disk.contains("env-id"),
+        "the next explicit save persists the backfill"
     );
 }
 
