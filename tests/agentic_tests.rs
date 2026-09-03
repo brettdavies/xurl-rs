@@ -134,24 +134,48 @@ fn test_help_advertises_xurl_verbose_env() {
 }
 
 #[test]
-fn test_help_advertises_all_xurl_env_vars() {
-    // p1-must-env-var: every agentic flag must surface its env var in --help.
+fn test_help_advertises_every_env_var_the_source_reads() {
+    // p1-must-env-var: every variable the binary reads must surface in --help.
+    // The set comes from src/ rather than a list here, so a new variable
+    // cannot land without a help entry.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let pattern = regex::Regex::new(r#"env = "([A-Z_]+)"|env::var(?:_os)?\("([A-Z_]+)"\)"#)
+        .expect("valid pattern");
+    let mut names = std::collections::BTreeSet::new();
+    let mut stack = vec![root.join("src")];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("src/ must be readable") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let source = std::fs::read_to_string(&path).expect("source must be readable");
+                let production = source.split("#[cfg(test)]").next().unwrap_or("");
+                for cap in pattern.captures_iter(production) {
+                    let name = cap
+                        .get(1)
+                        .or_else(|| cap.get(2))
+                        .expect("a capture")
+                        .as_str();
+                    names.insert(name.to_string());
+                }
+            }
+        }
+    }
+    // `HOME` is the one core system variable xr reads, only to expand a
+    // `~`-prefixed skill destination; it is not an xr setting.
+    names.remove("HOME");
+
     let output = common::xr().arg("--help").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    for expected in [
-        "XURL_VERBOSE",
-        "XURL_QUIET",
-        "XURL_NO_INTERACTIVE",
-        "XURL_TIMEOUT",
-        "XURL_OUTPUT",
-        "XURL_COLOR",
-        "XURL_APP",
-    ] {
-        assert!(
-            stdout.contains(expected),
-            "expected {expected} in --help: {stdout}"
-        );
-    }
+    let missing: Vec<&String> = names
+        .iter()
+        .filter(|n| !stdout.contains(n.as_str()))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "environment variables the source reads but --help does not advertise: {missing:?}"
+    );
 }
 
 #[test]

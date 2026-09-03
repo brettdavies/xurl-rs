@@ -6,9 +6,11 @@
 //! (`Auth::new_with_store_path`, `TokenStore::new_with_path`,
 //! `run_with_store_path`) are the seam; this guard keeps every test on it.
 //!
-//! A subprocess test spawns the binary through `common::xr()` or
-//! `common::xr_with_store`, which set `XURL_TOKEN_STORE` on the child, and
-//! never resets `HOME`.
+//! A subprocess test spawns the binary through `common::xr()`,
+//! `common::xr_with_store`, or `common::xr_std_at`, which set
+//! `XURL_TOKEN_STORE` on the child, and never resets `HOME`. Every `.rs`
+//! under `tests/` is scanned, subdirectories included; `tests/common/` is
+//! the seam itself and is the one directory left out.
 //!
 //! The allowlist names the tests that must touch the real path, with the
 //! reason. Adding an entry is a deliberate, reviewable act.
@@ -60,19 +62,26 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
     let mut files = Vec::new();
 
     let tests = root.join("tests");
-    for entry in std::fs::read_dir(&tests).expect("tests/ must be readable") {
-        let path = entry.expect("dir entry").path();
-        if path.extension().is_some_and(|e| e == "rs")
-            && path
-                .file_name()
-                .is_some_and(|n| n != "store_isolation_guard.rs")
-        {
-            let name = path
-                .file_name()
-                .expect("file name")
-                .to_string_lossy()
-                .into_owned();
-            files.push((name, path, 0));
+    let mut stack = vec![tests.clone()];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("tests/ must be readable") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                if path.file_name().is_some_and(|n| n != "common") {
+                    stack.push(path);
+                }
+            } else if path.extension().is_some_and(|e| e == "rs")
+                && path
+                    .file_name()
+                    .is_some_and(|n| n != "store_isolation_guard.rs")
+            {
+                let name = path
+                    .strip_prefix(&tests)
+                    .expect("under tests/")
+                    .to_string_lossy()
+                    .into_owned();
+                files.push((name, path, 0));
+            }
         }
     }
 

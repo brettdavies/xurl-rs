@@ -153,7 +153,9 @@ Tests never resolve the real home directory. Build stores and auth on an explici
 fails the suite when a test file names `Auth::new(`, `TokenStore::new()`, `TokenStore::with_credentials(`,
 `default_store_path()`, `default_pending_path()`, `dirs::home_dir()`, sets `HOME` on a child process, or spawns the `xr`
 binary outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path
-or the test's own temp store); a test that must touch the real path goes on its allowlist with the reason.
+or the test's own temp store); a test that must touch the real path goes on its allowlist with the reason. A companion
+guard in `tests/agentic_tests.rs` derives every environment variable `src/` reads and fails when `xr --help` does not
+advertise one.
 
 The pre-push hook mirrors CI 1:1. Run it before pushing if `core.hooksPath = scripts/hooks` is not set locally.
 
