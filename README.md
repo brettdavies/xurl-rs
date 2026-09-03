@@ -236,6 +236,12 @@ If you run `xr auth oauth2` without `--app`, the default app has no `client_id` 
 have credentials, the CLI prints a warning suggesting `xr auth oauth2 --app NAME` so the token lands on the right app
 instead of the credential-less default.
 
+### Token Store Location
+
+Credentials live in `~/.xurl`. Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending
+state (`<path>.pending`) follows it. The variable applies to the binary only: library callers pass the path to
+`run_with_store_path` or `Auth::new_with_store_path` directly.
+
 ## Agent-Native Features
 
 Built for AI agents and automation:

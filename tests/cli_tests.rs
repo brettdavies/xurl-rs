@@ -2810,15 +2810,13 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 /// and exits 0; the user is expected to invoke step 2 separately. Validates
 /// the U9 "explicit --no-browser without --step" auto-promotion to step 1.
 ///
-/// Uses a subprocess with `HOME` redirected to a tempdir because the OAuth2
-/// step-1 pending-state file lives at `$HOME/.xurl.pending` — the library
-/// entrypoint does not isolate that path, so an in-process call would
-/// pollute the user's real home directory.
+/// Uses a subprocess with `XURL_TOKEN_STORE` pointed at a tempdir store so
+/// the OAuth2 step-1 pending state lands beside that store.
 #[test]
 fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("XURL_NO_BROWSER")
         .env_remove("XURL_OUTPUT")
         // Other tests in this binary set `XURL_DRY_RUN=1` to exercise the
@@ -2853,7 +2851,7 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env("XURL_NO_BROWSER", "1")
         .env_remove("XURL_OUTPUT")
         .env_remove("XURL_DRY_RUN")
@@ -2881,7 +2879,7 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         .env_remove("XURL_NO_BROWSER")
         .env_remove("XURL_OUTPUT")
         .env_remove("XURL_DRY_RUN")

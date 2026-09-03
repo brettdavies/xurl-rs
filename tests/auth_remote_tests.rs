@@ -886,12 +886,11 @@ fn cli_no_browser_without_step_auto_engages_step1() {
     // the authorize URL and exits 0 rather than rejecting at usage time.
     // The exact envelope shape is covered by the JSON-mode tests in
     // `cli_tests.rs`; this test asserts the exit code only so it survives
-    // text-mode rendering changes. Redirect HOME to a tempdir so the
-    // pending-state file (`~/.xurl.pending`) does not pollute the user's
-    // real home.
+    // text-mode rendering changes. `XURL_TOKEN_STORE` points the child at a
+    // tempdir store so the pending state lands beside it.
     let tmp = TempDir::new().expect("tempdir");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_xr"))
-        .env("HOME", tmp.path())
+        .env("XURL_TOKEN_STORE", tmp.path().join(".xurl"))
         // U7 dry-run tests in this binary set `XURL_DRY_RUN=1`; without an
         // explicit removal the env var leaks into our subprocess and routes
         // through the dry-run envelope instead of step 1.
