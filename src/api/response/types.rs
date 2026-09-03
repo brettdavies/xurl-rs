@@ -210,8 +210,9 @@ pub struct UserPublicMetrics {
     /// Following count.
     #[serde(default)]
     pub following_count: u64,
-    /// Post count for the user.
-    #[serde(default)]
+    /// Post count for the user. X sends this key as `tweet_count`; the
+    /// 2.168 spec names it `post_count`, so either key fills this field.
+    #[serde(default, alias = "tweet_count")]
     pub post_count: u64,
     /// Number of public lists the user is on.
     #[serde(default)]
