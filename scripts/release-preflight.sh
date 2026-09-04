@@ -224,7 +224,11 @@ gate_smoke() {
 
     # OAuth1
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
-    [[ -n "$out" ]] && gate_pass "OAuth1 whoami (HMAC-SHA1) → $out" || gate_fail "OAuth1 whoami" "no username returned"
+    if [[ -n "$out" ]]; then
+        gate_pass "OAuth1 whoami (HMAC-SHA1) → $out"
+    else
+        gate_fail "OAuth1 whoami" "no username returned"
+    fi
 
     # OAuth2 PKCE — needs human
     gate_skip "OAuth2 PKCE end-to-end" "human-driven; see RELEASES-PREFLIGHT.md § OAuth2 PKCE path"
@@ -236,14 +240,22 @@ gate_smoke() {
     empty=$(mktemp -d)
     out=$(XURL_TOKEN_STORE="$empty/.xurl" XURL_BEARER_TOKEN="$app_bearer" "$XR_BIN" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
     unset app_bearer
-    [[ "$out" == "true" ]] && gate_pass "Bearer env one-shot" || gate_fail "Bearer env" "no data"
+    if [[ "$out" == "true" ]]; then
+        gate_pass "Bearer env one-shot"
+    else
+        gate_fail "Bearer env" "no data"
+    fi
     # $empty only saw XURL_BEARER_TOKEN as env, never written to disk — but
     # shred anyway in case xr created a sentinel file with the bearer.
     shred_tmpdir "$empty"
 
     # Bearer stored
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
-    [[ "$out" == "true" ]] && gate_pass "Bearer stored (per-app)" || gate_fail "Bearer stored" "no data"
+    if [[ "$out" == "true" ]]; then
+        gate_pass "Bearer stored (per-app)"
+    else
+        gate_fail "Bearer stored" "no data"
+    fi
 
     # Typed wire vocabulary
     if out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev \
@@ -257,7 +269,11 @@ gate_smoke() {
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" media upload tests/fixtures/media/smoke-test.jpg \
         --media-type image/jpeg --category tweet_image --wait \
         --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
-    [[ -n "$out" ]] && gate_pass "Media upload (chunked INIT/APPEND/FINALIZE) → media_id=$out" || gate_fail "Media upload" "no media_id"
+    if [[ -n "$out" ]]; then
+        gate_pass "Media upload (chunked INIT/APPEND/FINALIZE) → media_id=$out"
+    else
+        gate_fail "Media upload" "no media_id"
+    fi
 
     # Output formats — known v2.0.0 behavior on non-streaming
     gate_pass "Output formats (text/json/jsonl on non-streaming = pretty JSON; streaming requires elevated access — known behavior)"
@@ -266,20 +282,32 @@ gate_smoke() {
     local envelope
     envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --auth app --app bird_dev --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
-    [[ "$envelope" == "auth-method-mismatch" ]] && gate_pass "auth-method-mismatch envelope (exit 2)" || gate_fail "auth-method-mismatch" "got reason='$envelope'"
+    if [[ "$envelope" == "auth-method-mismatch" ]]; then
+        gate_pass "auth-method-mismatch envelope (exit 2)"
+    else
+        gate_fail "auth-method-mismatch" "got reason='$envelope'"
+    fi
 
     cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
     yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$SMOKE_HOME/.xurl"
     envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
-    [[ "$envelope" == "auth-method-mismatch" ]] && gate_pass "empty-intersection envelope (exit 2)" || gate_fail "empty-intersection" "got reason='$envelope'"
+    if [[ "$envelope" == "auth-method-mismatch" ]]; then
+        gate_pass "empty-intersection envelope (exit 2)"
+    else
+        gate_fail "empty-intersection" "got reason='$envelope'"
+    fi
     mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
 
     yq -i '.default_app = "default"' "$SMOKE_HOME/.xurl"
     envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "x" --max-results 1 --output json 2>&1 || true)
     envelope=$(printf '%s' "$envelope" | jaq -r '.other_apps_with_creds // [] | length' 2>/dev/null || echo 0)
     yq -i '.default_app = "bird_dev"' "$SMOKE_HOME/.xurl"
-    [[ "$envelope" -gt 0 ]] 2>/dev/null && gate_pass "wrong-app envelope ($envelope other_apps_with_creds)" || gate_fail "wrong-app" "no other_apps_with_creds in envelope"
+    if [[ "$envelope" -gt 0 ]] 2>/dev/null; then
+        gate_pass "wrong-app envelope ($envelope other_apps_with_creds)"
+    else
+        gate_fail "wrong-app" "no other_apps_with_creds in envelope"
+    fi
 
     gate_skip "429 (rate limited)" "hard to trigger reliably without burning quota"
 }
@@ -294,28 +322,52 @@ gate_multi_app() {
 
     # OAuth1 isolation
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_dev --auth oauth1 --output json 2>&1 | jaq -r '.data.username // ""')
-    [[ -n "$out" ]] && gate_pass "OAuth1 routes to bird_dev → $out" || gate_fail "OAuth1 bird_dev" "no username"
+    if [[ -n "$out" ]]; then
+        gate_pass "OAuth1 routes to bird_dev → $out"
+    else
+        gate_fail "OAuth1 bird_dev" "no username"
+    fi
 
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
     out=$(printf '%s' "$out" | jaq -r '.reason // ""' 2>/dev/null || true)
-    [[ "$out" == "auth-required" ]] && gate_pass "OAuth1 isolated (bird_prod has none → auth-required)" || gate_fail "OAuth1 isolation" "expected auth-required, got '$out'"
+    if [[ "$out" == "auth-required" ]]; then
+        gate_pass "OAuth1 isolated (bird_prod has none → auth-required)"
+    else
+        gate_fail "OAuth1 isolation" "expected auth-required, got '$out'"
+    fi
 
     # Bearer isolation
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
-    [[ "$out" == "true" ]] && gate_pass "Bearer routes to bird_dev" || gate_fail "Bearer bird_dev" "no data"
+    if [[ "$out" == "true" ]]; then
+        gate_pass "Bearer routes to bird_dev"
+    else
+        gate_fail "Bearer bird_dev" "no data"
+    fi
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" search "rust" --max-results 1 --auth app --app bird_prod --output json 2>&1 | jaq -c '.data | length > 0')
-    [[ "$out" == "true" ]] && gate_pass "Bearer routes to bird_prod" || gate_fail "Bearer bird_prod" "no data"
+    if [[ "$out" == "true" ]]; then
+        gate_pass "Bearer routes to bird_prod"
+    else
+        gate_fail "Bearer bird_prod" "no data"
+    fi
 
     # OAuth2 sideload structural isolation
     out=$(yq '.apps | with_entries(select(.value.oauth2_tokens != null)) | keys | length' "$SMOKE_HOME/.xurl")
-    [[ "$out" -ge 1 ]] && gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; PKCE end-to-end is human-driven)" || gate_fail "OAuth2 isolation" "no oauth2_tokens slot found"
+    if [[ "$out" -ge 1 ]]; then
+        gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; PKCE end-to-end is human-driven)"
+    else
+        gate_fail "OAuth2 isolation" "no oauth2_tokens slot found"
+    fi
 
     # Auto-detect with --app NAME
     cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
     yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$SMOKE_HOME/.xurl"
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
     mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
-    [[ -n "$out" ]] && gate_pass "Auto-detect falls through OAuth2→OAuth1 when OAuth2 absent → $out" || gate_fail "Auto-detect fallthrough" "no username"
+    if [[ -n "$out" ]]; then
+        gate_pass "Auto-detect falls through OAuth2→OAuth1 when OAuth2 absent → $out"
+    else
+        gate_fail "Auto-detect fallthrough" "no username"
+    fi
 
     # First-signed-in auto-default
     local fresh dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
@@ -335,12 +387,20 @@ gate_multi_app() {
     before=$(yq '.default_app' "$fresh/.xurl")
     XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_dev >/dev/null
     after=$(yq '.default_app' "$fresh/.xurl")
-    [[ "$before" == "default" && "$after" == "bird_dev" ]] && gate_pass "First-signed-in auto-default ($before → $after)" || gate_fail "Auto-default" "$before → $after"
+    if [[ "$before" == "default" && "$after" == "bird_dev" ]]; then
+        gate_pass "First-signed-in auto-default ($before → $after)"
+    else
+        gate_fail "Auto-default" "$before → $after"
+    fi
 
     # Promotion idempotence
     XURL_TOKEN_STORE="$fresh/.xurl" "$XR_BIN" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_prod >/dev/null
     after=$(yq '.default_app' "$fresh/.xurl")
-    [[ "$after" == "bird_dev" ]] && gate_pass "Promotion idempotence (second sign-in did not overwrite default)" || gate_fail "Idempotence" "default became $after"
+    if [[ "$after" == "bird_dev" ]]; then
+        gate_pass "Promotion idempotence (second sign-in did not overwrite default)"
+    else
+        gate_fail "Idempotence" "default became $after"
+    fi
     unset dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
     # $fresh/.xurl was seeded with bird_dev OAuth1 creds — shred, not trash.
     shred_tmpdir "$fresh"
@@ -348,7 +408,11 @@ gate_multi_app() {
     # Auth-error envelope vs upstream 401
     out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$XR_BIN" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
     out=$(printf '%s' "$out" | jaq -r '.message // ""' 2>/dev/null || true)
-    [[ "$out" == *"TokenNotFound"* ]] && gate_pass "Auth-error envelope surfaces TokenNotFound (not raw upstream 401)" || gate_fail "Auth-error envelope" "got '$out'"
+    if [[ "$out" == *"TokenNotFound"* ]]; then
+        gate_pass "Auth-error envelope surfaces TokenNotFound (not raw upstream 401)"
+    else
+        gate_fail "Auth-error envelope" "got '$out'"
+    fi
 }
 
 # Gate: mechanics ------------------------------------------------------------
@@ -360,20 +424,36 @@ gate_mechanics() {
     cargo_version=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
     gate_pass "Cargo.toml version = $cargo_version"
 
-    [[ -f Cargo.lock ]] && gate_pass "Cargo.lock present" || gate_fail "Cargo.lock" "missing"
+    if [[ -f Cargo.lock ]]; then
+        gate_pass "Cargo.lock present"
+    else
+        gate_fail "Cargo.lock" "missing"
+    fi
 
     if [[ -x "$XR_BIN" ]]; then
         local xr_version
         xr_version=$("$XR_BIN" --version | awk '{print $2}')
-        [[ "$xr_version" == "$cargo_version" ]] && gate_pass "xr --version = $xr_version (matches Cargo.toml)" || gate_fail "xr --version mismatch" "binary=$xr_version cargo=$cargo_version"
+        if [[ "$xr_version" == "$cargo_version" ]]; then
+            gate_pass "xr --version = $xr_version (matches Cargo.toml)"
+        else
+            gate_fail "xr --version mismatch" "binary=$xr_version cargo=$cargo_version"
+        fi
     else
         gate_skip "xr --version" "build target/release/xr first"
     fi
 
     changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]## ')
-    [[ "$changelog_version" == "$cargo_version" ]] && gate_pass "CHANGELOG top section = [$changelog_version] (matches Cargo.toml)" || gate_fail "CHANGELOG mismatch" "changelog=$changelog_version cargo=$cargo_version"
+    if [[ "$changelog_version" == "$cargo_version" ]]; then
+        gate_pass "CHANGELOG top section = [$changelog_version] (matches Cargo.toml)"
+    else
+        gate_fail "CHANGELOG mismatch" "changelog=$changelog_version cargo=$cargo_version"
+    fi
 
-    grep -q '\[Unreleased\]' CHANGELOG.md && gate_fail "CHANGELOG" "has [Unreleased] placeholder" || gate_pass "CHANGELOG has no [Unreleased] placeholder"
+    if grep -q '\[Unreleased\]' CHANGELOG.md; then
+        gate_fail "CHANGELOG" "has [Unreleased] placeholder"
+    else
+        gate_pass "CHANGELOG has no [Unreleased] placeholder"
+    fi
 
     toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/')
     local release_date_match
@@ -381,8 +461,11 @@ gate_mechanics() {
     if [[ -n "$release_date_match" ]]; then
         local age_days
         age_days=$(( ( $(date +%s) - $(date -d "$release_date_match" +%s) ) / 86400 ))
-        [[ $age_days -ge 7 ]] && gate_pass "rust-toolchain channel=$toolchain_channel (released $release_date_match, $age_days days ago — ≥7 day quarantine satisfied)" \
-            || gate_fail "rust-toolchain quarantine" "channel $toolchain_channel released $release_date_match ($age_days days ago) is inside 7-day window"
+        if [[ $age_days -ge 7 ]]; then
+            gate_pass "rust-toolchain channel=$toolchain_channel (released $release_date_match, $age_days days ago — ≥7 day quarantine satisfied)"
+        else
+            gate_fail "rust-toolchain quarantine" "channel $toolchain_channel released $release_date_match ($age_days days ago) is inside 7-day window"
+        fi
     else
         gate_skip "rust-toolchain quarantine" "no 'released YYYY-MM-DD' comment found in rust-toolchain.toml"
     fi
