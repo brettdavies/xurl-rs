@@ -123,9 +123,11 @@ gate_release() {
         gate_skip "release.yml run $run_id" "status=$status (still running; re-run after watcher exits)"
         return
     fi
-    [[ "$conclusion" == "success" ]] \
-        && gate_pass "release.yml run $run_id conclusion=success" \
-        || gate_fail "release.yml run $run_id" "conclusion=$conclusion (see gh run view $run_id --log-failed)"
+    if [[ "$conclusion" == "success" ]]; then
+        gate_pass "release.yml run $run_id conclusion=success"
+    else
+        gate_fail "release.yml run $run_id" "conclusion=$conclusion (see gh run view $run_id --log-failed)"
+    fi
 }
 
 # Gate: homebrew-tap ---------------------------------------------------------
