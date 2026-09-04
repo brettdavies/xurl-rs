@@ -1,5 +1,6 @@
 //! Guards for the spec-drift shell tooling: the auth-method section of the
-//! drift report (`scripts/diff-x-openapi-spec.sh`).
+//! drift report (`scripts/diff-x-openapi-spec.sh`) and the vendored README
+//! renderer (`scripts/render-vendor-readme.sh`).
 #![cfg(unix)]
 
 use std::fs;
@@ -156,5 +157,16 @@ fn drift_report_shows_scope_changes_on_a_requirement() {
     assert!(
         report.contains("1 of these are in the shortcut allowlist"),
         "{report}"
+    );
+}
+
+#[test]
+fn vendor_readme_matches_renderer_output() {
+    let rendered = run_script("render-vendor-readme.sh", &[]);
+    let committed =
+        fs::read_to_string(repo_root().join("vendor/README.md")).expect("read vendor/README.md");
+    assert_eq!(
+        rendered, committed,
+        "vendor/README.md is stale; regenerate with: scripts/render-vendor-readme.sh > vendor/README.md"
     );
 }
