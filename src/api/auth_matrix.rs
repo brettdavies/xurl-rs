@@ -2,10 +2,10 @@
 //! spec at build time.
 //!
 //! Source of truth: `vendor/x-api-openapi.json`. Codegen lives in
-//! `build.rs::emit_auth_matrix`; the same `SHORTCUT_TEMPLATES` allowlist
-//! is duplicated here for runtime callers. Both copies must list the same
-//! `(method, path)` pairs — the build panics if a spec lookup misses,
-//! which surfaces drift between the two.
+//! `build.rs::emit_auth_matrix`, which also emits the `SHORTCUT_TEMPLATES`
+//! allowlist re-exported here, so runtime callers and the matrix share one
+//! list. The build panics when an allowlisted pair is missing from the
+//! spec, which surfaces drift between the allowlist and the spec.
 //!
 //! Lookup is a direct hash on the packed key `"METHOD\0/path/template"`;
 //! no path-template precedence resolution. Unknown `(method, path)` pairs
@@ -263,8 +263,7 @@ mod tests {
     use crate::error::XurlError;
 
     /// Shortcut + media layer currently targets 33 (method, path) pairs.
-    /// Updating this requires updating both the build-time allowlist in
-    /// `build.rs` and the runtime mirror at the top of this file.
+    /// Updating this requires updating the allowlist in `build.rs`.
     const EXPECTED_SHORTCUT_COUNT: usize = 33;
 
     #[test]
