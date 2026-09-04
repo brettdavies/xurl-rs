@@ -28,6 +28,11 @@
 #     additions/removals at each location they appear. Catches the
 #     in-place "X added enum values to an existing schema" pattern that
 #     the path/schema inventories miss.
+#   - Auth-method changes: per-operation `security` additions/removals
+#     (scheme name plus sorted scopes) for operations present in both
+#     snapshots, with a verdict on whether any changed operation is in the
+#     `SHORTCUT_TEMPLATES` allowlist that build.rs turns into the auth
+#     matrix. `security` is the one spec field the build consumes.
 #   - Refresh-locally footer: rendered only when none of the structural
 #     diffs surfaced anything. Means X edited descriptions, types, or
 #     other fields the structural diff doesn't model.
@@ -131,6 +136,61 @@ enum_diff_tsv="$(jq -n -r \
        (if ($removed | length) > 0 then ($removed | join(",")) else "-" end)] | @tsv
     ')"
 
+# Auth-method diff: for every operation present in both specs, the set of
+# `security` requirements rendered as `Scheme` or `Scheme[scope ...]` with
+# scopes sorted, so the upstream endpoint's nondeterministic scope order
+# never reads as drift. Emits TSV rows (`METHOD /path\tadded\tremoved`)
+# for operations whose requirement set differs. `security` is the one spec
+# field build.rs consumes, so a change here can move the generated auth
+# matrix. Added or removed paths belong to the path inventory and are
+# skipped here.
+auth_diff_tsv="$(jq -n -r \
+    --slurpfile local "${VENDOR_PATH}" \
+    --slurpfile upstream "${UPSTREAM_PATH}" \
+    '
+    def requirement:
+      to_entries[0]
+      | .key + (if ((.value // []) | length) > 0
+                then "[" + (.value | map(tostring) | sort | join(" ")) + "]"
+                else "" end);
+    def extract:
+      [ .paths | to_entries[]
+        | .key as $path
+        | .value | to_entries[]
+        | select(.key | IN("get", "post", "put", "delete", "patch"))
+        | select(.value | type == "object")
+        | { key: ((.key | ascii_upcase) + " " + $path),
+            value: ([ .value.security[]? | select(type == "object" and length > 0) | requirement ] | sort) } ]
+      | from_entries;
+
+    ($local[0] | extract) as $loc_map
+    | ($upstream[0] | extract) as $ups_map
+    | ($loc_map | keys[]) as $op
+    | select($ups_map | has($op))
+    | $loc_map[$op] as $l
+    | $ups_map[$op] as $u
+    | (($u - $l) | sort) as $added
+    | (($l - $u) | sort) as $removed
+    | select(($added | length) + ($removed | length) > 0)
+    | [$op,
+       (if ($added | length) > 0 then ($added | join(",")) else "-" end),
+       (if ($removed | length) > 0 then ($removed | join(",")) else "-" end)] | @tsv
+    ')"
+
+# The allowlist feeds the generated auth matrix, so an auth change on an
+# allowlisted operation changes what `xr` enforces; every other operation is
+# permissive at runtime. Parsed from build.rs so the list has one home; when
+# build.rs is not beside this script the report says so instead of guessing.
+BUILD_RS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build.rs"
+allowlist=""
+if [ -f "${BUILD_RS}" ]; then
+    allowlist="$(sed -n '/^const SHORTCUT_TEMPLATES/,/^\];/p' "${BUILD_RS}" \
+        | tr -d '\n' \
+        | grep -oE '\([[:space:]]*"[A-Z]+",[[:space:]]*"[^"]+",?[[:space:]]*\)' \
+        | sed -E 's/^\([[:space:]]*"([A-Z]+)",[[:space:]]*"([^"]+)",?[[:space:]]*\)$/\1 \2/' \
+        | sort)"
+fi
+
 count_lines() {
     if [ -z "$1" ]; then echo 0; else printf '%s\n' "$1" | wc -l; fi
 }
@@ -139,6 +199,14 @@ paths_removed_count="$(count_lines "${paths_removed}")"
 schemas_added_count="$(count_lines "${schemas_added}")"
 schemas_removed_count="$(count_lines "${schemas_removed}")"
 enum_changes_count="$(count_lines "${enum_diff_tsv}")"
+auth_changes_count="$(count_lines "${auth_diff_tsv}")"
+auth_matrix_hits=""
+if [ "${auth_changes_count}" -gt 0 ] && [ -n "${allowlist}" ]; then
+    auth_matrix_hits="$(comm -12 \
+        <(printf '%s\n' "${auth_diff_tsv}" | cut -f1 | sort) \
+        <(printf '%s\n' "${allowlist}"))"
+fi
+auth_matrix_hits_count="$(count_lines "${auth_matrix_hits}")"
 
 # ── Formatters ──────────────────────────────────────────────────────────
 
@@ -171,6 +239,33 @@ fmt_signed_values() {
     printf '%s' "${input}" | sed "s|,|\`, ${sign}\`|g; s|^|${sign}\`|; s|\$|\`|"
 }
 
+# Render TSV rows (`key\tadded\tremoved`, "-" marking an empty column) as
+# signed markdown bullets, capped at 10 rows with a `+N more` tail.
+render_signed_rows() {
+    local tsv="$1" count="$2"
+    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
+    # printf under pipefail when the drift is large.
+    printf '%s\n' "${tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r key added removed; do
+        line="- \`${key}\`"
+        sep=": "
+        # "-" is the explicit empty marker: tab is IFS whitespace, so an
+        # empty middle column would collapse and shift removals into the
+        # added slot, rendering removal-only rows with the wrong sign.
+        if [ "${added}" != "-" ]; then
+            line="${line}${sep}$(fmt_signed_values "${added}" "+")"
+            sep=", "
+        fi
+        if [ "${removed}" != "-" ]; then
+            line="${line}${sep}$(fmt_signed_values "${removed}" "-")"
+        fi
+        echo "${line}"
+    done
+    if [ "${count}" -gt 10 ]; then
+        echo ""
+        echo "_+$(( count - 10 )) more_"
+    fi
+}
+
 # ── Render the report body ──────────────────────────────────────────────
 
 echo "Vendored \`${VENDOR_PATH}\` does not match upstream \`${UPSTREAM_LABEL}\`."
@@ -200,33 +295,27 @@ if [ "${enum_changes_count}" -gt 0 ]; then
     echo ""
     echo "**Categorical-value changes:** ${enum_changes_count} location(s) with enum or discriminator-mapping additions or removals."
     echo ""
-    # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
-    # printf under pipefail when the drift is large.
-    printf '%s\n' "${enum_diff_tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r ptr added removed; do
-        line="- \`${ptr}\`"
-        sep=": "
-        # "-" is the explicit empty marker: tab is IFS whitespace, so an
-        # empty middle column would collapse and shift removals into the
-        # added slot, rendering removal-only rows with the wrong sign.
-        if [ "${added}" != "-" ]; then
-            line="${line}${sep}$(fmt_signed_values "${added}" "+")"
-            sep=", "
-        fi
-        if [ "${removed}" != "-" ]; then
-            line="${line}${sep}$(fmt_signed_values "${removed}" "-")"
-        fi
-        echo "${line}"
-    done
-    if [ "${enum_changes_count}" -gt 10 ]; then
-        echo ""
-        echo "_+$(( enum_changes_count - 10 )) more_"
+    render_signed_rows "${enum_diff_tsv}" "${enum_changes_count}"
+fi
+if [ "${auth_changes_count}" -gt 0 ]; then
+    echo ""
+    echo "**Auth-method changes:** ${auth_changes_count} operation(s) with \`security\` additions or removals."
+    echo ""
+    render_signed_rows "${auth_diff_tsv}" "${auth_changes_count}"
+    echo ""
+    if [ -z "${allowlist}" ]; then
+        echo "Shortcut allowlist unavailable (\`build.rs\` is not beside this script or \`SHORTCUT_TEMPLATES\` did not parse); check it by hand for these operations."
+    elif [ "${auth_matrix_hits_count}" -gt 0 ]; then
+        echo "**${auth_matrix_hits_count} of these are in the shortcut allowlist and change the generated auth matrix:** $(fmt_list "${auth_matrix_hits}" "${auth_matrix_hits_count}")."
+    else
+        echo "None of these operations is in the shortcut allowlist (\`SHORTCUT_TEMPLATES\` in \`build.rs\`), so the generated auth matrix is unchanged and the validator stays permissive for them."
     fi
 fi
 
-total_structural=$(( paths_added_count + paths_removed_count + schemas_added_count + schemas_removed_count + enum_changes_count ))
+total_structural=$(( paths_added_count + paths_removed_count + schemas_added_count + schemas_removed_count + enum_changes_count + auth_changes_count ))
 if [ "${total_structural}" = "0" ]; then
     echo ""
-    echo "Neither paths, schemas, nor categorical values changed but the file still differs. X likely edited descriptions, types, or other in-place fields. Refresh locally to see the field-level diff:"
+    echo "Neither paths, schemas, categorical values, nor auth methods changed but the file still differs. X likely edited descriptions, types, or other in-place fields. Refresh locally to see the field-level diff:"
     echo ""
     echo '```bash'
     echo 'scripts/refresh-x-openapi.sh'
