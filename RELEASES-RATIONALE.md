@@ -22,11 +22,27 @@ Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`, `docs/r
 reach `main`. `guard-main-docs.yml` blocks them from PRs targeting `main`, and `guard-release-branch.yml` rejects any PR
 to main whose head isn't `release/*`.
 
-### Why cherry-pick from `main`, not branch from `dev`
+### Why the release branch is cut from `main`, never from `dev`
 
-Branching from `dev` and then `gio trash`-ing the guarded paths seems simpler but produces `add/add` merge conflicts
-whenever `dev` and `main` have diverged (which they always do after the first squash merge). The file appears as "added"
-on both sides with different content. Always branch from `origin/main` and cherry-pick the dev commits onto it.
+Every release squash-merges into `main`, so `dev` and `main` diverge in history even as their content converges: after
+the first release they share only an ancient merge-base. Cutting the release branch from `dev` (or merging `dev` into
+`main`) forces a 3-way merge across that divergence: `add/add` collisions on files both sides changed, plus
+rename/delete pairs git cannot auto-resolve. The conflict pile is an artifact of the lineage, not of the content
+shipping.
+
+Always cut the release branch from `origin/main` and bring `dev`'s content onto it as a forward diff, never by
+reconciling histories. The default is the whole-tree overlay (`git checkout origin/dev -- .`, then strip the guarded
+set): `main` ships `dev`'s tree minus a small, known exclusion set, so asserting that end-state directly is simpler and
+safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the
+PRs merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the
+branch's commits; the result is the same per-PR section a cherry-picked branch would yield. Cherry-picking the dev
+squash-commits is kept only as an exception for a repo with a stated reason it cannot overlay, at the cost of
+guarded-path conflict handling.
+
+Either way, the release must start from a `main` that `dev` fully contains. Security PRs, hotfixes, and config edits
+land on `main` first, and both constructions take `dev`'s content for the files they touch, so anything `main` holds
+that `dev` never received is reverted by the release. `scripts/release/drift.sh` lists that set and the cut waits
+until it is empty.
 
 ### Version branch naming
 
@@ -94,7 +110,9 @@ not in the source-of-truth release notes.
 
 ## Triple-diff verification
 
-The release-PR procedure runs three diffs (A: main→release, B: release→dev for paths outside the guarded set, C:
+The overlay recipe screens the staged release tree twice before the commit (A: release→dev for paths outside the
+guarded set and the version files, B: no guarded path in release→main) and enumerates what the release adds (D). The
+cherry-pick exception runs three diffs (A: main→release, B: release→dev for paths outside the guarded set, C:
 dev→main) plus a patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main`
 on this and sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
 
@@ -106,9 +124,11 @@ hides a missed migration-guide pick.
 `guard-main-docs` is what CI enforces on a PR to `main`: the reusable workflow's hardcoded base list plus this repo's
 `extra_paths`. Every hand-kept copy of that union (runbook, checklist, preflight script) drifted from it, and a copy
 that omits a guarded path reports a real leak as clean while CI turns red after the push.
-`scripts/release-guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so registering
-a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still needs a
-manual edit when the reusable changes, because it lives in another repo.
+`scripts/release/guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so
+registering a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still
+needs a manual edit when the reusable changes, because it lives in another repo. Entries are globs with one rule set
+shared by the reusable and the script (`**/` any depth, `*` and `?` within a segment, trailing slash guards the
+subtree), so `**/.agent/` guards that directory wherever it appears and the two never disagree about what is guarded.
 
 ### Why the release enumerates what it adds
 
@@ -146,15 +166,16 @@ prior squash, it's a false positive (no action). Otherwise cherry-pick the commi
 
 ### Generated, never hand-written
 
-`scripts/generate-changelog.py` (vendored from the `rust-tool-release` skill, with the repo-local `cliff.toml`) is the
-only sanctioned way to update `CHANGELOG.md`. The script runs `git-cliff` to prepend a versioned entry for commits since
-the last tag, then walks each squash-merged PR's body to extract the `## Changelog → ### Added / Changed / Fixed /
-Documentation` subsections, replacing the auto-generated bullets with the curated PR-body content (with author and
-PR-link attribution).
+`scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
+only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
+merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
+Breaking changes / Added / Changed / Fixed / Documentation` subsections (with author and PR-link attribution). On a
+cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands
+the same way.
 
-If a PR's `## Changelog` section is empty, that PR's entry is omitted from the changelog (empty section = no user-facing
-change). To fix a wrong CHANGELOG entry, fix the input: edit the squash-merged PR body, then re-run the script. Do
-**not** edit `CHANGELOG.md` directly.
+If a PR's body carries no changelog content, its title becomes a `Changed` bullet, except for `chore`, `ci`, `build`,
+`style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. To fix a wrong CHANGELOG
+entry, fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
 CI enforces that `CHANGELOG.md` is modified in every PR to main (`ci / Changelog` required status check) and that it
 contains a versioned section, not `[Unreleased]`. The release workflow extracts the latest section for the GitHub
@@ -194,11 +215,21 @@ Once `finalize-release.yml` has flipped the GitHub Release to `published`, the r
 (`Cargo.toml` version, `Cargo.lock`, `CHANGELOG.md`) need to reach `dev` so future builds from `dev` report the released
 version and so the next dev work starts from the released baseline.
 
-The backport is a PR to `dev` whose branch copies those files from `main` (`git checkout origin/main -- <files>`),
-titled with the version so `scripts/release-postflight.sh backport` can find it. A direct `git merge` of `main` into
-`dev` is not used: the two branches share no recent history (every release lands on `main` as one squash commit), so the
-merge conflicts on every file both sides touched, and a direct push to `dev` bypasses its required status checks.
-Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of the copy, so the backport cannot remove it.
+The backport is a PR opened by `scripts/sync-dev-after-release.sh`, never a merge of `main` into `dev` and never a
+direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides
+touched, and a direct push to `dev` bypasses its required status checks. The script writes the released version into
+`Cargo.toml` and the crate's `Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens the PR; the postflight
+backport gate treats that merged PR as the durable signal that the backport ran. Dev-only content (`CONCEPTS.md`, the
+engineering docs) is never part of the copy, so the backport cannot remove it.
+
+### Rollback
+
+Rollback happens at the surface users consume (crates.io, the GitHub Release, the Homebrew formula), not in git.
+Yanking a version, re-pointing `releases/latest`, or reverting a formula bump is fast and reversible; rewriting `main`
+is neither, and the release flow exists so that `main` only ever moves forward through a PR. After the rollback, the
+fix or revert lands through `dev`, a release branch, and `main` like any other change, so the branch reconverges with
+what is live. Recording the last-good identifiers before the release is what makes the rollback a single command under
+incident pressure.
 
 ### Cross-compile target matrix
 
