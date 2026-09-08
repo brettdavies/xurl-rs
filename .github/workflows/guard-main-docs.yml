@@ -4,9 +4,10 @@
 # from being merged into main, plus this repo's extra_paths. Only needs
 # pull-requests: read.
 #
-# extra_paths entries ending in `/` match by prefix; others match one exact
-# filename. scripts/release-guarded-paths.sh reads this line, so keep it on
-# one line in single quotes.
+# extra_paths entries are globs: `**/` spans any depth, `*` and `?` stay
+# within one segment, a trailing `/` guards the subtree, and a plain entry is
+# a prefix or an exact path. scripts/release/guarded-paths.sh reads this line,
+# so keep it on one line in single quotes.
 name: Guard main from engineering docs
 
 on:
