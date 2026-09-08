@@ -44,6 +44,7 @@ readonly REPO_ROOT
 
 # Shared output helpers, gate counters, dependency checks, 1Password helper,
 # SMOKE_HOME cleanup. Same _lib.sh as postflight.sh.
+# shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
 
 BIN_PATH="${BIN_PATH:-$REPO_ROOT/target/release/xr}"
