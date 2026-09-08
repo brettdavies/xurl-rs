@@ -87,6 +87,9 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
+- [ ] The previous release's bookkeeping reached `dev`: the version carriers and `CHANGELOG.md` at the anchor tag match
+      `dev`'s copies. Gate 0 fails when that backport never ran; run `scripts/sync-dev-after-release.sh v<version>`,
+      merge its PR, and rerun.
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
       `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
 - [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
