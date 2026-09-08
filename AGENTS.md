@@ -163,8 +163,8 @@ The pre-push hook mirrors CI 1:1. Run it before pushing if `core.hooksPath = scr
 
 See [`RELEASES.md`](RELEASES.md) for the operational runbook, [`RELEASES-PREFLIGHT.md`](RELEASES-PREFLIGHT.md) for the
 pre-cut go/no-go checklist, and [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md) for the why behind every rule. The
-short version: feature branch → PR to `dev` (squash) → cherry-pick to `release/v<version>` cut from `main` → PR to
-`main` (squash) → annotated tag push triggers `release.yml`.
+short version: feature branch → PR to `dev` (squash) → `dev`'s tree overlaid onto `release/v<version>` cut from
+`main` → PR to `main` (squash) → annotated tag push triggers `release.yml`.
 
 ### Spec-refresh PRs
 

@@ -21,6 +21,8 @@ checklist covers what CI structurally can't:
 
 Everything below assumes you know what's changing. Run this first.
 
+Driven by `scripts/release/preflight.sh surface`.
+
 ```bash
 LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
 git log "$LAST_TAG..dev" --oneline                              # commits going out
@@ -29,26 +31,33 @@ git diff "$LAST_TAG..dev" -- src/api/ src/auth/ src/cli/        # surface area: 
 git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
+On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
+`origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
+
 Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
 
 ## Quick start: run the automated gates
 
-Most of this checklist now runs from one script. Build `xr` first, then:
+Most of this checklist runs from one script. Build `xr` first, then:
 
 ```bash
 cargo build --release --bin xr
-scripts/release-preflight.sh all          # surface + api-contract + smoke + multi-app + mechanics
+scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + mechanics
 ```
 
 After `git push origin vX.Y.Z` triggers the release pipeline, run
-[`scripts/release-postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
+[`scripts/release/postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
 
-The script (`scripts/release-preflight.sh`) covers 31 of the 34 pre-tag gates. It exits non-zero if any gate fails;
-human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped with a `⊝` and a pointer to
-the recipe below. Sub-commands let you re-run one gate group in isolation:
+The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
+shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, drift + surface +
+mechanics gates) is the skeleton's; the api-contract, smoke, and multi-app gates and the seed recipe are this repo's.
+`all` runs the drift gate first, since nothing else matters while `main` holds changes `dev` never received. It exits
+non-zero if any gate fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped
+with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 | Sub-command    | What it runs                                                                                                                                                                       | Live API?                 |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `drift`        | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)       | no                        |
 | `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
 | `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                                                                                    | no (builds prev tag once) |
 | `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                    | yes                       |
@@ -58,9 +67,9 @@ the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 Flags:
 
-- `--smoke-home PATH` — reuse an existing seeded store (skip the 1Password seed)
-- `--no-cleanup` — keep the temp store after exit (useful for follow-up `xr` probes)
-- `--tag TAG` — override LAST_TAG auto-detection
+- `--smoke-home PATH`: reuse an existing seeded store (skip the 1Password seed)
+- `--no-cleanup`: keep the temp store after exit (useful for follow-up `xr` probes)
+- `--tag TAG`: override LAST_TAG auto-detection
 
 The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and **`shred -u`s** every tempdir that
 held credentials on exit (overwrites bytes with three passes before unlinking; falls back to `dd if=/dev/urandom + rm`
@@ -70,7 +79,45 @@ unavailable or you want to iterate on a single gate by hand.
 
 ## Checklist
 
+### Branch drift (main ahead of dev)
+
+Driven by `scripts/release/preflight.sh drift` (delegates to `scripts/release/drift.sh`).
+
+Security PRs, hotfixes, and config edits land on `main` first. The release branch is cut from `main` and then takes
+`dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
+Dependabot raises the same fix again.
+
+- [ ] The previous release's bookkeeping reached `dev`: the version carriers and `CHANGELOG.md` at the anchor tag match
+      `dev`'s copies. Gate 0 fails when that backport never ran; run `scripts/sync-dev-after-release.sh v<version>`,
+      merge its PR, and rerun.
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
+      `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
+- [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
+      one branch.
+- [ ] No `Cargo.lock` package resolves newer on `main` than on `dev` (gate 3). The one benign case is a version still
+      inside the local package manager's release-age window when the advisory is already patched at `dev`'s version.
+- [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
+
+### Dependabot preflight
+
+Run before `Cargo.toml` is bumped and before any release branch is cut. Surfaces pending dependency updates so they can
+be merged on `dev` (or rejected) instead of arriving as Dependabot PRs the moment the release commit lands: `Cargo.lock`
+churn triggers Dependabot's out-of-cycle re-evaluation, and at that point the release is already tagged and they miss
+the cut.
+
+- [ ] Trigger the workflow: GitHub → Actions → "Dependabot Preflight" → "Run workflow" (head = `dev`). The caller is
+  `.github/workflows/dependabot-preflight.yml`.
+- [ ] Review the `cargo` job's `cargo outdated --workspace --depth 1` report in the run summary. For each direct dep
+  with a newer compatible version, decide: merge an update PR on dev now, accept the stale version this release, or rule
+  out the update with a `Cargo.toml` constraint.
+- [ ] Review the `github-actions` job's pin-drift table. For every drifted action, bump the pinned SHA on dev and update
+  the trailing `# <version>` comment.
+- [ ] (Optional) Trigger Dependabot to open PRs for whatever the preflight surfaced: GitHub → Insights → Dependency
+  graph → Dependabot → "Check for updates". Wait for the PRs to land; merge anything that passes CI on dev.
+
 ### API-contract surface
+
+Driven by `scripts/release/preflight.sh api-contract`.
 
 xurl-rs is a thin client over the live X API. The contract that ships is the union of the 27 shortcut commands (plus
 `usage credits`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the library re-exports in `src/lib.rs`.
@@ -85,6 +132,8 @@ xurl-rs is a thin client over the live X API. The contract that ships is the uni
   feature-detect on type names.
 
 ### Real-world smoke (live X API)
+
+Driven by `scripts/release/preflight.sh smoke`.
 
 The in-repo tests mock the HTTP layer. The four auth paths and the three output formats only exercise end-to-end on the
 live API. Pick fresh targets each release.
@@ -122,14 +171,14 @@ yq -i '.apps.bird_dev.oauth2_tokens.brettdavies = {
 } | .apps.bird_dev.default_user = "brettdavies"' "$SMOKE_HOME/.xurl"
 ```
 
-**Never `cat` the seeded `~/.xurl`** — it round-trips plaintext OAuth1/Bearer secrets through the transcript. Use `xr
+**Never `cat` the seeded `~/.xurl`**: it round-trips plaintext OAuth1/Bearer secrets through the transcript. Use `xr
 auth status` (redacts) or `yq '... | path'` for shape probes only.
 
 - [ ] **OAuth1 path** (automatable): `xrs whoami --auth oauth1 --app bird_dev --output json | jaq -c
   '{u:.data.username}'` → expect `{"u":"BrettDavies"}` (or whichever account is seeded). Confirms HMAC-SHA1 signing
   didn't regress.
 - [ ] **OAuth2 PKCE path** (needs human ONLY for the browser approval): drive end-to-end with the recipe below. The
-  human's only job is opening a URL and pasting the redirect URL back — the agent handles every CLI step.
+  human's only job is opening a URL and pasting the redirect URL back; the agent handles every CLI step.
 
   ```bash
   FRESH=$(mktemp -d -t xr-pkce-XXXXXX)
@@ -165,15 +214,15 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   echo "refresh wrote new expiration: $((NEW_EXP - EXP_NOW))s in the future"
   ```
 
-  **Critical gotcha — case-sensitive username key:** step 2 stores the token under the actual handle returned by
+  **Critical gotcha, case-sensitive username key:** step 2 stores the token under the actual handle returned by
   `/2/users/me` (`BrettDavies` with mixed case, NOT the lowercased `brettdavies` you might assume). Probe the real key
   via `yq '.apps.bird_dev.oauth2_tokens | keys | .[0]'` before any yq edit. If you write to the wrong-cased path, yq
   silently CREATES a stub entry while the real tokens stay under the correct key, and xr's auto-refresh then finds the
   stub (or the wrong entry first via `default_user`) and dies with `RefreshTokenError: no access_token in response` or
-  falls back to a fresh PKCE attempt with `client_id=` (empty in the URL — the fallback misses the `--app NAME`
+  falls back to a fresh PKCE attempt with `client_id=` (empty in the URL; the fallback misses the `--app NAME`
   threading). This looks like a bug but is just the case-sensitivity tripwire.
 
-- [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine — `--no-browser` auto-engages
+- [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine; `--no-browser` auto-engages
   when stdout isn't a TTY. The two-step ceremony is the same; passing `--no-browser` explicitly is the only difference.
   The recipe above already uses `--no-browser`, so it satisfies both gates in one run.
 - [ ] **Bearer token (env var, one-shot)** (automatable): with an empty store, run `XURL_TOKEN_STORE=$(mktemp -d)/.xurl
@@ -201,15 +250,15 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   and aren't exercisable on a dev account.
 - [ ] **Error paths** (automatable): three envelope shapes plus an upstream propagation. All produce structured JSON
   under `--output json`:
-- **`auth-method-mismatch` (exit 2)**: `xrs whoami --auth app --app bird_dev` — Bearer rejected at `/2/users/me`.
+- **`auth-method-mismatch` (exit 2)**: `xrs whoami --auth app --app bird_dev`; Bearer rejected at `/2/users/me`.
   Envelope includes `endpoint`, `rendered_url`, `requested`, `supported`, `available_in_app`, `app`.
 - **Empty-intersection mismatch (exit 2)**: temporarily `yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$SMOKE_HOME/.xurl"`
-  then `xrs whoami --app bird_prod` — only Bearer in store, `/2/users/me` doesn't accept it.
+  then `xrs whoami --app bird_prod`; only Bearer in store, `/2/users/me` doesn't accept it.
 - **Wrong-app envelope (exit 2)**: `yq -i '.default_app = "default"' "$SMOKE_HOME/.xurl"` then `xrs search "x"
-  --max-results 1` (auto-detect, no `--app`) — empty default app, others have creds; envelope includes
+  --max-results 1` (auto-detect, no `--app`); empty default app, others have creds; envelope includes
   `other_apps_with_creds`. Restore `default_app = "bird_dev"` after.
 - **Upstream 401 propagation (exit 77)**: with stale OAuth2 token, `xrs whoami --auth oauth2 --app bird_dev` returns
-  `{"reason":"auth-required","message":"... RefreshTokenError ..."}` — xr's mapping, not raw upstream JSON.
+  `{"reason":"auth-required","message":"... RefreshTokenError ..."}`, which is xr's mapping, not raw upstream JSON.
 
   **429 (rate limited)** is hard to trigger reliably without burning quota; skip unless a specific regression suspicion
   motivates it.
@@ -222,15 +271,17 @@ rechecked when OAuth2 is absent from the store; the gap is specifically refresh-
 
 ### Multi-app credential routing
 
+Driven by `scripts/release/preflight.sh multi-app`.
+
 Auth methods exist on `Auth` as `--app NAME`-aware reads and writes: every read and write is scoped to the active app,
 and the store's no-arg accessors, which fall back to the default app, are not on the `--app NAME` paths. These gates
 verify the routing stays correct across OAuth1, OAuth2, and bearer, and that the auto-default UX still fires on the
 first signed-in app. Each gate needs at least two registered apps to exercise the cross-app path; the `bird_dev` +
 `bird_prod` entries in 1Password are the canonical substitutes for `alpha` / `beta`.
 
-All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat` `$SMOKE_HOME/.xurl`**
-— use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. | path' ...` for
-structural probes.
+All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat`
+`$SMOKE_HOME/.xurl`**; use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. |
+path' ...` for structural probes.
 
 - [ ] **OAuth2 `--app NAME` save and read isolation** (sideload-verifiable; PKCE end-to-end needs human): the seed
   recipe injects per-app `oauth2_tokens.brettdavies` for both `bird_dev` and `bird_prod`. Verify isolation by inspecting
@@ -273,7 +324,7 @@ structural probes.
 The release builds cross-compiled binaries and the homebrew tap dispatches downstream. None of this runs in `cargo
 test`.
 
-- [ ] Last green run of `release.yml` (on this branch or a sibling) cross-compiled all five targets listed in
+- [ ] Last green run of `release.yml` (on this branch or a sibling) cross-compiled all seven targets listed in
   `RELEASES.md` § Tagging and publishing. If the workflow has changed since, dry-run with `cargo build --release
   --target <target>` for each.
 - [ ] In a clean container or fresh machine: download a prior release archive (`xurl-rs-<target>.tar.gz` or `.zip` for
@@ -286,6 +337,8 @@ test`.
 
 ### Release mechanics sanity
 
+Driven by `scripts/release/preflight.sh mechanics`.
+
 These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensive to recover from. Confirm explicitly.
 
 - [ ] `Cargo.toml` `version` bumped to the new tag value (`check-version` in `release.yml` enforces this; catch early).
@@ -297,13 +350,16 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   or revert it before tagging.
 - [ ] No unmerged dependency advisories from `cargo deny check advisories`. The full local pre-push check
   (`scripts/hooks/pre-push`) mirrors CI; run it explicitly before pushing the release branch.
-- [ ] **Leak check before pushing the release branch.** No guarded path may surface in the cherry-picked diff. The set
-  resolves from `.github/workflows/guard-main-docs.yml`, so it cannot drift from what CI enforces; never restate the
+- [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` filtered by the
+  guarded set (not all of `docs/`, since `docs/migrating/` ships to `main` and a wholesale exclusion would hide a missed
+  pick there), `git diff origin/dev..origin/main` (sanity): all three agree on intended scope.
+- [ ] **Leak check before pushing the release branch.** No guarded path may surface in the diff vs `origin/main`. The
+  set resolves from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`; never restate the
   pattern inline. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick
   conflicts on guarded paths.
 
   ```bash
-  GUARDED="$(scripts/release-guarded-paths.sh)"
+  GUARDED="$(scripts/release/guarded-paths.sh)"
   git diff origin/main..HEAD --name-only | grep -E "$GUARDED" && echo "LEAKED: reset and redo" || echo "(clean)"
   ```
 
@@ -320,9 +376,9 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 
 ### Post-tag verification
 
-Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) — tagging happens **after** the release-branch cut and
+Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut and
 PR-to-main merge, so verification of the tag-triggered pipeline (release.yml → homebrew-tap → finalize-release →
-crates.io publish → fresh-machine install smokes) is post-flight, not pre-flight. Run `scripts/release-postflight.sh
+crates.io publish → fresh-machine install smokes) is post-flight, not pre-flight. Run `scripts/release/postflight.sh
 all` immediately after `git push origin vX.Y.Z`.
 
 ## Related docs
