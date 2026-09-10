@@ -739,7 +739,7 @@ pub struct Cli {
         num_args = 0..=1,
         default_value_t = false,
         default_missing_value = "true",
-        require_equals = false,
+        require_equals = true,
     )]
     pub verbose: bool,
 
@@ -806,7 +806,7 @@ pub struct Cli {
         num_args = 0..=1,
         default_value_t = false,
         default_missing_value = "true",
-        require_equals = false,
+        require_equals = true,
     )]
     pub raw: bool,
 
@@ -832,7 +832,7 @@ pub struct Cli {
         num_args = 0..=1,
         default_value_t = false,
         default_missing_value = "true",
-        require_equals = false,
+        require_equals = true,
     )]
     pub quiet: bool,
 
@@ -845,7 +845,7 @@ pub struct Cli {
         num_args = 0..=1,
         default_value_t = false,
         default_missing_value = "true",
-        require_equals = false,
+        require_equals = true,
     )]
     pub no_interactive: bool,
 
@@ -876,7 +876,7 @@ pub struct Cli {
         num_args = 0..=1,
         default_value_t = false,
         default_missing_value = "true",
-        require_equals = false,
+        require_equals = true,
     )]
     pub dry_run: bool,
 
@@ -1500,7 +1500,7 @@ pub enum AuthCommands {
             num_args = 0..=1,
             default_value_t = false,
             default_missing_value = "true",
-            require_equals = false,
+            require_equals = true,
         )]
         no_browser: bool,
         /// Step number: 1 (generate auth URL) or 2 (complete exchange)
