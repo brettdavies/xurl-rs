@@ -4,8 +4,19 @@
       "description": "Per-app status/list entry rendered under `--output json`.\n\nBuilt field-by-field from named accessors on `App` and `TokenStore`.\n`From<&App>` and `Serialize`-on-`App` are forbidden: `App` holds\n`client_secret`, OAuth2/OAuth1 tokens, and the bearer string, so\nwholesale-forwarding would leak credentials.\n\nA secret-exclusion test in `tests/cli_tests.rs` asserts no credential\nfield name or value appears in the rendered JSON.",
       "properties": {
         "bearer": {
-          "description": "Whether the app has a bearer token present (presence only).",
+          "description": "Whether a bearer credential is available for the app: stored on it,\nor supplied by `XURL_BEARER_TOKEN` for the active app (presence only).",
           "type": "boolean"
+        },
+        "bearer_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BearerSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the bearer comes from; omitted when `bearer` is `false`."
         },
         "client_id_hint": {
           "description": "First 8 characters of `client_id` (never the full value, never `client_secret`).",
@@ -62,6 +73,21 @@
         "oauth2_unnamed"
       ],
       "type": "object"
+    },
+    "BearerSource": {
+      "description": "Origin of the bearer token an `AppStatusEntry` reports as present.",
+      "oneOf": [
+        {
+          "const": "env",
+          "description": "Supplied by `XURL_BEARER_TOKEN`, which wins over any stored bearer.",
+          "type": "string"
+        },
+        {
+          "const": "store",
+          "description": "Stored on the app in the token store.",
+          "type": "string"
+        }
+      ]
     },
     "ResolveSource": {
       "description": "Origin of a resolved redirect URI.\n\nMirrors the upstream Go xurl labels at `config/config.go:62-72`.\nThe `#[serde(rename_all = \"kebab-case\")]` directive produces\n`\"env-var\"`, `\"app-config\"`, and `\"built-in-default\"` in JSON output\n(the machine-readable shape consumed by `--output json`); the\nhuman-readable text rendering uses [`ResolveSource::as_text_label`].",

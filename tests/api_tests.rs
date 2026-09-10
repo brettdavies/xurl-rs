@@ -703,6 +703,40 @@ fn test_get_auth_header_bearer() {
     assert_eq!(header, "Bearer test-bearer-token");
 }
 
+/// An env-supplied bearer counts as the `app` scheme during auto-detect, so
+/// a shortcut against an empty store resolves it instead of reporting that
+/// no authentication method is available.
+#[test]
+fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
+    use wiremock::matchers::header;
+    let ts = TestServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(header("Authorization", "Bearer env-bearer-value"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                serde_json::json!({"data":[{"id":"1","text":"hello"}],"meta":{"result_count":1}}),
+            ))
+            .expect(1),
+    );
+    let mut cfg = create_test_config(ts.uri());
+    cfg.client_id = String::new();
+    cfg.client_secret = String::new();
+    let tmp = TempDir::new().expect("temp dir");
+    let store_path = tmp.path().join(".xurl");
+    let overrides = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let auth = Auth::new_with_store_path_and_overrides(&cfg, &store_path, &overrides);
+    let mut client = ApiClient::new(&cfg, auth);
+
+    let resp = client
+        .search_posts("hello", 10, &base_call_opts())
+        .expect("env bearer must satisfy auto-detect on an empty store");
+    assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // api/shortcuts_test.go — Shortcut integration tests
 // ═══════════════════════════════════════════════════════════════════════════

@@ -141,6 +141,18 @@ impl Auth {
         }
     }
 
+    /// Whether a non-empty `XURL_BEARER_TOKEN` was supplied at construction.
+    ///
+    /// The env bearer sits at the top of the bearer precedence chain for
+    /// every app, so shortcut auth resolution and `auth status` count it as
+    /// an available `app` credential without reading the store.
+    #[must_use]
+    pub fn env_bearer_token_present(&self) -> bool {
+        self.bearer_token_override
+            .as_deref()
+            .is_some_and(|token| !token.is_empty())
+    }
+
     /// Returns the `REDIRECT_URI` value this `Auth` was constructed with.
     ///
     /// Command handlers that run their own redirect-URI resolution — the
