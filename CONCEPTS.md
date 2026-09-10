@@ -92,3 +92,18 @@ when a typed field reads back empty, a legacy field name appears, or a value lan
 the only check that can see the vendored spec naming a field the API does not send. It never runs under the default
 suite, refuses without an explicit opt-in because each run spends paid reads, and is the named exception the store
 isolation guard permits.
+
+## Command surface
+
+### Raw mode
+
+The curl-style path `xr [OPTIONS] <URL>`: the root command's positional is an absolute `http(s)://` URL or a `/`-prefixed
+path that is prefixed with the API base URL. Raw mode bypasses the auth-method matrix and sends the request as given.
+Any other bare positional is either a mistyped shortcut, reported as an unknown command, or a URL validation error.
+
+### Error envelope
+
+The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
+from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `command` and
+`suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints that
+never appear in the envelope.
