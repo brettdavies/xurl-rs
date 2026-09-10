@@ -982,7 +982,9 @@
             "profile.update.profile_picture": "#/components/schemas/ProfileUpdateActivityResponsePayload",
             "profile.update.screenname": "#/components/schemas/ProfileUpdateActivityResponsePayload",
             "profile.update.url": "#/components/schemas/ProfileUpdateActivityResponsePayload",
-            "profile.update.verified_badge": "#/components/schemas/ProfileUpdateActivityResponsePayload"
+            "profile.update.verified_badge": "#/components/schemas/ProfileUpdateActivityResponsePayload",
+            "subscriptions.subscribe": "#/components/schemas/FollowActivityResponsePayload",
+            "subscriptions.unsubscribe": "#/components/schemas/FollowActivityResponsePayload"
           },
           "propertyName": "../event_type"
         },
@@ -2747,6 +2749,8 @@
               "news.new",
               "follow.follow",
               "follow.unfollow",
+              "subscriptions.subscribe",
+              "subscriptions.unsubscribe",
               "spaces.start",
               "spaces.end",
               "broadcast.start",
@@ -14375,6 +14379,71 @@
         ],
         "type": "object"
       },
+      "UsersIdBlockRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "target_user_id": {
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_user_id"
+        ],
+        "type": "object"
+      },
+      "UsersIdBlockResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UsersIdBlockResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UsersIdBlockResponseData": {
+        "properties": {
+          "blocking": {
+            "description": "Indicates whether the user is blocked by the source user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "blocking"
+        ],
+        "type": "object"
+      },
+      "UsersIdUnblockResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UsersIdUnblockResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UsersIdUnblockResponseData": {
+        "properties": {
+          "blocking": {
+            "description": "Indicates whether the source User is blocking the target User.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "blocking"
+        ],
+        "type": "object"
+      },
       "ValidateAccountActivitySubscriptionResponse": {
         "properties": {
           "data": {
@@ -15124,7 +15193,7 @@
         ]
       },
       "post": {
-        "description": "Creates a subscription for an X activity event. OAuth2 user-context tokens must hold the scope matching the requested event_type: dm.read for chat.* and dm.* events, like.read for like.* events, mute.read for mute.* events, block.read for block.* events, and tweet.read for all other event types. Mute and block subscriptions are actor-only: filter.user_id must identify the authenticated user and direction is not supported. Optional filter.qualifiers further narrow supported chat, follow, unfollow, and like events.",
+        "description": "Creates a subscription for an X activity event. OAuth2 user-context tokens must hold the scope matching the requested event_type: dm.read for chat.* and dm.* events, like.read for like.* events, mute.read for mute.* events, block.read for block.* events, follows.read for subscriptions.* events, and tweet.read for all other event types. Mute and block subscriptions are actor-only: filter.user_id must identify the authenticated user and direction is not supported. subscriptions.* events require a user-context token and filter.user_id must identify the authenticated user. Optional filter.qualifiers further narrow supported chat, follow, unfollow, like, and subscriptions events.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/activity/create-x-activity-subscription"
         },
@@ -27997,6 +28066,73 @@
         "tags": [
           "Users"
         ]
+      },
+      "post": {
+        "operationId": "usersIdBlock",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsersIdBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersIdBlockResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "block.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Users ID Block",
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/2/users/{id}/bookmarks": {
@@ -30614,6 +30750,78 @@
           }
         ],
         "summary": "Get Users Posts",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/2/users/{source_user_id}/blocking/{target_user_id}": {
+      "delete": {
+        "description": "Causes the source User to unblock the target User.",
+        "externalDocs": {
+          "url": "https://developer.twitter.com/en/docs/twitter-api/users/blocks/api-reference/delete-users-user_id-blocking"
+        },
+        "operationId": "usersIdUnblock",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_user_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "target_user_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersIdUnblockResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "block.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unblock User",
         "tags": [
           "Users"
         ]
