@@ -117,10 +117,11 @@ pub enum XurlError {
     ///   non-empty `available_in_app` against `supported` to an empty
     ///   intersection: no stored credential on the active app satisfies the
     ///   endpoint.
-    /// - **Wrong-app**: `requested = None`, `available_in_app = Some([])`,
-    ///   `other_apps_with_creds = Some([nonempty])`. The active app holds no
-    ///   credentials but other apps in the store do — the user likely
-    ///   forgot `--app NAME`.
+    /// - **Wrong-app**: `requested = None`, `other_apps_with_creds =
+    ///   Some([nonempty])`. The active app stores no credentials but other
+    ///   apps in the store do — the user likely forgot `--app NAME`.
+    ///   `available_in_app` is `Some([])`, or `Some(["app"])` when
+    ///   `XURL_BEARER_TOKEN` supplies a bearer the endpoint does not accept.
     ///
     /// `app` carries the active app name (when known) so the recovery hint
     /// can substitute it. `rendered_url` carries the substituted path
@@ -204,8 +205,10 @@ fn auth_method_mismatch_message(
                 format!("{pretty_req} auth is not accepted at {method} {display_path}. Use {alt}.")
             }
         }
-        // Wrong-app: active app holds nothing but other apps do.
-        (None, Some(avail), Some(others)) if avail.is_empty() && !others.is_empty() => {
+        // Wrong-app: active app stores nothing but other apps do. Only that
+        // branch sets `other_apps_with_creds`, so `avail` may still carry an
+        // env-supplied bearer here.
+        (None, Some(_), Some(others)) if !others.is_empty() => {
             let alts = others.join(", ");
             let accepts = if supported.is_empty() {
                 "none".to_string()
