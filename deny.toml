@@ -2,9 +2,20 @@
 # https://embarkstudios.github.io/cargo-deny/
 
 [graph]
-# Empty `targets` checks all targets. Set explicit triples if xurl-rs ever
-# needs target-conditional dependency analysis.
-targets = []
+# The seven release triples. Restricting the graph to them drops audit
+# coverage for any other host by policy: the release builds nothing else, and
+# target-only branches of the tree (Redox `redox_users`, wasm
+# `webpki-root-certs`) would otherwise add duplicates and licenses that never
+# ship.
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
 all-features = false
 no-default-features = false
 
@@ -18,9 +29,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 [licenses]
 allow = [
     "Apache-2.0",
-    "BSD-2-Clause",
     "BSD-3-Clause",
-    "CDLA-Permissive-2.0",
     "ISC",
     "MIT",
     "MPL-2.0",
@@ -34,6 +43,10 @@ wildcards = "allow"
 workspace-default-features = "allow"
 external-default-features = "allow"
 allow-workspace = false
+skip = [
+    { crate = "base64@0.22", reason = "reqwest and hyper-util lag the direct dependency" },
+    { crate = "syn@2", reason = "proc-macro crates on the icu path" },
+]
 
 [sources]
 unknown-registry = "warn"
