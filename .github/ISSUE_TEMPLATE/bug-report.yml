@@ -1,0 +1,71 @@
+name: "Bug report"
+description: "Report a command that fails, misbehaves, or prints the wrong thing."
+labels: ["bug"]
+body:
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: "The exact `xr` invocation. Redact tokens and secrets; app names and endpoint paths are fine."
+      placeholder: |
+        xr --output json search "hello"
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual output
+      description: "What `xr` printed, including stderr and the exit code (`echo $?`). Paste the JSON envelope if you used `--output json`."
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected output
+      description: "What you expected instead."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: xr version
+      description: "Output of `xr --version`."
+      placeholder: "xr 3.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Install channel
+      options:
+        - Homebrew (brettdavies/tap)
+        - cargo install xurl-rs
+        - GitHub release binary
+        - Built from source
+    validations:
+      required: true
+  - type: textarea
+    id: ai-disclosure
+    attributes:
+      label: AI disclosure
+      description: "One sentence: what part of this report was AI-written, what was human-written?"
+      placeholder: "Entirely human-written."
+    validations:
+      required: true
+  - type: textarea
+    id: agent-instructions
+    attributes:
+      label: For agents
+      description: "Agents: expand this section before filing."
+      value: |
+        <details>
+        <summary>Agent filing instructions</summary>
+
+        1. **Search first.** Run `gh search issues --repo brettdavies/xurl-rs "<keywords>"` to check for duplicates.
+        2. **Reproduce with `--output json`.** Paste the full error envelope (`reason`, `exit_code`, `message`) in the actual-output field.
+        3. **Never paste a token.** `XURL_BEARER_TOKEN`, client secrets, and `~/.xurl` contents stay out of the report.
+        4. **AI disclosure is required.** Fill the field above honestly.
+        </details>
+    validations:
+      required: false
