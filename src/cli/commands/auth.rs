@@ -94,8 +94,12 @@ pub(crate) struct AppStatusEntry {
     oauth2_users: Vec<String>,
     /// Whether the app has `OAuth1` credentials present (presence only).
     oauth1: bool,
-    /// Whether the app has a bearer token present (presence only).
+    /// Whether a bearer credential is available for the app: stored on it,
+    /// or supplied by `XURL_BEARER_TOKEN` for the active app (presence only).
     bearer: bool,
+    /// Where the bearer comes from; omitted when `bearer` is `false`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bearer_source: Option<BearerSource>,
     /// Whether this app is the default.
     default: bool,
     /// Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.
@@ -110,6 +114,26 @@ pub(crate) struct AppStatusEntry {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(b: &bool) -> bool {
     !*b
+}
+
+/// Origin of the bearer token an `AppStatusEntry` reports as present.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum BearerSource {
+    /// Supplied by `XURL_BEARER_TOKEN`, which wins over any stored bearer.
+    Env,
+    /// Stored on the app in the token store.
+    Store,
+}
+
+impl BearerSource {
+    /// Suffix rendered after the bearer mark in `auth status` text mode.
+    fn as_text_label(self) -> &'static str {
+        match self {
+            Self::Env => " [XURL_BEARER_TOKEN environment variable]",
+            Self::Store => "",
+        }
+    }
 }
 
 /// Response shape for `xr auth apps redirect-uri get` under `--output json`.
@@ -366,11 +390,22 @@ pub(super) fn run_auth_command(
                     stdout,
                     "No apps registered. Use 'xr auth apps add' to register one.",
                 );
+                if auth.env_bearer_token_present() && !out.format.is_structured() {
+                    out.print_message(
+                        stdout,
+                        &format!("bearer: \u{2713}{}", BearerSource::Env.as_text_label()),
+                    );
+                }
                 return Ok(());
             }
 
-            let entries =
-                build_app_status_entries(ts, &apps, default_app, auth.redirect_uri_override());
+            let entries = build_app_status_entries(
+                ts,
+                &apps,
+                default_app,
+                auth.redirect_uri_override(),
+                env_bearer_app(&auth).as_deref(),
+            );
 
             if out.format.is_structured() {
                 let value = serde_json::to_value(&entries)?;
@@ -424,10 +459,12 @@ pub(super) fn run_auth_command(
                         out.print_message(stdout, "      oauth1: \u{2013}");
                     }
 
-                    if entry.bearer {
-                        out.print_message(stdout, "      bearer: \u{2713}");
-                    } else {
-                        out.print_message(stdout, "      bearer: \u{2013}");
+                    match entry.bearer_source {
+                        Some(source) => out.print_message(
+                            stdout,
+                            &format!("      bearer: \u{2713}{}", source.as_text_label()),
+                        ),
+                        None => out.print_message(stdout, "      bearer: \u{2013}"),
                     }
 
                     if i < apps.len() - 1 {
@@ -724,8 +761,13 @@ fn run_app_command(
                 return Ok(());
             }
 
-            let entries =
-                build_app_status_entries(ts, &apps, default_app, auth.redirect_uri_override());
+            let entries = build_app_status_entries(
+                ts,
+                &apps,
+                default_app,
+                auth.redirect_uri_override(),
+                env_bearer_app(auth).as_deref(),
+            );
 
             if out.format.is_structured() {
                 let value = serde_json::to_value(&entries)?;
@@ -824,21 +866,45 @@ fn truncate(s: &str, max_len: usize) -> &str {
     }
 }
 
+/// Name of the app `XURL_BEARER_TOKEN` applies to, when it is set.
+///
+/// The env bearer wins the bearer precedence for whichever app is active:
+/// the `--app` selection when given, otherwise the store's default.
+fn env_bearer_app(auth: &Auth) -> Option<String> {
+    if !auth.env_bearer_token_present() {
+        return None;
+    }
+    Some(
+        auth.token_store
+            .get_active_app_name(auth.app_name())
+            .to_string(),
+    )
+}
+
 /// Builds the typed JSON intermediate for `auth status` and `auth apps list`.
 ///
 /// Constructs each `AppStatusEntry` field-by-field from named accessors per
 /// R23 + KTD11; no `From<&App>` and no `Serialize`-on-`App`. The caller
-/// supplies the `REDIRECT_URI` value that drives the resolver.
+/// supplies the `REDIRECT_URI` value that drives the resolver and, when
+/// `XURL_BEARER_TOKEN` is set, the name of the app the env bearer applies to.
 fn build_app_status_entries(
     ts: &TokenStore,
     apps: &[String],
     default_app: &str,
     redirect_uri_override: Option<&str>,
+    env_bearer_app: Option<&str>,
 ) -> Vec<AppStatusEntry> {
     let env = redirect_uri_override.map(str::to_string);
     apps.iter()
         .filter_map(|name| {
             let app = ts.get_app(name)?;
+            let bearer_source = if env_bearer_app == Some(name.as_str()) {
+                Some(BearerSource::Env)
+            } else if app.bearer_token.is_some() {
+                Some(BearerSource::Store)
+            } else {
+                None
+            };
             let stored = ts.get_app_redirect_uri(name).map(str::to_string);
             let resolved = config::resolve_redirect_uri_from(env.clone(), stored.as_deref());
             let stored_field = if resolved.source.is_env_var() && stored.is_some() {
@@ -854,7 +920,8 @@ fn build_app_status_entries(
                 redirect_uri_stored: stored_field,
                 oauth2_users: ts.get_oauth2_usernames_for_app(name),
                 oauth1: app.oauth1_token.is_some(),
-                bearer: app.bearer_token.is_some(),
+                bearer: bearer_source.is_some(),
+                bearer_source,
                 default: name == default_app,
                 oauth2_unnamed: app.unnamed_oauth2_token.is_some(),
             })

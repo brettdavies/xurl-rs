@@ -794,7 +794,8 @@ impl ApiClient {
         } else {
             raw_app.to_string()
         };
-        let available_in_app = self.available_auth_in_app(&app_name);
+        let stored_in_app = self.stored_auth_in_app(&app_name);
+        let available_in_app = self.available_auth_in_app(&stored_in_app);
 
         // Auto-detect filter: walk the preference order and keep every
         // scheme the active app has, optionally intersected with the
@@ -827,28 +828,34 @@ impl ApiClient {
                     .as_ref()
                     .map(|sup| sup.iter().map(|s| (*s).to_string()).collect::<Vec<_>>())
                     .unwrap_or_default();
-                if available_in_app.is_empty() {
-                    // Active app holds nothing. Check whether OTHER apps
+                if stored_in_app.is_empty() {
+                    // Active app stores nothing. Check whether OTHER apps
                     // in the store hold credentials. If so, surface a
                     // wrong-app envelope (exit 2) instead of generic
                     // auth-required (exit 77) — the user logged in, just
-                    // not against the app they invoked.
+                    // not against the app they invoked. The env bearer is
+                    // still reported in `available_in_app` so the envelope
+                    // stays truthful, but it never hides the wrong-app hint.
                     let other_apps = self.other_apps_with_credentials(&app_name);
-                    if other_apps.is_empty() {
+                    if !other_apps.is_empty() {
+                        return Err(XurlError::AuthMethodMismatch {
+                            endpoint: path.clone(),
+                            rendered_url,
+                            method: method.to_string(),
+                            requested: None,
+                            supported: endpoint_supported,
+                            available_in_app: Some(
+                                available_in_app.iter().map(|s| (*s).to_string()).collect(),
+                            ),
+                            app: Some(app_name.clone()),
+                            other_apps_with_creds: Some(other_apps),
+                        });
+                    }
+                    if available_in_app.is_empty() {
                         return Err(XurlError::auth(
                             "NoAuthMethod: no authentication method available",
                         ));
                     }
-                    return Err(XurlError::AuthMethodMismatch {
-                        endpoint: path.clone(),
-                        rendered_url,
-                        method: method.to_string(),
-                        requested: None,
-                        supported: endpoint_supported,
-                        available_in_app: Some(Vec::new()),
-                        app: Some(app_name.clone()),
-                        other_apps_with_creds: Some(other_apps),
-                    });
                 }
                 return Err(XurlError::AuthMethodMismatch {
                     endpoint: path.clone(),
@@ -887,10 +894,10 @@ impl ApiClient {
     /// Probes the active app for which auth schemes have stored credentials.
     ///
     /// Returned vector lists the wire strings (`"oauth2"`, `"oauth1"`,
-    /// `"app"`) in OAuth2 → OAuth1 → Bearer order. Used by the auto-detect
-    /// intersection in [`Self::get_auth_header`] and by the empty-intersection
-    /// error envelope to populate `available_in_app`.
-    fn available_auth_in_app(&self, app_name: &str) -> Vec<&'static str> {
+    /// `"app"`) in OAuth2 → OAuth1 → Bearer order, reading the token store
+    /// only. Used by the wrong-app decision in [`Self::get_auth_header`],
+    /// which must not be swayed by an env-supplied bearer.
+    fn stored_auth_in_app(&self, app_name: &str) -> Vec<&'static str> {
         let mut out: Vec<&'static str> = Vec::with_capacity(3);
         if self
             .auth
@@ -914,6 +921,19 @@ impl ApiClient {
             .get_bearer_token_for_app(app_name)
             .is_some()
         {
+            out.push("app");
+        }
+        out
+    }
+
+    /// Extends [`Self::stored_auth_in_app`] with the `"app"` scheme when
+    /// `XURL_BEARER_TOKEN` supplies a bearer, since the env value wins the
+    /// bearer precedence for every app. Used by the auto-detect intersection
+    /// in [`Self::get_auth_header`] and by the error envelopes to populate
+    /// `available_in_app`.
+    fn available_auth_in_app(&self, stored: &[&'static str]) -> Vec<&'static str> {
+        let mut out = stored.to_vec();
+        if self.auth.env_bearer_token_present() && !out.contains(&"app") {
             out.push("app");
         }
         out

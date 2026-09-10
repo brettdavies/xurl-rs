@@ -1431,14 +1431,21 @@ impl CliMockServer {
 /// bearer slot on the active app, so this is the minimal credential shape
 /// the `like` POST needs to leave the resolver and reach the mocked endpoint.
 fn populate_bearer_store(store_path: &Path) {
+    let mut ts = populate_app_store(store_path);
+    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
+        .expect("save_bearer");
+}
+
+/// Seeds a tempdir-rooted store with `myapp` as the only app and the
+/// default, carrying client credentials and no tokens.
+fn populate_app_store(store_path: &Path) -> xurl::store::TokenStore {
     use xurl::store::TokenStore;
     let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
     ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
         .expect("add_app");
-    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
-        .expect("save_bearer");
     ts.set_default_app("myapp").expect("set_default_app");
     let _ = ts.remove_app("default");
+    ts
 }
 
 /// Seeds a tempdir-rooted store with a single app carrying an OAuth1 token.
@@ -2977,4 +2984,330 @@ fn test_absent_redirect_uri_override_lets_stored_value_win() {
         stdout2.contains("app config"),
         "and reports app-config provenance: {stdout2}"
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Env bearer token counts as the `app` scheme in shortcut auth resolution
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Overrides pointing the client at a stubbed server with an env bearer.
+fn api_env_with_bearer(base_url: &str, token: &str) -> xurl::config::EnvOverrides {
+    xurl::config::EnvOverrides {
+        bearer_token: Some(token.to_string()),
+        ..api_env(base_url)
+    }
+}
+
+/// `XURL_BEARER_TOKEN=… xr search "x"` on an empty store must resolve the
+/// bearer from the environment and reach the endpoint, not exit 77.
+#[test]
+fn test_env_bearer_resolves_shortcut_on_empty_store() {
+    use wiremock::matchers::header;
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(header("Authorization", "Bearer env-bearer-value"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": [{"id": "1", "text": "hello"}],
+                "meta": {"result_count": 1}
+            })))
+            .expect(1),
+    );
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+
+    assert_eq!(
+        code, 0,
+        "search with the env bearer on an empty store must succeed; stderr: {stderr}; stdout: {stdout}"
+    );
+    assert!(
+        !store.exists(),
+        "resolving the env bearer must not write the store"
+    );
+}
+
+/// `auth status --output json` marks the active app's bearer as present from
+/// the environment when `XURL_BEARER_TOKEN` is set and the app stores none.
+#[test]
+fn test_status_json_reports_env_bearer_on_active_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(
+        entry["bearer"],
+        serde_json::Value::Bool(true),
+        "bearer must be reported present; got entry: {entry}"
+    );
+    assert_eq!(
+        entry["bearer_source"], "env",
+        "bearer_source must name the environment; got entry: {entry}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// The text rendering of `auth status` names the env variable beside the
+/// bearer mark for the active app.
+#[test]
+fn test_status_text_reports_env_bearer_on_active_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "status text must mark the bearer as present from the environment; got:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// A bearer stored on the app reports `bearer_source: store`, so the two
+/// origins are distinguishable in the envelope.
+#[test]
+fn test_status_json_reports_store_bearer_source() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v
+        .as_array()
+        .expect("status emits a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(
+        entry["bearer_source"], "store",
+        "a stored bearer reports its origin; got entry: {entry}"
+    );
+}
+
+/// An app with no bearer anywhere omits `bearer_source` entirely.
+#[test]
+fn test_status_json_omits_bearer_source_when_absent() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v
+        .as_array()
+        .expect("status emits a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(false));
+    assert!(
+        entry.get("bearer_source").is_none(),
+        "bearer_source must be omitted when no bearer is present; got entry: {entry}"
+    );
+}
+
+/// On a fresh store the text status still reports the env bearer, so a
+/// bearer-only setup with nothing registered is visible.
+#[test]
+fn test_status_text_reports_env_bearer_on_fresh_store() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "the env bearer must be reported on a fresh store; got:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// With the env bearer set, an empty active app, and credentials stored on
+/// another app, a user-context endpoint still names the other app: the env
+/// bearer counts as available but does not hide the wrong-app recovery hint.
+#[test]
+fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add_app");
+    ts.save_oauth2_token_for_app("work", "alice", "ACCESS", "REFRESH", 1_900_000_000)
+        .expect("save_oauth2");
+    // `default` stays the default app and holds nothing.
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, _stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "like", "12345"]);
+    assert_eq!(code, 2, "wrong-app mismatch exits 2; stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "auth-method-mismatch", "envelope: {v}");
+    assert_eq!(
+        v["other_apps_with_creds"],
+        serde_json::json!(["work"]),
+        "the wrong-app hint must survive the env bearer; envelope: {v}"
+    );
+    assert_eq!(
+        v["available_in_app"],
+        serde_json::json!(["app"]),
+        "available_in_app stays truthful about the env bearer; envelope: {v}"
+    );
+    assert!(
+        v["message"].as_str().unwrap_or("").contains("--app"),
+        "text names the --app recovery; envelope: {v}"
+    );
+}
+
+/// `auth apps list --output json` carries `bearer_source` through the same
+/// builder as `auth status`.
+#[test]
+fn test_apps_list_json_reports_env_bearer_source() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &["xr", "--output", "json", "auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "apps list failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v
+        .as_array()
+        .expect("apps list emits a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(entry["bearer_source"], "env", "got entry: {entry}");
+    assert!(!stdout.contains("env-bearer-value"));
+}
+
+/// When both a stored bearer and the env bearer exist, the env value wins
+/// the precedence chain and status reports it as the source.
+#[test]
+fn test_status_json_env_bearer_wins_over_stored_bearer() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v
+        .as_array()
+        .expect("status emits a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(
+        entry["bearer_source"], "env",
+        "env wins over the stored bearer; got entry: {entry}"
+    );
+}
+
+/// `--app NAME` moves the env bearer mark to NAME's entry and off the default.
+#[test]
+fn test_status_json_env_bearer_follows_app_flag() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store)
+        .add_app("otherapp", "OTHER-CLIENT-ID", "OTHER-SECRET")
+        .expect("add otherapp");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr", "--app", "otherapp", "--output", "json", "auth", "status",
+        ],
+    );
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let arr = v.as_array().expect("status emits a JSON array");
+    let other = arr
+        .iter()
+        .find(|e| e["name"] == "otherapp")
+        .expect("otherapp entry present");
+    let myapp = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(other["bearer_source"], "env", "got: {other}");
+    assert_eq!(
+        myapp["bearer"],
+        serde_json::Value::Bool(false),
+        "got: {myapp}"
+    );
+    assert!(myapp.get("bearer_source").is_none(), "got: {myapp}");
 }
