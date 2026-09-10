@@ -2978,3 +2978,342 @@ fn test_absent_redirect_uri_override_lets_stored_value_win() {
         "and reports app-config provenance: {stdout2}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Boolean flags with an optional value require `=` for that value
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Which global boolean flags the parse landed on, plus the command word.
+#[derive(Debug, PartialEq, Eq)]
+struct ParsedFlags {
+    quiet: bool,
+    verbose: bool,
+    no_interactive: bool,
+    dry_run: bool,
+    raw: bool,
+    url: Option<String>,
+    command: &'static str,
+}
+
+fn parse_flags(argv: &[&str]) -> ParsedFlags {
+    use clap::Parser;
+    let cli =
+        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
+    let command = match cli.command {
+        Some(xurl::cli::Commands::Whoami { .. }) => "whoami",
+        Some(xurl::cli::Commands::Search { ref query, .. }) => {
+            assert_eq!(
+                query, "topic",
+                "search query must be the word after the flag"
+            );
+            "search"
+        }
+        Some(_) => "other",
+        None => "none",
+    };
+    ParsedFlags {
+        quiet: cli.quiet,
+        verbose: cli.verbose,
+        no_interactive: cli.no_interactive,
+        dry_run: cli.dry_run,
+        raw: cli.raw,
+        url: cli.url,
+        command,
+    }
+}
+
+/// A boolean flag followed by a command word leaves the word to the
+/// command; an explicit value needs `=`. These parse in-process and read the
+/// clap env bindings, so they are marked parallel to stay outside the serial
+/// window of the one test that mutates `XURL_DRY_RUN`.
+#[rstest::rstest]
+#[case::quiet_long(&["xr", "--quiet", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::quiet_short(&["xr", "-q", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::verbose(&["xr", "--verbose", "whoami"], ParsedFlags { quiet: false, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::no_interactive(&["xr", "--no-interactive", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: true, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::raw(&["xr", "--raw", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: true, url: None, command: "whoami" })]
+#[case::dry_run(&["xr", "--dry-run", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: true, raw: false, url: None, command: "whoami" })]
+#[case::quiet_equals_false(&["xr", "--quiet=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::quiet_then_false_word(&["xr", "--quiet", "false", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: Some("false".to_string()), command: "whoami" })]
+#[case::quiet_search(&["xr", "-q", "search", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
+#[case::flag_after_subcommand(&["xr", "search", "--quiet", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
+#[case::short_equals_false(&["xr", "-q=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::short_cluster(&["xr", "-qv", "whoami"], ParsedFlags { quiet: true, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[serial_test::parallel]
+fn test_boolean_flag_does_not_swallow_command_word(
+    #[case] argv: &[&str],
+    #[case] expected: ParsedFlags,
+) {
+    assert_eq!(parse_flags(argv), expected, "argv: {argv:?}");
+}
+
+/// `xr --quiet whoami` on an empty store reaches `whoami` and its auth
+/// error, not the raw-mode "No URL provided" path.
+#[test]
+#[serial_test::parallel]
+fn test_quiet_whoami_reaches_whoami() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--quiet", "whoami"]);
+    assert_eq!(
+        code, 77,
+        "whoami on an empty store exits 77; stderr: {stderr}"
+    );
+    assert!(
+        !stderr.contains("No URL provided"),
+        "the command word must not be consumed as the flag value; stderr: {stderr}"
+    );
+}
+
+/// `--no-browser` on `auth oauth2` keeps the username positional after it.
+#[rstest::rstest]
+#[case::flag_then_username(&["xr", "auth", "oauth2", "--no-browser", "alice"], true)]
+#[case::equals_false_then_username(&["xr", "auth", "oauth2", "--no-browser=false", "alice"], false)]
+#[serial_test::parallel]
+fn test_no_browser_keeps_username_positional(#[case] argv: &[&str], #[case] expected: bool) {
+    use clap::Parser;
+    let parsed =
+        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
+    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
+        panic!("expected Auth subcommand");
+    };
+    let xurl::cli::AuthCommands::Oauth2 {
+        no_browser,
+        username,
+        ..
+    } = command
+    else {
+        panic!("expected auth oauth2");
+    };
+    assert_eq!(no_browser, expected, "argv: {argv:?}");
+    assert_eq!(username.as_deref(), Some("alice"), "argv: {argv:?}");
+}
+
+/// The space-separated value form no longer parses as a value: the word
+/// after the flag is a positional or a command, never the flag's value.
+#[test]
+#[serial_test::parallel]
+fn test_quiet_space_true_is_not_a_flag_value() {
+    let parsed = parse_flags(&["xr", "--quiet", "true"]);
+    assert!(parsed.quiet);
+    assert_eq!(parsed.url.as_deref(), Some("true"));
+}
+
+/// Spawns the built binary against `store` and the mocked API, with one env
+/// binding set, and returns (exit code, stdout, stderr).
+fn spawn_with_env(
+    store: &Path,
+    base_url: &str,
+    env: &[(&str, &str)],
+    args: &[&str],
+) -> (i32, String, String) {
+    let mut cmd = common::xr_with_store(store);
+    cmd.env("API_BASE_URL", base_url)
+        .env("XURL_BEARER_TOKEN", "env-bearer-value");
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
+    let out = cmd.args(args).output().expect("spawn xr");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+/// Mounts the bearer-capable search endpoint returning a compact JSON body.
+fn mock_search(ts: &CliMockServer) {
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(r#"{"data":[{"id":"1","text":"hi"}]}"#),
+            ),
+    );
+}
+
+const SEARCH_PATH: &str = "/2/tweets/search/recent?query=hi";
+
+/// An env-provided true is read through the value parser and `--flag=false`
+/// still overrides it, for each of the six env-backed boolean flags.
+#[test]
+fn test_env_true_then_equals_false_verbose() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_VERBOSE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(&store, ts.uri(), &env, &["--auth", "app", SEARCH_PATH]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("> GET"),
+        "env true must enable verbose; stderr: {stderr}"
+    );
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--verbose=false", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("> GET"),
+        "--verbose=false must clear it; stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_quiet() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_QUIET", "true"), ("XURL_VERBOSE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(&store, ts.uri(), &env, &["--auth", "app", SEARCH_PATH]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("> GET"),
+        "env quiet must silence verbose; stderr: {stderr}"
+    );
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--quiet=false", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("> GET"),
+        "--quiet=false must clear it; stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_raw() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_RAW", "true")];
+
+    let (code, stdout, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--output", "json", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stdout.contains("\n  "),
+        "env raw must print the body as sent; stdout: {stdout}"
+    );
+
+    let (code, stdout, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &[
+            "--raw=false",
+            "--output",
+            "json",
+            "--auth",
+            "app",
+            SEARCH_PATH,
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("\n  "),
+        "--raw=false must pretty-print; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_dry_run() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_DRY_RUN", "true")];
+    let add = [
+        "--output",
+        "json",
+        "auth",
+        "apps",
+        "add",
+        "myapp",
+        "--client-id",
+        "a",
+        "--client-secret",
+        "b",
+    ];
+
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &add);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("\"dry_run\""),
+        "env dry-run must emit the dry-run envelope; stdout: {stdout}"
+    );
+    assert!(!store.exists(), "dry run must not write the store");
+
+    let mut args = vec!["--dry-run=false"];
+    args.extend_from_slice(&add);
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &args);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stdout.contains("\"dry_run\""),
+        "--dry-run=false must register; stdout: {stdout}"
+    );
+    assert!(store.exists(), "the real run writes the store");
+}
+
+#[test]
+fn test_env_true_then_equals_false_no_browser() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_NO_BROWSER", "true")];
+    let base = ["--dry-run", "--output", "json", "auth", "oauth2"];
+
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &base);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("dry-run envelope");
+    assert_eq!(
+        v["no_browser"], true,
+        "env true must set no_browser; got {v}"
+    );
+
+    let mut args = base.to_vec();
+    args.push("--no-browser=false");
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &args);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("dry-run envelope");
+    assert_eq!(
+        v["no_browser"], false,
+        "--no-browser=false must clear it; got {v}"
+    );
+}
+
+/// `no_interactive` has no observable effect without a terminal on stdin,
+/// so this pair asserts the parse: the env value is accepted and the
+/// `=false` form still reaches the command.
+#[test]
+fn test_env_true_then_equals_false_no_interactive() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_NO_INTERACTIVE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        "http://127.0.0.1:9",
+        &env,
+        &["auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        "http://127.0.0.1:9",
+        &env,
+        &["--no-interactive=false", "auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
