@@ -4261,7 +4261,7 @@
             "description": "If set, creates a recurring series."
           },
           "scheduled_end_ms": {
-            "description": "End time, ms since Unix epoch (decimal string).",
+            "description": "Optional end time, ms since Unix epoch (decimal string). Omit for an open-ended broadcast.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -4292,8 +4292,7 @@
         },
         "required": [
           "source_id",
-          "scheduled_start_ms",
-          "scheduled_end_ms"
+          "scheduled_start_ms"
         ],
         "type": "object"
       },
