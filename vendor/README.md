@@ -12,7 +12,7 @@ matrix in `src/api/auth_matrix.rs` (see `build.rs`).
 | Path count          | 157                                                                |
 | File size           | 900579 bytes                                                       |
 | SHA256              | `70755d31657b95bc6cfff93327358b185615ae3053fc187de20cfad5bfd0c7ae` |
-| Refreshed (UTC)     | 2026-09-11                                                         |
+| Refreshed (UTC)     | 2026-09-12                                                         |
 
 ## Refresh
 
