@@ -298,15 +298,37 @@ xr whoami --no-interactive                     # Error instead of prompt
 
 ### Structured Exit Codes
 
-| Code | Meaning                                   | Agent Action                              |
-| ---- | ----------------------------------------- | ----------------------------------------- |
-| 0    | Success                                   | Continue                                  |
-| 1    | General error                             | Log and handle                            |
-| 2    | Invalid arguments or auth-method mismatch | Fix the flag or pick an accepted `--auth` |
-| 3    | Rate limited                              | Retry with backoff                        |
-| 4    | Not found                                 | Resource doesn't exist                    |
-| 5    | Network error                             | Check connectivity                        |
-| 77   | Auth required                             | Run `xr auth oauth2`                      |
+| Code | Meaning                                   | Agent Action                                 |
+| ---- | ----------------------------------------- | -------------------------------------------- |
+| 0    | Success                                   | Continue                                     |
+| 1    | General error                             | Log and handle                               |
+| 2    | Invalid arguments or auth-method mismatch | Fix the flag or pick an accepted `--auth`    |
+| 3    | Rate limited                              | Retry with backoff                           |
+| 4    | Not found                                 | Resource doesn't exist                       |
+| 5    | Network error                             | Check connectivity                           |
+| 77   | Auth required                             | See Authentication; agents: read `next_step` |
+
+### Recovering From an Auth Failure
+
+Every structured error carries a `next_step` object an agent can act on without parsing prose. Exit 77 looks like this
+on a machine with nothing registered:
+
+```json
+{
+  "status": "error",
+  "reason": "auth-required",
+  "exit_code": 77,
+  "message": "Auth Error: NoAuthMethod: no authentication method available",
+  "next_step": {
+    "action": "register-app",
+    "template": "xr auth apps add <name> --client-id <client-id> --client-secret <client-secret>"
+  }
+}
+```
+
+`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`. A step carries
+either a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill. Text
+mode prints the same advice as prose instead; the two need not match word for word.
 
 ### NO_COLOR Support
 

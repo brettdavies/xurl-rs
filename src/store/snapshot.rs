@@ -39,6 +39,8 @@ pub struct StoreSnapshot {
     pub env_client_id_present: bool,
     /// How the backing file resolved.
     pub load_state: LoadState,
+    /// Path of the backing file, so a hint can name it.
+    pub store_path: String,
 }
 
 impl StoreSnapshot {
@@ -65,6 +67,7 @@ impl StoreSnapshot {
             active_app: store.get_active_app_name(active_app).to_string(),
             env_client_id_present,
             load_state: store.load_state,
+            store_path: store.file_path.display().to_string(),
         }
     }
 

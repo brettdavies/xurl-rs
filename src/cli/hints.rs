@@ -7,6 +7,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::store::snapshot::StoreSnapshot;
+
 /// What the caller should do next. Closed set; agents branch on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -121,6 +123,126 @@ impl NextStep {
     #[must_use]
     pub fn display_invocation(&self) -> Option<&str> {
         self.command.as_deref().or(self.template.as_deref())
+    }
+}
+
+/// A recovery hint: prose for a human, a typed step for an agent.
+///
+/// Both renderings derive from the same built value, so the lines a person
+/// reads and the object an agent runs cannot name different commands.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hint {
+    /// Lines printed after the error line in text mode.
+    pub text_lines: Vec<String>,
+    /// The step folded into the envelope in structured modes.
+    pub next_step: NextStep,
+}
+
+/// Chooses the recovery hint for a no-credentials failure.
+///
+/// ```text
+/// load failed               -> inspect-store, naming the path
+/// another app holds tokens  -> select-app, rerunning this invocation
+/// target can sign in        -> sign-in
+/// another app has a client  -> select-app, signing in against it
+/// nothing anywhere          -> register-app, with a template
+/// ```
+///
+/// The snapshot is taken before dispatch, so the choice sees the store the
+/// run actually loaded, including an app named by `--app` and a client id
+/// supplied by the environment.
+#[must_use]
+pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bool) -> Hint {
+    let target = snapshot.active_app.as_str();
+    let target_facts = snapshot.apps.get(target);
+
+    if snapshot.load_failed() {
+        let next_step = NextStep::inspect_store();
+        return Hint {
+            text_lines: vec![
+                format!("The token store could not be read: {}", snapshot.store_path),
+                "Inspect or move that file, then retry.".to_string(),
+            ],
+            next_step,
+        };
+    }
+
+    let tokens_elsewhere: Vec<String> = snapshot
+        .apps_with_tokens()
+        .into_iter()
+        .filter(|name| name != target)
+        .collect();
+    if let Some(app) = tokens_elsewhere.first() {
+        let command = rerun_with_app(invocation, app);
+        return Hint {
+            text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
+            next_step: NextStep::select_app(command),
+        };
+    }
+
+    let target_has_client_id =
+        snapshot.env_client_id_present || target_facts.is_some_and(|f| f.has_client_id);
+    if target_has_client_id {
+        let next_step = NextStep::sign_in(None, headless);
+        let command = next_step.command.clone().unwrap_or_default();
+        return Hint {
+            text_lines: vec![format!("Sign in first. Run: {command}")],
+            next_step,
+        };
+    }
+
+    let ready: Vec<String> = snapshot
+        .apps_ready_to_sign_in()
+        .into_iter()
+        .filter(|name| name != target)
+        .collect();
+    if let Some(app) = ready.first() {
+        let next_step = NextStep::sign_in(Some(app), headless);
+        let command = next_step.command.clone().unwrap_or_default();
+        return Hint {
+            text_lines: vec![format!(
+                "App {app:?} has client credentials. Run: {command}"
+            )],
+            next_step: NextStep::select_app(command),
+        };
+    }
+
+    let next_step = NextStep::register_app();
+    let template = next_step.template.clone().unwrap_or_default();
+    Hint {
+        text_lines: vec![format!("Register an app first. Run: {template}")],
+        next_step,
+    }
+}
+
+/// Rebuilds this invocation with `--app NAME` inserted after the program.
+///
+/// The rerun has to be runnable as printed, so the app name is quoted by the
+/// same rule registration enforces.
+fn rerun_with_app(invocation: &[String], app: &str) -> String {
+    let mut parts: Vec<String> = Vec::with_capacity(invocation.len() + 2);
+    let mut rest = invocation.iter();
+    let program = rest.next().map_or("xr", String::as_str);
+    parts.push(program.to_string());
+    parts.push("--app".to_string());
+    parts.push(quote_app_name(app));
+    for arg in rest {
+        parts.push(shell_word(arg));
+    }
+    parts.join(" ")
+}
+
+/// Quotes one argument of a rebuilt invocation when a shell would split it.
+fn shell_word(arg: &str) -> String {
+    if !arg.is_empty()
+        && arg.chars().all(|c| {
+            c.is_ascii_alphanumeric()
+                || matches!(c, '_' | '.' | '-' | '/' | ':' | '=' | '@' | '+' | '~')
+        })
+    {
+        arg.to_string()
+    } else {
+        format!("'{}'", arg.replace('\'', r"'\''"))
     }
 }
 

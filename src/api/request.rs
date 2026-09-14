@@ -852,9 +852,7 @@ impl ApiClient {
                         });
                     }
                     if available_in_app.is_empty() {
-                        return Err(XurlError::auth(
-                            "NoAuthMethod: no authentication method available",
-                        ));
+                        return Err(XurlError::auth(crate::error::NO_AUTH_METHOD));
                     }
                 }
                 return Err(XurlError::AuthMethodMismatch {
@@ -870,9 +868,7 @@ impl ApiClient {
                     other_apps_with_creds: None,
                 });
             }
-            return Err(XurlError::auth(
-                "NoAuthMethod: no authentication method available",
-            ));
+            return Err(XurlError::auth(crate::error::NO_AUTH_METHOD));
         }
 
         // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference

@@ -233,7 +233,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`. A step carries either a `command`,\nrunnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -263,7 +263,7 @@
           ]
         },
         "reason": {
-          "description": "Typed kebab-case kind. Closed set; agents pattern-match on this.",
+          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`,\n`network-error`, `invalid-args`, `invalid-method`, `invalid-url`,\n`invalid-path-param`, `validation`, `serialization`, `io`,\n`token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\nand `remove-failed`.",
           "type": "string"
         },
         "rendered_url": {

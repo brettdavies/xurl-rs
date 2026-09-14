@@ -4253,3 +4253,254 @@ fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) 
         "text mode carries no envelope key; got: {stdout}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U5: the no-credentials error carries a next step, in both modes
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The JSON baseline. Every key the no-credentials envelope carries today
+/// must survive byte-identical, and `next_step` must be the only addition.
+#[test]
+fn test_no_credentials_envelope_keeps_every_existing_key() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let obj = v.as_object().expect("an object");
+
+    assert_eq!(obj["status"], "error", "got: {v}");
+    assert_eq!(obj["reason"], "auth-required", "got: {v}");
+    assert_eq!(obj["exit_code"], 77, "got: {v}");
+    assert_eq!(
+        obj["message"], "Auth Error: NoAuthMethod: no authentication method available",
+        "the human message is unchanged; got: {v}"
+    );
+
+    let mut keys: Vec<&str> = obj.keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        vec!["exit_code", "message", "next_step", "reason", "status"],
+        "next_step is the only addition to the envelope; got: {v}"
+    );
+}
+
+/// Text mode on an empty store points at registration.
+#[test]
+fn test_hint_empty_store_names_registration() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Auth Error: NoAuthMethod"),
+        "the error line is unchanged; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("xr auth apps add"),
+        "and is followed by the registration line; got: {stderr}"
+    );
+}
+
+/// One credentialed app with no tokens points at sign-in, not registration.
+#[test]
+fn test_hint_credentialed_app_names_sign_in() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
+    assert!(
+        !stderr.contains("apps add"),
+        "registration is the wrong advice here; got: {stderr}"
+    );
+}
+
+/// A credentialed app that is not the target is named with `--app`.
+#[test]
+fn test_hint_names_the_credentialed_alternative() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add work");
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--app", "blank", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains("--app work"),
+        "the hint names the app that can sign in; got: {stderr}"
+    );
+}
+
+/// An app already holding tokens turns the hint into a rerun of this very
+/// invocation with `--app` inserted.
+#[test]
+fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add work");
+    ts.save_oauth2_token_for_app("work", "alice", "AT", "RT", 1_900_000_000)
+        .expect("save_oauth2");
+    ts.add_app("blank", "", "").expect("add blank");
+    ts.set_default_app("blank").expect("set default");
+
+    // A raw URL has no endpoint matrix entry, so this reaches the generic
+    // no-credentials error rather than the wrong-app envelope.
+    let (code, _stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "/2/some/unmapped/path"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["next_step"]["action"], "select-app", "got: {v}");
+    let command = v["next_step"]["command"].as_str().expect("a command");
+    assert!(command.contains("--app work"), "got: {command}");
+    assert!(
+        command.contains("/2/some/unmapped/path"),
+        "the rerun keeps the original target; got: {command}"
+    );
+}
+
+/// Exported client credentials mean sign-in, not registration, even with an
+/// empty store: the snapshot carries what the environment supplied.
+#[test]
+fn test_hint_env_client_id_names_sign_in() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, _stdout, stderr) = run_at_with(&store, &env, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
+    assert!(!stderr.contains("apps add"), "got: {stderr}");
+}
+
+/// A store the loader could not read sends the reader to the file, naming it.
+#[test]
+fn test_hint_unreadable_store_names_the_path() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("store-as-directory");
+    std::fs::create_dir(&store).expect("seed a directory");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the hint names the store path; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("apps add"),
+        "a damaged store is not a missing registration; got: {stderr}"
+    );
+}
+
+/// `--quiet` suppresses the advice and never the error.
+#[test]
+fn test_hint_is_suppressed_under_quiet() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami", "--quiet"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("Auth Error: NoAuthMethod"), "got: {stderr}");
+    assert!(
+        !stderr.contains("apps add"),
+        "quiet drops the hint lines; got: {stderr}"
+    );
+}
+
+/// `NO_COLOR` keeps every line free of escape sequences.
+#[test]
+fn test_hint_carries_no_escape_sequences_under_no_color() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let out = common::xr_with_store(&store)
+        .env("NO_COLOR", "1")
+        .arg("whoami")
+        .output()
+        .expect("spawn xr");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("apps add"),
+        "the hint prints; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains('\u{1b}'),
+        "no line carries an escape sequence; got: {stderr:?}"
+    );
+}
+
+/// The hint reaches every structured format, and none of them leak prose.
+#[rstest::rstest]
+#[case::json("json")]
+#[case::jsonl("jsonl")]
+#[case::yaml("yaml")]
+fn test_hint_reaches_every_structured_format(#[case] format: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", format, "whoami"]);
+    assert_eq!(code, 77, "format {format}; stderr: {stderr}");
+    assert!(
+        stderr.contains("next_step") && stderr.contains("register-app"),
+        "the {format} envelope carries the step; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("Register an app first"),
+        "prose stays out of the structured rendering; got: {stderr}"
+    );
+}
+
+/// An unrelated error carries no hint at all.
+#[test]
+fn test_other_errors_carry_no_hint() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "example.com"]);
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert!(
+        v.get("next_step").is_none(),
+        "only the no-credentials error gets a hint; got: {v}"
+    );
+}
+
+/// A grandfathered spaced app name is quoted wherever a hint prints it.
+#[test]
+fn test_hint_quotes_a_spaced_app_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  my app:\n    client_id: SPACED-ID\n    client_secret: SPACED-SECRET\n  blank:\n    client_id: ''\n    client_secret: ''\ndefault_app: blank\n",
+    )
+    .expect("seed a store holding a spaced name");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let command = v["next_step"]["command"].as_str().expect("a command");
+    assert!(
+        command.contains("'my app'"),
+        "a name a shell would split is quoted; got: {command}"
+    );
+}

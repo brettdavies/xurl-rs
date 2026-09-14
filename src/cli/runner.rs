@@ -228,6 +228,26 @@ where
     cfg.http_timeout_secs = cli.timeout;
     let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
 
+    // Taken before `Auth` moves into dispatch: the recovery hint is chosen at
+    // the error site, which is after the store is gone. The snapshot carries
+    // presence flags and names, never a secret. `--app` is read here rather
+    // than from `Auth`, because the override lands inside dispatch, and the
+    // environment client id is read from the overrides rather than from the
+    // resolved credential, which already falls back to the store.
+    let snapshot = crate::store::snapshot::StoreSnapshot::new(
+        &auth.token_store,
+        cli.app.as_deref().unwrap_or_default(),
+        overrides
+            .client_id
+            .as_deref()
+            .is_some_and(|value| !value.is_empty()),
+    );
+    let invocation: Vec<String> = args_vec
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    let structured = out.format.is_structured();
+
     match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
@@ -238,11 +258,25 @@ where
             // `{"error":...,"kind":...}` line. The carried exit code surfaces
             // as the process exit unchanged.
             if !matches!(e, crate::error::XurlError::EnvelopeAlreadyEmitted { .. }) {
-                out.print_error(stderr, &e, code);
+                if carries_no_auth_method(&e) {
+                    let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
+                    out.print_error_with_hint(stderr, &e, code, &hint);
+                } else {
+                    out.print_error(stderr, &e, code);
+                }
             }
             code
         }
     }
+}
+
+/// Whether this error is the no-credentials failure a recovery hint answers.
+///
+/// Matched on the carried message rather than a new variant, because the
+/// public error enum is exhaustively matched downstream and cannot grow one
+/// in a 3.x release.
+fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
+    matches!(error, crate::error::XurlError::Auth(msg) if msg == crate::error::NO_AUTH_METHOD)
 }
 
 /// Detects whether the caller asked for JSON output before clap parsing
