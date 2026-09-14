@@ -228,6 +228,40 @@ impl OutputConfig {
         );
     }
 
+    /// Prints an error with a recovery hint attached.
+    ///
+    /// Text mode puts the hint lines after the error line, outside the color
+    /// wrap, and drops them under `--quiet`, which suppresses advice and
+    /// never the error. Structured modes fold the typed step into the
+    /// envelope instead, leaving every other key exactly as it was.
+    pub(crate) fn print_error_with_hint(
+        &self,
+        err: &mut dyn Write,
+        error: &XurlError,
+        exit_code: i32,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        if self.format.is_structured() {
+            let display = error.to_string();
+            let body = ErrorBody {
+                reason: error.kind().to_string(),
+                exit_code,
+                message: Some(display),
+                next_step: Some(hint.next_step.clone()),
+                ..ErrorBody::default()
+            };
+            self.emit_error_envelope(err, body);
+            return;
+        }
+        self.print_error(err, error, exit_code);
+        if self.quiet {
+            return;
+        }
+        for line in &hint.text_lines {
+            let _ = writeln!(err, "{line}");
+        }
+    }
+
     /// The one path every error envelope takes.
     ///
     /// ```text

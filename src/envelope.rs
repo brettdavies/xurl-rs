@@ -68,7 +68,16 @@ pub enum Envelope {
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ErrorBody {
-    /// Typed kebab-case kind. Closed set; agents pattern-match on this.
+    /// Typed kebab-case kind; agents pattern-match on this.
+    ///
+    /// The runtime emits: `auth-required`, `auth-method-mismatch`,
+    /// `client-credentials-missing`, `rate-limited`, `not-found`,
+    /// `network-error`, `invalid-args`, `invalid-method`, `invalid-url`,
+    /// `invalid-path-param`, `validation`, `serialization`, `io`,
+    /// `token-store`, `internal`, `confirmation-required`, `no-tty`,
+    /// `unsupported-pagination`, and the verb-local `invalid-json`,
+    /// `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,
+    /// and `remove-failed`.
     pub reason: String,
     /// Structured exit code per the sysexits-inspired matrix in
     /// `xurl::error`.
@@ -78,6 +87,11 @@ pub struct ErrorBody {
     pub message: Option<String>,
 
     /// What the caller should do next, when a recovery step exists.
+    ///
+    /// `action` is closed: `register-app`, `sign-in`, `select-app`,
+    /// `inspect-store`, `enroll-app`. A step carries either a `command`,
+    /// runnable verbatim by a non-TTY caller, or a `template` whose
+    /// angle-bracket placeholders only the caller can fill, never both.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.

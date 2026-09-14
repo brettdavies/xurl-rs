@@ -62,6 +62,17 @@ The CLI picks per request: if a Bearer is set and the endpoint accepts app-auth,
 user-scoped tokens for the active app drive the call. Multi-app is supported in the token store; `xr auth status`
 enumerates them.
 
+On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
+
+```bash
+xr --output json auth status            # inventory; each entry carries client_id_hint and bearer
+xr --output json whoami 2>&1 >/dev/null # the failure itself, carrying next_step
+```
+
+Branch on `next_step.action`: `register-app` means nothing is registered, so run its `template` with real values;
+`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
+names it in the message.
+
 `src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base string,
 sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
 
@@ -84,6 +95,13 @@ under the same file with a per-app block.
 
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
+
+Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
+carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, the offending value when there is one, and a
+`next_step` object `{action, command | template, docs}`. `action` is a closed set; `command` is runnable verbatim by a
+non-TTY caller, while `template` carries angle-bracket placeholders only the caller can fill. Prefer additive envelope
+changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
 

@@ -439,6 +439,13 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// missing credential).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
+/// The message every no-credentials failure carries.
+///
+/// One constant so the two construction sites and the runner's hint seam
+/// agree on the exact string; the runner matches on it to decide whether a
+/// recovery hint applies.
+pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method available";
+
 /// Usage error. `EX_USAGE` from sysexits — `2`.
 ///
 /// Clap parse failures share this value, as do the errors a caller can fix
