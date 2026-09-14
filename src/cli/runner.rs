@@ -261,6 +261,8 @@ where
                 if carries_no_auth_method(&e) {
                     let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                     out.print_error_with_hint(stderr, &e, code, &hint);
+                } else if let Some(hint) = enrollment_hint_for(&e) {
+                    out.print_error_with_hint(stderr, &e, code, &hint);
                 } else {
                     out.print_error(stderr, &e, code);
                 }
@@ -277,6 +279,16 @@ where
 /// in a 3.x release.
 fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
     matches!(error, crate::error::XurlError::Auth(msg) if msg == crate::error::NO_AUTH_METHOD)
+}
+
+/// The enrollment hint for an API refusal, when this error is one.
+fn enrollment_hint_for(error: &crate::error::XurlError) -> Option<crate::cli::hints::Hint> {
+    match error {
+        crate::error::XurlError::Api { status, body } => {
+            crate::cli::hints::enrollment_hint(*status, body)
+        }
+        _ => None,
+    }
 }
 
 /// Detects whether the caller asked for JSON output before clap parsing

@@ -215,6 +215,49 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     }
 }
 
+/// The enrollment recipe an `enroll-app` step points at.
+const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+
+/// Builds the enrollment hint when a 403 body says X refused the app.
+///
+/// The two markers both appear in observed refusals, and the body's own
+/// `detail` line is quoted when present so the reader can judge whether the
+/// match is right rather than trusting the label.
+#[must_use]
+pub fn enrollment_hint(status: u16, body: &str) -> Option<Hint> {
+    if status != 403 {
+        return None;
+    }
+    let haystack = body.to_ascii_lowercase();
+    if !haystack.contains("client-not-enrolled") && !haystack.contains("client-forbidden") {
+        return None;
+    }
+
+    let mut text_lines = Vec::with_capacity(2);
+    if let Some(detail) = detail_line(body) {
+        text_lines.push(format!("X refused the app: {detail}"));
+    } else {
+        text_lines.push("X refused the app.".to_string());
+    }
+    text_lines.push(format!(
+        "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {ENROLLMENT_DOCS}"
+    ));
+
+    Some(Hint {
+        text_lines,
+        next_step: NextStep::enroll_app(ENROLLMENT_DOCS.to_string()),
+    })
+}
+
+/// Pulls the `detail` string out of a JSON error body, when there is one.
+fn detail_line(body: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(body)
+        .ok()?
+        .get("detail")?
+        .as_str()
+        .map(str::to_string)
+}
+
 /// Rebuilds this invocation with `--app NAME` inserted after the program.
 ///
 /// The rerun has to be runnable as printed, so the app name is quoted by the
