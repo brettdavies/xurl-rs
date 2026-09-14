@@ -1,11 +1,17 @@
 # xurl-rs
 
+[![Crates.io](https://img.shields.io/crates/v/xurl-rs.svg)](https://crates.io/crates/xurl-rs)
+[![CI](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
+
 A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Agent-native.
 
-Rust port of [xurl](https://github.com/xdevplatform/xurl) — faster, type-safe, with shell completions and
-machine-readable output.
+Rust port of [xurl](https://github.com/xdevplatform/xurl): faster, type-safe, with shell completions and
+machine-readable output. An independent project, not affiliated with, endorsed by, or maintained by X.
 
 ## Install
+
+Every method installs the same binary, named `xr`. Verify with `xr --version`.
 
 ### Homebrew
 
@@ -13,6 +19,9 @@ machine-readable output.
 brew tap brettdavies/tap
 brew install xurl-rs
 ```
+
+The formula links `xurl-rs` as an alias, so the formula name runs too. The documentation and the shell completions use
+`xr`.
 
 ### Pre-built Binary
 
@@ -32,6 +41,20 @@ cd xurl-rs
 cargo build --release
 # Binary at ./target/release/xr
 ```
+
+## Before you start
+
+`xr` calls the X API v2 with an app of your own, so set one up first:
+
+- Create an app in the [X developer portal](https://developer.x.com/en/portal/dashboard) with **Read and Write**
+  permission.
+- Set it up as a **confidential client**, so X issues a client secret alongside the client ID.
+- Set the OAuth2 redirect URI to `http://localhost:8080/callback`, which is where `xr auth oauth2` listens.
+- If reads fail after a sign-in that looked fine, the app needs the enrollment step in
+  [Troubleshooting](#x-platform-enrollment).
+
+The X API is pay-per-use: every request draws credits at the rates on X's
+[pricing page](https://docs.x.com/x-api/getting-started/pricing). `xr` is free; the calls it makes are not.
 
 ## Quick Start
 
@@ -246,6 +269,18 @@ state (`<path>.pending`) follows it. The variable applies to the binary only: li
 
 Built for AI agents and automation:
 
+### Skill Bundle
+
+```bash
+xr skill install claude_code                   # Clone the bundle into a host's skills directory
+xr skill update --all                          # Refresh every install in place
+```
+
+`xr skill install <host>` clones the [skill bundle](https://github.com/brettdavies/xurl-rs-skill) into a host's
+canonical skills directory, so the command surface, the auth paths, and the error contract are discoverable without a
+prompt. Hosts: `claude_code`, `codex`, `cursor`, `factory`, `kiro`, `opencode`. `xr skill update --all` refreshes every
+install in place, and both verbs take `--dry-run`.
+
 ### Response Schema Discovery
 
 ```bash
@@ -408,7 +443,16 @@ The working recipe in the X developer console:
 Without that enrollment step, `xr whoami` and other `/2/*` reads can fail even when the OAuth callback and tokens are
 valid.
 
-## vs Go Original
+## Relationship to xurl
+
+`xr` is an independent Rust port of [`xdevplatform/xurl`](https://github.com/xdevplatform/xurl), X's own Go CLI. It
+keeps that tool's shape: curl-style raw requests, the same auth flows, chunked media upload, and shortcut commands over
+the common endpoints.
+
+Where it goes further is the machine-readable side: seven output formats, a typed error envelope with structured exit
+codes, and `xr schema` for response types. It does not port the webhook and `ngrok` surface.
+
+Where behavior diverges on purpose, [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) names each case and why.
 
 | Feature                   | Go xurl          | xurl-rs                  |
 | ------------------------- | ---------------- | ------------------------ |
@@ -427,14 +471,9 @@ valid.
 
 ## Contributing
 
-```bash
-git clone https://github.com/brettdavies/xurl-rs
-cd xurl-rs
-cargo test
-cargo clippy
-```
-
-See [RELEASES.md](RELEASES.md) for release procedures.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the branch and PR flow, the error contract, and a recipe for
+exercising `xr` against X's API Playground without an account. Release procedures live in
+[RELEASES.md](https://github.com/brettdavies/xurl-rs/blob/main/RELEASES.md).
 
 ## License
 
