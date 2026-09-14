@@ -701,3 +701,107 @@ fn no_color_env_reaches_the_resolved_color_decision() {
         "an exported NO_COLOR must reach the constructor and defeat --color always"
     );
 }
+
+// ── Typed-envelope round trip ──────────────────────────────────────────────
+
+/// Deserializes one emitted envelope back into [`xurl::envelope::ErrorBody`],
+/// which denies unknown fields, so a key no field declares fails the test.
+fn assert_round_trips(emitted: &str, expected_reason: &str) {
+    let mut value: serde_json::Value = serde_json::from_str(emitted.trim())
+        .unwrap_or_else(|e| panic!("envelope must parse ({e}): {emitted}"));
+    let obj = value.as_object_mut().expect("envelope is an object");
+    assert_eq!(
+        obj.remove("status"),
+        Some(serde_json::Value::String("error".to_string())),
+        "every error envelope carries status=error: {emitted}"
+    );
+    let body: xurl::envelope::ErrorBody = serde_json::from_value(value)
+        .unwrap_or_else(|e| panic!("undeclared key in the envelope ({e}): {emitted}"));
+    assert_eq!(body.reason, expected_reason);
+}
+
+fn json_config() -> OutputConfig {
+    OutputConfig::new(
+        OutputFormat::Json,
+        false,
+        false,
+        xurl::cli::ColorChoice::Never,
+    )
+}
+
+#[test]
+fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
+    // 1. A plain error through `print_error`.
+    let mut buf: Vec<u8> = Vec::new();
+    json_config().print_error(&mut buf, &XurlError::auth("NoAuthMethod: none"), 77);
+    assert_round_trips(&String::from_utf8_lossy(&buf), "auth-required");
+
+    // 2. The auth-method-mismatch shape, with its eight extra fields.
+    let mut buf: Vec<u8> = Vec::new();
+    let mismatch = XurlError::AuthMethodMismatch {
+        endpoint: "/2/users/{id}/likes".to_string(),
+        rendered_url: Some("/2/users/12345/likes".to_string()),
+        method: "POST".to_string(),
+        requested: None,
+        supported: vec!["oauth1".to_string()],
+        available_in_app: Some(vec!["app".to_string()]),
+        app: Some("default".to_string()),
+        other_apps_with_creds: Some(vec!["work".to_string()]),
+    };
+    json_config().print_error(&mut buf, &mismatch, 2);
+    assert_round_trips(&String::from_utf8_lossy(&buf), "auth-method-mismatch");
+
+    // 3. A reason-and-message envelope through `print_error_envelope`.
+    let mut buf: Vec<u8> = Vec::new();
+    json_config().print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    assert_round_trips(&String::from_utf8_lossy(&buf), "no-tty");
+
+    // 4. Confirmation-required, whose verb context is declared too.
+    let mut buf: Vec<u8> = Vec::new();
+    let ctx = serde_json::json!({
+        "command": "auth-clear",
+        "all": true,
+        "oauth1": false,
+        "oauth2_username": serde_json::Value::Null,
+        "bearer": false,
+    });
+    json_config().print_confirmation_required(&mut buf, &ctx, 1);
+    assert_round_trips(&String::from_utf8_lossy(&buf), "confirmation-required");
+
+    // 5. A hint-bearing envelope: `next_step` must round-trip too. The CLI
+    // builds this shape for the sign-in refusal.
+    let body = xurl::envelope::ErrorBody {
+        reason: "client-credentials-missing".to_string(),
+        exit_code: 2,
+        message: Some("no app carries client credentials.".to_string()),
+        app: Some("blank".to_string()),
+        next_step: Some(xurl::cli::hints::NextStep::select_app(
+            "xr auth oauth2 --app work".to_string(),
+        )),
+        ..xurl::envelope::ErrorBody::default()
+    };
+    let emitted = body.into_value().to_string();
+    assert_round_trips(&emitted, "client-credentials-missing");
+    assert!(
+        emitted.contains("\"action\":\"select-app\""),
+        "the hint survives the round trip: {emitted}"
+    );
+
+    // 6. The destructive-post context shape.
+    let mut buf: Vec<u8> = Vec::new();
+    let ctx = serde_json::json!({"command": "delete", "post_id": "12345"});
+    json_config().print_confirmation_required(&mut buf, &ctx, 1);
+    assert_round_trips(&String::from_utf8_lossy(&buf), "confirmation-required");
+}
+
+#[test]
+fn an_undeclared_key_fails_the_round_trip() {
+    // The guard itself must bite: a key no field declares is rejected.
+    let emitted = r#"{"status":"error","reason":"auth-required","exit_code":77,"surprise":1}"#;
+    let mut value: serde_json::Value = serde_json::from_str(emitted).unwrap();
+    value.as_object_mut().unwrap().remove("status");
+    assert!(
+        serde_json::from_value::<xurl::envelope::ErrorBody>(value).is_err(),
+        "deny_unknown_fields must reject an undeclared key"
+    );
+}

@@ -22,6 +22,7 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -47,7 +48,11 @@ fn test_new_token_store() {
     let tmp = TempDir::new().unwrap();
     let store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
 
-    assert!(!store.apps.is_empty(), "Expected non-nil Apps map");
+    // An empty store is empty: no phantom app, no default name, and a load
+    // state that still permits the first save.
+    assert!(store.apps.is_empty(), "a missing file registers no apps");
+    assert!(store.default_app.is_empty(), "and names no default app");
+    assert_eq!(store.load_state, xurl::store::LoadState::Fresh);
     assert!(
         !store.file_path.as_os_str().is_empty(),
         "Expected non-empty FilePath"
@@ -675,6 +680,7 @@ fn test_yaml_persistence() {
         apps: BTreeMap::new(),
         default_app: "myapp".to_string(),
         file_path: xurl_path.clone(),
+        load_state: xurl::store::LoadState::Loaded,
     };
     s1.apps.insert(
         "myapp".to_string(),
@@ -733,6 +739,7 @@ configuration:
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path: xurl_path.clone(),
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -846,6 +853,7 @@ fn test_twurlrc_malformed_error() {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path: xurl_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -1199,7 +1207,13 @@ fn test_save_unnamed_to_missing_app_auto_creates() {
 #[test]
 fn promote_promotes_when_default_is_uninitialized() {
     let (mut store, _tmp) = create_temp_token_store();
+    // A default carrying a client id keeps its place through registration,
+    // so the promotion under test is the one the token save triggers.
+    store
+        .update_app("default", "default-id", "default-secret")
+        .unwrap();
     store.add_app("alpha", "alpha-id", "alpha-secret").unwrap();
+    assert_eq!(store.get_default_app(), "default");
     store
         .save_oauth2_token_for_app("alpha", "u", "tok", "ref", 9999)
         .unwrap();
@@ -1289,4 +1303,223 @@ fn promote_default_app_is_uninitialized_signal() {
         !store.default_app_is_uninitialized(),
         "bearer presence must flip the signal"
     );
+}
+
+// ── Load state and registration promotion (U10) ────────────────────────────
+
+#[test]
+fn unreadable_store_path_records_the_failure_and_refuses_saves() {
+    // A directory at the store path cannot be read as a file.
+    let tmp = TempDir::new().unwrap();
+    let dir_path = tmp.path().join("store-as-directory");
+    std::fs::create_dir(&dir_path).unwrap();
+
+    let mut store = TokenStore::new_with_path(&dir_path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Unreadable);
+    assert!(store.apps.is_empty());
+
+    let err = store
+        .add_app("myapp", "id", "secret")
+        .expect_err("a store that failed to load must refuse writes");
+    assert!(
+        err.to_string()
+            .contains(&dir_path.to_string_lossy().to_string()),
+        "the error names the path; got: {err}"
+    );
+}
+
+#[test]
+fn unparseable_store_records_the_failure_and_leaves_the_file_alone() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 neither yaml nor json \x02";
+    std::fs::write(&path, garbage).unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Unparseable);
+    assert!(store.apps.is_empty());
+    assert!(store.add_app("myapp", "id", "secret").is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), garbage);
+}
+
+#[test]
+fn empty_store_file_is_fresh_and_saveable() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    std::fs::write(&path, b"").unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Fresh);
+    assert!(store.apps.is_empty());
+    store
+        .add_app("myapp", "id", "secret")
+        .expect("an empty file is a fresh store, not a damaged one");
+    assert_eq!(store.get_default_app(), "myapp");
+}
+
+#[test]
+fn registration_promotes_past_a_credential_less_default() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    store.add_app("first", "first-id", "first-secret").unwrap();
+    assert_eq!(
+        store.get_default_app(),
+        "first",
+        "the only app is the default"
+    );
+
+    store
+        .add_app("second", "second-id", "second-secret")
+        .unwrap();
+    assert_eq!(
+        store.get_default_app(),
+        "first",
+        "a credentialed default keeps its place"
+    );
+}
+
+#[test]
+fn registration_leaves_a_bearer_only_default_in_place() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    // `auth app --bearer-token` lands on a lazily created `default`.
+    store.save_bearer_token("BEARER-VALUE").unwrap();
+    assert_eq!(store.get_default_app(), "default");
+
+    store.add_app("myapp", "id", "secret").unwrap();
+    assert_eq!(
+        store.get_default_app(),
+        "default",
+        "a default holding a token keeps its place"
+    );
+}
+
+#[test]
+fn registration_rejects_a_name_outside_the_allowed_set() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    let err = store
+        .add_app("my app", "id", "secret")
+        .expect_err("a spaced name must be rejected");
+    let msg = err.to_string();
+    assert!(msg.contains("my app"), "names the value: {msg}");
+    assert!(
+        msg.contains("'_'") && msg.contains("'-'"),
+        "names the set: {msg}"
+    );
+    assert!(store.apps.is_empty(), "nothing is registered on rejection");
+}
+
+#[test]
+fn a_pre_existing_spaced_app_name_still_loads() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    std::fs::write(
+        &path,
+        "apps:\n  my app:\n    client_id: SPACED-ID\n    client_secret: SPACED-SECRET\ndefault_app: my app\n",
+    )
+    .unwrap();
+
+    let store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Loaded);
+    assert_eq!(store.get_default_app(), "my app");
+    assert!(store.get_app("my app").is_some());
+}
+
+#[test]
+fn an_unrelated_json_file_is_not_adopted_as_a_legacy_store() {
+    // Every legacy field is optional, so any JSON object would deserialize.
+    // A file carrying none of the legacy token keys is not a store, and the
+    // loader must neither adopt nor rewrite it.
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let unrelated = br#"{"name":"some other tool's config","port":8080}"#;
+    std::fs::write(&path, unrelated).unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Unparseable);
+    assert!(store.apps.is_empty(), "nothing is adopted from it");
+    assert_eq!(
+        std::fs::read(&path).unwrap(),
+        unrelated,
+        "the file must be byte-identical after a load that rejected it"
+    );
+    assert!(
+        store.add_app("myapp", "id", "secret").is_err(),
+        "and writes stay refused"
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), unrelated);
+}
+
+#[test]
+fn a_valid_but_empty_yaml_store_loads_and_stays_writable() {
+    // Removing the last app writes this shape; reloading it must be a
+    // loaded-and-empty store, not an unparseable one.
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    std::fs::write(&path, b"apps: {}\ndefault_app: ''\n").unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Loaded);
+    assert!(store.apps.is_empty());
+    store
+        .add_app("myapp", "id", "secret")
+        .expect("a loaded empty store still accepts a registration");
+    assert_eq!(store.get_default_app(), "myapp");
+}
+
+#[test]
+fn a_refused_registration_leaves_the_in_memory_store_untouched() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    std::fs::write(&path, b"\x00 not a store \x01").unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert!(store.add_app("myapp", "id", "secret").is_err());
+    assert!(
+        store.apps.is_empty(),
+        "a refused registration must not mutate the loaded apps"
+    );
+    assert!(store.default_app.is_empty());
+}
+
+#[test]
+fn clearing_an_empty_store_creates_no_placeholder_app() {
+    // Clearing must not be the operation that puts the phantom app back.
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    store.clear_all().expect("clearing nothing succeeds");
+    store
+        .clear_bearer_token()
+        .expect("clearing nothing succeeds");
+    store
+        .clear_oauth1_tokens()
+        .expect("clearing nothing succeeds");
+    store
+        .clear_oauth2_token("someone")
+        .expect("clearing nothing succeeds");
+
+    assert!(store.apps.is_empty(), "no app is created by a clear");
+    assert!(store.default_app.is_empty());
+}
+
+#[test]
+fn a_whitespace_only_store_file_is_fresh() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    std::fs::write(&path, b"\n\n   \t\n").unwrap();
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    assert_eq!(store.load_state, xurl::store::LoadState::Fresh);
+    store
+        .add_app("myapp", "id", "secret")
+        .expect("a blank file is not a damaged store");
 }

@@ -1,4 +1,71 @@
 {
+  "$defs": {
+    "NextAction": {
+      "description": "What the caller should do next. Closed set; agents branch on it.",
+      "oneOf": [
+        {
+          "const": "register-app",
+          "description": "No app carries client credentials; register one.",
+          "type": "string"
+        },
+        {
+          "const": "sign-in",
+          "description": "The target app has credentials and no token; sign in.",
+          "type": "string"
+        },
+        {
+          "const": "select-app",
+          "description": "Another app is the one to use; rerun naming it.",
+          "type": "string"
+        },
+        {
+          "const": "inspect-store",
+          "description": "The store could not be read or parsed; look at the file.",
+          "type": "string"
+        },
+        {
+          "const": "enroll-app",
+          "description": "X refused the app; enroll it in the developer portal.",
+          "type": "string"
+        }
+      ]
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "description": "The `next_step` object carried by an error envelope.\n\nExactly one of [`Self::command`] and [`Self::template`] is present,\nexcept for [`NextAction::EnrollApp`], which carries only `docs`:\na command is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in.",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/NextAction",
+          "description": "The action to take."
+        },
+        "command": {
+          "description": "A runnable invocation, when one exists.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "docs": {
+          "description": "Documentation URL, when a recipe exists.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "template": {
+          "description": "A placeholder invocation, when the caller must supply values.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "The three envelope variants — one per `status` discriminator value.",
   "oneOf": [
@@ -42,15 +109,154 @@
       "type": "object"
     },
     {
-      "description": "Error envelope. `reason` is mandatory — a typed kebab-case identifier\nfrom the closed set: `auth-required`, `rate-limited`, `not-found`,\n`network-error`, `invalid-args`, `invalid-method`, `validation`,\n`serialization`, `io`, `token-store`.",
+      "additionalProperties": false,
+      "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the other two variants.",
       "properties": {
+        "action": {
+          "description": "Skill verb the envelope reports on.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "all": {
+          "description": "Whether `auth clear` targeted every credential.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "app": {
+          "description": "The active app name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "available_in_app": {
+          "description": "Auth schemes available for the active app.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "bearer": {
+          "description": "Whether `auth clear` targeted the bearer token.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "The offending value, echoed verbatim.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint template the request targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "exit_code": {
           "description": "Structured exit code per the sysexits-inspired matrix in\n`xurl::error`.",
           "format": "int32",
           "type": "integer"
         },
+        "host": {
+          "description": "Agent host a skill verb targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "install_dir": {
+          "description": "Directory a skill verb would install into.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "known_hosts": {
+          "description": "Agent hosts `skill install` accepts.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "known_schemas": {
+          "description": "Schema names `validate` accepts.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "message": {
-          "description": "Optional human-readable message. Omitted entirely (not `null`)\nwhen absent so consumers feature-detect by key presence.",
+          "description": "Human-readable message. Omitted entirely (not `null`) when absent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "description": "HTTP method the request would have used.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "App name a destructive verb targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NextStep"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the caller should do next, when a recovery step exists."
+        },
+        "oauth1": {
+          "description": "Whether `auth clear` targeted the `OAuth1` token.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "oauth2_username": {
+          "description": "The `OAuth2` user `auth clear` targeted; `null` when unset."
+        },
+        "other_apps_with_creds": {
+          "description": "Other apps holding credentials, when the active one holds none.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "post_id": {
+          "description": "Post id a destructive verb targeted.",
           "type": [
             "string",
             "null"
@@ -60,9 +266,57 @@
           "description": "Typed kebab-case kind. Closed set; agents pattern-match on this.",
           "type": "string"
         },
+        "rendered_url": {
+          "description": "Endpoint path with path parameters substituted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requested": {
+          "description": "Auth scheme the caller asked for; `null` when auto-detect ran."
+        },
+        "schema": {
+          "description": "Schema name a `validate` invocation named.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "status": {
           "const": "error",
           "type": "string"
+        },
+        "suggestion": {
+          "description": "The nearest real command, when one is within the threshold.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "supported": {
+          "description": "Auth schemes the endpoint accepts.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "valid": {
+          "description": "Whether the document validated.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "would_succeed": {
+          "description": "Whether a dry-run skill verb would have succeeded.",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "required": [

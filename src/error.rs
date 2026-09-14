@@ -439,6 +439,13 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// missing credential).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
+/// Usage error. `EX_USAGE` from sysexits — `2`.
+///
+/// Clap parse failures share this value, as do the errors a caller can fix
+/// by changing the invocation rather than the credentials. Distinct in
+/// meaning from [`EXIT_AUTH_MISMATCH`], which shares the number.
+#[allow(dead_code)] // Public library API — used by consumers
+pub const EXIT_USAGE_ERROR: i32 = 2;
 /// Authentication required. `EX_NOPERM` from sysexits — `77`.
 ///
 /// **Behavior change in v1.3.0:** auth-required errors moved from exit `2`

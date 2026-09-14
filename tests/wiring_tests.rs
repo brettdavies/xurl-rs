@@ -6,6 +6,14 @@ mod common;
 
 use tempfile::TempDir;
 
+/// Registers one app at `store` so the per-app renderers have an entry to
+/// emit; an empty store is empty and renders an empty array.
+fn register_app_at(store: &std::path::Path) {
+    let mut ts = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // --output json wiring
 // ═══════════════════════════════════════════════════════════════════════════
@@ -114,11 +122,12 @@ fn test_no_color_env_strips_ansi() {
 fn test_xurl_output_env_sets_json_format() {
     // XURL_OUTPUT=json should make auth status output JSON.
     // The status renderer emits a JSON array of per-app entries
-    // (`print_response`); a fresh store seeds a `"default"`
-    // placeholder app, so the array carries one entry.
+    // (`print_response`), one per registered app.
     let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
 
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let output = common::xr_with_store(&store)
         .args(["auth", "status"])
         .env("XURL_OUTPUT", "json")
         .output()
@@ -268,8 +277,10 @@ fn test_json_quiet_combined() {
     // --output json --quiet should still produce the JSON-array shape from
     // `auth status` because `print_response` is independent of `--quiet`.
     let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
 
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let output = common::xr_with_store(&store)
         .args(["auth", "status", "--output", "json", "--quiet"])
         .output()
         .unwrap();
@@ -313,10 +324,12 @@ fn test_all_agentic_flags_wired_correctly() {
 #[test]
 fn test_auth_status_json_output() {
     // `xurl auth status --output json` emits a JSON array of per-app
-    // entries. A fresh store seeds a `"default"` placeholder.
+    // entries, one per registered app.
     let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
 
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let output = common::xr_with_store(&store)
         .args(["auth", "status", "--output", "json"])
         .output()
         .unwrap();
@@ -326,18 +339,20 @@ fn test_auth_status_json_output() {
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
     let arr = parsed.as_array().expect("status emits a JSON array");
     assert!(
-        arr.iter().any(|e| e["name"] == "default"),
-        "expected the default placeholder app: {stdout}"
+        arr.iter().any(|e| e["name"] == "myapp"),
+        "expected the registered app: {stdout}"
     );
 }
 
 #[test]
 fn test_auth_apps_list_json_output() {
     // `xurl auth apps list --output json` emits a JSON array of per-app
-    // entries. A fresh store seeds a `"default"` placeholder.
+    // entries, one per registered app.
     let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
 
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let output = common::xr_with_store(&store)
         .args(["auth", "apps", "list", "--output", "json"])
         .output()
         .unwrap();
@@ -347,8 +362,8 @@ fn test_auth_apps_list_json_output() {
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
     let arr = parsed.as_array().expect("apps list emits a JSON array");
     assert!(
-        arr.iter().any(|e| e["name"] == "default"),
-        "expected the default placeholder app: {stdout}"
+        arr.iter().any(|e| e["name"] == "myapp"),
+        "expected the registered app: {stdout}"
     );
 }
 

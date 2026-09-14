@@ -825,25 +825,17 @@ fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
 }
 
 #[test]
-fn test_redirect_uri_get_uses_placeholder_default_when_store_empty() {
-    // Fresh tempdir → TokenStore seeds the placeholder "default" app.
-    // The omit-NAME `get` resolves through it and surfaces the built-in
-    // default URI (no stored value on the placeholder).
-    // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
-    // would flip the asserted text label to the env-var variant.
+fn test_redirect_uri_get_reports_no_default_app_when_store_empty() {
+    // An empty store has no apps at all, so the omit-NAME `get` has nothing
+    // to resolve and says so instead of reporting a placeholder's built-in URI.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
-    assert_eq!(code, 0, "get failed; stderr: {stderr}");
-    assert!(stdout.contains("app:"), "missing app: line: {stdout}");
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
+    assert_ne!(code, 0, "an empty store has no default app to report");
     assert!(
-        stdout.contains("effective_source: built-in default"),
-        "expected built-in default source: {stdout}"
-    );
-    assert!(
-        stdout.contains("stored_redirect_uri: (none)"),
-        "expected stored marker: {stdout}"
+        stderr.contains("no default app set"),
+        "expected the no-default-app error; got: {stderr}"
     );
 }
 
@@ -1726,118 +1718,8 @@ fn test_oauth2_positional_invalid_extra_args() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U5: credential-less-default warning + status/list unnamed-slot rendering
+// Status and list rendering: the unnamed OAuth2 slot
 // ═══════════════════════════════════════════════════════════════════════════
-
-/// Seeds a store where the default app `default` has no `client_id` but
-/// another registered app `myapp` does — the configuration that triggers the
-/// credential-less-default warning per R13.
-fn seed_credential_less_default_with_alternative(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    // `TokenStore::new_with_path` seeds an empty `default` placeholder app
-    // with empty credentials; that is exactly what we want here.
-    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
-        .expect("add_app");
-    // The default app remains `default` (the placeholder).
-}
-
-/// Seeds a store where only the default app `default` exists with no
-/// credentials; no credentialed alternative — the warning must NOT fire.
-fn seed_credential_less_default_only(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let _ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    // `new_with_path` already seeds an empty `default` app; nothing else to do.
-}
-
-/// Seeds a store where the default app `default` HAS credentials — the
-/// warning must NOT fire.
-fn seed_default_with_credentials(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    ts.update_app("default", "DEFAULT-CLIENT-ID", "DEFAULT-SECRET")
-        .expect("update_app");
-}
-
-#[test]
-fn test_credential_less_default_warning_fires() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_with_alternative(&store);
-
-    // `--no-browser --step 1` emits the auth URL and returns; it does NOT
-    // touch the network or write a token. The credential-less-default check
-    // runs BEFORE this dispatch.
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        stderr.contains("warning: --app not specified"),
-        "stderr should contain credential-less-default warning; got: {stderr}"
-    );
-    assert!(
-        stderr.contains("--app myapp"),
-        "stderr should reference the credentialed alternative `myapp`; got: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_by_explicit_app() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_with_alternative(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &[
-            "xr",
-            "--app",
-            "myapp",
-            "auth",
-            "oauth2",
-            "--no-browser",
-            "--step",
-            "1",
-        ],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "explicit `--app` must suppress the warning; got stderr: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_no_credentialed_alternative() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_only(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "warning must NOT fire when no credentialed alternative exists; got stderr: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_when_default_has_credentials() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_default_with_credentials(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "warning must NOT fire when the default app already has credentials; got stderr: {stderr}"
-    );
-}
 
 /// Seeds a store with one app `myapp` carrying an unnamed OAuth2 token and
 /// no named OAuth2 entries.
@@ -2814,6 +2696,26 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
     );
 }
 
+/// Registers one credentialed app in `store` through the CLI, so a
+/// sign-in has a client id to build its URL from.
+fn register_app_at(store: &Path) {
+    let (code, _stdout, stderr) = run_at(
+        store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
+}
+
 /// `xr auth oauth2 --no-browser --output json` (no `--step`) emits the
 /// canonical `{"status":"awaiting_callback","url":"..."}` envelope on stdout
 /// and exits 0; the user is expected to invoke step 2 separately. Validates
@@ -2824,7 +2726,9 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 #[test]
 fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--no-browser", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2851,7 +2755,9 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 #[test]
 fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .env("XURL_NO_BROWSER", "1")
         .args(["auth", "oauth2", "--output", "json"])
         .output()
@@ -2876,7 +2782,9 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 #[test]
 fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -3180,10 +3088,13 @@ fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
     let store = tmp.path().join(".xurl");
     let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
     ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
-        .expect("add_app");
+        .expect("add work");
     ts.save_oauth2_token_for_app("work", "alice", "ACCESS", "REFRESH", 1_900_000_000)
         .expect("save_oauth2");
-    // `default` stays the default app and holds nothing.
+    // A credential-less app that is the active one: registration promotes
+    // past such a default, so this state has to be built on purpose.
+    ts.add_app("blank", "", "").expect("add blank");
+    ts.set_default_app("blank").expect("set_default_app");
 
     let env = xurl::config::EnvOverrides {
         bearer_token: Some("env-bearer-value".to_string()),
@@ -3310,6 +3221,570 @@ fn test_status_json_env_bearer_follows_app_flag() {
         "got: {myapp}"
     );
     assert!(myapp.get("bearer_source").is_none(), "got: {myapp}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U10: an empty store is empty; a store that failed to load is never
+// overwritten; registration promotes past a credential-less default
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The README Quick Start on a fresh install: register an app, then start
+/// the headless sign-in. The authorization URL must carry the registered
+/// app's client id, which requires that app to be the default.
+#[test]
+fn test_fresh_store_quick_start_uses_registered_client_id() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "step 1 failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let url = v["auth_url"].as_str().expect("auth_url present");
+    assert!(
+        url.contains("client_id=MYAPP-CLIENT-ID"),
+        "the sign-in URL must carry the registered app's client id; got: {url}"
+    );
+}
+
+/// A store file neither parser accepts is reported, never overwritten.
+#[test]
+fn test_unparseable_store_is_never_overwritten() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 this is not yaml or json \x02\x03";
+    std::fs::write(&store, garbage).expect("seed the damaged store");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_ne!(
+        code, 0,
+        "apps add must refuse a damaged store; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the error must name the store path; stderr: {stderr}"
+    );
+    let after = std::fs::read(&store).expect("store still readable");
+    assert_eq!(
+        after, garbage,
+        "a store that failed to load must be byte-identical afterward"
+    );
+}
+
+/// `auth status` on an empty store prints the registration sentence and
+/// exits 0; structured mode prints an empty array.
+#[test]
+fn test_status_on_empty_store_names_the_registration_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "an empty store is not an error; stderr: {stderr}");
+    assert!(
+        stdout.contains(
+            "No apps registered. Run: xr auth apps add NAME --client-id ID --client-secret SECRET"
+        ),
+        "got:\n{stdout}"
+    );
+
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0);
+    assert_eq!(parse_json(&stdout), serde_json::json!([]), "got: {stdout}");
+}
+
+/// With `XURL_BEARER_TOKEN` set, the empty-store text adds the bearer line.
+#[test]
+fn test_status_on_empty_store_reports_the_env_bearer() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(stdout.contains("No apps registered"), "got:\n{stdout}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "got:\n{stdout}"
+    );
+    assert!(!stdout.contains("env-bearer-value"));
+}
+
+/// The first registered app is the default and the message names the
+/// plain sign-in; the second is not and its message names `--app`.
+#[test]
+fn test_apps_add_message_names_the_next_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("(default)"),
+        "first app is the default: {stdout}"
+    );
+    assert!(stdout.contains("Next: xr auth oauth2"), "got: {stdout}");
+    assert!(
+        !stdout.contains("--app"),
+        "no --app needed for the default: {stdout}"
+    );
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "second",
+            "--client-id",
+            "C",
+            "--client-secret",
+            "D",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["default"], serde_json::Value::Bool(false), "got: {v}");
+    assert_eq!(v["next_step"]["action"], "sign-in", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app second",
+        "a structured caller gets the headless form naming the app; got: {v}"
+    );
+}
+
+/// `apps add` rejects a name outside the allowed set.
+#[test]
+fn test_apps_add_rejects_a_spaced_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "my app",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_ne!(code, 0, "a spaced name must be rejected");
+    assert!(stderr.contains("my app"), "names the value; got: {stderr}");
+}
+
+/// Sign-in on an empty store refuses before building a URL or writing the
+/// pending file, and hands an agent a registration template.
+#[test]
+fn test_oauth2_on_empty_store_refuses_with_register_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "client-credentials-missing", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "register-app", "got: {v}");
+    assert!(v["next_step"]["template"].is_string(), "got: {v}");
+    assert!(v["next_step"]["command"].is_null(), "never both; got: {v}");
+
+    let pending = tmp.path().join(".xurl.pending");
+    assert!(!pending.exists(), "no pending file is written");
+}
+
+/// With a credentialed app present but a credential-less one selected, the
+/// refusal names the app to use.
+#[test]
+fn test_oauth2_with_blank_target_names_the_credentialed_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add myapp");
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "blank",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "client-credentials-missing", "got: {v}");
+    assert_eq!(v["app"], "blank", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "select-app", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app myapp",
+        "got: {v}"
+    );
+}
+
+/// `--app NAME` picks that app's client id for the sign-in URL.
+#[test]
+fn test_oauth2_step1_uses_the_named_app_client_id() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("first", "FIRST-CLIENT-ID", "FIRST-SECRET")
+        .expect("add first");
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add myapp");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "myapp",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let url = parse_json(&stdout)["auth_url"]
+        .as_str()
+        .expect("auth_url present")
+        .to_string();
+    assert!(url.contains("client_id=MYAPP-CLIENT-ID"), "got: {url}");
+}
+
+/// Env credentials drive a sign-in on an empty store and the token lands on
+/// a lazily created `default`.
+#[test]
+fn test_env_client_id_signs_in_on_an_empty_store() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(
+        code, 0,
+        "env credentials must start the flow; stderr: {stderr}"
+    );
+    let url = parse_json(&stdout)["auth_url"]
+        .as_str()
+        .expect("auth_url present")
+        .to_string();
+    assert!(url.contains("client_id=ENV-CLIENT-ID"), "got: {url}");
+}
+
+/// Registering beside exported env credentials writes no env secret.
+#[test]
+fn test_apps_add_with_env_credentials_writes_no_env_secret() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let written = std::fs::read_to_string(&store).expect("store written");
+    assert!(
+        written.contains("myapp"),
+        "the app is registered: {written}"
+    );
+    assert!(
+        !written.contains("ENV-CLIENT-SECRET"),
+        "no env secret is persisted: {written}"
+    );
+}
+
+/// The text rendering of the sign-in refusal names the app and the fix, and
+/// a structured caller is not required to read it.
+#[test]
+fn test_oauth2_refusal_text_names_the_registration_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
+    assert!(
+        stderr.contains("no app carries client credentials"),
+        "got: {stderr}"
+    );
+}
+
+/// A bad app name is a usage mistake, not an authentication failure.
+#[test]
+fn test_apps_add_spaced_name_is_a_validation_error() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "my app",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_eq!(code, 1, "a rejected name is not exit 77; stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "validation", "got: {v}");
+}
+
+/// A damaged store is reported as damaged, not as an empty one, by the
+/// read verbs as well as the write ones.
+#[rstest::rstest]
+#[case::status(&["xr", "auth", "status"])]
+#[case::apps_list(&["xr", "auth", "apps", "list"])]
+#[case::status_json(&["xr", "--output", "json", "auth", "status"])]
+fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, b"\x00\x01 neither yaml nor json \x02").expect("seed");
+
+    let (code, stdout, stderr) = run_at(&store, args);
+    assert_ne!(
+        code, 0,
+        "a damaged store is not an empty one; args: {args:?}"
+    );
+    assert!(
+        !stdout.contains("No apps registered"),
+        "must not claim the store is empty; stdout: {stdout}"
+    );
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the error names the path; stderr: {stderr}"
+    );
+}
+
+/// `auth apps list` mirrors `auth status` on an empty store.
+#[test]
+fn test_apps_list_on_empty_store_matches_status() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "list"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("No apps registered. Run: xr auth apps add"),
+        "got:\n{stdout}"
+    );
+
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
+    assert_eq!(code, 0);
+    assert_eq!(parse_json(&stdout), serde_json::json!([]), "got: {stdout}");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, _) = run_at_with(&store, &env, &["xr", "auth", "apps", "list"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "got:\n{stdout}"
+    );
+}
+
+/// Naming a credential-less app explicitly, with no alternative available,
+/// reports that app rather than the generic sentence.
+#[test]
+fn test_oauth2_explicit_blank_app_names_that_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "blank",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stderr.contains("\"blank\""), "names the app; got: {stderr}");
+}
+
+/// Every structured error the binary emits must validate against the
+/// declared envelope body, including the verb-local shapes that carry their
+/// own fields. The schema closes the object, so an emitter that grew a key
+/// the type does not name would publish a schema that rejects its own output.
+#[rstest::rstest]
+#[case::unknown_schema(&["validate", "--schema", "nope", "-"], "{}", "unknown-schema")]
+#[case::invalid_json(&["validate", "--schema", "post", "-"], "not json at all", "invalid-json")]
+#[case::validation_failed(&["validate", "--schema", "post", "-"], "{\"unexpected\": 1}", "validation-failed")]
+fn test_verb_local_error_envelopes_match_the_declared_body(
+    #[case] args: &[&str],
+    #[case] stdin: &str,
+    #[case] expected_reason: &str,
+) {
+    use std::io::Write as _;
+    let mut child = common::xr_std()
+        .args(args)
+        .arg("--output")
+        .arg("json")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn xr");
+    child
+        .stdin
+        .as_mut()
+        .expect("stdin")
+        .write_all(stdin.as_bytes())
+        .expect("write stdin");
+    let out = child.wait_with_output().expect("wait");
+    let emitted = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let mut value: serde_json::Value = serde_json::from_str(emitted.trim())
+        .unwrap_or_else(|e| panic!("envelope must parse ({e}): {emitted}"));
+    let obj = value.as_object_mut().expect("an object");
+    assert_eq!(obj["reason"], expected_reason, "got: {emitted}");
+    obj.remove("status");
+    serde_json::from_value::<xurl::envelope::ErrorBody>(value)
+        .unwrap_or_else(|e| panic!("undeclared key in a verb-local envelope ({e}): {emitted}"));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

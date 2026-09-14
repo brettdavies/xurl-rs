@@ -84,6 +84,7 @@ fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -361,6 +362,7 @@ fn step2_client_id_mismatch_returns_error() {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path: file_path2,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store2.apps.insert(
         "default".to_string(),
@@ -882,6 +884,14 @@ fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
 
 // ── CLI E2E tests ─────────────────────────────────────────────────────
 
+/// Registers one credentialed app at `store` so a sign-in has a client id
+/// to build its URL from; an empty store now refuses to start the flow.
+fn register_app_at(store: &std::path::Path) {
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add_app");
+}
+
 #[test]
 fn cli_no_browser_without_step_auto_engages_step1() {
     // U9: `--no-browser` (no `--step`) now auto-promotes to step 1 — emits
@@ -891,7 +901,9 @@ fn cli_no_browser_without_step_auto_engages_step1() {
     // text-mode rendering changes. `XURL_TOKEN_STORE` points the child at a
     // tempdir store so the pending state lands beside it.
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--no-browser"])
         .output()
         .unwrap();
@@ -935,7 +947,10 @@ fn cli_step_3_rejected_by_value_parser() {
 
 #[test]
 fn cli_step2_without_auth_url_fails() {
-    let output = common::xr()
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--no-browser", "--step", "2"])
         .output()
         .unwrap();
@@ -976,7 +991,10 @@ fn step2_redirect_url_with_code_but_no_state() {
 
 #[test]
 fn cli_step1_with_auth_url_rejected() {
-    let output = common::xr()
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args([
             "auth",
             "oauth2",
