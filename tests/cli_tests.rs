@@ -4504,3 +4504,153 @@ fn test_hint_quotes_a_spaced_app_name() {
         "a name a shell would split is quoted; got: {command}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U11: the post-sign-in 403 names the enrollment fix
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Runs a shortcut against a mock returning `body` with the given status.
+fn run_against_canned_response(status: u16, body: &str) -> (i32, String, String) {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(status).set_body_string(body)),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "--output", "json", "search", "hello"],
+    )
+}
+
+/// The JSON baseline: a canned 403 keeps every key it carries today and
+/// gains `next_step` as the only addition.
+#[test]
+fn test_enrollment_403_envelope_keeps_every_existing_key() {
+    let body = r#"{"title":"Unsupported Authentication","detail":"Your client is not enrolled: client-not-enrolled","status":403}"#;
+    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    assert_ne!(code, 0, "stderr: {stderr}");
+
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let obj = v.as_object().expect("an object");
+    assert_eq!(obj["status"], "error", "got: {v}");
+    assert!(
+        obj["message"]
+            .as_str()
+            .unwrap()
+            .contains("client-not-enrolled")
+    );
+
+    let mut keys: Vec<&str> = obj.keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        vec!["exit_code", "message", "next_step", "reason", "status"],
+        "next_step is the only addition; got: {v}"
+    );
+    assert_eq!(obj["next_step"]["action"], "enroll-app", "got: {v}");
+    assert!(obj["next_step"]["docs"].is_string(), "got: {v}");
+    assert!(
+        obj["next_step"]["command"].is_null(),
+        "no command; got: {v}"
+    );
+    assert!(
+        obj["next_step"]["template"].is_null(),
+        "no template; got: {v}"
+    );
+}
+
+/// Text mode quotes the body's detail line and points at the recipe.
+#[test]
+fn test_enrollment_403_text_quotes_the_detail() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(403).set_body_string(
+                r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
+            )),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Your client is not enrolled"),
+        "the detail line is quoted; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("Troubleshooting"),
+        "and the recipe is named; got: {stderr}"
+    );
+}
+
+/// The other marker fires too, and a body with no detail simply omits the
+/// quote.
+#[test]
+fn test_enrollment_403_without_detail_omits_the_quote() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(403).set_body_string(r#"{"title":"client-forbidden"}"#),
+            ),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(stderr.contains("Troubleshooting"), "got: {stderr}");
+}
+
+/// A 403 that is not an enrollment refusal carries no hint.
+#[test]
+fn test_unrelated_403_carries_no_hint() {
+    let body = r#"{"title":"Forbidden","detail":"You cannot like your own post","status":403}"#;
+    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert!(
+        v.get("next_step").is_none(),
+        "only an enrollment refusal gets the hint; got: {v}"
+    );
+}
+
+/// `--quiet` keeps the error line and drops the advice.
+#[test]
+fn test_enrollment_403_hint_is_suppressed_under_quiet() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(403).set_body_string(
+                r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
+            )),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello", "--quiet"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("Troubleshooting"),
+        "quiet drops the advice; got: {stderr}"
+    );
+}
