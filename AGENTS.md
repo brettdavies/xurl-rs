@@ -165,7 +165,8 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 ```bash
 cargo test                    # unit + integration
 cargo test -- --ignored       # slower / network-dependent tests
-scripts/hooks/pre-push        # full local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy)
+scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy,
+                              # markdownlint, actionlint)
 ```
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
@@ -177,7 +178,13 @@ or the test's own temp store); a test that must touch the real path goes on its 
 guard in `tests/agentic_tests.rs` derives every environment variable `src/` reads and fails when `xr --help` does not
 advertise one.
 
-The pre-push hook mirrors CI 1:1. Run it before pushing if `core.hooksPath = scripts/hooks` is not set locally.
+`scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
+format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run
+`scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
+path scopes each step to what the push changes.
+
+Three CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, and the
+public-API semver gate.
 
 ## Releasing
 
