@@ -40,18 +40,35 @@ struct TwurlrcConfig {
 
 impl TokenStore {
     /// Tries YAML first, then falls back to legacy JSON migration.
-    pub(crate) fn load_from_data(&mut self, data: &[u8]) {
-        // Try new YAML format first
-        if let Ok(sf) = serde_yaml::from_slice::<StoreFile>(data)
-            && !sf.apps.is_empty()
-        {
-            self.apps = sf.apps;
-            self.default_app = sf.default_app;
-            return;
-        }
+    ///
+    /// Returns whether a parser accepted the data. A YAML document that
+    /// parsed but carried no apps is an accepted empty store; bytes neither
+    /// parser understands return `false` so the caller can record the store
+    /// as unparseable and refuse to overwrite it.
+    pub(crate) fn load_from_data(&mut self, data: &[u8]) -> bool {
+        // Try new YAML format first. Legacy JSON is also valid YAML, so a
+        // parse that yields no apps must still fall through to the JSON path.
+        let yaml_parsed = match serde_yaml::from_slice::<StoreFile>(data) {
+            Ok(sf) => {
+                if !sf.apps.is_empty() {
+                    self.apps = sf.apps;
+                    self.default_app = sf.default_app;
+                    return true;
+                }
+                true
+            }
+            Err(_) => false,
+        };
 
-        // Fall back to legacy JSON
-        if let Ok(legacy) = serde_json::from_slice::<LegacyStore>(data) {
+        // Fall back to legacy JSON. Every field on `LegacyStore` is optional,
+        // so any JSON object deserializes; requiring at least one token key
+        // keeps an unrelated JSON file at the store path from being adopted
+        // and rewritten as a store.
+        if let Ok(legacy) = serde_json::from_slice::<LegacyStore>(data)
+            && (legacy.oauth2_tokens.is_some()
+                || legacy.oauth1_token.is_some()
+                || legacy.bearer_token.is_some())
+        {
             let app = App {
                 client_id: String::new(),
                 client_secret: String::new(),
@@ -66,7 +83,10 @@ impl TokenStore {
             self.default_app = "default".to_string();
             // Persist in new YAML format immediately
             let _ = self.save_to_file();
+            return true;
         }
+
+        yaml_parsed
     }
 
     /// Imports tokens from a `.twurlrc` file into the active app.

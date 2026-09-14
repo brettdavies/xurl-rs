@@ -8,6 +8,7 @@
 //! - Credential backfill from environment variables
 
 mod migration;
+pub mod snapshot;
 mod tokens;
 pub mod types;
 
@@ -16,7 +17,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[allow(unused_imports)] // Re-exported for library consumers and integration tests
-pub use types::{App, OAuth1Token, OAuth2Token, Token, TokenType};
+pub use types::{App, LoadState, OAuth1Token, OAuth2Token, Token, TokenType};
 
 use crate::error::{Result, XurlError};
 
@@ -47,6 +48,12 @@ pub struct TokenStore {
     pub default_app: String,
     /// Path to the YAML file backing this store.
     pub file_path: PathBuf,
+    /// How the backing file resolved when this store was constructed.
+    ///
+    /// [`LoadState::Unreadable`] and [`LoadState::Unparseable`] make every
+    /// save refuse, so a file the loader could not understand is reported
+    /// rather than overwritten.
+    pub load_state: LoadState,
 }
 
 impl Default for TokenStore {
@@ -80,11 +87,10 @@ impl TokenStore {
             apps: BTreeMap::new(),
             default_app: String::new(),
             file_path,
+            load_state: LoadState::Fresh,
         };
 
-        if let Ok(data) = fs::read(&store.file_path) {
-            store.load_from_data(&data);
-        }
+        store.load_backing_file();
 
         // Backfill credentials into any app that has tokens but no client ID/secret
         for app in store.apps.values_mut() {
@@ -96,12 +102,6 @@ impl TokenStore {
                     app.client_secret = client_secret.to_string();
                 }
             }
-        }
-
-        // Ensure a default app exists (matches Go: NewTokenStore always returns a usable store)
-        if store.apps.is_empty() {
-            store.default_app = "default".to_string();
-            store.apps.insert("default".to_string(), App::new());
         }
 
         // Import from .twurlrc if we have no apps or the default app is missing OAuth1/Bearer
@@ -129,14 +129,9 @@ impl TokenStore {
             apps: BTreeMap::new(),
             default_app: String::new(),
             file_path,
+            load_state: LoadState::Fresh,
         };
-        if let Ok(data) = fs::read(&store.file_path) {
-            store.load_from_data(&data);
-        }
-        if store.apps.is_empty() {
-            store.apps.insert("default".to_string(), App::new());
-            store.default_app = "default".to_string();
-        }
+        store.load_backing_file();
         store
     }
 
@@ -169,14 +164,9 @@ impl TokenStore {
             apps: BTreeMap::new(),
             default_app: String::new(),
             file_path,
+            load_state: LoadState::Fresh,
         };
-        if let Ok(data) = fs::read(&store.file_path) {
-            store.load_from_data(&data);
-        }
-        if store.apps.is_empty() {
-            store.apps.insert("default".to_string(), App::new());
-            store.default_app = "default".to_string();
-        }
+        store.load_backing_file();
         // Auto-import from .twurlrc if needed
         let needs_import = match store.active_app() {
             None => true,
@@ -191,6 +181,29 @@ impl TokenStore {
         store
     }
 
+    /// Reads the backing file and records how it resolved.
+    ///
+    /// A missing or empty file is a fresh store, not a damaged one: an empty
+    /// store is empty, and the next save is allowed. A file that exists but
+    /// cannot be read or parsed leaves `apps` empty and records the failure,
+    /// which makes every save refuse.
+    fn load_backing_file(&mut self) {
+        self.load_state = match fs::read(&self.file_path) {
+            // A file with no content is a fresh store: an editor that saved
+            // a blank buffer left nothing for a parser to reject.
+            Ok(data) if data.iter().all(u8::is_ascii_whitespace) => LoadState::Fresh,
+            Ok(data) => {
+                if self.load_from_data(&data) {
+                    LoadState::Loaded
+                } else {
+                    LoadState::Unparseable
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => LoadState::Fresh,
+            Err(_) => LoadState::Unreadable,
+        };
+    }
+
     /// Loads a `TokenStore` from a specific file path (alias for `new_with_path`).
     #[must_use]
     pub fn load_from_path(path: &str) -> Self {
@@ -199,25 +212,47 @@ impl TokenStore {
 
     // ── App management ───────────────────────────────────────────────
 
-    /// Registers a new application. If it's the only app it becomes default.
+    /// Registers a new application.
+    ///
+    /// The new app becomes the default when it is the only one, or when the
+    /// current default has neither a client id nor any token. Registration
+    /// operates on the loaded apps alone and never materializes `default`.
     ///
     /// # Errors
     ///
-    /// Returns an error if the app name already exists or the store cannot be saved.
+    /// Returns an error if the app name already exists, carries a character
+    /// outside `[A-Za-z0-9_.-]`, or the store cannot be saved.
     pub fn add_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
+        // Refuse before mutating, so a rejected registration leaves the
+        // in-memory store exactly as the file described it.
+        self.refuse_if_load_failed()?;
         if self.apps.contains_key(name) {
             return Err(XurlError::token_store(format!(
                 "app {name:?} already exists"
             )));
         }
+        validate_app_name(name)?;
+        let promote = self.apps.is_empty() || self.default_lacks_credentials();
         self.apps.insert(
             name.to_string(),
             App::with_credentials(client_id, client_secret),
         );
-        if self.apps.len() == 1 {
+        if promote {
             self.default_app = name.to_string();
         }
         self.save_to_file()
+    }
+
+    /// Whether the current default is a name the new registration should
+    /// displace: absent, or present with neither a client id nor any token.
+    ///
+    /// A default holding a bearer or `OAuth1` token keeps its place, so a
+    /// working app-only setup survives a later registration.
+    fn default_lacks_credentials(&self) -> bool {
+        match self.apps.get(&self.default_app) {
+            None => true,
+            Some(app) => app.client_id.is_empty() && !app.has_tokens(),
+        }
     }
 
     /// Updates the credentials of an existing application.
@@ -466,6 +501,7 @@ impl TokenStore {
 
     /// Saves the token store to `~/.xurl` in YAML format.
     pub(crate) fn save_to_file(&self) -> Result<()> {
+        self.refuse_if_load_failed()?;
         let sf = types::StoreFile {
             apps: self.apps.clone(),
             default_app: self.default_app.clone(),
@@ -483,4 +519,55 @@ impl TokenStore {
 
         Ok(())
     }
+}
+
+impl TokenStore {
+    /// Whether the backing file existed but could not be read or parsed.
+    #[must_use]
+    pub fn load_failed(&self) -> bool {
+        matches!(
+            self.load_state,
+            LoadState::Unreadable | LoadState::Unparseable
+        )
+    }
+
+    /// The refusal every write path shares.
+    ///
+    /// # Errors
+    ///
+    /// Returns a token-store error naming the path when the file exists but
+    /// could not be loaded, so a store the loader did not understand is
+    /// never overwritten.
+    fn refuse_if_load_failed(&self) -> Result<()> {
+        if self.load_failed() {
+            return Err(XurlError::token_store(format!(
+                "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",
+                self.file_path.display()
+            )));
+        }
+        Ok(())
+    }
+}
+
+/// Whether `c` may appear in an app name.
+///
+/// The one definition of the set. Names reach shell commands in hint text
+/// and `next_step.command`, so it is narrow enough to need no quoting;
+/// registration rejects anything else and the hint builder quotes the
+/// grandfathered names an older store can still hold.
+#[must_use]
+pub fn is_app_name_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-')
+}
+
+/// Rejects a new app name carrying a character outside the set
+/// [`is_app_name_char`] defines. Existing names load unchanged; only
+/// registration validates.
+fn validate_app_name(name: &str) -> Result<()> {
+    if name.is_empty() || !name.chars().all(is_app_name_char) {
+        return Err(XurlError::validation(format!(
+            "invalid app name {name:?}: use letters, digits, '_', '.', and '-' only"
+        )));
+    }
+    Ok(())
 }

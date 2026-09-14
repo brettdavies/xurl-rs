@@ -136,6 +136,7 @@ fn create_mock_auth_with_bearer(base_url: &str) -> (Auth, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -169,6 +170,7 @@ fn create_mock_auth_with_oauth1(base_url: &str) -> (Auth, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -213,6 +215,7 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     let mut app = App {
         client_id: "cid".to_string(),
@@ -263,6 +266,7 @@ fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     let mut app = App {
         client_id: "cid".to_string(),
@@ -2544,6 +2548,7 @@ fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -2874,6 +2879,7 @@ fn u7_streaming_propagates_auth_resolution_errors() {
             apps: BTreeMap::new(),
             default_app: "default".to_string(),
             file_path: tmp.path().join(".xurl"),
+            load_state: xurl::store::LoadState::Loaded,
         },
     );
     let mut client = ApiClient::new(&cfg, auth);
@@ -3083,6 +3089,7 @@ fn u7_no_stored_credentials_returns_auth_required() {
             apps: BTreeMap::new(),
             default_app: "default".to_string(),
             file_path: tmp.path().join(".xurl"),
+            load_state: xurl::store::LoadState::Loaded,
         },
     );
     let mut client = ApiClient::new(&cfg, auth);

@@ -5,6 +5,7 @@
 
 pub mod commands;
 pub mod exit_codes;
+pub mod hints;
 pub mod runner;
 
 pub use runner::{run, run_argv, run_with_store_path};

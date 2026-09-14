@@ -30,11 +30,8 @@ use clap::{CommandFactory, Parser};
 use crate::auth::Auth;
 use crate::cli::{Cli, Commands};
 use crate::config::Config;
-use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
+use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
 use crate::output::OutputConfig;
-
-/// Clap usage-error exit code (sysexits `EX_USAGE`).
-const EXIT_USAGE_ERROR: i32 = 2;
 
 /// Runs the `xr` CLI using `std::env::args_os()` and real stdio.
 ///
@@ -285,13 +282,15 @@ fn json_intent(args: &[OsString], output: Option<&str>) -> bool {
 
 /// Writes the canonical `invalid-args` envelope to `stderr`.
 fn emit_invalid_args_envelope(stderr: &mut dyn Write, clap_msg: &str) {
-    let envelope = serde_json::json!({
-        "status": "error",
-        "reason": "invalid-args",
-        "exit_code": EXIT_USAGE_ERROR,
-        "message": clap_msg.trim_end().to_string(),
-    });
-    let _ = writeln!(stderr, "{envelope}");
+    let body = crate::envelope::ErrorBody {
+        reason: "invalid-args".to_string(),
+        exit_code: EXIT_USAGE_ERROR,
+        message: Some(clap_msg.trim_end().to_string()),
+        ..crate::envelope::ErrorBody::default()
+    };
+    // Compact single line: no parsed `Cli` exists here, so there is no
+    // `OutputConfig` to choose a format or pretty-printing from.
+    let _ = writeln!(stderr, "{}", body.into_value());
 }
 
 // Compile-time guarantee: the canonical entrypoint signature is callable

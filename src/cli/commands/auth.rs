@@ -6,9 +6,11 @@ use serde_json::json;
 
 use super::{Gate, gate_destructive};
 use crate::auth::Auth;
+use crate::cli::hints::NextStep;
 use crate::cli::{AppCommands, AuthCommands, RedirectUriCommands};
 use crate::config::{self, ResolveSource};
-use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
+use crate::envelope::ErrorBody;
+use crate::error::{EXIT_GENERAL_ERROR, EXIT_USAGE_ERROR, Result, XurlError};
 use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
@@ -194,12 +196,16 @@ pub(super) fn run_auth_command(
                 return Ok(());
             }
             let username_arg = username.as_deref().unwrap_or("");
-            // R13/KTD4: credential-less-default warning. Fires when the user
-            // did not pass `--app`, the default app has no `client_id`, and at
-            // least one other registered app does. Routed via
-            // `OutputConfig::info` so `--quiet` and `--output json` suppress it.
-            if !app_explicit && let Some(msg) = credential_less_default_warning(&auth.token_store) {
-                out.info(stderr, &msg);
+            // R15: refuse before any URL is built or pending file written when
+            // the target app has no client id to sign in with. The old
+            // credential-less warning is unreachable behind this guard.
+            if let Some(body) =
+                client_credentials_missing(&auth, app_explicit, out.format.is_structured())
+            {
+                out.emit_error_envelope(stderr, body);
+                return Err(XurlError::EnvelopeAlreadyEmitted {
+                    exit_code: EXIT_USAGE_ERROR,
+                });
             }
             // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
             // harness) and the user did not pass `--no-browser` (or set
@@ -386,17 +392,7 @@ pub(super) fn run_auth_command(
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message(
-                    stdout,
-                    "No apps registered. Use 'xr auth apps add' to register one.",
-                );
-                if auth.env_bearer_token_present() && !out.format.is_structured() {
-                    out.print_message(
-                        stdout,
-                        &format!("bearer: \u{2713}{}", BearerSource::Env.as_text_label()),
-                    );
-                }
-                return Ok(());
+                return print_no_apps_registered(&auth, out, stdout);
             }
 
             let entries = build_app_status_entries(
@@ -596,11 +592,7 @@ pub(super) fn run_auth_command(
 
                 let apps = auth.token_store.list_apps();
                 if apps.is_empty() {
-                    out.print_message(
-                        stdout,
-                        "No apps registered. Use 'xr auth apps add' to register one.",
-                    );
-                    return Ok(());
+                    return print_no_apps_registered(&auth, out, stdout);
                 }
 
                 let app_choice = match prompt_select("Select default app", &apps)? {
@@ -677,9 +669,25 @@ fn run_app_command(
             if let Some(ref uri) = redirect_uri {
                 auth.token_store.set_app_redirect_uri(&name, uri)?;
             }
-            out.print_message(stdout, &format!("\x1b[32mApp {name:?} registered!\x1b[0m"));
-            if auth.token_store.list_apps().len() == 1 {
-                out.print_message(stdout, "  (set as default app)");
+            let is_default = auth.token_store.get_default_app() == name;
+            let next = NextStep::sign_in(
+                (!is_default).then_some(name.as_str()),
+                out.format.is_structured(),
+            );
+            if out.format.is_structured() {
+                let payload = json!({
+                    "message": format!("App {name:?} registered."),
+                    "default": is_default,
+                    "next_step": next,
+                });
+                out.print_response(stdout, &payload);
+            } else {
+                let suffix = if is_default { " (default)" } else { "" };
+                let next_cmd = next.display_invocation().unwrap_or("xr auth oauth2");
+                out.print_message(
+                    stdout,
+                    &format!("\x1b[32mApp {name:?} registered{suffix}.\x1b[0m Next: {next_cmd}"),
+                );
             }
         }
         AppCommands::Update {
@@ -754,11 +762,7 @@ fn run_app_command(
             let default_app = ts.get_default_app();
 
             if apps.is_empty() {
-                out.print_message(
-                    stdout,
-                    "No apps registered. Use 'xr auth apps add' to register one.",
-                );
-                return Ok(());
+                return print_no_apps_registered(auth, out, stdout);
             }
 
             let entries = build_app_status_entries(
@@ -803,55 +807,67 @@ fn run_app_command(
     Ok(())
 }
 
-/// Builds the credential-less-default-app warning when applicable.
+/// Builds the refusal body when the target app has no client id to sign in
+/// with, or `None` when sign-in may proceed.
 ///
-/// Returns `Some(message)` when the default app exists with an empty
-/// `client_id` AND at least one other registered app has a non-empty
-/// `client_id`. Returns `None` otherwise.
-///
-/// Caller decides whether to emit (callers gate this on the user not having
-/// passed `--app` per R13). The message uses plain ASCII (no ANSI escape
-/// codes) per KTD4 and is routed through `OutputConfig::info` so `--quiet`
-/// and `--output json` suppress it.
-fn credential_less_default_warning(ts: &TokenStore) -> Option<String> {
-    let default_name = ts.get_default_app();
-    let default_app = ts.get_app(default_name)?;
-    if !default_app.client_id.is_empty() {
+/// The effective client id comes from the [`Auth`] accessor, so `CLIENT_ID`
+/// exported in the environment counts regardless of how the app was
+/// selected. When another app does carry credentials the hint names it;
+/// otherwise the hint is registration, whose values only the caller has.
+fn client_credentials_missing(
+    auth: &Auth,
+    app_explicit: bool,
+    structured: bool,
+) -> Option<ErrorBody> {
+    if !auth.client_id().is_empty() {
         return None;
     }
-
-    let credentialed: Vec<(String, String)> = ts
+    let target = auth.token_store.get_active_app_name(auth.app_name());
+    let credentialed: Vec<String> = auth
+        .token_store
         .list_apps()
         .into_iter()
-        .filter(|name| name != default_name)
-        .filter_map(|name| {
-            let app = ts.get_app(&name)?;
-            if app.client_id.is_empty() {
-                None
-            } else {
-                Some((name, truncate(&app.client_id, 8).to_string()))
-            }
+        .filter(|name| name != target)
+        .filter(|name| {
+            auth.token_store
+                .get_app(name)
+                .is_some_and(|app| !app.client_id.is_empty())
         })
         .collect();
 
-    if credentialed.is_empty() {
-        return None;
-    }
+    let (prose, next_step) = match credentialed.first() {
+        Some(alternative) => (
+            format!("app {target:?} has no client credentials; app {alternative:?} does."),
+            NextStep::select_app(
+                NextStep::sign_in(Some(alternative), structured)
+                    .command
+                    .unwrap_or_default(),
+            ),
+        ),
+        None => (
+            if app_explicit {
+                format!("app {target:?} has no client credentials.")
+            } else {
+                "no app carries client credentials.".to_string()
+            },
+            NextStep::register_app(),
+        ),
+    };
+    // KTD12: the text derives from the built value, so the prose and the
+    // machine-readable step cannot name different commands.
+    let message = match next_step.display_invocation() {
+        Some(invocation) => format!("{prose} Run: {invocation}"),
+        None => prose,
+    };
 
-    let mut msg = String::new();
-    msg.push_str(&format!(
-        "warning: --app not specified. The OAuth2 token will be saved to the \"{default_name}\" app,\n"
-    ));
-    msg.push_str("which has no client credentials stored. API calls will fail with 401 errors.\n");
-    msg.push('\n');
-    msg.push_str("App(s) with credentials available:\n");
-    for (name, hint) in &credentialed {
-        msg.push_str(&format!("  --app {name}  [client_id: {hint}...]\n"));
-    }
-    msg.push('\n');
-    let first = &credentialed[0].0;
-    msg.push_str(&format!("Run instead:  xr auth oauth2 --app {first}"));
-    Some(msg)
+    Some(ErrorBody {
+        reason: "client-credentials-missing".to_string(),
+        exit_code: EXIT_USAGE_ERROR,
+        message: Some(message),
+        app: (!target.is_empty()).then(|| target.to_string()),
+        next_step: Some(next_step),
+        ..ErrorBody::default()
+    })
 }
 
 /// Truncates a string to a maximum length.
@@ -864,6 +880,39 @@ fn truncate(s: &str, max_len: usize) -> &str {
             None => s,
         }
     }
+}
+
+/// Renders the zero-app state for `auth status` and `auth apps list`.
+///
+/// Text names the command that fixes it, and reports the environment bearer
+/// when one is set, since that alone can already drive app-only calls.
+/// Structured output is the empty array a caller iterates without a special
+/// case.
+fn print_no_apps_registered(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
+    // An empty `apps` map means two different things. Saying "nothing is
+    // registered" about a file the loader could not read would send the
+    // reader to `apps add`, which then refuses.
+    if auth.token_store.load_failed() {
+        return Err(XurlError::token_store(format!(
+            "cannot read the token store at {}: it exists but could not be loaded; inspect or move it",
+            auth.token_store.file_path.display()
+        )));
+    }
+    if out.format.is_structured() {
+        out.print_response(stdout, &serde_json::Value::Array(Vec::new()));
+        return Ok(());
+    }
+    out.print_message(
+        stdout,
+        "No apps registered. Run: xr auth apps add NAME --client-id ID --client-secret SECRET",
+    );
+    if auth.env_bearer_token_present() {
+        out.print_message(
+            stdout,
+            &format!("bearer: \u{2713}{}", BearerSource::Env.as_text_label()),
+        );
+    }
+    Ok(())
 }
 
 /// Name of the app `XURL_BEARER_TOKEN` applies to, when it is set.
