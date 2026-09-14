@@ -217,7 +217,7 @@ pub(super) fn run_auth_command(
             if !effective_no_browser {
                 // Standard interactive flow
                 auth.oauth2_flow(username_arg, out, stdout)?;
-                out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
+                out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             } else {
                 let pending_path =
                     crate::auth::pending::pending_path_for_store(&auth.token_store.file_path);
@@ -243,19 +243,27 @@ pub(super) fn run_auth_command(
                             // `awaiting_callback` envelope; the existing
                             // `--step 1` path keeps its legacy shape so
                             // agents that pinned against it don't drift.
-                            let envelope = if step.is_none() {
-                                serde_json::json!({
-                                    "status": "awaiting_callback",
-                                    "url": url,
-                                    "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
-                                })
+                            if step.is_none() {
+                                // The awaiting-callback envelope carries its
+                                // own status: the flow is not finished, so
+                                // reporting `ok` would be wrong.
+                                out.print_response(
+                                    stdout,
+                                    &serde_json::json!({
+                                        "status": "awaiting_callback",
+                                        "url": url,
+                                        "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
+                                    }),
+                                );
                             } else {
-                                serde_json::json!({
-                                    "auth_url": url,
-                                    "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
-                                })
-                            };
-                            out.print_response(stdout, &envelope);
+                                out.print_success(
+                                    stdout,
+                                    &serde_json::json!({
+                                        "auth_url": url,
+                                        "instructions": "Open the URL in a browser, authorize, then copy the redirect URL and run step 2"
+                                    }),
+                                );
+                            }
                         } else {
                             out.print_message(
                                 stdout,
@@ -382,7 +390,7 @@ pub(super) fn run_auth_command(
             let _ = auth
                 .token_store
                 .promote_to_default_if_first_credentialed(&candidate)?;
-            out.print_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
+            out.print_ok_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
         }
         AuthCommands::Status => {
             // Read through the runner-constructed store so tempdir-based
@@ -518,16 +526,16 @@ pub(super) fn run_auth_command(
 
             if all {
                 auth.token_store.clear_all()?;
-                out.print_message(stdout, "All authentication cleared!");
+                out.print_ok_message(stdout, "All authentication cleared!");
             } else if oauth1 {
                 auth.token_store.clear_oauth1_tokens()?;
-                out.print_message(stdout, "OAuth1 tokens cleared!");
+                out.print_ok_message(stdout, "OAuth1 tokens cleared!");
             } else if let Some(username) = oauth2_username {
                 auth.token_store.clear_oauth2_token(&username)?;
-                out.print_message(stdout, &format!("OAuth2 token cleared for {username}!"));
+                out.print_ok_message(stdout, &format!("OAuth2 token cleared for {username}!"));
             } else if bearer {
                 auth.token_store.clear_bearer_token()?;
-                out.print_message(stdout, "Bearer token cleared!");
+                out.print_ok_message(stdout, "Bearer token cleared!");
             } else {
                 return Err(XurlError::validation(
                     "No authentication cleared! Use --all to clear all authentication.",
@@ -560,7 +568,7 @@ pub(super) fn run_auth_command(
             }
             if let Some(app_name) = app_name {
                 auth.token_store.set_default_app(&app_name)?;
-                out.print_message(
+                out.print_ok_message(
                     stdout,
                     &format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"),
                 );
@@ -601,7 +609,7 @@ pub(super) fn run_auth_command(
                 };
 
                 auth.token_store.set_default_app(&app_choice)?;
-                out.print_message(
+                out.print_ok_message(
                     stdout,
                     &format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
                 );
@@ -680,7 +688,7 @@ fn run_app_command(
                     "default": is_default,
                     "next_step": next,
                 });
-                out.print_response(stdout, &payload);
+                out.print_success(stdout, &payload);
             } else {
                 let suffix = if is_default { " (default)" } else { "" };
                 let next_cmd = next.display_invocation().unwrap_or("xr auth oauth2");
@@ -722,7 +730,7 @@ fn run_app_command(
             if let Some(ref uri) = redirect_uri {
                 auth.token_store.set_app_redirect_uri(&name, uri)?;
             }
-            out.print_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
+            out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
         }
         AppCommands::Remove { name, force } => {
             let ctx = json!({"command": "app-remove", "name": name});
@@ -749,7 +757,7 @@ fn run_app_command(
                 return Ok(());
             }
             auth.token_store.remove_app(&name)?;
-            out.print_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
+            out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
         }
         AppCommands::RedirectUri { command } => {
             return run_redirect_uri_command(command, auth, dry_run, out, stdout);
@@ -1013,7 +1021,7 @@ fn run_redirect_uri_command(
                     stored_redirect_uri: stored.clone(),
                 };
                 let value = serde_json::to_value(&response)?;
-                out.print_response(stdout, &value);
+                out.print_success(stdout, &value);
             } else {
                 out.print_message(stdout, &format!("app: {target}"));
                 out.print_message(stdout, &format!("effective_redirect_uri: {}", resolved.uri));
@@ -1045,7 +1053,7 @@ fn run_redirect_uri_command(
                 let value = serde_json::to_value(&response)?;
                 out.print_response(stdout, &value);
             } else {
-                out.print_message(stdout, &format!("Set redirect URI for {name:?}"));
+                out.print_ok_message(stdout, &format!("Set redirect URI for {name:?}"));
             }
         }
     }
