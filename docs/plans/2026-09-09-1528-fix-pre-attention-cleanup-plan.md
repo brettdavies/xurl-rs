@@ -377,8 +377,10 @@ files exceed 800 lines.
 - KTD2. **No new public error variants in 3.x, and the typed envelope is the only emission path.** `XurlError` is not
   `#[non_exhaustive]`, so a new variant breaks any downstream exhaustive match (`kind()` in `src/error.rs` has no
   wildcard arm; `bird` pins the crate and maps its variants). Unknown-command and client-credentials-missing errors are
-  emitted through the one emitter (KTD17) and return the existing `EnvelopeAlreadyEmitted { exit_code: 2 }` so the
-  runner exits without printing again; the sentinel's `kind()` returns `confirmation-required` as a placeholder and its
+  emitted through the one emitter (KTD17). The client-credentials-missing guard sits inside `commands::auth` and returns
+  the existing `EnvelopeAlreadyEmitted { exit_code: 2 }` so the runner exits without printing again; the unknown-command
+  renderer sits inside the runner itself, below the boundary that sentinel exists to cross, so it returns the usage exit
+  code directly; the sentinel's `kind()` returns `confirmation-required` as a placeholder and its
   doc states that the runner is its only consumer and the envelope already on stderr carries the real reason.
   `Envelope::Error` gains optional `next_step`, `command`, `suggestion`, and the eight auth-mismatch fields (`endpoint`,
   `rendered_url`, `method`, `requested`, `supported`, `available_in_app`, `app`, `other_apps_with_creds`), each skipped
@@ -484,7 +486,9 @@ files exceed 800 lines.
 - KTD16. **Module homes are fixed now.** `src/store/snapshot.rs` holds `StoreSnapshot`, `LoadState`, and the
   credentialed-apps query that today lives inside `credential_less_default_warning`; it is library code with no CLI
   strings. `src/cli/hints.rs` holds the `Hint` type, the five-state chooser, the `NextStep` builder with its quote
-  helper, and the enrollment matcher; it is CLI code. U9 records these homes and does not move them.
+  helper, and the enrollment matcher; it is CLI code. `src/cli/classify.rs` holds U7's pure decisions: what an
+  invocation asks for, which command name is nearest, and which output format argv named; it is a private module, and
+  the runner keeps the writers, the exit codes, and the two renderings. U9 records these homes and does not move them.
 - KTD17. **One error-envelope emitter, and a provisional `OutputConfig` on the clap error path.** `emit_error_envelope`
   in `src/output.rs` takes an `OutputConfig`, a reason, an exit code, a message, and extra fields, constructs
   `Envelope::Error`, and writes the text `Error:` line or the structured document; `print_error_envelope`,
@@ -742,10 +746,12 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   envelope whether clap or the classifier caught it, before any config or store is loaded; a bare `xr` prints help.
 - **Requirements:** R8, R9, R14. Implements KTD2, KTD3, KTD4, KTD5, KTD11, KTD17.
 - **Dependencies:** U6; U10 for the one emitter and the typed envelope.
-- **Files:** `src/cli/runner.rs`, `src/cli/commands/mod.rs`, `src/output.rs`, `src/envelope.rs`,
-  `Cargo.toml`, `README.md` (exit-code row 2), `KNOWN_DIFFERENCES.md`, `schema/output.schema.json` (regenerated),
-  `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/binary_contract_tests.rs`, `tests/agentic_tests.rs`,
-  `tests/error_tests.rs`, `tests/schema_tests.rs`.
+- **Files:** `src/cli/runner.rs`, `src/cli/classify.rs` (create), `src/cli/mod.rs`, `src/envelope.rs`, `Cargo.toml`,
+  `README.md` (exit-code row 2), `AGENTS.md` (the bare-invocation line), `KNOWN_DIFFERENCES.md`,
+  `schema/output.schema.json` (regenerated), `tests/unknown_command_tests.rs` (create), `tests/cli_run_tests.rs`,
+  `tests/binary_contract_tests.rs`, `tests/agentic_tests.rs`, `tests/error_tests.rs`. `src/cli/commands/mod.rs`,
+  `src/output.rs`, and `src/error.rs` need no change: the classifier runs above `run_raw_mode`, the one emitter already
+  takes a typed body, and the exit constant is already public.
 - **Approach:**
   1. `EXIT_USAGE_ERROR` is a public constant in `xurl::error` and is already imported in the runner, so the
      unknown-command paths exit with it directly. KTD3 is satisfied; nothing to promote.
@@ -757,19 +763,21 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   4. Add `render_unknown_command(word, suggestion, out, stderr)` that prints `Error: unknown command 'WORD'. Did you
      mean 'X'? Try 'xr --help'.` in text mode (without the middle sentence when no match), and emits the envelope with
      reason `unknown-command`, exit code 2, `command`, and `suggestion` (omitted when none) through the one emitter,
-     then returns `EnvelopeAlreadyEmitted`.
+     then returns the usage exit code. Both its call sites are in the runner, so no sentinel crosses a `Result`
+     boundary.
   5. In the runner's parse-error branch, intercept `ErrorKind::InvalidSubcommand`: read the word from
      `ContextKind::InvalidSubcommand`; take `ContextKind::SuggestedSubcommand` when present; otherwise, when any argv
      token equal to `help` precedes the word, score the word against the root candidates; call the renderer with the
      provisional config. Every other kind keeps clap's rendered text or the `invalid-args` envelope.
-  6. Add a pure `classify(&Cli) -> Classified { Help, UnknownCommand(String), Raw }` in the runner and call it after the
-     Tier 1 meta-commands and before `Config` and `Auth` are built: `Help` prints the root help to stdout at exit 0 in
-     text mode or the `invalid-args` envelope at exit 2 under structured intent; `UnknownCommand` renders with the real
-     `OutputConfig`; `Raw` proceeds. Remove the classification branch from `run_raw_mode`, which keeps the URL and path
-     branches and the raw-only-flag "No URL provided" case.
-  7. Update the two pinned contract tests for bare `xr` (`tests/cli_run_tests.rs:73`,
-     `tests/binary_contract_tests.rs:54`) and the invalid-args assertions for typo paths in `tests/agentic_tests.rs` and
-     `tests/cli_tests.rs` to the new contract, in this unit.
+  6. Add a pure `classify(&Cli) -> Classified { Help, UnknownCommand(String), Raw }` in `src/cli/classify.rs` and call
+     it from the runner after the Tier 1 meta-commands and before `Config` and `Auth` are built: `Help` prints the root
+     help to stdout at exit 0 in text mode or the `invalid-args` envelope at exit 2 under structured intent;
+     `UnknownCommand` renders with the real `OutputConfig`; `Raw` proceeds. `run_raw_mode` is unchanged: it keeps the
+     URL and path branches and the raw-only-flag "No URL provided" case, and the classifier is what stops a command
+     word from reaching it.
+  7. Update the two pinned contract tests for bare `xr`, one in `tests/cli_run_tests.rs` and one in
+     `tests/binary_contract_tests.rs`, and point the three color tests in `tests/agentic_tests.rs` at a mistyped
+     command, since a bare invocation no longer writes to stderr. All in this unit.
   8. Update the README exit-code table (row 2 mentions unknown command), add a `KNOWN_DIFFERENCES.md` row (the Go
      original sends a bare word as the endpoint; xurl-rs rejects it as an unknown command at exit 2), and complete the
      reason vocabulary in `src/envelope.rs` per KTD11; regenerate the envelope schema with `cargo run --bin xr -- schema
@@ -1343,13 +1351,13 @@ No failure mode is untested, unhandled, and silent; zero critical gaps.
 Synthesized from both reviews' findings. Each task derives from a specific finding above. Run with Claude Code or Codex;
 checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineering review.
 
-- [ ] **T1 (P1, human: ~half day / CC: ~20 min)** — auth resolution — Count `XURL_BEARER_TOKEN` as the `app` scheme in
+- [x] **T1 (P1, human: ~half day / CC: ~20 min)** — auth resolution — Count `XURL_BEARER_TOKEN` as the `app` scheme in
   shortcut resolution and report it in `auth status`, with or without apps; standalone fix PR
   - Surfaced by: Pass 2 and 6 — shortcut `search` with the env bearer on an empty store exits 77 while the raw path
     returns data
   - Files: `src/api/request.rs`, `src/cli/commands/auth.rs`, `tests/api_tests.rs`, `tests/cli_tests.rs`
   - Verify: a test drives `search` with the override and an empty store; observe exit 77 before, success after
-- [ ] **T2 (P1, human: ~2 days / CC: ~1 hour)** — token store — Drop the eager `default` seed; load state with a
+- [x] **T2 (P1, human: ~2 days / CC: ~1 hour)** — token store — Drop the eager `default` seed; load state with a
   refusing save; promote past nothing; name validation; guard sign-in on the effective client id; register message
   through the builder; one emitter; typed envelope (U10)
   - Surfaced by: Hello World trace; outside voice (token saves lazily create `default`; corrupt store overwritten); eng
@@ -1359,7 +1367,7 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
     output-writer, and oauth2 test files
   - Verify: the fresh-store Quick Start test; the corrupt-store test; the bearer-then-register test; the round-trip
     envelope test; `cargo test`; the store isolation guard
-- [ ] **T3 (P1, human: ~1 day / CC: ~30 min)** — error rendering — `StoreSnapshot` before dispatch reading `cli.app`,
+- [x] **T3 (P1, human: ~1 day / CC: ~30 min)** — error rendering — `StoreSnapshot` before dispatch reading `cli.app`,
   `XURL_APP`, and the env client id; five-state chooser and `NextStep` builder in `src/cli/hints.rs`;
   `print_error_with_hint`; AGENTS.md principle and exit-77 recipe; README row 77 and envelope example (U5)
   - Surfaced by: Pass 3; D13, D14, D25, D33; eng review 1; outside voice 1, 2, 5
@@ -1367,12 +1375,12 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
     `src/envelope.rs`, `schema/output.schema.json`, `AGENTS.md`, `README.md`, tests
   - Verify: baseline envelope test asserts pre-existing keys byte-identical and `next_step` new; the `--app` and env
     scenarios; `lint-stdio.sh`
-- [ ] **T4 (P1, human: ~2 hours / CC: ~10 min)** — clap flags — Flip `require_equals` to `true` on the six
+- [x] **T4 (P1, human: ~2 hours / CC: ~10 min)** — clap flags — Flip `require_equals` to `true` on the six
   optional-value boolean flags (U6)
   - Surfaced by: Real Usage trace — `xr --quiet whoami` and the README's `-q search` example fail
   - Files: `src/cli/mod.rs`, `tests/cli_tests.rs`
   - Verify: invocation matrix observed failing first; `generate-completions.sh --check`
-- [ ] **T5 (P1, human: ~1 day / CC: ~40 min)** — unknown command — `classify(&Cli)` before any load; one renderer for
+- [x] **T5 (P1, human: ~1 day / CC: ~40 min)** — unknown command — `classify(&Cli)` before any load; one renderer for
   clap and classifier paths; clap's suggestion where present and jaro against the root where not, with the `help` token
   rule; `structured_intent` and the provisional `OutputConfig`; bare `xr` help; `EXIT_USAGE_ERROR` public; contract-test
   updates; vocabulary and schema (U7)
@@ -1382,32 +1390,32 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
     `tests/binary_contract_tests.rs`, `tests/agentic_tests.rs`, `tests/cli_tests.rs`
   - Verify: failing tests for `xr whoam`, `xr help whoam`, `xr --output json help whoam`, and `xr auth statsu` first;
     the cross-mode table; schema drift test
-- [ ] **T6 (P1, human: ~2 hours / CC: ~15 min)** — README — Non-affiliation, badges, install name and verify step,
+- [x] **T6 (P1, human: ~2 hours / CC: ~15 min)** — README — Non-affiliation, badges, install name and verify step,
   before-you-start block with portal prerequisites and the cost sentence, relationship section, skill install lines,
   Contributing pointer, GitHub URL for the runbook; alias line only after the tap change (U1)
   - Surfaced by: Discover and Install traces; D9, D10, D19, D27; outside voice 18
   - Files: `README.md`
   - Verify: markdownlint; rendered README on GitHub; every link resolves; no line describes unlanded behavior
-- [ ] **T7 (P1, human: ~1 hour / CC: ~10 min)** — security — Enable private vulnerability reporting; write `SECURITY.md`
+- [x] **T7 (P1, human: ~1 hour / CC: ~10 min)** — security — Enable private vulnerability reporting; write `SECURITY.md`
   (U2)
   - Surfaced by: Pass 7 — no security policy with vulnerability alerts on
   - Files: `SECURITY.md`; repository setting
   - Verify: Security tab shows the policy and the report button
-- [ ] **T8 (P1, human: ~1 hour / CC: ~10 min)** — contributing — `CONTRIBUTING.md` with the branch flow, pointers, the
+- [x] **T8 (P1, human: ~1 hour / CC: ~10 min)** — contributing — `CONTRIBUTING.md` with the branch flow, pointers, the
   error-contract paragraph, and the playground developer note (U3)
   - Surfaced by: Pass 7 and Pass 1 sandbox; D24, D25
   - Files: `CONTRIBUTING.md`
   - Verify: GitHub shows the Contributing link; the playground recipe runs as written after T1
-- [ ] **T9 (P1, human: ~2 hours / CC: ~15 min)** — issue forms — Three forms, `config.yml`, Discussions enabled (U4)
+- [x] **T9 (P1, human: ~2 hours / CC: ~15 min)** — issue forms — Three forms, `config.yml`, Discussions enabled (U4)
   - Surfaced by: Pass 7 — blank issues, no routing, no Discussions
   - Files: `.github/ISSUE_TEMPLATE/*.yml`; repository setting
   - Verify: new-issue screen offers three forms and two links, no blank option; Discussions tab exists
-- [ ] **T10 (P2, human: ~half day / CC: ~15 min)** — error rendering — Enrollment hint on 403 bodies quoting the detail
+- [x] **T10 (P2, human: ~half day / CC: ~15 min)** — error rendering — Enrollment hint on 403 bodies quoting the detail
   line, with a `docs` link and no `command` (U11)
   - Surfaced by: Real Usage trace; D16; outside voice 13
   - Files: `src/cli/runner.rs`, `src/cli/hints.rs`, tests with canned bodies
   - Verify: canned-body tests; baseline keys byte-identical; `next_step.action` `enroll-app`
-- [ ] **T11a (P1, human: ~1 day / CC: ~30 min)** — auth verbs — Status-ok on every message-shaped verb, additive, in
+- [x] **T11a (P1, human: ~1 day / CC: ~30 min)** — auth verbs — Status-ok on every message-shaped verb, additive, in
   3.2.0 (U12a)
   - Surfaced by: Pass 2; D20; eng review D1 refinement 15A
   - Files: `src/cli/commands/auth.rs`, `schema/output.schema.json`, tests
@@ -1417,17 +1425,17 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: D21, D26; eng review 15A
   - Files: `src/cli/commands/auth.rs`, `README.md`, `AGENTS.md`, `schema/output.schema.json`, tests
   - Verify: two-app and empty-store `auth status`; schema drift test; the changelog entry names the break
-- [ ] **T12 (P2, human: ~1 hour / CC: ~10 min)** — packaging — Exclude runbooks and concepts doc; deny targets with the
+- [x] **T12 (P2, human: ~1 hour / CC: ~10 min)** — packaging — Exclude runbooks and concepts doc; deny targets with the
   coverage tradeoff recorded, skips, allow list; MIGRATING.md GitHub links (U8)
   - Surfaced by: Hygiene and Upgrade trace; D18
   - Files: `Cargo.toml`, `deny.toml`, `MIGRATING.md`
   - Verify: `cargo package --list`; `cargo deny check` four `ok` lines
-- [ ] **T13 (P3, human: ~half day / CC: ~30 min)** — refactor plan — SRP review of the six non-exempt files, recording
+- [x] **T13 (P3, human: ~half day / CC: ~30 min)** — refactor plan — SRP review of the six non-exempt files, recording
   the homes KTD16 fixed (U9)
   - Surfaced by: Health pass — eight files over 800 lines; outside voice 11
   - Files: new plan under `docs/plans/`
   - Verify: markdownlint; a seam or keep-whole verdict for all eight files
-- [ ] **T14 (P1, human: ~1 hour / CC: ~10 min)** — homebrew-tap — `xurl-rs` symlink and caveats note in the formula,
+- [x] **T14 (P1, human: ~1 hour / CC: ~10 min)** — homebrew-tap — `xurl-rs` symlink and caveats note in the formula,
   before U1
   - Surfaced by: Install trace; D12; outside voice 18
   - Files: `~/dev/homebrew-tap/Formula/xurl-rs.rb`
@@ -1448,7 +1456,7 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Files: release branch per `RELEASES.md`
   - Verify: `brew install xurl-rs` and `cargo install xurl-rs` yield a binary whose `xr whoami` on an empty store prints
     the registration hint
-- [ ] **E14 (P2, human: ~1 hour / CC: ~5 min)** — tests — Round-trip test: every emitted error envelope parses back into
+- [x] **E14 (P2, human: ~1 hour / CC: ~5 min)** — tests — Round-trip test: every emitted error envelope parses back into
   `Envelope::Error` with unknown fields denied
   - Surfaced by: outside voice 15 (eng review) — the drift test compares schema to schema
   - Files: `tests/output_writer_tests.rs`, `tests/schema_tests.rs`
@@ -1458,10 +1466,10 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: Tests 9 — no test drives the headless flow at the CLI level
   - Files: `tests/cli_tests.rs`, `tests/oauth2_flow_tests.rs`
   - Verify: token lands on the right app; outputs in both modes; 5xx exits 5 with the pending file kept
-- [ ] **E10 (P2, human: ~2 hours / CC: ~10 min)** — tests — Table-driven cross-mode test per error over eight formats
+- [x] **E10 (P2, human: ~2 hours / CC: ~10 min)** — tests — Table-driven cross-mode test per error over eight formats
   and both sources (11A)
   - Surfaced by: Tests 11 — both error paths branch on seven structured formats with no cross-product test
-  - Files: `tests/cli_tests.rs`
+  - Files: `tests/unknown_command_tests.rs`
   - Verify: every cell asserts reason, exit code, extra fields, and no prose leakage
 
 _E1 through E7, E9, E11 through E13, and E15 from the engineering review are folded into T2, T3, T5, T11a, T11b, T15a,
