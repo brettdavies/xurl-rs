@@ -80,7 +80,7 @@ Rather than immediately writing custom CI, we'll evaluate `cargo-dist` on a thro
 ## Key Decisions
 
 | Decision | Choice | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Pre-baked completions | All 5 shells (bash, zsh, fish, PowerShell, Elvish) | Near-zero cost via clap_complete; complete coverage |
 | Archive format | .tar.gz (Linux/macOS), .zip (Windows) | Standard convention |
 | install.sh hosting | GitHub Release asset per version | Version-pinned, no separate hosting, clean URL |
