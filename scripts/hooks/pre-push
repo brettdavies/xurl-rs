@@ -17,6 +17,10 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
+cd "$(git rev-parse --show-toplevel)"
+# shellcheck source=scripts/hooks/_lib.sh
+. ./scripts/hooks/_lib.sh || exit 1
+
 pass() { echo -e "  ${GREEN}✓${RESET} $1"; }
 fail() { echo -e "  ${RED}✗${RESET} $1"; exit 1; }
 
@@ -144,17 +148,10 @@ if code_touched; then
     # the maintainer machine has it via Homebrew (`brew install shellcheck`).
     if ! touched '(\.sh$|^scripts/hooks/)'; then
         skip "shellcheck (no shell script in this push)"
-    elif command -v shellcheck &>/dev/null; then
-        mapfile -t shell_files < <({
-            git ls-files '*.sh' 2>/dev/null
-            git ls-files 'scripts/hooks/*' 2>/dev/null
-        } | sort -u)
-        if [ ${#shell_files[@]} -gt 0 ]; then
-            shellcheck --severity=warning "${shell_files[@]}" || fail "shellcheck --severity=warning"
-        fi
-        pass "shellcheck"
     else
-        echo "  - shellcheck (skipped: install via \`brew install shellcheck\` or \`apt install shellcheck\`)"
+        mapfile -t shell_files < <(tracked_shell)
+        check_shellcheck "${shell_files[@]}" || fail "shellcheck --severity=warning"
+        pass "shellcheck"
     fi
 
     # 8. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
@@ -213,30 +210,18 @@ fi
 # descend into and edit outside the repo. A pathspec cannot leave the repo.
 if ! touched '\.md$'; then
     skip "markdownlint (no markdown in this push)"
-elif command -v markdownlint-cli2 &>/dev/null; then
-    mapfile -t md_files < <(git ls-files '*.md' ':!:CHANGELOG.md')
-    if [ ${#md_files[@]} -gt 0 ]; then
-        markdownlint-cli2 "${md_files[@]}" >/dev/null 2>&1 \
-            || fail "markdownlint-cli2 (run it directly to see the findings)"
-        # `fix: true` means a clean exit can still mean "it edited the tree".
-        # Pushing then leaves the fixes uncommitted and CI lints the unfixed
-        # content, so an in-place fix has to stop the push and be reviewed.
-        git diff --quiet -- '*.md' \
-            || fail "markdownlint fixed markdown in place; review and commit the result"
-    fi
-    pass "markdownlint"
 else
-    echo "  - markdownlint (skipped: install via \`brew install markdownlint-cli2\`)"
+    mapfile -t md_files < <(tracked_markdown)
+    check_markdownlint "${md_files[@]}" || fail "markdownlint (run it directly to see the findings)"
+    pass "markdownlint"
 fi
 
 # 11. Workflow lint. Mirrors the `lint / actionlint` CI job.
 if ! touched '^\.github/workflows/.*\.ya?ml$'; then
     skip "actionlint (no workflow in this push)"
-elif command -v actionlint &>/dev/null; then
-    actionlint || fail "actionlint"
-    pass "actionlint"
 else
-    echo "  - actionlint (skipped: install via \`brew install actionlint\`)"
+    check_actionlint .github/workflows || fail "actionlint"
+    pass "actionlint"
 fi
 
 echo -e "${BOLD}${GREEN}All checks passed.${RESET}"
