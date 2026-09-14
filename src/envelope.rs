@@ -26,6 +26,7 @@ use crate::cli::hints::NextStep;
 /// The three envelope variants — one per `status` discriminator value.
 #[derive(Debug, Serialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Envelope {
     /// Success envelope. `payload` holds verb-specific fields; agents
     /// merge them flat at the top level for legibility.
@@ -67,6 +68,7 @@ pub enum Envelope {
 /// does not name would make that schema wrong about what callers receive.
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+#[non_exhaustive]
 pub struct ErrorBody {
     /// Typed kebab-case kind; agents pattern-match on this.
     ///

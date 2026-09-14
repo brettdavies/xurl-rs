@@ -7,7 +7,7 @@
 # Subcommands:
 #   drift         Branch drift: what main carries that dev never received (delegated to drift.sh)
 #   surface       Establish surface: commits + diff vs last tag, breaking markers
-#   api-contract  xr help command surface diff, lib re-export diff vs last tag
+#   api-contract  xr help command surface diff, public API semver check vs last tag
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
@@ -163,10 +163,26 @@ gate_api_contract() {
     gate_skip "xr help diff" "could not check out $last_tag"
   fi
 
-  # Library re-export diff
-  local exports
-  exports=$(git diff "$last_tag..HEAD" -- src/lib.rs src/api/mod.rs | grep -cE '^[+-]\s*pub\s+(use|fn|struct|enum|mod)' || true)
-  gate_pass "lib re-export delta: $exports lines (review against MIGRATING.md breaking rows)"
+  # Public library surface. A textual diff cannot answer this: it reads two of
+  # the nine public modules and its pattern matches neither `pub` fields, nor
+  # `pub const`, `pub type`, or `pub trait`. cargo-semver-checks compares
+  # rustdoc JSON against the baseline tag and knows Rust's own semver rules.
+  # Breaks deliberately taken into a minor are recorded in Cargo.toml under
+  # [package.metadata.cargo-semver-checks.lints].
+  if command -v cargo-semver-checks >/dev/null 2>&1; then
+    local release_type semver_out semver_rc
+    release_type=$(semver_release_type "$last_tag")
+    semver_out=$(cargo semver-checks check-release \
+      --baseline-rev "$last_tag" --release-type "$release_type" 2>&1) && semver_rc=0 || semver_rc=$?
+    if [[ $semver_rc -eq 0 ]]; then
+      gate_pass "cargo-semver-checks: $release_type bump sufficient vs $last_tag"
+    else
+      printf '%s\n' "$semver_out" | grep -E '^--- failure|^  (field|variant|struct|enum|fn|method) ' || true
+      gate_fail "cargo-semver-checks: $release_type bump insufficient vs $last_tag (bump the version, or record the break in Cargo.toml lints)"
+    fi
+  else
+    gate_skip "cargo-semver-checks" "not installed (cargo binstall cargo-semver-checks)"
+  fi
 
   # $tmpdir held a git worktree of source, no creds; regular trash is fine.
   if command -v gio >/dev/null 2>&1; then

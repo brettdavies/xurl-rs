@@ -67,6 +67,26 @@ gate_skip() {
 }
 header() { printf "\n%s== %s ==%s\n" "$C_BLD" "$1" "$C_RST"; }
 
+# Semver helpers -------------------------------------------------------------
+
+# Which bump the working tree claims over a baseline tag, for the release type
+# cargo-semver-checks validates against. Compares Cargo.toml's version to the
+# tag rather than guessing from commit markers.
+semver_release_type() {
+  local baseline="${1#v}" current
+  current=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+  local b_major="${baseline%%.*}" c_major="${current%%.*}"
+  local b_rest="${baseline#*.}" c_rest="${current#*.}"
+  local b_minor="${b_rest%%.*}" c_minor="${c_rest%%.*}"
+  if [[ "$c_major" != "$b_major" ]]; then
+    echo major
+  elif [[ "$c_minor" != "$b_minor" ]]; then
+    echo minor
+  else
+    echo patch
+  fi
+}
+
 # Dependency checks ----------------------------------------------------------
 
 require_bin() {

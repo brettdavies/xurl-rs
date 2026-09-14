@@ -12,6 +12,7 @@ use crate::store::snapshot::StoreSnapshot;
 /// What the caller should do next. Closed set; agents branch on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum NextAction {
     /// No app carries client credentials; register one.
     RegisterApp,
