@@ -3,6 +3,7 @@
 //! Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
 //! auth/media/webhook/version subcommands.
 
+mod classify;
 pub mod commands;
 pub mod exit_codes;
 pub mod hints;

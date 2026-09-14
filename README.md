@@ -298,15 +298,15 @@ xr whoami --no-interactive                     # Error instead of prompt
 
 ### Structured Exit Codes
 
-| Code | Meaning                                   | Agent Action                                 |
-| ---- | ----------------------------------------- | -------------------------------------------- |
-| 0    | Success                                   | Continue                                     |
-| 1    | General error                             | Log and handle                               |
-| 2    | Invalid arguments or auth-method mismatch | Fix the flag or pick an accepted `--auth`    |
-| 3    | Rate limited                              | Retry with backoff                           |
-| 4    | Not found                                 | Resource doesn't exist                       |
-| 5    | Network error                             | Check connectivity                           |
-| 77   | Auth required                             | See Authentication; agents: read `next_step` |
+| Code | Meaning                                                     | Agent Action                                                  |
+| ---- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| 0    | Success                                                     | Continue                                                      |
+| 1    | General error                                               | Log and handle                                                |
+| 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth` |
+| 3    | Rate limited                                                | Retry with backoff                                            |
+| 4    | Not found                                                   | Resource doesn't exist                                        |
+| 5    | Network error                                               | Check connectivity                                            |
+| 77   | Auth required                                               | See Authentication; agents: read `next_step`                  |
 
 ### Recovering From an Auth Failure
 
