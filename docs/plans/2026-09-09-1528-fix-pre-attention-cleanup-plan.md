@@ -742,12 +742,13 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   envelope whether clap or the classifier caught it, before any config or store is loaded; a bare `xr` prints help.
 - **Requirements:** R8, R9, R14. Implements KTD2, KTD3, KTD4, KTD5, KTD11, KTD17.
 - **Dependencies:** U6; U10 for the one emitter and the typed envelope.
-- **Files:** `src/cli/runner.rs`, `src/cli/commands/mod.rs`, `src/error.rs`, `src/output.rs`, `src/envelope.rs`,
+- **Files:** `src/cli/runner.rs`, `src/cli/commands/mod.rs`, `src/output.rs`, `src/envelope.rs`,
   `Cargo.toml`, `README.md` (exit-code row 2), `KNOWN_DIFFERENCES.md`, `schema/output.schema.json` (regenerated),
   `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/binary_contract_tests.rs`, `tests/agentic_tests.rs`,
   `tests/error_tests.rs`, `tests/schema_tests.rs`.
 - **Approach:**
-  1. Promote `EXIT_USAGE_ERROR` per KTD3 and import it in the runner.
+  1. `EXIT_USAGE_ERROR` is a public constant in `xurl::error` and is already imported in the runner, so the
+     unknown-command paths exit with it directly. KTD3 is satisfied; nothing to promote.
   2. Rename `json_intent` to `structured_intent` and make it return `Option<OutputFormat>` for every structured format
      named on argv or in `XURL_OUTPUT`; in the parse-error branch, build a provisional `OutputConfig` from it with the
      existing constructor (KTD17) and route the `invalid-args` envelope through the one emitter.
