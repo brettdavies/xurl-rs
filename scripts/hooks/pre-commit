@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Pre-commit hook: fast, staged-file-scoped checks that catch the cheap
+# mistakes before they reach a commit. The whole-repo CI mirror lives in the
+# pre-push hook (scripts/hooks/pre-push); keep this hook fast enough that it
+# is never the reason someone reaches for --no-verify.
+#
+# Activate per clone via: git config core.hooksPath scripts/hooks
+# (This is machine-local git config: it does NOT travel with the clone, and
+# an unset core.hooksPath is the single most common reason a hook never fires.
+# Run the command above once per fresh clone, human and agent workspace alike.)
+#
+# Defensive no-ops: each check guards on its own tool being present and on the
+# relevant file type being staged, then skips cleanly. Every skip branch MUST
+# echo what it skipped and why: a silent skip is indistinguishable from a
+# passing check.
+#
+# Exit codes: 0 = all staged checks pass (or cleanly skipped), 1 = failure.
+set -euo pipefail
+
+# Only ACMR (added/copied/modified/renamed) staged paths; deletions cannot fail
+# a lint.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged" ]; then
+  echo "pre-commit: nothing staged; nothing to check"
+  exit 0
+fi
+
+# Rust: format-check only the staged .rs files. `cargo fmt --check` is
+# whole-crate, so scope by running rustfmt directly on the staged files.
+# The edition matches rustfmt.toml; rustfmt has no way to read that file for a
+# direct file invocation.
+# mapfile keeps the failing exit out of a pipeline subshell so it propagates.
+if echo "$staged" | grep -qE '\.rs$'; then
+  if command -v rustfmt >/dev/null 2>&1; then
+    mapfile -t rs_files < <(echo "$staged" | grep -E '\.rs$')
+    for f in "${rs_files[@]}"; do
+      [ -f "$f" ] || continue
+      rustfmt --edition 2024 --check "$f" || {
+        echo "pre-commit: rustfmt --check failed on $f (run \`cargo fmt\`)"
+        exit 1
+      }
+    done
+    echo "pre-commit: rustfmt clean on ${#rs_files[@]} staged file(s)"
+  else
+    echo "pre-commit: rustfmt not installed; skipping Rust format check"
+  fi
+fi
+
+# Workflows: lint staged .github/workflows/*.yml with actionlint. Mirrors the
+# `lint / actionlint` CI job.
+if echo "$staged" | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
+  if command -v actionlint >/dev/null 2>&1; then
+    actionlint
+    echo "pre-commit: actionlint clean"
+  else
+    echo "pre-commit: actionlint not installed; skipping workflow lint"
+  fi
+fi
+
+# Markdown: lint staged .md files with markdownlint-cli2. Mirrors the
+# `lint / markdownlint` CI job.
+if echo "$staged" | grep -qE '\.md$'; then
+  if command -v markdownlint-cli2 >/dev/null 2>&1; then
+    echo "$staged" | grep -E '\.md$' | tr '\n' '\0' | xargs -0 --no-run-if-empty markdownlint-cli2
+    echo "pre-commit: markdownlint clean"
+  else
+    echo "pre-commit: markdownlint-cli2 not installed; skipping markdown lint"
+  fi
+fi
+
+echo "pre-commit: staged checks passed"
