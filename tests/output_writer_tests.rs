@@ -770,16 +770,14 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
 
     // 5. A hint-bearing envelope: `next_step` must round-trip too. The CLI
     // builds this shape for the sign-in refusal.
-    let body = xurl::envelope::ErrorBody {
-        reason: "client-credentials-missing".to_string(),
-        exit_code: 2,
-        message: Some("no app carries client credentials.".to_string()),
-        app: Some("blank".to_string()),
-        next_step: Some(xurl::cli::hints::NextStep::select_app(
-            "xr auth oauth2 --app work".to_string(),
-        )),
-        ..xurl::envelope::ErrorBody::default()
-    };
+    let mut body = xurl::envelope::ErrorBody::default();
+    body.reason = "client-credentials-missing".to_string();
+    body.exit_code = 2;
+    body.message = Some("no app carries client credentials.".to_string());
+    body.app = Some("blank".to_string());
+    body.next_step = Some(xurl::cli::hints::NextStep::select_app(
+        "xr auth oauth2 --app work".to_string(),
+    ));
     let emitted = body.into_value().to_string();
     assert_round_trips(&emitted, "client-credentials-missing");
     assert!(

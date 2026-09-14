@@ -34,7 +34,9 @@ git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventi
 On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
 `origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
 
-Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
+`cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
+detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
+the release's `### Breaking changes` section, and so does every break the semver gate reports.
 
 ## Quick start: run the automated gates
 
@@ -59,7 +61,7 @@ with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one 
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `drift`        | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)       | no                        |
 | `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
-| `api-contract` | `xr help` command surface diff vs LAST_TAG, lib re-export delta                                                                                                                    | no (builds prev tag once) |
+| `api-contract` | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` vs LAST_TAG                                                                                                      | no (builds prev tag once) |
 | `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                    | yes                       |
 | `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                             | yes                       |
 | `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
@@ -127,9 +129,13 @@ xurl-rs is a thin client over the live X API. The contract that ships is the uni
   Changed` (or `### Breaking changes`) bullet in the release changelog.
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
-- [ ] Public library surface (`xurl_rs::*`): run `cargo public-api diff` if available, or `git diff "$LAST_TAG..dev" --
-  src/lib.rs src/api/mod.rs` and confirm every removed / renamed export is captured as a breaking row. Library consumers
-  feature-detect on type names.
+- [ ] Public library surface (`xurl_rs::*`): `cargo semver-checks check-release --baseline-rev "$LAST_TAG"
+  --release-type <bump>` passes. It reads rustdoc JSON and applies Rust's own semver rules, so it sees `pub` fields,
+  consts, type aliases, and traits across every public module. Confirm each reported break has a row in the release
+  changelog. A break shipping in a minor by decision gets a `required-update = "minor"` entry in
+  `Cargo.toml` under `[package.metadata.cargo-semver-checks.lints]`, which reclassifies it rather than silencing it: the
+  gate still names the break and still fails a patch release. Those entries are scoped to one release and are deleted
+  once the tag moves the baseline past them.
 
 ### Real-world smoke (live X API)
 
