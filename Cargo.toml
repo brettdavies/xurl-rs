@@ -32,6 +32,9 @@ exclude = [
 # CLI
 clap = { version = "4", features = ["derive", "string", "env"] }
 clap_complete = "4"
+# Held at the version clap resolves, so a clap bump that moves it surfaces as
+# a `multiple-versions` audit warning instead of a second silent copy.
+strsim = "0.11.1"
 
 # HTTP
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "blocking", "stream", "form", "rustls"] }

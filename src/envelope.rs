@@ -74,9 +74,9 @@ pub struct ErrorBody {
     ///
     /// The runtime emits: `auth-required`, `auth-method-mismatch`,
     /// `client-credentials-missing`, `rate-limited`, `not-found`,
-    /// `network-error`, `invalid-args`, `invalid-method`, `invalid-url`,
-    /// `invalid-path-param`, `validation`, `serialization`, `io`,
-    /// `token-store`, `internal`, `confirmation-required`, `no-tty`,
+    /// `network-error`, `invalid-args`, `unknown-command`, `invalid-method`,
+    /// `invalid-url`, `invalid-path-param`, `validation`, `serialization`,
+    /// `io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,
     /// `unsupported-pagination`, and the verb-local `invalid-json`,
     /// `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,
     /// and `remove-failed`.
