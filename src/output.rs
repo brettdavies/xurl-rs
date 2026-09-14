@@ -525,6 +525,21 @@ impl OutputConfig {
         }
     }
 
+    /// Prints a success message: a status-ok envelope for a structured
+    /// caller, the message itself for a human.
+    ///
+    /// The message-shaped verbs share one success contract this way, so an
+    /// agent branches on `status` across the whole surface rather than
+    /// inferring success from the absence of an error.
+    pub fn print_ok_message(&self, out: &mut dyn Write, msg: &str) {
+        if self.format.is_structured() {
+            let clean = strip_ansi(msg);
+            self.print_success(out, &serde_json::json!({"message": clean}));
+            return;
+        }
+        self.print_message(out, msg);
+    }
+
     /// Renders `value` to `w` in the active structured format.
     ///
     /// Json/Jsonl pretty-print (compact under `--raw`); Ndjson always emits a

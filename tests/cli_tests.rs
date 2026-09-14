@@ -4125,3 +4125,131 @@ fn test_env_true_then_equals_false_no_interactive() {
     );
     assert_eq!(code, 0, "stderr: {stderr}");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U12a: every message-shaped auth verb emits a status-ok envelope
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Seeds a store with one registered app and returns the store path guard.
+fn seeded_store(tmp: &TempDir) -> std::path::PathBuf {
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+    store
+}
+
+/// Every auth verb whose structured success is a message object today must
+/// carry `status: ok` so an agent branches on one field across the surface.
+#[rstest::rstest]
+#[case::apps_add(&["auth", "apps", "add", "fresh", "--client-id", "A", "--client-secret", "B"], &["message", "default", "next_step"])]
+#[case::apps_update(&["auth", "apps", "update", "myapp", "--client-id", "NEW"], &["message"])]
+#[case::apps_redirect_uri_set(&["auth", "apps", "redirect-uri", "set", "myapp", "https://example.test/cb"], &["app", "redirect_uri"])]
+#[case::apps_redirect_uri_get(&["auth", "apps", "redirect-uri", "get", "myapp"], &["app", "effective_redirect_uri"])]
+#[case::default(&["auth", "default", "myapp"], &["message"])]
+#[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], &["message"])]
+#[case::apps_remove(&["auth", "apps", "remove", "myapp", "--force"], &["message"])]
+fn test_auth_verbs_emit_status_ok(#[case] args: &[&str], #[case] expected_keys: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "ok", "args {args:?}; got: {v}");
+    for key in expected_keys {
+        assert!(
+            v.get(*key).is_some(),
+            "args {args:?} must keep the {key} key; got: {v}"
+        );
+    }
+}
+
+/// The headless step-1 object gains `status` and keeps its documented keys.
+#[test]
+fn test_oauth2_step1_envelope_carries_status_ok() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "ok", "got: {v}");
+    assert!(v["auth_url"].is_string(), "got: {v}");
+    assert!(v["instructions"].is_string(), "got: {v}");
+}
+
+/// The two array-shaped verbs are untouched by this unit.
+#[rstest::rstest]
+#[case::status(&["auth", "status"])]
+#[case::apps_list(&["auth", "apps", "list"])]
+fn test_array_shaped_verbs_stay_bare_arrays(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        parse_json(&stdout).is_array(),
+        "args {args:?} must stay a bare array until the array wrap lands; got: {stdout}"
+    );
+}
+
+/// The status-ok contract holds across every structured format, not just
+/// JSON: an agent picking yaml or jsonl reads the same field.
+#[rstest::rstest]
+#[case::jsonl("jsonl")]
+#[case::yaml("yaml")]
+fn test_status_ok_holds_across_structured_formats(#[case] format: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", format, "auth", "default", "myapp"],
+    );
+    assert_eq!(code, 0, "format {format} failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("ok"),
+        "the {format} rendering must carry the status; got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Default app set"),
+        "and keep the message; got: {stdout}"
+    );
+}
+
+/// Text output is untouched by the envelope change.
+#[rstest::rstest]
+#[case::apps_update(&["auth", "apps", "update", "myapp", "--client-id", "NEW"], "updated")]
+#[case::default(&["auth", "default", "myapp"], "Default app set to")]
+#[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], "App authentication successful")]
+fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+    assert!(stdout.contains(expected), "args {args:?}; got: {stdout}");
+    assert!(
+        !stdout.contains("status"),
+        "text mode carries no envelope key; got: {stdout}"
+    );
+}
