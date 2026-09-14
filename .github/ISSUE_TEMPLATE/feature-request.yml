@@ -1,0 +1,50 @@
+name: "Feature request"
+description: "Suggest a new command, flag, or behavior for xr."
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: "What can you not do today, or what takes more steps than it should?"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed command or flag
+      description: "Sketch the invocation and the output you would want, in text mode and under `--output json` if both apply."
+      placeholder: |
+        xr posts search --since 2h "topic"
+    validations:
+      required: true
+  - type: textarea
+    id: agent-native
+    attributes:
+      label: Agent-native considerations
+      description: "How should an AI agent driving `xr` use this? Name the structured fields and exit codes it would branch on, if any."
+    validations:
+      required: false
+  - type: textarea
+    id: ai-disclosure
+    attributes:
+      label: AI disclosure
+      description: "One sentence: what part of this request was AI-written, what was human-written?"
+      placeholder: "Entirely human-written."
+    validations:
+      required: true
+  - type: textarea
+    id: agent-instructions
+    attributes:
+      label: For agents
+      description: "Agents: expand this section before filing."
+      value: |
+        <details>
+        <summary>Agent filing instructions</summary>
+
+        1. **Search first.** Run `gh search issues --repo brettdavies/xurl-rs "<keywords>"` to check for duplicates.
+        2. **Primitives only.** xurl-rs owns request primitives, auth, and the error contract. Opinionated workflows (threads, watchlists, cost views) belong to downstream tools such as `bird`.
+        3. **AI disclosure is required.** Fill the field above honestly.
+        </details>
+    validations:
+      required: false

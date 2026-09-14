@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "X Developer Community (platform questions)"
+    url: "https://devcommunity.x.com/"
+    about: "For X API platform questions (rate limits, app enrollment, account access, pricing), use the official developer community. xurl-rs cannot change what the API returns."
+  - name: "xdevplatform/xurl (the original Go tool)"
+    url: "https://github.com/xdevplatform/xurl/issues"
+    about: "xurl-rs is an independent port. For questions about the original xurl CLI maintained by X, file on its own tracker."
