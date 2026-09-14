@@ -18,8 +18,12 @@ permissions:
   contents: read
   pull-requests: read
 
+# The group key carries a suffix because `rust-ci.yml` declares the same
+# default key, and `github.workflow` inside a called workflow resolves to this
+# caller's name. Sharing the key lets the inline jobs below hold the group the
+# reusable then tries to enter, and it loses the race.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-caller-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
