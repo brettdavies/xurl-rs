@@ -59,7 +59,7 @@ schemars = "1"
 open = "5"
 thiserror = "2"
 anyhow = "1"
-dirs = "6"
+dirs = "7"
 percent-encoding = "2"
 phf = "0.14"
 
