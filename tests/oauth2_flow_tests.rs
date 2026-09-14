@@ -247,3 +247,291 @@ fn listener_bound_before_browser_opener_invoked() {
         "ACCESS-TOKEN"
     );
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Headless step 2, driven through the CLI entrypoint
+// ══════════════════════════════════════════════════════════════════════════
+//
+// The listener test above drives `run_oauth2_flow` directly. These drive
+// `xr auth oauth2 --no-browser --step 2` through `run_with_overrides`, which
+// is the path a headless operator and an agent actually take: the pending
+// state written by step 1 is on disk, the redirect URL arrives as a flag, and
+// the token endpoint answers over the network. Every case mounts its mock with
+// `.expect(1)`, so a test that stopped reaching the exchange fails on drop
+// rather than passing vacuously.
+
+const PENDING_STATE: &str = "TEST-STATE-NONCE";
+const PENDING_VERIFIER: &str = "test-code-verifier-01234567890123456789012345678901234567";
+
+/// A store holding one app with the credentials the pending state names.
+fn seed_store(store_path: &std::path::Path) {
+    std::fs::write(
+        store_path,
+        "apps:\n  default:\n    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+}
+
+/// The pending state step 1 leaves beside the store.
+fn seed_pending(store_path: &std::path::Path) -> std::path::PathBuf {
+    let path = xurl::auth::pending::pending_path_for_store(store_path);
+    let created_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after epoch")
+        .as_secs();
+    let state = xurl::auth::pending::PendingOAuth2State {
+        code_verifier: PENDING_VERIFIER.to_string(),
+        state: PENDING_STATE.to_string(),
+        client_id: "test-client-id".to_string(),
+        app_name: "default".to_string(),
+        created_at,
+    };
+    xurl::auth::pending::save(&state, &path).expect("seed pending state");
+    path
+}
+
+fn step2_overrides(token_url: &str, info_url: &str) -> xurl::config::EnvOverrides {
+    xurl::config::EnvOverrides {
+        client_id: Some("test-client-id".to_string()),
+        client_secret: Some("test-client-secret".to_string()),
+        token_url: Some(token_url.to_string()),
+        info_url: Some(info_url.to_string()),
+        ..xurl::config::EnvOverrides::default()
+    }
+}
+
+/// The redirect URL a browser hands back, carrying the pending nonce.
+fn redirect_url() -> String {
+    format!("http://localhost:8080/callback?code=AUTHCODE&state={PENDING_STATE}")
+}
+
+fn run_cli(
+    store: &std::path::Path,
+    overrides: &xurl::config::EnvOverrides,
+    args: &[&str],
+) -> (i32, String, String) {
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code =
+        xurl::cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store, overrides);
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}
+
+fn token_mock(body: serde_json::Value, status: u16) -> Mock {
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(status).set_body_json(body))
+        .expect(1)
+}
+
+fn ok_token_body() -> serde_json::Value {
+    serde_json::json!({
+        "access_token": "ACCESS-TOKEN",
+        "refresh_token": "REFRESH-TOKEN",
+        "expires_in": 7200,
+        "token_type": "bearer"
+    })
+}
+
+#[test]
+fn step2_exchanges_the_code_and_saves_the_token() {
+    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
+    let server = rt.block_on(MockServer::start());
+    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    );
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("OAuth2 authentication successful"),
+        "stdout: {stdout}"
+    );
+
+    let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let token = saved.get_oauth2_token("alice").expect("token saved");
+    assert_eq!(
+        token.oauth2.as_ref().expect("oauth2 present").access_token,
+        "ACCESS-TOKEN"
+    );
+    assert!(
+        !pending.exists(),
+        "a completed exchange deletes the pending state"
+    );
+}
+
+#[test]
+fn step2_resolves_the_username_when_the_positional_is_absent() {
+    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
+    let server = rt.block_on(MockServer::start());
+    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+    rt.block_on(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "1", "username": "discovered", "name": "Discovered"}
+            })))
+            .expect(1)
+            .mount(&server),
+    );
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    );
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert!(
+        saved.get_oauth2_token("discovered").is_some(),
+        "the token lands under the username the info endpoint returned"
+    );
+}
+
+#[test]
+fn step2_reports_success_under_output_json() {
+    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
+    let server = rt.block_on(MockServer::start());
+    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+            "--output",
+            "json",
+        ],
+    );
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stdout.trim()).expect("stdout is one JSON document");
+    assert!(
+        v["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("OAuth2 authentication successful")),
+        "envelope: {v}"
+    );
+    assert!(
+        !stdout.contains('\u{1b}'),
+        "no escape sequence reaches the structured rendering: {stdout:?}"
+    );
+}
+
+#[test]
+fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
+    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
+    let server = rt.block_on(MockServer::start());
+    rt.block_on(
+        token_mock(
+            serde_json::json!({"error": "server_error", "error_description": "upstream failure"}),
+            500,
+        )
+        .mount(&server),
+    );
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    );
+
+    // A failed exchange is an `XurlError::Auth`, so it carries
+    // `EXIT_AUTH_REQUIRED` whatever the upstream status was.
+    assert_eq!(code, xurl::error::EXIT_AUTH_REQUIRED, "stderr: {stderr}");
+    assert!(
+        stderr.contains("TokenExchangeError"),
+        "the error names the exchange: {stderr}"
+    );
+    assert!(
+        pending.exists(),
+        "the pending state survives a failed exchange so step 2 can be retried"
+    );
+    let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert!(
+        saved.get_oauth2_token("alice").is_none(),
+        "no token is written when the exchange fails"
+    );
+}
