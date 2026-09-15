@@ -297,8 +297,9 @@ xr --output jsonl search "topic"               # JSON Lines for streaming
 export XURL_OUTPUT=json                          # Default to JSON
 ```
 
-`xr --output json auth status` and `xr --output json auth apps list` emit a structured array with one object per
-registered app. Per-app fields:
+`xr --output json auth status` and `xr --output json auth apps list` emit `{"status": "ok", "apps": [...]}`, carrying
+one object per registered app under `apps`. An empty store emits `"apps": []`, so the array is iterable without a
+zero-app special case. Per-app fields:
 
 - `name` — app name.
 - `client_id_hint` — first eight characters of the `client_id`, for visual identification without leaking the full ID.
@@ -314,7 +315,7 @@ registered app. Per-app fields:
   `/2/users/me` failed and no username was supplied.
 
 ```bash
-xr --output json auth status | jq '.[] | select(.default) | .name'
+xr --output json auth status | jq '.apps[] | select(.default) | .name'
 ```
 
 ### Quiet Mode

@@ -974,7 +974,9 @@ fn test_auth_status_json_excludes_all_credentials() {
 
     // Sanity: the JSON still carries the expected non-secret fields.
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     assert_eq!(arr.len(), 1);
     assert_eq!(arr[0]["name"], "myapp");
     assert_eq!(arr[0]["client_id_hint"], "CLIENT-I");
@@ -996,7 +998,9 @@ fn test_auth_apps_list_json_excludes_all_credentials() {
     assert_no_credentials(&stdout, "auth apps list --output json");
 
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("apps list emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array");
     assert_eq!(arr.len(), 1);
     assert_eq!(arr[0]["name"], "myapp");
 }
@@ -1128,7 +1132,9 @@ fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
     let (code2, stdout2, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1181,7 +1187,9 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
     );
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1236,7 +1244,9 @@ fn test_auth_status_json_default_flag_per_app() {
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let mut alpha_default = None;
     let mut beta_default = None;
     for entry in arr {
@@ -1281,7 +1291,9 @@ fn test_auth_apps_list_json_shape_per_app() {
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("apps list emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array");
     let entry = &arr[0];
     for field in [
         "name",
@@ -1765,7 +1777,9 @@ fn test_status_json_emits_oauth2_unnamed_true() {
         "auth status --output json failed; stderr: {stderr}"
     );
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1790,7 +1804,9 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
         "auth status --output json failed; stderr: {stderr}"
     );
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -2959,7 +2975,9 @@ fn test_status_json_reports_env_bearer_on_active_app() {
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
 
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -3014,9 +3032,9 @@ fn test_status_json_reports_store_bearer_source() {
     let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
-    let entry = v
+    let entry = v["apps"]
         .as_array()
-        .expect("status emits a JSON array")
+        .expect("status emits apps as a JSON array")
         .iter()
         .find(|e| e["name"] == "myapp")
         .cloned()
@@ -3041,9 +3059,9 @@ fn test_status_json_omits_bearer_source_when_absent() {
     let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
-    let entry = v
+    let entry = v["apps"]
         .as_array()
-        .expect("status emits a JSON array")
+        .expect("status emits apps as a JSON array")
         .iter()
         .find(|e| e["name"] == "myapp")
         .cloned()
@@ -3141,9 +3159,9 @@ fn test_apps_list_json_reports_env_bearer_source() {
     );
     assert_eq!(code, 0, "apps list failed; stderr: {stderr}");
     let v = parse_json(&stdout);
-    let entry = v
+    let entry = v["apps"]
         .as_array()
-        .expect("apps list emits a JSON array")
+        .expect("apps list emits apps as a JSON array")
         .iter()
         .find(|e| e["name"] == "myapp")
         .cloned()
@@ -3169,9 +3187,9 @@ fn test_status_json_env_bearer_wins_over_stored_bearer() {
         run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
-    let entry = v
+    let entry = v["apps"]
         .as_array()
-        .expect("status emits a JSON array")
+        .expect("status emits apps as a JSON array")
         .iter()
         .find(|e| e["name"] == "myapp")
         .cloned()
@@ -3205,7 +3223,9 @@ fn test_status_json_env_bearer_follows_app_flag() {
     );
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let other = arr
         .iter()
         .find(|e| e["name"] == "otherapp")
@@ -3329,7 +3349,11 @@ fn test_status_on_empty_store_names_the_registration_command() {
 
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0);
-    assert_eq!(parse_json(&stdout), serde_json::json!([]), "got: {stdout}");
+    assert_eq!(
+        parse_json(&stdout),
+        serde_json::json!({"status": "ok", "apps": []}),
+        "got: {stdout}"
+    );
 }
 
 /// With `XURL_BEARER_TOKEN` set, the empty-store text adds the bearer line.
@@ -3702,7 +3726,11 @@ fn test_apps_list_on_empty_store_matches_status() {
 
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
     assert_eq!(code, 0);
-    assert_eq!(parse_json(&stdout), serde_json::json!([]), "got: {stdout}");
+    assert_eq!(
+        parse_json(&stdout),
+        serde_json::json!({"status": "ok", "apps": []}),
+        "got: {stdout}"
+    );
 
     let env = xurl::config::EnvOverrides {
         bearer_token: Some("env-bearer-value".to_string()),
@@ -4192,11 +4220,12 @@ fn test_oauth2_step1_envelope_carries_status_ok() {
     assert!(v["instructions"].is_string(), "got: {v}");
 }
 
-/// The two array-shaped verbs are untouched by this unit.
+/// The two list-shaped verbs carry their entries under `apps`, inside the
+/// same success envelope every other auth verb uses.
 #[rstest::rstest]
 #[case::status(&["auth", "status"])]
 #[case::apps_list(&["auth", "apps", "list"])]
-fn test_array_shaped_verbs_stay_bare_arrays(#[case] args: &[&str]) {
+fn test_list_shaped_verbs_wrap_entries_under_apps(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
@@ -4204,9 +4233,14 @@ fn test_array_shaped_verbs_stay_bare_arrays(#[case] args: &[&str]) {
     argv.extend_from_slice(args);
     let (code, stdout, stderr) = run_at(&store, &argv);
     assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(
+        v["status"], "ok",
+        "args {args:?} lack the envelope; got: {stdout}"
+    );
     assert!(
-        parse_json(&stdout).is_array(),
-        "args {args:?} must stay a bare array until the array wrap lands; got: {stdout}"
+        v["apps"].is_array(),
+        "args {args:?} must carry entries under `apps`; got: {stdout}"
     );
 }
 

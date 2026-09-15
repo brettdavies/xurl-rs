@@ -67,7 +67,7 @@ enumerates them.
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 
 ```bash
-xr --output json auth status            # inventory; each entry carries client_id_hint and bearer
+xr --output json auth status            # {"status":"ok","apps":[...]}; each entry carries client_id_hint and bearer
 xr --output json whoami 2>&1 >/dev/null # the failure itself, carrying next_step
 ```
 
