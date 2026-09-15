@@ -9,22 +9,22 @@
 # guard that wrongly skips is worse than one that wrongly runs.
 #
 # Exit codes: 0 = all pass, 1 = failure
-set -euo pipefail
+set -uo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BOLD='\033[1m'
-DIM='\033[2m'
-RESET='\033[0m'
 
-cd "$(git rev-parse --show-toplevel)"
+cd "$(git rev-parse --show-toplevel)" || exit 1
 # shellcheck source=scripts/hooks/_lib.sh
 . ./scripts/hooks/_lib.sh || exit 1
 
-pass() { echo -e "  ${GREEN}✓${RESET} $1"; }
-fail() { echo -e "  ${RED}✗${RESET} $1"; exit 1; }
+# `pass`, `note` and `step` come from the library. `fail` is local and exits:
+# the Rust battery below is ordered by cost, so continuing past a failed fmt to
+# run clippy, the test suite and a cross-target type-check would spend minutes
+# restating what the first line already said.
+fail() {
+    step_failed "$1"
+    exit 1
+}
 
-skip() { echo -e "  ${DIM}-${RESET} $1"; }
 
 # ── What this push changes ────────────────────────────────────────────────
 #
@@ -95,9 +95,9 @@ code_touched() {
     printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "$INERT_RE"
 }
 
-echo -e "${BOLD}Running local CI checks...${RESET}"
+banner "Running local CI checks..."
 if ! $scope_all; then
-    echo -e "  ${DIM}scope: $(printf '%s\n' "$changed" | grep -cv '^$') changed path(s) in this push${RESET}"
+    note "scope: $(printf '%s\n' "$changed" | grep -cv '^$') changed path(s) in this push"
 fi
 
 # ── Rust battery (toolchain through Windows cross-clippy) ─────────────────
@@ -155,11 +155,11 @@ if code_touched; then
     # filters with single quotes. Skip silently if shellcheck isn't installed —
     # the maintainer machine has it via Homebrew (`brew install shellcheck`).
     if ! touched '(\.sh$|^scripts/hooks/)'; then
-        skip "shellcheck (no shell script in this push)"
+        note "shellcheck (no shell script in this push)"
     else
         mapfile -t shell_files < <(tracked_shell)
-        check_shellcheck "${shell_files[@]}" || fail "shellcheck --severity=warning"
-        pass "shellcheck"
+        step "shellcheck" "shellcheck --severity=warning <file>" \
+            check_shellcheck "${shell_files[@]}" || exit 1
     fi
 
     # 8. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
@@ -205,7 +205,7 @@ if code_touched; then
         echo "  - windows clippy (skipped: install \`mingw-w64\` + \`rustup target add x86_64-pc-windows-gnu\` to enable)"
     fi
 else
-    skip "rust battery (nothing in this push reaches cargo)"
+    note "rust battery (nothing in this push reaches cargo)"
 fi
 
 # 10. Markdown lint, over tracked files. This checks the same set as the
@@ -217,21 +217,19 @@ fi
 # carries symlinked directories (`.claude/`, `docs/solutions`) that a glob can
 # descend into and edit outside the repo. A pathspec cannot leave the repo.
 if ! touched '\.md$'; then
-    skip "markdownlint (no markdown in this push)"
+    note "markdownlint (no markdown in this push)"
 else
     mapfile -t md_files < <(tracked_markdown)
-    check_markdownlint "${md_files[@]}" || fail "markdownlint (run it directly to see the findings)"
-    pass "markdownlint"
+    step "markdownlint" "markdownlint-cli2 <file>" check_markdownlint "${md_files[@]}" || exit 1
 fi
 
 # 11. Workflow lint. Mirrors the `lint / actionlint` CI job.
 if ! touched '^\.github/workflows/.*\.ya?ml$'; then
-    skip "actionlint (no workflow in this push)"
+    note "actionlint (no workflow in this push)"
 else
-    check_actionlint .github/workflows || fail "actionlint"
-    pass "actionlint"
-    check_workflow_concurrency .github/workflows || fail "concurrency namespacing"
-    pass "concurrency namespacing"
+    step "actionlint" "actionlint" check_actionlint .github/workflows || exit 1
+    step "concurrency namespacing" "bash scripts/lint-workflow-concurrency.sh" \
+        check_workflow_concurrency .github/workflows || exit 1
 fi
 
-echo -e "${BOLD}${GREEN}All checks passed.${RESET}"
+banner "All checks passed."
