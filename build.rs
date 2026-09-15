@@ -220,7 +220,6 @@ const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     ("GET", "/2/users/{id}/mentions"),
     ("GET", "/2/users/{id}/followers"),
     ("GET", "/2/users/{id}/liked_tweets"),
-    ("GET", "/2/users/{id}/blocking"),
     // likes
     ("POST", "/2/users/{id}/likes"),
     ("DELETE", "/2/users/{id}/likes/{tweet_id}"),
@@ -244,6 +243,13 @@ const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     (
         "DELETE",
         "/2/users/{source_user_id}/muting/{target_user_id}",
+    ),
+    // blocking
+    ("GET", "/2/users/{id}/blocking"),
+    ("POST", "/2/users/{id}/blocking"),
+    (
+        "DELETE",
+        "/2/users/{source_user_id}/blocking/{target_user_id}",
     ),
     // DMs
     ("POST", "/2/dm_conversations/with/{participant_id}/messages"),
