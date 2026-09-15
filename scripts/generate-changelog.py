@@ -233,6 +233,20 @@ def extract_changelog_sections(body: str) -> dict[str, list[str]]:
     return sections
 
 
+def declares_empty_changelog(body: str) -> bool:
+    """Whether the body offers a changelog section and leaves it empty.
+
+    The PR template tells an author whose change is not user-facing to delete
+    the `###` subsections, which leaves the `## Changelog` heading standing
+    over nothing. That is a decision, so it reads differently from a body that
+    never offered the section at all.
+    """
+    for header in (r"^## Changelog\s*$", r"^## Changes\s*$"):
+        if slice_below(body, header) is not None:
+            return True
+    return False
+
+
 def extract_flat_changes(body: str) -> list[str]:
     bullets: list[str] = []
     content = slice_below(body, r"^## Changes\s*$")
@@ -287,6 +301,15 @@ def collect_entries(
                 else:
                     aggregated["Changed"].append(bullet)
                 first = False
+            continue
+
+        # An author who filled in the template and left the section empty has
+        # already answered the question, so the title is not a better answer
+        # than the one given. The scoped types the fallback skips cover only
+        # the type prefix, and internal work also ships as fix(ci), fix(hooks)
+        # and fix(release), whose titles read as raw conventional commits
+        # beside authored bullets.
+        if declares_empty_changelog(body):
             continue
 
         # No changelog content in the body: the PR title is the bullet, so a
