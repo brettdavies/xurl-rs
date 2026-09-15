@@ -1,8 +1,8 @@
 //! Tests for the XurlError type system and exit code mapping.
 
 use xurl::error::{
-    EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND, EXIT_RATE_LIMITED,
-    XurlError, exit_code_for_error,
+    EXIT_AUTH_MISMATCH, EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND,
+    EXIT_RATE_LIMITED, EXIT_USAGE_ERROR, XurlError, exit_code_for_error,
 };
 
 #[test]
@@ -268,4 +268,13 @@ fn test_exit_code_http_generic() {
         exit_code_for_error(&XurlError::Http("connection refused".into())),
         EXIT_GENERAL_ERROR
     );
+}
+
+/// The usage code the runner returns for an invalid invocation and for a word
+/// that names no command. It shares its number with the auth-mismatch code,
+/// which the documented exit-code table states as one row.
+#[test]
+fn test_exit_usage_error_is_ex_usage() {
+    assert_eq!(EXIT_USAGE_ERROR, 2);
+    assert_eq!(EXIT_USAGE_ERROR, EXIT_AUTH_MISMATCH);
 }

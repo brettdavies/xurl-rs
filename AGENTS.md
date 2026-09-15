@@ -45,7 +45,9 @@ xr auth oauth2 --no-browser      # headless OAuth2 (copy-paste URL flow)
 xr auth status                   # list configured apps and token freshness
 ```
 
-Bare `xr` (no arguments) fails with `No URL provided`, exit code 1, and points at `--help`.
+Bare `xr` (no arguments) prints the root help on stdout at exit 0. A word that names no command exits 2 with reason
+`unknown-command`, echoing the word in `command` and naming the nearest real command in `suggestion` when one is close
+enough — read those rather than parsing the message.
 
 ## Auth paths
 
@@ -62,6 +64,17 @@ The CLI picks per request: if a Bearer is set and the endpoint accepts app-auth,
 user-scoped tokens for the active app drive the call. Multi-app is supported in the token store; `xr auth status`
 enumerates them.
 
+On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
+
+```bash
+xr --output json auth status            # {"status":"ok","apps":[...]}; each entry carries client_id_hint and bearer
+xr --output json whoami 2>&1 >/dev/null # the failure itself, carrying next_step
+```
+
+Branch on `next_step.action`: `register-app` means nothing is registered, so run its `template` with real values;
+`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
+names it in the message.
+
 `src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base string,
 sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
 
@@ -75,7 +88,7 @@ under the same file with a per-app block.
 
 ## Output formats
 
-`OutputConfig` (`src/output.rs`) drives seven formats, selected with `--output`:
+`OutputConfig` (`src/output/mod.rs`) drives seven formats, selected with `--output`:
 
 - `text` (default): human-readable tables / formatted responses
 - `json`: pretty-printed JSON envelope
@@ -84,6 +97,13 @@ under the same file with a per-app block.
 
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
+
+Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
+carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, the offending value when there is one, and a
+`next_step` object `{action, command | template, docs}`. `action` is a closed set; `command` is runnable verbatim by a
+non-TTY caller, while `template` carries angle-bracket placeholders only the caller can fill. Prefer additive envelope
+changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
 
@@ -114,15 +134,17 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
 
 ## Architecture
 
-- `src/api/`: HTTP client (`request.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`), media upload
-  (`media.rs`), and typed responses (`response/`).
+- `src/api/`: HTTP client (`request/`: client and option types in `mod.rs`, URL rendering in `url.rs`, auth-scheme
+  selection in `auth_header.rs`, transport in `transport.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`),
+  media upload (`media.rs`), and typed responses (`response/`).
 - `src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler), Bearer token.
   PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
-- `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, auth, streaming.
-  `exit_codes.rs` encodes the CLI's exit-code contract.
+- `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, streaming, and
+  `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
+  `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `src/config/`: env-var-based configuration.
 - `src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
-- `src/output.rs`: `OutputConfig` for text/json/jsonl formatting.
+- `src/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv serializer.
 - `src/error.rs`: `XurlError` via `thiserror`.
 - `src/lib.rs`: public library surface. The `xurl` library is consumable from downstream Rust crates; the binary `xr` is
   one consumer among potentially several.
@@ -145,7 +167,8 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 ```bash
 cargo test                    # unit + integration
 cargo test -- --ignored       # slower / network-dependent tests
-scripts/hooks/pre-push        # full local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy)
+scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy,
+                              # markdownlint, actionlint)
 ```
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
@@ -157,14 +180,20 @@ or the test's own temp store); a test that must touch the real path goes on its 
 guard in `tests/agentic_tests.rs` derives every environment variable `src/` reads and fails when `xr --help` does not
 advertise one.
 
-The pre-push hook mirrors CI 1:1. Run it before pushing if `core.hooksPath = scripts/hooks` is not set locally.
+`scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
+format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run
+`scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
+path scopes each step to what the push changes.
+
+Three CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, and the
+public-API semver gate.
 
 ## Releasing
 
 See [`RELEASES.md`](RELEASES.md) for the operational runbook, [`RELEASES-PREFLIGHT.md`](RELEASES-PREFLIGHT.md) for the
 pre-cut go/no-go checklist, and [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md) for the why behind every rule. The
-short version: feature branch → PR to `dev` (squash) → cherry-pick to `release/v<version>` cut from `main` → PR to
-`main` (squash) → annotated tag push triggers `release.yml`.
+short version: feature branch → PR to `dev` (squash) → `dev`'s tree overlaid onto `release/v<version>` cut from `main` →
+PR to `main` (squash) → annotated tag push triggers `release.yml`.
 
 ### Spec-refresh PRs
 

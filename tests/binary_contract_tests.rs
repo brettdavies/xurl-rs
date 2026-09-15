@@ -50,13 +50,34 @@ fn bad_flag_exits_two_with_stderr() {
 }
 
 #[test]
+fn bare_invocation_prints_help() {
+    // Nothing to run, and nothing raw mode could send — the root help.
+    let assert = common::xr().assert().success().code(0);
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains("Usage: xr") && stdout.contains("Commands:"),
+        "stdout should carry the root help: {stdout}"
+    );
+}
+
+#[test]
 fn missing_url_exits_one() {
-    // Raw mode (no subcommand, no URL) — EXIT_GENERAL_ERROR.
-    let assert = common::xr().assert().failure().code(1);
+    // Raw mode (a raw-only flag, no URL) — EXIT_GENERAL_ERROR.
+    let assert = common::xr().args(["-X", "POST"]).assert().failure().code(1);
     let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
     assert!(
         stderr.contains("No URL provided"),
         "stderr should mention missing URL: {stderr}"
+    );
+}
+
+#[test]
+fn unknown_command_exits_two() {
+    let assert = common::xr().arg("whoam").assert().failure().code(2);
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
+    assert!(
+        stderr.contains("unknown command 'whoam'") && stderr.contains("'whoami'"),
+        "stderr should name the nearest command: {stderr}"
     );
 }
 

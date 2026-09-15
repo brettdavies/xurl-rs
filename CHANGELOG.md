@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2026-09-14
+
+### Added
+
+- Add a `bearer_source` field (`env` or `store`) to each `auth status` and `auth apps list` entry under structured output, and name the environment variable beside the bearer mark in text mode. by @brettdavies in [#129](https://github.com/brettdavies/xurl-rs/pull/129)
+- Add a refusal to overwrite a token store that exists but could not be read or parsed; the error names the path and the file is left byte-identical. An unrelated JSON file at the store path is no longer adopted and rewritten as a store. by @brettdavies in [#137](https://github.com/brettdavies/xurl-rs/pull/137)
+- Add a `client-credentials-missing` error at exit 2 when `xr auth oauth2` has no client id to sign in with, carrying a `next_step` that names the app to use or the registration template.
+- Add a recovery step to the no-credentials error. Text mode names the command to run; structured output carries a `next_step` object with a closed-set `action` and either a runnable `command` or a `template` to fill in. `--quiet` suppresses the advice and never the error. by @brettdavies in [#140](https://github.com/brettdavies/xurl-rs/pull/140)
+- Add an enrollment hint to the 403 that follows a successful sign-in. When the body says the client is not enrolled or is forbidden, the error quotes that detail and points at the Troubleshooting recipe; structured output carries a `next_step` with the `enroll-app` action and a documentation link. by @brettdavies in [#141](https://github.com/brettdavies/xurl-rs/pull/141)
+- Add an `unknown-command` error: a mistyped command exits 2 and names the nearest real command, in text and in every structured format, with the word in `command` and the correction in `suggestion`. by @brettdavies in [#143](https://github.com/brettdavies/xurl-rs/pull/143)
+
+### Changed
+
+- Change the vendored X API spec to the 2026-09-04 upstream revision of 2.168, in which the webhook and activity-subscription endpoints also accept OAuth 2.0 user context and OAuth 1.0a; the library constants `API_SPEC_SHA256` and `API_SPEC_DATE` follow, and shortcut behavior is unchanged. by @brettdavies in [#124](https://github.com/brettdavies/xurl-rs/pull/124)
+- Change the release runbook to build `release/*` as an overlay of `dev` on `main`, sync `dev` by `scripts/sync-dev-after-release.sh` after publish, and document the crates.io, GitHub Release, and Homebrew rollback commands. by @brettdavies in [#128](https://github.com/brettdavies/xurl-rs/pull/128)
+- Change the crates.io package to exclude the release runbooks and `CONCEPTS.md`; the `MIGRATING.md` guide links now point at GitHub. by @brettdavies in [#131](https://github.com/brettdavies/xurl-rs/pull/131)
+- Change the six optional-value true-or-false flags (`--verbose`, `--quiet`, `--no-interactive`, `--dry-run`, `--raw`, `--no-browser`) to require `=` for an explicit value, so `xr --quiet whoami` runs `whoami`; the space-separated `--quiet true` form no longer parses as a value, and an attached short value such as `-q0` is rejected as a stacked flag. by @brettdavies in [#133](https://github.com/brettdavies/xurl-rs/pull/133)
+- Change a store loaded from a missing or empty file to register no apps, so the first app you add becomes the default and the Quick Start sign-in carries its client id. by @brettdavies in [#137](https://github.com/brettdavies/xurl-rs/pull/137)
+- Change `xr auth apps add` to reject new app names outside `[A-Za-z0-9_.-]`, and to promote the new app past a default that carries neither a client id nor any token.
+- Change `xr auth status` and `xr auth apps list` with no apps registered to name the registration command in text and emit an empty array under structured output.
+- Change the registration message to name the next command: `App "NAME" registered (default). Next: xr auth oauth2`, or `--app NAME` when another app holds the default.
+- Change `Envelope::Error` from a struct variant with `reason`, `exit_code`, and `message` fields to `Error(Box<ErrorBody>)`, so one declared body is the whole error surface. The emitted JSON is unchanged; Rust callers matching on the variant's named fields need updating.
+- Change the structured success of every message-shaped `xr auth` verb to carry `status: ok` alongside its existing keys, so an agent can branch on one field across the auth surface. Text output and the `auth status` and `auth apps list` arrays are unchanged. by @brettdavies in [#139](https://github.com/brettdavies/xurl-rs/pull/139)
+- Change `Envelope`, `ErrorBody`, and `NextAction` to `#[non_exhaustive]`, so future variants and fields are additive for library consumers rather than breaking. by @brettdavies in [#142](https://github.com/brettdavies/xurl-rs/pull/142)
+- Change bare `xr` to print the root help at exit 0 instead of failing with `No URL provided` at exit 1. Under `--output json` and the other structured formats it is an `invalid-args` envelope at exit 2. by @brettdavies in [#143](https://github.com/brettdavies/xurl-rs/pull/143)
+- Change a mistyped command from a raw request against a nonexistent path to a usage error. `xr whoam` exits 2 rather than 1, and no longer reaches the network. A positional that starts with `http://`, `https://`, or `/`, and any invocation carrying `-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, or `-s`, is still a raw request.
+- Change the usage-error envelope to render in whichever structured format was named, so `--output yaml`, `ndjson`, `csv`, and `tsv` get their own rendering rather than falling back to clap's text.
+
+### Fixed
+
+- Fix shortcut commands ignoring `XURL_BEARER_TOKEN` during auth auto-detect, so `xr search`, `xr whoami`, and the other bearer-capable shortcuts work on an empty token store when the variable is set. by @brettdavies in [#129](https://github.com/brettdavies/xurl-rs/pull/129)
+- Fix `xr -q search "topic"` and every other bare-flag-then-command invocation, which fell into raw mode with "No URL provided". by @brettdavies in [#133](https://github.com/brettdavies/xurl-rs/pull/133)
+- Fix the dependency audit by updating `rustls` to 0.23.45, which carries the fix for a flaw that let a peer send handshake messages in the clear and still have the connection accepted. by @brettdavies in [#138](https://github.com/brettdavies/xurl-rs/pull/138)
+- Fix release notes carrying raw PR titles for changes that ship nothing user-facing. A pull request that fills in the template and leaves `## Changelog` empty is taken at its word instead of having its title promoted to a `Changed` bullet. by @brettdavies in [#151](https://github.com/brettdavies/xurl-rs/pull/151)
+
+### Documentation
+
+- Document the branch-drift steps (including the gate 0 bookkeeping check) and the Dependabot preflight in RELEASES-PREFLIGHT.md and the last-good identifier and rollback items in RELEASES-POSTFLIGHT.md. by @brettdavies in [#128](https://github.com/brettdavies/xurl-rs/pull/128)
+- Add a security policy that routes vulnerability reports through GitHub private vulnerability reporting and states the acknowledgement and fix windows. by @brettdavies in [#130](https://github.com/brettdavies/xurl-rs/pull/130)
+- Add issue forms for bug reports, feature requests, and skill-bundle reports, with blank issues disabled and contact links for X platform questions and the original `xurl` tool. by @brettdavies in [#132](https://github.com/brettdavies/xurl-rs/pull/132)
+- Document the error contract in `AGENTS.md`, with the recipe for recovering from exit 77, and add the envelope example and exit-code pointer to the README. by @brettdavies in [#140](https://github.com/brettdavies/xurl-rs/pull/140)
+- Document the unknown-command path in `KNOWN_DIFFERENCES.md`, where Go `xurl` sends a bare word as the endpoint and `xr` rejects it. by @brettdavies in [#143](https://github.com/brettdavies/xurl-rs/pull/143)
+- Add `CONTRIBUTING.md`: dev setup, the branch and PR flow, the error contract, where to file issues, and a recipe for exercising `xr` against X's API Playground without an account. by @brettdavies in [#144](https://github.com/brettdavies/xurl-rs/pull/144)
+- Add a "Before you start" section to the README covering the X developer-portal prerequisites, the OAuth2 redirect URI, and the pay-per-use pricing link, above the Quick Start that assumes them. by @brettdavies in [#145](https://github.com/brettdavies/xurl-rs/pull/145)
+- Add crates.io, CI, and license badges, a statement that the project is independent of X, the `xr` binary name at the top of Install, and the `xr skill install` and `xr skill update` verbs under Agent-Native Features.
+- Change the Contributing section to point at `CONTRIBUTING.md`, and the release-runbook link to a GitHub URL, since `RELEASES*.md` is excluded from the published crate.
+
+**Full Changelog**: [v3.1.0...v3.2.0](https://github.com/brettdavies/xurl-rs/compare/v3.1.0...v3.2.0)
+
 ## [3.1.0] - 2026-09-03
 
 ### Added

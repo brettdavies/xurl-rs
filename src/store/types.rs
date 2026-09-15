@@ -11,6 +11,32 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+// ── Load state ───────────────────────────────────────────────────────
+
+/// How the backing file resolved when the store was constructed.
+///
+/// ```text
+/// file missing        -> Fresh       apps empty; saves allowed
+/// file read fails     -> Unreadable  apps empty; saves refused
+/// file parsed         -> Loaded      apps as stored; saves allowed
+/// neither parser ok   -> Unparseable apps empty; saves refused
+/// ```
+///
+/// The two failure states make every write refuse, so a file the loader
+/// could not understand is reported rather than destroyed by the next write.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum LoadState {
+    /// No file at the store path. An empty store is a fresh store.
+    Fresh,
+    /// The file parsed as YAML or as the legacy JSON format.
+    Loaded,
+    /// The file exists but could not be read (permissions, a directory).
+    Unreadable,
+    /// The file was read but neither parser accepted its contents.
+    Unparseable,
+}
+
 // ── Token types ──────────────────────────────────────────────────────
 
 /// `OAuth1` HMAC-SHA1 access-token bundle.

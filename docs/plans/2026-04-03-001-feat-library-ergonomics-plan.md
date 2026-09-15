@@ -93,7 +93,7 @@ origin: `docs/brainstorms/2026-04-03-library-ergonomics-requirements.md`)
 ## Key Technical Decisions
 
 | Decision | Rationale |
-|---|---|
+| --- | --- |
 | `ApiClient::new(&Config, Auth)` — config by ref, auth by value | ApiClient only uses `config.api_base_url` during construction (stores `base_url: String`). Taking Config by value would be wasteful. Auth is owned because `get_auth_header` needs `&mut self` for token refresh. (see origin: Key Decisions — "Config not stored by ApiClient") |
 | `CallOptions` includes `trace` alongside `auth_type`, `username`, `no_auth`, `verbose` | Origin doc listed 4 fields but `trace` (X-B3-Flags debug header) is needed by both CLI and consumers. CommonFlags has trace today. Excluding it would require a separate mechanism. |
 | `no_auth: bool` on both `CallOptions` and `RequestOptions` | New behavior: when true, skip `get_auth_header()` entirely. Current code silently ignores auth failures in `send_request`, but `no_auth` makes this explicit and avoids unnecessary token refresh attempts. Added to `RequestOptions` too so `send_request` can honor it. |
@@ -500,7 +500,7 @@ constructor.
 ## Risks & Dependencies
 
 | Risk | Mitigation |
-|---|---|
+| --- | --- |
 | Large number of mechanical changes (~30 command arms + ~30 test functions) | Changes follow a uniform pattern. Compiler catches every missed site via type errors. |
 | `streaming.rs:80-86` must capture status before consuming response body | `request.rs` already captures status into a local variable; `streaming.rs` does not — implementer must add `let status = resp.status()` before `resp.text()`. Trivial but explicit. |
 | bird breakage from `is_api()` semantics change on errors-only 200 responses | bird is a coordinated consumer — release together. Document in bird migration requirements. |

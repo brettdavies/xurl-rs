@@ -1,6 +1,6 @@
 [package]
 name = "xurl-rs"
-version = "3.1.0"
+version = "3.2.0"
 edition = "2024"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT OR Apache-2.0"
@@ -19,8 +19,10 @@ exclude = [
     ".markdownlint-cli2.yaml",
     "benches/",
     "cliff.toml",
+    "CONCEPTS.md",
     "deny.toml",
     "docs/",
+    "RELEASES*.md",
     "rustfmt.toml",
     "scripts/",
     "tests/",
@@ -30,6 +32,9 @@ exclude = [
 # CLI
 clap = { version = "4", features = ["derive", "string", "env"] }
 clap_complete = "4"
+# Held at the version clap resolves, so a clap bump that moves it surfaces as
+# a `multiple-versions` audit warning instead of a second silent copy.
+strsim = "0.11.1"
 
 # HTTP
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "blocking", "stream", "form", "rustls"] }
@@ -59,7 +64,7 @@ schemars = "1"
 open = "5"
 thiserror = "2"
 anyhow = "1"
-dirs = "6"
+dirs = "7"
 percent-encoding = "2"
 phf = "0.14"
 
@@ -84,7 +89,7 @@ tempfile = "3"
 pretty_assertions = "1"
 assert_cmd = "2"
 predicates = "3"
-rstest = "0.26"
+rstest = "0.27"
 wiremock = "0.6"
 toml = "1.0"
 regex = "1"
@@ -104,3 +109,21 @@ pkg-fmt = "tgz"
 [package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
 pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
 pkg-fmt = "zip"
+
+# Breaking library-API changes shipping in a minor by decision. `required-update`
+# reclassifies the break rather than silencing it: `cargo semver-checks` still
+# reports each one by name and still fails a patch release, so the floor is
+# enforced and the break stays visible in the gate output. Each entry is scoped
+# to one release and is self-clearing: once the tag moves the baseline past the
+# change, the lint stops firing and the entry must be deleted. A standing entry
+# understates the next break of the same kind.
+[package.metadata.cargo-semver-checks.lints]
+# Covers TokenStore.load_state: the store records how its file resolved, which
+# is what the refusal-to-overwrite guard reads.
+constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
+# Covers Envelope::Error: one declared body is the whole error surface, so the
+# generated schema can close the object.
+enum_struct_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
+# Covers Envelope: the variant shape above already breaks exhaustive matching,
+# so the attribute costs downstream nothing this release does not already spend.
+enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }

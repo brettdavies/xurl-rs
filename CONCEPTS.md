@@ -92,3 +92,40 @@ when a typed field reads back empty, a legacy field name appears, or a value lan
 the only check that can see the vendored spec naming a field the API does not send. It never runs under the default
 suite, refuses without an explicit opt-in because each run spends paid reads, and is the named exception the store
 isolation guard permits.
+
+## Command surface
+
+### Raw mode
+
+The curl-style path `xr [OPTIONS] <URL>`: the root command's positional is an absolute `http(s)://` URL or a `/`-prefixed
+path that is prefixed with the API base URL. Raw mode bypasses the auth-method matrix and sends the request as given.
+Any other bare positional is either a mistyped shortcut, reported as an unknown command, or a URL validation error.
+
+### Error envelope
+
+The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
+from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`,
+`command`, and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may
+add hints that never appear in the envelope.
+
+## Published surface
+
+### Public API gate
+
+The release check that compares the crate's public Rust surface against the last released tag and fails when the version
+bump a change requires exceeds the one being claimed.
+
+It reasons over the language's own compatibility model rather than a textual diff, so an added field, a changed variant
+shape, or a new attribute are all visible to it regardless of which module declares them. Distinct from the command
+surface check, which covers what the binary exposes rather than what downstream crates compile against. The baseline is
+the last released tag rather than the integration branch, because a type introduced and reshaped between releases was
+never something a consumer could depend on.
+
+### Accepted break
+
+A breaking change to the published library surface that the project chooses to ship below a major version, recorded so
+the Public API gate reclassifies it instead of refusing the release.
+
+The record names the item it covers and is scoped to one release: once that release moves the baseline past the change,
+the record matches nothing and has to be removed, or it understates the next break of the same kind. Recording a break
+is not silencing it. The gate still names the item and still refuses any release below the recorded level.

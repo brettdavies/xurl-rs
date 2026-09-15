@@ -100,7 +100,7 @@ xurl-rs/
 ### Crate Selections (justified)
 
 | Crate | Purpose | Rationale |
-|-------|---------|-----------|
+| ------- | --------- | ----------- |
 | `clap` (derive) | CLI parsing | Standard, maps from cobra |
 | `reqwest` | HTTP client | Standard, maps from net/http |
 | `serde` + `serde_yaml` | Token store | YAML persistence parity |
@@ -211,7 +211,7 @@ xurl-rs/
 ## Risk Analysis
 
 | Risk | Impact | Mitigation |
-|------|--------|------------|
+| ------ | -------- | ------------ |
 | OAuth2 PKCE flow complex in Rust | Medium | oauth2 crate handles most complexity |
 | OAuth1 signing exact-byte-parity | High | Extensive test fixtures, byte-level comparison |
 | API rate limits during conformance testing | Medium | Use recorded fixtures for core tests, live as bonus |

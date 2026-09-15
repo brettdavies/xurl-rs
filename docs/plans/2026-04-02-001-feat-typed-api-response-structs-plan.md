@@ -229,7 +229,7 @@ T is one of:
 ### Shortcut Response Categories
 
 | Category | Shortcuts | Return Type | Count |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Tweet (single) | create_post, reply_to_post, quote_post, read_post | `ApiResponse<Tweet>` | 4 |
 | Tweet (list) | search_posts, get_timeline, get_mentions, get_bookmarks, get_liked_posts | `ApiResponse<Vec<Tweet>>` | 5 |
 | User (single) | get_me, lookup_user | `ApiResponse<User>` | 2 |
@@ -504,7 +504,7 @@ T is one of:
 ## Risks & Dependencies
 
 | Risk | Mitigation |
-|------|------------|
+| ------ | ------------ |
 | X API response shape assumptions wrong | Permissive deserialization (no `deny_unknown_fields`), liberal `Option<T>`, test against real API shapes via wiremock fixtures |
 | CLI output field ordering differs after round-trip | JSON output is semantically equivalent but field order follows struct declaration, not API response order. Conformance runner uses structural JSON comparison. Use `#[serde(skip_serializing_if = "Option::is_none")]` to prevent null field injection |
 | Breaking library API change | Intentional per origin doc. Requires semver major bump to 2.0.0. `bird` is the only known consumer and drives the change |
@@ -535,7 +535,7 @@ T is one of:
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
+| -------- | --------- | ----- | ------ | -------- | ---------- |
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
 | Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | — |
 | Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR (PLAN) | 5 issues, 0 critical gaps |

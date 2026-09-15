@@ -320,8 +320,8 @@ Step 2 (headless machine):
   **Approach:**
 - Change `AuthCommands::Oauth2` from unit variant to struct variant with fields:
 - `--remote` (bool) — enables manual two-step flow
-- `--step` (Option<u8>) — `1` or `2`, requires `--remote`
-- `--auth-url` (Option<String>) — redirect URL for step 2, requires `--step 2`. Accepts `-` to read from stdin
+- `--step` (`Option<u8>`) — `1` or `2`, requires `--remote`
+- `--auth-url` (`Option<String>`) — redirect URL for step 2, requires `--step 2`. Accepts `-` to read from stdin
   (recommended for shared machines to avoid exposing the auth code in `/proc/*/cmdline`)
 - Use clap `requires` attribute: `--step` requires `--remote`, `--auth-url` requires `--step`. Use clap `value_parser`
   with allowed values `1` and `2` to reject invalid step numbers at parse time. Validate `--step 2` requires

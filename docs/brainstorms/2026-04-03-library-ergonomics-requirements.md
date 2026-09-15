@@ -110,7 +110,7 @@ access to X API endpoints while giving consumers full control over composition a
 ## Key Decisions
 
 | Decision | Rationale |
-|---|---|
+| --- | --- |
 | Breaking changes in v1.2.0 | bird is the only crate consumer, both repos have the same owner, and the subprocess CLI is unaffected. No need for a deprecation cycle. |
 | Replace `ApiClient<'a>` (not add alongside) | Clean break. No dual-type confusion. The old borrowed pattern was an internal implementation detail, not a deliberate library design. |
 | Structured error enum variant | `Api { status, body }` is more useful than `Api(String)` + helper method. Since we're already making breaking changes, do the clean version. |

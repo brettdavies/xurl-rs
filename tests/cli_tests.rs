@@ -825,25 +825,17 @@ fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
 }
 
 #[test]
-fn test_redirect_uri_get_uses_placeholder_default_when_store_empty() {
-    // Fresh tempdir → TokenStore seeds the placeholder "default" app.
-    // The omit-NAME `get` resolves through it and surfaces the built-in
-    // default URI (no stored value on the placeholder).
-    // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
-    // would flip the asserted text label to the env-var variant.
+fn test_redirect_uri_get_reports_no_default_app_when_store_empty() {
+    // An empty store has no apps at all, so the omit-NAME `get` has nothing
+    // to resolve and says so instead of reporting a placeholder's built-in URI.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
-    assert_eq!(code, 0, "get failed; stderr: {stderr}");
-    assert!(stdout.contains("app:"), "missing app: line: {stdout}");
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
+    assert_ne!(code, 0, "an empty store has no default app to report");
     assert!(
-        stdout.contains("effective_source: built-in default"),
-        "expected built-in default source: {stdout}"
-    );
-    assert!(
-        stdout.contains("stored_redirect_uri: (none)"),
-        "expected stored marker: {stdout}"
+        stderr.contains("no default app set"),
+        "expected the no-default-app error; got: {stderr}"
     );
 }
 
@@ -982,7 +974,9 @@ fn test_auth_status_json_excludes_all_credentials() {
 
     // Sanity: the JSON still carries the expected non-secret fields.
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     assert_eq!(arr.len(), 1);
     assert_eq!(arr[0]["name"], "myapp");
     assert_eq!(arr[0]["client_id_hint"], "CLIENT-I");
@@ -1004,7 +998,9 @@ fn test_auth_apps_list_json_excludes_all_credentials() {
     assert_no_credentials(&stdout, "auth apps list --output json");
 
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("apps list emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array");
     assert_eq!(arr.len(), 1);
     assert_eq!(arr[0]["name"], "myapp");
 }
@@ -1030,6 +1026,40 @@ fn test_redirect_uri_get_json_excludes_all_credentials() {
     );
     assert_eq!(code, 0, "redirect-uri get failed; stderr: {stderr}");
     assert_no_credentials(&stdout, "auth apps redirect-uri get --output json");
+}
+
+/// The text renderers for `auth status` and `auth apps list` build their own
+/// lines rather than serializing `App`, so the banned-string sweep has to run
+/// against them separately from the JSON path.
+#[rstest::rstest]
+#[case::status(&["xr", "auth", "status"])]
+#[case::apps_list(&["xr", "auth", "apps", "list"])]
+fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    // A sweep over output from a store with nothing in it would pass
+    // vacuously; the on-disk file must carry the values being hunted for.
+    let raw = std::fs::read_to_string(&store).expect("store file");
+    for needle in ["SECRET-VALUE-AAA", "TOKEN-SECRET-EEE", "BEARER-VALUE-FFF"] {
+        assert!(
+            raw.contains(needle),
+            "fixture must hold {needle:?} for the sweep to have something to catch"
+        );
+    }
+
+    let (code, stdout, stderr) = run_at(&store, args);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+    assert_no_credentials(&stdout, &format!("{args:?} text mode"));
+    assert!(
+        stdout.contains("myapp"),
+        "args {args:?} must have rendered the app; got: {stdout}"
+    );
+    assert!(
+        stdout.contains("client_id: CLIENT-I..."),
+        "args {args:?} must render the client-id hint, not the value; got: {stdout}"
+    );
 }
 
 #[test]
@@ -1136,7 +1166,9 @@ fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
     let (code2, stdout2, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1189,7 +1221,9 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
     );
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1244,7 +1278,9 @@ fn test_auth_status_json_default_flag_per_app() {
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let mut alpha_default = None;
     let mut beta_default = None;
     for entry in arr {
@@ -1289,7 +1325,9 @@ fn test_auth_apps_list_json_shape_per_app() {
     let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("apps list emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array");
     let entry = &arr[0];
     for field in [
         "name",
@@ -1431,14 +1469,21 @@ impl CliMockServer {
 /// bearer slot on the active app, so this is the minimal credential shape
 /// the `like` POST needs to leave the resolver and reach the mocked endpoint.
 fn populate_bearer_store(store_path: &Path) {
+    let mut ts = populate_app_store(store_path);
+    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
+        .expect("save_bearer");
+}
+
+/// Seeds a tempdir-rooted store with `myapp` as the only app and the
+/// default, carrying client credentials and no tokens.
+fn populate_app_store(store_path: &Path) -> xurl::store::TokenStore {
     use xurl::store::TokenStore;
     let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
     ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
         .expect("add_app");
-    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN-VALUE")
-        .expect("save_bearer");
     ts.set_default_app("myapp").expect("set_default_app");
     let _ = ts.remove_app("default");
+    ts
 }
 
 /// Seeds a tempdir-rooted store with a single app carrying an OAuth1 token.
@@ -1462,6 +1507,56 @@ fn populate_oauth1_store(store_path: &Path) {
     .expect("save_oauth1");
     ts.set_default_app("myapp").expect("set_default_app");
     let _ = ts.remove_app("default");
+}
+
+/// `xr auth oauth1` hands its four credential flags down two layers as
+/// adjacent positional `String` arguments, and `save_oauth1_tokens_for_app`
+/// takes them in a different order than the CLI declares them. Each fixture
+/// value names the slot it belongs in, so a transposition the compiler cannot
+/// see surfaces as a value sitting in the wrong field.
+#[test]
+fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    drop(populate_app_store(&store));
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "oauth1",
+            "--consumer-key",
+            "BELONGS-IN-CONSUMER-KEY",
+            "--consumer-secret",
+            "BELONGS-IN-CONSUMER-SECRET",
+            "--access-token",
+            "BELONGS-IN-ACCESS-TOKEN",
+            "--token-secret",
+            "BELONGS-IN-TOKEN-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "auth oauth1 failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("OAuth1 credentials saved successfully!"),
+        "expected the success message; got: {stdout}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let app = ts.get_app("myapp").expect("myapp survives the save");
+    let token = app
+        .oauth1_token
+        .as_ref()
+        .expect("the OAuth1 slot on myapp is populated");
+    let oauth1 = token
+        .oauth1
+        .as_ref()
+        .expect("the OAuth1 payload is populated");
+    assert_eq!(oauth1.consumer_key, "BELONGS-IN-CONSUMER-KEY");
+    assert_eq!(oauth1.consumer_secret, "BELONGS-IN-CONSUMER-SECRET");
+    assert_eq!(oauth1.access_token, "BELONGS-IN-ACCESS-TOKEN");
+    assert_eq!(oauth1.token_secret, "BELONGS-IN-TOKEN-SECRET");
 }
 
 #[test]
@@ -1719,118 +1814,8 @@ fn test_oauth2_positional_invalid_extra_args() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U5: credential-less-default warning + status/list unnamed-slot rendering
+// Status and list rendering: the unnamed OAuth2 slot
 // ═══════════════════════════════════════════════════════════════════════════
-
-/// Seeds a store where the default app `default` has no `client_id` but
-/// another registered app `myapp` does — the configuration that triggers the
-/// credential-less-default warning per R13.
-fn seed_credential_less_default_with_alternative(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    // `TokenStore::new_with_path` seeds an empty `default` placeholder app
-    // with empty credentials; that is exactly what we want here.
-    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
-        .expect("add_app");
-    // The default app remains `default` (the placeholder).
-}
-
-/// Seeds a store where only the default app `default` exists with no
-/// credentials; no credentialed alternative — the warning must NOT fire.
-fn seed_credential_less_default_only(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let _ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    // `new_with_path` already seeds an empty `default` app; nothing else to do.
-}
-
-/// Seeds a store where the default app `default` HAS credentials — the
-/// warning must NOT fire.
-fn seed_default_with_credentials(store_path: &Path) {
-    use xurl::store::TokenStore;
-    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
-    ts.update_app("default", "DEFAULT-CLIENT-ID", "DEFAULT-SECRET")
-        .expect("update_app");
-}
-
-#[test]
-fn test_credential_less_default_warning_fires() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_with_alternative(&store);
-
-    // `--no-browser --step 1` emits the auth URL and returns; it does NOT
-    // touch the network or write a token. The credential-less-default check
-    // runs BEFORE this dispatch.
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        stderr.contains("warning: --app not specified"),
-        "stderr should contain credential-less-default warning; got: {stderr}"
-    );
-    assert!(
-        stderr.contains("--app myapp"),
-        "stderr should reference the credentialed alternative `myapp`; got: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_by_explicit_app() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_with_alternative(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &[
-            "xr",
-            "--app",
-            "myapp",
-            "auth",
-            "oauth2",
-            "--no-browser",
-            "--step",
-            "1",
-        ],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "explicit `--app` must suppress the warning; got stderr: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_no_credentialed_alternative() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_credential_less_default_only(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "warning must NOT fire when no credentialed alternative exists; got stderr: {stderr}"
-    );
-}
-
-#[test]
-fn test_credential_less_default_warning_suppressed_when_default_has_credentials() {
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_default_with_credentials(&store);
-
-    let (_code, _stdout, stderr) = run_at(
-        &store,
-        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
-    assert!(
-        !stderr.contains("warning: --app not specified"),
-        "warning must NOT fire when the default app already has credentials; got stderr: {stderr}"
-    );
-}
 
 /// Seeds a store with one app `myapp` carrying an unnamed OAuth2 token and
 /// no named OAuth2 entries.
@@ -1876,7 +1861,9 @@ fn test_status_json_emits_oauth2_unnamed_true() {
         "auth status --output json failed; stderr: {stderr}"
     );
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -1901,7 +1888,9 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
         "auth status --output json failed; stderr: {stderr}"
     );
     let v = parse_json(&stdout);
-    let arr = v.as_array().expect("status emits a JSON array");
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     let entry = arr
         .iter()
         .find(|e| e["name"] == "myapp")
@@ -2557,6 +2546,93 @@ fn test_auth_clear_force_no_interactive_dry_run_envelope() {
     assert_eq!(v["all"], serde_json::Value::Bool(true));
 }
 
+/// Each `auth clear` selector must reach its own envelope field. The dispatch
+/// forwards five adjacent flags positionally, four of which are `bool`.
+#[rstest::rstest]
+#[case::oauth1(&["--oauth1"], serde_json::json!({"all": false, "oauth1": true, "oauth2_username": null, "bearer": false}))]
+#[case::bearer(&["--bearer"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": null, "bearer": true}))]
+#[case::oauth2_username(&["--oauth2-username", "alice"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": "alice", "bearer": false}))]
+fn test_auth_clear_dry_run_names_each_selector(
+    #[case] flags: &[&str],
+    #[case] expected: serde_json::Value,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    let mut argv = vec![
+        "xr",
+        "--no-interactive",
+        "--dry-run",
+        "--output",
+        "json",
+        "auth",
+        "clear",
+        "--force",
+    ];
+    argv.extend_from_slice(flags);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+
+    assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "flags {flags:?}; got: {stdout}");
+    assert_eq!(v["command"], "auth-clear", "flags {flags:?}; got: {stdout}");
+    for key in ["all", "oauth1", "oauth2_username", "bearer"] {
+        assert_eq!(
+            v[key], expected[key],
+            "flags {flags:?} put the wrong value in {key:?}; got: {stdout}"
+        );
+    }
+}
+
+/// A selector clears its own credential and nothing else. The three slots hold
+/// distinct values so a selector wired to the wrong `clear_*` call shows up as
+/// a surviving credential that should be gone (or the reverse).
+#[rstest::rstest]
+#[case::oauth1(&["--oauth1"], false, true, true)]
+#[case::bearer(&["--bearer"], true, true, false)]
+#[case::oauth2_username(&["--oauth2-username", "alice"], true, false, true)]
+fn test_auth_clear_selector_removes_only_its_own_credential(
+    #[case] flags: &[&str],
+    #[case] oauth1_kept: bool,
+    #[case] oauth2_alice_kept: bool,
+    #[case] bearer_kept: bool,
+) {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    let mut argv = vec!["xr", "--no-interactive", "auth", "clear", "--force"];
+    argv.extend_from_slice(flags);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("cleared"),
+        "flags {flags:?} must report what was cleared; got: {stdout}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let app = ts
+        .get_app("myapp")
+        .expect("myapp survives a selective clear");
+    assert_eq!(
+        app.oauth1_token.is_some(),
+        oauth1_kept,
+        "flags {flags:?}: oauth1 slot"
+    );
+    assert_eq!(
+        app.oauth2_tokens.contains_key("alice"),
+        oauth2_alice_kept,
+        "flags {flags:?}: oauth2 slot for alice"
+    );
+    assert_eq!(
+        app.bearer_token.is_some(),
+        bearer_kept,
+        "flags {flags:?}: bearer slot"
+    );
+}
+
 #[test]
 #[serial_test::serial]
 fn test_xurl_dry_run_env_var_engages_dry_run() {
@@ -2796,6 +2872,53 @@ fn test_auth_default_non_tty_emits_no_tty_envelope() {
     assert_eq!(v["reason"], "no-tty", "envelope reason: {trimmed}");
 }
 
+/// The named-app branch of `auth default` skips the picker entirely and writes
+/// both defaults. App name and username are adjacent optional positionals, so
+/// the store read-back is what pins which argument reached which setter.
+#[test]
+fn test_auth_default_named_app_sets_default_app_and_user() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+    // `populate_credentialed_store` already makes myapp the default; adding a
+    // second app leaves a store where the wrong branch has somewhere to land.
+    let mut seed = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    seed.add_app("other", "OTHER-CID", "OTHER-SECRET")
+        .expect("add other");
+    drop(seed);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "default", "other"]);
+    assert_eq!(code, 0, "auth default other failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("Default app set to \"other\""),
+        "expected the named app in the message; got: {stdout}"
+    );
+
+    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "default", "myapp", "alice"]);
+    assert_eq!(
+        code2, 0,
+        "auth default myapp alice failed; stderr: {stderr2}"
+    );
+    assert!(
+        stdout2.contains("Default app set to \"myapp\""),
+        "expected the app line; got: {stdout2}"
+    );
+    assert!(
+        stdout2.contains("Default user set to \"alice\""),
+        "expected the user line; got: {stdout2}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert_eq!(ts.get_default_app(), "myapp");
+    assert_eq!(ts.get_default_user("myapp"), "alice");
+    assert_eq!(
+        ts.get_default_user("other"),
+        "",
+        "the username positional must not have reached the other app"
+    );
+}
+
 /// `xr auth oauth2 --help` must advertise the new `XURL_NO_BROWSER` env var.
 #[test]
 fn test_auth_oauth2_help_advertises_no_browser_env_var() {
@@ -2805,6 +2928,26 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
         stdout.contains("XURL_NO_BROWSER"),
         "auth oauth2 --help must advertise XURL_NO_BROWSER env var; got:\n{stdout}"
     );
+}
+
+/// Registers one credentialed app in `store` through the CLI, so a
+/// sign-in has a client id to build its URL from.
+fn register_app_at(store: &Path) {
+    let (code, _stdout, stderr) = run_at(
+        store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
 }
 
 /// `xr auth oauth2 --no-browser --output json` (no `--step`) emits the
@@ -2817,7 +2960,9 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 #[test]
 fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--no-browser", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2844,7 +2989,9 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 #[test]
 fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .env("XURL_NO_BROWSER", "1")
         .args(["auth", "oauth2", "--output", "json"])
         .output()
@@ -2869,7 +3016,9 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 #[test]
 fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
-    let output = common::xr_with_store(&tmp.path().join(".xurl"))
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+    let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--output", "json"])
         .output()
         .expect("spawn xr");
@@ -2976,5 +3125,1784 @@ fn test_absent_redirect_uri_override_lets_stored_value_win() {
     assert!(
         stdout2.contains("app config"),
         "and reports app-config provenance: {stdout2}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Env bearer token counts as the `app` scheme in shortcut auth resolution
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Overrides pointing the client at a stubbed server with an env bearer.
+fn api_env_with_bearer(base_url: &str, token: &str) -> xurl::config::EnvOverrides {
+    xurl::config::EnvOverrides {
+        bearer_token: Some(token.to_string()),
+        ..api_env(base_url)
+    }
+}
+
+/// `XURL_BEARER_TOKEN=… xr search "x"` on an empty store must resolve the
+/// bearer from the environment and reach the endpoint, not exit 77.
+#[test]
+fn test_env_bearer_resolves_shortcut_on_empty_store() {
+    use wiremock::matchers::header;
+    let ts = CliMockServer::new();
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .and(header("Authorization", "Bearer env-bearer-value"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": [{"id": "1", "text": "hello"}],
+                "meta": {"result_count": 1}
+            })))
+            .expect(1),
+    );
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+
+    assert_eq!(
+        code, 0,
+        "search with the env bearer on an empty store must succeed; stderr: {stderr}; stdout: {stdout}"
+    );
+    assert!(
+        !store.exists(),
+        "resolving the env bearer must not write the store"
+    );
+}
+
+/// `auth status --output json` marks the active app's bearer as present from
+/// the environment when `XURL_BEARER_TOKEN` is set and the app stores none.
+#[test]
+fn test_status_json_reports_env_bearer_on_active_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+
+    let v = parse_json(&stdout);
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
+    let entry = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(
+        entry["bearer"],
+        serde_json::Value::Bool(true),
+        "bearer must be reported present; got entry: {entry}"
+    );
+    assert_eq!(
+        entry["bearer_source"], "env",
+        "bearer_source must name the environment; got entry: {entry}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// The text rendering of `auth status` names the env variable beside the
+/// bearer mark for the active app.
+#[test]
+fn test_status_text_reports_env_bearer_on_active_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "status text must mark the bearer as present from the environment; got:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// A bearer stored on the app reports `bearer_source: store`, so the two
+/// origins are distinguishable in the envelope.
+#[test]
+fn test_status_json_reports_store_bearer_source() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(
+        entry["bearer_source"], "store",
+        "a stored bearer reports its origin; got entry: {entry}"
+    );
+}
+
+/// An app with no bearer anywhere omits `bearer_source` entirely.
+#[test]
+fn test_status_json_omits_bearer_source_when_absent() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(false));
+    assert!(
+        entry.get("bearer_source").is_none(),
+        "bearer_source must be omitted when no bearer is present; got entry: {entry}"
+    );
+}
+
+/// On a fresh store the text status still reports the env bearer, so a
+/// bearer-only setup with nothing registered is visible.
+#[test]
+fn test_status_text_reports_env_bearer_on_fresh_store() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "the env bearer must be reported on a fresh store; got:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("env-bearer-value"),
+        "the token value must never appear in status output"
+    );
+}
+
+/// With the env bearer set, an empty active app, and credentials stored on
+/// another app, a user-context endpoint still names the other app: the env
+/// bearer counts as available but does not hide the wrong-app recovery hint.
+#[test]
+fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add work");
+    ts.save_oauth2_token_for_app("work", "alice", "ACCESS", "REFRESH", 1_900_000_000)
+        .expect("save_oauth2");
+    // A credential-less app that is the active one: registration promotes
+    // past such a default, so this state has to be built on purpose.
+    ts.add_app("blank", "", "").expect("add blank");
+    ts.set_default_app("blank").expect("set_default_app");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, _stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "like", "12345"]);
+    assert_eq!(code, 2, "wrong-app mismatch exits 2; stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "auth-method-mismatch", "envelope: {v}");
+    assert_eq!(
+        v["other_apps_with_creds"],
+        serde_json::json!(["work"]),
+        "the wrong-app hint must survive the env bearer; envelope: {v}"
+    );
+    assert_eq!(
+        v["available_in_app"],
+        serde_json::json!(["app"]),
+        "available_in_app stays truthful about the env bearer; envelope: {v}"
+    );
+    assert!(
+        v["message"].as_str().unwrap_or("").contains("--app"),
+        "text names the --app recovery; envelope: {v}"
+    );
+}
+
+/// `auth apps list --output json` carries `bearer_source` through the same
+/// builder as `auth status`.
+#[test]
+fn test_apps_list_json_reports_env_bearer_source() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &["xr", "--output", "json", "auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "apps list failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(entry["bearer_source"], "env", "got entry: {entry}");
+    assert!(!stdout.contains("env-bearer-value"));
+}
+
+/// When both a stored bearer and the env bearer exist, the env value wins
+/// the precedence chain and status reports it as the source.
+#[test]
+fn test_status_json_env_bearer_wins_over_stored_bearer() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) =
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let entry = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array")
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .cloned()
+        .expect("myapp entry present");
+    assert_eq!(entry["bearer"], serde_json::Value::Bool(true));
+    assert_eq!(
+        entry["bearer_source"], "env",
+        "env wins over the stored bearer; got entry: {entry}"
+    );
+}
+
+/// `--app NAME` moves the env bearer mark to NAME's entry and off the default.
+#[test]
+fn test_status_json_env_bearer_follows_app_flag() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store)
+        .add_app("otherapp", "OTHER-CLIENT-ID", "OTHER-SECRET")
+        .expect("add otherapp");
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr", "--app", "otherapp", "--output", "json", "auth", "status",
+        ],
+    );
+    assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let arr = v["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
+    let other = arr
+        .iter()
+        .find(|e| e["name"] == "otherapp")
+        .expect("otherapp entry present");
+    let myapp = arr
+        .iter()
+        .find(|e| e["name"] == "myapp")
+        .expect("myapp entry present");
+    assert_eq!(other["bearer_source"], "env", "got: {other}");
+    assert_eq!(
+        myapp["bearer"],
+        serde_json::Value::Bool(false),
+        "got: {myapp}"
+    );
+    assert!(myapp.get("bearer_source").is_none(), "got: {myapp}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U10: an empty store is empty; a store that failed to load is never
+// overwritten; registration promotes past a credential-less default
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The README Quick Start on a fresh install: register an app, then start
+/// the headless sign-in. The authorization URL must carry the registered
+/// app's client id, which requires that app to be the default.
+#[test]
+fn test_fresh_store_quick_start_uses_registered_client_id() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "step 1 failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    let url = v["auth_url"].as_str().expect("auth_url present");
+    assert!(
+        url.contains("client_id=MYAPP-CLIENT-ID"),
+        "the sign-in URL must carry the registered app's client id; got: {url}"
+    );
+}
+
+/// A store file neither parser accepts is reported, never overwritten.
+#[test]
+fn test_unparseable_store_is_never_overwritten() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 this is not yaml or json \x02\x03";
+    std::fs::write(&store, garbage).expect("seed the damaged store");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-CLIENT-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_ne!(
+        code, 0,
+        "apps add must refuse a damaged store; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the error must name the store path; stderr: {stderr}"
+    );
+    let after = std::fs::read(&store).expect("store still readable");
+    assert_eq!(
+        after, garbage,
+        "a store that failed to load must be byte-identical afterward"
+    );
+}
+
+/// `auth status` on an empty store prints the registration sentence and
+/// exits 0; structured mode prints an empty array.
+#[test]
+fn test_status_on_empty_store_names_the_registration_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "an empty store is not an error; stderr: {stderr}");
+    assert!(
+        stdout.contains(
+            "No apps registered. Run: xr auth apps add NAME --client-id ID --client-secret SECRET"
+        ),
+        "got:\n{stdout}"
+    );
+
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    assert_eq!(code, 0);
+    assert_eq!(
+        parse_json(&stdout),
+        serde_json::json!({"status": "ok", "apps": []}),
+        "got: {stdout}"
+    );
+}
+
+/// With `XURL_BEARER_TOKEN` set, the empty-store text adds the bearer line.
+#[test]
+fn test_status_on_empty_store_reports_the_env_bearer() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(stdout.contains("No apps registered"), "got:\n{stdout}");
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "got:\n{stdout}"
+    );
+    assert!(!stdout.contains("env-bearer-value"));
+}
+
+/// The first registered app is the default and the message names the
+/// plain sign-in; the second is not and its message names `--app`.
+#[test]
+fn test_apps_add_message_names_the_next_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("(default)"),
+        "first app is the default: {stdout}"
+    );
+    assert!(stdout.contains("Next: xr auth oauth2"), "got: {stdout}");
+    assert!(
+        !stdout.contains("--app"),
+        "no --app needed for the default: {stdout}"
+    );
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "second",
+            "--client-id",
+            "C",
+            "--client-secret",
+            "D",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["default"], serde_json::Value::Bool(false), "got: {v}");
+    assert_eq!(v["next_step"]["action"], "sign-in", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app second",
+        "a structured caller gets the headless form naming the app; got: {v}"
+    );
+}
+
+/// `apps add` rejects a name outside the allowed set.
+#[test]
+fn test_apps_add_rejects_a_spaced_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "my app",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_ne!(code, 0, "a spaced name must be rejected");
+    assert!(stderr.contains("my app"), "names the value; got: {stderr}");
+}
+
+/// Sign-in on an empty store refuses before building a URL or writing the
+/// pending file, and hands an agent a registration template.
+#[test]
+fn test_oauth2_on_empty_store_refuses_with_register_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "client-credentials-missing", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "register-app", "got: {v}");
+    assert!(v["next_step"]["template"].is_string(), "got: {v}");
+    assert!(v["next_step"]["command"].is_null(), "never both; got: {v}");
+
+    let pending = tmp.path().join(".xurl.pending");
+    assert!(!pending.exists(), "no pending file is written");
+}
+
+/// With a credentialed app present but a credential-less one selected, the
+/// refusal names the app to use.
+#[test]
+fn test_oauth2_with_blank_target_names_the_credentialed_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add myapp");
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "blank",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "client-credentials-missing", "got: {v}");
+    assert_eq!(v["app"], "blank", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "select-app", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app myapp",
+        "got: {v}"
+    );
+}
+
+/// `--app NAME` picks that app's client id for the sign-in URL.
+#[test]
+fn test_oauth2_step1_uses_the_named_app_client_id() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("first", "FIRST-CLIENT-ID", "FIRST-SECRET")
+        .expect("add first");
+    ts.add_app("myapp", "MYAPP-CLIENT-ID", "MYAPP-SECRET")
+        .expect("add myapp");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "myapp",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let url = parse_json(&stdout)["auth_url"]
+        .as_str()
+        .expect("auth_url present")
+        .to_string();
+    assert!(url.contains("client_id=MYAPP-CLIENT-ID"), "got: {url}");
+}
+
+/// Env credentials drive a sign-in on an empty store and the token lands on
+/// a lazily created `default`.
+#[test]
+fn test_env_client_id_signs_in_on_an_empty_store() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(
+        code, 0,
+        "env credentials must start the flow; stderr: {stderr}"
+    );
+    let url = parse_json(&stdout)["auth_url"]
+        .as_str()
+        .expect("auth_url present")
+        .to_string();
+    assert!(url.contains("client_id=ENV-CLIENT-ID"), "got: {url}");
+}
+
+/// Registering beside exported env credentials writes no env secret.
+#[test]
+fn test_apps_add_with_env_credentials_writes_no_env_secret() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &env,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "MYAPP-ID",
+            "--client-secret",
+            "MYAPP-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let written = std::fs::read_to_string(&store).expect("store written");
+    assert!(
+        written.contains("myapp"),
+        "the app is registered: {written}"
+    );
+    assert!(
+        !written.contains("ENV-CLIENT-SECRET"),
+        "no env secret is persisted: {written}"
+    );
+}
+
+/// The text rendering of the sign-in refusal names the app and the fix, and
+/// a structured caller is not required to read it.
+#[test]
+fn test_oauth2_refusal_text_names_the_registration_command() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
+    assert!(
+        stderr.contains("no app carries client credentials"),
+        "got: {stderr}"
+    );
+}
+
+/// A bad app name is a usage mistake, not an authentication failure.
+#[test]
+fn test_apps_add_spaced_name_is_a_validation_error() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "my app",
+            "--client-id",
+            "A",
+            "--client-secret",
+            "B",
+        ],
+    );
+    assert_eq!(code, 1, "a rejected name is not exit 77; stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["reason"], "validation", "got: {v}");
+}
+
+/// A damaged store is reported as damaged, not as an empty one, by the
+/// read verbs as well as the write ones.
+#[rstest::rstest]
+#[case::status(&["xr", "auth", "status"])]
+#[case::apps_list(&["xr", "auth", "apps", "list"])]
+#[case::status_json(&["xr", "--output", "json", "auth", "status"])]
+fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, b"\x00\x01 neither yaml nor json \x02").expect("seed");
+
+    let (code, stdout, stderr) = run_at(&store, args);
+    assert_ne!(
+        code, 0,
+        "a damaged store is not an empty one; args: {args:?}"
+    );
+    assert!(
+        !stdout.contains("No apps registered"),
+        "must not claim the store is empty; stdout: {stdout}"
+    );
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the error names the path; stderr: {stderr}"
+    );
+}
+
+/// `auth apps list` mirrors `auth status` on an empty store.
+#[test]
+fn test_apps_list_on_empty_store_matches_status() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "list"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("No apps registered. Run: xr auth apps add"),
+        "got:\n{stdout}"
+    );
+
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
+    assert_eq!(code, 0);
+    assert_eq!(
+        parse_json(&stdout),
+        serde_json::json!({"status": "ok", "apps": []}),
+        "got: {stdout}"
+    );
+
+    let env = xurl::config::EnvOverrides {
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+    let (code, stdout, _) = run_at_with(&store, &env, &["xr", "auth", "apps", "list"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
+        "got:\n{stdout}"
+    );
+}
+
+/// Naming a credential-less app explicitly, with no alternative available,
+/// reports that app rather than the generic sentence.
+#[test]
+fn test_oauth2_explicit_blank_app_names_that_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--app",
+            "blank",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(stderr.contains("\"blank\""), "names the app; got: {stderr}");
+}
+
+/// Every structured error the binary emits must validate against the
+/// declared envelope body, including the verb-local shapes that carry their
+/// own fields. The schema closes the object, so an emitter that grew a key
+/// the type does not name would publish a schema that rejects its own output.
+#[rstest::rstest]
+#[case::unknown_schema(&["validate", "--schema", "nope", "-"], "{}", "unknown-schema")]
+#[case::invalid_json(&["validate", "--schema", "post", "-"], "not json at all", "invalid-json")]
+#[case::validation_failed(&["validate", "--schema", "post", "-"], "{\"unexpected\": 1}", "validation-failed")]
+fn test_verb_local_error_envelopes_match_the_declared_body(
+    #[case] args: &[&str],
+    #[case] stdin: &str,
+    #[case] expected_reason: &str,
+) {
+    use std::io::Write as _;
+    let mut child = common::xr_std()
+        .args(args)
+        .arg("--output")
+        .arg("json")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn xr");
+    child
+        .stdin
+        .as_mut()
+        .expect("stdin")
+        .write_all(stdin.as_bytes())
+        .expect("write stdin");
+    let out = child.wait_with_output().expect("wait");
+    let emitted = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let mut value: serde_json::Value = serde_json::from_str(emitted.trim())
+        .unwrap_or_else(|e| panic!("envelope must parse ({e}): {emitted}"));
+    let obj = value.as_object_mut().expect("an object");
+    assert_eq!(obj["reason"], expected_reason, "got: {emitted}");
+    obj.remove("status");
+    serde_json::from_value::<xurl::envelope::ErrorBody>(value)
+        .unwrap_or_else(|e| panic!("undeclared key in a verb-local envelope ({e}): {emitted}"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Boolean flags with an optional value require `=` for that value
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Which global boolean flags the parse landed on, plus the command word.
+#[derive(Debug, PartialEq, Eq)]
+struct ParsedFlags {
+    quiet: bool,
+    verbose: bool,
+    no_interactive: bool,
+    dry_run: bool,
+    raw: bool,
+    url: Option<String>,
+    command: &'static str,
+}
+
+fn parse_flags(argv: &[&str]) -> ParsedFlags {
+    use clap::Parser;
+    let cli =
+        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
+    let command = match cli.command {
+        Some(xurl::cli::Commands::Whoami { .. }) => "whoami",
+        Some(xurl::cli::Commands::Search { ref query, .. }) => {
+            assert_eq!(
+                query, "topic",
+                "search query must be the word after the flag"
+            );
+            "search"
+        }
+        Some(_) => "other",
+        None => "none",
+    };
+    ParsedFlags {
+        quiet: cli.quiet,
+        verbose: cli.verbose,
+        no_interactive: cli.no_interactive,
+        dry_run: cli.dry_run,
+        raw: cli.raw,
+        url: cli.url,
+        command,
+    }
+}
+
+/// A boolean flag followed by a command word leaves the word to the
+/// command; an explicit value needs `=`. These parse in-process and read the
+/// clap env bindings, so they are marked parallel to stay outside the serial
+/// window of the one test that mutates `XURL_DRY_RUN`.
+#[rstest::rstest]
+#[case::quiet_long(&["xr", "--quiet", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::quiet_short(&["xr", "-q", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::verbose(&["xr", "--verbose", "whoami"], ParsedFlags { quiet: false, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::no_interactive(&["xr", "--no-interactive", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: true, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::raw(&["xr", "--raw", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: true, url: None, command: "whoami" })]
+#[case::dry_run(&["xr", "--dry-run", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: true, raw: false, url: None, command: "whoami" })]
+#[case::quiet_equals_false(&["xr", "--quiet=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::quiet_then_false_word(&["xr", "--quiet", "false", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: Some("false".to_string()), command: "whoami" })]
+#[case::quiet_search(&["xr", "-q", "search", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
+#[case::flag_after_subcommand(&["xr", "search", "--quiet", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
+#[case::short_equals_false(&["xr", "-q=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[case::short_cluster(&["xr", "-qv", "whoami"], ParsedFlags { quiet: true, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
+#[serial_test::parallel]
+fn test_boolean_flag_does_not_swallow_command_word(
+    #[case] argv: &[&str],
+    #[case] expected: ParsedFlags,
+) {
+    assert_eq!(parse_flags(argv), expected, "argv: {argv:?}");
+}
+
+/// `xr --quiet whoami` on an empty store reaches `whoami` and its auth
+/// error, not the raw-mode "No URL provided" path.
+#[test]
+#[serial_test::parallel]
+fn test_quiet_whoami_reaches_whoami() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--quiet", "whoami"]);
+    assert_eq!(
+        code, 77,
+        "whoami on an empty store exits 77; stderr: {stderr}"
+    );
+    assert!(
+        !stderr.contains("No URL provided"),
+        "the command word must not be consumed as the flag value; stderr: {stderr}"
+    );
+}
+
+/// `--no-browser` on `auth oauth2` keeps the username positional after it.
+#[rstest::rstest]
+#[case::flag_then_username(&["xr", "auth", "oauth2", "--no-browser", "alice"], true)]
+#[case::equals_false_then_username(&["xr", "auth", "oauth2", "--no-browser=false", "alice"], false)]
+#[serial_test::parallel]
+fn test_no_browser_keeps_username_positional(#[case] argv: &[&str], #[case] expected: bool) {
+    use clap::Parser;
+    let parsed =
+        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
+    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
+        panic!("expected Auth subcommand");
+    };
+    let xurl::cli::AuthCommands::Oauth2 {
+        no_browser,
+        username,
+        ..
+    } = command
+    else {
+        panic!("expected auth oauth2");
+    };
+    assert_eq!(no_browser, expected, "argv: {argv:?}");
+    assert_eq!(username.as_deref(), Some("alice"), "argv: {argv:?}");
+}
+
+/// The space-separated value form no longer parses as a value: the word
+/// after the flag is a positional or a command, never the flag's value.
+#[test]
+#[serial_test::parallel]
+fn test_quiet_space_true_is_not_a_flag_value() {
+    let parsed = parse_flags(&["xr", "--quiet", "true"]);
+    assert!(parsed.quiet);
+    assert_eq!(parsed.url.as_deref(), Some("true"));
+}
+
+/// Spawns the built binary against `store` and the mocked API, with one env
+/// binding set, and returns (exit code, stdout, stderr).
+fn spawn_with_env(
+    store: &Path,
+    base_url: &str,
+    env: &[(&str, &str)],
+    args: &[&str],
+) -> (i32, String, String) {
+    let mut cmd = common::xr_with_store(store);
+    cmd.env("API_BASE_URL", base_url)
+        .env("XURL_BEARER_TOKEN", "env-bearer-value");
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
+    let out = cmd.args(args).output().expect("spawn xr");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+/// Mounts the bearer-capable search endpoint returning a compact JSON body.
+fn mock_search(ts: &CliMockServer) {
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(r#"{"data":[{"id":"1","text":"hi"}]}"#),
+            ),
+    );
+}
+
+const SEARCH_PATH: &str = "/2/tweets/search/recent?query=hi";
+
+/// An env-provided true is read through the value parser and `--flag=false`
+/// still overrides it, for each of the six env-backed boolean flags.
+#[test]
+fn test_env_true_then_equals_false_verbose() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_VERBOSE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(&store, ts.uri(), &env, &["--auth", "app", SEARCH_PATH]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("> GET"),
+        "env true must enable verbose; stderr: {stderr}"
+    );
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--verbose=false", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("> GET"),
+        "--verbose=false must clear it; stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_quiet() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_QUIET", "true"), ("XURL_VERBOSE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(&store, ts.uri(), &env, &["--auth", "app", SEARCH_PATH]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("> GET"),
+        "env quiet must silence verbose; stderr: {stderr}"
+    );
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--quiet=false", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("> GET"),
+        "--quiet=false must clear it; stderr: {stderr}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_raw() {
+    let ts = CliMockServer::new();
+    mock_search(&ts);
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_RAW", "true")];
+
+    let (code, stdout, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &["--output", "json", "--auth", "app", SEARCH_PATH],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stdout.contains("\n  "),
+        "env raw must print the body as sent; stdout: {stdout}"
+    );
+
+    let (code, stdout, stderr) = spawn_with_env(
+        &store,
+        ts.uri(),
+        &env,
+        &[
+            "--raw=false",
+            "--output",
+            "json",
+            "--auth",
+            "app",
+            SEARCH_PATH,
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("\n  "),
+        "--raw=false must pretty-print; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn test_env_true_then_equals_false_dry_run() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_DRY_RUN", "true")];
+    let add = [
+        "--output",
+        "json",
+        "auth",
+        "apps",
+        "add",
+        "myapp",
+        "--client-id",
+        "a",
+        "--client-secret",
+        "b",
+    ];
+
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &add);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("\"dry_run\""),
+        "env dry-run must emit the dry-run envelope; stdout: {stdout}"
+    );
+    assert!(!store.exists(), "dry run must not write the store");
+
+    let mut args = vec!["--dry-run=false"];
+    args.extend_from_slice(&add);
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &args);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stdout.contains("\"dry_run\""),
+        "--dry-run=false must register; stdout: {stdout}"
+    );
+    assert!(store.exists(), "the real run writes the store");
+}
+
+#[test]
+fn test_env_true_then_equals_false_no_browser() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_NO_BROWSER", "true")];
+    let base = ["--dry-run", "--output", "json", "auth", "oauth2"];
+
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &base);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("dry-run envelope");
+    assert_eq!(
+        v["no_browser"], true,
+        "env true must set no_browser; got {v}"
+    );
+
+    let mut args = base.to_vec();
+    args.push("--no-browser=false");
+    let (code, stdout, stderr) = spawn_with_env(&store, "http://127.0.0.1:9", &env, &args);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("dry-run envelope");
+    assert_eq!(
+        v["no_browser"], false,
+        "--no-browser=false must clear it; got {v}"
+    );
+}
+
+/// `no_interactive` has no observable effect without a terminal on stdin,
+/// so this pair asserts the parse: the env value is accepted and the
+/// `=false` form still reaches the command.
+#[test]
+fn test_env_true_then_equals_false_no_interactive() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = [("XURL_NO_INTERACTIVE", "true")];
+
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        "http://127.0.0.1:9",
+        &env,
+        &["auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let (code, _, stderr) = spawn_with_env(
+        &store,
+        "http://127.0.0.1:9",
+        &env,
+        &["--no-interactive=false", "auth", "apps", "list"],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U12a: every message-shaped auth verb emits a status-ok envelope
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Seeds a store with one registered app and returns the store path guard.
+fn seeded_store(tmp: &TempDir) -> std::path::PathBuf {
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+    store
+}
+
+/// Every auth verb whose structured success is a message object today must
+/// carry `status: ok` so an agent branches on one field across the surface.
+#[rstest::rstest]
+#[case::apps_add(&["auth", "apps", "add", "fresh", "--client-id", "A", "--client-secret", "B"], &["message", "default", "next_step"])]
+#[case::apps_update(&["auth", "apps", "update", "myapp", "--client-id", "NEW"], &["message"])]
+#[case::apps_redirect_uri_set(&["auth", "apps", "redirect-uri", "set", "myapp", "https://example.test/cb"], &["app", "redirect_uri"])]
+#[case::apps_redirect_uri_get(&["auth", "apps", "redirect-uri", "get", "myapp"], &["app", "effective_redirect_uri"])]
+#[case::default(&["auth", "default", "myapp"], &["message"])]
+#[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], &["message"])]
+#[case::apps_remove(&["auth", "apps", "remove", "myapp", "--force"], &["message"])]
+fn test_auth_verbs_emit_status_ok(#[case] args: &[&str], #[case] expected_keys: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "ok", "args {args:?}; got: {v}");
+    for key in expected_keys {
+        assert!(
+            v.get(*key).is_some(),
+            "args {args:?} must keep the {key} key; got: {v}"
+        );
+    }
+}
+
+/// The headless step-1 object gains `status` and keeps its documented keys.
+#[test]
+fn test_oauth2_step1_envelope_carries_status_ok() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "ok", "got: {v}");
+    assert!(v["auth_url"].is_string(), "got: {v}");
+    assert!(v["instructions"].is_string(), "got: {v}");
+}
+
+/// The two list-shaped verbs carry their entries under `apps`, inside the
+/// same success envelope every other auth verb uses.
+#[rstest::rstest]
+#[case::status(&["auth", "status"])]
+#[case::apps_list(&["auth", "apps", "list"])]
+fn test_list_shaped_verbs_wrap_entries_under_apps(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(
+        v["status"], "ok",
+        "args {args:?} lack the envelope; got: {stdout}"
+    );
+    assert!(
+        v["apps"].is_array(),
+        "args {args:?} must carry entries under `apps`; got: {stdout}"
+    );
+}
+
+/// The status-ok contract holds across every structured format, not just
+/// JSON: an agent picking yaml or jsonl reads the same field.
+#[rstest::rstest]
+#[case::jsonl("jsonl")]
+#[case::yaml("yaml")]
+fn test_status_ok_holds_across_structured_formats(#[case] format: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &["xr", "--output", format, "auth", "default", "myapp"],
+    );
+    assert_eq!(code, 0, "format {format} failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("ok"),
+        "the {format} rendering must carry the status; got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Default app set"),
+        "and keep the message; got: {stdout}"
+    );
+}
+
+/// Text output is untouched by the envelope change.
+#[rstest::rstest]
+#[case::apps_update(&["auth", "apps", "update", "myapp", "--client-id", "NEW"], "updated")]
+#[case::default(&["auth", "default", "myapp"], "Default app set to")]
+#[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], "App authentication successful")]
+fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+
+    let mut argv = vec!["xr"];
+    argv.extend_from_slice(args);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+    assert!(stdout.contains(expected), "args {args:?}; got: {stdout}");
+    assert!(
+        !stdout.contains("status"),
+        "text mode carries no envelope key; got: {stdout}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U5: the no-credentials error carries a next step, in both modes
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The JSON baseline. Every key the no-credentials envelope carries today
+/// must survive byte-identical, and `next_step` must be the only addition.
+#[test]
+fn test_no_credentials_envelope_keeps_every_existing_key() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let obj = v.as_object().expect("an object");
+
+    assert_eq!(obj["status"], "error", "got: {v}");
+    assert_eq!(obj["reason"], "auth-required", "got: {v}");
+    assert_eq!(obj["exit_code"], 77, "got: {v}");
+    assert_eq!(
+        obj["message"], "Auth Error: NoAuthMethod: no authentication method available",
+        "the human message is unchanged; got: {v}"
+    );
+
+    let mut keys: Vec<&str> = obj.keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        vec!["exit_code", "message", "next_step", "reason", "status"],
+        "next_step is the only addition to the envelope; got: {v}"
+    );
+}
+
+/// Text mode on an empty store points at registration.
+#[test]
+fn test_hint_empty_store_names_registration() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Auth Error: NoAuthMethod"),
+        "the error line is unchanged; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("xr auth apps add"),
+        "and is followed by the registration line; got: {stderr}"
+    );
+}
+
+/// One credentialed app with no tokens points at sign-in, not registration.
+#[test]
+fn test_hint_credentialed_app_names_sign_in() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_app_store(&store);
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
+    assert!(
+        !stderr.contains("apps add"),
+        "registration is the wrong advice here; got: {stderr}"
+    );
+}
+
+/// A credentialed app that is not the target is named with `--app`.
+#[test]
+fn test_hint_names_the_credentialed_alternative() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add work");
+    ts.add_app("blank", "", "").expect("add blank");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--app", "blank", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains("--app work"),
+        "the hint names the app that can sign in; got: {stderr}"
+    );
+}
+
+/// An app already holding tokens turns the hint into a rerun of this very
+/// invocation with `--app` inserted.
+#[test]
+fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add work");
+    ts.save_oauth2_token_for_app("work", "alice", "AT", "RT", 1_900_000_000)
+        .expect("save_oauth2");
+    ts.add_app("blank", "", "").expect("add blank");
+    ts.set_default_app("blank").expect("set default");
+
+    // A raw URL has no endpoint matrix entry, so this reaches the generic
+    // no-credentials error rather than the wrong-app envelope.
+    let (code, _stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "/2/some/unmapped/path"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["next_step"]["action"], "select-app", "got: {v}");
+    let command = v["next_step"]["command"].as_str().expect("a command");
+    assert!(command.contains("--app work"), "got: {command}");
+    assert!(
+        command.contains("/2/some/unmapped/path"),
+        "the rerun keeps the original target; got: {command}"
+    );
+}
+
+/// Exported client credentials mean sign-in, not registration, even with an
+/// empty store: the snapshot carries what the environment supplied.
+#[test]
+fn test_hint_env_client_id_names_sign_in() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let env = xurl::config::EnvOverrides {
+        client_id: Some("ENV-CLIENT-ID".to_string()),
+        client_secret: Some("ENV-CLIENT-SECRET".to_string()),
+        ..xurl::config::EnvOverrides::default()
+    };
+
+    let (code, _stdout, stderr) = run_at_with(&store, &env, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
+    assert!(!stderr.contains("apps add"), "got: {stderr}");
+}
+
+/// A store the loader could not read sends the reader to the file, naming it.
+#[test]
+fn test_hint_unreadable_store_names_the_path() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("store-as-directory");
+    std::fs::create_dir(&store).expect("seed a directory");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(
+        stderr.contains(store.to_str().expect("utf-8 path")),
+        "the hint names the store path; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("apps add"),
+        "a damaged store is not a missing registration; got: {stderr}"
+    );
+}
+
+/// `--quiet` suppresses the advice and never the error.
+#[test]
+fn test_hint_is_suppressed_under_quiet() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami", "--quiet"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(stderr.contains("Auth Error: NoAuthMethod"), "got: {stderr}");
+    assert!(
+        !stderr.contains("apps add"),
+        "quiet drops the hint lines; got: {stderr}"
+    );
+}
+
+/// `NO_COLOR` keeps every line free of escape sequences.
+#[test]
+fn test_hint_carries_no_escape_sequences_under_no_color() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let out = common::xr_with_store(&store)
+        .env("NO_COLOR", "1")
+        .arg("whoami")
+        .output()
+        .expect("spawn xr");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("apps add"),
+        "the hint prints; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains('\u{1b}'),
+        "no line carries an escape sequence; got: {stderr:?}"
+    );
+}
+
+/// The hint reaches every structured format, and none of them leak prose.
+#[rstest::rstest]
+#[case::json("json")]
+#[case::jsonl("jsonl")]
+#[case::yaml("yaml")]
+fn test_hint_reaches_every_structured_format(#[case] format: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", format, "whoami"]);
+    assert_eq!(code, 77, "format {format}; stderr: {stderr}");
+    assert!(
+        stderr.contains("next_step") && stderr.contains("register-app"),
+        "the {format} envelope carries the step; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("Register an app first"),
+        "prose stays out of the structured rendering; got: {stderr}"
+    );
+}
+
+/// An unrelated error carries no hint at all.
+#[test]
+fn test_other_errors_carry_no_hint() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "example.com"]);
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert!(
+        v.get("next_step").is_none(),
+        "only the no-credentials error gets a hint; got: {v}"
+    );
+}
+
+/// A grandfathered spaced app name is quoted wherever a hint prints it.
+#[test]
+fn test_hint_quotes_a_spaced_app_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  my app:\n    client_id: SPACED-ID\n    client_secret: SPACED-SECRET\n  blank:\n    client_id: ''\n    client_secret: ''\ndefault_app: blank\n",
+    )
+    .expect("seed a store holding a spaced name");
+
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let command = v["next_step"]["command"].as_str().expect("a command");
+    assert!(
+        command.contains("'my app'"),
+        "a name a shell would split is quoted; got: {command}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// U11: the post-sign-in 403 names the enrollment fix
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Runs a shortcut against a mock returning `body` with the given status.
+fn run_against_canned_response(status: u16, body: &str) -> (i32, String, String) {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(status).set_body_string(body)),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "--output", "json", "search", "hello"],
+    )
+}
+
+/// The JSON baseline: a canned 403 keeps every key it carries today and
+/// gains `next_step` as the only addition.
+#[test]
+fn test_enrollment_403_envelope_keeps_every_existing_key() {
+    let body = r#"{"title":"Unsupported Authentication","detail":"Your client is not enrolled: client-not-enrolled","status":403}"#;
+    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    assert_ne!(code, 0, "stderr: {stderr}");
+
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    let obj = v.as_object().expect("an object");
+    assert_eq!(obj["status"], "error", "got: {v}");
+    assert!(
+        obj["message"]
+            .as_str()
+            .unwrap()
+            .contains("client-not-enrolled")
+    );
+
+    let mut keys: Vec<&str> = obj.keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        vec!["exit_code", "message", "next_step", "reason", "status"],
+        "next_step is the only addition; got: {v}"
+    );
+    assert_eq!(obj["next_step"]["action"], "enroll-app", "got: {v}");
+    assert!(obj["next_step"]["docs"].is_string(), "got: {v}");
+    assert!(
+        obj["next_step"]["command"].is_null(),
+        "no command; got: {v}"
+    );
+    assert!(
+        obj["next_step"]["template"].is_null(),
+        "no template; got: {v}"
+    );
+}
+
+/// Text mode quotes the body's detail line and points at the recipe.
+#[test]
+fn test_enrollment_403_text_quotes_the_detail() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(403).set_body_string(
+                r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
+            )),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Your client is not enrolled"),
+        "the detail line is quoted; got: {stderr}"
+    );
+    assert!(
+        stderr.contains("Troubleshooting"),
+        "and the recipe is named; got: {stderr}"
+    );
+}
+
+/// The other marker fires too, and a body with no detail simply omits the
+/// quote.
+#[test]
+fn test_enrollment_403_without_detail_omits_the_quote() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(
+                ResponseTemplate::new(403).set_body_string(r#"{"title":"client-forbidden"}"#),
+            ),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(stderr.contains("Troubleshooting"), "got: {stderr}");
+}
+
+/// A 403 that is not an enrollment refusal carries no hint.
+#[test]
+fn test_unrelated_403_carries_no_hint() {
+    let body = r#"{"title":"Forbidden","detail":"You cannot like your own post","status":403}"#;
+    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert!(
+        v.get("next_step").is_none(),
+        "only an enrollment refusal gets the hint; got: {v}"
+    );
+}
+
+/// `--quiet` keeps the error line and drops the advice.
+#[test]
+fn test_enrollment_403_hint_is_suppressed_under_quiet() {
+    let ts = CliMockServer::new();
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(403).set_body_string(
+                r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
+            )),
+    );
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello", "--quiet"],
+    );
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert!(
+        !stderr.contains("Troubleshooting"),
+        "quiet drops the advice; got: {stderr}"
     );
 }

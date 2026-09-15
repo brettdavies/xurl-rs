@@ -252,12 +252,15 @@ fn test_xurl_color_env_accepted() {
 // Subprocess tests give hermetic env control: the spawn seam strips
 // `NO_COLOR`, and `.env("NO_COLOR", "1")` applies only to the child, so
 // concurrent cargo-test threads can't race on the env var.
-// The runner emits a `No URL provided` validation error to stderr via
-// `OutputConfig::print_error`, which honors `use_color`.
+// A mistyped command renders its error line to stderr through the one
+// envelope emitter, which honors `use_color`.
 
 #[test]
 fn test_color_never_strips_ansi_from_stderr() {
-    let output = common::xr().args(["--color", "never"]).output().unwrap();
+    let output = common::xr()
+        .args(["--color", "never", "whoam"])
+        .output()
+        .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         !stderr.contains('\x1b'),
@@ -267,7 +270,10 @@ fn test_color_never_strips_ansi_from_stderr() {
 
 #[test]
 fn test_color_always_emits_ansi_on_stderr() {
-    let output = common::xr().args(["--color", "always"]).output().unwrap();
+    let output = common::xr()
+        .args(["--color", "always", "whoam"])
+        .output()
+        .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains('\x1b'),
@@ -278,7 +284,7 @@ fn test_color_always_emits_ansi_on_stderr() {
 #[test]
 fn test_no_color_env_overrides_color_always() {
     let output = common::xr()
-        .args(["--color", "always"])
+        .args(["--color", "always", "whoam"])
         .env("NO_COLOR", "1")
         .output()
         .unwrap();
@@ -359,7 +365,7 @@ fn test_raw_without_flag_pretty_prints() {
 #[test]
 fn test_lint_stdio_script_passes_on_clean_tree() {
     // The U8 CI guard at scripts/lint-stdio.sh must succeed against the
-    // working tree (every site routes through src/output.rs).
+    // working tree (every site routes through src/output/).
     let root = env!("CARGO_MANIFEST_DIR");
     let script = format!("{root}/scripts/lint-stdio.sh");
     if !std::path::Path::new(&script).exists() {
