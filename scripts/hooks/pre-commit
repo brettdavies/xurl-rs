@@ -27,8 +27,10 @@ staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
 mapfile -t rs_files < <(staged '*.rs')
 mapfile -t md_files < <(staged '*.md')
 mapfile -t yml_files < <(staged '.github/workflows/*.yml' '.github/workflows/*.yaml')
+mapfile -t sh_files < <(staged '*.sh' 'scripts/hooks/pre-commit' 'scripts/hooks/pre-push' 'scripts/hooks/_lib.sh')
 
-if [ ${#rs_files[@]} -eq 0 ] && [ ${#md_files[@]} -eq 0 ] && [ ${#yml_files[@]} -eq 0 ]; then
+if [ ${#rs_files[@]} -eq 0 ] && [ ${#md_files[@]} -eq 0 ] && [ ${#yml_files[@]} -eq 0 ] \
+    && [ ${#sh_files[@]} -eq 0 ]; then
     echo "pre-commit: nothing staged that this hook checks"
     exit 0
 fi
@@ -40,6 +42,7 @@ check_rustfmt "${rs_files[@]}" || {
 }
 check_markdownlint "${md_files[@]}" || fail=1
 check_actionlint "${yml_files[@]}" || fail=1
+check_shellcheck "${sh_files[@]}" || fail=1
 
 [ "$fail" -eq 0 ] || exit 1
 echo "pre-commit: staged checks passed"
