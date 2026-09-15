@@ -134,8 +134,9 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
 
 ## Architecture
 
-- `src/api/`: HTTP client (`request.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`), media upload
-  (`media.rs`), and typed responses (`response/`).
+- `src/api/`: HTTP client (`request/`: client and option types in `mod.rs`, URL rendering in `url.rs`, auth-scheme
+  selection in `auth_header.rs`, transport in `transport.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`),
+  media upload (`media.rs`), and typed responses (`response/`).
 - `src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler), Bearer token.
   PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
 - `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, streaming, and
