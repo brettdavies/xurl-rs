@@ -272,8 +272,23 @@ fn seed_store(store_path: &std::path::Path) {
     .expect("write tempdir store");
 }
 
-/// The pending state step 1 leaves beside the store.
+/// The pending state step 1 leaves beside the store, owned by `default`.
 fn seed_pending(store_path: &std::path::Path) -> std::path::PathBuf {
+    seed_pending_for_app(store_path, "default")
+}
+
+/// A store holding two apps that share a client id, so the only thing telling
+/// them apart is the name the runtime context resolves to.
+fn seed_store_two_apps(store_path: &std::path::Path) {
+    std::fs::write(
+        store_path,
+        "apps:\n  default:\n    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    oauth2_tokens: {}\n  work:\n    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+}
+
+/// The pending state step 1 leaves beside the store, owned by `app_name`.
+fn seed_pending_for_app(store_path: &std::path::Path, app_name: &str) -> std::path::PathBuf {
     let path = xurl::auth::pending::pending_path_for_store(store_path);
     let created_at = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -283,7 +298,7 @@ fn seed_pending(store_path: &std::path::Path) -> std::path::PathBuf {
         code_verifier: PENDING_VERIFIER.to_string(),
         state: PENDING_STATE.to_string(),
         client_id: "test-client-id".to_string(),
-        app_name: "default".to_string(),
+        app_name: app_name.to_string(),
         created_at,
     };
     xurl::auth::pending::save(&state, &path).expect("seed pending state");
@@ -533,5 +548,63 @@ fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
     assert!(
         saved.get_oauth2_token("alice").is_none(),
         "no token is written when the exchange fails"
+    );
+}
+
+#[test]
+fn step2_saves_the_token_on_the_app_the_runtime_context_names() {
+    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
+    let server = rt.block_on(MockServer::start());
+    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_two_apps(&store);
+    let pending = seed_pending_for_app(&store, "work");
+
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--app",
+            "work",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+
+    let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let on_work = saved
+        .get_oauth2_token_for_app("work", "alice")
+        .expect("the token lands on the app --app named");
+    assert_eq!(
+        on_work
+            .oauth2
+            .as_ref()
+            .expect("oauth2 present")
+            .access_token,
+        "ACCESS-TOKEN"
+    );
+    // The default app is the one a routing slip would write to, so its absence
+    // is what makes this test more than a restatement of the single-app case.
+    assert!(
+        saved.get_oauth2_token_for_app("default", "alice").is_none(),
+        "the default app must not receive the token"
+    );
+    assert!(
+        !pending.exists(),
+        "a completed exchange deletes the pending state"
     );
 }
