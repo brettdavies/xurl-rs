@@ -1,29 +1,40 @@
 //! Sign-in flows: interactive and headless `OAuth2`, `OAuth1` credential save,
 //! and bearer-token save.
 
-use std::io::{IsTerminal, Write};
+use std::io::IsTerminal;
 
 use serde_json::json;
 
-use super::AuthGlobalFlags;
+use super::{AuthCtx, AuthGlobalFlags};
 use crate::auth::Auth;
 use crate::cli::hints::NextStep;
 use crate::envelope::ErrorBody;
 use crate::error::{EXIT_USAGE_ERROR, Result, XurlError};
-use crate::output::OutputConfig;
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn oauth2(
-    no_browser: bool,
-    step: Option<u8>,
-    auth_url: Option<String>,
-    username: Option<String>,
-    auth: &mut Auth,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
+/// Arguments of `xr auth oauth2`: whether to suppress the browser, which
+/// manual step to run, the redirect URL that step 2 exchanges, and the
+/// username label for the saved token.
+pub(super) struct Oauth2Args {
+    pub(super) no_browser: bool,
+    pub(super) step: Option<u8>,
+    pub(super) auth_url: Option<String>,
+    pub(super) username: Option<String>,
+}
+
+pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
+    let Oauth2Args {
+        no_browser,
+        step,
+        auth_url,
+        username,
+    } = args;
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    } = ctx;
     let AuthGlobalFlags {
         dry_run,
         app_explicit,
@@ -173,17 +184,29 @@ pub(super) fn oauth2(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn oauth1(
-    consumer_key: String,
-    consumer_secret: String,
-    access_token: String,
-    token_secret: String,
-    auth: &mut Auth,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-) -> Result<()> {
+/// Arguments of `xr auth oauth1`: the consumer key/secret pair identifying the
+/// app and the access token/secret pair identifying the user.
+pub(super) struct Oauth1Args {
+    pub(super) consumer_key: String,
+    pub(super) consumer_secret: String,
+    pub(super) access_token: String,
+    pub(super) token_secret: String,
+}
+
+pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> Result<()> {
+    let Oauth1Args {
+        consumer_key,
+        consumer_secret,
+        access_token,
+        token_secret,
+    } = args;
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = ctx;
     let AuthGlobalFlags { dry_run, .. } = flags;
     if dry_run {
         let ctx = json!({"command": "auth-oauth1"});
@@ -218,13 +241,14 @@ pub(super) fn oauth1(
     Ok(())
 }
 
-pub(super) fn bearer(
-    bearer_token: String,
-    auth: &mut Auth,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-) -> Result<()> {
+pub(super) fn bearer(bearer_token: String, ctx: AuthCtx<'_>) -> Result<()> {
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = ctx;
     let AuthGlobalFlags { dry_run, .. } = flags;
     if dry_run {
         let ctx = json!({"command": "auth-app"});

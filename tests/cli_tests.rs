@@ -1028,6 +1028,40 @@ fn test_redirect_uri_get_json_excludes_all_credentials() {
     assert_no_credentials(&stdout, "auth apps redirect-uri get --output json");
 }
 
+/// The text renderers for `auth status` and `auth apps list` build their own
+/// lines rather than serializing `App`, so the banned-string sweep has to run
+/// against them separately from the JSON path.
+#[rstest::rstest]
+#[case::status(&["xr", "auth", "status"])]
+#[case::apps_list(&["xr", "auth", "apps", "list"])]
+fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    // A sweep over output from a store with nothing in it would pass
+    // vacuously; the on-disk file must carry the values being hunted for.
+    let raw = std::fs::read_to_string(&store).expect("store file");
+    for needle in ["SECRET-VALUE-AAA", "TOKEN-SECRET-EEE", "BEARER-VALUE-FFF"] {
+        assert!(
+            raw.contains(needle),
+            "fixture must hold {needle:?} for the sweep to have something to catch"
+        );
+    }
+
+    let (code, stdout, stderr) = run_at(&store, args);
+    assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
+    assert_no_credentials(&stdout, &format!("{args:?} text mode"));
+    assert!(
+        stdout.contains("myapp"),
+        "args {args:?} must have rendered the app; got: {stdout}"
+    );
+    assert!(
+        stdout.contains("client_id: CLIENT-I..."),
+        "args {args:?} must render the client-id hint, not the value; got: {stdout}"
+    );
+}
+
 #[test]
 fn test_auth_status_text_includes_redirect_uri_line() {
     // R24: status text output gains a `redirect_uri:` line per app.
@@ -1473,6 +1507,56 @@ fn populate_oauth1_store(store_path: &Path) {
     .expect("save_oauth1");
     ts.set_default_app("myapp").expect("set_default_app");
     let _ = ts.remove_app("default");
+}
+
+/// `xr auth oauth1` hands its four credential flags down two layers as
+/// adjacent positional `String` arguments, and `save_oauth1_tokens_for_app`
+/// takes them in a different order than the CLI declares them. Each fixture
+/// value names the slot it belongs in, so a transposition the compiler cannot
+/// see surfaces as a value sitting in the wrong field.
+#[test]
+fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    drop(populate_app_store(&store));
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "oauth1",
+            "--consumer-key",
+            "BELONGS-IN-CONSUMER-KEY",
+            "--consumer-secret",
+            "BELONGS-IN-CONSUMER-SECRET",
+            "--access-token",
+            "BELONGS-IN-ACCESS-TOKEN",
+            "--token-secret",
+            "BELONGS-IN-TOKEN-SECRET",
+        ],
+    );
+    assert_eq!(code, 0, "auth oauth1 failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("OAuth1 credentials saved successfully!"),
+        "expected the success message; got: {stdout}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let app = ts.get_app("myapp").expect("myapp survives the save");
+    let token = app
+        .oauth1_token
+        .as_ref()
+        .expect("the OAuth1 slot on myapp is populated");
+    let oauth1 = token
+        .oauth1
+        .as_ref()
+        .expect("the OAuth1 payload is populated");
+    assert_eq!(oauth1.consumer_key, "BELONGS-IN-CONSUMER-KEY");
+    assert_eq!(oauth1.consumer_secret, "BELONGS-IN-CONSUMER-SECRET");
+    assert_eq!(oauth1.access_token, "BELONGS-IN-ACCESS-TOKEN");
+    assert_eq!(oauth1.token_secret, "BELONGS-IN-TOKEN-SECRET");
 }
 
 #[test]
@@ -2462,6 +2546,93 @@ fn test_auth_clear_force_no_interactive_dry_run_envelope() {
     assert_eq!(v["all"], serde_json::Value::Bool(true));
 }
 
+/// Each `auth clear` selector must reach its own envelope field. The dispatch
+/// forwards five adjacent flags positionally, four of which are `bool`.
+#[rstest::rstest]
+#[case::oauth1(&["--oauth1"], serde_json::json!({"all": false, "oauth1": true, "oauth2_username": null, "bearer": false}))]
+#[case::bearer(&["--bearer"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": null, "bearer": true}))]
+#[case::oauth2_username(&["--oauth2-username", "alice"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": "alice", "bearer": false}))]
+fn test_auth_clear_dry_run_names_each_selector(
+    #[case] flags: &[&str],
+    #[case] expected: serde_json::Value,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    let mut argv = vec![
+        "xr",
+        "--no-interactive",
+        "--dry-run",
+        "--output",
+        "json",
+        "auth",
+        "clear",
+        "--force",
+    ];
+    argv.extend_from_slice(flags);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+
+    assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "flags {flags:?}; got: {stdout}");
+    assert_eq!(v["command"], "auth-clear", "flags {flags:?}; got: {stdout}");
+    for key in ["all", "oauth1", "oauth2_username", "bearer"] {
+        assert_eq!(
+            v[key], expected[key],
+            "flags {flags:?} put the wrong value in {key:?}; got: {stdout}"
+        );
+    }
+}
+
+/// A selector clears its own credential and nothing else. The three slots hold
+/// distinct values so a selector wired to the wrong `clear_*` call shows up as
+/// a surviving credential that should be gone (or the reverse).
+#[rstest::rstest]
+#[case::oauth1(&["--oauth1"], false, true, true)]
+#[case::bearer(&["--bearer"], true, true, false)]
+#[case::oauth2_username(&["--oauth2-username", "alice"], true, false, true)]
+fn test_auth_clear_selector_removes_only_its_own_credential(
+    #[case] flags: &[&str],
+    #[case] oauth1_kept: bool,
+    #[case] oauth2_alice_kept: bool,
+    #[case] bearer_kept: bool,
+) {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+
+    let mut argv = vec!["xr", "--no-interactive", "auth", "clear", "--force"];
+    argv.extend_from_slice(flags);
+    let (code, stdout, stderr) = run_at(&store, &argv);
+    assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("cleared"),
+        "flags {flags:?} must report what was cleared; got: {stdout}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let app = ts
+        .get_app("myapp")
+        .expect("myapp survives a selective clear");
+    assert_eq!(
+        app.oauth1_token.is_some(),
+        oauth1_kept,
+        "flags {flags:?}: oauth1 slot"
+    );
+    assert_eq!(
+        app.oauth2_tokens.contains_key("alice"),
+        oauth2_alice_kept,
+        "flags {flags:?}: oauth2 slot for alice"
+    );
+    assert_eq!(
+        app.bearer_token.is_some(),
+        bearer_kept,
+        "flags {flags:?}: bearer slot"
+    );
+}
+
 #[test]
 #[serial_test::serial]
 fn test_xurl_dry_run_env_var_engages_dry_run() {
@@ -2699,6 +2870,53 @@ fn test_auth_default_non_tty_emits_no_tty_envelope() {
         serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
     assert_eq!(v["status"], "error", "envelope status: {trimmed}");
     assert_eq!(v["reason"], "no-tty", "envelope reason: {trimmed}");
+}
+
+/// The named-app branch of `auth default` skips the picker entirely and writes
+/// both defaults. App name and username are adjacent optional positionals, so
+/// the store read-back is what pins which argument reached which setter.
+#[test]
+fn test_auth_default_named_app_sets_default_app_and_user() {
+    use xurl::store::TokenStore;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_credentialed_store(&store);
+    // `populate_credentialed_store` already makes myapp the default; adding a
+    // second app leaves a store where the wrong branch has somewhere to land.
+    let mut seed = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    seed.add_app("other", "OTHER-CID", "OTHER-SECRET")
+        .expect("add other");
+    drop(seed);
+
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "default", "other"]);
+    assert_eq!(code, 0, "auth default other failed; stderr: {stderr}");
+    assert!(
+        stdout.contains("Default app set to \"other\""),
+        "expected the named app in the message; got: {stdout}"
+    );
+
+    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "default", "myapp", "alice"]);
+    assert_eq!(
+        code2, 0,
+        "auth default myapp alice failed; stderr: {stderr2}"
+    );
+    assert!(
+        stdout2.contains("Default app set to \"myapp\""),
+        "expected the app line; got: {stdout2}"
+    );
+    assert!(
+        stdout2.contains("Default user set to \"alice\""),
+        "expected the user line; got: {stdout2}"
+    );
+
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert_eq!(ts.get_default_app(), "myapp");
+    assert_eq!(ts.get_default_user("myapp"), "alice");
+    assert_eq!(
+        ts.get_default_user("other"),
+        "",
+        "the username positional must not have reached the other app"
+    );
 }
 
 /// `xr auth oauth2 --help` must advertise the new `XURL_NO_BROWSER` env var.

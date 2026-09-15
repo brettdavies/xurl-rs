@@ -603,6 +603,37 @@ fn csv_format_quotes_cells_with_commas() {
 }
 
 #[test]
+fn csv_format_quotes_cells_with_newlines() {
+    let cfg = fmt_cfg(OutputFormat::Csv);
+    let value = serde_json::json!({"text": "first\nsecond"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(
+        s.contains("\"first\nsecond\""),
+        "expected an RFC 4180 quoted cell: {s:?}"
+    );
+}
+
+#[test]
+fn tsv_format_replaces_newlines_with_spaces() {
+    let cfg = fmt_cfg(OutputFormat::Tsv);
+    let value = serde_json::json!({"id": "1", "text": "first\nsecond"});
+    let mut buf: Vec<u8> = Vec::new();
+    cfg.print_response(&mut buf, &value);
+    let s = String::from_utf8(buf).unwrap();
+    assert!(
+        s.contains("first second"),
+        "expected the newline replaced by a space: {s:?}"
+    );
+    assert_eq!(
+        s.lines().count(),
+        2,
+        "TSV has no quoting rule, so a row must stay one line: {s:?}"
+    );
+}
+
+#[test]
 fn tsv_format_uses_tab_delimiter() {
     let cfg = fmt_cfg(OutputFormat::Tsv);
     let value = serde_json::json!({"id": "1", "text": "hi"});
