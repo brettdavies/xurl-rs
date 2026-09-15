@@ -90,14 +90,16 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 Dependabot raises the same fix again.
 
 - [ ] The previous release's bookkeeping reached `dev`: the version carriers and `CHANGELOG.md` at the anchor tag match
-      `dev`'s copies. Gate 0 fails when that backport never ran; run `scripts/sync-dev-after-release.sh v<version>`,
-      merge its PR, and rerun.
+  `dev`'s copies. Gate 0 fails when that backport never ran; run `scripts/sync-dev-after-release.sh v<version>`, merge
+  its PR, and rerun.
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-      `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
-      one branch.
+  `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
+  so config that has reached `dev` and not `main` is what this release delivers and the gate counts it. The gate fails
+  on the other direction, where `main` holds workflow or ruleset config `dev` never received, and names each path as
+  `missing` or `differs`.
 - [ ] No `Cargo.lock` package resolves newer on `main` than on `dev` (gate 3). The one benign case is a version still
-      inside the local package manager's release-age window when the advisory is already patched at `dev`'s version.
+  inside the local package manager's release-age window when the advisory is already patched at `dev`'s version.
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 ### Dependabot preflight
@@ -132,10 +134,10 @@ xurl-rs is a thin client over the live X API. The contract that ships is the uni
 - [ ] Public library surface (`xurl_rs::*`): `cargo semver-checks check-release --baseline-rev "$LAST_TAG"
   --release-type <bump>` passes. It reads rustdoc JSON and applies Rust's own semver rules, so it sees `pub` fields,
   consts, type aliases, and traits across every public module. Confirm each reported break has a row in the release
-  changelog. A break shipping in a minor by decision gets a `required-update = "minor"` entry in
-  `Cargo.toml` under `[package.metadata.cargo-semver-checks.lints]`, which reclassifies it rather than silencing it: the
-  gate still names the break and still fails a patch release. Those entries are scoped to one release and are deleted
-  once the tag moves the baseline past them.
+  changelog. A break shipping in a minor by decision gets a `required-update = "minor"` entry in `Cargo.toml` under
+  `[package.metadata.cargo-semver-checks.lints]`, which reclassifies it rather than silencing it: the gate still names
+  the break and still fails a patch release. Those entries are scoped to one release and are deleted once the tag moves
+  the baseline past them.
 
 ### Real-world smoke (live X API)
 
@@ -242,8 +244,8 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   `post_count`. This is the one gate that catches the vendored spec naming a field the wire does not send; the mocked
   suite validates against that same spec and cannot. Costs one post read and one user read. `XURL_APP=<app>` picks the
   store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
-  other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
-  on the `bird_dev` app.
+  other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme on
+  the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
   --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**
   defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg --category
@@ -285,9 +287,9 @@ verify the routing stays correct across OAuth1, OAuth2, and bearer, and that the
 first signed-in app. Each gate needs at least two registered apps to exercise the cross-app path; the `bird_dev` +
 `bird_prod` entries in 1Password are the canonical substitutes for `alpha` / `beta`.
 
-All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat`
-`$SMOKE_HOME/.xurl`**; use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. |
-path' ...` for structural probes.
+All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world smoke. **Never `cat` `$SMOKE_HOME/.xurl`**;
+use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. | path' ...` for structural
+probes.
 
 - [ ] **OAuth2 `--app NAME` save and read isolation** (sideload-verifiable; PKCE end-to-end needs human): the seed
   recipe injects per-app `oauth2_tokens.brettdavies` for both `bird_dev` and `bird_prod`. Verify isolation by inspecting
@@ -310,12 +312,14 @@ path' ...` for structural probes.
   `yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$SMOKE_HOME/.xurl"`, then `xrs whoami
   --app bird_dev --output json | jaq -c '{u:.data.username,e:(.exit_code//0)}'` → expect `{"u":"BrettDavies","e":0}`
   (auto-detect picked OAuth1 since OAuth2 is now absent). Restore from the backup before moving on.
-- [ ] **First-signed-in-app auto-default** (automatable): use a *fresh* tempdir (not `$SMOKE_HOME`). `FRESH=$(mktemp
-  -d); XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_dev --client-id … --client-secret …;
-  XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_prod …`. Confirm `yq '.default_app' "$FRESH/.xurl"` is
-  `"default"`. Run `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_dev …`. Confirm `default_app` flipped to
-  `"bird_dev"`. Repeat in a second fresh tempdir using `xr auth app --bearer-token …` and a third using the OAuth2 PKCE
-  flow (the OAuth2 one needs the human authorize step from § Real-world smoke). All three sign-in handlers must promote.
+- [ ] **First-registered app becomes the default** (automatable): use a *fresh* tempdir (not `$SMOKE_HOME`).
+  `FRESH=$(mktemp -d); XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_dev --client-id … --client-secret …`. Confirm
+  `yq '.default_app' "$FRESH/.xurl"` is already `"bird_dev"`: `add_app` promotes when the store holds no apps or the
+  standing default carries neither a client id nor a token, and registration never materializes a `default` app. Add
+  `bird_prod` and confirm the default is unmoved, then run `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_dev
+  …` and confirm the sign-in leaves it at `"bird_dev"`. The sign-in handlers promote through
+  `promote_to_default_if_first_credentialed`, which fires only over a default with no credentials; `store_tests.rs`
+  covers that path directly for all three.
 - [ ] **Promotion idempotence** (automatable): continue from the previous test in the *same* `$FRESH`.
   `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_prod …` (sign in on the OTHER app). Confirm `yq
   '.default_app'` is still `"bird_dev"`, not `"bird_prod"`. The auto-default fires once; a credentialed default is not
@@ -382,8 +386,8 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 
 ### Post-tag verification
 
-Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut and
-PR-to-main merge, so verification of the tag-triggered pipeline (release.yml → homebrew-tap → finalize-release →
+Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut
+and PR-to-main merge, so verification of the tag-triggered pipeline (release.yml → homebrew-tap → finalize-release →
 crates.io publish → fresh-machine install smokes) is post-flight, not pre-flight. Run `scripts/release/postflight.sh
 all` immediately after `git push origin vX.Y.Z`.
 

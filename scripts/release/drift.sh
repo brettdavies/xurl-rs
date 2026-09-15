@@ -301,14 +301,31 @@ gate_head_commits() {
 
 gate_github_dir() {
   header ".github/ parity"
-  local diff
-  diff=$(git diff --name-status "$BASE_REF" "$HEAD_REF" -- .github/ || true)
-  if [[ -z "$diff" ]]; then
+  local paths path verdict count
+  local -a flagged=()
+  paths=$(git diff --name-only "$BASE_REF" "$HEAD_REF" -- .github/ || true)
+  if [[ -z "$paths" ]]; then
     gate_pass ".github/ identical on $BASE_REF and $HEAD_REF"
     return
   fi
-  gate_fail ".github/ differs between $BASE_REF and $HEAD_REF" "$(printf '%s\n' "$diff" | wc -l | tr -d ' ') paths"
-  printf '%s\n' "$diff" | sed 's/^/    /'
+  count=$(printf '%s\n' "$paths" | wc -l | tr -d ' ')
+  # Only the head-ahead direction is drift. Config that reached base and not
+  # head is what the release delivers, and failing on it would turn this gate
+  # red on every release that touches a workflow. `classify_file` is gate 1's
+  # containment test: whether base already holds everything head changed.
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    # Absent on head: base-only, so head cannot be carrying anything here.
+    [[ -n "$(blob_at "$HEAD_REF" "$path")" ]] || continue
+    verdict=$(classify_file "$path")
+    [[ "$verdict" == contained ]] || flagged+=("$verdict $path")
+  done <<<"$paths"
+  if [[ ${#flagged[@]} -eq 0 ]]; then
+    gate_pass ".github/: $BASE_REF contains every change $HEAD_REF carries ($count paths the release delivers)"
+    return
+  fi
+  gate_fail ".github/ on $HEAD_REF holds changes $BASE_REF never received" "${#flagged[@]} of $count paths"
+  printf '%s\n' "${flagged[@]}" | sed 's/^/    /'
 }
 
 # Gate 3: lockfile resolution ------------------------------------------------
