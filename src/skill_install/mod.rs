@@ -44,12 +44,24 @@
 //! Mirrors `agentnative-cli/src/skill_install.rs` so the two CLIs reject the
 //! same malformed inputs and apply identical hardening.
 
-use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
-use crate::output::{OutputConfig, OutputFormat};
+use crate::output::OutputConfig;
+
+mod destination;
+mod git;
+mod render;
+mod update;
+
+pub use destination::{DestinationStatus, check_destination, expand_tilde, expand_tilde_with};
+pub use git::{
+    GIT_HARDEN_ENV_REMOVE, GIT_HARDEN_ENV_SET, GIT_HARDEN_FLAGS, build_clone_command,
+    format_clone_command,
+};
+pub use update::{run_update, run_update_multi};
+
+use git::spawn_git_clone;
+use render::{emit_envelope, render_envelope, render_multi, render_structured};
 
 // `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, and `host_envelope_str` are
 // auto-generated at build time from `src/skill_install/skill.json`. Edit the
@@ -60,44 +72,6 @@ mod generated_hosts {
 }
 
 pub use generated_hosts::{KNOWN_HOSTS, SkillHost, host_envelope_str, resolve_host};
-
-/// `git clone` config flags applied via `-c key=value` pairs, in token order
-/// suitable for `Command::args`.
-pub const GIT_HARDEN_FLAGS: &[&str] = &[
-    "-c",
-    "credential.helper=",
-    "-c",
-    "core.askPass=",
-    "-c",
-    "protocol.allow=never",
-    "-c",
-    "protocol.https.allow=always",
-    "-c",
-    "http.followRedirects=false",
-];
-
-/// Environment variables removed via `Command::env_remove` before spawn.
-/// Each one is a known git-side override that could redirect or hijack the
-/// clone. Never `env_clear()` — that strips PATH and breaks git's helper
-/// resolution.
-pub const GIT_HARDEN_ENV_REMOVE: &[&str] = &[
-    "GIT_SSH",
-    "GIT_SSH_COMMAND",
-    "GIT_PROXY_COMMAND",
-    "GIT_ASKPASS",
-    "GIT_EXEC_PATH",
-];
-
-/// Environment variables *set* on the spawned process. The `GIT_CONFIG_*` pair
-/// points global / system config at `/dev/null` so user-config `insteadOf`
-/// rewriting and other ambient overrides cannot fire — this is the defense
-/// against URL-rewriting attacks. `GIT_TERMINAL_PROMPT=0` blocks credential
-/// prompts.
-pub const GIT_HARDEN_ENV_SET: &[(&str, &str)] = &[
-    ("GIT_CONFIG_GLOBAL", "/dev/null"),
-    ("GIT_CONFIG_SYSTEM", "/dev/null"),
-    ("GIT_TERMINAL_PROMPT", "0"),
-];
 
 /// Typed install error — closed set matching the envelope `reason` taxonomy.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,116 +104,6 @@ impl InstallError {
             InstallError::GitCloneFailed { .. } => "git-clone-failed",
         }
     }
-}
-
-/// Snapshot of what [`check_destination`] found at the resolved path.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DestinationStatus {
-    /// Nothing exists at the resolved path.
-    Absent,
-    /// An empty directory exists; safe to clone into.
-    EmptyDir,
-    /// A directory with at least one entry blocks the clone.
-    NonEmptyDir,
-    /// A regular file (or device / socket / fifo) blocks the clone.
-    File,
-}
-
-impl DestinationStatus {
-    /// Kebab-case identifier for the JSON envelope `destination_status` field.
-    pub fn as_envelope_str(self) -> &'static str {
-        match self {
-            DestinationStatus::Absent => "absent",
-            DestinationStatus::EmptyDir => "empty-dir",
-            DestinationStatus::NonEmptyDir => "non-empty-dir",
-            DestinationStatus::File => "file",
-        }
-    }
-}
-
-/// Expand a leading `~` or `~/` to `$HOME`. Pure passthrough on inputs that
-/// do not start with `~`. `MissingHome` only fires when the input actually
-/// begins with `~` and `$HOME` is unset or empty.
-pub fn expand_tilde(template: &str) -> Result<PathBuf, InstallError> {
-    let home = std::env::var("HOME").ok();
-    expand_tilde_with(template, home.as_deref())
-}
-
-/// Pure-function core of [`expand_tilde`]. Tests pass `home` explicitly so
-/// they never mutate the process environment (which would race with parallel
-/// tests).
-pub fn expand_tilde_with(template: &str, home: Option<&str>) -> Result<PathBuf, InstallError> {
-    let needs_home = template == "~" || template.starts_with("~/");
-    if !needs_home {
-        return Ok(PathBuf::from(template));
-    }
-    let home = home
-        .filter(|s| !s.is_empty())
-        .ok_or(InstallError::MissingHome)?;
-    if template == "~" {
-        return Ok(PathBuf::from(home));
-    }
-    let rest = template
-        .strip_prefix("~/")
-        .expect("template starts with ~/ per the branch guard");
-    let mut p = PathBuf::from(home);
-    p.push(rest);
-    Ok(p)
-}
-
-/// Canonicalizes the path so a symlinked skills directory resolves to its
-/// real target before the check runs. Returns `Absent`/`EmptyDir` on success;
-/// `DestIsFile` for a regular file, `DestNotEmpty` for a populated directory.
-pub fn check_destination(path: &Path) -> Result<DestinationStatus, InstallError> {
-    match path.try_exists() {
-        Ok(false) => return Ok(DestinationStatus::Absent),
-        Ok(true) => {}
-        Err(_) => return Err(InstallError::DestNotEmpty),
-    }
-
-    let canonical = fs::canonicalize(path).map_err(|_| InstallError::DestNotEmpty)?;
-    let metadata = fs::metadata(&canonical).map_err(|_| InstallError::DestNotEmpty)?;
-
-    if metadata.is_file() {
-        return Err(InstallError::DestIsFile);
-    }
-
-    if metadata.is_dir() {
-        let mut entries = fs::read_dir(&canonical).map_err(|_| InstallError::DestNotEmpty)?;
-        if entries.next().is_some() {
-            return Err(InstallError::DestNotEmpty);
-        }
-        return Ok(DestinationStatus::EmptyDir);
-    }
-
-    // Block / char devices, sockets, fifos — treat as a file conflict.
-    Err(InstallError::DestIsFile)
-}
-
-/// Build the hardened `git clone` command. Pure constructor — no spawn, no
-/// I/O. The returned `Command` carries the full hardening surface.
-///
-/// `--depth 1` matches the canonical install command shipped in `skill.json`.
-pub fn build_clone_command(url: &str, dest: &Path) -> Command {
-    let mut cmd = Command::new("git");
-    cmd.args(GIT_HARDEN_FLAGS);
-    cmd.args(["clone", "--depth", "1"]);
-    cmd.arg(url);
-    cmd.arg(dest);
-    for var in GIT_HARDEN_ENV_REMOVE {
-        cmd.env_remove(var);
-    }
-    for (key, value) in GIT_HARDEN_ENV_SET {
-        cmd.env(key, value);
-    }
-    cmd
-}
-
-/// User-visible representation of the clone command for the JSON envelope's
-/// `command_preview` field and dry-run text output. Intentionally omits the
-/// hardening flags — those are an implementation detail.
-pub fn format_clone_command(url: &str, dest: &str) -> String {
-    format!("git clone --depth 1 {url} {dest}")
 }
 
 /// Result envelope shared by both `--output text` and `--output json`.
@@ -403,72 +267,6 @@ pub fn compute_install_envelope(
     }
 }
 
-/// Spawn the prepared `git clone` command and reduce the result to typed
-/// `InstallError` variants matching the reason taxonomy.
-fn spawn_git_clone(cmd: &mut Command) -> Result<(), InstallError> {
-    match cmd.status() {
-        Ok(status) if status.success() => Ok(()),
-        Ok(status) => Err(InstallError::GitCloneFailed {
-            code: status.code().unwrap_or(1),
-        }),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(InstallError::GitNotFound),
-        Err(_) => Err(InstallError::GitCloneFailed { code: 1 }),
-    }
-}
-
-/// Render a single install envelope per the active output format.
-///
-/// Json/Jsonl pretty-print JSON. Ndjson emits one compact JSON line. Yaml
-/// emits a YAML document. Csv/Tsv fall back to one compact JSON line because
-/// the envelope is nested by construction. Text mode emits the legacy
-/// human-readable summary.
-fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> String {
-    if format.is_structured() {
-        return render_structured(env, format);
-    }
-    match env.status {
-        STATUS_DRY_RUN => env.command_preview.clone(),
-        STATUS_OK => format!("Installed xurl-rs skill bundle into {}", env.install_dir),
-        _ => {
-            let reason = env.reason.unwrap_or("unknown");
-            format!("error: {reason}: {}", env.install_dir)
-        }
-    }
-}
-
-/// Render a multi-host envelope per the active output format.
-fn render_multi(env: &InstallMultiEnvelope, format: &OutputFormat) -> String {
-    if format.is_structured() {
-        return render_structured(env, format);
-    }
-    let mut out = String::new();
-    for inst in &env.installations {
-        out.push_str(&render_envelope(inst, format));
-        out.push('\n');
-    }
-    // Trim trailing newline — the writer adds its own.
-    if out.ends_with('\n') {
-        out.pop();
-    }
-    out
-}
-
-/// Best-effort serializer for any of the structured formats.
-fn render_structured<T: serde::Serialize>(env: &T, format: &OutputFormat) -> String {
-    match format {
-        OutputFormat::Json | OutputFormat::Jsonl => serde_json::to_string_pretty(env)
-            .unwrap_or_else(|_| "{\"status\":\"error\"}".to_string()),
-        OutputFormat::Ndjson | OutputFormat::Csv | OutputFormat::Tsv => {
-            serde_json::to_string(env).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
-        }
-        OutputFormat::Yaml => serde_yaml::to_string(env)
-            .unwrap_or_else(|_| "status: error\n".to_string())
-            .trim_end()
-            .to_string(),
-        OutputFormat::Text => unreachable!("guarded by is_structured()"),
-    }
-}
-
 /// Orchestrate the install pipeline for a single host. Writes the envelope to
 /// `stdout` and returns the exit code.
 pub fn run_install(
@@ -569,262 +367,10 @@ fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32
     2
 }
 
-/// Orchestrate the update pipeline for a single host. Semantics: remove the
-/// existing destination (if present) and re-run the install. When `dry_run`
-/// is set, emit a `skill-update` envelope describing the resolved operation
-/// without touching the filesystem or spawning `git`.
-///
-/// The envelope `action` field is `"skill-update"` so consumers can tell
-/// update from install at the JSON layer. All other fields mirror the
-/// install envelope shape.
-pub fn run_update(
-    host: SkillHost,
-    dry_run: bool,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    home: Option<&str>,
-) -> i32 {
-    let (_, dest_template) = resolve_host(host);
-    let host_str = host_envelope_str(host);
-
-    let dest = match expand_tilde_with(dest_template, home) {
-        Ok(p) => p,
-        Err(InstallError::MissingHome) => {
-            let rendered = render_update_error(host_str, dest_template, dry_run, "home-not-set");
-            emit_envelope(stdout, &rendered, &out.format);
-            return 1;
-        }
-        Err(_) => unreachable!("expand_tilde only emits MissingHome"),
-    };
-
-    if dry_run {
-        let rendered = render_update_dry_run(host_str, &dest.display().to_string(), dest.exists());
-        emit_envelope(stdout, &rendered, &out.format);
-        return 0;
-    }
-
-    if dest.exists()
-        && let Err(e) = fs::remove_dir_all(&dest)
-    {
-        let rendered = render_update_error(
-            host_str,
-            &dest.display().to_string(),
-            false,
-            &format!("remove-failed: {e}"),
-        );
-        emit_envelope(stdout, &rendered, &out.format);
-        return 1;
-    }
-
-    let env = compute_install_envelope(host, false, home);
-    let mut rendered = render_envelope(&env, &out.format);
-    if env.status == STATUS_OK {
-        rendered = rendered.replace(ACTION_INSTALL, ACTION_UPDATE);
-    }
-    let _ = writeln!(stdout, "{rendered}");
-    if env.status == STATUS_ERROR {
-        env.exit_code.unwrap_or(1)
-    } else {
-        0
-    }
-}
-
-/// Multi-host wrapper for update. When `all` is set, updates every entry in
-/// [`KNOWN_HOSTS`] whose destination currently exists, skipping hosts that
-/// aren't installed. Otherwise dispatches to [`run_update`] for the single
-/// host.
-pub fn run_update_multi(
-    host: Option<SkillHost>,
-    all: bool,
-    dry_run: bool,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    home: Option<&str>,
-) -> i32 {
-    if all {
-        use clap::ValueEnum as _;
-        let mut worst: i32 = 0;
-        for h in SkillHost::value_variants() {
-            let code = run_update(*h, dry_run, out, stdout, home);
-            if code != 0 {
-                worst = worst.max(code);
-            }
-        }
-        return worst;
-    }
-    let Some(host) = host else {
-        return emit_missing_host_envelope(out, stdout);
-    };
-    run_update(host, dry_run, out, stdout, home)
-}
-
-fn emit_envelope(stdout: &mut dyn Write, rendered: &str, _format: &OutputFormat) {
-    let _ = writeln!(stdout, "{rendered}");
-}
-
-fn render_update_dry_run(host: &str, install_dir: &str, dest_exists: bool) -> String {
-    let json = serde_json::json!({
-        "action": ACTION_UPDATE,
-        "host": host,
-        "install_dir": install_dir,
-        "destination_status": if dest_exists { "non-empty-dir" } else { "absent" },
-        "status": STATUS_DRY_RUN,
-        "would_succeed": true,
-        "exit_code": 0,
-    });
-    serde_json::to_string_pretty(&json).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
-}
-
-fn render_update_error(host: &str, install_dir: &str, dry_run: bool, reason: &str) -> String {
-    let json = serde_json::json!({
-        "action": ACTION_UPDATE,
-        "host": host,
-        "install_dir": install_dir,
-        "status": STATUS_ERROR,
-        "would_succeed": if dry_run { Some(false) } else { None },
-        "exit_code": 1,
-        "reason": reason,
-    });
-    serde_json::to_string_pretty(&json).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use clap::ValueEnum;
-
-    fn skill_repo_url() -> &'static str {
-        resolve_host(SkillHost::ClaudeCode).0
-    }
-
-    #[test]
-    fn expand_tilde_replaces_leading_tilde_slash_with_home() {
-        let got = expand_tilde_with("~/.claude/skills/xurl-rs", Some("/home/test"))
-            .expect("HOME present + ~/ prefix should expand cleanly");
-        assert_eq!(got, PathBuf::from("/home/test/.claude/skills/xurl-rs"));
-    }
-
-    #[test]
-    fn expand_tilde_missing_home_only_when_input_starts_with_tilde() {
-        let err = expand_tilde_with("~/anything", None)
-            .expect_err("HOME unset + tilde input should be MissingHome");
-        assert_eq!(err, InstallError::MissingHome);
-
-        let err_empty =
-            expand_tilde_with("~", Some("")).expect_err("HOME empty string is treated as unset");
-        assert_eq!(err_empty, InstallError::MissingHome);
-    }
-
-    #[test]
-    fn expand_tilde_no_tilde_passthrough() {
-        let got = expand_tilde_with("/abs/path", Some("/home/test"))
-            .expect("non-tilde input never errors");
-        assert_eq!(got, PathBuf::from("/abs/path"));
-
-        let got_no_home =
-            expand_tilde_with("/abs/path", None).expect("non-tilde input ignores HOME");
-        assert_eq!(got_no_home, PathBuf::from("/abs/path"));
-    }
-
-    #[test]
-    fn check_destination_absent_for_nonexistent_path() {
-        let tmp = tempfile::tempdir().expect("tempdir creation");
-        let target = tmp.path().join("does-not-exist");
-        let status = check_destination(&target).expect("absent path should be Ok(Absent)");
-        assert_eq!(status, DestinationStatus::Absent);
-    }
-
-    #[test]
-    fn check_destination_empty_dir() {
-        let tmp = tempfile::tempdir().expect("tempdir creation");
-        let status = check_destination(tmp.path()).expect("empty tempdir should be Ok(EmptyDir)");
-        assert_eq!(status, DestinationStatus::EmptyDir);
-    }
-
-    #[test]
-    fn check_destination_non_empty_dir_errors() {
-        let tmp = tempfile::tempdir().expect("tempdir creation");
-        std::fs::write(tmp.path().join("placeholder"), b"x").expect("write placeholder");
-        let err = check_destination(tmp.path()).expect_err("populated dir should be DestNotEmpty");
-        assert_eq!(err, InstallError::DestNotEmpty);
-    }
-
-    #[test]
-    fn check_destination_regular_file_errors() {
-        let tmp = tempfile::tempdir().expect("tempdir creation");
-        let target = tmp.path().join("a-file");
-        std::fs::write(&target, b"contents").expect("write file");
-        let err = check_destination(&target).expect_err("file should be DestIsFile");
-        assert_eq!(err, InstallError::DestIsFile);
-    }
-
-    #[test]
-    fn build_clone_command_applies_hardening_surface() {
-        let url = skill_repo_url();
-        let dest = Path::new("/tmp/xurl-skill-introspect");
-        let cmd = build_clone_command(url, dest);
-
-        let args: Vec<String> = cmd
-            .get_args()
-            .map(|s| s.to_string_lossy().into_owned())
-            .collect();
-
-        for &flag in GIT_HARDEN_FLAGS {
-            assert!(
-                args.iter().any(|a| a == flag),
-                "GIT_HARDEN_FLAGS entry {flag:?} missing from command args; got {args:?}",
-            );
-        }
-        assert!(
-            args.iter().any(|a| a == "clone"),
-            "missing 'clone' subcommand: {args:?}"
-        );
-        assert!(
-            args.iter().any(|a| a == "--depth"),
-            "missing --depth flag: {args:?}"
-        );
-        assert!(args.iter().any(|a| a == "1"), "missing --depth value");
-        assert!(args.iter().any(|a| a == url), "missing url operand");
-
-        let envs: std::collections::HashMap<String, Option<String>> = cmd
-            .get_envs()
-            .map(|(k, v)| {
-                (
-                    k.to_string_lossy().into_owned(),
-                    v.map(|s| s.to_string_lossy().into_owned()),
-                )
-            })
-            .collect();
-
-        for &var in GIT_HARDEN_ENV_REMOVE {
-            let entry = envs.get(var);
-            assert!(
-                matches!(entry, Some(None)),
-                "GIT_HARDEN_ENV_REMOVE entry {var:?} should be removed; got {entry:?}",
-            );
-        }
-
-        for &(key, value) in GIT_HARDEN_ENV_SET {
-            let entry = envs.get(key);
-            assert_eq!(
-                entry,
-                Some(&Some(value.to_string())),
-                "GIT_HARDEN_ENV_SET entry {key}={value:?} not present",
-            );
-        }
-    }
-
-    #[test]
-    fn git_harden_env_set_disables_user_config() {
-        let pairs: std::collections::HashMap<&str, &str> =
-            GIT_HARDEN_ENV_SET.iter().copied().collect();
-        for var in ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"] {
-            let v = pairs
-                .get(var)
-                .unwrap_or_else(|| panic!("GIT_HARDEN_ENV_SET missing {var}"));
-            assert_eq!(*v, "/dev/null", "{var} must be set to /dev/null");
-        }
-    }
 
     #[test]
     fn skill_host_clap_value_names_match_known_hosts() {
@@ -855,15 +401,6 @@ mod tests {
         assert_eq!(
             variant_names, known,
             "SkillHost variants and KNOWN_HOSTS must stay in lockstep",
-        );
-    }
-
-    #[test]
-    fn format_clone_command_matches_canonical_shape() {
-        let s = format_clone_command(skill_repo_url(), "/home/u/.claude/skills/xurl-rs");
-        assert_eq!(
-            s,
-            "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git /home/u/.claude/skills/xurl-rs",
         );
     }
 
