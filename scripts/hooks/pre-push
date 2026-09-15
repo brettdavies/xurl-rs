@@ -43,6 +43,14 @@ if [ -t 0 ]; then
 else
     push_refs=$(cat)
     if [ -z "$push_refs" ]; then
+        # git invokes this hook with the remote name and URL as arguments and
+        # one line per pushed ref on stdin. No lines while those arguments are
+        # present means the remote already has every ref, so there is nothing
+        # to check. No arguments at all is a hand-run, which sweeps.
+        if [ "$#" -ge 2 ]; then
+            echo "pre-push: nothing to push"
+            exit 0
+        fi
         scope_all=true
     else
         while read -r _local_ref local_sha _remote_ref remote_sha; do
@@ -222,6 +230,8 @@ if ! touched '^\.github/workflows/.*\.ya?ml$'; then
 else
     check_actionlint .github/workflows || fail "actionlint"
     pass "actionlint"
+    check_workflow_concurrency .github/workflows || fail "concurrency namespacing"
+    pass "concurrency namespacing"
 fi
 
 echo -e "${BOLD}${GREEN}All checks passed.${RESET}"
