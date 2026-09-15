@@ -11,7 +11,7 @@
 # runs BEFORE the release branch cut.
 #
 # Single-env repos (Rust CLIs releasing to crates.io + homebrew with no
-# staging deploy) ignore --env entirely — postflight runs identically.
+# staging deploy) ignore --env entirely; postflight runs identically.
 # Multi-env site/service repos use --env staging after a dev push and
 # --env prod after the release/* → main merge.
 #
@@ -396,7 +396,7 @@ gate_backport() {
 
   # Look for a merged PR to dev with the version in the title. The backport
   # carries more than CHANGELOG.md (cliff.toml, README polish, RELEASES.md
-  # meta-edits, etc. — anything the release-branch flow touched on main that
+  # meta-edits, etc.: anything the release-branch flow touched on main that
   # didn't round-trip to dev), so checking a single file's content can lie
   # both ways. The merged PR is the durable signal that the backport
   # operation ran, regardless of which files it included.
@@ -406,7 +406,7 @@ gate_backport() {
   # jaq-filter the title for precision (`v?` accepts either spelling) and sort
   # by mergedAt descending so
   # the BACKPORT PR beats the FEATURE PR when both carry the version in their
-  # titles (e.g., a "feat(api)!: vX.Y.Z — …" PR would otherwise be returned by
+  # titles (e.g., a "feat(api)!: vX.Y.Z ..." PR would otherwise be returned by
   # `--jq '.[0]'` without sort and falsely pass the gate).
   local pr=""
   pr=$(gh pr list --repo "$repo" --base dev --state merged --limit 20 \
@@ -435,7 +435,7 @@ gate_crates() {
   local crate
   crate=$(resolve_crate || true)
   if [[ -z "$crate" ]]; then
-    gate_skip "crates.io publish" "no Cargo.toml [package].name — non-Rust repo (pass --crate NAME to force)"
+    gate_skip "crates.io publish" "no Cargo.toml [package].name; non-Rust repo (pass --crate NAME to force)"
     return
   fi
   require_bin cargo

@@ -36,7 +36,9 @@
 #      checked against base's copy, first by three-way merge and then line by
 #      line (every added line present, every removed line gone). Lockfiles
 #      are handled by gate 3.
-#   2. .github/ matches exactly between base and head.
+#   2. .github/ paths head carries that base does not contain. A path
+#      base holds and head does not is what the release delivers, not
+#      drift, so only the head-ahead direction fails.
 #   3. For each lockfile head carries (package-lock.json, bun.lock,
 #      Cargo.lock): every
 #      package head resolves newer than base, one line per package name so
