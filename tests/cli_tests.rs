@@ -2779,6 +2779,27 @@ fn test_every_subcommand_help_has_examples_block() {
 }
 
 #[test]
+fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
+    // The two handlers share a body shape with mute/unmute, so a copied
+    // `command` value would still emit a well-formed envelope and pass every
+    // other gate. Pin the name each one reports.
+    for (command, target) in [("block", "@spammer"), ("unblock", "@spammer")] {
+        let (code, stdout, stderr) =
+            run_isolated(&["xr", command, target, "--dry-run", "--output", "json"]);
+        assert_eq!(
+            code, 0,
+            "expected 0 for `{command}` dry-run; stderr: {stderr}"
+        );
+        let v: serde_json::Value =
+            serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+        assert_eq!(v["status"], "dry_run", "envelope: {v}");
+        assert_eq!(v["command"], command, "envelope: {v}");
+        assert_eq!(v["target_username"], target, "envelope: {v}");
+        assert_eq!(v["would_succeed"], true, "envelope: {v}");
+    }
+}
+
+#[test]
 fn test_force_help_advertised_on_delete() {
     let (code, stdout, _stderr) = run_isolated(&["xr", "delete", "--help"]);
     assert_eq!(code, 0);

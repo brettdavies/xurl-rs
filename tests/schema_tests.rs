@@ -66,8 +66,8 @@ fn schema_list_shows_all_commands_plus_envelope() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
-    // 34 typed response commands + 1 envelope schema row.
-    assert_eq!(lines.len(), 35, "Expected 35 rows, got {}", lines.len());
+    // 38 typed response commands + 1 envelope schema row.
+    assert_eq!(lines.len(), 39, "Expected 39 rows, got {}", lines.len());
     assert!(
         stdout.contains("envelope"),
         "--list should advertise the envelope schema"
@@ -103,6 +103,10 @@ fn schema_list_contains_expected_commands() {
         "unbookmark",
         "mute",
         "unmute",
+        "muted",
+        "block",
+        "unblock",
+        "blocked",
         "dm",
         "dms",
         "usage",
@@ -133,7 +137,7 @@ fn schema_all_outputs_json_with_all_commands() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
-    assert_eq!(obj.len(), 34, "Expected 34 entries, got {}", obj.len());
+    assert_eq!(obj.len(), 38, "Expected 38 entries, got {}", obj.len());
     // Each value should be a valid schema object — either an object schema
     // with `properties` or an array schema with `items`.
     for (cmd, schema) in obj {

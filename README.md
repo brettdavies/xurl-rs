@@ -126,6 +126,10 @@ xr following                                   # Who you follow
 xr followers                                   # Your followers
 xr mute @user                                  # Mute
 xr unmute @user                                # Unmute
+xr muted                                       # Users you have muted
+xr block @user                                 # Block
+xr unblock @user                               # Unblock
+xr blocked                                     # Users you have blocked
 ```
 
 ### Direct Messages

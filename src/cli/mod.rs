@@ -356,6 +356,42 @@ Examples:
     xr unmute @noisy --output json
 ";
 
+/// `xr muted` examples — paired text + JSON.
+const MUTED_HELP: &str = "\
+Examples:
+  List the users you have muted (text):
+    xr muted
+  First 100, as JSON Lines:
+    xr muted -n 100 --output jsonl
+";
+
+/// `xr block` examples — paired text + JSON.
+const BLOCK_HELP: &str = "\
+Examples:
+  Block a user (text):
+    xr block @spammer
+  Block (JSON envelope):
+    xr block @spammer --output json
+";
+
+/// `xr unblock` examples — paired text + JSON.
+const UNBLOCK_HELP: &str = "\
+Examples:
+  Unblock a user (text):
+    xr unblock @spammer
+  Unblock (JSON envelope):
+    xr unblock @spammer --output json
+";
+
+/// `xr blocked` examples — paired text + JSON.
+const BLOCKED_HELP: &str = "\
+Examples:
+  List the users you have blocked (text):
+    xr blocked
+  First 100, as JSON Lines:
+    xr blocked -n 100 --output jsonl
+";
+
 /// `xr usage` examples — paired text + JSON.
 const USAGE_HELP: &str = "\
 Examples:
@@ -1162,7 +1198,7 @@ pub enum Commands {
     /// List users you follow
     #[command(after_help = FOLLOWING_HELP)]
     Following {
-        /// Number of results (1-1000). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list following for (default: you)
@@ -1175,7 +1211,7 @@ pub enum Commands {
     /// List your followers
     #[command(after_help = FOLLOWERS_HELP)]
     Followers {
-        /// Number of results (1-1000). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list followers for (default: you)
@@ -1201,6 +1237,46 @@ pub enum Commands {
         /// Username to unmute
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List users you have muted
+    #[command(after_help = MUTED_HELP)]
+    Muted {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Block a user
+    #[command(after_help = BLOCK_HELP)]
+    Block {
+        /// Username to block
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unblock a user
+    #[command(after_help = UNBLOCK_HELP)]
+    Unblock {
+        /// Username to unblock
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List users you have blocked
+    #[command(after_help = BLOCKED_HELP)]
+    Blocked {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

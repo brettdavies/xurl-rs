@@ -7,8 +7,8 @@ use schemars::schema_for;
 use serde_json::Value;
 
 use crate::api::{
-    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
+    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::error::{Result, XurlError};
@@ -38,7 +38,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         type_name: "ApiResponse<User>",
     },
     SchemaEntry {
-        commands: &["following", "followers"],
+        commands: &["following", "followers", "muted", "blocked"],
         type_name: "ApiResponse<Vec<User>>",
     },
     SchemaEntry {
@@ -64,6 +64,10 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &["mute", "unmute"],
         type_name: "ApiResponse<MutingResult>",
+    },
+    SchemaEntry {
+        commands: &["block", "unblock"],
+        type_name: "ApiResponse<BlockingResult>",
     },
     SchemaEntry {
         commands: &["dm"],
@@ -113,13 +117,14 @@ fn schema_for_command(command: &str) -> Result<Value> {
             schema_for!(ApiResponse<Vec<Post>>)
         }
         "whoami" | "user" => schema_for!(ApiResponse<User>),
-        "following" | "followers" => schema_for!(ApiResponse<Vec<User>>),
+        "following" | "followers" | "muted" | "blocked" => schema_for!(ApiResponse<Vec<User>>),
         "like" | "unlike" => schema_for!(ApiResponse<LikedResult>),
         "follow" | "unfollow" => schema_for!(ApiResponse<FollowingResult>),
         "delete" => schema_for!(ApiResponse<DeletedResult>),
         "repost" | "unrepost" => schema_for!(ApiResponse<RepostedResult>),
         "bookmark" | "unbookmark" => schema_for!(ApiResponse<BookmarkedResult>),
         "mute" | "unmute" => schema_for!(ApiResponse<MutingResult>),
+        "block" | "unblock" => schema_for!(ApiResponse<BlockingResult>),
         "dm" => schema_for!(ApiResponse<DmEvent>),
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
