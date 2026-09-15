@@ -166,14 +166,14 @@ format change. Existing v1.0.4 assets are unaffected. Document the change in the
 ## Dependencies & Risks
 
 | Dependency | Status | Risk |
-|---|---|---|
+| --- | --- | --- |
 | Reusable workflows deployed to `brettdavies/.github` | Done (on main) | None |
 | `CI_RELEASE_TOKEN` secret in 1Password | Exists | Must be added to xurl-rs repo |
 | Trusted Publishing + reusable workflows | **Untested** | May need crates.io config update |
 | Homebrew formula update for completions subcommand | Not started | Must coordinate with release tag |
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Trusted Publishing OIDC rejects callee workflow | Medium | Blocks release | Update crates.io config or use one-time token |
 | `deny.toml` fails on new transitive dep | Low | Blocks CI | Add license to allow-list |
 | Homebrew bottle build fails (completions flag) | High if not addressed | Stuck draft release | Update formula before tagging |

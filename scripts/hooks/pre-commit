@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Pre-commit hook: fast, staged-file-scoped checks that catch the cheap
+# mistakes before they reach a commit. The whole-repo CI mirror lives in the
+# pre-push hook (scripts/hooks/pre-push); keep this hook fast enough that it
+# is never the reason someone reaches for --no-verify.
+#
+# This hook owns which files get checked; scripts/hooks/_lib.sh owns how each
+# tool runs, including its missing-tool hint, so the two hooks cannot drift
+# into checking the same thing two different ways.
+#
+# Activate per clone via: git config core.hooksPath scripts/hooks
+# (This is machine-local git config: it does NOT travel with the clone, and
+# an unset core.hooksPath is the single most common reason a hook never fires.
+# Run the command above once per fresh clone, human and agent workspace alike.)
+#
+# Exit codes: 0 = all staged checks pass (or cleanly skipped), 1 = failure.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+# shellcheck source=scripts/hooks/_lib.sh
+. ./scripts/hooks/_lib.sh || exit 1
+
+# Only ACMR (added/copied/modified/renamed) staged paths; deletions cannot fail
+# a lint, and a staged deletion leaves no file for a tool to open.
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
+
+mapfile -t rs_files < <(staged '*.rs')
+mapfile -t md_files < <(staged '*.md')
+mapfile -t yml_files < <(staged '.github/workflows/*.yml' '.github/workflows/*.yaml')
+mapfile -t sh_files < <(staged '*.sh' 'scripts/hooks/pre-commit' 'scripts/hooks/pre-push' 'scripts/hooks/_lib.sh')
+
+if [ ${#rs_files[@]} -eq 0 ] && [ ${#md_files[@]} -eq 0 ] && [ ${#yml_files[@]} -eq 0 ] \
+    && [ ${#sh_files[@]} -eq 0 ]; then
+    echo "pre-commit: nothing staged that this hook checks"
+    exit 0
+fi
+
+fail=0
+check_rustfmt "${rs_files[@]}" || {
+    echo "pre-commit: rustfmt --check failed (run \`cargo fmt\`)" >&2
+    fail=1
+}
+check_markdownlint "${md_files[@]}" || fail=1
+check_actionlint "${yml_files[@]}" || fail=1
+check_shellcheck "${sh_files[@]}" || fail=1
+
+[ "$fail" -eq 0 ] || exit 1
+echo "pre-commit: staged checks passed"

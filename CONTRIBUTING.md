@@ -13,11 +13,20 @@ cargo test                                 # unit + integration
 git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
-`scripts/hooks/pre-push` mirrors CI: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test`, the MSRV check, the
-doc build, `cargo deny check`, `shellcheck`, and a Windows compatibility scan. Run it directly when `core.hooksPath` is
-not set. CI adds four gates the hook does not: output discipline (`scripts/lint-stdio.sh`), completions freshness
-(`./scripts/generate-completions.sh --check`), the package check, and the public-API semver gate (`cargo semver-checks`
-against the last tag). Run those yourself when a change touches the CLI surface or the library API.
+That one command activates both hooks. `pre-commit` is staged-file-scoped and fast: `rustfmt --check` on staged `.rs`,
+`actionlint` on a staged workflow, `markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. Both hooks share
+`scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs on.
+
+`pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test`, the MSRV check, the
+doc build, `cargo deny check`, `shellcheck`, a Windows compatibility scan, `markdownlint-cli2`, and `actionlint`.
+
+`pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
+finishes in seconds. The scoping fails open: an unrecognized path runs everything, and running the hook by hand sweeps
+the whole repo. Every step that is skipped says so on its own line, so a skip never reads as a pass.
+
+Three CI gates have no hook counterpart, because each needs a clean checkout or a released baseline: completions
+freshness (`./scripts/generate-completions.sh --check`), the package check, and the public-API semver gate (`cargo
+semver-checks` against the last tag). Run those yourself when a change touches the CLI surface or the library API.
 
 ## Branch and PR flow
 
