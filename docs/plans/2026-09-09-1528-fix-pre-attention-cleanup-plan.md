@@ -1013,9 +1013,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   block that names `xr` as the documented command. The tap's `update-formula.yml` rewrites only `url`, `sha256`, and the
   `bottle` block, so both additions survive a release. Never add a `xurl` symlink.
 - **Skill bundles, T15a beside 3.2.0:** `xurl-rs-skill` (`SKILL.md`, `references/auth-modes.md`,
-  `references/self-introspection.md`) and `bird-skill` (`references/xr-bridge.md`) gain the `next_step` object, the
-  `unknown-command` and `client-credentials-missing` reasons, the status-ok message verbs, and the exit-77 recipe
-  reading today's array.
+  `references/self-introspection.md`) gains the `next_step` object, the `unknown-command` and
+  `client-credentials-missing` reasons, the status-ok message verbs, and the exit-77 recipe reading today's array.
 - **Skill bundles, T15b beside 3.3.0:** the same files move to the `apps` wrapper.
 
 ---
@@ -1443,13 +1442,12 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
 - [ ] **T15a (P1, human: ~2 hours / CC: ~20 min)** — skill bundles — `next_step`, the new reasons, the status-ok message
   verbs, and the exit-77 recipe, beside 3.2.0
   - Surfaced by: outside voice 4, 10, 19 across both reviews
-  - Files: `~/dev/xurl-rs-skill/SKILL.md`, `references/auth-modes.md`, `references/self-introspection.md`;
-    `~/dev/bird-skill/references/xr-bridge.md`
-  - Verify: each bundle's examples run against 3.2.0 as written
+  - Files: `~/dev/xurl-rs-skill/SKILL.md`, `references/auth-modes.md`, `references/self-introspection.md`
+  - Verify: the bundle's examples run against 3.2.0 as written
 - [ ] **T15b (P2, human: ~1 hour / CC: ~10 min)** — skill bundles — The `apps` wrapper, beside 3.3.0
   - Surfaced by: eng review 15A
   - Files: the same bundle files
-  - Verify: each bundle's examples run against 3.3.0 as written
+  - Verify: the bundle's examples run against 3.3.0 as written
 - [ ] **T16 (P1, human: ~1 hour / CC: ~10 min)** — release — Tag 3.3.0 with U12b and the T15b bundle pass. 3.2.0
   carried U1 through U11, U11 included, and was tagged before the listing PR opened
   - Surfaced by: outside voice 16 (DX review); eng review 16B
