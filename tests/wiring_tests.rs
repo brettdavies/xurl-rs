@@ -136,7 +136,9 @@ fn test_xurl_output_env_sets_json_format() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed.as_array().expect("auth status emits a JSON array");
+    let arr = parsed["apps"]
+        .as_array()
+        .expect("auth status emits apps as a JSON array");
     assert!(!arr.is_empty(), "expected at least one entry: {stdout}");
     assert!(arr[0]["name"].is_string());
 }
@@ -288,7 +290,9 @@ fn test_json_quiet_combined() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed.as_array().expect("auth status emits a JSON array");
+    let arr = parsed["apps"]
+        .as_array()
+        .expect("auth status emits apps as a JSON array");
     assert!(!arr.is_empty(), "expected at least one entry: {stdout}");
     assert!(arr[0]["name"].is_string());
 }
@@ -337,7 +341,9 @@ fn test_auth_status_json_output() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed.as_array().expect("status emits a JSON array");
+    let arr = parsed["apps"]
+        .as_array()
+        .expect("status emits apps as a JSON array");
     assert!(
         arr.iter().any(|e| e["name"] == "myapp"),
         "expected the registered app: {stdout}"
@@ -360,7 +366,9 @@ fn test_auth_apps_list_json_output() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed.as_array().expect("apps list emits a JSON array");
+    let arr = parsed["apps"]
+        .as_array()
+        .expect("apps list emits apps as a JSON array");
     assert!(
         arr.iter().any(|e| e["name"] == "myapp"),
         "expected the registered app: {stdout}"
@@ -425,4 +433,59 @@ fn test_xr_seam_default_store_rejects_writes() {
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("No such file"), "stderr: {stderr}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Auth status and apps list carry their array under `apps` (R17b)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Both list-shaped auth verbs answer with the same success envelope every
+/// other auth verb uses, so one `.status` branch covers the whole surface.
+#[test]
+fn test_auth_status_and_apps_list_wrap_entries_under_apps() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    register_app_at(&store);
+
+    for args in [
+        &["auth", "status", "--output", "json"][..],
+        &["auth", "apps", "list", "--output", "json"][..],
+    ] {
+        let output = common::xr_with_store(&store).args(args).output().unwrap();
+        assert!(output.status.success(), "{args:?} failed");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+
+        assert_eq!(parsed["status"], "ok", "{args:?} lacks status: {stdout}");
+        let apps = parsed["apps"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{args:?} has no apps array: {stdout}"));
+        assert!(
+            apps.iter().any(|e| e["name"] == "myapp"),
+            "{args:?} lost the registered app: {stdout}"
+        );
+    }
+}
+
+/// An empty store answers with the same envelope and an empty array, so a
+/// caller iterates `apps` without a zero-app special case.
+#[test]
+fn test_auth_status_empty_store_emits_empty_apps_array() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+
+    let output = common::xr_with_store(&store)
+        .args(["auth", "status", "--output", "json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(parsed["status"], "ok", "empty store lacks status: {stdout}");
+    assert_eq!(
+        parsed["apps"].as_array().map(Vec::len),
+        Some(0),
+        "empty store should emit apps: []: {stdout}"
+    );
 }

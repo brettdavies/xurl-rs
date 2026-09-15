@@ -412,8 +412,8 @@ pub(super) fn run_auth_command(
             );
 
             if out.format.is_structured() {
-                let value = serde_json::to_value(&entries)?;
-                out.print_response(stdout, &value);
+                let value = serde_json::json!({ "apps": serde_json::to_value(&entries)? });
+                out.print_success(stdout, &value);
             } else {
                 for (i, (name, entry)) in apps.iter().zip(entries.iter()).enumerate() {
                     let Some(app) = ts.get_app(name) else {
@@ -782,8 +782,8 @@ fn run_app_command(
             );
 
             if out.format.is_structured() {
-                let value = serde_json::to_value(&entries)?;
-                out.print_response(stdout, &value);
+                let value = serde_json::json!({ "apps": serde_json::to_value(&entries)? });
+                out.print_success(stdout, &value);
             } else {
                 for (name, entry) in apps.iter().zip(entries.iter()) {
                     let Some(app) = ts.get_app(name) else {
@@ -894,8 +894,8 @@ fn truncate(s: &str, max_len: usize) -> &str {
 ///
 /// Text names the command that fixes it, and reports the environment bearer
 /// when one is set, since that alone can already drive app-only calls.
-/// Structured output is the empty array a caller iterates without a special
-/// case.
+/// Structured output carries an empty `apps` array inside the same success
+/// envelope, so a caller iterates it without a zero-app special case.
 fn print_no_apps_registered(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     // An empty `apps` map means two different things. Saying "nothing is
     // registered" about a file the loader could not read would send the
@@ -907,7 +907,7 @@ fn print_no_apps_registered(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Wr
         )));
     }
     if out.format.is_structured() {
-        out.print_response(stdout, &serde_json::Value::Array(Vec::new()));
+        out.print_success(stdout, &serde_json::json!({ "apps": [] }));
         return Ok(());
     }
     out.print_message(
