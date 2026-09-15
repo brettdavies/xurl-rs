@@ -71,6 +71,13 @@ check_actionlint() {
   actionlint
 }
 
+# Concurrency-group namespacing. The file list gates whether it runs; the script
+# reads every workflow itself, because the rule is a property of the set.
+check_workflow_concurrency() {
+    [ "$#" -gt 0 ] || return 0
+    ./scripts/lint-workflow-concurrency.sh
+}
+
 # Shell correctness — severity=warning catches real bugs (quoting, unused vars,
 # missing exits) while leaving info/style noise out.
 check_shellcheck() {

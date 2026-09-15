@@ -42,6 +42,7 @@ check_rustfmt "${rs_files[@]}" || {
 }
 check_markdownlint "${md_files[@]}" || fail=1
 check_actionlint "${yml_files[@]}" || fail=1
+check_workflow_concurrency "${yml_files[@]}" || fail=1
 check_shellcheck "${sh_files[@]}" || fail=1
 
 [ "$fail" -eq 0 ] || exit 1
