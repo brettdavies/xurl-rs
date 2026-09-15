@@ -71,7 +71,11 @@ header() { printf "\n%s== %s ==%s\n" "$C_BLD" "$1" "$C_RST"; }
 
 # Which bump the working tree claims over a baseline tag, for the release type
 # cargo-semver-checks validates against. Compares Cargo.toml's version to the
-# tag rather than guessing from commit markers.
+# tag rather than guessing from commit markers: a break reaches the branch
+# whether or not its commit carried a `!` marker, so the version is the only
+# honest statement of what this release claims to be.
+#
+# Rust-only, and callers gate on Cargo.toml themselves.
 semver_release_type() {
   local baseline="${1#v}" current
   current=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
