@@ -28,10 +28,18 @@ on:
 permissions:
   contents: read
 
+# A literal token leads the key: see the note in ci.yml. This workflow calls no
+# reusable today, so it cannot collide, and the shape is the repository's rule
+# rather than a property of which workflows happen to be at risk.
+concurrency:
+  group: spec-drift-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     name: Compare vendored spec against upstream
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
@@ -322,7 +330,7 @@ jobs:
             echo ""
             echo "### Automated gates (this PR's CI)"
             echo ""
-            echo "- \`cargo build\` regenerates the auth-method matrix from the new spec; a build panic names a shortcut template that no longer resolves. Update the endpoint in \`src/api/shortcuts.rs\` and the \`SHORTCUT_TEMPLATES\` allowlist in \`src/api/auth_matrix.rs\`."
+            echo "- \`cargo build\` regenerates the auth-method matrix from the new spec; a build panic names a shortcut template that no longer resolves. Update the endpoint in \`src/api/shortcuts.rs\` and the \`SHORTCUT_TEMPLATES\` allowlist in \`build.rs\`."
             echo "- \`tests/spec_types_validation.rs\` fails when a typed response still declares a field, or maps a component schema, that the spec renamed or removed. \`ALLOWED_DIVERGENCES\` applies only to field-level divergences with a documented upstream reason; it cannot suppress a missing component schema. For a renamed schema, repoint the test's mapping table and rework the affected struct in \`src/api/response/types.rs\`."
             echo ""
             echo "### Execute, in order"

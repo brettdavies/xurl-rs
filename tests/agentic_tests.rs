@@ -252,12 +252,15 @@ fn test_xurl_color_env_accepted() {
 // Subprocess tests give hermetic env control: the spawn seam strips
 // `NO_COLOR`, and `.env("NO_COLOR", "1")` applies only to the child, so
 // concurrent cargo-test threads can't race on the env var.
-// The runner emits a `No URL provided` validation error to stderr via
-// `OutputConfig::print_error`, which honors `use_color`.
+// A mistyped command renders its error line to stderr through the one
+// envelope emitter, which honors `use_color`.
 
 #[test]
 fn test_color_never_strips_ansi_from_stderr() {
-    let output = common::xr().args(["--color", "never"]).output().unwrap();
+    let output = common::xr()
+        .args(["--color", "never", "whoam"])
+        .output()
+        .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         !stderr.contains('\x1b'),
@@ -267,7 +270,10 @@ fn test_color_never_strips_ansi_from_stderr() {
 
 #[test]
 fn test_color_always_emits_ansi_on_stderr() {
-    let output = common::xr().args(["--color", "always"]).output().unwrap();
+    let output = common::xr()
+        .args(["--color", "always", "whoam"])
+        .output()
+        .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains('\x1b'),
@@ -278,7 +284,7 @@ fn test_color_always_emits_ansi_on_stderr() {
 #[test]
 fn test_no_color_env_overrides_color_always() {
     let output = common::xr()
-        .args(["--color", "always"])
+        .args(["--color", "always", "whoam"])
         .env("NO_COLOR", "1")
         .output()
         .unwrap();

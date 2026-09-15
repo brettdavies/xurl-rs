@@ -10,9 +10,9 @@ matrix in `src/api/auth_matrix.rs` (see `build.rs`).
 | Upstream URL        | https://api.x.com/2/openapi.json                                   |
 | Spec `info.version` | 2.168                                                              |
 | Path count          | 156                                                                |
-| File size           | 894290 bytes                                                       |
-| SHA256              | `b0a471fc4e27c8824e2b6c32954c75557656d2661945b151e0e6ece16ab6ac36` |
-| Refreshed (UTC)     | 2026-09-02                                                         |
+| File size           | 894803 bytes                                                       |
+| SHA256              | `7119617bc7e52085878f14bb0a1742b5699b18e390f1fc04a3eb88ade37374a0` |
+| Refreshed (UTC)     | 2026-09-04                                                         |
 
 ## Refresh
 
@@ -22,9 +22,9 @@ Run from the repo root before each release cycle:
 scripts/refresh-x-openapi.sh
 ```
 
-The script downloads the current spec, validates it as JSON, replaces this directory's copy, and rewrites this README.
-CI drift-check (`.github/workflows/spec-drift.yml`) flags divergence between runs and posts either a job summary, a PR
-comment, or a tracked issue depending on the trigger.
+The script downloads the current spec, validates it as JSON, replaces this directory's copy, and rewrites this README
+through `scripts/render-vendor-readme.sh`. The CI drift check (`.github/workflows/spec-drift.yml`) flags divergence
+between runs and, depending on the trigger, writes a job summary, comments on the PR, or opens a refresh PR to `dev`.
 
 ## Why vendor?
 

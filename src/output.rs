@@ -18,6 +18,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
+use crate::envelope::ErrorBody;
 use crate::error::XurlError;
 
 /// Output format for machine/human consumption.
@@ -216,13 +217,66 @@ impl OutputConfig {
         exit_code: i32,
         message: &str,
     ) {
-        let envelope = serde_json::json!({
-            "status": "error",
-            "reason": reason,
-            "exit_code": exit_code,
-            "message": message,
-        });
-        self.write_envelope_or_text_error(err, &envelope, message);
+        self.emit_error_envelope(
+            err,
+            ErrorBody {
+                reason: reason.to_string(),
+                exit_code,
+                message: Some(message.to_string()),
+                ..ErrorBody::default()
+            },
+        );
+    }
+
+    /// Prints an error with a recovery hint attached.
+    ///
+    /// Text mode puts the hint lines after the error line, outside the color
+    /// wrap, and drops them under `--quiet`, which suppresses advice and
+    /// never the error. Structured modes fold the typed step into the
+    /// envelope instead, leaving every other key exactly as it was.
+    pub(crate) fn print_error_with_hint(
+        &self,
+        err: &mut dyn Write,
+        error: &XurlError,
+        exit_code: i32,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        if self.format.is_structured() {
+            let display = error.to_string();
+            let body = ErrorBody {
+                reason: error.kind().to_string(),
+                exit_code,
+                message: Some(display),
+                next_step: Some(hint.next_step.clone()),
+                ..ErrorBody::default()
+            };
+            self.emit_error_envelope(err, body);
+            return;
+        }
+        self.print_error(err, error, exit_code);
+        if self.quiet {
+            return;
+        }
+        for line in &hint.text_lines {
+            let _ = writeln!(err, "{line}");
+        }
+    }
+
+    /// The one path every error envelope takes.
+    ///
+    /// ```text
+    ///   print_error ─┐
+    ///   print_error_envelope ─┤
+    ///   print_confirmation_required ─┼─> ErrorBody ─> text "Error:" line
+    ///   emit_invalid_args_envelope ─┘                 or structured document
+    /// ```
+    ///
+    /// Building the typed [`ErrorBody`] here is what keeps the generated
+    /// schema honest: a key no field declares cannot be emitted.
+    pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, body: ErrorBody) {
+        let display = body.message.clone().unwrap_or_default();
+        let envelope = body.into_value();
+        self.write_envelope_or_text_error(err, &envelope, &display);
     }
 
     /// Prints an informational message (suppressed by --quiet or any
@@ -303,10 +357,12 @@ impl OutputConfig {
     /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
         let display = error.to_string();
-        let mut obj = serde_json::Map::new();
-        obj.insert("status".into(), Value::String("error".into()));
-        obj.insert("reason".into(), Value::String(error.kind().to_string()));
-        obj.insert("exit_code".into(), Value::from(exit_code));
+        let mut body = ErrorBody {
+            reason: error.kind().to_string(),
+            exit_code,
+            message: Some(display),
+            ..ErrorBody::default()
+        };
         // `AuthMethodMismatch` carries structured fields: the envelope folds
         // `endpoint` (template), `rendered_url` (substituted), `method`,
         // `requested`, `supported`, `available_in_app`, `app`, and
@@ -323,41 +379,19 @@ impl OutputConfig {
             other_apps_with_creds,
         } = error
         {
-            obj.insert("endpoint".into(), Value::String(endpoint.clone()));
-            if let Some(url) = rendered_url {
-                obj.insert("rendered_url".into(), Value::String(url.clone()));
-            }
-            obj.insert("method".into(), Value::String(method.clone()));
-            obj.insert(
-                "requested".into(),
-                match requested {
-                    Some(s) => Value::String(s.clone()),
-                    None => Value::Null,
-                },
-            );
-            obj.insert(
-                "supported".into(),
-                Value::Array(supported.iter().cloned().map(Value::String).collect()),
-            );
-            if let Some(avail) = available_in_app {
-                obj.insert(
-                    "available_in_app".into(),
-                    Value::Array(avail.iter().cloned().map(Value::String).collect()),
-                );
-            }
-            if let Some(app_name) = app {
-                obj.insert("app".into(), Value::String(app_name.clone()));
-            }
-            if let Some(others) = other_apps_with_creds {
-                obj.insert(
-                    "other_apps_with_creds".into(),
-                    Value::Array(others.iter().cloned().map(Value::String).collect()),
-                );
-            }
+            body.endpoint = Some(endpoint.clone());
+            body.rendered_url = rendered_url.clone();
+            body.method = Some(method.clone());
+            body.requested = Some(match requested {
+                Some(s) => Value::String(s.clone()),
+                None => Value::Null,
+            });
+            body.supported = Some(supported.clone());
+            body.available_in_app = available_in_app.clone();
+            body.app = app.clone();
+            body.other_apps_with_creds = other_apps_with_creds.clone();
         }
-        obj.insert("message".into(), Value::String(display.clone()));
-        let envelope = Value::Object(obj);
-        self.write_envelope_or_text_error(err, &envelope, &display);
+        self.emit_error_envelope(err, body);
     }
 
     /// Emits a canonical success envelope under structured modes.
@@ -424,28 +458,29 @@ impl OutputConfig {
         ctx: &serde_json::Value,
         exit_code: i32,
     ) {
-        let mut obj = if let serde_json::Value::Object(m) = ctx {
-            m.clone()
-        } else {
-            serde_json::Map::new()
+        let map = match ctx {
+            serde_json::Value::Object(m) => m.clone(),
+            _ => serde_json::Map::new(),
         };
-        obj.insert(
-            "status".to_string(),
-            serde_json::Value::String("error".to_string()),
-        );
-        obj.insert(
-            "reason".to_string(),
-            serde_json::Value::String("confirmation-required".to_string()),
-        );
-        obj.insert(
-            "exit_code".to_string(),
-            serde_json::Value::Number(serde_json::Number::from(exit_code)),
-        );
+        let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
+        let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
+        let body = ErrorBody {
+            reason: "confirmation-required".to_string(),
+            exit_code,
+            message: None,
+            command: get_str("command"),
+            post_id: get_str("post_id"),
+            name: get_str("name"),
+            all: get_bool("all"),
+            oauth1: get_bool("oauth1"),
+            oauth2_username: map.get("oauth2_username").cloned(),
+            bearer: get_bool("bearer"),
+            ..ErrorBody::default()
+        };
         if self.format.is_structured() {
-            let value = serde_json::Value::Object(obj);
-            self.write_structured(err, &value);
+            self.emit_error_envelope(err, body);
         } else {
-            let cmd = obj
+            let cmd = map
                 .get("command")
                 .and_then(serde_json::Value::as_str)
                 .unwrap_or("operation");
@@ -522,6 +557,21 @@ impl OutputConfig {
         } else {
             let _ = writeln!(out, "{msg}");
         }
+    }
+
+    /// Prints a success message: a status-ok envelope for a structured
+    /// caller, the message itself for a human.
+    ///
+    /// The message-shaped verbs share one success contract this way, so an
+    /// agent branches on `status` across the whole surface rather than
+    /// inferring success from the absence of an error.
+    pub fn print_ok_message(&self, out: &mut dyn Write, msg: &str) {
+        if self.format.is_structured() {
+            let clean = strip_ansi(msg);
+            self.print_success(out, &serde_json::json!({"message": clean}));
+            return;
+        }
+        self.print_message(out, msg);
     }
 
     /// Renders `value` to `w` in the active structured format.

@@ -70,8 +70,18 @@ fn bad_flag_exits_two_and_writes_to_stderr() {
 }
 
 #[test]
+fn bare_invocation_prints_help_to_stdout() {
+    let (code, stdout, stderr) = run_isolated(&["xr"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("Usage: xr"),
+        "stdout missing the root help: {stdout}"
+    );
+}
+
+#[test]
 fn missing_url_exits_one_and_writes_no_url_to_stderr() {
-    let (code, _stdout, stderr) = run_isolated(&["xr"]);
+    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]);
     assert_eq!(code, 1);
     assert!(
         stderr.contains("No URL provided"),

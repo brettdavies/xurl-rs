@@ -24,17 +24,26 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use clap::error::ErrorKind;
+use clap::error::{ContextKind, ErrorKind};
 use clap::{CommandFactory, Parser};
 
 use crate::auth::Auth;
-use crate::cli::{Cli, Commands};
+use crate::cli::classify::{
+    Classified, classify, context_string, nearest_command, structured_intent,
+    suggestion_for_rejected,
+};
+use crate::cli::{Cli, ColorChoice, Commands};
 use crate::config::Config;
-use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
-use crate::output::OutputConfig;
+use crate::envelope::ErrorBody;
+use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
+use crate::output::{OutputConfig, OutputFormat};
 
-/// Clap usage-error exit code (sysexits `EX_USAGE`).
-const EXIT_USAGE_ERROR: i32 = 2;
+/// What the structured rendering says when there is nothing to run.
+///
+/// Help text answers a person; an agent that asked for a machine-readable
+/// format gets the usage error instead.
+const NO_COMMAND_MESSAGE: &str =
+    "No command given. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.";
 
 /// Runs the `xr` CLI using `std::env::args_os()` and real stdio.
 ///
@@ -78,10 +87,13 @@ where
 /// - `DisplayHelp` / `DisplayVersion` → write to `stdout`, return 0.
 /// - All other kinds → write to `stderr`, return 2 (`EX_USAGE`).
 ///
-/// When JSON intent is detected in the un-parsed argv (or via `XURL_OUTPUT`
-/// env), parse-error stderr is the canonical agent-native envelope shape
-/// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`.
-/// Otherwise clap's default text rendering is preserved.
+/// When the un-parsed argv (or `XURL_OUTPUT`) names a structured format,
+/// parse-error stderr is the canonical envelope
+/// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`
+/// rendered in that format. Otherwise clap's default text rendering is
+/// preserved. An unrecognized subcommand, and a bare word that names no
+/// command, both render as `unknown-command` at the same exit code, and a
+/// bare invocation prints the root help at exit 0.
 pub fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -127,24 +139,7 @@ where
     let cli = match Cli::try_parse_from(args_vec.iter()) {
         Ok(cli) => cli,
         Err(e) => {
-            let kind = e.kind();
-            let rendered = e.to_string();
-            return match kind {
-                ErrorKind::DisplayHelp
-                | ErrorKind::DisplayVersion
-                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
-                    let _ = write!(stdout, "{rendered}");
-                    EXIT_SUCCESS
-                }
-                _ => {
-                    if json_intent(&args_vec, overrides.output.as_deref()) {
-                        emit_invalid_args_envelope(stderr, &rendered);
-                    } else {
-                        let _ = write!(stderr, "{rendered}");
-                    }
-                    EXIT_USAGE_ERROR
-                }
-            };
+            return render_parse_error(&e, &args_vec, overrides.output.as_deref(), stdout, stderr);
         }
     };
 
@@ -224,12 +219,55 @@ where
         }
     }
 
+    // ── Tier 2: Classification, ahead of every load ────────────────────
+    match classify(&cli) {
+        Classified::Help => {
+            return if out.format.is_structured() {
+                out.print_error_envelope(
+                    stderr,
+                    "invalid-args",
+                    EXIT_USAGE_ERROR,
+                    NO_COMMAND_MESSAGE,
+                );
+                EXIT_USAGE_ERROR
+            } else {
+                let _ = write!(stdout, "{}", Cli::command().render_help());
+                EXIT_SUCCESS
+            };
+        }
+        Classified::UnknownCommand(word) => {
+            let suggestion = nearest_command(&word);
+            return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+        }
+        Classified::Raw => {}
+    }
+
     // ── Tier 3: Everything else (needs config + auth) ──────────────────
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;
     let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
+
+    // Taken before `Auth` moves into dispatch: the recovery hint is chosen at
+    // the error site, which is after the store is gone. The snapshot carries
+    // presence flags and names, never a secret. `--app` is read here rather
+    // than from `Auth`, because the override lands inside dispatch, and the
+    // environment client id is read from the overrides rather than from the
+    // resolved credential, which already falls back to the store.
+    let snapshot = crate::store::snapshot::StoreSnapshot::new(
+        &auth.token_store,
+        cli.app.as_deref().unwrap_or_default(),
+        overrides
+            .client_id
+            .as_deref()
+            .is_some_and(|value| !value.is_empty()),
+    );
+    let invocation: Vec<String> = args_vec
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    let structured = out.format.is_structured();
 
     match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
         Ok(()) => EXIT_SUCCESS,
@@ -241,57 +279,123 @@ where
             // `{"error":...,"kind":...}` line. The carried exit code surfaces
             // as the process exit unchanged.
             if !matches!(e, crate::error::XurlError::EnvelopeAlreadyEmitted { .. }) {
-                out.print_error(stderr, &e, code);
+                if carries_no_auth_method(&e) {
+                    let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
+                    out.print_error_with_hint(stderr, &e, code, &hint);
+                } else if let Some(hint) = enrollment_hint_for(&e) {
+                    out.print_error_with_hint(stderr, &e, code, &hint);
+                } else {
+                    out.print_error(stderr, &e, code);
+                }
             }
             code
         }
     }
 }
 
-/// Detects whether the caller asked for JSON output before clap parsing
-/// completed. Inspected on the unparsed argv (because clap's error path
-/// runs before `Cli` is constructed) and on `XURL_OUTPUT`.
+/// Whether this error is the no-credentials failure a recovery hint answers.
 ///
-/// Triggers on:
-/// - `--json`
-/// - `--jsonl`
-/// - `--output json` / `--output jsonl`
-/// - `--output=json` / `--output=jsonl`
-/// - `XURL_OUTPUT=json` / `XURL_OUTPUT=jsonl` (case-insensitive), supplied by
-///   the caller as `output` rather than read from the process
-fn json_intent(args: &[OsString], output: Option<&str>) -> bool {
-    let mut iter = args.iter().peekable();
-    while let Some(a) = iter.next() {
-        let s = a.to_string_lossy();
-        if s == "--json" || s == "--jsonl" {
-            return true;
-        }
-        if s == "--output"
-            && let Some(next) = iter.peek()
-        {
-            let v = next.to_string_lossy();
-            if v.eq_ignore_ascii_case("json") || v.eq_ignore_ascii_case("jsonl") {
-                return true;
-            }
-        }
-        if let Some(rest) = s.strip_prefix("--output=")
-            && (rest.eq_ignore_ascii_case("json") || rest.eq_ignore_ascii_case("jsonl"))
-        {
-            return true;
-        }
-    }
-    output.is_some_and(|v| v.eq_ignore_ascii_case("json") || v.eq_ignore_ascii_case("jsonl"))
+/// Matched on the carried message rather than a new variant, because the
+/// public error enum is exhaustively matched downstream and cannot grow one
+/// in a 3.x release.
+fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
+    matches!(error, crate::error::XurlError::Auth(msg) if msg == crate::error::NO_AUTH_METHOD)
 }
 
-/// Writes the canonical `invalid-args` envelope to `stderr`.
-fn emit_invalid_args_envelope(stderr: &mut dyn Write, clap_msg: &str) {
-    let envelope = serde_json::json!({
-        "status": "error",
-        "reason": "invalid-args",
-        "exit_code": EXIT_USAGE_ERROR,
-        "message": clap_msg.trim_end().to_string(),
-    });
-    let _ = writeln!(stderr, "{envelope}");
+/// The enrollment hint for an API refusal, when this error is one.
+fn enrollment_hint_for(error: &crate::error::XurlError) -> Option<crate::cli::hints::Hint> {
+    match error {
+        crate::error::XurlError::Api { status, body } => {
+            crate::cli::hints::enrollment_hint(*status, body)
+        }
+        _ => None,
+    }
+}
+
+/// Renders a clap parse failure.
+///
+/// Help and version go to stdout at exit 0. An unrecognized subcommand takes
+/// the unknown-command rendering, carrying clap's own suggestion where clap
+/// scored one. Every other kind keeps clap's text, or the `invalid-args`
+/// envelope under structured intent.
+fn render_parse_error(
+    error: &clap::Error,
+    args: &[OsString],
+    output_env: Option<&str>,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let rendered = error.to_string();
+    if matches!(
+        error.kind(),
+        ErrorKind::DisplayHelp
+            | ErrorKind::DisplayVersion
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    ) {
+        let _ = write!(stdout, "{rendered}");
+        return EXIT_SUCCESS;
+    }
+
+    let intent = structured_intent(args, output_env);
+    // Quiet and verbose are unparsed here, and neither changes an error
+    // envelope, so the provisional config leaves both off.
+    let out = OutputConfig::new_with_raw(
+        intent.clone().unwrap_or(OutputFormat::Text),
+        false,
+        false,
+        ColorChoice::Auto,
+        false,
+    );
+
+    if error.kind() == ErrorKind::InvalidSubcommand
+        && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
+    {
+        let suggestion = suggestion_for_rejected(error, args, &word);
+        return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+    }
+
+    if intent.is_some() {
+        out.print_error_envelope(
+            stderr,
+            "invalid-args",
+            EXIT_USAGE_ERROR,
+            rendered.trim_end(),
+        );
+    } else {
+        let _ = write!(stderr, "{rendered}");
+    }
+    EXIT_USAGE_ERROR
+}
+
+/// The one rendering both detection paths use.
+///
+/// Text mode gets the sentence; every structured mode gets the envelope with
+/// the offending word in `command` and the nearest real name in `suggestion`,
+/// which is absent when nothing scored close enough.
+fn render_unknown_command(
+    word: &str,
+    suggestion: Option<&str>,
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let message = match suggestion {
+        Some(nearest) => {
+            format!("unknown command '{word}'. Did you mean '{nearest}'? Try 'xr --help'.")
+        }
+        None => format!("unknown command '{word}'. Try 'xr --help'."),
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: "unknown-command".to_string(),
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            command: Some(word.to_string()),
+            suggestion: suggestion.map(str::to_string),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
 }
 
 // Compile-time guarantee: the canonical entrypoint signature is callable
