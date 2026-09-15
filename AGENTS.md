@@ -88,7 +88,7 @@ under the same file with a per-app block.
 
 ## Output formats
 
-`OutputConfig` (`src/output.rs`) drives seven formats, selected with `--output`:
+`OutputConfig` (`src/output/mod.rs`) drives seven formats, selected with `--output`:
 
 - `text` (default): human-readable tables / formatted responses
 - `json`: pretty-printed JSON envelope
@@ -143,7 +143,7 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
   `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `src/config/`: env-var-based configuration.
 - `src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
-- `src/output.rs`: `OutputConfig` for text/json/jsonl formatting.
+- `src/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv serializer.
 - `src/error.rs`: `XurlError` via `thiserror`.
 - `src/lib.rs`: public library surface. The `xurl` library is consumable from downstream Rust crates; the binary `xr` is
   one consumer among potentially several.
