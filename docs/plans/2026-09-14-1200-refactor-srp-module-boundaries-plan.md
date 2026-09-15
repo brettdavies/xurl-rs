@@ -95,7 +95,8 @@ flow logic, which is the suppression the ruling names as a split signal rather t
 - A reader looking for the percent-encoding rules, the auth-scheme intersection, the git hardening surface, or the RFC
   4180 quoting rules opens the file whose name says so.
 - `cargo clippy --all-targets -- -D warnings` reports no `too_many_lines` suppression on `run_auth_command`.
-- `git log --follow` on each promoted file resolves through the rename to its history.
+- `git blame -C -C -C` on each promoted file and its siblings attributes the moved lines to the commits that wrote
+  them rather than to the split.
 - The public API surface after all four units is identical to the surface before them.
 
 ### Scope Boundaries
@@ -156,8 +157,11 @@ flow logic, which is the suppression the ruling names as a split signal rather t
   re-export, and in every split below the parent keeps or re-exports each one, so `src/api/mod.rs`,
   `src/cli/commands/schema.rs`, `src/cli/commands/skill.rs`, `src/lib.rs`, and `tests/cli_tests.rs` are untouched.
 - KTD5. **The promotion is `git mv`, then build, then move code.** Renaming the file and declaring the empty siblings
-  first proves the import tree still resolves before a single line moves, and it keeps the rename a rename in blame
-  rather than a delete plus an add.
+  first proves the import tree still resolves before a single line moves. `git blame -C -C -C` is the probe that
+  reads the result, not `git log --follow`. Git stores no rename and recomputes one from content similarity at diff
+  time, so a promotion whose parent keeps well under half the original file pairs nothing at the default threshold,
+  and at any threshold low enough to pair it pairs the largest sibling instead of the parent. Squash-merge collapses
+  the branch to one diff, so no commit arrangement changes that. Copy detection still attributes the moved lines.
 - KTD6. **The output-discipline guard's allow-list is part of the move.** `scripts/lint-stdio.sh` excludes
   `src/output.rs` by literal glob, and `warn_stderr` holds the crate's only `eprintln!`. Promoting the file without
   widening the glob to the directory turns the guard red on code that did not change.
@@ -214,7 +218,7 @@ flow logic, which is the suppression the ruling names as a split signal rather t
   - Test expectation: the existing suite, unchanged in count and in assertion text, with the two moved clusters passing
     from their new files.
 - **Verification:** `cargo test` reports the same test count; `git diff --stat` lists only `src/api/request/**` and
-  `AGENTS.md`; `git log --follow src/api/request/mod.rs` reaches commits before the rename.
+  `AGENTS.md`; `git blame -C -C -C src/api/request/mod.rs` attributes its moved lines to the commits that wrote them.
 
 ### U2. `src/cli/commands/auth.rs` splits into a directory with sign-in, session, apps, and types siblings
 
@@ -406,7 +410,7 @@ KTD16 of the pre-attention cleanup plan settles two module homes. This plan reco
 | Output discipline  | `bash scripts/lint-stdio.sh`                                                          | U4             | Clean after the glob update, red against the unchanged glob             |
 | Schema freshness   | `cargo test --test schema_tests`                                                      | U2, U3, U4     | Drift test passes with no schema regeneration                           |
 | Blast radius       | `git diff --stat` against the unit's base commit                                      | U1, U2, U3, U4 | Only the module tree, plus `scripts/lint-stdio.sh` (U4) and `AGENTS.md` |
-| Blame continuity   | `git log --follow` on each promoted file                                              | U1, U2, U4     | History resolves through the rename                                     |
+| Blame continuity   | `git blame -C -C -C` on each promoted file and its siblings                           | U1, U2, U4     | Moved lines attribute to the commits that wrote them, not to the split  |
 | Visibility minimum | `rg 'pub(\(crate\))? [a-z_]+:' <moved files>`                                         | U1, U2, U3, U4 | No field widening in any moved struct                                   |
 | Markdown           | `markdownlint-cli2 docs/plans/2026-09-14-1200-refactor-srp-module-boundaries-plan.md` | This plan      | Zero issues                                                             |
 
@@ -419,5 +423,6 @@ KTD16 of the pre-attention cleanup plan settles two module homes. This plan reco
 - The two homes KTD16 fixed are recorded here and untouched by every unit.
 - Each unit lands as its own PR, in the sequenced order, with every gate in the Verification Contract green.
 - No unit's diff changes an emitted envelope, a flag, an error message, a public API item, or a test assertion.
-- Every promotion used `git mv`, and `git log --follow` on the promoted file reaches its pre-promotion history.
+- Every promotion used `git mv`, and `git blame -C -C -C` on the promoted file and its siblings attributes the moved
+  lines to the commits that wrote them.
 - The stdio guard's allow-list and the `AGENTS.md` architecture list name the paths that exist after the moves.
