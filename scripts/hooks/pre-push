@@ -38,11 +38,37 @@ ZERO="0000000000000000000000000000000000000000"
 scope_all=false
 changed=""
 
+# How long to wait for stdin before deciding nobody is going to close it.
+# git writes its ref lines and closes immediately, so a real push never waits.
+readonly STDIN_WAIT_SECONDS=10
+
 if [ -t 0 ]; then
     scope_all=true
 else
-    push_refs=$(cat)
-    if [ -z "$push_refs" ]; then
+    # A plain `$(cat)` here waits for EOF, and an interactive terminal is not
+    # the only stdin that never sends one: a background job or any wrapper
+    # that holds the pipe open leaves the hook parked on the read forever,
+    # reporting nothing at all. `-t 0` catches the terminal and misses those.
+    # Bound the wait and sweep on timeout, which is what the rest of the
+    # scoping does whenever it cannot identify the range.
+    push_refs=""
+    stdin_timed_out=false
+    while true; do
+        if IFS= read -r -t "$STDIN_WAIT_SECONDS" _line; then
+            push_refs+="$_line"$'\n'
+        else
+            [ $? -gt 128 ] && stdin_timed_out=true
+            break
+        fi
+    done
+
+    if [ "$stdin_timed_out" = true ]; then
+        echo "pre-push: stdin stayed open for ${STDIN_WAIT_SECONDS}s with no ref lines; sweeping" >&2
+        scope_all=true
+        push_refs=""
+    fi
+
+    if [ "$scope_all" != true ] && [ -z "$push_refs" ]; then
         # git invokes this hook with the remote name and URL as arguments and
         # one line per pushed ref on stdin. No lines while those arguments are
         # present means the remote already has every ref, so there is nothing
@@ -52,7 +78,7 @@ else
             exit 0
         fi
         scope_all=true
-    else
+    elif [ -n "$push_refs" ]; then
         while read -r _local_ref local_sha _remote_ref remote_sha; do
             [ -z "${local_sha:-}" ] && continue
             # A deletion pushes an all-zero local sha and carries no content.
