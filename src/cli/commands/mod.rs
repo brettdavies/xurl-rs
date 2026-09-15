@@ -172,7 +172,7 @@ fn print_typed<T: Serialize>(
 
 /// Constructs an `ApiClient` with the runner's `OutputConfig` already
 /// installed so verbose request/response diagnostics flow through the
-/// single owner of stdio (`src/output.rs`).
+/// single owner of stdio (`src/output/`).
 fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
     let mut client = ApiClient::new(cfg, auth);
     client.set_output(out.clone());

@@ -217,7 +217,7 @@ pub struct ApiClient {
     auth: Auth,
     timeout_secs: u64,
     /// Output configuration used to route verbose request/response logs
-    /// through the single owner in `src/output.rs`. Library callers that
+    /// through the single owner in `src/output/`. Library callers that
     /// haven't supplied one get the [`OutputConfig::default`] (text, no
     /// verbose) — `verbose=false` suppresses diagnostics.
     out: OutputConfig,
