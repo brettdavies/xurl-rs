@@ -151,6 +151,12 @@ const ACTION_UPDATE: &str = "skill-update";
 const STATUS_DRY_RUN: &str = "dry_run";
 const STATUS_OK: &str = "ok";
 const STATUS_ERROR: &str = "error";
+const STATUS_SKIPPED: &str = "skipped";
+
+/// Reason paired with [`STATUS_SKIPPED`] when `skill update --all` passes over a
+/// host whose destination does not exist. Update refreshes what is installed;
+/// installing everywhere is what `skill install --all` is for.
+const REASON_NOT_INSTALLED: &str = "not-installed";
 
 /// Compute the envelope without performing I/O (dry-run) or, in install mode,
 /// after spawning `git`.
