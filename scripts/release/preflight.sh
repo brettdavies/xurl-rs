@@ -354,7 +354,13 @@ gate_multi_app() {
     gate_fail "Auto-detect fallthrough" "no username"
   fi
 
-  # First-signed-in auto-default
+  # First-registered app becomes the default.
+  #
+  # `add_app` promotes when the store holds no apps or the standing default
+  # carries neither a client id nor a token, and registration never
+  # materializes a `default` app (src/store/mod.rs). So a fresh store names
+  # its first registration as the default before any sign-in happens, and the
+  # sign-in handler's job here is to leave that answer alone.
   local fresh dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
   fresh=$(mktemp -d)
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
@@ -366,16 +372,17 @@ gate_multi_app() {
   dev_at=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN")
   dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
+  local first second after
   XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret "$dev_csec" >/dev/null
+  first=$(yq '.default_app' "$fresh/.xurl")
   XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
-  local before after
-  before=$(yq '.default_app' "$fresh/.xurl")
+  second=$(yq '.default_app' "$fresh/.xurl")
   XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_dev >/dev/null
   after=$(yq '.default_app' "$fresh/.xurl")
-  if [[ "$before" == "default" && "$after" == "bird_dev" ]]; then
-    gate_pass "First-signed-in auto-default ($before → $after)"
+  if [[ "$first" == "bird_dev" && "$second" == "bird_dev" && "$after" == "bird_dev" ]]; then
+    gate_pass "First-registered app is the default and sign-in leaves it (add→$first, add→$second, sign-in→$after)"
   else
-    gate_fail "Auto-default" "$before → $after"
+    gate_fail "First-registered default" "add→$first, add→$second, sign-in→$after (each should be bird_dev)"
   fi
 
   # Promotion idempotence
