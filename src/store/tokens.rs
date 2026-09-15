@@ -258,14 +258,30 @@ impl TokenStore {
         self.clear_oauth2_token_for_app("", username)
     }
 
+    /// Name of the app a clear should act on, or `None` when it does not
+    /// exist.
+    ///
+    /// Clearing must not be the operation that materializes an app: a clear
+    /// against a store with nothing in it has nothing to do, and creating a
+    /// placeholder to empty it would put back the phantom app an empty store
+    /// no longer carries.
+    fn existing_app_name(&self, app_name: &str) -> Option<String> {
+        let name = self.get_active_app_name(app_name).to_string();
+        self.apps.contains_key(&name).then_some(name)
+    }
+
     /// Clears an `OAuth2` token for a username from the named app.
     ///
     /// # Errors
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth2_token_for_app(&mut self, app_name: &str, username: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.oauth2_tokens.remove(username);
+        let Some(name) = self.existing_app_name(app_name) else {
+            return Ok(());
+        };
+        if let Some(app) = self.apps.get_mut(&name) {
+            app.oauth2_tokens.remove(username);
+        }
         self.save_to_file()
     }
 
@@ -284,8 +300,12 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth1_tokens_for_app(&mut self, app_name: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.oauth1_token = None;
+        let Some(name) = self.existing_app_name(app_name) else {
+            return Ok(());
+        };
+        if let Some(app) = self.apps.get_mut(&name) {
+            app.oauth1_token = None;
+        }
         self.save_to_file()
     }
 
@@ -304,8 +324,12 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_bearer_token_for_app(&mut self, app_name: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.bearer_token = None;
+        let Some(name) = self.existing_app_name(app_name) else {
+            return Ok(());
+        };
+        if let Some(app) = self.apps.get_mut(&name) {
+            app.bearer_token = None;
+        }
         self.save_to_file()
     }
 
@@ -324,11 +348,15 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_all_for_app(&mut self, app_name: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.oauth2_tokens.clear();
-        app.oauth1_token = None;
-        app.bearer_token = None;
-        app.unnamed_oauth2_token = None;
+        let Some(name) = self.existing_app_name(app_name) else {
+            return Ok(());
+        };
+        if let Some(app) = self.apps.get_mut(&name) {
+            app.oauth2_tokens.clear();
+            app.oauth1_token = None;
+            app.bearer_token = None;
+            app.unnamed_oauth2_token = None;
+        }
         self.save_to_file()
     }
 

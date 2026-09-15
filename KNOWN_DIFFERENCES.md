@@ -32,3 +32,22 @@ codes to exit codes regardless of response body content. This means some edge-ca
 | 429 with JSON body (no literal "429" in body) | 1 (general)  | 3 (rate limited)   | Yes                  |
 
 The structural mapping is intentional.
+
+## A bare word is a command, not an endpoint (intentional improvement)
+
+Go `xurl` accepts any positional and sends it as the endpoint (`cli/root.go`), so a mistyped command name becomes a
+request against a path that does not exist and the caller reads an API error instead of a spelling correction.
+
+The Rust version classifies the positional before anything is loaded or sent. A token that reads as a command name and
+matches none of them is a usage error at exit `2` with reason `unknown-command`, carrying the offending word in
+`command` and the nearest real name in `suggestion` when one is close enough:
+
+| Invocation       | Go behavior                     | Rust behavior                                         |
+| ---------------- | ------------------------------- | ----------------------------------------------------- |
+| `xr whoam`       | Request to `/whoam`, API error  | Exit 2, `unknown-command`, suggests `whoami`          |
+| `xr zzzzzz`      | Request to `/zzzzzz`, API error | Exit 2, `unknown-command`, no suggestion              |
+| `xr example.com` | Request to `/example.com`       | Exit 1, `validation` — a URL, and not an absolute one |
+| `xr`             | Usage error                     | Exit 0, root help on stdout                           |
+
+A positional that starts with `http://`, `https://`, or `/` is still a raw request, and so is any invocation carrying a
+raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads.

@@ -62,6 +62,7 @@ fn create_temp_token_store() -> (TokenStore, TempDir) {
         apps: BTreeMap::new(),
         default_app: "default".to_string(),
         file_path,
+        load_state: xurl::store::LoadState::Loaded,
     };
     store.apps.insert(
         "default".to_string(),
@@ -251,6 +252,10 @@ fn test_store_used_when_env_vars_empty() {
 #[test]
 fn test_with_app_name() {
     let (mut token_store, _tmp) = create_temp_token_store();
+
+    // A default holding a token keeps its place when another app registers,
+    // so this exercises the app switch rather than the promotion rule.
+    token_store.save_bearer_token("default-bearer").unwrap();
 
     // Add a second app with different credentials
     token_store

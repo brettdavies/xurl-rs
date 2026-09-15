@@ -15232,6 +15232,12 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
+          },
+          {
+            "UserToken": []
           }
         ],
         "summary": "Deletes X activity subscription",
@@ -15297,6 +15303,12 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
+          },
+          {
+            "UserToken": []
           }
         ],
         "summary": "Update X activity subscription",
@@ -30793,6 +30805,12 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
+          },
+          {
+            "UserToken": []
           }
         ],
         "summary": "Get webhook",
@@ -30846,6 +30864,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           },
           {
             "UserToken": []
@@ -30963,6 +30984,9 @@
             "BearerToken": []
           },
           {
+            "OAuth2UserToken": []
+          },
+          {
             "UserToken": []
           }
         ],
@@ -31019,6 +31043,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           },
           {
             "UserToken": []
