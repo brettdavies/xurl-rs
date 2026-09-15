@@ -82,7 +82,16 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
-#[allow(clippy::too_many_arguments)]
+/// State every auth verb handler shares: the credential store behind [`Auth`],
+/// the global flags, the output configuration, and the two output streams.
+struct AuthCtx<'a> {
+    auth: &'a mut Auth,
+    flags: AuthGlobalFlags,
+    out: &'a OutputConfig,
+    stdout: &'a mut dyn Write,
+    stderr: &'a mut dyn Write,
+}
+
 pub(super) fn run_auth_command(
     cmd: AuthCommands,
     mut auth: Auth,
@@ -91,6 +100,13 @@ pub(super) fn run_auth_command(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> Result<()> {
+    let ctx = AuthCtx {
+        auth: &mut auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    };
     match cmd {
         AuthCommands::Oauth2 {
             no_browser,
@@ -98,7 +114,13 @@ pub(super) fn run_auth_command(
             auth_url,
             username,
         } => signin::oauth2(
-            no_browser, step, auth_url, username, &mut auth, flags, out, stdout, stderr,
+            signin::Oauth2Args {
+                no_browser,
+                step,
+                auth_url,
+                username,
+            },
+            ctx,
         ),
         AuthCommands::Oauth1 {
             consumer_key,
@@ -106,18 +128,15 @@ pub(super) fn run_auth_command(
             access_token,
             token_secret,
         } => signin::oauth1(
-            consumer_key,
-            consumer_secret,
-            access_token,
-            token_secret,
-            &mut auth,
-            flags,
-            out,
-            stdout,
+            signin::Oauth1Args {
+                consumer_key,
+                consumer_secret,
+                access_token,
+                token_secret,
+            },
+            ctx,
         ),
-        AuthCommands::App { bearer_token } => {
-            signin::bearer(bearer_token, &mut auth, flags, out, stdout)
-        }
+        AuthCommands::App { bearer_token } => signin::bearer(bearer_token, ctx),
         AuthCommands::Status => session::status(&auth, out, stdout),
         AuthCommands::Clear {
             all,
@@ -126,41 +145,20 @@ pub(super) fn run_auth_command(
             bearer,
             force,
         } => session::clear(
-            all,
-            oauth1,
-            oauth2_username,
-            bearer,
-            force,
-            &mut auth,
-            flags,
-            out,
-            stdout,
-            stderr,
-        ),
-        AuthCommands::Apps { command } => apps::run_app_command(
-            command,
-            &mut auth,
-            AppGlobalFlags {
-                no_interactive: flags.no_interactive,
-                dry_run: flags.dry_run,
-                quiet: flags.quiet,
+            session::ClearArgs {
+                all,
+                oauth1,
+                oauth2_username,
+                bearer,
+                force,
             },
-            out,
-            stdout,
-            stderr,
+            ctx,
         ),
+        AuthCommands::Apps { command } => apps::run_app_command(command, ctx),
         AuthCommands::Default { app_name, username } => {
-            session::set_default(app_name, username, &mut auth, flags, out, stdout, stderr)
+            session::set_default(session::SetDefaultArgs { app_name, username }, ctx)
         }
     }
-}
-
-/// Subset of `AuthGlobalFlags` needed by app management.
-#[derive(Debug, Clone, Copy)]
-struct AppGlobalFlags {
-    no_interactive: bool,
-    dry_run: bool,
-    quiet: bool,
 }
 
 /// Truncates a string to a maximum length.

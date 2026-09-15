@@ -6,8 +6,8 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AppGlobalFlags, Gate, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
-    env_bearer_app, gate_destructive, print_no_apps_registered,
+    AuthCtx, AuthGlobalFlags, Gate, RedirectUriGetResponse, RedirectUriSetResponse,
+    build_app_status_entries, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::auth::Auth;
 use crate::cli::hints::NextStep;
@@ -16,18 +16,19 @@ use crate::config;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
 use crate::output::OutputConfig;
 
-pub(super) fn run_app_command(
-    cmd: AppCommands,
-    auth: &mut Auth,
-    flags: AppGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
-    let AppGlobalFlags {
+pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> {
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    } = ctx;
+    let AuthGlobalFlags {
         no_interactive,
         dry_run,
         quiet,
+        ..
     } = flags;
     match cmd {
         AppCommands::Add {

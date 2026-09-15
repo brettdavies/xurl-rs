@@ -6,7 +6,7 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthGlobalFlags, Gate, build_app_status_entries, env_bearer_app, gate_destructive,
+    AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, env_bearer_app, gate_destructive,
     print_no_apps_registered,
 };
 use crate::auth::Auth;
@@ -100,19 +100,31 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn clear(
-    all: bool,
-    oauth1: bool,
-    oauth2_username: Option<String>,
-    bearer: bool,
-    force: bool,
-    auth: &mut Auth,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
+/// Arguments of `xr auth clear`: one selector per credential kind the command
+/// can remove, plus the confirmation bypass.
+pub(super) struct ClearArgs {
+    pub(super) all: bool,
+    pub(super) oauth1: bool,
+    pub(super) oauth2_username: Option<String>,
+    pub(super) bearer: bool,
+    pub(super) force: bool,
+}
+
+pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> Result<()> {
+    let ClearArgs {
+        all,
+        oauth1,
+        oauth2_username,
+        bearer,
+        force,
+    } = args;
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    } = ctx;
     let AuthGlobalFlags {
         no_interactive,
         dry_run,
@@ -179,15 +191,23 @@ pub(super) fn clear(
     Ok(())
 }
 
-pub(super) fn set_default(
-    app_name: Option<String>,
-    username: Option<String>,
-    auth: &mut Auth,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
+/// Arguments of `xr auth default`: the app to make default and the `OAuth2`
+/// user to make default within it. Either may be absent, which sends the
+/// command to its interactive picker.
+pub(super) struct SetDefaultArgs {
+    pub(super) app_name: Option<String>,
+    pub(super) username: Option<String>,
+}
+
+pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> Result<()> {
+    let SetDefaultArgs { app_name, username } = args;
+    let AuthCtx {
+        auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    } = ctx;
     let AuthGlobalFlags { dry_run, .. } = flags;
     if dry_run {
         let ctx = json!({
