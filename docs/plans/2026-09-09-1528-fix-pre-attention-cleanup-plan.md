@@ -1461,11 +1461,13 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: outside voice 15 (eng review) — the drift test compares schema to schema
   - Files: `tests/output_writer_tests.rs`, `tests/schema_tests.rs`
   - Verify: the test fails on any undeclared key
-- [ ] **E8 (P2, human: ~half day / CC: ~20 min)** — tests — CLI-level headless step-1 and step-2 tests with a wiremock
+- [x] **E8 (P2, human: ~half day / CC: ~20 min)** — tests — CLI-level headless step-1 and step-2 tests with a wiremock
   token endpoint, including a 5xx case (9A)
   - Surfaced by: Tests 9 — no test drives the headless flow at the CLI level
   - Files: `tests/cli_tests.rs`, `tests/oauth2_flow_tests.rs`
-  - Verify: token lands on the right app; outputs in both modes; 5xx exits 5 with the pending file kept
+  - Verify: token lands on the app the runtime context names, with a sibling app present to land on wrongly; outputs
+    in both modes; a 5xx token endpoint exits 77 (`EXIT_AUTH_REQUIRED`, the code the flow raises whatever the upstream
+    status was) with the pending file kept
 - [x] **E10 (P2, human: ~2 hours / CC: ~10 min)** — tests — Table-driven cross-mode test per error over eight formats
   and both sources (11A)
   - Surfaced by: Tests 11 — both error paths branch on seven structured formats with no cross-product test
