@@ -1420,7 +1420,7 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: Pass 2; D20; eng review D1 refinement 15A
   - Files: `src/cli/commands/auth.rs`, `schema/output.schema.json`, tests
   - Verify: per-verb table test; text output unchanged; arrays untouched
-- [ ] **T11b (P2, human: ~half day / CC: ~20 min)** — auth verbs — Arrays under `apps`, README jq example, AGENTS.md
+- [x] **T11b (P2, human: ~half day / CC: ~20 min)** — auth verbs — Arrays under `apps`, README jq example, AGENTS.md
   recipe, changelog `### Changed`, in 3.3.0 (U12b)
   - Surfaced by: D21, D26; eng review 15A
   - Files: `src/cli/commands/auth.rs`, `README.md`, `AGENTS.md`, `schema/output.schema.json`, tests
@@ -1450,8 +1450,8 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: eng review 15A
   - Files: the same bundle files
   - Verify: each bundle's examples run against 3.3.0 as written
-- [ ] **T16 (P1, human: ~1 hour / CC: ~10 min)** — release — Tag 3.2.0 after U1 through U11 (U11 may slip) and before
-  the listing PR opens; tag 3.3.0 with U12b
+- [ ] **T16 (P1, human: ~1 hour / CC: ~10 min)** — release — Tag 3.3.0 with U12b and the T15b bundle pass. 3.2.0
+  carried U1 through U11, U11 included, and was tagged before the listing PR opened
   - Surfaced by: outside voice 16 (DX review); eng review 16B
   - Files: release branch per `RELEASES.md`
   - Verify: `brew install xurl-rs` and `cargo install xurl-rs` yield a binary whose `xr whoami` on an empty store prints

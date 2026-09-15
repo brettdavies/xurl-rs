@@ -1,6 +1,7 @@
 ---
 title: Injected Environment Overrides for CLI Runs - Plan
 type: refactor
+status: completed
 date: 2026-08-31
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready

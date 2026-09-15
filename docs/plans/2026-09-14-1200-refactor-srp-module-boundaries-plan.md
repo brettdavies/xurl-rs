@@ -1,6 +1,7 @@
 ---
 title: SRP Module Boundaries - Plan
 type: refactor
+status: completed
 date: 2026-09-14
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready

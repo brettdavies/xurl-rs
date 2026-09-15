@@ -12,10 +12,10 @@ execution: code
 
 ## Goal Capsule
 
-- **Objective:** `xurl-rs` 3.2.0 ships the pagination and result-bounding contract as working code: an endpoint
-  registry, a pure plan, a page loop bound to an explicit budget, crate-wide error classification, the lookups a list
-  consumer needs, and the published documents with version constants. Any consumer, `bird` or otherwise, gets floors,
-  ceilings, dedup, lossless cursors, and structured stops without writing a loop.
+- **Objective:** the next `xurl-rs` feature release ships the pagination and result-bounding contract as working code:
+  an endpoint registry, a pure plan, a page loop bound to an explicit budget, crate-wide error classification, the
+  lookups a list consumer needs, and the published documents with version constants. Any consumer, `bird` or
+  otherwise, gets floors, ceilings, dedup, lossless cursors, and structured stops without writing a loop.
 - **Means:** Add the registry and its two drift tests, `plan()` and `Budget`, `paginate()` over a pluggable page source,
   the classified error type, the user and usage operations, the `xr` surface for all of it, and the seam enforcement the
   scope policy names.
@@ -262,7 +262,8 @@ pins. `bird`'s cutover plan cannot start its list work until this plan ships a r
 
 ## Definition of Done
 
-- `xurl-rs` 3.2.0 is released with the registry, plan, budget, page loop, classification, lookups, usage operations, the
+- The release carrying this work ships the registry, plan, budget, page loop, classification, lookups, usage
+  operations, the
   `xr` surface, and the published documents with version constants.
 - `vendor/x-api-docs/` holds the thirteen verified evidence files with `INDEX.md`.
 - The seam rules, the Seam-section workflow, and the placement-index artifact exist and are green.

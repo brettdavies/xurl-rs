@@ -1,6 +1,7 @@
 ---
 title: Concurrency Group Ownership in Workflow Callers - Plan
 type: fix
+status: completed
 date: 2026-09-14
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
