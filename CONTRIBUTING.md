@@ -14,9 +14,11 @@ git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
 That one command activates both hooks. `pre-commit` is staged-file-scoped and fast: `rustfmt --check` on staged `.rs`,
-`actionlint` on a staged workflow, `markdownlint-cli2` on staged `.md`. `pre-push` mirrors CI over the repo: `cargo
-fmt`, `cargo clippy` with warnings denied, `cargo test`, the MSRV check, the doc build, `cargo deny check`,
-`shellcheck`, a Windows compatibility scan, `markdownlint-cli2`, and `actionlint`.
+`actionlint` on a staged workflow, `markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. Both hooks share
+`scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs on.
+
+`pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test`, the MSRV check, the
+doc build, `cargo deny check`, `shellcheck`, a Windows compatibility scan, `markdownlint-cli2`, and `actionlint`.
 
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
 finishes in seconds. The scoping fails open: an unrecognized path runs everything, and running the hook by hand sweeps
