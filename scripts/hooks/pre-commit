@@ -36,8 +36,12 @@ step "actionlint" "actionlint" check_actionlint "${yml_files[@]}" || fail=1
 step "concurrency namespacing" "bash scripts/lint-workflow-concurrency.sh" \
     check_workflow_concurrency "${yml_files[@]}" || fail=1
 
-# Markdown: lint the staged docs.
-mapfile -t md_files < <(staged '*.md')
+# Markdown: lint the staged docs, minus the generated changelog, which is the
+# same exclusion `tracked_markdown` makes for pre-push and the `lint /
+# markdownlint` CI job globs. CHANGELOG.md wraps where the generator wraps, so
+# linting it fails MD013 on content no author wrote, and it is staged on every
+# release commit.
+mapfile -t md_files < <(staged '*.md' ':!:CHANGELOG.md')
 step "markdownlint" "markdownlint-cli2 <file>" check_markdownlint "${md_files[@]}" || fail=1
 
 [ "$fail" -eq 0 ] || {
