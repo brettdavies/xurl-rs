@@ -138,8 +138,9 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
   (`media.rs`), and typed responses (`response/`).
 - `src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler), Bearer token.
   PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
-- `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, auth, streaming.
-  `exit_codes.rs` encodes the CLI's exit-code contract.
+- `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, streaming, and
+  `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
+  `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `src/config/`: env-var-based configuration.
 - `src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
 - `src/output.rs`: `OutputConfig` for text/json/jsonl formatting.
