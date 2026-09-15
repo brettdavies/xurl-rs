@@ -28,8 +28,11 @@ on:
 permissions:
   contents: read
 
+# A literal token leads the key: see the note in ci.yml. This workflow calls no
+# reusable today, so it cannot collide, and the shape is the repository's rule
+# rather than a property of which workflows happen to be at risk.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: spec-drift-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

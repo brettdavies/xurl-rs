@@ -18,12 +18,13 @@ permissions:
   contents: read
   pull-requests: read
 
-# The group key carries a suffix because `rust-ci.yml` declares the same
-# default key, and `github.workflow` inside a called workflow resolves to this
-# caller's name. Sharing the key lets the inline jobs below hold the group the
-# reusable then tries to enter, and it loses the race.
+# The group key leads with a literal token naming this workflow. A key built
+# only from context (`${{ github.workflow }}`) is one the reusable called below
+# also produces, because `github.workflow` resolves to this caller's name inside
+# a called workflow; both then land in one group and the reusable's queue
+# cancels this run. The reusable carries its own `rust-ci-` token for its jobs.
 concurrency:
-  group: ${{ github.workflow }}-caller-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -61,6 +62,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Run scripts/lint-stdio.sh
         run: bash scripts/lint-stdio.sh
+      - name: Check concurrency group namespacing
+        run: bash scripts/lint-workflow-concurrency.sh
 
   # docs.rs builds with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish.
