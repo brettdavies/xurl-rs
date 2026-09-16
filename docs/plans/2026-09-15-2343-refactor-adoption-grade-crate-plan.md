@@ -260,13 +260,15 @@ single boundary where `xr` re-applies its `Auth Error:` / `HTTP Error:` prefixes
 while the library's Display stops stuttering inside an embedder's `anyhow` chain. Three assertions in
 `tests/cli_tests.rs` pin the prefix text and move with the renderer.
 
-KTD18. **Pagination is out of scope for 0.1.0, and the existing pagination plan is stale.** `session-settled:
-user-directed`. `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md` is marked `artifact_readiness:
-implementation-ready` but predates this work: it contains no async, adds five new public modules into the audit whose
-rule is publish less, and restructures `src/error.rs` where KTD17 and U11 both land. It is rewritten after 0.1.0 ships,
-not folded in. U18's only pagination obligation is to leave the `Call<T>` shape open enough that a later design is
-additive — it does **not** design pagination and does **not** treat
-`docs/designs/2026-09-03-pagination-and-result-bounding.md` as normative input.
+KTD18. **Pagination is out of scope for 0.1.0.** `session-settled: user-directed`. This repository carries no pagination
+contract plan, and one is designed from scratch after 0.1.0 ships. A contract written against the synchronous,
+single-package shape cannot survive this plan: its signatures, its five new public module paths, and its error-surface
+changes all describe code that U4, U6, U11, and U15 replace. U18's only pagination obligation is negative — leave the
+`Call<T>` shape open enough that a later design is additive. It does **not** design pagination here.
+
+The two documents a future rewrite starts from, `2026-09-03-pagination-and-result-bounding.md` and
+`2026-09-04-xurl-bird-seam.md`, live in `bird/docs/designs/`. They are inputs to that rewrite, not to this plan, and
+neither is normative for U18.
 
 KTD19. **Getting-started artifacts are machine-verified.** Governs R16. `#![doc = include_str!("../README.md")]` turns
 the library README's Rust blocks into doctests, so the most-read page cannot drift from the code. Every shell block in a
@@ -479,10 +481,10 @@ setting.
 - ~~Whether the blocking facade earns its place.~~ **Answered by KTD3.** No facade at `0.1.0`; the CLI is async
   throughout and owns one `current_thread` runtime in `src/main.rs`. Sync callers own a runtime or wait for an additive
   `blocking` minor. Do not reopen this in U4.
-- ~~Pagination.~~ **Out of scope at 0.1.0 by KTD18.** Do not design it here, and do not read
-  `docs/designs/2026-09-03-pagination-and-result-bounding.md` as normative — it and its plan are stale and get rewritten
-  after 0.1.0 ships. The only obligation is negative: confirm the `Call<T>` shape below can gain a paging terminator
-  later without reshaping, so the eventual design is additive.
+- ~~Pagination.~~ **Out of scope at 0.1.0 by KTD18.** Do not design it here, and treat nothing in `bird/docs/designs/`
+  as normative for this unit — pagination is designed from scratch after 0.1.0 ships. The only obligation is negative:
+  confirm the `Call<T>` shape below can gain a paging terminator later without reshaping, so the eventual design is
+  additive.
 - **Credential entry, and the per-call builder.** Settled in shape by KTD15; fix the exact signatures here. A client
   builder takes a bearer token, an OAuth2 token, or OAuth1 credentials directly, so R12 holds without the CLI, a
   token-store file, or `env::set_var` — which edition 2024 makes `unsafe`, so the env path is not a workaround an
@@ -1713,7 +1715,7 @@ Considered during this review and explicitly deferred.
 - **A credential-free path to a live first success.** X requires an app, confidential-client setup, a redirect URI, and
   Pay-per-use enrollment before any real call works (`README.md:45-57`), and that cost is the category's, not this
   crate's. D14's playground and `testing` feature recover the credential-free *runnable* path at example cost.
-- **Pagination at 0.1.0.** KTD18. The existing pagination plan is stale and gets rewritten after 0.1.0 ships.
+- **Pagination at 0.1.0.** KTD18. Designed from scratch after 0.1.0 ships, against the async workspace shape.
 - **Thirty-two distinct builder types.** KTD15 specifies one generic `Call<T>` with 32 constructors instead; the surface
   is identical and the implementation is a fraction of it.
 - **`xdk::testing` as default surface.** Non-default by design, so R1 and U7's publish-less posture are untouched for
@@ -1861,12 +1863,6 @@ engineering review.
     never states
   - Files: `crates/xdk/README.md`, `cliff.toml`, `Cargo.toml`
   - Verify: a breaking changelog entry without a before/after snippet fails review; MSRV bump lands as a minor
-- [ ] **T26 (P3, human: ~15min / CC: ~3min)** — docs — Correct the pagination plan's readiness marker
-  - Surfaced by: D11 — `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md` is marked `artifact_readiness:
-    implementation-ready` while being stale, superseded in posture by the async conversion, and slated for rewrite after
-    0.1.0 ships
-  - Files: `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md`
-  - Verify: nobody can pick that plan up and implement it as written
 
 ## GSTACK REVIEW REPORT
 
