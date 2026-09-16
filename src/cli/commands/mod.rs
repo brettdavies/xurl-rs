@@ -787,6 +787,68 @@ fn run_subcommand(
             let response = client.unmute_user(&my_id, &target_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
+        Commands::Muted {
+            max_results,
+            common,
+        } => {
+            let n = effective_limit(max_results, global_limit);
+            let mut client = make_client(cfg, auth, out);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = client.get_muted(&user_id, n, &opts)?;
+            print_typed(out, stdout, &response)?;
+        }
+        Commands::Block {
+            target_username,
+            common,
+        } => {
+            let ctx = json!({"command": "block", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
+            let mut client = make_client(cfg, auth, out);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = client.block_user(&my_id, &target_id, &opts)?;
+            print_typed(out, stdout, &response)?;
+        }
+        Commands::Unblock {
+            target_username,
+            common,
+        } => {
+            let ctx = json!({"command": "unblock", "target_username": target_username});
+            let user = target_username.clone();
+            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                shortcuts::validate_target_username(&user)
+            })?;
+            if !proceed {
+                return Ok(());
+            }
+            let mut client = make_client(cfg, auth, out);
+            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let my_id = resolve_my_user_id(&mut client, &opts)?;
+            let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
+            let response = client.unblock_user(&my_id, &target_id, &opts)?;
+            print_typed(out, stdout, &response)?;
+        }
+        Commands::Blocked {
+            max_results,
+            common,
+        } => {
+            let n = effective_limit(max_results, global_limit);
+            let mut client = make_client(cfg, auth, out);
+            let opts =
+                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let user_id = resolve_my_user_id(&mut client, &opts)?;
+            let response = client.get_blocked(&user_id, n, &opts)?;
+            print_typed(out, stdout, &response)?;
+        }
 
         // ── Usage ─────────────────────────────────────────────────────
         Commands::Usage { target, common } => match target {
