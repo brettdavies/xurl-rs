@@ -146,13 +146,14 @@ module_missing = { lint-level = "deny", required-update = "minor" }
 # `InstallMultiEnvelope`, which moved with their modules.
 struct_missing = { lint-level = "deny", required-update = "minor" }
 # Covers the enums those modules declared, `OutputFormat` and `InstallError`
-# among them.
+# among them, and `XurlError`, which is `Error` at the crate root.
 enum_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `KNOWN_HOSTS` and the `GIT_HARDEN_*` constants, which moved with the
 # installer.
 pub_module_level_const_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `format_response`, `warn_stderr`, and the installer's free functions:
-# the library neither colours JSON nor writes to stderr.
+# the library neither colours JSON nor writes to stderr. Also `cli::commands::run`,
+# whose result type is the binary's own.
 function_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `run_oauth2_flow`, which takes the browser opener as a closure in
 # place of an output config, a writer, and a function pointer.
