@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
+    uses: brettdavies/.github/.github/workflows/rust-ci.yml@feat/rust-workspace-support
     with:
       # An advisory turns this run red rather than leaving it green with one
       # failed job. The ruleset already blocks the merge; this is so the run's

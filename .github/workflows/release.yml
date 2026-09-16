@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   pipeline:
-    uses: brettdavies/.github/.github/workflows/rust-release.yml@main
+    uses: brettdavies/.github/.github/workflows/rust-release.yml@feat/rust-workspace-support
     with:
       crate: xurl-rs
       bin: xr
