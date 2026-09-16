@@ -38,6 +38,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 const BASE_URL_PLACEHOLDER: &str = "{{API_BASE_URL}}";
 const HOME_PLACEHOLDER: &str = "{{HOME}}";
+/// Stands in for the run's scratch directory inside an `env:` value.
+const SCRATCH_PLACEHOLDER: &str = "{{SCRATCH}}";
 const VERSION_PLACEHOLDER: &str = "{{CRATE_VERSION}}";
 const BEARER: &str = "GOLDEN-BEARER-TOKEN";
 const FIXTURE_EXT: &str = "golden";
@@ -245,6 +247,50 @@ impl Scratch {
         std::fs::write(skills.join("xurl-rs"), b"").expect("blocking file");
         home
     }
+
+    /// A home whose skill destination already holds a file, so an install
+    /// refuses to clone over it.
+    fn home_with_populated_skill_dir(&self) -> PathBuf {
+        let home = self.dir.path().join("home-populated");
+        let dest = home.join(".claude").join("skills").join("xurl-rs");
+        std::fs::create_dir_all(&dest).expect("skill dir");
+        std::fs::write(dest.join("SKILL.md"), b"").expect("existing file");
+        home
+    }
+
+    /// An empty home: nothing installed, nothing in the way.
+    fn empty_home(&self) -> PathBuf {
+        let home = self.dir.path().join("home-empty");
+        std::fs::create_dir_all(&home).expect("home dir");
+        home
+    }
+
+    /// A `PATH` holding only a `git` that refuses every clone with a fixed
+    /// message, so the clone-failed envelope is byte-stable. Returned as the
+    /// placeholder form a case's `env` carries.
+    fn path_with_refusing_git(&self) -> String {
+        let bin = self.dir.path().join("refusing-git");
+        std::fs::create_dir_all(&bin).expect("bin dir");
+        let git = bin.join("git");
+        std::fs::write(
+            &git,
+            "#!/bin/sh\necho 'fatal: golden clone refused' >&2\nexit 128\n",
+        )
+        .expect("fake git");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755))
+                .expect("executable");
+        }
+        format!("{SCRATCH_PLACEHOLDER}/refusing-git")
+    }
+
+    /// A `PATH` with no `git` on it at all, in placeholder form.
+    fn path_without_git(&self) -> String {
+        std::fs::create_dir_all(self.dir.path().join("no-git")).expect("bin dir");
+        format!("{SCRATCH_PLACEHOLDER}/no-git")
+    }
 }
 
 fn static_cases() -> Vec<Case> {
@@ -404,6 +450,101 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 &["--output", "json", "skill", "update", "claude_code"],
             )
         },
+        Case {
+            home: Some(scratch.home_with_populated_skill_dir()),
+            ..reason_case(
+                "destination-not-empty",
+                &["--output", "json", "skill", "install", "claude_code"],
+            )
+        },
+        Case {
+            home: Some(scratch.home_with_blocked_skill_dir()),
+            ..reason_case(
+                "destination-is-file",
+                &["--output", "json", "skill", "install", "claude_code"],
+            )
+        },
+        Case {
+            home: Some(scratch.empty_home()),
+            env: vec![("PATH", scratch.path_without_git())],
+            ..reason_case(
+                "git-not-found",
+                &["--output", "json", "skill", "install", "claude_code"],
+            )
+        },
+        Case {
+            home: Some(scratch.empty_home()),
+            env: vec![("PATH", scratch.path_with_refusing_git())],
+            ..reason_case(
+                "git-clone-failed",
+                &["--output", "json", "skill", "install", "claude_code"],
+            )
+        },
+        Case {
+            home: Some(scratch.empty_home()),
+            ..reason_case(
+                "not-installed",
+                &["--output", "json", "skill", "update", "--all"],
+            )
+        },
+    ]
+}
+
+/// The dry-run refusals a shortcut's validator raises before any request.
+fn dry_run_cases() -> Vec<Case> {
+    let long_body = "x".repeat(281);
+    let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
+        .iter()
+        .map(|a| (*a).to_string())
+        .collect();
+    too_many.extend((1..=5).map(|i| format!("--media-id={i}")));
+    vec![
+        case(
+            "dry-run-empty-body",
+            &["--output", "json", "--dry-run", "post", ""],
+        ),
+        case(
+            "dry-run-body-too-long",
+            &["--output", "json", "--dry-run", "post", &long_body],
+        ),
+        Case {
+            name: "dry-run-too-many-attachments".to_string(),
+            args: too_many,
+            ..Case::default()
+        },
+        case(
+            "dry-run-empty-post-id",
+            &["--output", "json", "--dry-run", "like", ""],
+        ),
+        case(
+            "dry-run-empty-username",
+            &["--output", "json", "--dry-run", "follow", ""],
+        ),
+    ]
+}
+
+/// The text renderings of the errors that carry a recovery hint, plus the
+/// parser's rejection of an unknown skill host.
+fn text_cases() -> Vec<Case> {
+    let bearer = |c: Case| Case {
+        store: Store::BearerEnv,
+        ..c
+    };
+    vec![
+        case("text-auth-required", &["/2/users/me"]),
+        bearer(case(
+            "text-auth-method-mismatch",
+            &["--auth", "app", "whoami"],
+        )),
+        case("text-client-credentials-missing", &["auth", "oauth2"]),
+        bearer(case(
+            "text-rate-limited",
+            &["--auth", "app", "search", "q429"],
+        )),
+        case(
+            "skill-install-unknown-host",
+            &["skill", "install", "bogus_host"],
+        ),
     ]
 }
 
@@ -458,6 +599,8 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     cases.extend(static_cases());
     cases.extend(verbose_cases());
     cases.extend(reason_cases(scratch));
+    cases.extend(dry_run_cases());
+    cases.extend(text_cases());
     let mut seen = BTreeSet::new();
     for c in &cases {
         assert!(
@@ -484,7 +627,8 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
         cmd.env_remove(var);
     }
     for (key, value) in &case.env {
-        cmd.env(key, value);
+        let scratch_dir = scratch.dir.path().to_str().expect("utf-8 path");
+        cmd.env(key, value.replace(SCRATCH_PLACEHOLDER, scratch_dir));
     }
     if case.unset_home {
         cmd.env_remove("HOME");
@@ -527,12 +671,23 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
 }
 
 /// The `reason` of the one JSON envelope a capture carries, on either stream.
+///
+/// A multi-host envelope carries its reasons per host under `results`; the
+/// first one is the case's reason when every host reports the same.
 fn envelope_reason(captured: &Captured) -> Option<String> {
-    [&captured.stderr, &captured.stdout]
+    let value = [&captured.stderr, &captured.stdout]
         .into_iter()
         .filter(|stream| !stream.trim().is_empty())
-        .find_map(|stream| serde_json::from_str::<serde_json::Value>(stream).ok())
-        .and_then(|value| value.get("reason")?.as_str().map(str::to_string))
+        .find_map(|stream| serde_json::from_str::<serde_json::Value>(stream).ok())?;
+    let reason_of = |v: &serde_json::Value| v.get("reason")?.as_str().map(str::to_string);
+    reason_of(&value).or_else(|| {
+        let results = value.get("installations")?.as_array()?;
+        let mut reasons = results.iter().map(reason_of);
+        let first = reasons.next()??;
+        reasons
+            .all(|r| r.as_deref() == Some(first.as_str()))
+            .then_some(first)
+    })
 }
 
 fn render_fixture(case: &Case, captured: &Captured) -> Vec<u8> {
@@ -678,7 +833,11 @@ fn schema_reasons() -> BTreeSet<String> {
 #[test]
 fn xr_output_matches_the_golden_fixtures() {
     let bin = std::env::var("XURL_GOLDEN_BIN").unwrap_or_else(|_| common::xr_bin().to_string());
-    let bless = std::env::var_os("XURL_GOLDEN_BLESS").is_some();
+    let bless = std::env::var("XURL_GOLDEN_BLESS").is_ok_and(|v| v == "1");
+    assert!(
+        !bless || std::env::var_os("CI").is_none(),
+        "XURL_GOLDEN_BLESS=1 rewrites the fixtures and never runs under CI"
+    );
     let api = MockApi::start();
     let scratch = Scratch::new();
     let dir = golden_dir();
@@ -811,4 +970,117 @@ fn commands_block_parser_reads_only_direct_entries() {
     let help = "Usage: xr auth <COMMAND>\n\nCommands:\n  oauth2   Configure\n  status   Show\n           continued description\n  help     Print this message\n\nOptions:\n  -h, --help\n";
     assert_eq!(commands_in(help), vec!["oauth2", "status"]);
     assert!(commands_in("no commands here").is_empty());
+}
+
+/// Every `reason` literal the binary can emit, read from the source: the
+/// `kind()` arms, the installer's `reason()` arms, its `REASON_*` constants,
+/// every `print_error_envelope` call, and every `reason:` field literal.
+fn source_reasons() -> BTreeSet<String> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = Vec::new();
+    let mut stack = vec![root];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("src readable") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    let arm = regex::Regex::new(r#"=> "([a-z]+(?:-[a-z]+)+)""#).unwrap();
+    let envelope_call =
+        regex::Regex::new(r#"print_error_envelope\(\s*[^,]+,\s*"([a-z-]+)""#).unwrap();
+    let field = regex::Regex::new(r#"reason: (?:Some\()?"([a-z]+(?:-[a-z]+)+)""#).unwrap();
+    let constant = regex::Regex::new(r#"const REASON_[A-Z_]+: &str = "([a-z-]+)""#).unwrap();
+    let mut out = BTreeSet::new();
+    for path in files {
+        let source = std::fs::read_to_string(&path).expect("source readable");
+        let arms_apply = path.ends_with("error.rs") || path.ends_with("skill_install/mod.rs");
+        for line in source.lines() {
+            if line.trim_start().starts_with("//") {
+                continue;
+            }
+            if arms_apply {
+                for m in arm.captures_iter(line) {
+                    out.insert(m[1].to_string());
+                }
+            }
+            for m in field.captures_iter(line) {
+                out.insert(m[1].to_string());
+            }
+            for m in constant.captures_iter(line) {
+                out.insert(m[1].to_string());
+            }
+        }
+        for m in envelope_call.captures_iter(&source) {
+            out.insert(m[1].to_string());
+        }
+    }
+    out
+}
+
+/// The refusals `validate_*` in `src/api/shortcuts.rs` can raise.
+fn validator_reasons() -> BTreeSet<String> {
+    let source =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/api/shortcuts.rs"))
+            .expect("shortcuts readable");
+    let refusal = regex::Regex::new(r#"return Err\("([a-z]+(?:-[a-z]+)+)"\)"#).unwrap();
+    refusal
+        .captures_iter(&source)
+        .map(|m| m[1].to_string())
+        .collect()
+}
+
+/// A reason the source can emit is named by the schema and pinned by a
+/// fixture (or listed untriggerable), so a reason added to the binary
+/// without its documentation and its capture fails here.
+#[test]
+fn every_reason_the_source_emits_is_documented_and_pinned() {
+    let scratch = Scratch::new();
+    let captured: BTreeSet<String> = reason_cases(&scratch)
+        .iter()
+        .filter_map(|c| c.reason.map(str::to_string))
+        .collect();
+    let listed: BTreeSet<&str> = UNTRIGGERABLE.iter().map(|(r, _)| *r).collect();
+    let schema = schema_reasons();
+    let emitted = source_reasons();
+
+    assert!(
+        emitted.len() >= 20,
+        "source scan found only {} reasons; a pattern is broken: {emitted:?}",
+        emitted.len()
+    );
+    let undocumented: Vec<&String> = emitted.iter().filter(|r| !schema.contains(*r)).collect();
+    assert!(
+        undocumented.is_empty(),
+        "reasons the binary emits that the schema description does not name: {undocumented:?}"
+    );
+    let unpinned: Vec<&String> = emitted
+        .iter()
+        .filter(|r| !captured.contains(*r) && !listed.contains(r.as_str()))
+        .collect();
+    assert!(
+        unpinned.is_empty(),
+        "reasons the binary emits with neither a golden fixture nor an untriggerable entry: {unpinned:?}"
+    );
+
+    let dry_run: BTreeSet<String> = dry_run_cases()
+        .iter()
+        .filter_map(|c| c.name.strip_prefix("dry-run-").map(str::to_string))
+        .collect();
+    let validators = validator_reasons();
+    assert!(
+        validators.len() >= 5,
+        "validator scan is broken: {validators:?}"
+    );
+    let unpinned: Vec<&String> = validators
+        .iter()
+        .filter(|r| !dry_run.contains(*r))
+        .collect();
+    assert!(
+        unpinned.is_empty(),
+        "validator refusals without a dry-run fixture: {unpinned:?}"
+    );
 }

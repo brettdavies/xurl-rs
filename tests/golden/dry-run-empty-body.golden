@@ -1,0 +1,18 @@
+args: ["--output", "json", "--dry-run", "post", ""]
+store: empty
+exit_code: 0
+stdout_len: 150
+stderr_len: 0
+--- stdout ---
+{
+  "body": "",
+  "command": "post",
+  "exit_code": 1,
+  "media_ids": [],
+  "reason": "empty-body",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

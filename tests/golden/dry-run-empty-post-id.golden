@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "like", ""]
+store: empty
+exit_code: 0
+stdout_len: 137
+stderr_len: 0
+--- stdout ---
+{
+  "command": "like",
+  "exit_code": 1,
+  "post_id": "",
+  "reason": "empty-post-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

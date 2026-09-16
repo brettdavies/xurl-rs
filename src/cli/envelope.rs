@@ -79,7 +79,8 @@ pub struct ErrorBody {
     /// `io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,
     /// `unsupported-pagination`, and the verb-local `invalid-json`,
     /// `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,
-    /// and `remove-failed`.
+    /// `destination-not-empty`, `destination-is-file`, `git-not-found`,
+    /// `git-clone-failed`, `not-installed`, and `remove-failed`.
     pub reason: String,
     /// Structured exit code per the sysexits-inspired matrix in
     /// `xurl::error`.
