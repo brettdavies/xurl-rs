@@ -982,6 +982,7 @@ pub struct Cli {
 
 /// All subcommands.
 #[derive(Subcommand, Debug)]
+#[non_exhaustive]
 pub enum Commands {
     // ── Posting ──────────────────────────────────────────────────────
     /// Post to X
