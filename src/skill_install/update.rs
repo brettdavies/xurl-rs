@@ -150,12 +150,9 @@ pub fn run_update_multi(
     home: Option<&str>,
 ) -> i32 {
     if all {
-        use clap::ValueEnum as _;
-
-        let variants = SkillHost::value_variants();
-        let mut installations = Vec::with_capacity(variants.len());
+        let mut installations = Vec::with_capacity(SkillHost::ALL.len());
         let mut worst: i32 = 0;
-        for h in variants {
+        for h in SkillHost::ALL {
             let env = if is_installed(*h, home) {
                 compute_update_envelope(*h, dry_run, home)
             } else {
@@ -193,8 +190,7 @@ mod tests {
     use tempfile::TempDir;
 
     fn first_host() -> SkillHost {
-        use clap::ValueEnum as _;
-        SkillHost::value_variants()[0]
+        SkillHost::ALL[0]
     }
 
     #[test]
@@ -260,8 +256,6 @@ mod tests {
 
     #[test]
     fn update_all_skips_every_uninstalled_host_and_still_succeeds() {
-        use clap::ValueEnum as _;
-
         let home = TempDir::new().expect("tempdir");
         let out = OutputConfig::new(
             OutputFormat::Json,
@@ -282,7 +276,7 @@ mod tests {
         let installations = value["installations"]
             .as_array()
             .expect("installations array");
-        assert_eq!(installations.len(), SkillHost::value_variants().len());
+        assert_eq!(installations.len(), SkillHost::ALL.len());
         for entry in installations {
             assert_eq!(entry["status"], "skipped");
             assert_eq!(entry["reason"], "not-installed");

@@ -15,6 +15,7 @@ use clap::builder::FalseyValueParser;
 use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::output::OutputFormat;
+use crate::skill_install::KNOWN_HOSTS;
 pub use crate::skill_install::SkillHost;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
@@ -1432,6 +1433,17 @@ pub enum UsageCommands {
     },
 }
 
+/// Parses a `<host>` argument: the possible-values list is what help and
+/// completions render, and what `KNOWN_HOSTS` accepts is exactly what
+/// `SkillHost::from_key` maps, so the fallible step never fires.
+fn skill_host_parser() -> impl clap::builder::TypedValueParser<Value = SkillHost> {
+    use clap::builder::TypedValueParser as _;
+
+    clap::builder::PossibleValuesParser::new(KNOWN_HOSTS).try_map(|name: String| {
+        SkillHost::from_key(&name).ok_or_else(|| format!("unknown host {name:?}"))
+    })
+}
+
 /// `skill` subcommand variants.
 #[derive(Subcommand, Debug)]
 pub enum SkillCmd {
@@ -1448,6 +1460,7 @@ pub enum SkillCmd {
   xr skill install --all --dry-run --output json   # multi-host dry-run envelope")]
     Install {
         /// Target host (e.g. claude_code, codex, cursor). Required unless `--all`.
+        #[arg(value_parser = skill_host_parser())]
         host: Option<SkillHost>,
 
         /// Install into every known host in one invocation.
@@ -1472,6 +1485,7 @@ pub enum SkillCmd {
   xr skill update codex --output json              # JSON envelope for agent consumption")]
     Update {
         /// Target host (e.g. claude_code, codex, cursor). Required unless `--all`.
+        #[arg(value_parser = skill_host_parser())]
         host: Option<SkillHost>,
 
         /// Update every known host in one invocation.
