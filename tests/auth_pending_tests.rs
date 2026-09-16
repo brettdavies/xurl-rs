@@ -153,11 +153,10 @@ fn load_corrupt_yaml_returns_error() {
     }
 
     let err = pending::load(&path).unwrap_err();
-    let msg = err.to_string();
     // Should be a deserialization error, not a panic
     assert!(
-        msg.contains("Auth Error"),
-        "Expected auth/parse error, got: {msg}"
+        matches!(err, xurl::Error::Auth(_)),
+        "Expected auth/parse error, got: {err:?}"
     );
 }
 
@@ -176,7 +175,7 @@ fn load_valid_yaml_missing_fields_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should fail deserialization, not panic
-    assert!(err.to_string().contains("Auth Error"));
+    assert!(matches!(err, xurl::Error::Auth(_)), "got: {err:?}");
 }
 
 #[test]

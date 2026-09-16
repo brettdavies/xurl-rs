@@ -1,8 +1,8 @@
-//! Typed error system matching xurl's error categories.
+//! The library's error type and the exit codes that classify it.
 //!
-//! The Go source uses string-typed errors with a `Type` field. We replicate
-//! that with thiserror variants so Rust callers get pattern matching while
-//! the Display output stays identical to xurl.
+//! Display strings are lowercase fragments with no prefix and no trailing
+//! period, so they read cleanly inside an embedder's error chain; `xr`
+//! applies its own prefixes when it renders one.
 
 use serde::{Deserialize, Serialize};
 
@@ -60,15 +60,15 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// HTTP transport / request construction error.
-    #[error("HTTP Error: {0}")]
+    #[error("{0}")]
     Http(String),
 
     /// File / IO error.
-    #[error("IO Error: {0}")]
+    #[error("{0}")]
     Io(String),
 
     /// Invalid HTTP method supplied.
-    #[error("Invalid Method: Invalid HTTP method: {0}")]
+    #[error("invalid HTTP method: {0}")]
     InvalidMethod(String),
 
     /// API returned an HTTP error response (status >= 400).
@@ -87,13 +87,13 @@ pub enum Error {
     /// Raw URL supplied with an unsupported scheme. Only `http://` and
     /// `https://` are accepted; file/ftp/etc are rejected before any
     /// network or filesystem activity.
-    #[error("Invalid URL: {0}")]
+    #[error("invalid URL: {0}")]
     InvalidUrl(String),
 
     /// Path-parameter value contained a character that would break URL
     /// semantics (`/`, `?`, `#`, or `%`). Surfaces real IDs that contain
     /// stray separators rather than silently encoding them.
-    #[error("Invalid path parameter {name:?}: value {value:?} contains a reserved character")]
+    #[error("invalid path parameter {name:?}: value {value:?} contains a reserved character")]
     InvalidPathParam {
         /// Name of the offending `{param}` segment in the path template.
         name: String,
@@ -104,19 +104,19 @@ pub enum Error {
     /// Internal invariant violated — typically a programmer error such as
     /// a path template referencing a `{name}` segment that the caller never
     /// supplied in `path_params`.
-    #[error("Internal error: {0}")]
+    #[error("internal error: {0}")]
     Internal(String),
 
     /// JSON serialization / deserialization error.
-    #[error("JSON Error: {0}")]
+    #[error("{0}")]
     Json(String),
 
     /// Authentication error with sub-type context.
-    #[error("Auth Error: {0}")]
+    #[error("{0}")]
     Auth(String),
 
     /// Token store persistence / lookup error.
-    #[error("Token Store Error: {0}")]
+    #[error("{0}")]
     TokenStore(String),
 
     /// Auth method mismatch: the user supplied (or the auto-detect resolved)
@@ -142,10 +142,7 @@ pub enum Error {
     /// (`/2/users/12345/likes`) for user-facing messages while `endpoint`
     /// stays as the spec template (`/2/users/{id}/likes`) for agents to
     /// pattern-match against.
-    ///
-    /// The `Display` impl renders the same body that fills the envelope's
-    /// `message` field.
-    #[error("{}", auth_method_mismatch_message(.endpoint, .rendered_url.as_deref(), .method, .requested.as_deref(), .supported, .available_in_app.as_deref(), .app.as_deref(), .other_apps_with_creds.as_deref()))]
+    #[error("{}", auth_method_mismatch_fragment(.endpoint, .rendered_url.as_deref(), .method, .requested.as_deref(), .supported, .available_in_app.as_deref(), .app.as_deref(), .other_apps_with_creds.as_deref()))]
     AuthMethodMismatch {
         /// Path template (e.g. `/2/users/{id}/likes`) — keyed verbatim
         /// against the spec for agent pattern matching.
@@ -185,14 +182,12 @@ const _: fn() = || {
     _assert_send_sync::<Error>();
 };
 
-/// Builds the user-facing message that fills both the `Display` output and
-/// the JSON envelope's `message` field for `AuthMethodMismatch`.
-///
-/// Three shapes per the variant's docstring; each ends with an actionable
-/// recovery instruction. Prefers `rendered_url` over `endpoint` for
-/// user-facing strings so `{id}` placeholders don't leak into messages.
+/// Builds the Display fragment for `AuthMethodMismatch`: which method was
+/// refused where, and what the endpoint accepts, in the wire vocabulary the
+/// fields carry. Prefers `rendered_url` over `endpoint` so `{id}`
+/// placeholders don't leak into the message.
 #[allow(clippy::too_many_arguments)]
-fn auth_method_mismatch_message(
+fn auth_method_mismatch_fragment(
     endpoint: &str,
     rendered_url: Option<&str>,
     method: &str,
@@ -202,77 +197,38 @@ fn auth_method_mismatch_message(
     app: Option<&str>,
     other_apps_with_creds: Option<&[String]>,
 ) -> String {
-    let display_path = rendered_url.unwrap_or(endpoint);
+    let path = rendered_url.unwrap_or(endpoint);
     let app_name = app.unwrap_or("the active app");
-    let suggest_first = |fallback: &str| {
-        supported
-            .first()
-            .map(|s| format!(" Add credentials with: xr auth {s} --app {fallback}."))
-            .unwrap_or_default()
-    };
-
-    match (requested, available_in_app, other_apps_with_creds) {
-        // Explicit mismatch: the user passed --auth X explicitly.
-        (Some(req), _, _) => {
-            let pretty_req = pretty_scheme(req);
-            let alt = supported
-                .iter()
-                .map(|s| format!("--auth {s}"))
-                .collect::<Vec<_>>()
-                .join(" or ");
-            if alt.is_empty() {
-                format!("{pretty_req} auth is not accepted at {method} {display_path}.")
-            } else {
-                format!("{pretty_req} auth is not accepted at {method} {display_path}. Use {alt}.")
-            }
+    let list = |items: &[String]| {
+        if items.is_empty() {
+            "none".to_string()
+        } else {
+            items.join(", ")
         }
-        // Wrong-app: active app stores nothing but other apps do. Only that
-        // branch sets `other_apps_with_creds`, so `avail` may still carry an
-        // env-supplied bearer here.
+    };
+    match (requested, available_in_app, other_apps_with_creds) {
+        (Some(req), _, _) if supported.is_empty() => {
+            format!("{req} auth is not accepted at {method} {path}")
+        }
+        (Some(req), _, _) => {
+            let accepts = list(supported);
+            format!("{req} auth is not accepted at {method} {path} (accepts {accepts})")
+        }
         (None, Some(_), Some(others)) if !others.is_empty() => {
             let alts = others.join(", ");
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
             format!(
-                "App '{app_name}' has no stored credentials, but other apps do ({alts}). Endpoint {method} {display_path} accepts: {accepts}. Try --app NAME with one of the apps above."
+                "app '{app_name}' holds no credentials for {method} {path} (other apps with credentials: {alts})"
             )
         }
-        // Empty intersection on a non-empty active app.
         (None, Some(avail), _) => {
-            let has = if avail.is_empty() {
-                "none".to_string()
-            } else {
-                avail.join(", ")
-            };
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
-            let suggest = suggest_first(app_name);
+            let has = list(avail);
+            let accepts = list(supported);
             format!(
-                "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
+                "no stored auth method on app '{app_name}' is accepted at {method} {path} (app has {has}; endpoint accepts {accepts})"
             )
         }
-        (None, None, _) => {
-            format!("Auth method is not accepted at {method} {display_path}.")
-        }
+        (None, None, _) => format!("auth method is not accepted at {method} {path}"),
     }
-}
-
-/// Maps a wire-format auth string to its pretty-printed scheme name.
-///
-/// Delegates to [`crate::api::auth_matrix::WireScheme::pretty`] so the
-/// display vocabulary lives in one place. Unknown strings fall back to
-/// the input verbatim so a future scheme added to the matrix without an
-/// updated pretty mapping still surfaces something readable.
-fn pretty_scheme(name: &str) -> String {
-    crate::api::auth_matrix::WireScheme::from_wire(name)
-        .map(|ws| ws.pretty().to_string())
-        .unwrap_or_else(|| name.to_string())
 }
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests

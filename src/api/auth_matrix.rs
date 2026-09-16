@@ -470,24 +470,15 @@ mod tests {
     }
 
     #[test]
-    fn validate_envelope_message_lists_alternatives() {
-        // The Display message (and envelope `message` field) must surface
-        // the actionable `--auth ...` alternatives so a user can fix the
-        // invocation without consulting the matrix by hand.
+    fn validate_display_names_the_refused_scheme_and_the_alternatives() {
+        // The Display fragment carries what was refused, where, and what
+        // the endpoint accepts, so an embedder can act without consulting
+        // the matrix by hand.
         let target = tmpl("/2/media/upload");
         let err = validate(&target, "POST", "app", None).unwrap_err();
-        let msg = err.to_string();
-        assert!(
-            msg.contains("Bearer (app)"),
-            "message must pretty-print requested scheme: {msg}"
-        );
-        assert!(
-            msg.contains("--auth oauth2") && msg.contains("--auth oauth1"),
-            "message must list both supported alternatives: {msg}"
-        );
-        assert!(
-            msg.contains("POST /2/media/upload"),
-            "message must include method + endpoint: {msg}"
+        assert_eq!(
+            err.to_string(),
+            "app auth is not accepted at POST /2/media/upload (accepts oauth2, oauth1)"
         );
     }
 }

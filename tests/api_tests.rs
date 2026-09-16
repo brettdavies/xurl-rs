@@ -658,10 +658,9 @@ fn slow_endpoint_trips_explicit_timeout() {
         elapsed < std::time::Duration::from_secs(5),
         "timeout should fire well under the server's 10s delay; elapsed = {elapsed:?}"
     );
-    let msg = err.to_string();
     assert!(
-        msg.contains("HTTP Error"),
-        "expected an HTTP/transport error, got: {msg}"
+        matches!(err, xurl::Error::Http(_)),
+        "expected an HTTP/transport error, got: {err:?}"
     );
 }
 

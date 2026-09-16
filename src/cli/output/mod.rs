@@ -14,6 +14,7 @@
 mod delimited;
 mod diagnostics;
 mod format;
+mod message;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -234,7 +235,7 @@ impl OutputConfig {
         hint: &crate::cli::hints::Hint,
     ) {
         if self.format.is_structured() {
-            let display = error.to_string();
+            let display = message::render(error);
             let body = ErrorBody {
                 reason: error.kind().to_string(),
                 exit_code,
@@ -348,7 +349,7 @@ impl OutputConfig {
     /// emit a JSON line carrying the envelope (delimited formats are not a good
     /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
-        let display = error.to_string();
+        let display = message::render(error);
         let mut body = ErrorBody {
             reason: error.kind().to_string(),
             exit_code,
