@@ -320,6 +320,194 @@ KTD14. **`xdk-rs` is taken knowing X may one day generate a Rust XDK.** `session
 possible. If it appears, this crate is the hand-written idiomatic alternative rather than a duplicate — a real niche,
 since generated SDKs are rarely idiomatic. The non-affiliation obligation in KTD2 is what keeps that honest.
 
+KTD20. **`Client` is a `&self` handle: cheap `Clone`, `Send + Sync`, with one `tokio::sync::Mutex` around the OAuth2
+token state.** Governs R3. U4 and U15 implement it; U19 keeps it. `ApiClient` takes `&mut self` on `send_request`
+(`src/api/request/mod.rs`) and `Auth` takes `&mut self` on `get_oauth2_header` (`src/auth/mod.rs:251`) for one reason: a
+refresh writes the rotated pair back into the owned `TokenStore`. That receiver makes a client unshareable across tasks,
+so each task ends up holding its own client and running its own refresh, which is how two refreshes clobber each other.
+The shape to copy is `reqwest`'s own: `reqwest::Client` is an `Arc` around its pool, every method takes `&self`, and its
+documentation says not to wrap it in `Rc` or `Arc` because it already is one; `octocrab::Octocrab` and every AWS SDK
+`Client` are the same handle-over-`Arc` shape. So the client is `struct Client { inner: Arc<Inner> }` with
+`#[derive(Clone)]`, every public method takes `&self`, and the U1 assertion is the compile-time proof of `Send + Sync`.
+`Inner` holds the one `reqwest::Client` (U15's single construction site), the base URL, the timeout, the bearer and
+OAuth1 credentials as plain immutable fields, and the OAuth2 credential behind a `tokio::sync::Mutex`, because it is the
+only state a request can change. A refresh takes that lock, re-checks expiry (a second waiter finds a fresh token and
+returns without refreshing), performs the token request, installs the new state, calls the hook (KTD22), and releases.
+Holding a tokio mutex across those awaits is what serializes refreshes without parking the runtime thread. U15 puts the
+existing `Auth` behind that mutex so every signature is `&self` by the end of the increment; U19 replaces the wrapped
+value with the credential and keeps the lock discipline. Token exchange, refresh, and `fetch_username` take
+`&reqwest::Client` from `Inner` and never own one. Rejected: keeping `&mut self` (no sharing, and the refresh race
+stays); leaving the `Arc` to the embedder (every embedder rediscovers the wrapper, which is why reqwest and the AWS SDK
+put it inside); `std::sync::Mutex` (held across the refresh await it parks the runtime thread, which the crate's async
+design principle forbids); `tokio::sync::RwLock` with double-checked locking (a second code path to keep correct, for
+read concurrency no X rate limit can use).
+
+KTD21. **Client builder signatures.** Governs R12. U19 implements these signatures as written.
+
+```rust
+impl Client {
+    pub fn builder() -> ClientBuilder;
+}
+
+impl ClientBuilder {
+    pub fn bearer(self, token: impl Into<String>) -> Self;
+    pub fn oauth2(self, credential: OAuth2Credential) -> Self;
+    pub fn oauth1(self, credential: OAuth1Credential) -> Self;
+    pub fn on_token_refreshed(self, hook: impl OnTokenRefreshed) -> Self;
+    pub fn base_url(self, url: impl Into<String>) -> Self;
+    pub fn token_url(self, url: impl Into<String>) -> Self;
+    pub fn timeout(self, timeout: Duration) -> Self;
+    pub fn build(self) -> Result<Client>;
+}
+
+pub struct OAuth2Credential {
+    pub client_id: String,
+    pub client_secret: String,
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub expires_at: Option<SystemTime>,
+}
+
+pub struct OAuth1Credential {
+    pub consumer_key: String,
+    pub consumer_secret: String,
+    pub access_token: String,
+    pub token_secret: String,
+}
+```
+
+More than one scheme may be set on one builder, and a call with no explicit scheme picks per the auth matrix in the same
+OAuth2, OAuth1, Bearer order as today, so `xr` builds one client from everything its store holds and behaves as it does
+now. `build()` returns `Error::Validation` when no credential was given and `Error::Http` when the `reqwest` builder
+fails: this is the single construction site U15 leaves, and there is no `Client::new()` fallback. `client_secret` is a
+`String` because the refresh request stays byte-for-byte what `refresh_oauth2_token` sends (Basic auth plus `client_id`
+in the form). `refresh_token: None` means the client never refreshes and an expired token surfaces as `Error::Auth`;
+`expires_at: None` means the token is used until X rejects it. The credential structs carry public fields and no
+`#[non_exhaustive]`, because embedders construct them; a field added later is a `0.x` minor under KTD5. The library
+never starts an interactive sign-in inside a request: a missing user credential is `Error::Auth`, and `xr` signs in and
+retries (U19), which is what KTD16's no-browser rule already requires. Grounding:
+`octocrab::Octocrab::builder().personal_token(token).build()`, and the AWS SDK's `Client::from_conf` taking credentials
+through its config. Rejected: one `credential(Credential)` method taking an enum (one scheme per client, which breaks
+the CLI's multi-scheme store on day one); a pull-style provider trait called per request (the AWS `ProvideCredentials`
+shape handles rotation by re-asking the provider, but X rotates on refresh and the embedder must be told, which a pull
+cannot do); `#[non_exhaustive]` on the credential structs (blocks construction outside the crate).
+
+KTD22. **The `OnTokenRefreshed` hook is async and boxed; a failing hook fails the request that triggered the refresh,
+after the new token is installed.** Governs R12. U19 implements it; U10's OAuth2 example registers one.
+
+```rust
+pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+pub trait OnTokenRefreshed: Send + Sync + 'static {
+    fn on_token_refreshed<'a>(
+        &'a self,
+        credential: &'a OAuth2Credential,
+    ) -> Pin<Box<dyn Future<Output = std::result::Result<(), BoxError>> + Send + 'a>>;
+}
+```
+
+The hook is async because an embedder's sink is a secrets manager over the network, and the CLI's file store is the U0
+locked write inside `spawn_blocking`. It returns a boxed future because `async fn` in a trait is not dyn-compatible and
+the builder stores `Arc<dyn OnTokenRefreshed>`; the AWS SDK's `ProvideCredentials` returns the same boxed-future shape
+for the same reason. The client calls it under the KTD20 lock after installing the new state, so a second request cannot
+start a second refresh while persistence is in flight. On `Err`, the triggering request fails with `Error::TokenStore`
+carrying the hook's message. The client keeps the new token in memory, so a retry succeeds without a second refresh, the
+refresh token X has already rotated is never presented twice, and the embedder learns before the process exits that its
+durable copy is stale. The bearer landing example (KTD24) never refreshes and registers no hook. Rejected: a synchronous
+hook (forces `block_on` or fire-and-forget on async embedders); swallowing hook errors behind a `tracing` warning
+(silent credential death, the exact R12 failure); failing before installing the new token (a retry would refresh again
+against a refresh token X has already rotated).
+
+KTD23. **`Call<T>` is one owned, consumed builder per shortcut, terminated by `send(self).await`.** Governs R3 and R12;
+refines KTD15. U19 implements it.
+
+```rust
+#[must_use = "a Call does nothing until it is sent"]
+pub struct Call<T> {
+    client: Client,
+    options: CallOptions,
+    request: RequestOptions,
+    response: PhantomData<fn() -> T>,
+}
+
+impl<T: DeserializeOwned> Call<T> {
+    pub fn auth(self, scheme: AuthScheme) -> Self;
+    pub fn trace(self, on: bool) -> Self;
+    pub fn timeout(self, timeout: Duration) -> Self;
+    pub fn pagination_token(self, token: impl Into<String>) -> Self;
+    pub async fn send(self) -> Result<T>;
+}
+```
+
+`Call<T>` owns a `Client` clone (an `Arc` increment), not a borrow, so a call can move into a spawned task with no
+lifetime parameter: the AWS fluent-builder shape rather than octocrab's borrowing handlers. `send(self)` consumes the
+call, so sending twice is a compile error, which is U19's test. `PhantomData<fn() -> T>` keeps `Call<T>: Send + Sync`
+for every `T`, pinned by the U1-style assertion on `Call<serde_json::Value>`. `CallOptions` is the private carrier:
+`verbose` is gone (KTD16), `trace` stays as the `X-B3-Flags` option, and `pagination_token` carries the CLI's `--cursor`
+value exactly as today and is not a pagination design. The KTD18 obligation holds: a later paging terminator returning a
+`Stream` is a new method on `Call<T>` bounded by a new trait on `T`, and `send()` does not change, which is how octocrab
+carries `Page<T>` and `all_pages` beside `send()`. Rejected: one builder type per shortcut (KTD15); a borrowing
+`Call<'c, T>` (a lifetime in every embedder signature that stores a call); `send(&self)` on a `Clone` builder
+(re-sending a consumed body has no use here); a cancel handle on the call (KTD26: the future is the handle).
+
+KTD24. **The docs.rs landing example uses a bearer token and states what bearer cannot do.** Governs R12. U9 writes it.
+One string from the developer portal, no PKCE exchange, no refresh, no hook, and a typed read on the next line is what
+"under two minutes" means. Bearer is app-only: it reads public data (`search_posts`, post and user lookups) and cannot
+act as a user, so `whoami`, `create_post`, likes, follows, and DMs fail with 401 or 403 under it. The landing program
+therefore performs a search, and the sentence after it names that boundary and links the OAuth2 example (U10) for
+anything user-scoped. Rejected: OAuth2 as the landing credential (a token pair the reader does not yet hold, plus a
+hook, before the first typed response); OAuth1 (four secrets on the first screen).
+
+KTD25. **`NextAction` stays on the library error; the `xr` command strings stay in the binary.** Governs R13 and R14. U2
+moves the enum; U11 keeps it. `NextAction` (`src/cli/hints.rs:16`) moves to the library beside `Error`, unchanged and
+still `#[non_exhaustive]`, and `Error::next_action(&self) -> Option<NextAction>` derives it: a 403 whose body carries
+`client-not-enrolled` or `client-forbidden` is `EnrollApp` (the parse in `enrollment_hint` moves with it), and every
+other error is `None` from the library. The binary computes the store-derived actions (`RegisterApp`, `SignIn`,
+`SelectApp`, `InspectStore`) from its own snapshot as it does now, and owns `NextStep` with its `command`, `template`,
+and `docs` strings, because they name `xr` invocations. Without the enum, a bare 403 on X's Pay-per-use enrollment
+failure is unactionable in an embedder's code; with the strings, the library would ship CLI text. Rejected: dropping
+`NextAction` from the library (the 403 stays opaque); moving `NextStep` too (R13).
+
+KTD26. **Cancellation is dropping the future; a refresh in flight is never cancelled; timeouts are one client-level
+bound with a per-call override.** Governs R3. U4 and U15 implement it. A `Call::send()` future dropped by
+`tokio::select!` or `tokio::time::timeout` aborts the request and releases its connection, which is `reqwest`'s own
+contract, so `Call<T>` carries no token and no cancel method. Streaming is the same: dropping the `Stream` KTD16 returns
+closes the connection. The one exception is a token refresh: it runs in a task spawned from the request future and
+awaited through its `JoinHandle`, so a caller dropping the request cannot drop the refresh between X rotating the
+refresh token and the client installing and persisting the new pair; the next request finds the lock released and a
+fresh token. Timeouts: `ClientBuilder::timeout` (default 30 seconds, the CLI's `--timeout`) bounds every non-streaming
+request from connect to body end, `Call::timeout` overrides it for one call, both exactly as
+`reqwest::ClientBuilder::timeout` and `reqwest::RequestBuilder::timeout` define them; streaming requests carry no total
+timeout, and the refresh request uses the client-level bound (T9). Rejected: a `CancellationToken` on every call (a
+second cancellation mechanism beside the one tokio already provides); the AWS SDK's four-timeout `TimeoutConfig`
+(operation, attempt, connect, read: knobs for a retry stack this client does not have); an inline refresh (a dropped
+request loses a rotated pair).
+
+KTD27. **`wait_for_callback_with` is a plain `async fn` taking a caller-supplied `CancellationToken`.** Governs R3 and
+R13. U15 implements it.
+
+```rust
+pub async fn wait_for_callback_with<F>(
+    redirect_uri: &Url,
+    expected_state: &str,
+    cancel: CancellationToken,
+    on_bound: F,
+) -> Result<String>
+where
+    F: FnOnce() + Send + 'static;
+```
+
+The parameters are the current ones (`src/auth/callback.rs`) minus the private runtime: the function builds no
+`current_thread` runtime and selects on no `shutdown_signal()`. `cancel` is the only external stop. The binary creates
+it and cancels it from `tokio::signal` in its own `shutdown_signal()`; a library caller passes
+`CancellationToken::new()` or a `child_token()` of the application's token. The five-minute `CALLBACK_TIMEOUT` stays
+inside and cancels the token when it fires. The accept-loop `JoinHandle`s live in a struct whose `Drop` cancels the
+token and aborts every handle, so a future dropped by `select!` or `timeout` releases the loopback port, which is U15's
+drop test. `on_bound` stays a synchronous `FnOnce` run on `spawn_blocking`, because after KTD16 it is the binary's
+`open::that`. Rejected: an internal signal handler (`tokio::signal::unix::signal` changes the process-wide SIGTERM
+disposition, U15's hazard); an `Option<CancellationToken>` defaulting to none (two shapes for one function, when a token
+is one line to make); a timeout parameter (additive later; the constant is Go parity).
+
 ### High-Level Technical Design
 
 **Current dependency shape.** The arrows that break the split are the three pointing left, from library modules into
