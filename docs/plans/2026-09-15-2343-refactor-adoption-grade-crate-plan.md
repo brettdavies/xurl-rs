@@ -73,6 +73,24 @@ binstall) keep working.
 R11. The library is submitted for listing on X's community libraries page, with the repository in a state that survives
 the review that follows.
 
+R12. An embedder supplies a credential to the client directly, in code, without installing the CLI, without writing a
+token-store file, and without mutating process environment variables. Time from `cargo add` to a typed response on
+screen is under two minutes for a developer who already holds a credential.
+
+R13. The library performs no terminal I/O and launches no browser. It returns data and URLs; the binary renders and
+opens. No library code path writes to stdout or stderr, and `colored` and `open` are absent from the library's
+dependency graph on every feature combination.
+
+R14. The library's error type follows Rust library convention: a bare `Error` re-exported at the crate root, Display
+strings that are lowercase fragments without an `Error:` prefix or trailing period, no internal control-flow sentinel in
+the public enum, and a documentation pointer on the variants that have one.
+
+R15. The crate states its breaking-change and MSRV policy, and honors it: every breaking entry in the library changelog
+carries a before/after snippet, and an MSRV bump is a minor, never a patch.
+
+R16. The getting-started artifacts are verified by machine. README Rust blocks compile as doctests, and the
+credential-free example runs to completion in CI.
+
 ### Scope Boundaries
 
 **Non-goals.**
@@ -214,6 +232,46 @@ KTD13. **`xr --version` leads with the CLI version and carries the library versi
 user-directed`. Humans see the version they installed; the verbose and JSON forms also report the `xdk-rs` version the
 binary was built against, so a bug report identifies both. Costs a build-time constant, which `build.rs` already emits
 for the spec metadata.
+
+KTD15. **The client carries credentials directly, and every call is a builder.** `session-settled: user-directed`;
+governs R12. A credential-carrying constructor is what makes the crate an SDK by the standard of the name KTD2 takes:
+X's own `xdk` for Python puts credentials in the constructor, and U13 asks to be listed beside it. Shortcut methods
+return a per-call builder terminated by `.send().await` rather than taking a trailing options struct, matching
+`octocrab` and the AWS SDK. Implement it as **one generic `Call<T>` with 32 constructors**, not 32 builder types: the
+endpoint closure and the per-call overrides are the only things that vary, so a single type carries both. Refines the
+2026-04-03 decision recorded in `calloptions-vs-requestoptions-for-shortcuts`, whose rationale — never leak
+`RequestOptions` internals to consumers — the builder preserves; `CallOptions` becomes the builder's private carrier
+rather than a parameter, and KTD16 removes its `verbose` and `trace` fields.
+
+KTD16. **Presentation and side effects leave the library; U2 moves types out, not in.** `session-settled:
+user-directed`; governs R13. R1 forbids `clap`, `clap_complete`, `colored`, and `open` in the library, and two of those
+four live in modules the earlier draft kept there: `colored` in `src/api/response/format.rs`, and `open` in all three
+`auth/` files. `src/api/request/transport.rs` also writes to the caller's terminal directly — `:345` prints a Ctrl+C
+banner to stderr and `:354` writes stream lines to stdout. So `OutputConfig`, `ColorChoice`, `Envelope`, `ErrorBody`,
+`Hint`, and `NextStep` all move to the **binary** crate. `oauth2_flow` returns the authorize URL and the binary calls
+`open`; `stream_request` returns a `Stream` and the binary prints the banner. Library diagnostics become `tracing`
+events. This makes U2 smaller than the inbound version it replaces: one direction of travel instead of three types
+moving in plus an `OutputConfig` threaded through auth.
+
+KTD17. **The error type is `xdk::Error`, and its Display follows library convention.** `session-settled: user-directed`;
+governs R14. `XurlError` is the only public identifier in the library still carrying the old brand, so this is one
+rename, not a sweep. R10 survives because KTD16 hands error rendering to the binary: `print_error_with_hint` is the
+single boundary where `xr` re-applies its `Auth Error:` / `HTTP Error:` prefixes, so CLI output stays byte-identical
+while the library's Display stops stuttering inside an embedder's `anyhow` chain. Three assertions in
+`tests/cli_tests.rs` pin the prefix text and move with the renderer.
+
+KTD18. **Pagination is out of scope for 0.1.0, and the existing pagination plan is stale.** `session-settled:
+user-directed`. `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md` is marked `artifact_readiness:
+implementation-ready` but predates this work: it contains no async, adds five new public modules into the audit whose
+rule is publish less, and restructures `src/error.rs` where KTD17 and U11 both land. It is rewritten after 0.1.0 ships,
+not folded in. U18's only pagination obligation is to leave the `Call<T>` shape open enough that a later design is
+additive — it does **not** design pagination and does **not** treat
+`docs/designs/2026-09-03-pagination-and-result-bounding.md` as normative input.
+
+KTD19. **Getting-started artifacts are machine-verified.** Governs R16. `#![doc = include_str!("../README.md")]` turns
+the library README's Rust blocks into doctests, so the most-read page cannot drift from the code. Every shell block in a
+doctested README must be fence-tagged ```bash, because an untagged fence defaults to Rust. `cargo build --examples`
+proves compilation only, so the credential-free example additionally runs to completion as a CI step.
 
 KTD14. **`xdk-rs` is taken knowing X may one day generate a Rust XDK.** `session-settled: user-directed`.
 `xdevplatform/xdk` is an SDK *generator* and the Python and TypeScript SDKs are its outputs, so a Rust output is
@@ -368,7 +426,7 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 | U18  | Settle the async API shape                                | —                                                                                                                                                                                                                 | —               |
 | U0   | Durable, lockable credential store                        | `src/store/mod.rs`, `src/auth/pending.rs`, `src/auth/oauth2.rs`, `src/auth/mod.rs`, `tests/store_tests.rs`                                                                                                        | —               |
 | U1   | Lock Send + Sync as compile-time invariants               | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                                             | —               |
-| U2   | Move ColorChoice and the hint types into library homes    | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/skill_install/update.rs`, `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs` | —               |
+| U2   | Move presentation and side effects out of the library     | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/skill_install/update.rs`, `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs` | —               |
 | U3   | Remove clap from the generated skill-host enum            | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                                           | —               |
 | U4   | Async transport core, and the CLI goes async              | `src/api/request/*`, `src/api/media.rs`, `src/cli/commands/*`, `src/cli/runner.rs`, `src/main.rs`                                                                                                                 | U0, U1, U2      |
 | U15  | Async auth paths, one shared HTTP client                  | `src/auth/{mod,oauth2,callback}.rs`, `src/api/request/auth_header.rs`                                                                                                                                             | U4              |
@@ -421,9 +479,20 @@ setting.
 - ~~Whether the blocking facade earns its place.~~ **Answered by KTD3.** No facade at `0.1.0`; the CLI is async
   throughout and owns one `current_thread` runtime in `src/main.rs`. Sync callers own a runtime or wait for an additive
   `blocking` minor. Do not reopen this in U4.
-- **Pagination.** Several endpoints are cursor-paged and the CLI already threads a cursor. Decide whether the library
-  exposes raw pages, an iterator-style helper, or `impl Stream<Item = Result<T>>` via `futures-core`, and whether that
-  shape is feature-gated.
+- ~~Pagination.~~ **Out of scope at 0.1.0 by KTD18.** Do not design it here, and do not read
+  `docs/designs/2026-09-03-pagination-and-result-bounding.md` as normative — it and its plan are stale and get rewritten
+  after 0.1.0 ships. The only obligation is negative: confirm the `Call<T>` shape below can gain a paging terminator
+  later without reshaping, so the eventual design is additive.
+- **Credential entry, and the per-call builder.** Settled in shape by KTD15; fix the exact signatures here. A client
+  builder takes a bearer token, an OAuth2 token, or OAuth1 credentials directly, so R12 holds without the CLI, a
+  token-store file, or `env::set_var` — which edition 2024 makes `unsafe`, so the env path is not a workaround an
+  embedder can reach for. Shortcut methods return `Call<T>`; `.send().await` terminates. Decide which credential the
+  docs.rs landing example uses and state what that credential can and cannot do — a Bearer landing example whose next
+  line is `create_post` fails, because Bearer is read-only.
+- **Error surface.** The type is `xdk::Error` per KTD17. Fix here whether `NextAction` — the closed recovery enum —
+  stays on the library error when KTD16 moves the hint strings to the binary. It must: a bare 403 on X's Pay-per-use
+  enrollment failure is unactionable, and `NextAction::EnrollApp` is the machine-readable half an embedder can branch
+  on. The `xr`-prefixed `command` and `template` strings stay in the binary.
 - **Cancellation and timeouts.** What a caller can cancel, what happens to an in-flight token refresh when they do, and
   where per-request timeouts sit relative to the client-level one.
 - **Signal ownership — settle the API shape here.** The library takes a `CancellationToken` and never registers a signal
@@ -528,18 +597,37 @@ form. `src/output/mod.rs:60-61` already states the intent in a doc comment.
 
 **Verification.** `cargo build` and `cargo clippy --all-targets -- -D warnings`.
 
-### U2. Move ColorChoice and the hint types into library homes
+### U2. Move presentation and side effects out of the library
 
-**Goal.** Remove every dependency that points from library code into `src/cli/`, and remove clap from the library types
-that already carry it.
+**Goal.** Remove every dependency that points from library code into `src/cli/`, remove clap from the library types that
+already carry it, and remove the library's terminal I/O and browser launching.
 
-**Requirements.** R1, R2, R6.
+**Requirements.** R1, R2, R6, R13.
 
-**Approach.** `ColorChoice` moves to `src/output/`, where its only public consumer (`OutputConfig::new`) already lives
-`Hint` and `NextStep` move to `src/envelope.rs` or a sibling module, since `ErrorBody` embeds `NextStep` and that type
-backs the committed `schema/output.schema.json`. Then remove the terminal I/O from `src/auth/mod.rs:296-308` by
-threading an `OutputConfig` in from the caller rather than constructing one, per
-`docs/solutions/best-practices/rust-library-cli-separation-for-interactive-concerns-2026-04-20.md`.
+**Direction of travel — outward, per KTD16.** The inbound alternative — move `ColorChoice`, `Hint`, and `NextStep`
+*into* library homes and thread an `OutputConfig` through auth — is rejected: it satisfies the compiler and fails R1 and
+R6, leaving the library owning a terminal formatter no embedder calls. The presentation layer leaves instead.
+
+To the binary crate: `OutputConfig`, `ColorChoice`, `Envelope`, `ErrorBody`, `Hint`, `NextStep`, and the
+`schema/output.schema.json` generation that backs them. The closed `NextAction` enum is the exception and stays on the
+library error per U18 — it is the machine-readable recovery signal, and only its `xr`-prefixed `command` and `template`
+strings are CLI-shaped.
+
+**The two R1 names no gate was checking.** R1 forbids four dependencies and the plan's only check was `cargo tree -p
+xdk-rs -i clap`. Two of the other three live in library modules:
+
+- `colored` at `src/api/response/format.rs` — response formatting for terminal display. Moves to the binary crate.
+- `open` at `src/auth/{mod,oauth2,callback}.rs` — launches a browser. `oauth2_flow` returns the authorize URL; the
+  binary calls `open`. A library that seizes the user's browser is the defect, not the dependency edge.
+
+**Terminal writes in the transport.** `src/api/request/transport.rs:345` prints `--- Press Ctrl+C to stop ---` to stderr
+and `:354` writes stream lines to stdout. `stream_request` returns a `Stream` instead; the binary prints the banner and
+drives the loop. Diagnostics that survive become `tracing` events, which is what an embedder already has a subscriber
+for. Removing `verbose` and `trace` from the per-call surface is KTD15's half of the same change.
+
+This replaces, rather than supplements, the inbound move:
+`docs/solutions/best-practices/rust-library-cli-separation-for-interactive-concerns-2026-04-20.md` is the governing
+pattern for all of it, not only for the `src/auth/mod.rs:296-308` case the earlier draft cited.
 
 Relocating the types is not sufficient on its own. `ColorChoice` derives `clap::ValueEnum` (`src/cli/mod.rs:22`), so
 moving it would carry clap into `src/output/` — and `OutputFormat` already derives it there today
@@ -895,8 +983,11 @@ Use `git mv` so history survives, and verify with `git blame -C -C -C`.
 
 **Test scenarios.**
 
-- Happy path: `cargo build -p xdk-rs` produces no clap in the dependency graph. Assert with `cargo tree -p xdk-rs -i
-  clap` returning nothing.
+- Happy path: `cargo build -p xdk-rs` produces none of R1's four forbidden dependencies. Assert with `cargo tree -p
+  xdk-rs -i <dep>` returning nothing for **each** of `clap`, `clap_complete`, `colored`, and `open`. A single-name check
+  against `clap` alone passes while two of the four ship; see KTD16.
+- Error path: no library source writes to a terminal. `rg -n 'println!|eprintln!|print!|eprint!|stdout\(\)|stderr\(\)'
+  crates/xdk/src/` returns empty.
 - Integration: the full test suite passes with the same count as before the split.
 - Error path: planting a deliberate `Auth::new(` call in each crate's `tests/` tree makes that crate's isolation guard
   report a violation. Observe both failures, then remove the plants.
@@ -934,7 +1025,8 @@ Repointing a path is not revalidating the claim attached to it. Where a citation
 the assertion still holds against what is there now; the full failure mode and its recovery sequence are in
 `docs/solutions/workflow-issues/path-pinned-learnings-go-stale-when-a-module-split-moves-the-file.md`.
 
-**Verification — exit gates.** `cargo test --workspace`, `cargo tree -p xdk-rs -i clap` (empty), `rg 'crate::cli'
+**Verification — exit gates.** `cargo test --workspace`, `cargo tree -p xdk-rs -i <dep>` empty for **all four** of
+`clap`, `clap_complete`, `colored`, and `open` (KTD16), the terminal-write grep above empty, `rg 'crate::cli'
 crates/xdk/` (empty), `RUSTDOCFLAGS="-D warnings" cargo doc -p xdk-rs --no-deps`, `cargo package -p xdk-rs`, the release
 `xr` under its recorded size ceiling, `rg -n "src/[a-zA-Z0-9_/.]+" build.rs` showing no literal that stayed behind in
 the wrong crate, all three knowledge-corpus sweeps reporting no `DEAD:` lines, `scripts/generate-completions.sh
@@ -998,6 +1090,9 @@ feature — KTD3 settled that; the library ships one posture. Every matrix cell 
 - Edge case: `--all-features` builds and tests green, so no two features are mutually exclusive.
 - Error path: `--no-default-features` with no TLS feature fails with a clear `compile_error!` rather than an obscure
   reqwest error.
+- Edge case: `--features testing` builds and tests green, and `cargo tree -p xdk-rs -i <dep>` against a **default**
+  build shows the testing helper's dependencies absent. U10 adds this feature; it is non-default precisely so R1 and
+  U7's publish-less posture are unaffected for everyone who does not opt in.
 
 **Verification.** The CI matrix, plus `cargo hack check --feature-powerset` if available.
 
@@ -1012,6 +1107,24 @@ feature — KTD3 settled that; the library ships one posture. Every matrix cell 
 factually wrong for the package it describes, and it is the first thing a developer evaluating an X API client sees.
 Rewrite the description to name an async X API client, drop `cli` from keywords and `command-line-utilities` from
 categories, and give the library crate a library-first README while the existing CLI README moves with the binary crate.
+
+**Three READMEs, and the root one is what the world sees.** Each member README renders on its own crates.io page. The
+repository root README is a third file, and it is what GitHub shows, what a docs.rs visitor gets when they click
+Repository, and what U13 points X's reviewer at. Leaving it as today's CLI-first page reproduces the exact dead end the
+Developer Perspective narrative records. Structure it as: a lightweight router nav at the top so either audience
+self-selects in one glance, then library-first content — what it is, `cargo add xdk-rs`, the complete landing example —
+then a CLI section. Both halves stay shallow and deep-link into the corresponding member README's sections rather than
+duplicating them, so the three files cannot drift apart.
+
+**The landing example is the magical moment; it has to be complete.** The crate-level doc opens with a whole program:
+`#[tokio::main]`, a client built from a credential per KTD15, one read, the text printed. Two details that decide
+whether a paste works on the first try. State the example's own `Cargo.toml` requirements, including the `tokio`
+features `#[tokio::main]` needs — without them the paste fails with a proc-macro error that names nothing useful. And
+show `cargo add xdk-rs` adjacent to `use xdk::`, because the package name and the lib target differ by KTD2 and `use
+xdk_rs::` is the natural first guess.
+
+Apply KTD19 here: `#![doc = include_str!("../README.md")]` on the library crate, with every shell fence in that README
+tagged ```bash so an untagged fence is not compiled as Rust.
 
 Then the docs configuration: add `[package.metadata.docs.rs]` with `all-features = true` and `rustdoc-args = ["--cfg",
 "docsrs"]`, and annotate feature-gated items with `#[cfg_attr(docsrs, doc(cfg(...)))]`. Extend the lint posture beyond
@@ -1034,25 +1147,71 @@ followed by a read of the generated metadata.
 
 **Requirements.** R7.
 
+**Requirements.** R7, R16.
+
 **Approach.** Add `crates/xdk/examples/` with one example per major capability: authenticate, read a post, search, post
 with media, and stream. Each compiles under `cargo test --examples` and reads credentials from the environment rather
 than embedding them.
+
+**The testing story is an adoption gate, not a nicety.** The question an embedder asks before depending on any client is
+whether they can test their own code without hitting the live API — and against a metered API, getting that wrong bills
+them on every CI run. Ship both halves, because they answer different questions:
+
+- **X's own playground, documented for embedders.** `CONTRIBUTING.md:68-81` already records the recipe — `go install
+  github.com/xdevplatform/playground/cmd/playground@latest`, then `API_BASE_URL=http://localhost:8089
+  XURL_BEARER_TOKEN=test_token`. It is offered to contributors and never to embedders. A `# Testing` section in the
+  crate docs fixes that. State both limits plainly rather than letting them be discovered: it needs a Go toolchain, and
+  per `CONTRIBUTING.md:80-81` its parameter vocabulary predates the post-vocabulary rename this project adopted from
+  spec 2.168, so current expansion names return invalid-request errors. It proves the wire protocol; it is not the
+  unit-test story.
+- **A non-default `testing` feature.** A mock-server builder plus fixtures seeded from
+  `tests/fixtures/openapi/example_responses.json`, in-process, no second binary, version-locked to the crate's own
+  types. Non-default keeps it out of the default dependency graph, so R1 and U7's publish-less posture are unaffected;
+  U8 adds its matrix cells.
+
+`Config::api_base_url` is already public and the repo's own tests already use it this way at `tests/api_tests.rs:124`,
+so the capability exists — what is missing is that anyone is told.
 
 **Test scenarios.**
 
 - Happy path: every example compiles under `cargo build --examples`.
 - Edge case: an example run without credentials exits with the documented auth-required code rather than panicking.
+- Integration: the credential-free example **runs to completion** in CI, not merely compiles (KTD19). It is the only
+  artifact in the crate that needs no X app, no credentials, and no credits.
+- Happy path: `cargo test --doc -p xdk-rs` compiles every Rust block in the library README via the `include_str!`
+  bridge, and a deliberately broken snippet fails that gate. Observe the failure, then revert.
+- Edge case: `--features testing` builds and its mock-server builder drives a full read end to end.
 
-**Verification.** `cargo build --examples` in CI.
+**Verification.** `cargo build --examples` plus the credential-free example executed in CI, and `cargo test --doc -p
+xdk-rs`.
 
-### U11. `XurlError` non-exhaustive, `exit_code()` made exhaustive
+### U11. The error type becomes `xdk::Error`: renamed, non-exhaustive, exhaustively coded
 
-**Goal.** New error variants stop forcing a version bump the crate cannot afford, and stop silently inheriting a generic
-exit code.
+**Goal.** The public error type reads like a Rust library's, new variants stop forcing a version bump the crate cannot
+afford, and no variant silently inherits a generic exit code.
 
-**Requirements.** R8.
+**Requirements.** R8, R14.
 
-**Approach.** Add `#[non_exhaustive]` to `XurlError`. The attribute is unambiguously right for a public error type on a
+**Rename and Display, per KTD17.** Four changes, all in `src/error.rs`, all free now and each a major break after `1.0`:
+
+1. **`XurlError` → `Error`,** re-exported at the crate root as `xdk::Error`, with `pub type Result<T> =
+   std::result::Result<T, Error>` beside it. It is the only public identifier in the library still carrying the old
+   brand — `rg 'pub (struct|enum|fn|const|type) .*[Xx][Uu][Rr][Ll]' src` returns exactly this one hit — so this is a
+   single rename across 267 references, most of them reaching it through the existing `Result` alias. The binary crate
+   aliases it if it wants the old spelling.
+2. **Display becomes a lowercase fragment with no prefix and no trailing period.** Today's variants bake in Title Case
+   prefixes — `"Auth Error: {0}"`, `"HTTP Error: {0}"`, `"JSON Error: {0}"`, `"Token Store Error: {0}"` — which stutter
+   when an embedder wraps them: `Error: failed to fetch timeline: Auth Error: NoAuthMethod: ...`. **R10 is preserved by
+   KTD16, not waived.** CLI error text funnels through one function, `print_error_with_hint` at `src/output/mod.rs:240`,
+   which U2 moves to the binary crate; it re-applies the prefixes there and `xr` prints byte-identical output. The three
+   assertions in `tests/cli_tests.rs` that pin the prefix text move with the renderer.
+3. **The envelope sentinel leaves the public enum.** `#[error("envelope-already-emitted")]` at `src/error.rs:102` is
+   internal control flow, not an error an embedder can act on. `#[non_exhaustive]` would freeze it in place, since the
+   attribute makes variants addable and not removable.
+4. **Variants gain a documentation pointer.** No variant carries one today. It is the field Stripe's error format is
+   built around, and after U2 moves `NextStep` to the binary the library has no other route to one.
+
+**Approach.** Add `#[non_exhaustive]` to `Error`. The attribute is unambiguously right for a public error type on a
 crate seeking embedders: without it, every new error variant is a breaking change, and an X API client will grow error
 variants as the API does. The earlier hesitation came from a first-party consumer that matched the enum exhaustively as
 a deliberate alarm; that consumer is out of scope for this plan by its owner's direction and will be adapted afterward.
@@ -1098,6 +1257,18 @@ the tag scheme and git-cliff configuration both have to express.
 The CLI ships as `4.0.0`, not a minor: KTD2's lib-target removal is a major break. Write `docs/migrating/v4.0.0.md` in
 the same form as the existing `docs/migrating/v3.0.0.md`, recording that the library moved to `xdk-rs` and that nothing
 about installing or running `xr` changed.
+
+**State the library's upgrade policy, and honor it (R15).** KTD5 has breaking changes riding 0.x minors repeatedly until
+the API settles. Cargo stops anyone from being broken silently, but the developer who adopted at 0.1 and tries 0.3 gets
+a wall of compile errors with nothing telling them what to type instead — and an embedder burned once pins forever,
+which is indistinguishable from churn when X's reviewer checks whether the crate has real users. Two rules, both written
+into the library README where a reviewer can check them in seconds:
+
+- Every breaking entry in the library changelog carries a **before/after snippet**, not only a description. A release
+  that breaks something and ships no snippet does not go out.
+- **An MSRV bump is a minor, never a patch.** Note the coupling: U6 puts `rust-version` in `[workspace.package]`, so one
+  bump moves both crates' floors at once and therefore forces a minor on both, independent version lines notwithstanding
+  (KTD9). If that coupling is unwanted, give each member its own `rust-version` instead.
 
 **Test scenarios.**
 
@@ -1186,6 +1357,19 @@ clean tree.
 - No clap-derived type appears in `cargo doc` output for the library.
 - Every published module has a named embedder use, or a recorded decision to publish it anyway.
 - docs.rs renders feature badges and at least one runnable example per major capability.
+- An embedder reaches a typed response in under two minutes: `cargo add xdk-rs`, paste the docs.rs landing example,
+  supply a credential in code, `cargo run`. No CLI install, no token-store file, no `env::set_var` (R12).
+- The library performs no terminal I/O and launches no browser. `cargo tree -p xdk-rs -i <dep>` is empty for all four of
+  `clap`, `clap_complete`, `colored`, and `open`, and no library source references stdout or stderr (R13).
+- The error type is `xdk::Error` with lowercase prefix-free Display, no internal sentinel variant, and a documentation
+  pointer where one exists — while `xr` prints byte-identical error text to today (R14).
+- The library README states the breaking-change and MSRV policy, and every shipped breaking changelog entry carries a
+  before/after snippet (R15).
+- README Rust blocks compile as doctests via `include_str!`, and the credential-free example runs to completion in CI,
+  not merely compiles (R16).
+- The root README leads with the library behind a router nav, and deep-links rather than duplicates the member READMEs.
+- The `xdk::testing` feature is non-default, and X's playground is documented for embedders with its Go-toolchain and
+  spec-vocabulary limits stated.
 - Every accepted break has a `required-update` entry that names what it covers, and every entry whose release has
   shipped is deleted.
 - No knowledge store cites a path the split moved. The learnings store, the project memory files, and the solutions
@@ -1421,26 +1605,289 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Verify: a library-only build leaves the process's SIGTERM disposition unchanged after a listener runs and returns;
     `xr` still honors Ctrl-C and SIGTERM during sign-in
 
+## DX Review Outcomes
+
+Mode: DX EXPANSION. Fifteen decisions, all answered. The persona, narrative, benchmark, and journey below are the
+grounding every requirement and KTD added by this review traces back to.
+
+### Developer Persona Card
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       Rust service developer embedding an X API client
+Context:   Existing tokio app — a bot, a backend, a data pipeline. Needs read,
+           post, and search from inside that app.
+Tolerance: ~15 minutes. Abandons if the first working request is not one screen
+           of code, or if credentials require installing a second tool.
+Expects:   cargo add, an async client, a documented way to hand it a token,
+           typed responses, docs.rs with a runnable example.
+```
+
+The one existing first-party consumer is explicitly **not** this persona and is not evidence of what the surface should
+be — a sample of one, written by the same author, pinned two minors back.
+
+### Developer Perspective
+
+Confirmed accurate against the repository at review time.
+
+> I have a tokio service that needs to read X posts. I search crates.io for "x api rust". `twitter-v2` is top, last
+> published 2022. Dead. Next: `xurl-rs` 3.2.0. The description reads "A fast, ergonomic CLI for the X (Twitter) API" and
+> the first category is `command-line-utilities`. I nearly close the tab; I don't want a CLI.
+>
+> I open the README anyway. Line 7 confirms it: "A fast, ergonomic CLI." I scroll past four install methods, a shell
+> Quick Start, ten sections of shell commands, the auth flows, the agent section, completions — 400 lines — and finally
+> reach **Library Usage**. It is 30 lines. It shows `deserialize_response(json_value)`. Where does `json_value` come
+> from? It doesn't say. There is no client, no auth, and no request anywhere in that section.
+>
+> I try docs.rs instead. The crate doc points at `ApiClient`, and that page has a real example: `Config::new()`,
+> `Auth::new(&cfg)`, `ApiClient::new(&cfg, auth)`, `client.send_request(&opts)`. Three lines to a client — good. I paste
+> it in. It compiles. At runtime: `cannot start a runtime from within a runtime`. `send_request` is blocking.
+>
+> Then the real wall. `Auth::new(&cfg)` reads `~/.xurl`. My token lives in a secrets manager. To get it into the library
+> I have to install the CLI and run `xr auth oauth2` on the box — or set `XURL_BEARER_TOKEN`, which in edition 2024
+> means `unsafe { env::set_var }`. I stop here.
+
+Read this before implementing U9 or U10. The plan's job is to make every sentence of it obsolete.
+
+### Competitive DX Benchmark
+
+| Tool                          | TTHW       | Notable DX choice                                       | Source                         |
+| ----------------------------- | ---------- | ------------------------------------------------------- | ------------------------------ |
+| `xdk` (Python, X's own)       | ~2 min     | `pip install xdk`; credentials in the **constructor**   | docs.x.com/xdks/python/install |
+| `@xdevplatform/xdk` (TS)      | ~2 min     | `npm install`; `bearerToken` option                     | same                           |
+| `octocrab` (Rust, GitHub)     | ~3 min     | Builder + static `instance()`; typed and raw layers     | docs.rs/octocrab               |
+| `twitter-v2` (Rust incumbent) | ~3 min     | Async reqwest, selectable TLS — unpublished since 2022  | Appendix                       |
+| `xurl-rs` 3.2.0 today         | blocked    | Library section shows no request; credentials need CLI  | `README.md:400-429`            |
+| `xdk-rs` 0.1.0 target         | **<2 min** | Credential in the constructor; complete landing example | This plan                      |
+
+X's own Python SDK takes credentials in the constructor, and U13 asks X to list `xdk-rs` beside it. The name KTD2 takes
+makes that comparison automatic; R12 is what makes it survive.
+
+### Magical Moment Specification
+
+**The moment:** a typed X post printing from the developer's own Rust program, no CLI involved.
+
+**Vehicle:** the docs.rs crate-level landing example. Every evaluator reads it, including the reviewer U13 sends.
+
+Implementation requirements, all owned by U9:
+
+1. A whole program, not a fragment: `#[tokio::main]`, client built from a credential, one read, the text printed.
+2. The credential line is present and the credential type is named, with its capability boundary stated. A Bearer
+   landing example whose next line is `create_post` fails, because Bearer is read-only.
+3. The example states its own `Cargo.toml` requirements, including the `tokio` features `#[tokio::main]` needs.
+4. `cargo add xdk-rs` appears adjacent to `use xdk::`, because the package and lib target names differ by KTD2.
+5. It is a doctest, so it cannot rot (KTD19).
+
+### Developer Journey Map
+
+| Stage          | Developer does                      | Friction found                                                             | Resolution          |
+| -------------- | ----------------------------------- | -------------------------------------------------------------------------- | ------------------- |
+| 1. Discover    | crates.io / docs.rs search          | Metadata sells a CLI; root README sells a CLI                              | U9 (metadata + D13) |
+| 2. Install     | `cargo add xdk-rs`, `use xdk::`     | Package name and lib target differ                                         | U9 — doc adjacently |
+| 3. Hello World | Paste landing example, `cargo run`  | No credential path; blocking client panics under tokio                     | R12 / KTD15, U4     |
+| 4. Real Usage  | `client.read_post(id).send().await` | Options struct on all 32 methods; library opens browsers, prints to stderr | KTD15, KTD16        |
+| 5. Debug       | Match on the error type             | `XurlError` name; `xr` strings in library errors; no docs URL              | KTD17, U18, U11     |
+| 6. Upgrade     | Bump 0.1 → 0.2                      | No migration notes; MSRV policy unstated                                   | R15, U12            |
+
+### First-Time Developer Confusion Report
+
+Roleplayed against the plan **with** the decisions above applied, to find residuals. All three were accepted for fixing.
+
+```text
+T+0:00  `use xdk_rs::Client` — unresolved import.          → U9: show both lines adjacently
+T+0:30  `#[tokio::main]` fails; tokio lacks `macros`.       → U9: example states its Cargo.toml needs
+T+1:00  Which credential does the landing example use?      → U18 fixes it; U9 states the capability boundary
+T+2:00  403 `client-not-enrolled`, no idea it is a console  → U18: `NextAction` stays on the library error
+        setting (README.md:433-449 documents the fix)
+T+3:00  Retry loop burns real credits; no rate-limit or     → U7: surface rate-limit and usage state
+        usage state exposed by the library
+```
+
+The third is the one a reviewer working on a metered API notices without being told, and it lands in U7's surface audit.
+
+### NOT in scope — DX
+
+Considered during this review and explicitly deferred.
+
+- **A credential-free path to a live first success.** X requires an app, confidential-client setup, a redirect URI, and
+  Pay-per-use enrollment before any real call works (`README.md:45-57`), and that cost is the category's, not this
+  crate's. D14's playground and `testing` feature recover the credential-free *runnable* path at example cost.
+- **Pagination at 0.1.0.** KTD18. The existing pagination plan is stale and gets rewritten after 0.1.0 ships.
+- **Thirty-two distinct builder types.** KTD15 specifies one generic `Call<T>` with 32 constructors instead; the surface
+  is identical and the implementation is a fraction of it.
+- **`xdk::testing` as default surface.** Non-default by design, so R1 and U7's publish-less posture are untouched for
+  anyone who does not opt in.
+- **Renaming the GitHub repository to match the crate.** A two-crate repository cannot be named for one of them, and
+  GitHub's permanent redirects make the discoverability gain small. The root README router (D13) solves the real
+  problem.
+- **The `cargo add xdk-rs` / `use xdk::` divergence.** Settled deliberately by KTD2; mitigated by documentation
+  adjacency, not by a rename.
+- **Codemods and deprecation cycles for 0.x breaks.** R15's before/after snippets are the proportionate mechanism at
+  this stage.
+- **Journey analytics and NPS instrumentation.** A published crate has no telemetry surface worth building here; the
+  post-ship `/devex-review` boomerang is the measurement.
+
+### What already exists — DX
+
+Existing assets this review found and routed into the plan rather than rebuilding.
+
+| Sub-problem                  | What already exists                                                           | Plan's use                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Credential-free test server  | X's own playground, `CONTRIBUTING.md:68-81`                                   | **Now reused.** U10 documents it for embedders.               |
+| Mockable base URL            | `Config::api_base_url` is `pub`; `tests/api_tests.rs:124` uses it             | **Now reused.** U10's `# Testing` section.                    |
+| Mock harness + fixtures      | `wiremock` dev-dependency; `tests/fixtures/openapi/example_responses.json`    | **Now reused.** Seeds the `testing` feature.                  |
+| Single error-render boundary | `print_error_with_hint`, `src/output/mod.rs:240`                              | **Now reused.** Makes KTD17 possible without breaking R10.    |
+| Structured recovery contract | Closed `NextAction` set; `next_step {action, command, docs}`                  | Split by KTD16: action to the library, strings to the binary. |
+| Pricing transparency         | `README.md:56-57` states pay-per-use and links X's pricing page               | Carries into the library README unchanged.                    |
+| Working rustdoc examples     | `rust,no_run` on `ApiClient` and three shortcuts                              | Basis for U9's landing example.                               |
+| Doc-coverage gate            | `#![deny(missing_docs)]`, `src/lib.rs:26`                                     | U9 extends it rather than introducing one.                    |
+| Community health files       | Four issue templates, PR template, CODEOWNERS, SECURITY, dependabot, rulesets | No change needed — Pass 7 found no gaps.                      |
+
+### DX Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                            |
++====================================================================+
+| Dimension            | Before | After  | Trend                     |
+|----------------------|--------|--------|---------------------------|
+| Getting Started      |  3/10  |  9/10  | +6                        |
+| API/CLI/SDK          |  4/10  |  9/10  | +5                        |
+| Error Messages       |  5/10  |  9/10  | +4                        |
+| Documentation        |  4/10  |  9/10  | +5                        |
+| Upgrade Path         |  4/10  |  9/10  | +5                        |
+| Dev Environment      |  5/10  |  9/10  | +4                        |
+| Community            |  8/10  |  8/10  | =  (no findings)          |
+| DX Measurement       |  2/10  |  8/10  | +6                        |
++--------------------------------------------------------------------+
+| TTHW                 | blocked (no library credential path) -> <2 min |
+| Competitive Rank     | Champion (target)                              |
+| Magical Moment       | designed — docs.rs crate-level landing example  |
+| Product Type         | Library/SDK (primary) + CLI Tool               |
+| Mode                 | EXPANSION                                      |
+| Overall DX           |  4.4   |  8.8   | +4.4                      |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                              |
+| Zero Friction                | covered — R12, KTD15                |
+| Learn by Doing               | covered — U10 examples, testing feature |
+| Fight Uncertainty            | covered — KTD17, U11, U18 NextAction |
+| Opinionated + Escape Hatches | covered — Call<T> defaults, raw send_request |
+| Code in Context              | covered — complete landing example, KTD19 |
+| Magical Moments              | covered — docs.rs landing example    |
++====================================================================+
+```
+
+Prior DX review (2026-09-10, commit `35f71a6`) scored 4.5 → 8 against product type "CLI Tool + Documentation" and a
+different plan. Its dimension scores are not comparable to these; only the overall shape is.
+
+### DX Implementation Checklist
+
+```text
+[x] Time to hello world < 2 min ................ R12, KTD15
+[x] Installation is one command ................ cargo add xdk-rs
+[x] First run produces meaningful output ....... U9 landing example
+[x] Magical moment delivered .................... docs.rs crate-level example
+[x] Errors carry problem + cause + fix + docs ... KTD17, U18 NextAction
+[x] API naming guessable without docs ........... KTD15, KTD17
+[x] Every parameter has a sensible default ...... Call<T> — domain args only
+[x] Docs examples copy-paste and actually work .. KTD19 doctests
+[x] Examples show real use cases ................ U10, one per capability
+[x] Upgrade path documented ..................... R15, U12
+[~] Breaking changes: before/after, no codemods . R15 — codemods out of scope
+[n/a] TypeScript types .......................... Rust crate
+[x] Works in CI without special config .......... U10 credential-free example
+[x] Free tier, no credit card ................... playground; X API is pay-per-use, stated
+[x] Changelog exists and is maintained .......... KTD12 per-crate changelogs
+[x] Search works in documentation ............... docs.rs
+[x] Community channel exists .................... GitHub issues, 4 templates
+```
+
+### Implementation Tasks — DX
+
+Synthesized from this review. Each derives from a specific decision above and continues the numbering from the
+engineering review.
+
+- [ ] **T15 (P1, human: ~4h / CC: ~30min)** — api — Client builder taking credentials directly; fluent `Call<T>` per
+  call
+  - Surfaced by: D3 + D7 — `Auth::new(&cfg)` reads `~/.xurl`, which only the CLI writes; 34 `&CallOptions` params across
+    32 public methods at `src/api/shortcuts.rs`
+  - Files: `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/config/mod.rs`
+  - Verify: an embedder reaches a typed response in under 2 min with no CLI, no store file, and no `env::set_var`
+- [ ] **T16 (P1, human: ~3d / CC: ~2h)** — lib — Move presentation and side effects to the binary crate
+  - Surfaced by: D8 — R1 forbids `colored` and `open` in the library; `colored` is at `src/api/response/format.rs` and
+    `open` in all three `auth/` files; `src/api/request/transport.rs:345,354` writes to the caller's terminal
+  - Files: `src/api/response/format.rs`, `src/api/request/transport.rs`, `src/auth/{mod,oauth2,callback}.rs`,
+    `src/output/mod.rs`, `src/envelope.rs`
+  - Verify: `cargo tree -p xdk-rs -i <dep>` empty for all four R1 names; no stdout/stderr reference in `crates/xdk/src/`
+- [ ] **T17 (P1, human: ~1h / CC: ~10min)** — error — Rename `XurlError` to `xdk::Error`, re-export at the crate root
+  - Surfaced by: D6 — the only public identifier still carrying the old brand, across 267 references in 30 files
+  - Files: `src/error.rs`, `src/lib.rs`
+  - Verify: `rg 'pub (struct|enum|fn|const|type) .*[Xx][Uu][Rr][Ll]' crates/xdk/src` returns empty
+- [ ] **T18 (P2, human: ~2h / CC: ~15min)** — error — Lowercase Display, drop the sentinel, add `docs_url()`
+  - Surfaced by: D12 — `"Auth Error: {0}"` stutters inside an embedder's `anyhow` chain;
+    `#[error("envelope-already-emitted")]` at `src/error.rs:102` is internal control flow in a public enum
+  - Files: `src/error.rs`, `src/output/mod.rs` (prefix re-application at `print_error_with_hint`), `tests/cli_tests.rs`
+  - Verify: `xr` error text is byte-identical to the previous tag; the three pinned assertions still pass
+- [ ] **T19 (P1, human: ~3h / CC: ~20min)** — docs — Complete docs.rs landing example with the credential line
+  - Surfaced by: D4 + D10 — the magical moment; a fragment that stops before auth reproduces the Developer Perspective
+    dead end
+  - Files: `crates/xdk/src/lib.rs`
+  - Verify: paste into an empty crate with only the stated `Cargo.toml` additions; it compiles and returns a post
+- [ ] **T20 (P1, human: ~3h / CC: ~20min)** — docs — Root README: router nav, library-first, deep-linked CLI section
+  - Surfaced by: D13 — U9 specified two member READMEs and never said what lands at the repository root, which is what
+    GitHub, the docs.rs Repository link, and U13's reviewer all see
+  - Files: `README.md`, `crates/xdk/README.md`, `crates/xurl-cli/README.md`
+  - Verify: a library visitor reaches `cargo add` and a working example without scrolling past CLI install instructions
+- [ ] **T21 (P2, human: ~2h / CC: ~15min)** — docs — Doctest the README via `include_str!`; tag every shell fence
+  - Surfaced by: D15 — `src/lib.rs` has no `include_str!`, so README code has never been compiled
+  - Files: `crates/xdk/src/lib.rs`, `crates/xdk/README.md`
+  - Verify: break a snippet deliberately, observe `cargo test --doc -p xdk-rs` fail, revert
+- [ ] **T22 (P2, human: ~2h / CC: ~15min)** — docs — Document X's playground as the embedder integration-test path
+  - Surfaced by: D14 — `CONTRIBUTING.md:68-81` offers it to contributors only; binary present at
+    `~/.cache/go/bin/playground`
+  - Files: `crates/xdk/src/lib.rs`, `crates/xdk/README.md`
+  - Verify: the documented sequence answers a real read; the Go-toolchain and spec-vocabulary limits are both stated
+- [ ] **T23 (P2, human: ~3d / CC: ~2h)** — testing — Non-default `testing` feature: mock-server builder plus fixtures
+  - Surfaced by: D14 — an embedder testing against a metered API pays real credits on every CI run
+  - Files: `crates/xdk/src/testing/`, `Cargo.toml`, `.github/workflows/ci.yml`
+  - Verify: `--features testing` green; a default build's dependency graph is unchanged
+- [ ] **T24 (P2, human: ~1h / CC: ~10min)** — ci — Run the credential-free example to completion in CI
+  - Surfaced by: D15 — `cargo build --examples` proves compilation and nothing about whether the example works
+  - Files: `.github/workflows/ci.yml`
+  - Verify: breaking the example's runtime path fails CI, not just its compilation
+- [ ] **T25 (P2, human: ~2h / CC: ~15min)** — release — State and enforce the breaking-change and MSRV policy
+  - Surfaced by: D9 — KTD5 has 0.x minors breaking repeatedly with no guidance, and R9 names an MSRV policy the plan
+    never states
+  - Files: `crates/xdk/README.md`, `cliff.toml`, `Cargo.toml`
+  - Verify: a breaking changelog entry without a before/after snippet fails review; MSRV bump lands as a minor
+- [ ] **T26 (P3, human: ~15min / CC: ~3min)** — docs — Correct the pagination plan's readiness marker
+  - Surfaced by: D11 — `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md` is marked `artifact_readiness:
+    implementation-ready` while being stale, superseded in posture by the async conversion, and slated for rewrite after
+    0.1.0 ships
+  - Files: `docs/plans/2026-09-14-1855-feat-pagination-contract-plan.md`
+  - Verify: nobody can pick that plan up and implement it as written
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status   | Findings                          |
-| -------------- | --------------------- | ------------------------------- | ---- | -------- | --------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —        | —                                 |
-| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 1    | DISABLED | none — `codex_reviews` disabled   |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 2    | CLEAR    | 11 issues, 0 critical gaps        |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —        | —                                 |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | CLEAR    | score 4.5/10 → 8/10, 0 unresolved |
+| Review         | Trigger               | Why                             | Runs | Status   | Findings                                     |
+| -------------- | --------------------- | ------------------------------- | ---- | -------- | -------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —        | —                                            |
+| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 1    | DISABLED | none — `codex_reviews` disabled              |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 2    | CLEAR    | 11 issues, 0 critical gaps                   |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —        | —                                            |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 2    | CLEAR    | score 4.4/10 → 8.8/10, TTHW blocked → <2 min |
 
-**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` — the user has `codex_reviews disabled`, so
-no outside process was started and no native substitute was dispatched. This plan has **no outside-model coverage**.
+**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` — `codex_reviews` is disabled, so no
+outside process was started and no native substitute was dispatched. This plan has **no outside-model coverage**.
 Re-enable with `gstack-config set codex_reviews enabled`.
 
-**STALENESS:** The DX Review row is from 2026-09-10 and graded a different plan; HEAD is 50 commits past it. The prior
-Eng Review row (2026-09-10, 11 issues) is 49 commits behind and also graded a different plan. Only this run covers the
-adoption-grade crate plan.
+**STALENESS:** The prior DX Review row (2026-09-10, commit `35f71a6`) graded product type "CLI Tool + Documentation" on
+a different plan and is 50 commits behind; its dimension scores are not comparable. The prior Eng Review row from the
+same date is likewise 49 commits behind. The current DX row and the folded Eng row both cover this plan.
 
-**VERDICT:** ENG CLEARED — 11 findings, all folded into the plan, 0 critical gaps remaining. Outside coverage missing by
-configuration, which never gates shipping.
+**VERDICT:** ENG + DX CLEARED — 11 engineering findings folded, 15 DX decisions resolved, 0 critical gaps, 0 unresolved.
+Outside coverage missing by configuration, which never gates shipping.
 
 **Load-bearing calls, for anyone reading this plan later:**
 
@@ -1453,5 +1900,12 @@ configuration, which never gates shipping.
 4. `skill_install` and the `build.rs` job that feeds it move to the binary crate **during** U6, not during U7's audit,
    because `OUT_DIR` cannot cross a crate boundary.
 5. The library never registers a signal handler. It takes a `CancellationToken`; the binary owns `tokio::signal`.
+6. **U2 moves presentation outward, not inward** (KTD16). R1 forbids four dependencies and the original gate checked
+   one; `colored` and `open` both shipped in the library. The library performs no terminal I/O and opens no browser.
+7. **Credentials go into the client in code** (R12, KTD15), because X's own `xdk` does and U13 asks to be listed beside
+   it. Shortcuts return one generic `Call<T>`, not a trailing options struct.
+8. **The error type is `xdk::Error`** with library-convention Display (KTD17). `xr`'s printed text is unchanged, because
+   KTD16 moved the renderer into the binary.
+9. **Pagination is out of scope at 0.1.0** and the existing pagination plan is stale (KTD18). U18 reserves shape only.
 
 NO UNRESOLVED DECISIONS
