@@ -320,6 +320,22 @@ fn test_exit_code_http_401_string() {
 }
 
 #[test]
+fn test_exit_code_json() {
+    assert_eq!(
+        exit_code_for_error(&Error::Json("expected value".into())),
+        EXIT_GENERAL_ERROR
+    );
+}
+
+#[test]
+fn test_exit_code_invalid_method() {
+    assert_eq!(
+        exit_code_for_error(&Error::InvalidMethod("BAD METHOD".into())),
+        EXIT_GENERAL_ERROR
+    );
+}
+
+#[test]
 fn test_exit_code_http_generic() {
     assert_eq!(
         exit_code_for_error(&Error::Http("connection refused".into())),

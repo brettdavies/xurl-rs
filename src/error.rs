@@ -34,7 +34,12 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
     haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
 }
 
-/// Top-level error type for xurl-rs.
+/// The library's error type.
+///
+/// The enum is `#[non_exhaustive]`: variants are added as the X API grows,
+/// so a downstream match keeps a wildcard arm. In-crate, [`Self::kind`] and
+/// [`Self::exit_code`] match every variant by name, so a new variant is
+/// classified before it ships.
 ///
 /// `result_large_err` would fire because the largest variant
 /// (`AuthMethodMismatch`) carries multiple `String`/`Vec<String>` fields.
@@ -58,6 +63,7 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// ```
 #[allow(clippy::result_large_err)]
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// HTTP transport / request construction error.
     #[error("{0}")]
@@ -337,6 +343,8 @@ impl Error {
     /// Pattern-matches on `Api { status, .. }` directly for HTTP errors,
     /// preserves string-scanning for `Http` transport errors (no structured
     /// status available), and maps `Validation` to `EXIT_GENERAL_ERROR`.
+    /// One arm per variant, with no wildcard: a variant added without an
+    /// exit-code decision is a compile error, not a silent exit 1.
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
@@ -344,18 +352,21 @@ impl Error {
             Self::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
+            Self::Api { .. } => EXIT_GENERAL_ERROR,
             Self::Http(msg) if msg.contains("401") || msg.contains("Unauthorized") => {
                 EXIT_AUTH_REQUIRED
             }
             Self::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
             Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
+            Self::Http(_) => EXIT_GENERAL_ERROR,
             Self::Io(_) => EXIT_NETWORK_ERROR,
-            Self::Validation(_)
+            Self::Json(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
             | Self::InvalidUrl(_)
             | Self::InvalidPathParam { .. }
             | Self::Internal(_) => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch { .. } => EXIT_AUTH_MISMATCH,
-            _ => EXIT_GENERAL_ERROR,
         }
     }
 }
