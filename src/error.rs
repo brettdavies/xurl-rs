@@ -119,20 +119,6 @@ pub enum Error {
     #[error("Token Store Error: {0}")]
     TokenStore(String),
 
-    /// Sentinel: a structured envelope was already emitted by the call site.
-    ///
-    /// The runner short-circuits its trailing `print_error` for this variant
-    /// and propagates the carried exit code unchanged. Used by
-    /// `print_confirmation_required` so the canonical envelope
-    /// `{"status":"error","reason":"confirmation-required",…}` is the only
-    /// thing the agent sees on stderr (no duplicated `{"error":...,"kind":...}`
-    /// from the generic `print_error` path).
-    #[error("envelope-already-emitted")]
-    EnvelopeAlreadyEmitted {
-        /// Exit code the runner should surface for this error.
-        exit_code: i32,
-    },
-
     /// Auth method mismatch: the user supplied (or the auto-detect resolved)
     /// an auth method the endpoint's matrix entry doesn't accept.
     ///
@@ -368,7 +354,6 @@ impl Error {
     /// | `InvalidUrl`           | `invalid-url`    |
     /// | `InvalidPathParam`     | `invalid-path-param` |
     /// | `Internal`             | `internal`       |
-    /// | `EnvelopeAlreadyEmitted` | `confirmation-required` |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
@@ -388,7 +373,6 @@ impl Error {
             Self::InvalidUrl(_) => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
-            Self::EnvelopeAlreadyEmitted { .. } => "confirmation-required",
         }
     }
 
@@ -415,7 +399,6 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::Internal(_) => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch { .. } => EXIT_AUTH_MISMATCH,
-            Self::EnvelopeAlreadyEmitted { exit_code } => *exit_code,
             _ => EXIT_GENERAL_ERROR,
         }
     }

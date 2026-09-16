@@ -10,13 +10,14 @@ use super::{
     build_app_status_entries, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::auth::Auth;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
 use crate::config;
 use crate::error::{EXIT_GENERAL_ERROR, Error, Result};
 
-pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> {
+pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResult<()> {
     let AuthCtx {
         auth,
         flags,
@@ -81,7 +82,8 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
             if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
                 return Err(Error::validation(
                     "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
-                ));
+                )
+                .into());
             }
             if dry_run {
                 let ctx = json!({
@@ -121,7 +123,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
                 Gate::Declined => return Ok(()),
                 Gate::ConfirmationRequired => {
                     out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                    return Err(Error::EnvelopeAlreadyEmitted {
+                    return Err(Failure::Emitted {
                         exit_code: EXIT_GENERAL_ERROR,
                     });
                 }
@@ -134,7 +136,8 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
             out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
         }
         AppCommands::RedirectUri { command } => {
-            return run_redirect_uri_command(command, auth, dry_run, out, stdout);
+            return run_redirect_uri_command(command, auth, dry_run, out, stdout)
+                .map_err(Failure::from);
         }
         AppCommands::List => {
             // Read through the runner-constructed store so tempdir-based
@@ -156,7 +159,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
             );
 
             if out.format.is_structured() {
-                let value = serde_json::json!({ "apps": serde_json::to_value(&entries)? });
+                let value = serde_json::json!({ "apps": serde_json::to_value(&entries).map_err(Error::from)? });
                 out.print_success(stdout, &value);
             } else {
                 for (name, entry) in apps.iter().zip(entries.iter()) {

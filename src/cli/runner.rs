@@ -33,6 +33,7 @@ use crate::cli::classify::{
     suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
+use crate::cli::failure::Failure;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::{Cli, ColorChoice, Commands};
 use crate::config::Config;
@@ -279,22 +280,16 @@ where
     });
     match dispatched {
         Ok(()) => EXIT_SUCCESS,
-        Err(e) => {
+        Err(Failure::Emitted { exit_code }) => exit_code,
+        Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            // `EnvelopeAlreadyEmitted` is the U7 sentinel: the call site has
-            // already written the canonical envelope (e.g.
-            // `print_confirmation_required`) and we must NOT emit a second
-            // `{"error":...,"kind":...}` line. The carried exit code surfaces
-            // as the process exit unchanged.
-            if !matches!(e, crate::error::Error::EnvelopeAlreadyEmitted { .. }) {
-                if carries_no_auth_method(&e) {
-                    let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
-                    out.print_error_with_hint(stderr, &e, code, &hint);
-                } else if let Some(hint) = enrollment_hint_for(&e) {
-                    out.print_error_with_hint(stderr, &e, code, &hint);
-                } else {
-                    out.print_error(stderr, &e, code);
-                }
+            if carries_no_auth_method(&e) {
+                let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
+                out.print_error_with_hint(stderr, &e, code, &hint);
+            } else if let Some(hint) = enrollment_hint_for(&e) {
+                out.print_error_with_hint(stderr, &e, code, &hint);
+            } else {
+                out.print_error(stderr, &e, code);
             }
             code
         }

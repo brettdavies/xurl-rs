@@ -16,6 +16,7 @@ use serde_json::json;
 use crate::api::shortcuts;
 use crate::api::{self, ApiClient, CallOptions, RequestOptions, RequestTarget};
 use crate::auth::Auth;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, UsageCommands};
 use crate::config::Config;
@@ -187,14 +188,14 @@ fn make_client(cfg: &Config, auth: Auth) -> ApiClient {
 /// # Errors
 ///
 /// Returns an error if the command fails.
-pub fn run(
+pub(crate) fn run(
     cli: Cli,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     mut auth: Auth,
     overrides: &crate::config::EnvOverrides,
-) -> Result<()> {
+) -> CommandResult<()> {
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
@@ -229,7 +230,7 @@ pub fn run(
             EXIT_GENERAL_ERROR,
             "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
         );
-        return Err(Error::EnvelopeAlreadyEmitted {
+        return Err(Failure::Emitted {
             exit_code: EXIT_GENERAL_ERROR,
         });
     }
@@ -257,7 +258,7 @@ pub fn run(
             stdout,
             stderr,
         ),
-        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr),
+        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr).map_err(Failure::from),
     }
 }
 
@@ -359,7 +360,7 @@ fn run_subcommand(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> Result<()> {
+) -> CommandResult<()> {
     let GlobalFlags {
         no_interactive,
         verbose,
@@ -474,7 +475,7 @@ fn run_subcommand(
                 Gate::Declined => return Ok(()),
                 Gate::ConfirmationRequired => {
                     out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                    return Err(Error::EnvelopeAlreadyEmitted {
+                    return Err(Failure::Emitted {
                         exit_code: EXIT_GENERAL_ERROR,
                     });
                 }
@@ -908,7 +909,8 @@ fn run_subcommand(
 
         // ── Media ────────────────────────────────────────────────────
         Commands::Media { command } => {
-            return media::run_media_command(command, cfg, auth, verbose, dry_run, out, stdout);
+            return media::run_media_command(command, cfg, auth, verbose, dry_run, out, stdout)
+                .map_err(Failure::from);
         }
 
         // ── Meta (handled before config init in main) ───────────────

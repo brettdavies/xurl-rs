@@ -19,8 +19,8 @@ use crate::api::{
 use crate::cli::output::OutputConfig;
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
-/// Canonical exit code for an input-validation failure (matches the
-/// envelope-already-emitted dispatch path used elsewhere in the CLI).
+/// Canonical exit code for an input-validation failure, the same code the
+/// other handlers hand back after writing their own envelope.
 const EXIT_VALIDATION_FAILED: i32 = 1;
 
 /// Auto-detection sentinel returned by [`detect_schema`] when the document
