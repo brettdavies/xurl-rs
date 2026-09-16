@@ -77,7 +77,9 @@ the review that follows.
 
 R12. An embedder supplies a credential to the client directly, in code, without installing the CLI, without writing a
 token-store file, and without mutating process environment variables. Time from `cargo add` to a typed response on
-screen is under two minutes for a developer who already holds a credential.
+screen is under two minutes for a developer who already holds a credential. When the library refreshes an
+embedder-supplied OAuth2 token, the rotated pair reaches the embedder through a hook they registered on the client; the
+library never holds the only live copy of a credential.
 
 R13. The library performs no terminal I/O and launches no browser. It returns data and URLs; the binary renders and
 opens. No library code path writes to stdout or stderr, and `colored` and `open` are absent from the library's
@@ -256,10 +258,20 @@ governs R12. A credential-carrying constructor is what makes the crate an SDK by
 X's own `xdk` for Python puts credentials in the constructor, and U13 asks to be listed beside it. Shortcut methods
 return a per-call builder terminated by `.send().await` rather than taking a trailing options struct, matching
 `octocrab` and the AWS SDK. Implement it as **one generic `Call<T>` with 32 constructors**, not 32 builder types: the
-endpoint closure and the per-call overrides are the only things that vary, so a single type carries both. Refines the
-2026-04-03 decision recorded in `calloptions-vs-requestoptions-for-shortcuts`, whose rationale — never leak
-`RequestOptions` internals to consumers — the builder preserves; `CallOptions` becomes the builder's private carrier
-rather than a parameter, and KTD16 removes its `verbose` and `trace` fields.
+endpoint closure and the per-call overrides are the only things that vary, so a single type carries both. The
+constructor count is derived, not written: one per `pub fn` in `src/api/shortcuts.rs` that takes `&CallOptions`,
+enumerated by `rg` when U19 starts (39 `pub fn` and 37 `&CallOptions` parameters today). Refines the 2026-04-03 decision
+recorded in `calloptions-vs-requestoptions-for-shortcuts`, whose rationale — never leak `RequestOptions` internals to
+consumers — the builder preserves; `CallOptions` becomes the builder's private carrier rather than a parameter. KTD16
+removes its `verbose` field only. `trace` stays as a builder option, because it is not presentation:
+`src/api/request/transport.rs:78` sets the `X-B3-Flags: 1` request header when it is on, and `xr --trace` is a wire
+capability an embedder may also want. U19 implements this KTD; U18 fixes the signatures.
+
+The client also takes an on-token-refreshed hook. X rotates the refresh token on every refresh and the CLI already
+persists the rotated pair (`src/auth/oauth2.rs:501-548` writes `new_refresh_token` to the store). An embedder who passed
+a token in code has no store, so without the hook the only live refresh token dies with the process. One trait covers
+both consumers: the CLI's file store implements it, an embedder's secrets manager implements it, and there is no second
+refresh path to keep honest.
 
 KTD16. **Presentation and side effects leave the library; U2 moves types out, not in.** `session-settled:
 user-directed`; governs R13. R1 forbids `clap`, `clap_complete`, `colored`, and `open` in the library, and two of those
@@ -268,8 +280,18 @@ four live in modules the earlier draft kept there: `colored` in `src/api/respons
 banner to stderr and `:354` writes stream lines to stdout. So `OutputConfig`, `ColorChoice`, `Envelope`, `ErrorBody`,
 `Hint`, and `NextStep` all move to the **binary** crate. `oauth2_flow` returns the authorize URL and the binary calls
 `open`; `stream_request` returns a `Stream` and the binary prints the banner. Library diagnostics become `tracing`
-events. This makes U2 smaller than the inbound version it replaces: one direction of travel instead of three types
-moving in plus an `OutputConfig` threaded through auth.
+events: `tracing` is already in the dependency graph through `hyper` and `h2`, so the library adds a direct dependency
+at no transitive cost, and the binary adds `tracing-subscriber` with a formatter that owns the `> GET …` / `< 200` line
+format `src/api/request/transport.rs` prints today, colour variant included. `ApiClient` loses its `out: OutputConfig`
+field (`src/api/request/mod.rs:223`) in the same move. Pre-split, "the binary crate" is the `src/cli/` module tree, so
+U2 moves `src/output/` and `src/envelope.rs` under it and U6 carries the tree across as one unit.
+
+`Config` splits at the same boundary. The library `Config` keeps the fields an X API client needs — base URL, timeouts,
+credentials — and the binary's existing `EnvOverrides` owns the reads of `XURL_OUTPUT`, `HOME`, and `NO_COLOR`
+(`src/config/mod.rs:96-97,132-133` today). A test pins the agent path the DX review documents: a clap parse error still
+emits the JSON envelope when `XURL_OUTPUT=json` is set, because that read happens before parsing. This makes U2 smaller
+than the inbound version it replaces: one direction of travel instead of three types moving in plus an `OutputConfig`
+threaded through auth.
 
 KTD17. **The error type is `xdk::Error`, and its Display follows library convention.** `session-settled: user-directed`;
 governs R14. `XurlError` is the only public identifier in the library still carrying the old brand, so this is one
@@ -327,27 +349,32 @@ graph LR
     parser --> output
 ```
 
-**Target shape.** `ColorChoice` and the hint types move into library homes; the parser crate depends on the library and
-nothing depends back.
+**Target shape.** Presentation, hints, the envelope, and `skill_install` all live in the binary crate (KTD16); the
+library keeps the client, auth, the store, config, the error type, and the closed `NextAction` enum. The binary depends
+on the library and nothing depends back.
 
 ```mermaid
 graph LR
     subgraph libc["xdk-rs crate (library)"]
-        api2[api: async core, single posture]
-        auth2[auth]
-        output2[output: OutputConfig, ColorChoice]
-        envelope2[envelope: Envelope, NextStep, Hint]
-        store2[store]
-        skill2[skill_install: no clap]
+        api2[api: async core, Call&lt;T&gt; builders]
+        auth2[auth: returns URLs, takes a CancellationToken]
+        store2[store: durable, OS-locked]
+        config2[config: API + credential fields only]
+        error2[error: xdk::Error + NextAction]
     end
     subgraph binc["xurl-rs crate (binary xr)"]
-        parser2[clap parser types]
-        cmds[command handlers]
+        parser2[clap parser types, ColorChoice, OutputFormat]
+        output2[output: OutputConfig, tracing subscriber]
+        envelope2[envelope: Envelope, ErrorBody, NextStep, Hint]
+        envover[EnvOverrides: XURL_OUTPUT, HOME, NO_COLOR]
+        skill2[skill_install + generated hosts]
+        cmds[command handlers: open, banners, prefixes]
     end
-    parser2 --> api2
-    cmds --> output2
-    cmds --> envelope2
-    cmds --> skill2
+    cmds --> api2
+    cmds --> auth2
+    envelope2 --> error2
+    output2 --> api2
+    envover --> config2
 ```
 
 **Unit sequencing.** The three untangling units gate everything; the split gates the surface audit.
@@ -357,11 +384,12 @@ graph TD
     U18[U18 async API shape] --> U4
     U0[U0 durable store] --> U4
     U1[U1 Send+Sync locks] --> U4
-    U2[U2 move ColorChoice/hints] --> U4[U4 async transport + async CLI]
+    U2[U2 presentation out to the binary] --> U4[U4 async transport + async CLI]
     U4 --> U15[U15 async auth + shared client]
+    U15 --> U19[U19 credentials in code + Call&lt;T&gt;]
     U2 --> U6[U6 workspace split]
     U3[U3 clap out of codegen] --> U6
-    U15 --> U6
+    U19 --> U6
     U5[U5 migrate parser tests] --> U6
     U6 --> U7[U7 surface audit]
     U6 --> U12[U12 release rewiring]
@@ -383,10 +411,13 @@ tests and deadlocks under a caller's runtime looks fine until an embedder report
 and U15 with a characterization baseline captured before either, and an async-context test that is observed panicking
 before the conversion starts.
 
-**The external reusable workflow breaks unconditionally at U6, not conditionally at U12.** Its `check-version` job runs
-a bare `cargo pkgid`, which errors on a virtual manifest, so every tag push fails the moment the root becomes a
-workspace. The upstream changes in `brettdavies/.github` are a hard prerequisite of U6 — package-scoped `cargo pkgid`,
-an artifact-name input, and two-package publish ordering — and that repo is outside this one.
+**The external reusable workflows break unconditionally at U6, not conditionally at U12.** The release workflow's
+`check-version` job runs a bare `cargo pkgid`, which errors on a virtual manifest, so every tag push fails the moment
+the root becomes a workspace. The CI workflow's `package-check` runs bare `cargo package --list` and `cargo publish
+--dry-run`, which error the same way and, even package-scoped, fail until the library is on crates.io; its
+`changelog-check` keys on an exact `Cargo.toml` filename and goes silently vacuous once versions live in
+`crates/*/Cargo.toml`. Three of those four back required checks on `main`. The upstream changes in `brettdavies/.github`
+are a hard prerequisite of U6, enumerated there, and that repo is outside this one.
 
 **There is no embedder to measure, which makes U7 harder than it looks.** The public surface cannot be derived from
 observed consumption, because the only consumer is first-party, out of scope by direction, and pinned two minors back.
@@ -430,8 +461,9 @@ defect was only found by looking. Record each as a follow-up rather than absorbi
 
 Three phases, each independently shippable in a minor.
 
-**Phase A — make the library a library (U18, U0, U1, U2, U3, U4, U15, U5, U6).** Ends with a workspace where the library
-crate compiles with no CLI dependency, the binary crate owns clap, and both run on one async posture.
+**Phase A — make the library a library (U18, U0, U1, U2, U3, U4, U15, U19, U5, U6).** Ends with a workspace where the
+library crate compiles with no CLI dependency, the binary crate owns clap, both run on one async posture, and an
+embedder can hand the client a credential in code.
 
 **Phase B — make it idiomatic (U7, U8, U9, U10, U11).** Published surface, features, docs, examples, error posture.
 
@@ -440,26 +472,27 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 
 ## Implementation Units
 
-| U-ID | Title                                                     | Files touched                                                                                                                                                                                                     | Depends on      |
-| ---- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| U17  | The listing route, established (answered)                 | —                                                                                                                                                                                                                 | —               |
-| U18  | Settle the async API shape                                | —                                                                                                                                                                                                                 | —               |
-| U0   | Durable, lockable credential store                        | `src/store/mod.rs`, `src/auth/pending.rs`, `src/auth/oauth2.rs`, `src/auth/mod.rs`, `tests/store_tests.rs`                                                                                                        | —               |
-| U1   | Lock Send + Sync as compile-time invariants               | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                                             | —               |
-| U2   | Move presentation and side effects out of the library     | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/skill_install/update.rs`, `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs` | —               |
-| U3   | Remove clap from the generated skill-host enum            | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                                           | —               |
-| U4   | Async transport core, and the CLI goes async              | `src/api/request/*`, `src/api/media.rs`, `src/cli/commands/*`, `src/cli/runner.rs`, `src/main.rs`                                                                                                                 | U0, U1, U2      |
-| U15  | Async auth paths, one shared HTTP client                  | `src/auth/{mod,oauth2,callback}.rs`, `src/api/request/auth_header.rs`                                                                                                                                             | U4              |
-| U5   | Migrate parser-introspection tests                        | `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/oauth2_flow_tests.rs`, `tests/binary_contract_tests.rs`, `tests/unknown_command_tests.rs`, `src/cli/mod.rs`                                                | U2              |
-| U6   | Split into a workspace                                    | `Cargo.toml`, `crates/**`, `tests/**`, `build.rs`, `scripts/hooks/pre-push`, `scripts/generate-completions.sh`, `.github/workflows/ci.yml`                                                                        | U2, U3, U5, U15 |
-| U7   | Audit and close the published surface                     | `crates/xdk/src/lib.rs`, module roots                                                                                                                                                                             | U6              |
-| U8   | TLS feature design and the CI matrix                      | `Cargo.toml`, `.github/workflows/ci.yml`                                                                                                                                                                          | U7              |
-| U9   | docs.rs metadata, lints, rustdoc posture                  | `Cargo.toml`, `crates/xdk/src/lib.rs`                                                                                                                                                                             | U8              |
-| U10  | Runnable examples                                         | `crates/xdk/examples/**`                                                                                                                                                                                          | U9              |
-| U11  | `XurlError` non-exhaustive, `exit_code()` made exhaustive | `src/error.rs`, `Cargo.toml`                                                                                                                                                                                      | —               |
-| U12  | Rewire release and distribution for the split             | `.github/workflows/release.yml`, `Cargo.toml`, `docs/migrating/v4.0.0.md`, Homebrew formula                                                                                                                       | U6              |
-| U13  | Publish and submit for listing                            | `README.md`, `Cargo.toml`                                                                                                                                                                                         | U10, U11, U12   |
-| U14  | Delete the accepted-break entries                         | `Cargo.toml`                                                                                                                                                                                                      | U13             |
+| U-ID | Title                                                     | Files touched                                                                                                                                                                                                                                                              | Depends on      |
+| ---- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| U17  | The listing route, established (answered)                 | —                                                                                                                                                                                                                                                                          | —               |
+| U18  | Settle the async API shape                                | —                                                                                                                                                                                                                                                                          | —               |
+| U0   | Durable, lockable credential store                        | `src/store/mod.rs`, `src/auth/pending.rs`, `src/auth/oauth2.rs`, `src/auth/mod.rs`, `tests/store_tests.rs`                                                                                                                                                                 | —               |
+| U1   | Lock Send + Sync as compile-time invariants               | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                                                                                                      | —               |
+| U2   | Move presentation and side effects out of the library     | `src/output/`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/api/request/{mod,transport}.rs`, `src/api/response/format.rs`, `src/auth/{mod,oauth2,callback}.rs`, `src/config/mod.rs`, `src/skill_install/update.rs`, `tests/**` (repoints derived by `rg`) | —               |
+| U3   | Remove clap from the generated skill-host enum            | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                                                                                                    | —               |
+| U4   | Async transport core, and the CLI goes async              | `src/api/request/*`, `src/api/media.rs`, `src/cli/commands/*`, `src/cli/runner.rs`, `src/main.rs`                                                                                                                                                                          | U0, U1, U2      |
+| U15  | Async auth paths, one shared HTTP client                  | `src/auth/{mod,oauth2,callback}.rs`, `src/api/request/auth_header.rs`                                                                                                                                                                                                      | U4              |
+| U19  | Credentials in code, and every shortcut is a `Call<T>`    | `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/store/mod.rs`, `src/cli/commands/*`, `tests/api_tests.rs`                                                                                                                                        | U15             |
+| U5   | Migrate parser-introspection tests                        | `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/oauth2_flow_tests.rs`, `tests/binary_contract_tests.rs`, `tests/unknown_command_tests.rs`, `src/cli/mod.rs`                                                                                                         | U2              |
+| U6   | Split into a workspace                                    | `Cargo.toml`, `crates/**`, `tests/**`, `build.rs`, `scripts/hooks/pre-push`, `scripts/generate-completions.sh`, `.github/workflows/ci.yml`                                                                                                                                 | U2, U3, U5, U19 |
+| U7   | Audit and close the published surface                     | `crates/xdk/src/lib.rs`, module roots                                                                                                                                                                                                                                      | U6              |
+| U8   | TLS feature design and the CI matrix                      | `Cargo.toml`, `.github/workflows/ci.yml`                                                                                                                                                                                                                                   | U7              |
+| U9   | docs.rs metadata, lints, rustdoc posture                  | `Cargo.toml`, `crates/xdk/src/lib.rs`                                                                                                                                                                                                                                      | U8              |
+| U10  | Runnable examples                                         | `crates/xdk/examples/**`                                                                                                                                                                                                                                                   | U9              |
+| U11  | `XurlError` non-exhaustive, `exit_code()` made exhaustive | `src/error.rs`, `Cargo.toml`                                                                                                                                                                                                                                               | —               |
+| U12  | Rewire release and distribution for the split             | `.github/workflows/release.yml`, `.github/workflows/release-lib.yml`, `Cargo.toml`, `cliff.toml`, `docs/migrating/v4.0.0.md`, Homebrew formula, `brettdavies/.github` reusable                                                                                             | U6              |
+| U13  | Publish and submit for listing                            | `README.md`, `Cargo.toml`                                                                                                                                                                                                                                                  | U10, U11, U12   |
+| U14  | Delete the accepted-break entries                         | `Cargo.toml`                                                                                                                                                                                                                                                               | U13             |
 
 ### U17. The listing route, established
 
@@ -509,6 +542,11 @@ setting.
   embedder can reach for. Shortcut methods return `Call<T>`; `.send().await` terminates. Decide which credential the
   docs.rs landing example uses and state what that credential can and cannot do — a Bearer landing example whose next
   line is `create_post` fails, because Bearer is read-only.
+- **Rotated tokens.** Fix the shape of the on-token-refreshed hook KTD15 requires: a trait the client builder accepts,
+  implemented by the CLI's file store and by whatever an embedder persists to, whose method receives the new
+  access/refresh pair and expiry. Decide whether it is async, whether a failing hook fails the request that triggered
+  the refresh, and note that the Bearer landing example never needs it. U19 implements it; U10's OAuth2 example wires
+  it.
 - **Error surface.** The type is `xdk::Error` per KTD17. Fix here whether `NextAction` — the closed recovery enum —
   stays on the library error when KTD16 moves the hint strings to the binary. It must: a bare 403 on X's Pay-per-use
   enrollment failure is unactionable, and `NextAction::EnrollApp` is the machine-readable half an embedder can branch
@@ -566,6 +604,12 @@ two `xr` **processes** — two terminals, a shell loop, a CI matrix, an agent fa
 on windows, on a sidecar lock path beside the store, held across the whole read-modify-write window. R3's async
 concurrency is this lock's second consumer, not its first.
 
+**Mechanism: std, inside `spawn_blocking`.** `std::fs::File::lock`, `try_lock`, and `unlock` are stable since Rust 1.89
+and the floor is 1.94, so the sidecar lock needs no `fs2` or `fs4` dependency. `lock()` blocks the calling thread, and
+after U4 the refresh path that writes the store runs inside the caller's runtime: under `current_thread` a blocked lock
+parks the whole CLI, and in an embedder it parks their executor. Wrap the locked read-modify-write in
+`tokio::task::spawn_blocking` on the async path; `current_thread` still provides the blocking pool.
+
 **Ride-along (Issue 10).** The same unit may take the timeout fallback described in U15, since it is also a present-day
 bug in the same subsystem: `.unwrap_or_else(|_| Client::new())` at `src/auth/oauth2.rs:114,480` and
 `src/auth/mod.rs:409` silently discards the configured `http_timeout_secs` and yields an unbounded client.
@@ -580,6 +624,8 @@ bug in the same subsystem: `.unwrap_or_else(|_| Client::new())` at `src/auth/oau
 - Edge case: the store file's mode is `0600` at every observation point, including immediately after first creation.
   Copy the assertion form from `tests/auth_pending_tests.rs:82-92`.
 - Happy path: two tasks in one `#[tokio::test]` against one store path both land.
+- Edge case: a second process holds the lock; other tasks on the same `current_thread` runtime keep making progress
+  while the write waits in `spawn_blocking`.
 - Rename the false green: `tests/store_tests.rs:914 test_concurrent_app_operations` is a sequential `for` loop over one
   binding with no threads or processes. It is a fine test; its name claims coverage the suite does not have, which is
   how this gap stayed invisible. Rename it `test_many_apps_stay_isolated`.
@@ -602,9 +648,10 @@ const _: fn() = || {
 };
 ```
 
-Three lines each, no new dependency. Cover `ApiClient`, `Auth`, `Config`, `XurlError`, and `OutputConfig`. First verify
-`ApiClient` still owns `Auth` by value with no lifetime parameter; if a lifetime has crept back, fixing that is this
-unit's real work and U4 depends on it.
+Three lines each, no new dependency. Cover `ApiClient`, `Auth`, `Config`, and `XurlError` now, and `Call<T>` when U19
+lands it. `OutputConfig` is a binary type after U2 and needs no assertion. First verify `ApiClient` still owns `Auth` by
+value with no lifetime parameter; if a lifetime has crept back, fixing that is this unit's real work and U4 depends on
+it.
 
 **Patterns to follow.** `docs/solutions/architecture-patterns/bird-library-lift-2026-06.md` documents this assertion
 form. `src/output/mod.rs:60-61` already states the intent in a doc comment.
@@ -649,24 +696,34 @@ This replaces, rather than supplements, the inbound move:
 `docs/solutions/best-practices/rust-library-cli-separation-for-interactive-concerns-2026-04-20.md` is the governing
 pattern for all of it, not only for the `src/auth/mod.rs:296-308` case the earlier draft cited.
 
-Relocating the types is not sufficient on its own. `ColorChoice` derives `clap::ValueEnum` (`src/cli/mod.rs:22`), so
-moving it would carry clap into `src/output/` — and `OutputFormat` already derives it there today
-(`src/output/mod.rs:19` and `:28`), which means the library depends on clap right now, before any of this work starts.
-Drop the `ValueEnum` derive and the `use clap::ValueEnum` import from both types, and give the binary crate value
-parsers for `--color` (`src/cli/mod.rs:899-902`) and `--output` (`src/cli/mod.rs:811`) using the newtype or `FromStr`
-pattern U3 applies to `SkillHost`. The orphan rule stops the binary crate from implementing `clap::ValueEnum` on a
-library type, so a wrapper is required rather than a bare impl.
+**Where things land, pre-split.** U2 runs inside the single package, so "the binary crate" means the `src/cli/` module
+tree that U6 later carries across as one unit. `src/output/` becomes `src/cli/output/` and `src/envelope.rs` becomes
+`src/cli/envelope.rs`; `ColorChoice` and `hints.rs` are already there and stay. `ColorChoice` and `OutputFormat` keep
+their `clap::ValueEnum` derives (`src/cli/mod.rs:22`, `src/output/mod.rs:28`), because they now live where clap lives,
+so `--help` keeps its `[possible values: …]` line and an invalid value keeps clap's wording. The one thing that moves
+*into* the library is the closed `NextAction` enum, out of `src/cli/hints.rs:16` and onto the error type, per U18.
+`Config` splits at the same boundary per KTD16: the library half keeps base URL, timeouts, and credential fields; the
+binary's `EnvOverrides` takes the `XURL_OUTPUT`, `HOME`, and `NO_COLOR` reads.
+
+**The transport stops owning an `OutputConfig`.** `ApiClient` holds `out: OutputConfig` at `src/api/request/mod.rs:223`
+and `transport.rs` writes its verbose diagnostics through it at fifteen sites. Those become `tracing` events. The binary
+installs a `tracing-subscriber` whose formatter reproduces today's lines exactly — `> GET url`, `< 200`, `< key: value`,
+the blank separator, and the ANSI colour variant at `transport.rs:98`. `tests/cli_tests.rs:4223` keeps pinning the `>
+GET` fragment and the golden gate's `--verbose` capture pins the rest. `trace` is not diagnostics and does not move: it
+sets the `X-B3-Flags` request header (`transport.rs:78`) and stays a per-call option.
 
 **Fix every reference in this unit, tests included.** U5 is the parser-coupling unit, not the repointing unit. If the
-four test references below wait for U5, `cargo test` does not compile between U2 and U5, U2 cannot report a passing
-gate, and the plan gains a second non-building window in its riskiest phase. This is a recorded prior failure in this
-repo: signature changes and their test updates belong in one atomic unit.
+test references wait for U5, `cargo test` does not compile between U2 and U5, U2 cannot report a passing gate, and the
+plan gains a second non-building window in its riskiest phase. This is a recorded prior failure in this repo: signature
+changes and their test updates belong in one atomic unit. Derive the list; do not write it:
 
-- `tests/output_writer_tests.rs:721,759` — `xurl::cli::ColorChoice::{Always,Never}` → `xurl::output::ColorChoice`
-- `tests/output_writer_tests.rs:809` — `xurl::cli::hints::NextStep::select_app` → `xurl::envelope::NextStep`
-- `tests/oauth2_flow_tests.rs:206` — `xurl::cli::ColorChoice::Auto` → `xurl::output::ColorChoice`
+```bash
+rg -n 'xurl::(output|envelope)::' tests/ src/                          # each repoints to xurl::cli::{output,envelope}::
+rg -n 'crate::(output|envelope)::' src/ --glob '!src/cli/**'           # must be empty when U2 lands
+rg -n 'crate::cli' src/ --glob '!src/cli/**' --glob '!src/main.rs'     # must be empty: no library module reaches cli
+```
 
-Two more files the original inventory missed and this unit must also cover:
+Two references the grep does not catch and this unit must also cover:
 
 - `src/skill_install/update.rs:270,305,345` — `crate::cli::ColorChoice::Never` in the `#[cfg(test)]` block (line 189
   onward). Test-only, but it still has to resolve.
@@ -689,8 +746,14 @@ those types.
 - Integration: `cargo test` passes with no change to any assertion about envelope shape.
 - Edge case: a library-only build (temporarily commenting out `pub mod cli` in `src/lib.rs`) compiles, and `cargo tree
   -i clap` against that build returns nothing. This is the real proof; run it, observe it, then restore.
-- Happy path: `xr --color never` and `xr --output json` still parse and behave identically through the new parsers.
+- Happy path: `xr --color never` and `xr --output json` still parse and behave identically through the relocated types.
 - Error path: an invalid `--color` or `--output` value produces the same error text and exit code as before.
+- Happy path: `XURL_OUTPUT=json xr --bogus-flag` still exits 2 with the JSON envelope carrying `reason: invalid-args`,
+  proving the env read survives the `Config` split and still precedes clap.
+- Happy path: `xr --verbose whoami` against the mock server prints byte-identical stderr through the subscriber.
+- Error path: no library source references a terminal: `rg -n 'println!|eprintln!|print!|eprint!|stdout\(\)|stderr\(\)'
+  src/ --glob '!src/cli/**' --glob '!src/main.rs'` returns empty. `src/auth/oauth2.rs:531`'s `warn_stderr` is one of the
+  hits this catches.
 
 **Verification.** `cargo test`, `bash scripts/generate-response-schemas.sh` with a clean `git status`, and the
 library-only build above.
@@ -756,15 +819,26 @@ clean — not with a unit test.
 
 **Approach.** Convert `src/api/request/transport.rs` from `reqwest::blocking` to async — `send_request`,
 `send_multipart_request`, and `stream_request` — and the `Client` field on `ApiClient` in `src/api/request/mod.rs`.
-Every caller follows: `src/api/shortcuts.rs` alone holds the call sites behind the 27 shortcut methods, plus
-`src/api/media.rs` and `src/api/endpoints.rs`. Store one `reqwest::Client` on the struct rather than building one per
-request. `src/api/media.rs:315` polls processing status with `thread::sleep`, which would park the caller's executor
-thread; it becomes `tokio::time::sleep` on the async path. Do not touch the auth paths here; U15 owns those.
+Every caller follows: `src/api/shortcuts.rs` alone holds the call sites behind the shortcut methods (39 `pub fn` today;
+derive the count with `rg`, never copy it), plus `src/api/media.rs` and `src/api/endpoints.rs`. Store one
+`reqwest::Client` on the struct rather than building one per request. `src/api/media.rs:315` polls processing status
+with `thread::sleep`, which would park the caller's executor thread; it becomes `tokio::time::sleep` on the async path.
+Do not touch the auth paths here; U15 owns those.
 
 **Execution note.** Characterization-first, and the order matters. Write the async-context test described below and
 observe it failing against today's code before converting anything — the nested-runtime panic is the defect being fixed,
 so it has to be seen first. `reqwest`'s own `blocking` module documents this panic, so the failure is expected rather
 than incidental.
+
+**Client construction sites, derived.** `rg -n 'unwrap_or_else\(\|_\| .*Client::new' src/` returns six hits today —
+`src/auth/oauth2.rs:114,480`, `src/auth/mod.rs:409`, `src/api/request/transport.rs:272`, `src/api/request/mod.rs:246`,
+and `src/cli/commands/streaming.rs:53` — every one of which discards the configured timeout on a builder failure. This
+unit retires the three it owns (transport, request, streaming) into the single client on `ApiClient`; U15 retires the
+auth three into the same instance. When both land, that grep returns nothing and a guard test keeps it that way.
+
+**Cold-start and size are measured with the subscriber in.** U2 lands `tracing-subscriber` in the binary before this
+unit starts, so the release-binary measurement this unit records already includes it and the U6 ceiling is not set
+against a smaller binary than the one that ships.
 
 **Patterns to follow.** `docs/solutions/best-practices/rust-store-http-client-on-struct-not-per-request-2026-04-20.md`.
 
@@ -803,8 +877,8 @@ their own clients.
 refresh; `src/auth/mod.rs:404` and `:409` build one for `fetch_username`. Convert all of them to **the** async client,
 singular — not to three new ones.
 
-**One client, and a fallback that fails loudly.** The same four-line block appears three times, inside a function body,
-rebuilt on every call:
+**One client, and a fallback that fails loudly.** The same four-line block appears six times across the crate — U4's
+derived list names all six, three of them in `auth/` — inside function bodies, rebuilt on every call:
 
 ```rust
 let client = reqwest::blocking::Client::builder()
@@ -821,8 +895,8 @@ Client::new())` discards the configured timeout: `Client::new()` has none, so a 
 Follow `docs/solutions/best-practices/rust-store-http-client-on-struct-not-per-request-2026-04-20.md` — the same
 document U4 cites, which U4 then scopes away from these paths. One client, constructed once, shared by the transport and
 by auth. Ownership follows U18's receiver decision; do not settle it here, only require that there is one. Replace the
-fallback with a returned error at all three sites: a client that cannot honor its configured timeout is a startup
-failure, not a silently unbounded client.
+fallback with a returned error at the single construction site that survives: a client that cannot honor its configured
+timeout is a startup failure, not a silently unbounded client.
 
 Sharing the client makes the fallback broader, not narrower — one bad construction would put the whole process on a
 timeout-free client — so the two changes have to land together. `src/auth/callback.rs:289-294` already runs an async
@@ -863,7 +937,10 @@ not their first. This unit inherits a store that is already durable and lockable
   future.
 - Edge case: the callback listener still honors its shutdown signal.
 - Error path: a refresh against a server that never responds gives up at `http_timeout_secs` rather than hanging.
-- Error path: a client-builder failure surfaces an error rather than a timeout-free client.
+- Error path: a client-builder failure at the single construction site surfaces an error rather than a timeout-free
+  client.
+- Error path: a guard test asserts `rg 'unwrap_or_else\(\|_\| .*Client::new'` matches nothing under `src/`, in both
+  crates after U6.
 - Happy path: one client instance serves the transport, `exchange_code_for_token`, and `fetch_username` across a single
   OAuth2 run.
 - Error path: a refresh the server rejects still surfaces the same error variant and exit code as today.
@@ -871,6 +948,42 @@ not their first. This unit inherits a store that is already durable and lockable
 **Verification.** `cargo check --lib` plus the new async tests; the interactive listener path exercised end to end (note
 that the headless flow, `run_remote_step1`/`run_remote_step2`, never touches the listener, so it does not cover this
 unit).
+
+### U19. Credentials in code, and every shortcut is a `Call<T>`
+
+**Goal.** An embedder builds a client from a credential they already hold and calls every shortcut as a builder, so R12
+holds with no CLI, no store file, and no environment mutation. The CLI is the first consumer of the same surface.
+
+**Requirements.** R3, R12.
+
+**Dependencies.** U15. Lands before U6, so the split carries the final API shape across.
+
+**Approach.** Implement KTD15 against the signatures U18 fixed. A client builder takes a bearer token, an OAuth2 token
+pair, or OAuth1 credentials directly, plus the on-token-refreshed hook U18 shapes; the CLI's `TokenStore` implements
+that hook and the `xr` commands construct the client from the store exactly as they do today. Every shortcut becomes a
+constructor returning one generic `Call<T>` terminated by `.send().await`; `CallOptions` becomes the builder's private
+carrier. Derive the method list with `rg -n 'pub fn' src/api/shortcuts.rs` when the unit starts rather than trusting a
+count. `trace` stays as a builder option because it sets a request header; `verbose` is already gone after U2.
+
+Convert every call site in `src/cli/commands/` in this unit. This is the second time those sites change in Phase A — U4
+made them `.await` — which is the price of keeping the async conversion a pure posture change reviewable on its own.
+Re-assert the golden fixtures at the end: the CLI's output must not move.
+
+**Test scenarios.**
+
+- Happy path: a client built from a bearer token in code performs a read against the mock server inside
+  `#[tokio::test]`, with no store file on disk and no environment variable set.
+- Happy path: the same for an OAuth2 token pair and for OAuth1 credentials.
+- Edge case: a refresh delivers the rotated access/refresh pair and expiry to the registered hook; the store-backed hook
+  persists it; a hook that returns an error fails the request that triggered the refresh with a typed error.
+- Edge case: a user-supplied `X-B3-Flags` header wins over `.trace(true)` through the builder. Move
+  `tests/api_tests.rs:2246-2257` onto the new surface rather than rewriting it.
+- Error path: a `Call<T>` sent twice fails at compile time or with a typed error, whichever U18 chose.
+- Integration: every `src/cli/commands/` call site goes through `Call<T>`; `rg -n '&CallOptions' src/cli/` is empty.
+- Integration: the golden fixtures re-assert byte-for-byte.
+
+**Verification.** `cargo test`, the golden re-assertion, and `rg -n 'pub fn .*&CallOptions' src/api/shortcuts.rs`
+returning nothing.
 
 ### U5. Migrate parser-introspection tests
 
@@ -908,11 +1021,22 @@ survive.
 
 **Requirements.** R1, R2, R10.
 
-**Hard prerequisite.** The reusable `brettdavies/.github` release workflow breaks the moment the repo root becomes a
-virtual manifest, and it breaks unconditionally, not contingently: its `check-version` job runs a bare `cargo pkgid`,
-which errors on a virtual manifest. Land the upstream changes **before** starting this unit — package-scoped `cargo
-pkgid -p <library>`, an artifact-name input so releases keep the `xurl-rs-<target>` prefix the Definition of Done
-requires, and two-package publish ordering.
+**Hard prerequisites, all upstream in `brettdavies/.github`.** Four jobs there assume a single root package, and three
+of them back required checks on `main`. They break unconditionally, not contingently, the moment the root becomes a
+virtual manifest. Land these **before** starting this unit:
+
+1. `rust-release.yml:98` `check-version` runs a bare `cargo pkgid`, which errors on a virtual manifest. It becomes
+   `cargo pkgid -p ${{ inputs.crate }}`, plus an artifact-name input so releases keep the `xurl-rs-<target>` prefix the
+   Definition of Done requires.
+2. `rust-ci.yml:120,123` `package-check` runs bare `cargo package --list` and `cargo publish --dry-run`. Both error on a
+   virtual manifest, and `--dry-run -p xurl-rs` still fails until `xdk-rs` is on crates.io, because the dry run resolves
+   the path dependency from the registry. `cargo 1.96` has `--workspace` on both commands, which packages the members
+   together and verifies them against each other — the only way to dry-run an unpublished dependency.
+3. `rust-ci.yml:174` `changelog-check` skips unless `changed.includes('Cargo.toml')`, an exact filename match. After the
+   split every release PR bumps `crates/*/Cargo.toml`, so the check skips forever with a green tick. It matches any
+   `Cargo.toml` path and checks the changelog beside the crate that bumped.
+4. A new `rust-lib-release.yml`: `cargo publish -p <crate>` plus a GitHub release rendered from that crate's changelog,
+   no binaries, no Homebrew. U12 adds the thin caller on `xdk-rs-v*`.
 
 **Pre-flight gates — derive the inventory, do not trust a written list.** The file lists in this plan were built by hand
 and were verifiably incomplete when reviewed. Run these before the split starts; each must return empty or exit 0.
@@ -944,7 +1068,14 @@ fire at all.
 `pub(crate)` seams at the new boundary become `pub` with `#[doc(hidden)]` where they are not embedder API. Update
 `scripts/hooks/pre-push` path scoping, `scripts/generate-completions.sh` (it selects the binary via `cargo metadata
 --no-deps ... .packages[0]`, which is ambiguous with two members and backs the completions-freshness gate), and the
-`semver` job in `.github/workflows/ci.yml` to target the library package.
+`semver` job in `.github/workflows/ci.yml` to target the library package. That job's baseline is `git tag
+--sort=-version:refname | head -n 1` (`ci.yml:104`), which is wrong twice after the split: before U13 no `xdk-rs-v*` tag
+exists, so a `-p xdk-rs` check has no baseline and the required check is red on every PR to `main`; after U13, the
+newest tag across two families is whichever sorts higher, not the last library tag. Resolve with `git tag -l 'xdk-rs-v*'
+--sort=-version:refname | head -n 1` and skip with a visible notice when it is empty, which only happens before the
+first library release. `release-type: minor` (`ci.yml:111`) is settled by observation, not assumption: plant a breaking
+change on the 0.x library, run the check, record whether `minor` passes it or demands a waiver, and set the flag from
+the result in the Verification Contract.
 
 **`skill_install` goes to the binary crate, and `build.rs` splits with it.** U7 calls `skill_install` binary machinery
 that should not be published, and it is right — but that is a crate move, not a `pub` downgrade, so it belongs here
@@ -993,9 +1124,11 @@ expensive misdiagnosis available in this plan.
   `tests/conformance/mod.rs` anchor repo-root assets on `env!("CARGO_MANIFEST_DIR")`, which after the split resolves to
   the member directory. Rewrite them to resolve the workspace root.
 - `tests/store_isolation_guard.rs` and `tests/env_mutation_guard.rs` scan `CARGO_MANIFEST_DIR/{src,tests}`, so whichever
-  crate hosts them silently stops covering the other. Instantiate both guards in both members with each copy's
-  `ALLOWLIST` re-pointed at the files that crate owns. This is the guard that exists because `cargo test` once clobbered
-  the real token store; a vacuously-green version of it is worse than none.
+  crate hosts them silently stops covering the other. Do not copy them. Each guard stays one file, hosted in the binary
+  crate, anchored at the workspace root with the same resolution the fixture-anchored tests above use, scanning
+  `crates/*/{src,tests}` with one `ALLOWLIST`. The planted-violation test runs once per tree. This is the guard that
+  exists because `cargo test` once clobbered the real token store; a vacuously-green version of it is worse than none,
+  and two allowlists that can drift apart are the next-worst.
 
 **Patterns to follow.** `docs/solutions/architecture-patterns/bird-library-lift-2026-06.md` for the layered `run_argv` /
 `run` / `run_with_paths` entrypoints, and the rule that the library returns `ExitCode` and never calls `process::exit`.
@@ -1050,7 +1183,8 @@ the assertion still holds against what is there now; the full failure mode and i
 crates/xdk/` (empty), `RUSTDOCFLAGS="-D warnings" cargo doc -p xdk-rs --no-deps`, `cargo package -p xdk-rs`, the release
 `xr` under its recorded size ceiling, `rg -n "src/[a-zA-Z0-9_/.]+" build.rs` showing no literal that stayed behind in
 the wrong crate, all three knowledge-corpus sweeps reporting no `DEAD:` lines, `scripts/generate-completions.sh
---check`, and the pre-push mirror.
+--check`, the semver baseline resolving to the last `xdk-rs-v*` tag or skipping visibly, the planted-break probe result
+recorded in the Verification Contract, `cargo publish --dry-run --workspace` green, and the pre-push mirror.
 
 ### U7. Audit and close the published surface
 
@@ -1063,9 +1197,10 @@ the split is reviewed rather than merely hidden.
 because there is nothing to measure. The only existing consumer is out of scope by direction and would be a sample of
 one in any case. Reason instead from what an X API client is for and what X's own Python and TypeScript SDKs expose: a
 client, typed responses, auth, configuration, errors. `skill_install` is binary machinery, and **U6 already moved it to
-the binary crate** — do not re-decide that here, and do not expect to demote it with a `pub` change. `envelope` backs
-the published output schema, so it is API by intent even with no caller today; say so explicitly rather than leaving it
-public by default.
+the binary crate** — do not re-decide that here, and do not expect to demote it with a `pub` change. `envelope` and
+`output` are binary modules after U2 and do not appear in this audit; the generation behind `schema/output.schema.json`
+lives with them. The library's machine-readable recovery surface is `NextAction` on the error type, and that is the item
+to audit here: say explicitly that it is API by intent, because an embedder branches on it.
 
 Build a scratch consumer crate in the repo that uses the surface an embedder would, and compile it in CI. It replaces
 the measurement this unit no longer has, and it fails loudly when a demotion goes too far.
@@ -1196,8 +1331,12 @@ so the capability exists — what is missing is that anyone is told.
 
 - Happy path: every example compiles under `cargo build --examples`.
 - Edge case: an example run without credentials exits with the documented auth-required code rather than panicking.
-- Integration: the credential-free example **runs to completion** in CI, not merely compiles (KTD19). It is the only
-  artifact in the crate that needs no X app, no credentials, and no credits.
+- Integration: the credential-free example **runs to completion** in CI, not merely compiles (KTD19), against the
+  `testing` feature's in-process mock: `cargo run --example <name> --features testing`. It is the only artifact in the
+  crate that needs no X app, no credentials, and no credits, and it doubles as the `testing` feature's own end-to-end
+  proof. It depends on that feature landing first; the playground stays a documented manual path, never a CI step.
+- Happy path: the OAuth2 example registers the on-token-refreshed hook and prints where it would persist the rotated
+  pair, so the first thing an OAuth2 embedder copies already handles rotation.
 - Happy path: `cargo test --doc -p xdk-rs` compiles every Rust block in the library README via the `include_str!`
   bridge, and a deliberately broken snippet fails that gate. Observe the failure, then revert.
 - Edge case: `--features testing` builds and its mock-server builder drives a full read end to end.
@@ -1282,6 +1421,18 @@ virtual-manifest root (KTD10), the release workflow needs the workspace support 
 publishing now covers two packages on independent version lines (KTD9), which the tag scheme and git-cliff configuration
 both have to express.
 
+**The library's own release path.** `release.yml` fires only on `v[0-9]+.[0-9]+.[0-9]+` (`release.yml:10-11`) and calls
+a reusable whose `bin` input is required, so an `xdk-rs-v*` tag starts nothing. Add `.github/workflows/release-lib.yml`,
+a thin caller on `xdk-rs-v[0-9]+.[0-9]+.[0-9]+` into the `rust-lib-release.yml` reusable U6's prerequisites land: `cargo
+publish -p xdk-rs`, a GitHub release rendered from the library changelog, no binaries, no Homebrew. Give `cliff.toml` a
+second configuration, or `--tag-pattern` and `--include-path` overrides, so each changelog sees only its own tags and
+paths.
+
+**Order is a rule, not a hope.** `cargo publish -p xurl-rs` resolves `xdk-rs` from the registry, so the library tag is
+pushed and its run is green before any CLI tag whose `xdk-rs` bound moved. Write that into the release runbook this unit
+produces, and have the CLI's `check-version` job fail with a named message when the bound it declares is not on the
+index.
+
 The CLI ships as `4.0.0`, not a minor: KTD2's lib-target removal is a major break. Write `docs/migrating/v4.0.0.md` in
 the same form as the existing `docs/migrating/v3.0.0.md`, recording that the library moved to `xdk-rs` and that nothing
 about installing or running `xr` changed.
@@ -1301,6 +1452,8 @@ into the library README where a reviewer can check them in seconds:
 **Test scenarios.**
 
 - Happy path: a dry-run release produces artifacts with the same names as the previous release.
+- Happy path: `release-lib.yml` reaches its publish dry-run on a `workflow_dispatch` run before the first real tag.
+- Error path: a CLI `check-version` run against a bound not on the index fails with the named message.
 - Error path: `cargo install` instructions in `README.md` name the package that actually produces the binary.
 - Integration: `cargo binstall` resolves against the new package.
 - Edge case: required status-check names on the protected branch still match what the workflow reports.
@@ -1357,22 +1510,39 @@ break of the same kind. There are four entries today, plus each one this plan ad
 **CLI golden-output gate — capture the baseline before U2 touches anything.** R10's promise is about the shipped binary,
 and KTD16 relocates the entire output layer while KTD17 rewrites the error Display strings. Record today's `xr` output
 across a fixed matrix and commit it as fixtures: `--help` and every subcommand's `--help`, `--version`, `xr schema
---list`, `xr examples`, and one `--output json` capture per `reason` in the closed set with its exit code. Re-assert
-byte-equality after U2, after U6, and after U11. Run it against the built binary, never against library functions. The
-baseline is worthless if captured after the first move, so this is the first action of Phase A, ahead of U18.
+--list`, `xr examples`, one `--verbose` run against the mock server (the stream KTD16 rewrites end to end), and one
+`--output json` capture per `reason` with its exit code. The reason set is **derived from the `reason` enum in
+`schema/output.schema.json`**, not from `XurlError::kind()` and not from memory: the CLI emits reasons the error enum
+never sees (`invalid-args`, `no-tty`, `missing-host`, `home-not-set`, `body-too-long`, and more). Each reason pairs with
+the command that triggers it; HTTP-shaped reasons run against the mock server through `API_BASE_URL`, the pattern
+`tests/cli_tests.rs:4184` already uses. Reasons the binary cannot reach go in a committed untriggerable list with a
+one-line reason each, and a test fails when the schema enum gains a reason that has neither a fixture nor a list entry.
+Re-assert byte-equality after U2, after U19, after U6, and after U11. Run it against the built binary, never against
+library functions. The baseline is worthless if captured after the first move, so this is the first action of Phase A,
+ahead of U18.
 
 **Agent-native regression gate.** `anc audit` currently runs nowhere — not in CI, not in `scripts/hooks/pre-push` —
 while the repo carries a `.anc.toml` and a 94% score. That is how the four commands added by #165 (`block`, `unblock`,
-`blocked`, `muted`) drifted out of the `p6` vocabulary unnoticed. Wire `anc audit` into the same CI job that U6 already
-edits, gated on no MUST-tier row in `fail`.
+`blocked`, `muted`) drifted out of the `p6` vocabulary unnoticed. Two facts shape the gate. `anc audit` exits 2 when any
+MUST-tier row fails, and today exactly one does — `p2-must-json-errors`, whose fix belongs to the 3.3.0 output-shape
+work — so a MUST-only gate is red from its first run. And the #165 drift is `p6`, which anc reports as `warn` at MAY and
+SHOULD tier, so a MUST-only gate would not have caught it either. The gate therefore has two halves: fail on any
+MUST-tier `fail` **other than** `p2-must-json-errors`, named by id in the workflow where it is visible, and fail when
+the credit-weighted score drops below a committed floor (94 today; raised deliberately when it improves). The 3.3.0
+release deletes the exception. The job installs anc with `cargo binstall agentnative --force`, builds `xr` in release,
+and audits that binary through `--command`, because the behavioral rows run the CLI. It lives in the CI job U6 already
+edits.
 
 **Full local mirror.** `LC_ALL=C.UTF-8 scripts/hooks/pre-push` — fmt, clippy, test, MSRV, doc build, `cargo deny`,
 shellcheck, Windows cross-clippy, markdownlint, actionlint. Required before every push. Note that it does not cover the
 three CI-only gates: completions freshness, the package check, and the public-API semver gate.
 
-**Semver gate as a design instrument.** `cargo semver-checks --baseline-rev <last released tag> --release-type minor` at
-the head of every unit, not only at release. Baseline against the last released tag, never the PR base. Record accepted
-breaks with `required-update`, never `lint-level = "allow"`.
+**Semver gate as a design instrument.** `cargo semver-checks --baseline-rev <last released tag of that crate>` at the
+head of every unit, not only at release. Baseline against the last released tag of the crate under check, never the PR
+base and never the other crate's tag: after U6 that is the newest `xdk-rs-v*` tag for the library, and no baseline
+exists until U13 publishes the first one, so the check skips with a visible notice in that window. Whether
+`--release-type minor` passes or fails a breaking change on a 0.x crate is recorded from U6's planted-break probe, and
+the flag is set from that observation. Record accepted breaks with `required-update`, never `lint-level = "allow"`.
 
 **Cross-crate proof.** `cargo tree -p xdk-rs -i clap` must return nothing after U6. A package-scoped green test run does
 not prove an out-of-package consumer still compiles, so compile the scratch consumer crate against the library before
@@ -1416,11 +1586,21 @@ clean tree.
   corpus each sweep clean, with frontmatter scanned alongside prose, and every repointed citation has had its claim
   re-read rather than only its path repaired.
 - The CLI's observable behavior is unchanged: same commands, same output shapes, same exit codes — proven by the golden
-  fixtures captured before U2 and re-asserted byte-for-byte after U2, U6, and U11, not by a green unit suite.
+  fixtures captured before U2 and re-asserted byte-for-byte after U2, U19, U6, and U11, with the reason matrix derived
+  from the schema enum, not by a green unit suite.
 - The release workflow fires on the tag the CLI actually publishes, and `cargo binstall xurl-rs`, `brew install
   brettdavies/tap/xurl-rs`, and the bottle `root_url` all resolve against it (KTD12).
 - `tests/binary_contract_tests.rs` is updated in the same unit that changes `xr --version` (KTD13).
-- `anc audit` reports no MUST-tier `fail`, and it runs in CI rather than on request.
+- `anc audit` runs in CI against the built binary: no MUST-tier `fail` other than the `p2-must-json-errors` exception
+  that 3.3.0 removes, and a score at or above the committed floor.
+- `xr --trace` still sends `X-B3-Flags: 1`. `trace` is a `Call<T>` option; only `verbose` left the per-call surface, and
+  the `--verbose` golden capture is byte-equal through the binary's subscriber.
+- A rotated OAuth2 token pair reaches the embedder's registered hook, proven by a test; the CLI's store is one
+  implementation of that hook (R12).
+- The library publishes on its own `xdk-rs-v*` tag through `release-lib.yml`, and every CLI tag is pushed after the
+  library version it depends on is on the index.
+- `ci / Package check` runs `cargo publish --dry-run --workspace`, the Changelog check fires on `crates/*/Cargo.toml`
+  bumps, and the semver job baselines the library against its last `xdk-rs-v*` tag or skips visibly before the first.
 - Existing distribution channels produce the same artifact names, and `brew install brettdavies/tap/xurl-rs` still
   builds and links `xr`.
 - R11's outcome is recorded, not just its action: either the library appears on X's community-libraries page, or the
@@ -1501,6 +1681,16 @@ Considered during the engineering review and explicitly deferred.
 - **Fixing `src/api/shortcuts.rs` or `src/cli/mod.rs` line counts.** Already out of scope per the plan's own non-goals
   and `docs/solutions/best-practices/rust-module-splitting-srp-not-loc-20260327.md`. The review did not revisit it.
 - **The 3.3.0 output-shape work.** Separate release, separate plan. This plan changes no command's output.
+- **A lock crate for the store.** std has `File::lock` since 1.89 and the MSRV is 1.94; `fs4` would be a dependency for
+  a function std ships.
+- **X's playground as a CI backend.** It needs a Go toolchain and predates the 2.168 vocabulary; the credential-free CI
+  example runs against the in-crate `testing` mock instead. The playground stays a documented manual path.
+- **Two copies of each isolation guard.** One workspace-rooted guard per property; two allowlists that can drift are the
+  failure mode the guard exists to prevent.
+- **Auto-refresh with nowhere to put the result.** The on-token-refreshed hook is on the 0.1.0 surface so the library
+  never holds the only live copy of an embedder's credential.
+- **Folding `Call<T>` into the async increment.** U19 is its own unit after U15: the async conversion stays a pure
+  posture change, and the CLI call sites are touched twice at CC cost rather than doubling the riskiest diff.
 
 ### What already exists
 
@@ -1517,6 +1707,12 @@ Existing code and flows that partially solve sub-problems here, and whether the 
 | Table-count guard pattern     | `tests/auth_matrix_coverage.rs`, `tests/agentic_tests.rs` env-var derivation               | Available as the shape for any future coverage guard.                               |
 | Layered entrypoints           | `src/cli/runner.rs:53,66,97,126` per `bird-library-lift-2026-06.md`                        | Preserved; all four become `async fn` rather than being replaced.                   |
 | Two-crate release automation  | `docs/solutions/integration-issues/release-plz-rust-workspace-setup.md`                    | Not reused — deferred, see NOT in scope.                                            |
+| `tracing` for diagnostics     | Already in the graph via `hyper` and `h2`                                                  | **Now reused.** KTD16 adds a direct dependency at no transitive cost.               |
+| Cross-process file lock       | `std::fs::File::lock` / `try_lock`, stable since 1.89 (MSRV 1.94)                          | **Now reused.** U0 needs no `fs2` or `fs4`.                                         |
+| Workspace-aware dry run       | `cargo publish --workspace`, `cargo package --workspace` (cargo 1.96 pinned)               | **Now reused.** U6's `package-check` prerequisite.                                  |
+| MUST-tier anc gate            | `anc audit` exits 2 on any MUST-tier `fail`                                                | **Now reused.** T28 keys on the exit code plus a score floor.                       |
+| Binary driven against a mock  | `API_BASE_URL` + `MockServer`, `tests/cli_tests.rs:4184`, `tests/common/mod.rs:65`         | **Now reused.** Golden gate's HTTP-shaped reasons and the `--verbose` capture.      |
+| `X-B3-Flags` precedence test  | `tests/api_tests.rs:2246-2257`                                                             | **Now reused.** Moves onto `Call<T>` in U19 rather than being rewritten.            |
 
 ### Failure modes
 
@@ -1536,10 +1732,21 @@ One realistic production failure per new codepath, and whether the plan now catc
 | U6 isolation guards    | Guard hosted in one crate silently stops covering the other            | Yes (planted-violation test in both) | Both instantiated                     | Nothing — vacuous green                         |
 | U6 `[profile.release]` | Profile lands in a member manifest and is ignored                      | Yes (CI size ceiling)                | Ceiling fails the build               | Larger, slower binary                           |
 | U11 `exit_code()`      | New variant inherits exit 1                                            | Compile gate                         | Exhaustive match                      | Agent misreads the failure                      |
+| U19 refresh hook       | Embedder token refreshed; rotated pair lives only in process memory    | Yes (U19, hook test)                 | Hook receives the pair                | Nothing — next run dies at first refresh        |
+| U19 `trace`            | `X-B3-Flags` dropped as if it were presentation                        | Yes (api_tests.rs:2246, moved)       | `trace` stays on `Call<T>`            | Nothing — upstream tracing silently off         |
+| U2 verbose subscriber  | Formatter drifts from today's `> GET` / `< 200` lines                  | Yes (golden `--verbose`)             | Byte-equality gate                    | Different diagnostics text                      |
+| U0 lock under async    | Blocking `lock()` parks the runtime while a sibling holds the store    | Yes (U0 responsiveness test)         | `spawn_blocking`                      | Every task stalls                               |
+| U6 `package-check`     | Bare `cargo publish --dry-run` on a virtual manifest; red until U13    | Gate (upstream `--workspace`)        | Required check                        | Every PR to main blocked                        |
+| U6 `changelog-check`   | Exact `Cargo.toml` match never fires on `crates/*/Cargo.toml`          | Gate (upstream path match)           | Required check                        | Nothing — release ships without notes           |
+| U6 semver baseline     | No `xdk-rs-v*` tag before U13; wrong family after                      | Gate (library-scoped lookup + skip)  | Visible skip                          | Red required check, or the wrong baseline       |
+| U12 lib release        | `xdk-rs-v0.1.0` pushed; nothing fires                                  | Yes (`workflow_dispatch` dry run)    | `release-lib.yml`                     | Nothing — no publish, no red run                |
+| T28 anc gate           | MUST-only gate red on day one; `p6` drift passes as `warn`             | Yes (planted MUST + planted drift)   | Id exception + score floor            | Red job, or a green job that misses #165        |
 
-**Critical gaps: 0.** One was open at review time — U15's signal-handling decision, which was silent, untested, and
-unhandled at once. It is now settled: the library takes a `CancellationToken` and never registers a signal handler, the
-binary owns `tokio::signal`, and U18 fixes the signature. See U15's signal-handling bullet.
+**Critical gaps: 0.** Two were silent, untested, and unhandled at once when found, and both are settled. U15's signal
+handling: the library takes a `CancellationToken` and never registers a signal handler, the binary owns `tokio::signal`,
+and U18 fixes the signature. U19's rotated refresh token: the client takes an on-token-refreshed hook, the CLI store
+implements it, and an embedder's persistence is theirs. See U15's signal-handling bullet and U18's rotated-tokens
+bullet.
 
 Every remaining failure mode has either a test or a compile-time gate, and none of the silent ones are also unhandled.
 
@@ -1554,15 +1761,16 @@ Every remaining failure mode has either a test or a compile-time gate, and none 
 | U3 clap out of codegen         | `build.rs`, `src/skill_install/`, `src/cli/`           | —               |
 | U11 error posture              | `src/error.rs`                                         | —               |
 | U4 + U15 async increment       | `src/api/`, `src/auth/`, `src/cli/`, `src/main.rs`     | U18, U0, U1, U2 |
+| U19 credentials + `Call<T>`    | `src/api/`, `src/auth/`, `src/store/`, `src/cli/`      | U15             |
 | U5 migrate parser tests        | `tests/`, `src/cli/`                                   | U2              |
-| U6 workspace split             | everything                                             | U2, U3, U5, U15 |
+| U6 workspace split             | everything                                             | U2, U3, U5, U19 |
 | U7–U10 surface, features, docs | `crates/xdk/`, `Cargo.toml`, `.github/`                | U6              |
 | U12 release rewiring           | `.github/`, `Cargo.toml`, Homebrew                     | U6              |
 
 **Lanes.**
 
-- **Lane A:** U18 → U0 → (U4 + U15) — sequential, and the long pole. `src/auth/` is shared between U0 and U15, so they
-  cannot overlap.
+- **Lane A:** U18 → U0 → (U4 + U15) → U19 — sequential, and the long pole. `src/auth/` is shared between U0, U15, and
+  U19, so they cannot overlap.
 - **Lane B:** U2 → U5 — sequential, shared `tests/` and `src/cli/`.
 - **Lane C:** U3 — independent (`build.rs`, `src/skill_install/`).
 - **Lane D:** U11 — fully independent (`src/error.rs` alone). Can land any time before U13.
@@ -1626,9 +1834,12 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Files: `src/error.rs`
   - Verify: a planted throwaway variant fails the build at both `kind()` and `exit_code()`
 - [ ] **T9 (P2, human: ~4h / CC: ~25min)** — auth — One shared HTTP client; hard-error the timeout fallback
-  - Surfaced by: Issue 10 — `unwrap_or_else(|_| Client::new())` discards `http_timeout_secs` at three sites
-  - Files: `src/auth/oauth2.rs`, `src/auth/mod.rs`, `src/api/request/auth_header.rs`
-  - Verify: a refresh against a non-responding server gives up at `http_timeout_secs`
+  - Surfaced by: Issue 10 — `unwrap_or_else(|_| Client::new())` discards `http_timeout_secs` at six sites, derived by
+    `rg`: three in `auth/`, plus `transport.rs:272`, `request/mod.rs:246`, `streaming.rs:53`
+  - Files: `src/auth/oauth2.rs`, `src/auth/mod.rs`, `src/api/request/{auth_header,transport,mod}.rs`,
+    `src/cli/commands/streaming.rs`
+  - Verify: a refresh against a non-responding server gives up at `http_timeout_secs`; the builder-failure test targets
+    the single surviving construction site; a guard asserts the `rg` pattern matches nothing in either crate
 - [ ] **T10 (P2, human: ~4h / CC: ~25min)** — tests — Media-poll-sleep and listener-future-drop tests
   - Surfaced by: Test review — `tests/api_tests.rs:1099` returns `succeeded` immediately; `callback_tests.rs:338` covers
     API cancellation, not future drop
@@ -1857,13 +2068,15 @@ engineering review.
   call
   - Surfaced by: D3 + D7 — `Auth::new(&cfg)` reads `~/.xurl`, which only the CLI writes; 34 `&CallOptions` params across
     32 public methods at `src/api/shortcuts.rs`
-  - Files: `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/config/mod.rs`
-  - Verify: an embedder reaches a typed response in under 2 min with no CLI, no store file, and no `env::set_var`
+  - Files (U19): `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/store/mod.rs`,
+    `src/cli/commands/*`, `tests/api_tests.rs`; counts derived by `rg` at unit start, never copied
+  - Verify: an embedder reaches a typed response in under 2 min with no CLI, no store file, and no `env::set_var`; `rg
+    '&CallOptions' src/cli/` is empty; the golden fixtures re-assert
 - [ ] **T16 (P1, human: ~3d / CC: ~2h)** — lib — Move presentation and side effects to the binary crate
   - Surfaced by: D8 — R1 forbids `colored` and `open` in the library; `colored` is at `src/api/response/format.rs` and
     `open` in all three `auth/` files; `src/api/request/transport.rs:345,354` writes to the caller's terminal
-  - Files: `src/api/response/format.rs`, `src/api/request/transport.rs`, `src/auth/{mod,oauth2,callback}.rs`,
-    `src/output/mod.rs`, `src/envelope.rs`
+  - Files: `src/api/response/format.rs`, `src/api/request/{transport,mod}.rs`, `src/auth/{mod,oauth2,callback}.rs`,
+    `src/output/` → `src/cli/output/`, `src/envelope.rs` → `src/cli/envelope.rs`, `src/config/mod.rs`
   - Verify: `cargo tree -p xdk-rs -i <dep>` empty for all four R1 names; no stdout/stderr reference in `crates/xdk/src/`
 - [ ] **T17 (P1, human: ~1h / CC: ~10min)** — error — Rename `XurlError` to `xdk::Error`, re-export at the crate root
   - Surfaced by: D6 — the only public identifier still carrying the old brand, across 267 references in 30 files
@@ -1899,8 +2112,8 @@ engineering review.
   - Verify: `--features testing` green; a default build's dependency graph is unchanged
 - [ ] **T24 (P2, human: ~1h / CC: ~10min)** — ci — Run the credential-free example to completion in CI
   - Surfaced by: D15 — `cargo build --examples` proves compilation and nothing about whether the example works
-  - Files: `.github/workflows/ci.yml`
-  - Verify: breaking the example's runtime path fails CI, not just its compilation
+  - Files: `.github/workflows/ci.yml`; depends on T23 — runs `cargo run --example <name> --features testing`
+  - Verify: breaking the example's runtime path fails CI, not just its compilation; the job needs no Go toolchain
 - [ ] **T25 (P2, human: ~2h / CC: ~15min)** — release — State and enforce the breaking-change and MSRV policy
   - Surfaced by: D9 — KTD5 has 0.x minors breaking repeatedly with no guidance, and R9 names an MSRV policy the plan
     never states
@@ -2097,13 +2310,18 @@ before any of it lands.
 - [ ] **T27 (P1, human: ~4h / CC: ~30min)** — tests — Capture the golden-output baseline before U2
   - Surfaced by: D7 — R10 promises unchanged CLI behavior while KTD16 moves the output layer across a crate boundary and
     KTD17 rewrites the error Display strings, with no gate comparing before and after
-  - Files: `tests/golden/`, `tests/cli_tests.rs`
-  - Verify: fixtures recorded from the pre-split binary; byte-equality re-asserted after U2, U6, and U11
-- [ ] **T28 (P2, human: ~1h / CC: ~10min)** — ci — Gate `anc audit` on no MUST-tier failure
+  - Files: `tests/golden/`, `tests/cli_tests.rs`, `schema/output.schema.json` (source of the reason set)
+  - Verify: fixtures recorded from the pre-split binary, reason set derived from the schema enum with a trigger per
+    reason and a committed untriggerable list, one `--verbose` capture against the mock; byte-equality re-asserted after
+    U2, U19, U6, and U11; a schema reason with neither fixture nor list entry fails the matrix test
+- [ ] **T28 (P2, human: ~1.5h / CC: ~15min)** — ci — Gate `anc audit` on MUST-tier failures and a score floor
   - Surfaced by: Pass 8 — `anc` runs neither in CI nor in `scripts/hooks/pre-push`, which is how #165's four new
-    commands drifted out of the `p6` vocabulary unnoticed
+    commands drifted out of the `p6` vocabulary unnoticed; final eng pass — `anc audit` exits 2 today on
+    `p2-must-json-errors` (routed to 3.3.0), and `p6` drift is `warn`, so a MUST-only gate is red now and blind to #165
   - Files: `.github/workflows/ci.yml`
-  - Verify: a planted MUST-tier violation fails the job
+  - Verify: `cargo binstall agentnative --force`, audit the release `xr` via `--command`; a planted MUST-tier violation
+    fails the job; a planted `p6` vocabulary drift that lowers the score below the committed floor (94) fails the job;
+    `p2-must-json-errors` is the only id exempted, and 3.3.0 deletes the exemption
 - [ ] **T29 (P2, human: ~30min / CC: ~5min)** — release — Move the `xr --version` contract test with KTD13
   - Surfaced by: D8 — `tests/binary_contract_tests.rs` pins that output and KTD13 changes it
   - Files: `tests/binary_contract_tests.rs`, `src/cli/`
@@ -2119,26 +2337,96 @@ before any of it lands.
   - Files: none here; an issue against `brettdavies/agentnative-cli`
   - Verify: `code-unwrap` stops reporting test-only hits
 
+## Final Engineering Pass Outcomes
+
+Reviewed with both DX runs, KTD12's reversal, KTD15 through KTD19, and the R10 gate in view. Fourteen decisions, all
+answered; every finding is folded above. The tasks below continue the numbering.
+
+### Implementation Tasks — Final Eng Pass
+
+- [ ] **T32 (P1, human: ~1d / CC: ~1h)** — api — U19: credential constructor, on-token-refreshed hook, `Call<T>` across
+  the CLI call sites
+  - Surfaced by: Issue 2 + Issue 7 — KTD15 and R12 had no implementing unit; `src/auth/oauth2.rs:501-548` persists a
+    rotated refresh token only through the CLI store
+  - Files: `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/store/mod.rs`,
+    `src/cli/commands/*`, `tests/api_tests.rs`
+  - Verify: `rg '&CallOptions' src/cli/` empty; the hook test receives the rotated pair; golden fixtures re-assert
+- [ ] **T33 (P1, human: ~3h / CC: ~20min)** — release — `release-lib.yml` thin caller on `xdk-rs-v*` into an upstream
+  `rust-lib-release.yml`; library-before-CLI ordering in the runbook; second git-cliff configuration
+  - Surfaced by: Issue 3 — `release.yml:10-11` fires only on `v*`; `rust-release.yml:33-36` requires `bin`
+  - Files: `.github/workflows/release-lib.yml`, `cliff.toml`,
+    `brettdavies/.github/.github/workflows/rust-lib-release.yml`
+  - Verify: a `workflow_dispatch` dry run reaches the publish dry-run; `check-version` fails by name on an unpublished
+    bound
+- [ ] **T34 (P1, human: ~1h / CC: ~10min)** — ci-upstream — `package-check` gains `--workspace`; `changelog-check`
+  matches any `Cargo.toml` path
+  - Surfaced by: Issue 4 — `rust-ci.yml:120,123` bare `cargo package --list` / `cargo publish --dry-run`;
+    `rust-ci.yml:174` exact `Cargo.toml` match
+  - Files: `brettdavies/.github/.github/workflows/rust-ci.yml`
+  - Verify: `cargo publish --dry-run --workspace` green on the split branch before U13; a PR bumping
+    `crates/xdk/Cargo.toml` without a changelog change fails the Changelog check
+- [ ] **T35 (P2, human: ~1h / CC: ~10min)** — ci — Library-scoped semver baseline, visible first-release skip,
+  planted-break probe for `release-type`
+  - Surfaced by: Issue 5 — `ci.yml:104` `git tag --sort=-version:refname | head -n 1`; `ci.yml:111` `release-type:
+    minor`
+  - Files: `.github/workflows/ci.yml`
+  - Verify: the job resolves the newest `xdk-rs-v*` tag or skips with a notice; the probe result is recorded in the
+    Verification Contract and the flag set from it
+- [ ] **T36 (P2, human: ~4h / CC: ~30min)** — lib — `trace` stays on `Call<T>`; `verbose` becomes `tracing` events; the
+  binary's subscriber owns the line format
+  - Surfaced by: Issue 8 — `transport.rs:78` sets `X-B3-Flags` from `trace`; `ApiClient.out` at `request/mod.rs:223`
+  - Files: `src/api/request/{mod,transport}.rs`, `src/cli/output/`, `Cargo.toml`
+  - Verify: golden `--verbose` byte-equal; `X-B3-Flags` precedence test green on the builder
+- [ ] **T37 (P2, human: ~1h / CC: ~10min)** — tests — One workspace-rooted guard per property
+  - Surfaced by: Issue 9 — U6 duplicated both guards with separate allowlists
+  - Files: `tests/store_isolation_guard.rs`, `tests/env_mutation_guard.rs`
+  - Verify: a planted `Auth::new(` in each crate's `tests/` trips the single guard
+- [ ] **T38 (P3, human: ~2h / CC: ~15min)** — store — std `File::lock` on the sidecar, `spawn_blocking` on the async
+  path, runtime-responsiveness test
+  - Surfaced by: Issue 10 — U0 named the syscalls but not the mechanism or its async cost
+  - Files: `src/store/mod.rs`, `tests/store_tests.rs`
+  - Verify: tasks on the same `current_thread` runtime progress while a sibling process holds the lock
+- [ ] **T39 (P2, human: ~2h / CC: ~15min)** — config — Split `Config`; `EnvOverrides` owns `XURL_OUTPUT`, `HOME`,
+  `NO_COLOR`
+  - Surfaced by: Issue 11 — `src/config/mod.rs:96-97,132-133` read CLI-only env into the library type
+  - Files: `src/config/mod.rs`, `src/cli/`
+  - Verify: `XURL_OUTPUT=json xr --bogus-flag` exits 2 with the envelope carrying `reason: invalid-args`
+- [ ] **T40 (P2, human: ~3h / CC: ~25min)** — tests — Schema-derived reason matrix with a trigger per reason and a
+  committed untriggerable list
+  - Surfaced by: Issue 12 — T27 named no source for the reason set; the CLI emits reasons `kind()` never sees
+  - Files: `tests/golden/`, `schema/output.schema.json`
+  - Verify: a schema reason with neither fixture nor list entry fails the matrix test
+- [ ] **T41 (P2, human: ~1h / CC: ~10min)** — transport — Derived fallback-site list, single-site builder-failure test,
+  grep guard
+  - Surfaced by: Issue 13 — six `unwrap_or_else(|_| Client::new())` sites, U15 listed three
+  - Files: `src/api/request/{mod,transport}.rs`, `src/cli/commands/streaming.rs`, `src/auth/*`
+  - Verify: the `rg` pattern matches nothing in either crate; the builder-failure test targets the one construction site
+- [ ] **T42 (P2, human: ~30min / CC: ~5min)** — ci — Credential-free example runs against the `testing` mock; T24
+  depends on T23
+  - Surfaced by: Issue 14 — T24 named no backend
+  - Files: `.github/workflows/ci.yml`, `crates/xdk/examples/`
+  - Verify: `cargo run --example <name> --features testing` completes in CI with no network and no Go toolchain
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger               | Why                             | Runs | Status   | Findings                             |
 | -------------- | --------------------- | ------------------------------- | ---- | -------- | ------------------------------------ |
 | CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —        | —                                    |
-| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 2    | DISABLED | none — `codex_reviews` disabled      |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 2    | CLEAR    | 11 issues, 0 critical gaps           |
+| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 3    | DISABLED | none — `codex_reviews` disabled      |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 3    | CLEAR    | 14 issues, 0 critical gaps           |
 | Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —        | —                                    |
 | DX Review      | `/plan-devex-review`  | Developer experience gaps       | 3    | CLEAR    | lib 4.4→8.8, CLI 5.9→8.4, 1 P1 break |
 
-**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` on both DX runs — `codex_reviews` is
-disabled, so no outside process was started and no native substitute was dispatched. This plan has **no outside-model
-coverage**. Re-enable with `gstack-config set codex_reviews enabled`.
+**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` on both DX runs and on this eng run —
+`codex_reviews` is disabled, so no outside process was started and no native substitute was dispatched. This plan has
+**no outside-model coverage**. Re-enable with `gstack-config set codex_reviews enabled`.
 
-**STALENESS:** The 2026-09-10 DX and Eng rows graded a different plan and are ~50 commits behind. The current Eng row
-(2026-09-16) predates both DX runs, so it has not seen KTD15 through KTD19, the KTD12 reversal, or the R10 golden-output
-gate.
+**STALENESS:** The 2026-09-10 DX and Eng rows graded a different plan. The current Eng row (2026-09-16, final pass)
+postdates both DX runs and reviewed KTD12's reversal, KTD15 through KTD19, and the R10 golden-output gate directly.
 
-**VERDICT:** ENG + DX CLEARED — 11 engineering findings folded, 15 library DX decisions and 8 CLI DX decisions resolved,
-0 critical gaps, 0 unresolved. Outside coverage missing by configuration, which never gates shipping.
+**VERDICT:** ENG + DX CLEARED — 14 findings folded in the final eng pass on top of the 11 earlier ones; 15 library DX
+decisions and 8 CLI DX decisions resolved; 0 critical gaps, 0 unresolved. Outside coverage missing by configuration,
+which never gates shipping.
 
 **Load-bearing calls, for anyone reading this plan later:**
 
@@ -2162,6 +2450,19 @@ gate.
 10. **The CLI keeps `vX.Y.Z` tags; only the library takes a prefix** (KTD12, reversed). A symmetric rename starts no
     release workflow at all and 404s every install path, across three repositories, with no red run to notice.
 11. **R10 is proven, not asserted.** Golden CLI output is captured before U2 and re-asserted byte-for-byte afterward,
-    because KTD16 moves the output layer and KTD17 rewrites the error strings.
+    because KTD16 moves the output layer and KTD17 rewrites the error strings. The reason matrix is derived from the
+    schema enum, and `--verbose` is in it.
+12. **KTD15 has a unit.** U19 lands the credential constructor, the on-token-refreshed hook, and `Call<T>` after U15 and
+    before U6, so the async conversion stays a pure posture change and a rotated refresh token never dies with the
+    process.
+13. **`trace` is wire, `verbose` is presentation.** Only `verbose` leaves the per-call surface; the binary's tracing
+    subscriber owns the diagnostic line format and the golden gate checks it.
+14. **The library has its own release path.** `release-lib.yml` fires on `xdk-rs-v*` into an upstream lib-only reusable,
+    and the library is published before any CLI tag whose bound moved.
+15. **Three more upstream single-package assumptions break at U6:** `package-check` needs `--workspace`,
+    `changelog-check` matches an exact `Cargo.toml` filename, and the semver baseline lookup needs the library's own tag
+    family with a visible skip before the first release.
+16. **The anc gate is a score floor plus MUST failures, with one named exception** until 3.3.0. A MUST-only gate is red
+    today and blind to the #165 drift class.
 
 NO UNRESOLVED DECISIONS
