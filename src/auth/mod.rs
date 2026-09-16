@@ -55,6 +55,13 @@ pub struct Auth {
     bearer_token_override: Option<String>,
 }
 
+// Compile-time guarantee: `Auth` stays shareable across tasks and threads,
+// so the failure surfaces here rather than at a distant call site.
+const _: fn() = || {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    _assert_send_sync::<Auth>();
+};
+
 impl Auth {
     /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
     ///
