@@ -40,6 +40,11 @@ const ALLOWLIST: &[Allowed] = &[
         test: "test_xurl_token_store_env_selects_store_file",
         reason: "proves the variable the spawn seam relies on, so it spawns raw on purpose",
     },
+    Allowed {
+        file: "golden_tests.rs",
+        test: "capture",
+        reason: "presents a scratch home to `skill update` so its destination is a plain file; the store stays on XURL_TOKEN_STORE",
+    },
 ];
 
 /// Source patterns that resolve the real home directory.

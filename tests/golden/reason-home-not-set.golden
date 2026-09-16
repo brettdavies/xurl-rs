@@ -1,0 +1,21 @@
+args: ["--output", "json", "skill", "install", "claude_code", "--dry-run"]
+env: -HOME
+store: empty
+exit_code: 1
+stdout_len: 347
+stderr_len: 0
+--- stdout ---
+{
+  "action": "skill-install",
+  "host": "claude_code",
+  "install_dir": "~/.claude/skills/xurl-rs",
+  "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.claude/skills/xurl-rs",
+  "destination_status": "absent",
+  "status": "error",
+  "would_succeed": false,
+  "exit_code": 1,
+  "reason": "home-not-set"
+}
+
+--- stderr ---
+

@@ -1,0 +1,24 @@
+args: ["--output", "json", "skill", "install"]
+store: empty
+exit_code: 2
+stdout_len: 269
+stderr_len: 0
+--- stdout ---
+{
+  "action": "skill-install",
+  "exit_code": 2,
+  "known_hosts": [
+    "claude_code",
+    "codex",
+    "cursor",
+    "factory",
+    "kiro",
+    "opencode"
+  ],
+  "message": "missing target host; pass <host> or --all",
+  "reason": "missing-host",
+  "status": "error"
+}
+
+--- stderr ---
+

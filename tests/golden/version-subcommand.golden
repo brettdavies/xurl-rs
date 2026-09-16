@@ -1,0 +1,10 @@
+args: ["version"]
+store: empty
+exit_code: 0
+stdout_len: 21
+stderr_len: 0
+--- stdout ---
+xr {{CRATE_VERSION}}
+
+--- stderr ---
+

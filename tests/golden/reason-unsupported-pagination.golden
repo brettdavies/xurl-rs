@@ -1,0 +1,15 @@
+args: ["--output", "json", "--page", "2", "timeline"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 220
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
+  "reason": "unsupported-pagination",
+  "status": "error"
+}
+

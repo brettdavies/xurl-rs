@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "search", "q404"]
+store: bearer-env
+exit_code: 4
+stdout_len: 0
+stderr_len: 165
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 4,
+  "message": "{\"errors\":[{\"detail\":\"Could not find data\",\"title\":\"Not Found Error\"}]}",
+  "reason": "not-found",
+  "status": "error"
+}
+
