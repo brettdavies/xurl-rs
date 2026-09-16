@@ -529,3 +529,150 @@ async fn a_call_timeout_overrides_the_client_bound() {
         .expect_err("the per-call bound fires first");
     assert!(matches!(err, Error::Http(_)), "{err:?}");
 }
+
+// ── Review follow-ups: hook scoping, unauthenticated calls, cursor breadth ──
+
+#[tokio::test]
+async fn the_scoped_store_hook_persists_into_the_named_app_not_the_default() {
+    let server = MockServer::start().await;
+    mount_refresh(&server, 1).await;
+    mount_me(&server, "new-at").await;
+
+    let tmp = TempDir::new().unwrap();
+    let store_path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(store_path.to_str().unwrap());
+    store.add_app("main", "cid", "csec").unwrap();
+    store
+        .save_oauth2_token_for_app("main", "alice", "main-at", "main-rt", 0)
+        .unwrap();
+    store.add_app("other", "cid", "csec").unwrap();
+    store
+        .save_oauth2_token_for_app("other", "bob", "old-at", "old-rt", 0)
+        .unwrap();
+    store.set_default_app("main").unwrap();
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .on_token_refreshed(store.refresh_hook_for("other"))
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    client
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed read completes");
+
+    let reloaded = TokenStore::new_with_path(store_path.to_str().unwrap());
+    let bob = reloaded
+        .get_oauth2_token_for_app("other", "bob")
+        .and_then(|t| t.oauth2.clone())
+        .expect("bob's token survives");
+    assert_eq!(
+        bob.access_token, "new-at",
+        "the named app received the rotation"
+    );
+    let alice = reloaded
+        .get_oauth2_token_for_app("main", "alice")
+        .and_then(|t| t.oauth2.clone())
+        .expect("alice's token survives");
+    assert_eq!(
+        alice.access_token, "main-at",
+        "the default app is untouched"
+    );
+}
+
+#[tokio::test]
+async fn no_auth_on_a_call_sends_no_authorization_header() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(me_body()))
+        .mount(&server)
+        .await;
+
+    let client = Client::builder()
+        .oauth2(live_oauth2())
+        .base_url(server.uri())
+        .build()
+        .unwrap();
+
+    client.get_me().no_auth(true).send().await.unwrap();
+
+    let requests = received(&server).await;
+    assert!(
+        header_value(&requests[0], "Authorization").is_none(),
+        "an unauthenticated call carries no Authorization header"
+    );
+}
+
+/// Every list shortcut sends the cursor; every single-item shortcut drops
+/// it. A new list endpoint that forgets `.paginated()` fails here.
+#[tokio::test]
+async fn the_pagination_token_reaches_every_list_call_and_no_other() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": []})))
+        .mount(&server)
+        .await;
+    let client = Client::builder()
+        .oauth2(live_oauth2())
+        .base_url(server.uri())
+        .build()
+        .unwrap();
+
+    macro_rules! probe {
+        ($name:literal, $call:expr) => {{
+            // Decoding may fail against the catch-all body; only the wire matters.
+            let _ = $call.pagination_token("PROBE").send().await;
+            let last = received(&server).await.pop().expect("a request was sent");
+            (
+                $name,
+                last.url
+                    .query()
+                    .is_some_and(|q| q.ends_with("pagination_token=PROBE")),
+            )
+        }};
+    }
+
+    let lists = [
+        probe!("search_posts", client.search_posts("q", 10)),
+        probe!("get_timeline", client.get_timeline("1", 10)),
+        probe!("get_mentions", client.get_mentions("1", 10)),
+        probe!("get_bookmarks", client.get_bookmarks("1", 10)),
+        probe!("get_liked_posts", client.get_liked_posts("1", 10)),
+        probe!("get_dm_events", client.get_dm_events(10)),
+        probe!("get_following", client.get_following("1", 10)),
+        probe!("get_followers", client.get_followers("1", 10)),
+        probe!("get_muted", client.get_muted("1", 10)),
+        probe!("get_blocked", client.get_blocked("1", 10)),
+    ];
+    let singles = [
+        probe!("get_me", client.get_me()),
+        probe!("lookup_user", client.lookup_user("alice")),
+        probe!("read_post", client.read_post("1")),
+        probe!("get_usage", client.get_usage()),
+        probe!("get_usage_credits", client.get_usage_credits()),
+    ];
+
+    let missing: Vec<_> = lists
+        .iter()
+        .filter(|(_, sent)| !sent)
+        .map(|(n, _)| n)
+        .collect();
+    let leaked: Vec<_> = singles
+        .iter()
+        .filter(|(_, sent)| *sent)
+        .map(|(n, _)| n)
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "list calls that dropped the cursor: {missing:?}"
+    );
+    assert!(
+        leaked.is_empty(),
+        "single-item calls that sent a cursor: {leaked:?}"
+    );
+}

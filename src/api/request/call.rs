@@ -94,6 +94,13 @@ impl<T: DeserializeOwned> Call<T> {
         self
     }
 
+    /// Sends with no `Authorization` header at all, skipping scheme
+    /// selection; a probe of what an endpoint answers unauthenticated.
+    pub fn no_auth(mut self, on: bool) -> Self {
+        self.options.no_auth = on;
+        self
+    }
+
     /// Bounds this one request in place of the client-level timeout.
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.options.timeout = Some(timeout);
@@ -139,6 +146,7 @@ impl<T: DeserializeOwned> Call<T> {
         request.auth_type = options.auth_type;
         request.username = options.username;
         request.trace = options.trace;
+        request.no_auth = options.no_auth;
         if paginated
             && !options.pagination_token.is_empty()
             && let RequestTarget::Template { query, .. } = &mut request.target

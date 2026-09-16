@@ -115,6 +115,8 @@ pub(crate) struct CallOptions {
     pub(crate) username: String,
     /// Emit the `X-B3-Flags: 1` header.
     pub(crate) trace: bool,
+    /// Send no `Authorization` header and skip scheme selection.
+    pub(crate) no_auth: bool,
     /// Per-call bound; `None` inherits the client-level timeout.
     pub(crate) timeout: Option<Duration>,
     /// Cursor for list endpoints; single-item endpoints ignore it.
