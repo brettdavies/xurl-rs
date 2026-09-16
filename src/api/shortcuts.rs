@@ -169,16 +169,17 @@ impl ApiClient {
     /// use xurl::auth::Auth;
     /// use xurl::config::Config;
     ///
+    /// # async fn run() -> Result<(), xurl::Error> {
     /// let cfg = Config::new();
     /// let auth = Auth::new(&cfg);
-    /// let mut client = ApiClient::new(&cfg, auth);
+    /// let client = ApiClient::new(&cfg, auth)?;
     ///
-    /// let resp = client.create_post("hello from xurl", &[], &CallOptions::default())?;
+    /// let resp = client.create_post("hello from xurl", &[], &CallOptions::default()).await?;
     /// println!("created post id={}", resp.data.id);
-    /// # Ok::<(), xurl::Error>(())
+    /// # Ok(()) }
     /// ```
-    pub fn create_post(
-        &mut self,
+    pub async fn create_post(
+        &self,
         text: &str,
         media_ids: &[String],
         opts: &CallOptions,
@@ -205,7 +206,7 @@ impl ApiClient {
         };
         req.data = data;
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Replies to an existing post.
@@ -213,8 +214,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn reply_to_post(
-        &mut self,
+    pub async fn reply_to_post(
+        &self,
         post_id: &str,
         text: &str,
         media_ids: &[String],
@@ -245,7 +246,7 @@ impl ApiClient {
         };
         req.data = data;
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Quotes an existing post.
@@ -253,8 +254,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn quote_post(
-        &mut self,
+    pub async fn quote_post(
+        &self,
         post_id: &str,
         text: &str,
         opts: &CallOptions,
@@ -277,7 +278,7 @@ impl ApiClient {
         };
         req.data = data;
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Deletes a post.
@@ -285,8 +286,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn delete_post(
-        &mut self,
+    pub async fn delete_post(
+        &self,
         post_id: &str,
         opts: &CallOptions,
     ) -> Result<ApiResponse<DeletedResult>> {
@@ -300,7 +301,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Reads a single post with expansions.
@@ -308,7 +309,7 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn read_post(&mut self, post_id: &str, opts: &CallOptions) -> Result<ApiResponse<Post>> {
+    pub async fn read_post(&self, post_id: &str, opts: &CallOptions) -> Result<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
@@ -332,7 +333,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Searches recent posts.
@@ -348,18 +349,19 @@ impl ApiClient {
     /// use xurl::auth::Auth;
     /// use xurl::config::Config;
     ///
+    /// # async fn run() -> Result<(), xurl::Error> {
     /// let cfg = Config::new();
     /// let auth = Auth::new(&cfg);
-    /// let mut client = ApiClient::new(&cfg, auth);
+    /// let client = ApiClient::new(&cfg, auth)?;
     ///
-    /// let resp = client.search_posts("rustlang", 25, &CallOptions::default())?;
+    /// let resp = client.search_posts("rustlang", 25, &CallOptions::default()).await?;
     /// for post in &resp.data {
     ///     println!("{}: {}", post.id, post.text);
     /// }
-    /// # Ok::<(), xurl::Error>(())
+    /// # Ok(()) }
     /// ```
-    pub fn search_posts(
-        &mut self,
+    pub async fn search_posts(
+        &self,
         query: &str,
         max_results: i32,
         opts: &CallOptions,
@@ -390,7 +392,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches the authenticated user's profile.
@@ -406,15 +408,16 @@ impl ApiClient {
     /// use xurl::auth::Auth;
     /// use xurl::config::Config;
     ///
+    /// # async fn run() -> Result<(), xurl::Error> {
     /// let cfg = Config::new();
     /// let auth = Auth::new(&cfg);
-    /// let mut client = ApiClient::new(&cfg, auth);
+    /// let client = ApiClient::new(&cfg, auth)?;
     ///
-    /// let resp = client.get_me(&CallOptions::default())?;
+    /// let resp = client.get_me(&CallOptions::default()).await?;
     /// println!("@{} ({})", resp.data.username, resp.data.id);
-    /// # Ok::<(), xurl::Error>(())
+    /// # Ok(()) }
     /// ```
-    pub fn get_me(&mut self, opts: &CallOptions) -> Result<ApiResponse<User>> {
+    pub async fn get_me(&self, opts: &CallOptions) -> Result<ApiResponse<User>> {
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
         req.target = RequestTarget::Template {
@@ -427,7 +430,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Looks up a user by username.
@@ -435,7 +438,11 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn lookup_user(&mut self, username: &str, opts: &CallOptions) -> Result<ApiResponse<User>> {
+    pub async fn lookup_user(
+        &self,
+        username: &str,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<User>> {
         let username = resolve_username(username);
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
@@ -449,7 +456,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches the home timeline.
@@ -457,8 +464,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_timeline(
-        &mut self,
+    pub async fn get_timeline(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
@@ -483,7 +490,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches recent mentions.
@@ -491,8 +498,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_mentions(
-        &mut self,
+    pub async fn get_mentions(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
@@ -517,7 +524,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Likes a post.
@@ -525,8 +532,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn like_post(
-        &mut self,
+    pub async fn like_post(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -541,7 +548,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Unlikes a post.
@@ -549,8 +556,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unlike_post(
-        &mut self,
+    pub async fn unlike_post(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -568,7 +575,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Reposts a post.
@@ -576,8 +583,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn repost(
-        &mut self,
+    pub async fn repost(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -592,7 +599,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Removes a repost.
@@ -600,8 +607,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unrepost(
-        &mut self,
+    pub async fn unrepost(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -619,7 +626,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Bookmarks a post.
@@ -627,8 +634,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn bookmark(
-        &mut self,
+    pub async fn bookmark(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -643,7 +650,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"tweet_id":"{post_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Removes a bookmark.
@@ -651,8 +658,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unbookmark(
-        &mut self,
+    pub async fn unbookmark(
+        &self,
         user_id: &str,
         post_id: &str,
         opts: &CallOptions,
@@ -670,7 +677,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches bookmarks.
@@ -678,8 +685,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_bookmarks(
-        &mut self,
+    pub async fn get_bookmarks(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
@@ -704,7 +711,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Follows a user.
@@ -712,8 +719,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn follow_user(
-        &mut self,
+    pub async fn follow_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -727,7 +734,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Unfollows a user.
@@ -735,8 +742,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unfollow_user(
-        &mut self,
+    pub async fn unfollow_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -753,7 +760,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches users that a given user follows.
@@ -761,13 +768,14 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_following(
-        &mut self,
+    pub async fn get_following(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
         self.get_user_list("/2/users/{id}/following", user_id, max_results, opts)
+            .await
     }
 
     /// Fetches followers of a given user.
@@ -775,13 +783,14 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_followers(
-        &mut self,
+    pub async fn get_followers(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
         self.get_user_list("/2/users/{id}/followers", user_id, max_results, opts)
+            .await
     }
 
     /// Sends a direct message.
@@ -789,8 +798,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn send_dm(
-        &mut self,
+    pub async fn send_dm(
+        &self,
         participant_id: &str,
         text: &str,
         opts: &CallOptions,
@@ -808,7 +817,7 @@ impl ApiClient {
         };
         req.data = serde_json::to_string(&body)?;
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches recent DM events.
@@ -816,8 +825,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_dm_events(
-        &mut self,
+    pub async fn get_dm_events(
+        &self,
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<DmEvent>>> {
@@ -841,7 +850,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches posts liked by a user.
@@ -849,8 +858,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_liked_posts(
-        &mut self,
+    pub async fn get_liked_posts(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
@@ -875,7 +884,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Mutes a user.
@@ -883,8 +892,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn mute_user(
-        &mut self,
+    pub async fn mute_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -898,7 +907,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches API usage data (post caps, daily breakdowns).
@@ -906,7 +915,7 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_usage(&mut self, opts: &CallOptions) -> Result<ApiResponse<UsageData>> {
+    pub async fn get_usage(&self, opts: &CallOptions) -> Result<ApiResponse<UsageData>> {
         let mut req = opts.to_request_options();
         req.method = "GET".to_string();
         req.target = RequestTarget::Template {
@@ -919,7 +928,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Fetches credits-based usage for the project.
@@ -927,8 +936,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_usage_credits(
-        &mut self,
+    pub async fn get_usage_credits(
+        &self,
         opts: &CallOptions,
     ) -> Result<ApiResponse<UsageCreditsData>> {
         let mut req = opts.to_request_options();
@@ -940,7 +949,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Unmutes a user.
@@ -948,8 +957,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unmute_user(
-        &mut self,
+    pub async fn unmute_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -966,7 +975,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Lists the users the authenticated user has muted.
@@ -974,13 +983,14 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_muted(
-        &mut self,
+    pub async fn get_muted(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
         self.get_user_list("/2/users/{id}/muting", user_id, max_results, opts)
+            .await
     }
 
     /// Blocks a user.
@@ -988,8 +998,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn block_user(
-        &mut self,
+    pub async fn block_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -1003,7 +1013,7 @@ impl ApiClient {
         };
         req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Unblocks a user.
@@ -1011,8 +1021,8 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn unblock_user(
-        &mut self,
+    pub async fn unblock_user(
+        &self,
         source_user_id: &str,
         target_user_id: &str,
         opts: &CallOptions,
@@ -1029,7 +1039,7 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 
     /// Lists the users the authenticated user has blocked.
@@ -1037,18 +1047,19 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns an error if the request fails or the API returns an error.
-    pub fn get_blocked(
-        &mut self,
+    pub async fn get_blocked(
+        &self,
         user_id: &str,
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
         self.get_user_list("/2/users/{id}/blocking", user_id, max_results, opts)
+            .await
     }
 
     /// Shared GET for the user-list endpoints keyed on a single `{id}`.
-    fn get_user_list(
-        &mut self,
+    async fn get_user_list(
+        &self,
         path: &str,
         user_id: &str,
         max_results: i32,
@@ -1072,6 +1083,6 @@ impl ApiClient {
         };
         req.data.clear();
 
-        deserialize_response(self.send_request(&req)?)
+        deserialize_response(self.send_request(&req).await?)
     }
 }

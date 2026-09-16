@@ -2,11 +2,12 @@
 //!
 //! Binds host, port, and path from the resolved redirect URI. For `localhost`,
 //! attempts to bind both `127.0.0.1:port` and `[::1]:port`. When only one
-//! succeeds the listener proceeds with a one-line warning to stderr; when both
-//! fail an error is returned. Coordinates shutdown via a
+//! succeeds the listener proceeds with a warning; when both fail an error is
+//! returned. Coordinates shutdown via a caller-supplied
 //! [`tokio_util::sync::CancellationToken`]; the success path triggers
 //! cancellation immediately after the code is delivered. Times out after 5
-//! minutes, matching the Go implementation.
+//! minutes, matching the Go implementation. The library registers no signal
+//! handler: the caller cancels the token when its own shutdown arrives.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,35 +21,6 @@ use url::Url;
 
 use crate::error::{Error, Result};
 
-/// Resolves when the process receives SIGINT (Ctrl+C) or, on Unix, SIGTERM.
-///
-/// Used by long-running paths (OAuth2 callback listener, streaming HTTP) to
-/// observe shutdown signals and exit cleanly. On Windows only `ctrl_c()` is
-/// available; the `cfg(unix)` arm folds SIGTERM into the same future.
-pub(crate) async fn shutdown_signal() {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{SignalKind, signal};
-        let mut term = match signal(SignalKind::terminate()) {
-            Ok(s) => s,
-            Err(_) => {
-                // SignalKind::terminate is documented to always succeed on
-                // Unix; if it does fail, fall back to ctrl_c only.
-                let _ = tokio::signal::ctrl_c().await;
-                return;
-            }
-        };
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = term.recv() => {}
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = tokio::signal::ctrl_c().await;
-    }
-}
-
 /// Hardcoded 5-minute timeout matching upstream Go xurl.
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -61,6 +33,25 @@ type ResultSlot = Arc<Mutex<Option<oneshot::Sender<std::result::Result<String, S
 
 /// One-shot delivery slot for the listener-ready signal.
 type ReadySlot = Arc<Mutex<Option<oneshot::Sender<()>>>>;
+
+/// The accept-loop tasks behind one listener.
+///
+/// Dropping it cancels the token and aborts every task, so a future the
+/// caller drops mid-wait (a `select!` branch, a timeout) releases the
+/// loopback port instead of leaving it bound for the process lifetime.
+struct ListenerTasks {
+    cancel: CancellationToken,
+    handles: Vec<tokio::task::JoinHandle<()>>,
+}
+
+impl Drop for ListenerTasks {
+    fn drop(&mut self) {
+        self.cancel.cancel();
+        for handle in &self.handles {
+            handle.abort();
+        }
+    }
+}
 
 /// Bind result for a single address.
 struct BoundAddress {
@@ -255,19 +246,20 @@ async fn run_accept_loop(
 ///
 /// `redirect_uri` provides the bind host, port, and request path. For
 /// `localhost`, dual-binds `127.0.0.1` and `[::1]`; if exactly one bind
-/// succeeds the function emits a one-line stderr warning and proceeds; if
-/// both fail it returns an error. For explicit IPs / hostnames, single-binds.
+/// succeeds the function emits a warning and proceeds; if both fail it
+/// returns an error. For explicit IPs / hostnames, single-binds.
 ///
-/// `cancel` coordinates shutdown — the success path cancels immediately
-/// after delivering the code; the 5-minute timeout broadcasts cancellation;
-/// callers may also cancel externally.
+/// `cancel` is the only external stop: the success path cancels it
+/// immediately after delivering the code, the 5-minute timeout cancels it,
+/// and the caller cancels it on its own shutdown. Dropping the returned
+/// future releases the listener's port.
 ///
 /// # Errors
 ///
 /// Returns an error if the URI is missing a host or port, every bind fails,
-/// the runtime cannot be constructed, the listener returns an OAuth-protocol
-/// error (state mismatch / empty code), or the 5-minute timeout fires.
-pub fn wait_for_callback_with<F>(
+/// the listener returns an OAuth-protocol error (state mismatch / empty
+/// code), the token is cancelled, or the 5-minute timeout fires.
+pub async fn wait_for_callback_with<F>(
     redirect_uri: &Url,
     expected_state: &str,
     cancel: CancellationToken,
@@ -286,108 +278,93 @@ where
     let expected_state = expected_state.to_string();
     let uri_path = callback_path_from(redirect_uri);
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| Error::auth_with_cause("ServerError", &e))?;
+    let addrs = address_list(&host, port);
+    let (bound, failed) = bind_all(&addrs).await;
 
-    rt.block_on(async move {
-        let addrs = address_list(&host, port);
-        let (bound, failed) = bind_all(&addrs).await;
+    if bound.is_empty() {
+        let detail = failed
+            .iter()
+            .map(|(addr, err)| format!("{addr}: {err}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(Error::auth(format!(
+            "could not bind callback listener: {detail}"
+        )));
+    }
 
-        if bound.is_empty() {
-            let detail = failed
-                .iter()
-                .map(|(addr, err)| format!("{addr}: {err}"))
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Err(Error::auth(format!(
-                "could not bind callback listener: {detail}"
-            )));
-        }
+    // Partial-bind warning is localhost-only. Explicit-IP single binds never
+    // warn on absent addresses (only one was attempted).
+    if host == "localhost"
+        && bound.len() == 1
+        && let Some((failed_addr, failed_err)) = failed.first()
+    {
+        let bound_addr = &bound[0].addr;
+        tracing::warn!(
+            target: "xurl::auth",
+            "{}",
+            format_partial_bind_warning(bound_addr, failed_addr, failed_err)
+        );
+    }
 
-        // Partial-bind warning is localhost-only per KTD4. Explicit-IP single
-        // binds never warn on absent addresses (only one was attempted).
-        if host == "localhost"
-            && bound.len() == 1
-            && let Some((failed_addr, failed_err)) = failed.first()
-        {
-            let bound_addr = &bound[0].addr;
-            tracing::warn!(
-                target: "xurl::auth",
-                "{}",
-                format_partial_bind_warning(bound_addr, failed_addr, failed_err)
-            );
-        }
+    let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, String>>();
+    let result_tx = Arc::new(Mutex::new(Some(result_tx)));
 
-        let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, String>>();
-        let result_tx = Arc::new(Mutex::new(Some(result_tx)));
+    let (ready_tx, ready_rx) = oneshot::channel::<()>();
+    let ready_tx = Arc::new(Mutex::new(Some(ready_tx)));
+    let ready_flag = Arc::new(AtomicBool::new(false));
 
-        let (ready_tx, ready_rx) = oneshot::channel::<()>();
-        let ready_tx = Arc::new(Mutex::new(Some(ready_tx)));
-        let ready_flag = Arc::new(AtomicBool::new(false));
+    let mut tasks = ListenerTasks {
+        cancel: cancel.clone(),
+        handles: Vec::with_capacity(bound.len()),
+    };
+    for b in bound {
+        let result_tx = Arc::clone(&result_tx);
+        let cancel = cancel.clone();
+        let ready_tx = Arc::clone(&ready_tx);
+        let ready_flag = Arc::clone(&ready_flag);
+        let expected_state = expected_state.clone();
+        let uri_path = uri_path.clone();
+        tasks.handles.push(tokio::spawn(async move {
+            run_accept_loop(
+                b.listener,
+                expected_state,
+                uri_path,
+                result_tx,
+                cancel,
+                ready_flag,
+                ready_tx,
+            )
+            .await;
+        }));
+    }
 
-        let mut join_handles = Vec::new();
-        for b in bound {
-            let result_tx = Arc::clone(&result_tx);
-            let cancel = cancel.clone();
-            let ready_tx = Arc::clone(&ready_tx);
-            let ready_flag = Arc::clone(&ready_flag);
-            let expected_state = expected_state.clone();
-            let uri_path = uri_path.clone();
-            join_handles.push(tokio::spawn(async move {
-                run_accept_loop(
-                    b.listener,
-                    expected_state,
-                    uri_path,
-                    result_tx,
-                    cancel,
-                    ready_flag,
-                    ready_tx,
-                )
-                .await;
-            }));
-        }
+    // Await the inside-accept ready signal, then run the on_bound hook on
+    // a blocking-safe spawn (the production case is `open::that` which is
+    // synchronous; tests may block briefly to record timing).
+    let _ = ready_rx.await;
+    tokio::task::spawn_blocking(on_bound)
+        .await
+        .map_err(|e| Error::auth_with_cause("OnBoundJoinError", &e))?;
 
-        // Await the inside-accept ready signal, then run the on_bound hook on
-        // a blocking-safe spawn (the production case is `open::that` which is
-        // synchronous; tests may block briefly to record timing).
-        let _ = ready_rx.await;
-        tokio::task::spawn_blocking(on_bound)
-            .await
-            .map_err(|e| Error::auth_with_cause("OnBoundJoinError", &e))?;
-
-        let result = tokio::select! {
-            biased;
-            res = result_rx => {
-                match res {
-                    Ok(Ok(code)) => Ok(code),
-                    Ok(Err(e)) => Err(Error::auth(format!("CallbackError: {e}"))),
-                    Err(_) => Err(Error::auth("ListenerError: oauth2 listener failed")),
-                }
+    let result = tokio::select! {
+        biased;
+        res = result_rx => {
+            match res {
+                Ok(Ok(code)) => Ok(code),
+                Ok(Err(e)) => Err(Error::auth(format!("CallbackError: {e}"))),
+                Err(_) => Err(Error::auth("ListenerError: oauth2 listener failed")),
             }
-            () = cancel.cancelled() => {
-                Err(Error::auth("ListenerError: cancelled before code received"))
-            }
-            () = shutdown_signal() => {
-                cancel.cancel();
-                Err(Error::auth("Cancelled: oauth callback cancelled by signal"))
-            }
-            () = tokio::time::sleep(CALLBACK_TIMEOUT) => {
-                cancel.cancel();
-                Err(Error::auth("Timeout: authentication timed out"))
-            }
-        };
-
-        cancel.cancel();
-        for h in join_handles {
-            // Best-effort: do not block the success path on the sibling's
-            // graceful exit; the CancellationToken triggers it within one
-            // accept poll cycle.
-            h.abort();
         }
-        result
-    })
+        () = cancel.cancelled() => {
+            Err(Error::auth("ListenerError: cancelled before code received"))
+        }
+        () = tokio::time::sleep(CALLBACK_TIMEOUT) => {
+            Err(Error::auth("Timeout: authentication timed out"))
+        }
+    };
+
+    drop(tasks);
+    result
 }
 
 /// Convenience wrapper for the no-op `on_bound` case (e.g., direct tests of
@@ -397,12 +374,12 @@ where
 ///
 /// See [`wait_for_callback_with`].
 #[allow(dead_code)] // Reserved for tests that drive the listener without a side-effect on bind.
-pub fn wait_for_callback(
+pub async fn wait_for_callback(
     redirect_uri: &Url,
     expected_state: &str,
     cancel: CancellationToken,
 ) -> Result<String> {
-    wait_for_callback_with(redirect_uri, expected_state, cancel, || {})
+    wait_for_callback_with(redirect_uri, expected_state, cancel, || {}).await
 }
 
 #[cfg(test)]

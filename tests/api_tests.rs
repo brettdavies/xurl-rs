@@ -4,9 +4,7 @@
 //! Tests the core API client, request building, response parsing,
 //! streaming endpoint detection, shortcut commands, and media upload.
 //!
-//! Uses wiremock for mock HTTP servers. Since ApiClient uses reqwest::blocking,
-//! we start the mock server on a dedicated tokio runtime and run blocking
-//! client code on the test thread.
+//! Uses wiremock for mock HTTP servers on the test's own runtime.
 
 use std::collections::BTreeMap;
 
@@ -26,35 +24,21 @@ use xurl::config::Config;
 use xurl::store::{App, OAuth1Token, OAuth2Token, Token, TokenStore, TokenType};
 
 // ── Mock server helper ─────────────────────────────────────────────────
-// wiremock::MockServer needs a tokio runtime. We create one per test
-// and keep it alive while running blocking client code.
 
 struct TestServer {
-    _rt: tokio::runtime::Runtime,
-    server: &'static MockServer,
+    server: MockServer,
     uri: String,
 }
 
 impl TestServer {
-    fn new() -> Self {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let server = rt.block_on(async {
-            let s = MockServer::start().await;
-            // Leak to get 'static lifetime — tests are short-lived anyway
-            Box::leak(Box::new(s))
-        });
+    async fn new() -> Self {
+        let server = MockServer::start().await;
         let uri = server.uri();
-        Self {
-            _rt: rt,
-            server,
-            uri,
-        }
+        Self { server, uri }
     }
 
-    fn mount(&self, mock: Mock) {
-        self._rt.block_on(async {
-            mock.mount(self.server).await;
-        });
+    async fn mount(&self, mock: Mock) {
+        mock.mount(&self.server).await;
     }
 
     fn uri(&self) -> &str {
@@ -64,14 +48,12 @@ impl TestServer {
     /// Returns the number of requests this mock server has received across
     /// all registered mocks. Used by the U6 enforcement tests to assert
     /// that fail-fast validation rejects before any network I/O happens.
-    fn received_request_count(&self) -> usize {
-        self._rt.block_on(async {
-            self.server
-                .received_requests()
-                .await
-                .map(|v| v.len())
-                .unwrap_or(0)
-        })
+    async fn received_request_count(&self) -> usize {
+        self.server
+            .received_requests()
+            .await
+            .map(|v| v.len())
+            .unwrap_or(0)
     }
 
     /// Returns the values of a given header from every received request, in
@@ -79,25 +61,23 @@ impl TestServer {
     /// header on a single request (HTTP allows multiple headers with the same
     /// name; the Authorization-double-header bug surfaces here as a vec with
     /// two entries).
-    fn received_header_values(&self, name: &str) -> Vec<Vec<String>> {
+    async fn received_header_values(&self, name: &str) -> Vec<Vec<String>> {
         let lookup = name.to_string();
-        self._rt.block_on(async {
-            self.server
-                .received_requests()
-                .await
-                .map(|reqs| {
-                    reqs.into_iter()
-                        .map(|r| {
-                            r.headers
-                                .get_all(&lookup)
-                                .iter()
-                                .filter_map(|v| v.to_str().ok().map(str::to_owned))
-                                .collect::<Vec<_>>()
-                        })
-                        .collect()
-                })
-                .unwrap_or_default()
-        })
+        self.server
+            .received_requests()
+            .await
+            .map(|reqs| {
+                reqs.into_iter()
+                    .map(|r| {
+                        r.headers
+                            .get_all(&lookup)
+                            .iter()
+                            .filter_map(|v| v.to_str().ok().map(str::to_owned))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -388,21 +368,21 @@ fn test_resolve_username(#[case] input: &str, #[case] expected: &str) {
 // api/client_test.go — TestNewApiClient
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_new_api_client() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_new_api_client() {
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let _client = ApiClient::new(&cfg, auth);
+    let _client = ApiClient::new(&cfg, auth).expect("client builds");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // api/client_test.go — TestBuildRequest
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_build_request_get() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_build_request_get() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -411,11 +391,12 @@ fn test_build_request_get() {
                     serde_json::json!({"data":{"id":"12345","username":"testuser"}}),
                 ),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -423,13 +404,13 @@ fn test_build_request_get() {
         ..Default::default()
     };
 
-    let resp = client.send_request(&opts).unwrap();
+    let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["username"], "testuser");
 }
 
-#[test]
-fn test_build_request_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_build_request_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -438,11 +419,12 @@ fn test_build_request_post() {
                     serde_json::json!({"data":{"id":"67890","text":"Hello world!"}}),
                 ),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "POST".to_string(),
@@ -451,7 +433,7 @@ fn test_build_request_post() {
         ..Default::default()
     };
 
-    let resp = client.send_request(&opts).unwrap();
+    let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["text"], "Hello world!");
 }
 
@@ -459,23 +441,24 @@ fn test_build_request_post() {
 // Auth type routing tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_build_request_with_auth_bearer() {
+#[tokio::test]
+async fn test_build_request_with_auth_bearer() {
     // The intent: `--auth app` routes the Bearer auth header. Targeted at
     // `/2/tweets/search/recent` rather than `/2/users/me` because the
     // spec-derived auth matrix (v2.0.0) says only the former accepts Bearer.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -484,24 +467,25 @@ fn test_build_request_with_auth_bearer() {
         ..Default::default()
     };
 
-    let resp = client.send_request(&opts).unwrap();
+    let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["id"], "1");
 }
 
-#[test]
-fn test_build_request_with_auth_oauth1() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_build_request_with_auth_oauth1() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -510,24 +494,25 @@ fn test_build_request_with_auth_oauth1() {
         ..Default::default()
     };
 
-    let resp = client.send_request(&opts).unwrap();
+    let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["id"], "1");
 }
 
-#[test]
-fn test_build_request_with_auth_oauth2() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_build_request_with_auth_oauth2() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"1"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -537,7 +522,7 @@ fn test_build_request_with_auth_oauth2() {
         ..Default::default()
     };
 
-    let resp = client.send_request(&opts).unwrap();
+    let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["id"], "1");
 }
 
@@ -545,20 +530,21 @@ fn test_build_request_with_auth_oauth2() {
 // api/client_test.go — TestSendRequest
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_send_request_success() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_send_request_success() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data":{"id":"12345","name":"Test User","username":"testuser"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -566,26 +552,28 @@ fn test_send_request_success() {
             target: target_path("/2/users/me"),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     assert_eq!(resp["data"]["username"], "testuser");
     assert_eq!(resp["data"]["id"], "12345");
 }
 
-#[test]
-fn test_send_request_http_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_send_request_http_error() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(ResponseTemplate::new(400).set_body_json(
                 serde_json::json!({"errors":[{"message":"Invalid query","code":400}]}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -593,23 +581,25 @@ fn test_send_request_http_error() {
             target: target_path("/2/tweets/search/recent"),
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
 
-#[test]
-fn test_send_request_json_parse_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_send_request_json_parse_error() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/bad-json"))
             .respond_with(ResponseTemplate::new(200).set_body_string("this is not json")),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // Non-JSON 200 response returns empty JSON object
     let resp = client
@@ -618,6 +608,7 @@ fn test_send_request_json_parse_error() {
             target: target_path("/2/bad-json"),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_eq!(resp, serde_json::json!({}));
 }
@@ -626,9 +617,9 @@ fn test_send_request_json_parse_error() {
 // Timeout wiring — --timeout / XURL_TIMEOUT bound network calls
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn slow_endpoint_trips_explicit_timeout() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn slow_endpoint_trips_explicit_timeout() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/slow"))
@@ -637,11 +628,12 @@ fn slow_endpoint_trips_explicit_timeout() {
                     .set_delay(std::time::Duration::from_secs(10))
                     .set_body_json(serde_json::json!({"ok": true})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::with_timeout(&cfg, auth, 1);
+    let client = ApiClient::with_timeout(&cfg, auth, 1).expect("client builds");
     assert_eq!(client.timeout_secs(), 1);
 
     let started = std::time::Instant::now();
@@ -651,6 +643,7 @@ fn slow_endpoint_trips_explicit_timeout() {
             target: target_path("/2/slow"),
             ..Default::default()
         })
+        .await
         .expect_err("a 1s timeout must fire before the 10s server delay");
     let elapsed = started.elapsed();
 
@@ -671,7 +664,7 @@ fn config_default_timeout_carries_through_apiclient_new() {
     let mut cfg = create_test_config("http://127.0.0.1:9");
     cfg.http_timeout_secs = 7;
     let (auth, _tmp) = create_mock_auth_with_all_methods("http://127.0.0.1:9");
-    let client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
     assert_eq!(client.timeout_secs(), 7);
 }
 
@@ -689,10 +682,13 @@ fn test_get_auth_header_oauth1() {
     assert!(header.contains("oauth_consumer_key"));
 }
 
-#[test]
-fn test_get_auth_header_oauth2() {
+#[tokio::test]
+async fn test_get_auth_header_oauth2() {
     let (mut auth, _tmp) = create_mock_auth_with_oauth2("https://api.x.com");
-    let header = auth.get_oauth2_header("testuser").unwrap();
+    let header = auth
+        .get_oauth2_header(&reqwest::Client::new(), "testuser")
+        .await
+        .unwrap();
     assert!(
         header.starts_with("Bearer "),
         "Expected Bearer header, got: {header}"
@@ -709,10 +705,10 @@ fn test_get_auth_header_bearer() {
 /// An env-supplied bearer counts as the `app` scheme during auto-detect, so
 /// a shortcut against an empty store resolves it instead of reporting that
 /// no authentication method is available.
-#[test]
-fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
+#[tokio::test]
+async fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
     use wiremock::matchers::header;
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
@@ -721,7 +717,8 @@ fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
                 serde_json::json!({"data":[{"id":"1","text":"hello"}],"meta":{"result_count":1}}),
             ))
             .expect(1),
-    );
+    )
+    .await;
     let mut cfg = create_test_config(ts.uri());
     cfg.client_id = String::new();
     cfg.client_secret = String::new();
@@ -732,10 +729,11 @@ fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
         ..xurl::config::EnvOverrides::default()
     };
     let auth = Auth::new_with_store_path_and_overrides(&cfg, &store_path, &overrides);
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .search_posts("hello", 10, &base_call_opts())
+        .await
         .expect("env bearer must satisfy auto-detect on an empty store");
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
@@ -744,9 +742,9 @@ fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
 // api/shortcuts_test.go — Shortcut integration tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_create_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_create_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -754,21 +752,23 @@ fn test_create_post() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data":{"id":"99999","text":"Hello!"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .create_post("Hello!", &[], &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "99999");
     assert_eq!(resp.data.text, "Hello!");
 }
 
-#[test]
-fn test_reply_to_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_reply_to_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -776,20 +776,22 @@ fn test_reply_to_post() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data":{"id":"88888","text":"nice!"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .reply_to_post("123", "nice!", &[], &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "88888");
 }
 
-#[test]
-fn test_reply_to_post_with_url() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_reply_to_post_with_url() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -798,10 +800,11 @@ fn test_reply_to_post_with_url() {
                     serde_json::json!({"data":{"id":"77777","text":"reply via URL"}}),
                 ),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .reply_to_post(
@@ -810,13 +813,14 @@ fn test_reply_to_post_with_url() {
             &[],
             &base_call_opts(),
         )
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "77777");
 }
 
-#[test]
-fn test_quote_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_quote_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -824,20 +828,22 @@ fn test_quote_post() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data":{"id":"66666","text":"my take"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .quote_post("123", "my take", &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "66666");
 }
 
-#[test]
-fn test_delete_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_delete_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("DELETE"))
             .and(path("/2/tweets/123"))
@@ -845,46 +851,48 @@ fn test_delete_post() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data":{"deleted":true}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.delete_post("123", &base_call_opts()).unwrap();
+    let resp = client.delete_post("123", &base_call_opts()).await.unwrap();
     assert!(resp.data.deleted);
 }
 
-#[test]
-fn test_read_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_read_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET")).and(path_regex(r"/2/tweets/123.*")).respond_with(
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"id":"123","text":"existing post","public_metrics":{"like_count":5}}})),
         ),
-    );
+    ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.read_post("123", &base_call_opts()).unwrap();
+    let resp = client.read_post("123", &base_call_opts()).await.unwrap();
     assert_eq!(resp.data.id, "123");
     assert_eq!(resp.data.text, "existing post");
 }
 
-#[test]
-fn test_search_posts() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_search_posts() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET")).and(path("/2/tweets/search/recent")).respond_with(
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":[{"id":"1","text":"result one"}],"meta":{"result_count":1}})),
         ),
-    );
+    ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .search_posts("golang", 10, &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
@@ -892,9 +900,9 @@ fn test_search_posts() {
 /// Threads `CallOptions::pagination_token` through to the
 /// `pagination_token` query parameter on the search URL — wiremock asserts
 /// the parameter is present and carries the URL-decoded token.
-#[test]
-fn test_search_posts_threads_pagination_token() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_search_posts_threads_pagination_token() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
@@ -902,24 +910,25 @@ fn test_search_posts_threads_pagination_token() {
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data":[{"id":"2","text":"page2"}],"meta":{"result_count":1}}),
             )),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = CallOptions {
         pagination_token: "next_abc_token".into(),
         ..base_call_opts()
     };
-    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    let resp = client.search_posts("golang", 10, &opts).await.unwrap();
     assert_eq!(resp.data.first().unwrap().id, "2");
 }
 
 /// Same wiremock probe as above, but verifies the URL-encoder runs on
 /// special characters (spaces → `%20`).
-#[test]
-fn test_search_posts_url_encodes_pagination_token() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_search_posts_url_encodes_pagination_token() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
@@ -927,60 +936,66 @@ fn test_search_posts_url_encodes_pagination_token() {
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data":[{"id":"3","text":"p"}],"meta":{"result_count":1}}),
             )),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = CallOptions {
         pagination_token: "page 2".into(),
         ..base_call_opts()
     };
-    let resp = client.search_posts("golang", 10, &opts).unwrap();
+    let resp = client.search_posts("golang", 10, &opts).await.unwrap();
     assert_eq!(resp.data.first().unwrap().id, "3");
 }
 
-#[test]
-fn test_get_me() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_get_me() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data":{"id":"42","username":"testbot","name":"Test Bot"}}),
             )),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_me(&base_call_opts()).unwrap();
+    let resp = client.get_me(&base_call_opts()).await.unwrap();
     assert_eq!(resp.data.id, "42");
     assert_eq!(resp.data.username, "testbot");
 }
 
-#[test]
-fn test_lookup_user() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_lookup_user() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path_regex(r"/2/users/by/username/someuser.*"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data":{"id":"100","username":"lookedup","name":"Looked Up"}}),
             )),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.lookup_user("@someuser", &base_call_opts()).unwrap();
+    let resp = client
+        .lookup_user("@someuser", &base_call_opts())
+        .await
+        .unwrap();
     assert_eq!(resp.data.id, "100");
     assert_eq!(resp.data.username, "lookedup");
 }
 
-#[test]
-fn test_create_post_with_media() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_create_post_with_media() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -988,14 +1003,16 @@ fn test_create_post_with_media() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data":{"id":"55555","text":"With media"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
     let resp = client
         .create_post("With media", &media_ids, &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "55555");
 }
@@ -1039,42 +1056,43 @@ fn test_is_media_append_request(
     assert_eq!(is_media_append_request(url, media_file), expected);
 }
 
-#[test]
-fn test_media_upload_init() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_media_upload_init() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST")).and(path("/2/media/upload/initialize")).respond_with(
             ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "test_media_id", "expires_after_secs": 3600, "media_key": "test_media_key"}
             })),
         ),
-    );
+    ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client.send_request(&RequestOptions {
         method: "POST".to_string(),
         target: target_path("/2/media/upload/initialize"),
         data: serde_json::json!({"total_bytes": 1024, "media_type": "image/jpeg", "media_category": "tweet_image"}).to_string(),
         ..Default::default()
-    }).unwrap();
+    }).await.unwrap();
     assert_eq!(resp["data"]["id"], "test_media_id");
 }
 
-#[test]
-fn test_media_upload_finalize() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_media_upload_finalize() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload/test_media_id/finalize"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "test_media_id", "media_key": "test_media_key"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -1082,13 +1100,14 @@ fn test_media_upload_finalize() {
             target: target_path("/2/media/upload/test_media_id/finalize"),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_eq!(resp["data"]["id"], "test_media_id");
 }
 
-#[test]
-fn test_media_upload_check_status() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_media_upload_check_status() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/media/upload"))
@@ -1097,10 +1116,10 @@ fn test_media_upload_check_status() {
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "test_media_id", "processing_info": {"state": "succeeded", "progress_percent": 100}}
             }))),
-    );
+    ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -1115,23 +1134,25 @@ fn test_media_upload_check_status() {
             },
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_eq!(resp["data"]["processing_info"]["state"], "succeeded");
 }
 
-#[test]
-fn test_stream_request_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_stream_request_error() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/stream/error"))
             .respond_with(ResponseTemplate::new(400).set_body_json(
                 serde_json::json!({"errors":[{"message":"Invalid rule","code":400}]}),
             )),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .stream_request(&RequestOptions {
@@ -1139,6 +1160,7 @@ fn test_stream_request_error() {
             target: target_path("/2/tweets/search/stream/error"),
             ..Default::default()
         })
+        .await
         .unwrap_err();
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
@@ -1182,9 +1204,9 @@ fn test_extract_media_id_with_extra_path() {
 
 // ── Usage shortcut tests ────────────────────────────────────────────────
 
-#[test]
-fn test_get_usage_happy_path() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn test_get_usage_happy_path() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1216,12 +1238,13 @@ fn test_get_usage_happy_path() {
                     ]
                 }
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).await.unwrap();
     assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
     assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
     assert_eq!(resp.data.cap_reset_day, Some(19));
@@ -1237,12 +1260,12 @@ fn test_get_usage_happy_path() {
     );
 }
 
-#[test]
-fn test_get_usage_requires_usage_fields_query_param() {
+#[tokio::test]
+async fn test_get_usage_requires_usage_fields_query_param() {
     // Verify the shortcut sends the required query parameter.
     // Without usage.fields, the API returns minimal data — this mock
     // only responds when the param is present.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1254,19 +1277,20 @@ fn test_get_usage_requires_usage_fields_query_param() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"project_usage": "42"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).await.unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
-#[test]
-fn test_get_usage_uses_get_method() {
+#[tokio::test]
+async fn test_get_usage_uses_get_method() {
     // Ensure the shortcut uses GET, not POST or another method.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1274,19 +1298,20 @@ fn test_get_usage_uses_get_method() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"project_usage": "0"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts());
+    let resp = client.get_usage(&base_call_opts()).await;
     assert!(resp.is_ok());
 }
 
-#[test]
-fn test_get_usage_api_error_401() {
+#[tokio::test]
+async fn test_get_usage_api_error_401() {
     // Unauthorized — e.g., missing or invalid bearer token.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1296,19 +1321,20 @@ fn test_get_usage_api_error_401() {
                 "status": 401,
                 "detail": "Unauthorized"
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts());
+    let resp = client.get_usage(&base_call_opts()).await;
     assert!(resp.is_err());
 }
 
-#[test]
-fn test_get_usage_api_error_429() {
+#[tokio::test]
+async fn test_get_usage_api_error_429() {
     // Rate limited — 50 requests per 15-minute window.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1318,22 +1344,23 @@ fn test_get_usage_api_error_429() {
                 "type": "about:blank",
                 "status": 429
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts());
+    let resp = client.get_usage(&base_call_opts()).await;
     assert!(resp.is_err());
 }
 
-#[test]
-fn test_get_usage_with_bearer() {
+#[tokio::test]
+async fn test_get_usage_with_bearer() {
     // `/2/usage/tweets` is Bearer-only per the OpenAPI spec; previous tests
     // that drove OAuth1/OAuth2 against this endpoint passed because no
     // matrix validation existed. The intersection check (U7) now rejects
     // those configurations, so the surviving coverage uses Bearer.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1341,32 +1368,34 @@ fn test_get_usage_with_bearer() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"project_usage": "10"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).await.unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
-#[test]
-fn test_get_usage_rejects_oauth_only_app() {
+#[tokio::test]
+async fn test_get_usage_rejects_oauth_only_app() {
     // /2/usage/tweets accepts only Bearer per the spec. An app that only
     // holds OAuth1 credentials hits the empty-intersection path (U7) and
     // surfaces AuthMethodMismatch rather than the prior silent OAuth1
     // attempt.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
             .respond_with(ResponseTemplate::new(200)),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_usage(&base_call_opts()).unwrap_err();
+    let err = client.get_usage(&base_call_opts()).await.unwrap_err();
     match err {
         xurl::Error::AuthMethodMismatch {
             endpoint,
@@ -1382,10 +1411,10 @@ fn test_get_usage_rejects_oauth_only_app() {
     }
 }
 
-#[test]
-fn test_get_usage_daily_project_usage_structure() {
+#[tokio::test]
+async fn test_get_usage_daily_project_usage_structure() {
     // Verify the daily_project_usage nested structure is preserved.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1401,12 +1430,13 @@ fn test_get_usage_daily_project_usage_structure() {
                     }
                 }
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).await.unwrap();
     let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
     let usage = &daily_val["usage"];
     assert!(usage.is_array());
@@ -1415,10 +1445,10 @@ fn test_get_usage_daily_project_usage_structure() {
     assert_eq!(usage[2]["usage"], "100");
 }
 
-#[test]
-fn test_get_usage_daily_client_app_usage_structure() {
+#[tokio::test]
+async fn test_get_usage_daily_client_app_usage_structure() {
     // Verify the daily_client_app_usage array with per-app breakdowns.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1438,12 +1468,13 @@ fn test_get_usage_daily_client_app_usage_structure() {
                     ]
                 }
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).unwrap();
+    let resp = client.get_usage(&base_call_opts()).await.unwrap();
     let apps = resp
         .data
         .daily_client_app_usage
@@ -1456,10 +1487,10 @@ fn test_get_usage_daily_client_app_usage_structure() {
     assert_eq!(apps[1]["client_app_id"], "app_2");
 }
 
-#[test]
-fn test_get_usage_clears_request_data() {
+#[tokio::test]
+async fn test_get_usage_clears_request_data() {
     // Ensure no stale request body leaks into the GET request.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/usage/tweets"))
@@ -1467,13 +1498,14 @@ fn test_get_usage_clears_request_data() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"project_usage": "0"}})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // CallOptions has no data field, so stale data can't leak — verify the call succeeds
-    let resp = client.get_usage(&base_call_opts());
+    let resp = client.get_usage(&base_call_opts()).await;
     assert!(resp.is_ok());
 }
 
@@ -1481,10 +1513,10 @@ fn test_get_usage_clears_request_data() {
 // Red team — adversarial API responses via wiremock
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn redteam_create_post_array_where_object_expected() {
+#[tokio::test]
+async fn redteam_create_post_array_where_object_expected() {
     // API returns array in data field for a single-item shortcut
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -1492,22 +1524,23 @@ fn redteam_create_post_array_where_object_expected() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data": [{"id": "1", "text": "oops"}]})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.create_post("test", &[], &base_call_opts());
+    let result = client.create_post("test", &[], &base_call_opts()).await;
     assert!(
         result.is_err(),
         "Should fail: array where single Post expected"
     );
 }
 
-#[test]
-fn redteam_get_me_no_data_field() {
+#[tokio::test]
+async fn redteam_get_me_no_data_field() {
     // API returns errors-only 200 with no data field
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -1515,12 +1548,13 @@ fn redteam_get_me_no_data_field() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"errors": [{"message": "forbidden"}]})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts());
+    let result = client.get_me(&base_call_opts()).await;
     let err = result.unwrap_err();
     assert!(
         err.is_validation(),
@@ -1528,10 +1562,10 @@ fn redteam_get_me_no_data_field() {
     );
 }
 
-#[test]
-fn redteam_delete_post_wrong_type_in_data() {
+#[tokio::test]
+async fn redteam_delete_post_wrong_type_in_data() {
     // API returns string instead of object in data field
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("DELETE"))
             .and(path("/2/tweets/123"))
@@ -1539,51 +1573,54 @@ fn redteam_delete_post_wrong_type_in_data() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": "unexpected string"})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.delete_post("123", &base_call_opts());
+    let result = client.delete_post("123", &base_call_opts()).await;
     assert!(
         result.is_err(),
         "Should fail: string where DeletedResult expected"
     );
 }
 
-#[test]
-fn redteam_search_posts_null_data() {
+#[tokio::test]
+async fn redteam_search_posts_null_data() {
     // API returns null data
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": null})),
             ),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.search_posts("test", 10, &base_call_opts());
+    let result = client.search_posts("test", 10, &base_call_opts()).await;
     assert!(result.is_err(), "Should fail: null data for Vec<Post>");
 }
 
-#[test]
-fn redteam_empty_body_returns_descriptive_error() {
+#[tokio::test]
+async fn redteam_empty_body_returns_descriptive_error() {
     // send_request returns empty {} for non-JSON 2xx — shortcut should give clear error
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts());
+    let result = client.get_me(&base_call_opts()).await;
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(
@@ -1592,10 +1629,10 @@ fn redteam_empty_body_returns_descriptive_error() {
     );
 }
 
-#[test]
-fn redteam_unknown_fields_survive_shortcut_round_trip() {
+#[tokio::test]
+async fn redteam_unknown_fields_survive_shortcut_round_trip() {
     // Verify serde(flatten) preserves unknown fields through the full shortcut path
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -1607,13 +1644,15 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
                 },
                 "top_level_extra": 42
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .create_post("Hello!", &[], &base_call_opts())
+        .await
         .unwrap();
     assert_eq!(resp.data.id, "99999");
     // Unknown fields preserved in extra
@@ -1625,10 +1664,10 @@ fn redteam_unknown_fields_survive_shortcut_round_trip() {
     assert_eq!(value["top_level_extra"], 42);
 }
 
-#[test]
-fn redteam_like_post_extra_fields_on_action() {
+#[tokio::test]
+async fn redteam_like_post_extra_fields_on_action() {
     // Action confirmation with extra unknown fields
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/users/42/likes"))
@@ -1636,35 +1675,40 @@ fn redteam_like_post_extra_fields_on_action() {
                 "data": {"liked": true, "pending_follow": false},
                 "rate_limit_remaining": 99
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let resp = client.like_post("42", "123", &base_call_opts()).unwrap();
+    let resp = client
+        .like_post("42", "123", &base_call_opts())
+        .await
+        .unwrap();
     assert!(resp.data.liked);
     // Unknown fields captured, not lost
     assert_eq!(resp.data.extra["pending_follow"], false);
     assert_eq!(resp.extra["rate_limit_remaining"], 99);
 }
 
-#[test]
-fn redteam_lookup_user_wrong_bool_type() {
+#[tokio::test]
+async fn redteam_lookup_user_wrong_bool_type() {
     // String "true" where boolean expected in a nested field
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path_regex(r"/2/users/by/username/bad.*"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "1", "name": "Bad", "username": "bad", "verified": "true"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // verified is Option<bool> — "true" (string) should fail deserialization
-    let result = client.lookup_user("bad", &base_call_opts());
+    let result = client.lookup_user("bad", &base_call_opts()).await;
     assert!(
         result.is_err(),
         "Should fail: string 'true' where bool expected"
@@ -1781,39 +1825,40 @@ fn test_from_env_with_client_id_but_no_secret_returns_ok() {
 // no_auth behavior tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_no_auth_skips_authorization_header() {
+#[tokio::test]
+async fn test_no_auth_skips_authorization_header() {
     // With no_auth=true, the request should NOT include an Authorization header.
     // The mock only succeeds if NO Authorization header is present.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = CallOptions {
         no_auth: true,
         ..CallOptions::default()
     };
     // Should succeed — no_auth skips get_auth_header entirely
-    let result = client.get_me(&opts);
+    let result = client.get_me(&opts).await;
     assert!(result.is_ok(), "no_auth=true should not fail: {result:?}");
 }
 
-#[test]
-fn test_no_auth_false_includes_authorization_header() {
+#[tokio::test]
+async fn test_no_auth_false_includes_authorization_header() {
     // With no_auth=false (default), the Authorization header should be present.
     // The mock requires an Authorization header via header_exists matcher.
     use wiremock::matchers::header_exists;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -1821,26 +1866,27 @@ fn test_no_auth_false_includes_authorization_header() {
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = CallOptions::default();
-    let result = client.get_me(&opts);
+    let result = client.get_me(&opts).await;
     assert!(
         result.is_ok(),
         "Default (no_auth=false) should include auth header: {result:?}"
     );
 }
 
-#[test]
-fn test_no_auth_with_raw_send_request() {
+#[tokio::test]
+async fn test_no_auth_with_raw_send_request() {
     // Verify no_auth works at the send_request level too, not just shortcuts
     use wiremock::matchers::header_exists;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     // This mock will fail if Authorization header IS present
     // (by only matching requests WITHOUT it via a custom approach)
     // Instead, just verify the request succeeds with no_auth=true
@@ -1850,11 +1896,12 @@ fn test_no_auth_with_raw_send_request() {
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -1862,14 +1909,14 @@ fn test_no_auth_with_raw_send_request() {
         no_auth: true,
         ..Default::default()
     };
-    let result = client.send_request(&opts);
+    let result = client.send_request(&opts).await;
     assert!(
         result.is_ok(),
         "no_auth=true on send_request should work: {result:?}"
     );
 
     // Now verify that with no_auth=false, the auth header IS sent
-    let ts2 = TestServer::new();
+    let ts2 = TestServer::new().await;
     ts2.mount(
         Mock::given(method("GET"))
             .and(path("/2/test"))
@@ -1877,11 +1924,12 @@ fn test_no_auth_with_raw_send_request() {
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
             ),
-    );
+    )
+    .await;
 
     let cfg2 = create_test_config(ts2.uri());
     let (auth2, _tmp2) = create_mock_auth_with_all_methods(ts2.uri());
-    let mut client2 = ApiClient::new(&cfg2, auth2);
+    let client2 = ApiClient::new(&cfg2, auth2).expect("client builds");
 
     let opts2 = RequestOptions {
         method: "GET".to_string(),
@@ -1889,7 +1937,7 @@ fn test_no_auth_with_raw_send_request() {
         no_auth: false,
         ..Default::default()
     };
-    let result2 = client2.send_request(&opts2);
+    let result2 = client2.send_request(&opts2).await;
     assert!(
         result2.is_ok(),
         "no_auth=false should include auth header: {result2:?}"
@@ -1909,20 +1957,21 @@ fn test_no_auth_with_raw_send_request() {
 // the user's value as authoritative and skip xurl's append.
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -1930,10 +1979,10 @@ fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
         headers: vec!["Authorization: Bearer user-token".to_string()],
         ..Default::default()
     };
-    let result = client.send_request(&opts);
+    let result = client.send_request(&opts).await;
     assert!(result.is_ok(), "request must succeed: {result:?}");
 
-    let auths = ts.received_header_values("Authorization");
+    let auths = ts.received_header_values("Authorization").await;
     assert_eq!(auths.len(), 1, "expected exactly one received request");
     assert_eq!(
         auths[0],
@@ -1943,25 +1992,26 @@ fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
     );
 }
 
-#[test]
-fn user_supplied_authorization_detection_is_case_insensitive() {
+#[tokio::test]
+async fn user_supplied_authorization_detection_is_case_insensitive() {
     for raw_header in [
         "authorization: Bearer user-token",
         "AUTHORIZATION: Bearer user-token",
         "aUtHoRiZaTiOn: Bearer user-token",
     ] {
-        let ts = TestServer::new();
+        let ts = TestServer::new().await;
         ts.mount(
             Mock::given(method("GET"))
                 .and(path("/2/users/me"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(
                     serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
                 )),
-        );
+        )
+        .await;
 
         let cfg = create_test_config(ts.uri());
         let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-        let mut client = ApiClient::new(&cfg, auth);
+        let client = ApiClient::new(&cfg, auth).expect("client builds");
 
         let opts = RequestOptions {
             method: "GET".to_string(),
@@ -1971,9 +2021,10 @@ fn user_supplied_authorization_detection_is_case_insensitive() {
         };
         client
             .send_request(&opts)
+            .await
             .expect("request must succeed regardless of header-key case");
 
-        let auths = ts.received_header_values("Authorization");
+        let auths = ts.received_header_values("Authorization").await;
         assert_eq!(
             auths[0],
             vec!["Bearer user-token".to_string()],
@@ -1983,20 +2034,21 @@ fn user_supplied_authorization_detection_is_case_insensitive() {
     }
 }
 
-#[test]
-fn no_auth_with_user_supplied_authorization_sends_users_value() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn no_auth_with_user_supplied_authorization_sends_users_value() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2007,9 +2059,10 @@ fn no_auth_with_user_supplied_authorization_sends_users_value() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("request must succeed with no_auth + user-supplied Authorization");
 
-    let auths = ts.received_header_values("Authorization");
+    let auths = ts.received_header_values("Authorization").await;
     assert_eq!(
         auths[0],
         vec!["Bearer override".to_string()],
@@ -2018,20 +2071,21 @@ fn no_auth_with_user_supplied_authorization_sends_users_value() {
     );
 }
 
-#[test]
-fn user_supplied_authorization_does_not_affect_other_custom_headers() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_authorization_does_not_affect_other_custom_headers() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // Non-Authorization custom headers must NOT suppress xurl's auth append.
     let opts = RequestOptions {
@@ -2045,9 +2099,10 @@ fn user_supplied_authorization_does_not_affect_other_custom_headers() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("request must succeed when no Authorization is user-supplied");
 
-    let auths = ts.received_header_values("Authorization");
+    let auths = ts.received_header_values("Authorization").await;
     assert_eq!(
         auths[0].len(),
         1,
@@ -2060,15 +2115,15 @@ fn user_supplied_authorization_does_not_affect_other_custom_headers() {
         auths[0][0]
     );
 
-    let cookies = ts.received_header_values("Cookie");
+    let cookies = ts.received_header_values("Cookie").await;
     assert_eq!(cookies[0], vec!["session=abc".to_string()]);
 }
 
-#[test]
-fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
+#[tokio::test]
+async fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
     use xurl::api::MultipartOptions;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload"))
@@ -2076,11 +2131,12 @@ fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"id": "media-1"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2098,9 +2154,10 @@ fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
 
     client
         .send_multipart_request(&mp_opts)
+        .await
         .expect("multipart request must succeed with user-supplied Authorization");
 
-    let auths = ts.received_header_values("Authorization");
+    let auths = ts.received_header_values("Authorization").await;
     assert_eq!(auths.len(), 1, "expected exactly one received request");
     assert_eq!(
         auths[0],
@@ -2110,18 +2167,19 @@ fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
     );
 }
 
-#[test]
-fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/stream"))
             .respond_with(ResponseTemplate::new(200).set_body_string("data: hello\n\n")),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2132,9 +2190,10 @@ fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
 
     client
         .stream_request(&opts)
+        .await
         .expect("stream request must succeed with user-supplied Authorization");
 
-    let auths = ts.received_header_values("Authorization");
+    let auths = ts.received_header_values("Authorization").await;
     assert_eq!(auths.len(), 1, "expected exactly one received request");
     assert_eq!(
         auths[0],
@@ -2144,20 +2203,21 @@ fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
     );
 }
 
-#[test]
-fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2167,9 +2227,10 @@ fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("request must succeed with user-supplied User-Agent");
 
-    let uas = ts.received_header_values("User-Agent");
+    let uas = ts.received_header_values("User-Agent").await;
     assert_eq!(
         uas[0],
         vec!["custom-client/9.9".to_string()],
@@ -2178,20 +2239,21 @@ fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
     );
 }
 
-#[test]
-fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/echo"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({"ok": true})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // Payload looks like JSON, so xurl would normally set application/json.
     // The user-supplied Content-Type must win.
@@ -2204,9 +2266,10 @@ fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("request must succeed with user-supplied Content-Type");
 
-    let cts = ts.received_header_values("Content-Type");
+    let cts = ts.received_header_values("Content-Type").await;
     assert_eq!(
         cts[0],
         vec!["application/xml".to_string()],
@@ -2215,20 +2278,21 @@ fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
     );
 }
 
-#[test]
-fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2239,9 +2303,10 @@ fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("request must succeed with user-supplied X-B3-Flags + trace");
 
-    let flags = ts.received_header_values("X-B3-Flags");
+    let flags = ts.received_header_values("X-B3-Flags").await;
     assert_eq!(
         flags[0],
         vec!["0".to_string()],
@@ -2250,11 +2315,11 @@ fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
     );
 }
 
-#[test]
-fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
+#[tokio::test]
+async fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     use xurl::api::MultipartOptions;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload"))
@@ -2262,11 +2327,12 @@ fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
                 ResponseTemplate::new(200)
                     .set_body_json(serde_json::json!({"data": {"id": "media-1"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2283,9 +2349,10 @@ fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     };
     client
         .send_multipart_request(&mp_opts)
+        .await
         .expect("multipart request must succeed with user-supplied User-Agent");
 
-    let uas = ts.received_header_values("User-Agent");
+    let uas = ts.received_header_values("User-Agent").await;
     assert_eq!(
         uas[0],
         vec!["multipart-custom/2.0".to_string()],
@@ -2294,18 +2361,19 @@ fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     );
 }
 
-#[test]
-fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/stream"))
             .respond_with(ResponseTemplate::new(200).set_body_string("data: hello\n\n")),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2315,9 +2383,10 @@ fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
     };
     client
         .stream_request(&opts)
+        .await
         .expect("stream request must succeed with user-supplied User-Agent");
 
-    let uas = ts.received_header_values("User-Agent");
+    let uas = ts.received_header_values("User-Agent").await;
     assert_eq!(
         uas[0],
         vec!["streamer/1.0".to_string()],
@@ -2326,11 +2395,11 @@ fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
     );
 }
 
-#[test]
-fn xurl_default_user_agent_is_sent_when_not_overridden() {
+#[tokio::test]
+async fn xurl_default_user_agent_is_sent_when_not_overridden() {
     use wiremock::matchers::header_regex;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -2338,11 +2407,12 @@ fn xurl_default_user_agent_is_sent_when_not_overridden() {
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2351,9 +2421,10 @@ fn xurl_default_user_agent_is_sent_when_not_overridden() {
     };
     client
         .send_request(&opts)
+        .await
         .expect("default path must send xurl/<version> User-Agent");
 
-    let uas = ts.received_header_values("User-Agent");
+    let uas = ts.received_header_values("User-Agent").await;
     assert_eq!(uas[0].len(), 1, "expected exactly one User-Agent");
     assert!(
         uas[0][0].starts_with("xurl/"),
@@ -2366,21 +2437,22 @@ fn xurl_default_user_agent_is_sent_when_not_overridden() {
 // Red team — library ergonomics edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
+#[tokio::test]
+async fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
     // Conflicting: no_auth=true + auth_type="oauth2" — no_auth should win
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "1", "name": "X", "username": "x"}}),
             )),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = CallOptions {
         auth_type: "oauth2".to_string(),
@@ -2388,25 +2460,26 @@ fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
         ..CallOptions::default()
     };
     // Should succeed — no_auth takes precedence over auth_type
-    let result = client.get_me(&opts);
+    let result = client.get_me(&opts).await;
     assert!(
         result.is_ok(),
         "no_auth=true should take precedence over auth_type: {result:?}"
     );
 }
 
-#[test]
-fn redteam_sequential_calls_on_same_client() {
+#[tokio::test]
+async fn redteam_sequential_calls_on_same_client() {
     // Verify that making multiple calls on the same client instance works
     // (auth state not corrupted between calls)
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(
                 serde_json::json!({"data": {"id": "42", "name": "Me", "username": "me"}}),
             )),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/tweets"))
@@ -2414,31 +2487,32 @@ fn redteam_sequential_calls_on_same_client() {
                 ResponseTemplate::new(201)
                     .set_body_json(serde_json::json!({"data": {"id": "99", "text": "hi"}})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let opts = base_call_opts();
 
     // First call
-    let me = client.get_me(&opts).unwrap();
+    let me = client.get_me(&opts).await.unwrap();
     assert_eq!(me.data.id, "42");
 
     // Second call on same client — auth should still work
-    let post = client.create_post("hi", &[], &opts).unwrap();
+    let post = client.create_post("hi", &[], &opts).await.unwrap();
     assert_eq!(post.data.id, "99");
 
     // Third call — still works
-    let me2 = client.get_me(&opts).unwrap();
+    let me2 = client.get_me(&opts).await.unwrap();
     assert_eq!(me2.data.id, "42");
 }
 
-#[test]
-fn redteam_api_error_preserves_status_and_body() {
+#[tokio::test]
+async fn redteam_api_error_preserves_status_and_body() {
     // Verify that HTTP errors carry both status code and body through the pipeline
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -2447,13 +2521,14 @@ fn redteam_api_error_preserves_status_and_body() {
                     serde_json::json!({"detail": "Forbidden", "title": "Forbidden"}),
                 ),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts());
+    let result = client.get_me(&base_call_opts()).await;
     let err = result.unwrap_err();
     assert!(err.is_api());
     // Verify structured error carries status
@@ -2466,12 +2541,12 @@ fn redteam_api_error_preserves_status_and_body() {
     }
 }
 
-#[test]
-fn redteam_api_error_401_gives_auth_exit_code() {
+#[tokio::test]
+async fn redteam_api_error_401_gives_auth_exit_code() {
     // Verify the full pipeline: HTTP 401 → Api { status: 401 } → EXIT_AUTH_REQUIRED
     use xurl::error::exit_code_for_error;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -2479,13 +2554,14 @@ fn redteam_api_error_401_gives_auth_exit_code() {
                 ResponseTemplate::new(401)
                     .set_body_json(serde_json::json!({"detail": "Unauthorized"})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_me(&base_call_opts()).unwrap_err();
+    let err = client.get_me(&base_call_opts()).await.unwrap_err();
     assert_eq!(
         exit_code_for_error(&err),
         xurl::error::EXIT_AUTH_REQUIRED,
@@ -2493,11 +2569,11 @@ fn redteam_api_error_401_gives_auth_exit_code() {
     );
 }
 
-#[test]
-fn redteam_api_error_429_gives_rate_limit_exit_code() {
+#[tokio::test]
+async fn redteam_api_error_429_gives_rate_limit_exit_code() {
     use xurl::error::exit_code_for_error;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -2505,13 +2581,14 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
                 ResponseTemplate::new(429)
                     .set_body_json(serde_json::json!({"detail": "Too Many Requests"})),
             ),
-    );
+    )
+    .await;
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_me(&base_call_opts()).unwrap_err();
+    let err = client.get_me(&base_call_opts()).await.unwrap_err();
     assert_eq!(
         exit_code_for_error(&err),
         xurl::error::EXIT_RATE_LIMITED,
@@ -2556,9 +2633,9 @@ fn create_mock_auth_no_tokens(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-#[test]
-fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
+    let ts = TestServer::new().await;
     // If Bug B regresses (request sent unauthenticated), the wiremock would
     // need to be mounted; we deliberately mount nothing so a regression
     // surfaces as a network-layer error against an unmatched path rather
@@ -2570,7 +2647,7 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     // is the one that surfaces the missing-credential error.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -2579,6 +2656,7 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
             auth_type: "app".to_string(), // bearer path; no token in store
             ..Default::default()
         })
+        .await
         .unwrap_err();
     let msg = err.to_string();
     assert!(
@@ -2587,12 +2665,12 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     );
 }
 
-#[test]
-fn auth_error_propagates_for_oauth2_path_with_no_token() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn auth_error_propagates_for_oauth2_path_with_no_token() {
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let mut opts = base_call_opts();
     opts.auth_type = "oauth2".to_string();
@@ -2601,7 +2679,7 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
     // an interactive OAuth2 PKCE flow which fails (no DISPLAY in tests).
     // The end state is `Error::Auth`, not a request to wiremock.
     opts.username = "ghost-user".to_string();
-    let err = client.get_me(&opts).unwrap_err();
+    let err = client.get_me(&opts).await.unwrap_err();
     // Accept either the TokenNotFound from refresh_oauth2_token or any
     // browser-open / network error from the implicit PKCE flow that fires
     // when no token is cached. The point of this test is that the call
@@ -2630,15 +2708,15 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
 /// must short-circuit with `Error::AuthMethodMismatch` carrying the
 /// U6 explicit-mismatch shape (`requested = Some("app")`,
 /// `available_in_app = None`), and wiremock must observe zero requests.
-#[test]
-fn u6_ae1_explicit_mismatch_app_against_media_upload() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
+    let ts = TestServer::new().await;
     // No mocks mounted intentionally — if the validator failed to reject
     // and the request leaked through, wiremock would return 404 and the
     // request count would tick to 1, breaking the assertion.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -2647,6 +2725,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
             auth_type: "app".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     match &err {
@@ -2676,7 +2755,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
 
     // Fail-fast invariant: zero traffic reached the mock server.
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         0,
         "validator must reject BEFORE any HTTP I/O"
     );
@@ -2687,19 +2766,20 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
 /// OAuth1 creds + `--auth oauth1` + `POST /2/media/upload`. The validator
 /// must yield, the request must reach wiremock, and the mocked 200
 /// response should propagate back as JSON.
-#[test]
-fn u6_ae2_passthrough_oauth1_against_media_upload() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u6_ae2_passthrough_oauth1_against_media_upload() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "media_xyz"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -2708,11 +2788,12 @@ fn u6_ae2_passthrough_oauth1_against_media_upload() {
             auth_type: "oauth1".to_string(),
             ..Default::default()
         })
+        .await
         .expect("oauth1 against /2/media/upload must validate and reach the server");
 
     assert_eq!(resp["data"]["id"], "media_xyz");
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         1,
         "validator must pass through and let the request reach wiremock"
     );
@@ -2725,15 +2806,15 @@ fn u6_ae2_passthrough_oauth1_against_media_upload() {
 /// must surface `AuthMethodMismatch` before the multipart body is built and
 /// wiremock receives zero traffic. Pre-merge insurance against a future
 /// edit that drops the gate from one of the three send paths.
-#[test]
-fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
+#[tokio::test]
+async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     use std::collections::HashMap;
     use xurl::api::MultipartOptions;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2749,7 +2830,7 @@ fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
         file_data: b"fake-jpeg".to_vec(),
     };
 
-    let err = client.send_multipart_request(&mp_opts).unwrap_err();
+    let err = client.send_multipart_request(&mp_opts).await.unwrap_err();
 
     match &err {
         xurl::Error::AuthMethodMismatch {
@@ -2775,7 +2856,7 @@ fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     assert_eq!(err.exit_code(), 2, "exit code must be EXIT_AUTH_MISMATCH");
     assert_eq!(err.kind(), "auth-method-mismatch");
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         0,
         "multipart validator must reject BEFORE any HTTP I/O"
     );
@@ -2790,12 +2871,12 @@ fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
 /// wrapper (`cli::commands::streaming::stream_request_with_output`) makes
 /// the identical validator call at its own entry, so locking this
 /// invariant on the library side covers both.
-#[test]
-fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     // /2/media/upload accepts OAuth2 + OAuth1 but rejects Bearer. Even
     // though it isn't a "real" streaming endpoint, stream_request applies
@@ -2808,6 +2889,7 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
             auth_type: "app".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     match &err {
@@ -2832,7 +2914,7 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
     assert_eq!(err.exit_code(), 2);
     assert_eq!(err.kind(), "auth-method-mismatch");
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         0,
         "streaming validator must reject BEFORE any socket is opened"
     );
@@ -2845,9 +2927,9 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
 /// `ApiClient::stream_request` shares the contract: when auth resolution
 /// fails (e.g. token-not-found on the active app), the error must surface
 /// rather than the request going out unauthenticated.
-#[test]
-fn u7_streaming_propagates_auth_resolution_errors() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u7_streaming_propagates_auth_resolution_errors() {
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     // No tokens stored on any app. Auto-detect has nothing to dispatch
     // against a matrix-hit endpoint and must surface auth-required rather
@@ -2862,7 +2944,7 @@ fn u7_streaming_propagates_auth_resolution_errors() {
             load_state: xurl::store::LoadState::Loaded,
         },
     );
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .stream_request(&RequestOptions {
@@ -2873,12 +2955,13 @@ fn u7_streaming_propagates_auth_resolution_errors() {
             auth_type: String::new(),
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     assert_eq!(err.kind(), "auth-required");
     assert_eq!(err.exit_code(), 77);
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         0,
         "auth-resolution failure on the streaming path must not let the request through"
     );
@@ -2889,19 +2972,20 @@ fn u7_streaming_propagates_auth_resolution_errors() {
 /// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
 /// must NOT reject even though the same `(method, path)` would reject under a
 /// `Template` target. Raw mode is the user's escape hatch.
-#[test]
-fn u6_ae5_raw_url_skips_validation() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u6_ae5_raw_url_skips_validation() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "raw_bypass"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let raw_url = format!("{}/2/media/upload", ts.uri());
     let resp = client
@@ -2911,11 +2995,12 @@ fn u6_ae5_raw_url_skips_validation() {
             auth_type: "app".to_string(),
             ..Default::default()
         })
+        .await
         .expect("raw mode must skip auth-matrix validation per R18");
 
     assert_eq!(resp["data"]["id"], "raw_bypass");
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         1,
         "raw mode must let the request through even with a normally-rejected auth"
     );
@@ -2924,19 +3009,20 @@ fn u6_ae5_raw_url_skips_validation() {
 /// AE3 — auto-detect against an OAuth1-only app at an OAuth1+OAuth2 endpoint.
 /// Intersection yields {OAuth1}; the request must dispatch on OAuth1 without
 /// prompting and reach the wiremock.
-#[test]
-fn u7_ae3_auto_detect_oauth1_only_app() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u7_ae3_auto_detect_oauth1_only_app() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload/initialize"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "ae3"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -2948,27 +3034,29 @@ fn u7_ae3_auto_detect_oauth1_only_app() {
             },
             ..Default::default()
         })
+        .await
         .expect("AE3: OAuth1 must be auto-selected for an OAuth1+OAuth2 endpoint");
 
     assert_eq!(resp["data"]["id"], "ae3");
-    assert_eq!(ts.received_request_count(), 1);
+    assert_eq!(ts.received_request_count().await, 1);
 }
 
 /// AE4 — auto-detect against a Bearer-only app at an OAuth1+OAuth2 endpoint.
 /// Intersection is empty; the request must fail with the typed envelope
 /// shape (R8) carrying `requested: None`, `available_in_app: Some(["app"])`,
 /// and the endpoint's supported set.
-#[test]
-fn u7_ae4_auto_detect_empty_intersection_envelope() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u7_ae4_auto_detect_empty_intersection_envelope() {
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload/initialize"))
             .respond_with(ResponseTemplate::new(200)),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -2980,6 +3068,7 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
             },
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     match err {
@@ -3006,7 +3095,7 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
         other => panic!("AE4: expected AuthMethodMismatch, got {other:?}"),
     }
     assert_eq!(
-        ts.received_request_count(),
+        ts.received_request_count().await,
         0,
         "AE4: validator must refuse before HTTP — wiremock receives nothing"
     );
@@ -3016,11 +3105,11 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
 /// endpoint accepting both. OAuth2 wins per the locked preference order.
 /// Verified by mounting two distinct mocks that match on the Authorization
 /// header prefix and asserting the OAuth2-shaped header lands.
-#[test]
-fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
+#[tokio::test]
+async fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
     use wiremock::matchers::header;
 
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/media/upload/initialize"))
@@ -3028,10 +3117,11 @@ fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "ae6_oauth2"}
             }))),
-    );
+    )
+    .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -3043,6 +3133,7 @@ fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
             },
             ..Default::default()
         })
+        .await
         .expect("AE6: OAuth2 must win the preference when both schemes are stored");
 
     assert_eq!(resp["data"]["id"], "ae6_oauth2");
@@ -3052,9 +3143,9 @@ fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
 /// `AuthRequired` (exit 77, "log in first"), not `AuthMethodMismatch`
 /// (exit 2, "wrong credential"). The empty-intersection branch fires only
 /// when the user has SOMETHING stored that happens not to overlap.
-#[test]
-fn u7_no_stored_credentials_returns_auth_required() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn u7_no_stored_credentials_returns_auth_required() {
+    let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let tmp = TempDir::new().expect("temp dir");
     let auth = auth_for(
@@ -3066,7 +3157,7 @@ fn u7_no_stored_credentials_returns_auth_required() {
             load_state: xurl::store::LoadState::Loaded,
         },
     );
-    let mut client = ApiClient::new(&cfg, auth);
+    let client = ApiClient::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -3078,6 +3169,7 @@ fn u7_no_stored_credentials_returns_auth_required() {
             },
             ..Default::default()
         })
+        .await
         .unwrap_err();
 
     // Surfaces as Auth (kind "auth-required", exit 77) per the semantic

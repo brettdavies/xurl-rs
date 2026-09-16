@@ -14,12 +14,12 @@ use tempfile::TempDir;
 use xurl::cli;
 
 /// Helper: run with a fresh tempdir store path; return (exit_code, stdout, stderr).
-fn run_isolated(args: &[&str]) -> (i32, String, String) {
+async fn run_isolated(args: &[&str]) -> (i32, String, String) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
-    let code = cli::run_with_store_path(args, &mut stdout, &mut stderr, &store);
+    let code = cli::run_with_store_path(args, &mut stdout, &mut stderr, &store).await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -27,9 +27,9 @@ fn run_isolated(args: &[&str]) -> (i32, String, String) {
     )
 }
 
-#[test]
-fn help_exits_zero_and_writes_banner_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
+#[tokio::test]
+async fn help_exits_zero_and_writes_banner_to_stdout() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     // clap renders the `long_about` first under `--help`; the short `about`
     // string ("Auth enabled curl-like interface...") only appears under
@@ -41,9 +41,9 @@ fn help_exits_zero_and_writes_banner_to_stdout() {
     assert!(stderr.is_empty(), "stderr should be empty, got: {stderr}");
 }
 
-#[test]
-fn short_help_writes_about_string_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "-h"]);
+#[tokio::test]
+async fn short_help_writes_about_string_to_stdout() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "-h"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.contains("Auth enabled curl-like interface"),
@@ -51,9 +51,9 @@ fn short_help_writes_about_string_to_stdout() {
     );
 }
 
-#[test]
-fn version_subcommand_exits_zero_and_starts_with_xr() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "version"]);
+#[tokio::test]
+async fn version_subcommand_exits_zero_and_starts_with_xr() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "version"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.starts_with("xr "),
@@ -61,17 +61,17 @@ fn version_subcommand_exits_zero_and_starts_with_xr() {
     );
 }
 
-#[test]
-fn bad_flag_exits_two_and_writes_to_stderr() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--bogus"]);
+#[tokio::test]
+async fn bad_flag_exits_two_and_writes_to_stderr() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--bogus"]).await;
     assert_eq!(code, 2);
     assert!(!stderr.is_empty(), "stderr should be non-empty");
     assert!(stdout.is_empty(), "stdout should be empty, got: {stdout}");
 }
 
-#[test]
-fn bare_invocation_prints_help_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr"]);
+#[tokio::test]
+async fn bare_invocation_prints_help_to_stdout() {
+    let (code, stdout, stderr) = run_isolated(&["xr"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.contains("Usage: xr"),
@@ -79,9 +79,9 @@ fn bare_invocation_prints_help_to_stdout() {
     );
 }
 
-#[test]
-fn missing_url_exits_one_and_writes_no_url_to_stderr() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]);
+#[tokio::test]
+async fn missing_url_exits_one_and_writes_no_url_to_stderr() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]).await;
     assert_eq!(code, 1);
     assert!(
         stderr.contains("No URL provided"),
@@ -89,9 +89,9 @@ fn missing_url_exits_one_and_writes_no_url_to_stderr() {
     );
 }
 
-#[test]
-fn completions_bash_writes_script_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "completions", "bash"]);
+#[tokio::test]
+async fn completions_bash_writes_script_to_stdout() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "completions", "bash"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     // clap_complete's bash output defines a function named `_xr` (the binary name).
     assert!(
@@ -100,9 +100,9 @@ fn completions_bash_writes_script_to_stdout() {
     );
 }
 
-#[test]
-fn schema_list_mentions_known_commands() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "schema", "--list"]);
+#[tokio::test]
+async fn schema_list_mentions_known_commands() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "schema", "--list"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     for cmd in ["post", "whoami", "like"] {
         assert!(
@@ -112,11 +112,11 @@ fn schema_list_mentions_known_commands() {
     }
 }
 
-#[test]
-fn schema_post_emits_json_schema_directly_not_wrapped_in_message() {
+#[tokio::test]
+async fn schema_post_emits_json_schema_directly_not_wrapped_in_message() {
     // F8 regression guard: under `--output json`, the schema body must be the
     // raw JSON schema, NOT `{"message": "<stringified schema>"}`.
-    let (code, stdout, stderr) = run_isolated(&["xr", "--output", "json", "schema", "post"]);
+    let (code, stdout, stderr) = run_isolated(&["xr", "--output", "json", "schema", "post"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let parsed: serde_json::Value =
         serde_json::from_str(&stdout).expect("schema stdout must parse as JSON");
@@ -136,9 +136,9 @@ fn schema_post_emits_json_schema_directly_not_wrapped_in_message() {
     assert!(is_schema_shape, "expected JSON Schema shape, got: {stdout}");
 }
 
-#[test]
-fn schema_unknown_command_exits_general_error() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "schema", "nope-not-a-command"]);
+#[tokio::test]
+async fn schema_unknown_command_exits_general_error() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "schema", "nope-not-a-command"]).await;
     assert_eq!(code, 1);
     assert!(
         stderr.contains("unknown command"),
@@ -162,13 +162,14 @@ fn entrypoint_types_are_send_sync() {
 
 /// Sanity check: `Vec<u8>` writers compile against the `&mut dyn Write`
 /// entrypoint signature (this is what library tests rely on).
-#[test]
-fn runner_accepts_vec_u8_writers() {
+#[tokio::test]
+async fn runner_accepts_vec_u8_writers() {
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    let _: i32 = cli::run_with_store_path(["xr", "version"], &mut stdout, &mut stderr, &store);
+    let _: i32 =
+        cli::run_with_store_path(["xr", "version"], &mut stdout, &mut stderr, &store).await;
     // Sanity check that writers behave like Write traits.
     let _ = stdout.flush();
     let _ = stderr.flush();

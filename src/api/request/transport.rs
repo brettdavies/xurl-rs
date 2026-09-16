@@ -2,9 +2,12 @@
 //! streaming) with request-header assembly and wire diagnostics emitted as
 //! `tracing` events.
 
-use std::io::{BufRead, BufReader, Lines};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-use reqwest::blocking::{Client, Response, multipart};
+use bytes::Bytes;
+use futures_core::Stream;
+use reqwest::multipart;
 
 use crate::error::{Error, Result};
 
@@ -24,7 +27,7 @@ impl ApiClient {
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// or the API returns an error status (>= 400).
-    pub fn send_request(&mut self, options: &RequestOptions) -> Result<serde_json::Value> {
+    pub async fn send_request(&self, options: &RequestOptions) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header` (called
@@ -38,7 +41,10 @@ impl ApiClient {
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
-        let mut builder = self.client.request(req_method.clone(), &url);
+        let mut builder = self
+            .http()
+            .request(req_method.clone(), &url)
+            .timeout(self.request_timeout());
 
         // Add body for POST/PUT/PATCH. Content-Type is xurl's auto-detect
         // unless the caller already supplied one; the body itself is always
@@ -73,7 +79,7 @@ impl ApiClient {
         // confusing 401 from upstream. The older "silently skip on Err" form
         // let auth bugs masquerade as upstream auth rejections.
         if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
-            let auth_header = self.get_auth_header(options)?;
+            let auth_header = self.get_auth_header(options).await?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -94,11 +100,11 @@ impl ApiClient {
         );
         trace_request(method, &url);
 
-        let resp = builder.send()?;
+        let resp = builder.send().await?;
         trace_response(resp.status(), resp.headers());
 
         let status = resp.status();
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
 
         let json: serde_json::Value = if body.is_empty() {
             serde_json::json!({})
@@ -124,8 +130,8 @@ impl ApiClient {
     ///
     /// Returns an error if the HTTP method is invalid, file I/O fails,
     /// the request fails, or the API returns an error status (>= 400).
-    pub fn send_multipart_request(
-        &mut self,
+    pub async fn send_multipart_request(
+        &self,
         options: &MultipartOptions,
     ) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
@@ -142,6 +148,7 @@ impl ApiClient {
         // Add file from path or data
         if !options.file_field.is_empty() && !options.file_path.is_empty() {
             let part = multipart::Part::file(&options.file_path)
+                .await
                 .map_err(|e| Error::Io(format!("error opening file: {e}")))?;
             form = form.part(options.file_field.clone(), part);
         } else if !options.file_field.is_empty() && !options.file_data.is_empty() {
@@ -155,7 +162,11 @@ impl ApiClient {
             form = form.text(key.clone(), value.clone());
         }
 
-        let mut builder = self.client.request(req_method, &url).multipart(form);
+        let mut builder = self
+            .http()
+            .request(req_method, &url)
+            .timeout(self.request_timeout())
+            .multipart(form);
 
         // Add custom headers
         for header in &options.request.headers {
@@ -171,7 +182,7 @@ impl ApiClient {
         if !options.request.no_auth
             && !user_supplied_header(&options.request.headers, "Authorization")
         {
-            let auth_header = self.get_auth_header(&options.request)?;
+            let auth_header = self.get_auth_header(&options.request).await?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -193,9 +204,9 @@ impl ApiClient {
         );
         trace_request(method, &url);
 
-        let resp = builder.send()?;
+        let resp = builder.send().await?;
         let status = resp.status();
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
 
         let json: serde_json::Value = if body.is_empty() {
             serde_json::json!({})
@@ -212,14 +223,15 @@ impl ApiClient {
 
     /// Opens a streaming request and returns its lines as they arrive.
     ///
-    /// The connection stays open until the returned iterator is dropped or
-    /// the server ends the stream; the caller decides what to print.
+    /// The connection stays open until the returned stream is dropped or
+    /// the server ends it; the caller decides what to print. Streaming
+    /// requests carry no total timeout.
     ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// or the API returns an error status (>= 400).
-    pub fn stream_request(&mut self, options: &RequestOptions) -> Result<StreamLines> {
+    pub async fn stream_request(&self, options: &RequestOptions) -> Result<StreamLines> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header` (called
@@ -231,11 +243,7 @@ impl ApiClient {
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
-        let mut builder = Client::builder()
-            .timeout(None)
-            .build()
-            .unwrap_or_else(|_| Client::new())
-            .request(req_method, &url);
+        let mut builder = self.http().request(req_method, &url);
 
         let xurl_would_set_content_type = !options.data.is_empty();
         if xurl_would_set_content_type {
@@ -258,7 +266,7 @@ impl ApiClient {
         }
 
         if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
-            let auth_header = self.get_auth_header(options)?;
+            let auth_header = self.get_auth_header(options).await?;
             builder = builder.header("Authorization", auth_header);
         }
 
@@ -278,12 +286,12 @@ impl ApiClient {
         );
         trace_request(method, &url);
 
-        let resp = builder.send()?;
+        let resp = builder.send().await?;
         trace_response(resp.status(), resp.headers());
 
         let resp_status = resp.status();
         if resp_status.as_u16() >= 400 {
-            let body = resp.text().unwrap_or_default();
+            let body = resp.text().await.unwrap_or_default();
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
                 return Err(Error::api(resp_status.as_u16(), json.to_string()));
             }
@@ -291,17 +299,49 @@ impl ApiClient {
         }
 
         Ok(StreamLines {
-            lines: BufReader::with_capacity(1024 * 1024, resp).lines(),
+            body: Box::pin(resp.bytes_stream()),
+            buf: Vec::new(),
+            done: false,
         })
     }
 }
 
+type ByteStream = Pin<Box<dyn Stream<Item = reqwest::Result<Bytes>> + Send>>;
+
 /// Lines of a streaming response, delivered as they arrive.
 ///
-/// Empty keep-alive lines are skipped. Dropping the iterator closes the
-/// connection.
+/// A [`Stream`] of lines; [`Self::next_line`] is the same thing without a
+/// stream combinator. Empty keep-alive lines are skipped. Dropping the
+/// stream closes the connection.
 pub struct StreamLines {
-    lines: Lines<BufReader<Response>>,
+    body: ByteStream,
+    buf: Vec<u8>,
+    done: bool,
+}
+
+impl StreamLines {
+    /// The next line, or `None` once the server has ended the stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Io`] when the connection fails mid-stream.
+    pub async fn next_line(&mut self) -> Result<Option<String>> {
+        std::future::poll_fn(|cx| Pin::new(&mut *self).poll_next(cx))
+            .await
+            .transpose()
+    }
+
+    /// Removes and returns the first complete line in the buffer, without
+    /// its `\n` and any `\r` before it.
+    fn take_line(&mut self) -> Option<String> {
+        let end = self.buf.iter().position(|&b| b == b'\n')?;
+        let mut line: Vec<u8> = self.buf.drain(..=end).collect();
+        line.pop();
+        if line.last() == Some(&b'\r') {
+            line.pop();
+        }
+        Some(String::from_utf8_lossy(&line).into_owned())
+    }
 }
 
 impl std::fmt::Debug for StreamLines {
@@ -310,15 +350,31 @@ impl std::fmt::Debug for StreamLines {
     }
 }
 
-impl Iterator for StreamLines {
+impl Stream for StreamLines {
     type Item = Result<String>;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
-            match self.lines.next()? {
-                Ok(line) if line.is_empty() => continue,
-                Ok(line) => return Some(Ok(line)),
-                Err(e) => return Some(Err(Error::Io(e.to_string()))),
+            if let Some(line) = self.take_line() {
+                if line.is_empty() {
+                    continue;
+                }
+                return Poll::Ready(Some(Ok(line)));
+            }
+            if self.done {
+                let rest = std::mem::take(&mut self.buf);
+                let line = String::from_utf8_lossy(&rest).into_owned();
+                let line = line.trim_end_matches('\r').to_string();
+                return Poll::Ready((!line.is_empty()).then_some(Ok(line)));
+            }
+            match self.body.as_mut().poll_next(cx) {
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(None) => self.done = true,
+                Poll::Ready(Some(Ok(chunk))) => self.buf.extend_from_slice(&chunk),
+                Poll::Ready(Some(Err(e))) => {
+                    self.done = true;
+                    return Poll::Ready(Some(Err(Error::Io(e.to_string()))));
+                }
             }
         }
     }

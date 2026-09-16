@@ -1,15 +1,18 @@
 //! Sign-in flows: interactive and headless `OAuth2`, `OAuth1` credential save,
 //! and bearer-token save.
 
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Write};
 
 use serde_json::json;
 
 use super::{AuthCtx, AuthGlobalFlags};
+use crate::api::ApiClient;
 use crate::auth::Auth;
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
+use crate::cli::output::OutputConfig;
+use crate::config::Config;
 use crate::error::{EXIT_USAGE_ERROR, Error};
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
@@ -22,20 +25,22 @@ pub(super) struct Oauth2Args {
     pub(super) username: Option<String>,
 }
 
-pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn oauth2(
+    args: Oauth2Args,
+    auth: Auth,
+    cfg: &Config,
+    flags: AuthGlobalFlags,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> CommandResult<()> {
     let Oauth2Args {
         no_browser,
         step,
         auth_url,
         username,
     } = args;
-    let AuthCtx {
-        auth,
-        flags,
-        out,
-        stdout,
-        stderr,
-    } = ctx;
     let AuthGlobalFlags {
         dry_run,
         app_explicit,
@@ -52,10 +57,14 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
         return Ok(());
     }
     let username_arg = username.as_deref().unwrap_or("");
-    // R15: refuse before any URL is built or pending file written when
-    // the target app has no client id to sign in with. The old
-    // credential-less warning is unreachable behind this guard.
-    if let Some(body) = client_credentials_missing(auth, app_explicit, out.format.is_structured()) {
+    let client = ApiClient::new(cfg, auth)?;
+    // Refuse before any URL is built or pending file written when the
+    // target app has no client id to sign in with.
+    let refusal = {
+        let auth = client.auth().await;
+        client_credentials_missing(&auth, app_explicit, out.format.is_structured())
+    };
+    if let Some(body) = refusal {
         out.emit_error_envelope(stderr, body);
         return Err(Failure::Emitted {
             exit_code: EXIT_USAGE_ERROR,
@@ -84,7 +93,8 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
                 result
             }
         };
-        if let Err(e) = auth.oauth2_flow(username_arg, opener) {
+        let cancel = crate::cli::shutdown::cancel_on_shutdown();
+        if let Err(e) = client.oauth2_flow(username_arg, cancel, opener).await {
             if let Some(url) = unopened.lock().ok().and_then(|mut slot| slot.take()) {
                 out.print_message(
                     stdout,
@@ -96,8 +106,9 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
         }
         out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
     } else {
-        let pending_path =
-            crate::auth::pending::pending_path_for_store(&auth.token_store.file_path);
+        let pending_path = crate::auth::pending::pending_path_for_store(
+            &client.auth().await.token_store.file_path,
+        );
         // When the user opted into `--no-browser` without an explicit
         // `--step`, or when auto-engage promoted us here, run step 1
         // and emit the canonical `awaiting_callback` envelope.
@@ -113,7 +124,7 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
                         Error::auth("--auth-url is only used with --step 2, not --step 1").into(),
                     );
                 }
-                let url = auth.remote_oauth2_step1(&pending_path)?;
+                let url = client.auth().await.remote_oauth2_step1(&pending_path)?;
                 if out.format.is_structured() {
                     // U9: explicit `--no-browser` (no `--step`) and
                     // the auto-engaged path both emit the canonical
@@ -191,7 +202,9 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
                     url_value
                 };
 
-                auth.remote_oauth2_step2(&redirect_url, username_arg, &pending_path)?;
+                client
+                    .remote_oauth2_step2(&redirect_url, username_arg, &pending_path)
+                    .await?;
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             }
             None => {

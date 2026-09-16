@@ -28,7 +28,7 @@ use xurl::cli;
 /// Returns `(exit_code, stdout, stderr)`. Each call gets its own `TempDir`,
 /// dropped at the end of the call — the `.xurl` path passed to the runner
 /// never collides across parallel tests.
-fn run_isolated(args: &[&str]) -> (i32, String, String) {
+async fn run_isolated(args: &[&str]) -> (i32, String, String) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let mut stdout: Vec<u8> = Vec::new();
@@ -39,7 +39,8 @@ fn run_isolated(args: &[&str]) -> (i32, String, String) {
         &mut stderr,
         &store,
         &xurl::config::EnvOverrides::default(),
-    );
+    )
+    .await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -49,7 +50,7 @@ fn run_isolated(args: &[&str]) -> (i32, String, String) {
 
 /// Run the entrypoint against an existing store path with explicit
 /// environment values, reading nothing from the process.
-fn run_at_with(
+async fn run_at_with(
     store_path: &Path,
     overrides: &xurl::config::EnvOverrides,
     args: &[&str],
@@ -57,7 +58,8 @@ fn run_at_with(
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
     let code =
-        cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store_path, overrides);
+        cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store_path, overrides)
+            .await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -78,7 +80,7 @@ fn api_env(base_url: &str) -> xurl::config::EnvOverrides {
 /// Lets a single test issue multiple invocations against the same `.xurl`
 /// so a setup invocation (e.g., `auth apps add`) and an assertion invocation
 /// (e.g., `auth apps redirect-uri get`) observe the same state.
-fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
+async fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
     let code = cli::runner::run_with_overrides(
@@ -87,7 +89,8 @@ fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
         &mut stderr,
         store_path,
         &xurl::config::EnvOverrides::default(),
-    );
+    )
+    .await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -99,9 +102,9 @@ fn run_at(store_path: &Path, args: &[&str]) -> (i32, String, String) {
 // Basic CLI sanity tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_help_flag() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
+#[tokio::test]
+async fn test_help_flag() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for --help; stderr: {stderr}");
     assert!(
         stdout.contains("Usage"),
@@ -109,9 +112,9 @@ fn test_help_flag() {
     );
 }
 
-#[test]
-fn test_version_flag() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--version"]);
+#[tokio::test]
+async fn test_version_flag() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--version"]).await;
     assert_eq!(code, 0, "expected 0 for --version; stderr: {stderr}");
     assert!(
         stdout.contains("xr"),
@@ -119,9 +122,9 @@ fn test_version_flag() {
     );
 }
 
-#[test]
-fn test_invalid_flag() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]);
+#[tokio::test]
+async fn test_invalid_flag() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]).await;
     assert_ne!(code, 0, "expected non-zero exit for invalid flag");
     assert!(
         stderr.contains("error"),
@@ -147,32 +150,32 @@ fn assert_invalid_args_envelope(stderr: &str) {
     );
 }
 
-#[test]
-fn test_clap_error_emits_envelope_under_output_json() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]);
+#[tokio::test]
+async fn test_clap_error_emits_envelope_under_output_json() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]).await;
     assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
     assert_invalid_args_envelope(&stderr);
 }
 
-#[test]
-fn test_clap_error_emits_envelope_under_json_alias() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]);
+#[tokio::test]
+async fn test_clap_error_emits_envelope_under_json_alias() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]).await;
     assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
     assert_invalid_args_envelope(&stderr);
 }
 
-#[test]
-fn test_clap_error_emits_envelope_under_jsonl_alias() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--jsonl"]);
+#[tokio::test]
+async fn test_clap_error_emits_envelope_under_jsonl_alias() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--jsonl"]).await;
     assert_eq!(code, 2, "EX_USAGE expected: {stderr}");
     assert_invalid_args_envelope(&stderr);
 }
 
-#[test]
-fn test_clap_error_falls_back_to_text_without_json_intent() {
+#[tokio::test]
+async fn test_clap_error_falls_back_to_text_without_json_intent() {
     // No --output json, no --json, no XURL_OUTPUT — clap's default text
     // rendering is preserved.
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag"]);
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag"]).await;
     assert_eq!(code, 2);
     assert!(
         serde_json::from_str::<serde_json::Value>(stderr.trim()).is_err(),
@@ -181,26 +184,26 @@ fn test_clap_error_falls_back_to_text_without_json_intent() {
     assert!(stderr.contains("error"));
 }
 
-#[test]
-fn test_help_under_output_json_still_writes_to_stdout() {
+#[tokio::test]
+async fn test_help_under_output_json_still_writes_to_stdout() {
     // DisplayHelp short-circuit: --help bypasses envelope routing.
-    let (code, stdout, _stderr) = run_isolated(&["xr", "--help", "--output", "json"]);
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--help", "--output", "json"]).await;
     assert_eq!(code, 0);
     assert!(stdout.contains("Usage"), "help on stdout: {stdout}");
 }
 
-#[test]
-fn test_version_under_output_json_still_writes_to_stdout() {
-    let (code, stdout, _stderr) = run_isolated(&["xr", "--version", "--output", "json"]);
+#[tokio::test]
+async fn test_version_under_output_json_still_writes_to_stdout() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--version", "--output", "json"]).await;
     assert_eq!(code, 0);
     assert!(stdout.contains("xr"), "version on stdout: {stdout}");
 }
 
-#[test]
-fn test_envelope_consistency_clap_error_has_status_key() {
+#[tokio::test]
+async fn test_envelope_consistency_clap_error_has_status_key() {
     // R6 / p2-should-consistent-envelope: clap-error JSON and runtime-error
     // JSON share the `status` discriminant; agents dispatch on it uniformly.
-    let (_code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]);
+    let (_code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]).await;
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
     assert!(
         parsed.get("status").is_some(),
@@ -208,34 +211,35 @@ fn test_envelope_consistency_clap_error_has_status_key() {
     );
 }
 
-#[test]
-fn test_raw_flag_accepted() {
+#[tokio::test]
+async fn test_raw_flag_accepted() {
     // --raw is a global boolean flag; smoke-tests parse path.
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "--raw", "--help"]);
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--raw", "--help"]).await;
     assert_eq!(code, 0);
 }
 
-#[test]
-fn test_json_and_output_conflict() {
+#[tokio::test]
+async fn test_json_and_output_conflict() {
     // clap should reject `--output json --json` together (validated after
     // parsing — --help would short-circuit, so use `version` subcommand).
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "--json", "version"]);
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", "--json", "version"]).await;
     assert_ne!(code, 0, "--json + --output must conflict: {stderr}");
 }
 
-#[test]
-fn test_json_and_jsonl_conflict() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]);
+#[tokio::test]
+async fn test_json_and_jsonl_conflict() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]).await;
     assert_ne!(code, 0, "--json + --jsonl must conflict: {stderr}");
 }
 
-#[test]
-fn test_json_alias_envelope_equivalent_to_output_json() {
+#[tokio::test]
+async fn test_json_alias_envelope_equivalent_to_output_json() {
     // On a clap parse failure, `--json` and `--output json` produce
     // identical envelope JSON modulo the embedded clap-rendered message
     // (which mentions the flag name). Compare structure on shared keys.
-    let (_c1, _o1, e1) = run_isolated(&["xr", "--bogus-flag", "--json"]);
-    let (_c2, _o2, e2) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]);
+    let (_c1, _o1, e1) = run_isolated(&["xr", "--bogus-flag", "--json"]).await;
+    let (_c2, _o2, e2) = run_isolated(&["xr", "--bogus-flag", "--output", "json"]).await;
     let p1: serde_json::Value = serde_json::from_str(e1.trim()).unwrap();
     let p2: serde_json::Value = serde_json::from_str(e2.trim()).unwrap();
     assert_eq!(p1["status"], p2["status"]);
@@ -247,21 +251,21 @@ fn test_json_alias_envelope_equivalent_to_output_json() {
 // Subcommand help tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_post_help() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
+#[tokio::test]
+async fn test_post_help() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "post", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for post --help; stderr: {stderr}");
 }
 
-#[test]
-fn test_search_help() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
+#[tokio::test]
+async fn test_search_help() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "search", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for search --help; stderr: {stderr}");
 }
 
-#[test]
-fn test_auth_help() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "--help"]);
+#[tokio::test]
+async fn test_auth_help() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for auth --help; stderr: {stderr}");
 }
 
@@ -269,29 +273,29 @@ fn test_auth_help() {
 // Command error handling tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_post_without_text_fails() {
+#[tokio::test]
+async fn test_post_without_text_fails() {
     // Post command requires text argument
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "post"]);
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "post"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `post` with no args");
 }
 
-#[test]
-fn test_search_without_query_fails() {
+#[tokio::test]
+async fn test_search_without_query_fails() {
     // Search command requires a query
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "search"]);
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "search"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `search` with no args");
 }
 
-#[test]
-fn test_delete_without_id_fails() {
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "delete"]);
+#[tokio::test]
+async fn test_delete_without_id_fails() {
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "delete"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `delete` with no args");
 }
 
-#[test]
-fn test_reply_without_args_fails() {
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "reply"]);
+#[tokio::test]
+async fn test_reply_without_args_fails() {
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "reply"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `reply` with no args");
 }
 
@@ -299,9 +303,9 @@ fn test_reply_without_args_fails() {
 // Usage command tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_usage_help() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "usage", "--help"]);
+#[tokio::test]
+async fn test_usage_help() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "usage", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for usage --help; stderr: {stderr}");
     assert!(
         stdout.contains("usage"),
@@ -313,10 +317,10 @@ fn test_usage_help() {
     );
 }
 
-#[test]
-fn test_usage_without_auth_fails() {
+#[tokio::test]
+async fn test_usage_without_auth_fails() {
     // Isolated empty token store via tempdir — no env mutation needed.
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "usage"]);
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "usage"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `usage` without auth");
 }
 
@@ -324,10 +328,10 @@ fn test_usage_without_auth_fails() {
 // Auth-required commands should fail without credentials
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_whoami_without_auth_fails() {
+#[tokio::test]
+async fn test_whoami_without_auth_fails() {
     // Isolated empty token store via tempdir — no env mutation needed.
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "whoami"]);
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "whoami"]).await;
     assert_ne!(code, 0, "expected non-zero exit for `whoami` without auth");
 }
 
@@ -335,9 +339,9 @@ fn test_whoami_without_auth_fails() {
 // App management subcommands
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_apps_list_help() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "apps", "--help"]);
+#[tokio::test]
+async fn test_apps_list_help() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "apps", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for auth apps --help; stderr: {stderr}");
 }
 
@@ -345,15 +349,15 @@ fn test_apps_list_help() {
 // Exit code parity tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_exit_code_success_on_help() {
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "--help"]);
+#[tokio::test]
+async fn test_exit_code_success_on_help() {
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--help"]).await;
     assert_eq!(code, 0, "Expected exit code 0 for --help");
 }
 
-#[test]
-fn test_exit_code_failure_on_bad_flag() {
-    let (code, _stdout, _stderr) = run_isolated(&["xr", "--nonexistent"]);
+#[tokio::test]
+async fn test_exit_code_failure_on_bad_flag() {
+    let (code, _stdout, _stderr) = run_isolated(&["xr", "--nonexistent"]).await;
     assert_ne!(code, 0, "Expected non-zero exit code for bad flag");
 }
 
@@ -361,17 +365,17 @@ fn test_exit_code_failure_on_bad_flag() {
 // Verbose / trace flag tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_verbose_flag_accepted() {
+#[tokio::test]
+async fn test_verbose_flag_accepted() {
     // --verbose should be accepted even if the command ultimately fails
     // due to missing auth — we just verify the flag is recognized
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--verbose", "--help"]);
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--verbose", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for --verbose --help; stderr: {stderr}");
 }
 
-#[test]
-fn test_trace_flag_accepted() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--trace", "--help"]);
+#[tokio::test]
+async fn test_trace_flag_accepted() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--trace", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for --trace --help; stderr: {stderr}");
 }
 
@@ -385,8 +389,8 @@ fn parse_json(stdout: &str) -> serde_json::Value {
     serde_json::from_str(stdout.trim()).expect("stdout is valid JSON")
 }
 
-#[test]
-fn test_apps_add_with_redirect_uri_persists() {
+#[tokio::test]
+async fn test_apps_add_with_redirect_uri_persists() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -405,7 +409,8 @@ fn test_apps_add_with_redirect_uri_persists() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "add failed; stderr: {stderr}");
 
     let (code2, stdout2, stderr2) = run_at(
@@ -420,7 +425,8 @@ fn test_apps_add_with_redirect_uri_persists() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
     let v = parse_json(&stdout2);
     assert_eq!(v["app"], "myapp");
@@ -429,8 +435,8 @@ fn test_apps_add_with_redirect_uri_persists() {
     assert_eq!(v["stored_redirect_uri"], "https://example.com/cb");
 }
 
-#[test]
-fn test_apps_add_without_redirect_uri_leaves_empty() {
+#[tokio::test]
+async fn test_apps_add_without_redirect_uri_leaves_empty() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -447,7 +453,8 @@ fn test_apps_add_without_redirect_uri_leaves_empty() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "add failed; stderr: {stderr}");
 
     let (code2, stdout2, stderr2) = run_at(
@@ -462,15 +469,16 @@ fn test_apps_add_without_redirect_uri_leaves_empty() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
     let v = parse_json(&stdout2);
     assert_eq!(v["stored_redirect_uri"], serde_json::Value::Null);
     assert_eq!(v["effective_source"], "built-in-default");
 }
 
-#[test]
-fn test_apps_add_with_invalid_redirect_uri_rejected() {
+#[tokio::test]
+async fn test_apps_add_with_invalid_redirect_uri_rejected() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -489,7 +497,8 @@ fn test_apps_add_with_invalid_redirect_uri_rejected() {
             "--redirect-uri",
             "http://attacker.example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "expected non-zero exit for invalid redirect URI");
     assert!(
         stderr.to_lowercase().contains("redirect")
@@ -499,8 +508,8 @@ fn test_apps_add_with_invalid_redirect_uri_rejected() {
     );
 }
 
-#[test]
-fn test_apps_update_with_redirect_uri_changes_value() {
+#[tokio::test]
+async fn test_apps_update_with_redirect_uri_changes_value() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -517,7 +526,8 @@ fn test_apps_update_with_redirect_uri_changes_value() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "add failed; stderr: {stderr}");
 
     let (code2, _, stderr2) = run_at(
@@ -531,7 +541,8 @@ fn test_apps_update_with_redirect_uri_changes_value() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code2, 0, "update failed; stderr: {stderr2}");
 
     let (code3, stdout3, _) = run_at(
@@ -546,14 +557,15 @@ fn test_apps_update_with_redirect_uri_changes_value() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code3, 0);
     let v = parse_json(&stdout3);
     assert_eq!(v["stored_redirect_uri"], "https://example.com/cb");
 }
 
-#[test]
-fn test_apps_update_with_empty_redirect_uri_clears() {
+#[tokio::test]
+async fn test_apps_update_with_empty_redirect_uri_clears() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -572,7 +584,8 @@ fn test_apps_update_with_empty_redirect_uri_clears() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, _, stderr2) = run_at(
@@ -586,7 +599,8 @@ fn test_apps_update_with_empty_redirect_uri_clears() {
             "--redirect-uri",
             "",
         ],
-    );
+    )
+    .await;
     assert_eq!(
         code2, 0,
         "update --redirect-uri \"\" failed; stderr: {stderr2}"
@@ -604,14 +618,15 @@ fn test_apps_update_with_empty_redirect_uri_clears() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code3, 0);
     let v = parse_json(&stdout3);
     assert_eq!(v["stored_redirect_uri"], serde_json::Value::Null);
 }
 
-#[test]
-fn test_apps_update_no_fields_errors() {
+#[tokio::test]
+async fn test_apps_update_no_fields_errors() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -628,10 +643,12 @@ fn test_apps_update_no_fields_errors() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
-    let (code2, _stdout, stderr2) = run_at(&store, &["xr", "auth", "apps", "update", "myapp"]);
+    let (code2, _stdout, stderr2) =
+        run_at(&store, &["xr", "auth", "apps", "update", "myapp"]).await;
     assert_ne!(code2, 0, "expected non-zero exit for empty update");
     assert!(
         stderr2.to_lowercase().contains("nothing to update"),
@@ -639,8 +656,8 @@ fn test_apps_update_no_fields_errors() {
     );
 }
 
-#[test]
-fn test_redirect_uri_set_persists() {
+#[tokio::test]
+async fn test_redirect_uri_set_persists() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -657,7 +674,8 @@ fn test_redirect_uri_set_persists() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, _stdout, stderr2) = run_at(
@@ -671,7 +689,8 @@ fn test_redirect_uri_set_persists() {
             "myapp",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code2, 0, "set failed; stderr: {stderr2}");
 
     let (code3, stdout3, _) = run_at(
@@ -686,14 +705,15 @@ fn test_redirect_uri_set_persists() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code3, 0);
     let v = parse_json(&stdout3);
     assert_eq!(v["stored_redirect_uri"], "https://example.com/cb");
 }
 
-#[test]
-fn test_redirect_uri_set_invalid_rejected() {
+#[tokio::test]
+async fn test_redirect_uri_set_invalid_rejected() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -710,7 +730,8 @@ fn test_redirect_uri_set_invalid_rejected() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, _stdout, stderr2) = run_at(
@@ -724,7 +745,8 @@ fn test_redirect_uri_set_invalid_rejected() {
             "myapp",
             "http://attacker.example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_ne!(code2, 0, "expected non-zero exit for invalid set");
     assert!(
         stderr2.to_lowercase().contains("redirect")
@@ -734,8 +756,8 @@ fn test_redirect_uri_set_invalid_rejected() {
     );
 }
 
-#[test]
-fn test_redirect_uri_get_text_output() {
+#[tokio::test]
+async fn test_redirect_uri_get_text_output() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -754,13 +776,15 @@ fn test_redirect_uri_get_text_output() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, stdout2, stderr2) = run_at(
         &store,
         &["xr", "auth", "apps", "redirect-uri", "get", "myapp"],
-    );
+    )
+    .await;
     assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
     assert!(stdout2.contains("app:"), "missing app: line: {stdout2}");
     assert!(
@@ -781,8 +805,8 @@ fn test_redirect_uri_get_text_output() {
     );
 }
 
-#[test]
-fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
+#[tokio::test]
+async fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
     // would override the stored value and fail the URI assertion below.
     let tmp = TempDir::new().unwrap();
@@ -806,13 +830,15 @@ fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
-    let (code_d, _, stderr_d) = run_at(&store, &["xr", "auth", "default", "myapp"]);
+    let (code_d, _, stderr_d) = run_at(&store, &["xr", "auth", "default", "myapp"]).await;
     assert_eq!(code_d, 0, "set-default failed; stderr: {stderr_d}");
 
-    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
+    let (code2, stdout2, stderr2) =
+        run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]).await;
     assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
     assert!(
         stdout2.contains("app: myapp"),
@@ -824,14 +850,15 @@ fn test_redirect_uri_get_uses_default_app_when_name_omitted() {
     );
 }
 
-#[test]
-fn test_redirect_uri_get_reports_no_default_app_when_store_empty() {
+#[tokio::test]
+async fn test_redirect_uri_get_reports_no_default_app_when_store_empty() {
     // An empty store has no apps at all, so the omit-NAME `get` has nothing
     // to resolve and says so instead of reporting a placeholder's built-in URI.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]);
+    let (code, _stdout, stderr) =
+        run_at(&store, &["xr", "auth", "apps", "redirect-uri", "get"]).await;
     assert_ne!(code, 0, "an empty store has no default app to report");
     assert!(
         stderr.contains("no default app set"),
@@ -839,8 +866,8 @@ fn test_redirect_uri_get_reports_no_default_app_when_store_empty() {
     );
 }
 
-#[test]
-fn test_redirect_uri_get_json_output_app_config_source() {
+#[tokio::test]
+async fn test_redirect_uri_get_json_output_app_config_source() {
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage from
     // the env-override test in the same binary.
     let tmp = TempDir::new().unwrap();
@@ -861,7 +888,8 @@ fn test_redirect_uri_get_json_output_app_config_source() {
             "--redirect-uri",
             "https://example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, stdout2, _) = run_at(
@@ -876,7 +904,8 @@ fn test_redirect_uri_get_json_output_app_config_source() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
     assert_eq!(v["app"], "myapp");
@@ -962,13 +991,14 @@ fn assert_no_credentials(stdout: &str, context: &str) {
     }
 }
 
-#[test]
-fn test_auth_status_json_excludes_all_credentials() {
+#[tokio::test]
+async fn test_auth_status_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     populate_credentialed_store(&store);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0, "status failed; stderr: {stderr}");
     assert_no_credentials(&stdout, "auth status --output json");
 
@@ -986,14 +1016,14 @@ fn test_auth_status_json_excludes_all_credentials() {
     assert_eq!(arr[0]["oauth2_users"], serde_json::json!(["alice"]));
 }
 
-#[test]
-fn test_auth_apps_list_json_excludes_all_credentials() {
+#[tokio::test]
+async fn test_auth_apps_list_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     populate_credentialed_store(&store);
 
     let (code, stdout, stderr) =
-        run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
+        run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]).await;
     assert_eq!(code, 0, "apps list failed; stderr: {stderr}");
     assert_no_credentials(&stdout, "auth apps list --output json");
 
@@ -1005,8 +1035,8 @@ fn test_auth_apps_list_json_excludes_all_credentials() {
     assert_eq!(arr[0]["name"], "myapp");
 }
 
-#[test]
-fn test_redirect_uri_get_json_excludes_all_credentials() {
+#[tokio::test]
+async fn test_redirect_uri_get_json_excludes_all_credentials() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     populate_credentialed_store(&store);
@@ -1023,7 +1053,8 @@ fn test_redirect_uri_get_json_excludes_all_credentials() {
             "get",
             "myapp",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "redirect-uri get failed; stderr: {stderr}");
     assert_no_credentials(&stdout, "auth apps redirect-uri get --output json");
 }
@@ -1034,7 +1065,8 @@ fn test_redirect_uri_get_json_excludes_all_credentials() {
 #[rstest::rstest]
 #[case::status(&["xr", "auth", "status"])]
 #[case::apps_list(&["xr", "auth", "apps", "list"])]
-fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
+#[tokio::test]
+async fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     populate_credentialed_store(&store);
@@ -1049,7 +1081,7 @@ fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
         );
     }
 
-    let (code, stdout, stderr) = run_at(&store, args);
+    let (code, stdout, stderr) = run_at(&store, args).await;
     assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
     assert_no_credentials(&stdout, &format!("{args:?} text mode"));
     assert!(
@@ -1062,8 +1094,8 @@ fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str]) {
     );
 }
 
-#[test]
-fn test_auth_status_text_includes_redirect_uri_line() {
+#[tokio::test]
+async fn test_auth_status_text_includes_redirect_uri_line() {
     // R24: status text output gains a `redirect_uri:` line per app.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage from
     // another env-mutating test in the same binary.
@@ -1085,12 +1117,13 @@ fn test_auth_status_text_includes_redirect_uri_line() {
             "--redirect-uri",
             "http://localhost:7777/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
-    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]);
+    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]).await;
     assert_eq!(code_d, 0);
 
-    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "status"]);
+    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "status"]).await;
     assert_eq!(code2, 0, "status failed; stderr: {stderr2}");
     assert!(
         stdout2.contains("redirect_uri: http://localhost:7777/cb [app config]"),
@@ -1102,8 +1135,8 @@ fn test_auth_status_text_includes_redirect_uri_line() {
     );
 }
 
-#[test]
-fn test_auth_status_text_default_built_in_when_no_stored_uri() {
+#[tokio::test]
+async fn test_auth_status_text_default_built_in_when_no_stored_uri() {
     // R24: status text falls through to built-in default when no env, no stored.
     // `#[serial]` + explicit env removal guards against `REDIRECT_URI` leaking
     // from another env-mutating test in the same binary.
@@ -1123,10 +1156,11 @@ fn test_auth_status_text_default_built_in_when_no_stored_uri() {
             "--client-secret",
             "xyz",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
-    let (code2, stdout2, _) = run_at(&store, &["xr", "auth", "status"]);
+    let (code2, stdout2, _) = run_at(&store, &["xr", "auth", "status"]).await;
     assert_eq!(code2, 0);
     assert!(
         stdout2.contains("redirect_uri: http://localhost:8080/callback [built-in default]"),
@@ -1134,8 +1168,8 @@ fn test_auth_status_text_default_built_in_when_no_stored_uri() {
     );
 }
 
-#[test]
-fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
+#[tokio::test]
+async fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
     // R21: source serializes as kebab-case; `redirect_uri_stored` is absent
     // when the env does not override the stored value.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
@@ -1158,12 +1192,13 @@ fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
             "--redirect-uri",
             "http://localhost:7777/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
-    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]);
+    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]).await;
     assert_eq!(code_d, 0);
 
-    let (code2, stdout2, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code2, stdout2, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
     let arr = v["apps"]
@@ -1183,8 +1218,8 @@ fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
     );
 }
 
-#[test]
-fn test_auth_status_json_env_override_surfaces_stored_field() {
+#[tokio::test]
+async fn test_auth_status_json_env_override_surfaces_stored_field() {
     // R21 + R19: when REDIRECT_URI overrides the stored value, the JSON entry
     // includes `redirect_uri_stored` and `redirect_uri_source == "env-var"`.
     let tmp = TempDir::new().unwrap();
@@ -1205,9 +1240,10 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
             "--redirect-uri",
             "http://localhost:7777/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
-    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]);
+    let (code_d, _, _) = run_at(&store, &["xr", "auth", "default", "myapp"]).await;
     assert_eq!(code_d, 0);
 
     let overrides = xurl::config::EnvOverrides {
@@ -1218,7 +1254,8 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
         &store,
         &overrides,
         &["xr", "--output", "json", "auth", "status"],
-    );
+    )
+    .await;
     assert_eq!(code2, 0);
     let v = parse_json(&stdout2);
     let arr = v["apps"]
@@ -1233,8 +1270,8 @@ fn test_auth_status_json_env_override_surfaces_stored_field() {
     assert_eq!(entry["redirect_uri_stored"], "http://localhost:7777/cb");
 }
 
-#[test]
-fn test_auth_status_json_default_flag_per_app() {
+#[tokio::test]
+async fn test_auth_status_json_default_flag_per_app() {
     // R21: with two apps, only the default app's entry has `default: true`.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage from
     // a parallel env-mutating test (env source would not affect this
@@ -1255,7 +1292,8 @@ fn test_auth_status_json_default_flag_per_app() {
             "--client-secret",
             "sa",
         ],
-    );
+    )
+    .await;
     assert_eq!(c1, 0);
     let (c2, _, _) = run_at(
         &store,
@@ -1270,12 +1308,13 @@ fn test_auth_status_json_default_flag_per_app() {
             "--client-secret",
             "sb",
         ],
-    );
+    )
+    .await;
     assert_eq!(c2, 0);
-    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "beta"]);
+    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "beta"]).await;
     assert_eq!(cd, 0);
 
-    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
     let arr = v["apps"]
@@ -1294,8 +1333,8 @@ fn test_auth_status_json_default_flag_per_app() {
     assert_eq!(beta_default, Some(true), "beta should be default");
 }
 
-#[test]
-fn test_auth_apps_list_json_shape_per_app() {
+#[tokio::test]
+async fn test_auth_apps_list_json_shape_per_app() {
     // R21 (list): per-app object carries `name`, `client_id_hint`,
     // `redirect_uri`, `redirect_uri_source`, `oauth2_users`, `oauth1`,
     // `bearer`, `default`.
@@ -1317,12 +1356,14 @@ fn test_auth_apps_list_json_shape_per_app() {
             "--client-secret",
             "sa",
         ],
-    );
+    )
+    .await;
     assert_eq!(c1, 0);
-    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "alpha"]);
+    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "alpha"]).await;
     assert_eq!(cd, 0);
 
-    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
+    let (code, stdout, _) =
+        run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]).await;
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
     let arr = v["apps"]
@@ -1349,8 +1390,8 @@ fn test_auth_apps_list_json_shape_per_app() {
     assert_eq!(entry["bearer"], false);
 }
 
-#[test]
-fn test_auth_status_text_snapshot_two_apps_default_case() {
+#[tokio::test]
+async fn test_auth_status_text_snapshot_two_apps_default_case() {
     // Text-output regression: locks in the new `redirect_uri:` line per app
     // for the no-env, no-stored-URI case across two user-added apps. A fresh
     // `TokenStore` also seeds a `"default"` placeholder app, so the iteration
@@ -1373,7 +1414,8 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
             "--client-secret",
             "sa",
         ],
-    );
+    )
+    .await;
     assert_eq!(c1, 0);
     let (c2, _, _) = run_at(
         &store,
@@ -1388,12 +1430,13 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
             "--client-secret",
             "sb",
         ],
-    );
+    )
+    .await;
     assert_eq!(c2, 0);
-    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "alpha"]);
+    let (cd, _, _) = run_at(&store, &["xr", "auth", "default", "alpha"]).await;
     assert_eq!(cd, 0);
 
-    let (code, stdout, _) = run_at(&store, &["xr", "auth", "status"]);
+    let (code, stdout, _) = run_at(&store, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0);
     assert!(stdout.contains("alpha"), "missing alpha row: {stdout}");
     assert!(stdout.contains("beta"), "missing beta row: {stdout}");
@@ -1432,30 +1475,19 @@ fn test_auth_status_text_snapshot_two_apps_default_case() {
 /// async mount call. The leaked `&'static MockServer` keeps the server alive
 /// for the duration of the test without a manual `Arc` dance.
 struct CliMockServer {
-    _rt: tokio::runtime::Runtime,
-    server: &'static MockServer,
+    server: MockServer,
     uri: String,
 }
 
 impl CliMockServer {
-    fn new() -> Self {
-        let rt = tokio::runtime::Runtime::new().expect("runtime");
-        let server = rt.block_on(async {
-            let s = MockServer::start().await;
-            Box::leak(Box::new(s))
-        });
+    async fn new() -> Self {
+        let server = MockServer::start().await;
         let uri = server.uri();
-        Self {
-            _rt: rt,
-            server,
-            uri,
-        }
+        Self { server, uri }
     }
 
-    fn mount(&self, mock: Mock) {
-        self._rt.block_on(async {
-            mock.mount(self.server).await;
-        });
+    async fn mount(&self, mock: Mock) {
+        mock.mount(&self.server).await;
     }
 
     fn uri(&self) -> &str {
@@ -1514,8 +1546,8 @@ fn populate_oauth1_store(store_path: &Path) {
 /// takes them in a different order than the CLI declares them. Each fixture
 /// value names the slot it belongs in, so a transposition the compiler cannot
 /// see surfaces as a value sitting in the wrong field.
-#[test]
-fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
+#[tokio::test]
+async fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -1536,7 +1568,8 @@ fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
             "--token-secret",
             "BELONGS-IN-TOKEN-SECRET",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "auth oauth1 failed; stderr: {stderr}");
     assert!(
         stdout.contains("OAuth1 credentials saved successfully!"),
@@ -1559,15 +1592,15 @@ fn test_auth_oauth1_cli_writes_each_flag_to_its_own_store_slot() {
     assert_eq!(oauth1.token_secret, "BELONGS-IN-TOKEN-SECRET");
 }
 
-#[test]
-fn test_like_with_username_flag_calls_lookup_by_username() {
+#[tokio::test]
+async fn test_like_with_username_flag_calls_lookup_by_username() {
     // `-u alice` routes through `/2/users/by/username/alice`; the resolved id
     // (67890) drives the like POST. `expect(1)` on each mock fails the test
     // (on server drop) if either endpoint is hit zero times or > 1.
     //
     // Uses OAuth1 because `POST /2/users/{id}/likes` accepts OAuth1 + OAuth2
     // per the spec matrix but rejects Bearer (v2.0.0 enforcement).
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -1579,7 +1612,8 @@ fn test_like_with_username_flag_calls_lookup_by_username() {
                 "data": {"id": "67890", "username": "alice", "name": "Alice"}
             })))
             .expect(1),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/users/67890/likes"))
@@ -1587,23 +1621,25 @@ fn test_like_with_username_flag_calls_lookup_by_username() {
                 "data": {"liked": true}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
 
-#[test]
-fn test_like_without_username_flag_calls_me() {
+#[tokio::test]
+async fn test_like_without_username_flag_calls_me() {
     // No `-u` → empty `opts.username` → resolver hits `/2/users/me`.
     // OAuth1 because both `/2/users/me` and the like POST accept it but
     // reject Bearer under v2.0.0 enforcement.
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -1615,7 +1651,8 @@ fn test_like_without_username_flag_calls_me() {
                 "data": {"id": "111", "username": "self", "name": "Self"}
             })))
             .expect(1),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/users/111/likes"))
@@ -1623,19 +1660,21 @@ fn test_like_without_username_flag_calls_me() {
                 "data": {"liked": true}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "like", "12345", "--auth", "oauth1"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
 
-#[test]
-fn test_like_with_username_flag_lookup_404() {
+#[tokio::test]
+async fn test_like_with_username_flag_lookup_404() {
     // `-u alice` + 404 from lookup → resolver bubbles the transport error up
     // and the like POST is never issued. Mock the lookup only; if anything
     // else hits the server, wiremock returns 404 by default and the test
@@ -1643,7 +1682,7 @@ fn test_like_with_username_flag_lookup_404() {
     //
     // Uses OAuth1 because the like-flow endpoints reject Bearer under v2.0.0
     // enforcement, and reaching the 404 path requires validation to yield.
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -1658,13 +1697,15 @@ fn test_like_with_username_flag_lookup_404() {
                 "type": "https://api.x.com/2/problems/resource-not-found"
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "alice", "--auth", "oauth1"],
-    );
+    )
+    .await;
 
     assert_ne!(
         code, 0,
@@ -1672,8 +1713,8 @@ fn test_like_with_username_flag_lookup_404() {
     );
 }
 
-#[test]
-fn test_like_with_empty_username_falls_back_to_me() {
+#[tokio::test]
+async fn test_like_with_empty_username_falls_back_to_me() {
     // `-u ""` collapses through `CommonFlags::to_call_options()` to an empty
     // `opts.username`, which falls into the `/me` branch. Documents the
     // current contract: a future change that treats `Some("")` differently
@@ -1681,7 +1722,7 @@ fn test_like_with_empty_username_falls_back_to_me() {
     //
     // OAuth1 because `/2/users/me` + `/2/users/{id}/likes` accept it but
     // reject Bearer under v2.0.0 enforcement.
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -1693,7 +1734,8 @@ fn test_like_with_empty_username_falls_back_to_me() {
                 "data": {"id": "222", "username": "self", "name": "Self"}
             })))
             .expect(1),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/users/222/likes"))
@@ -1701,19 +1743,21 @@ fn test_like_with_empty_username_falls_back_to_me() {
                 "data": {"liked": true}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "", "--auth", "oauth1"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
 
-#[test]
-fn test_like_with_at_prefix_username_strips_at() {
+#[tokio::test]
+async fn test_like_with_at_prefix_username_strips_at() {
     // `lookup_user`'s internal `resolve_username` strips a leading `@` before
     // building the path. The mock matches the bare handle; if the strip were
     // skipped, wiremock would 404 the `@alice` request and exit would be
@@ -1721,7 +1765,7 @@ fn test_like_with_at_prefix_username_strips_at() {
     //
     // OAuth1 because `/2/users/by/username/{username}` + the like POST accept
     // it but reject Bearer under v2.0.0 enforcement.
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -1733,7 +1777,8 @@ fn test_like_with_at_prefix_username_strips_at() {
                 "data": {"id": "333", "username": "alice", "name": "Alice"}
             })))
             .expect(1),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/users/333/likes"))
@@ -1741,22 +1786,24 @@ fn test_like_with_at_prefix_username_strips_at() {
                 "data": {"liked": true}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "like", "12345", "-u", "@alice", "--auth", "oauth1"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
 
-#[test]
-fn test_oauth2_positional_invalid_extra_args() {
+#[tokio::test]
+async fn test_oauth2_positional_invalid_extra_args() {
     // Two positionals on `auth oauth2` must fail with a clap usage error
     // (exit code 2 via the runner).
-    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "alice", "bob"]);
+    let (code, _stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "alice", "bob"]).await;
     assert_eq!(
         code, 2,
         "expected clap usage exit code 2 for extra positional; stderr: {stderr}"
@@ -1789,13 +1836,13 @@ fn seed_app_with_unnamed_oauth2(store_path: &Path) {
     let _ = ts.remove_app("default");
 }
 
-#[test]
-fn test_status_text_shows_unnamed_oauth2() {
+#[tokio::test]
+async fn test_status_text_shows_unnamed_oauth2() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     seed_app_with_unnamed_oauth2(&store);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     assert!(
         stdout.contains("oauth2: (unknown user)"),
@@ -1803,13 +1850,14 @@ fn test_status_text_shows_unnamed_oauth2() {
     );
 }
 
-#[test]
-fn test_status_json_emits_oauth2_unnamed_true() {
+#[tokio::test]
+async fn test_status_json_emits_oauth2_unnamed_true() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     seed_app_with_unnamed_oauth2(&store);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(
         code, 0,
         "auth status --output json failed; stderr: {stderr}"
@@ -1829,14 +1877,15 @@ fn test_status_json_emits_oauth2_unnamed_true() {
     );
 }
 
-#[test]
-fn test_status_json_omits_oauth2_unnamed_when_false() {
+#[tokio::test]
+async fn test_status_json_omits_oauth2_unnamed_when_false() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     // Reuse the bearer-only fixture: no named OAuth2, no unnamed slot.
     populate_bearer_store(&store);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(
         code, 0,
         "auth status --output json failed; stderr: {stderr}"
@@ -1867,7 +1916,7 @@ fn test_status_json_omits_oauth2_unnamed_when_false() {
 ///
 /// The value is injected through `EnvOverrides`, so the process `HOME` is
 /// neither read nor written and these tests run alongside everything else.
-fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
+async fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     run_at_with(
@@ -1878,11 +1927,12 @@ fn run_with_home(args: &[&str], home: Option<&str>) -> (i32, String, String) {
         },
         args,
     )
+    .await
 }
 
-#[test]
-fn skill_install_help_advertises_host_all_dry_run() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "skill", "install", "--help"]);
+#[tokio::test]
+async fn skill_install_help_advertises_host_all_dry_run() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "skill", "install", "--help"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.contains("--all"),
@@ -1902,8 +1952,8 @@ fn skill_install_help_advertises_host_all_dry_run() {
     );
 }
 
-#[test]
-fn skill_install_dry_run_emits_envelope_without_spawning_git() {
+#[tokio::test]
+async fn skill_install_dry_run_emits_envelope_without_spawning_git() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     let (code, stdout, stderr) = run_with_home(
@@ -1917,7 +1967,8 @@ fn skill_install_dry_run_emits_envelope_without_spawning_git() {
             "json",
         ],
         Some(&home),
-    );
+    )
+    .await;
     assert_eq!(code, 0, "expected 0 for dry-run; stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "dry_run", "envelope: {v}");
@@ -1949,8 +2000,8 @@ fn skill_install_dry_run_emits_envelope_without_spawning_git() {
     );
 }
 
-#[test]
-fn skill_install_existing_non_empty_destination_errors() {
+#[tokio::test]
+async fn skill_install_existing_non_empty_destination_errors() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     // Pre-populate the destination so the conflict check fires.
@@ -1961,7 +2012,8 @@ fn skill_install_existing_non_empty_destination_errors() {
     let (code, stdout, stderr) = run_with_home(
         &["xr", "skill", "install", "claude_code", "--output", "json"],
         Some(&home),
-    );
+    )
+    .await;
     assert_eq!(code, 1, "expected 1 for dest-not-empty; stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "error");
@@ -1970,8 +2022,8 @@ fn skill_install_existing_non_empty_destination_errors() {
     assert_eq!(v["destination_status"], "non-empty-dir");
 }
 
-#[test]
-fn skill_install_all_dry_run_lists_every_host() {
+#[tokio::test]
+async fn skill_install_all_dry_run_lists_every_host() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     let (code, stdout, stderr) = run_with_home(
@@ -1985,7 +2037,8 @@ fn skill_install_all_dry_run_lists_every_host() {
             "json",
         ],
         Some(&home),
-    );
+    )
+    .await;
     assert_eq!(code, 0, "expected 0 for --all dry-run; stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "dry_run");
@@ -2005,12 +2058,13 @@ fn skill_install_all_dry_run_lists_every_host() {
     }
 }
 
-#[test]
-fn skill_install_home_unset_emits_home_not_set_reason() {
+#[tokio::test]
+async fn skill_install_home_unset_emits_home_not_set_reason() {
     let (code, stdout, stderr) = run_with_home(
         &["xr", "skill", "install", "claude_code", "--output", "json"],
         None,
-    );
+    )
+    .await;
     assert_eq!(code, 1, "expected 1 for HOME unset; stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "error");
@@ -2018,11 +2072,11 @@ fn skill_install_home_unset_emits_home_not_set_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
-#[test]
-fn skill_install_no_args_lists_supported_hosts() {
+#[tokio::test]
+async fn skill_install_no_args_lists_supported_hosts() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
-    let (code, stdout, stderr) = run_with_home(&["xr", "skill", "install"], Some(&home));
+    let (code, stdout, stderr) = run_with_home(&["xr", "skill", "install"], Some(&home)).await;
     assert_eq!(
         code, 2,
         "expected 2 (usage error) for missing host; stderr: {stderr}"
@@ -2035,12 +2089,12 @@ fn skill_install_no_args_lists_supported_hosts() {
     }
 }
 
-#[test]
-fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
+#[tokio::test]
+async fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     let (code, stdout, stderr) =
-        run_with_home(&["xr", "skill", "install", "--output", "json"], Some(&home));
+        run_with_home(&["xr", "skill", "install", "--output", "json"], Some(&home)).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "error");
@@ -2055,14 +2109,15 @@ fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
     }
 }
 
-#[test]
-fn skill_install_dry_run_text_output_is_single_line_command() {
+#[tokio::test]
+async fn skill_install_dry_run_text_output_is_single_line_command() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     let (code, stdout, stderr) = run_with_home(
         &["xr", "skill", "install", "claude_code", "--dry-run"],
         Some(&home),
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let line = stdout.trim();
     assert!(
@@ -2075,8 +2130,8 @@ fn skill_install_dry_run_text_output_is_single_line_command() {
     );
 }
 
-#[test]
-fn skill_install_dest_is_regular_file_errors() {
+#[tokio::test]
+async fn skill_install_dest_is_regular_file_errors() {
     let tmp = TempDir::new().expect("tempdir");
     let home = tmp.path().to_string_lossy().into_owned();
     // Plant a regular file at the destination path.
@@ -2087,7 +2142,8 @@ fn skill_install_dest_is_regular_file_errors() {
     let (code, stdout, stderr) = run_with_home(
         &["xr", "skill", "install", "claude_code", "--output", "json"],
         Some(&home),
-    );
+    )
+    .await;
     assert_eq!(code, 1, "stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
     assert_eq!(v["status"], "error");
@@ -2107,9 +2163,9 @@ fn examples_line_index(lines: &[&str]) -> Option<usize> {
         .position(|l| l.trim_start().starts_with("Examples:"))
 }
 
-#[test]
-fn test_post_help_includes_paired_text_and_json_examples() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "post", "--help"]);
+#[tokio::test]
+async fn test_post_help_includes_paired_text_and_json_examples() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "post", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for post --help; stderr: {stderr}");
     assert!(
         stdout.contains("Examples:"),
@@ -2145,9 +2201,9 @@ fn test_post_help_includes_paired_text_and_json_examples() {
     );
 }
 
-#[test]
-fn test_auth_oauth2_help_shows_no_browser_example() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
+#[tokio::test]
+async fn test_auth_oauth2_help_shows_no_browser_example() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]).await;
     assert_eq!(
         code, 0,
         "expected 0 for auth oauth2 --help; stderr: {stderr}"
@@ -2175,9 +2231,9 @@ fn test_auth_oauth2_help_shows_no_browser_example() {
 // envelope path short-circuits before HTTP.
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2188,7 +2244,8 @@ fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope
             .and(path("/2/tweets/12345"))
             .respond_with(ResponseTemplate::new(200))
             .expect(0),
-    );
+    )
+    .await;
 
     let (code, _stdout, stderr) = run_at_with(
         &store,
@@ -2203,7 +2260,8 @@ fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope
             "--auth",
             "app",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 1,
@@ -2217,12 +2275,12 @@ fn test_delete_no_interactive_without_force_emits_confirmation_required_envelope
     assert_eq!(envelope["exit_code"], 1);
 }
 
-#[test]
-fn test_delete_force_no_interactive_calls_api_and_succeeds() {
+#[tokio::test]
+async fn test_delete_force_no_interactive_calls_api_and_succeeds() {
     // `DELETE /2/tweets/{id}` accepts OAuth1 + OAuth2 but rejects Bearer
     // per the spec matrix (v2.0.0 enforcement). Seed an OAuth1 store and
     // pass `--auth oauth1` to clear validation.
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_oauth1_store(&store);
@@ -2234,7 +2292,8 @@ fn test_delete_force_no_interactive_calls_api_and_succeeds() {
                 "data": {"deleted": true}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
@@ -2242,7 +2301,8 @@ fn test_delete_force_no_interactive_calls_api_and_succeeds() {
         &[
             "xr", "--output", "json", "delete", "12345", "--force", "--auth", "oauth1",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -2252,9 +2312,9 @@ fn test_delete_force_no_interactive_calls_api_and_succeeds() {
     assert_eq!(v["data"]["deleted"], serde_json::Value::Bool(true));
 }
 
-#[test]
-fn test_post_dry_run_emits_envelope_and_skips_api() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_post_dry_run_emits_envelope_and_skips_api() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2265,7 +2325,8 @@ fn test_post_dry_run_emits_envelope_and_skips_api() {
             .and(path("/2/tweets"))
             .respond_with(ResponseTemplate::new(200))
             .expect(0),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
@@ -2280,7 +2341,8 @@ fn test_post_dry_run_emits_envelope_and_skips_api() {
             "--auth",
             "app",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -2294,8 +2356,8 @@ fn test_post_dry_run_emits_envelope_and_skips_api() {
     assert_eq!(v["body"], "Hello");
 }
 
-#[test]
-fn test_post_empty_body_dry_run_reports_empty_body_reason() {
+#[tokio::test]
+async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2312,7 +2374,8 @@ fn test_post_empty_body_dry_run_reports_empty_body_reason() {
             "--auth",
             "app",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -2325,8 +2388,8 @@ fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
-#[test]
-fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
+#[tokio::test]
+async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2345,7 +2408,8 @@ fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
             "--auth",
             "app",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
@@ -2354,9 +2418,9 @@ fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
     assert_eq!(v["reason"], "body-too-long");
 }
 
-#[test]
-fn test_search_global_limit_50_respected() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_search_global_limit_50_respected() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2370,20 +2434,22 @@ fn test_search_global_limit_50_respected() {
                 "data": []
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "--limit", "50", "search", "x", "--auth", "app"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "search --limit 50 failed; stderr: {stderr}");
 }
 
-#[test]
-fn test_search_global_limit_500_clamped_to_100() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_search_global_limit_500_clamped_to_100() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2397,20 +2463,22 @@ fn test_search_global_limit_500_clamped_to_100() {
                 "data": []
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env(ts.uri()),
         &["xr", "--limit", "500", "search", "x", "--auth", "app"],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "search --limit 500 must clamp; stderr: {stderr}");
 }
 
-#[test]
-fn test_search_per_cmd_max_results_overrides_global_limit() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_search_per_cmd_max_results_overrides_global_limit() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2424,7 +2492,8 @@ fn test_search_per_cmd_max_results_overrides_global_limit() {
                 "data": []
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, _stdout, stderr) = run_at_with(
         &store,
@@ -2432,7 +2501,8 @@ fn test_search_per_cmd_max_results_overrides_global_limit() {
         &[
             "xr", "--limit", "80", "search", "x", "-n", "20", "--auth", "app",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -2440,9 +2510,9 @@ fn test_search_per_cmd_max_results_overrides_global_limit() {
     );
 }
 
-#[test]
-fn test_examples_subcommand_runs() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "examples"]);
+#[tokio::test]
+async fn test_examples_subcommand_runs() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "examples"]).await;
     assert_eq!(code, 0, "expected 0 for xr examples; stderr: {stderr}");
     assert!(!stdout.is_empty(), "examples output must be non-empty");
     for section in [
@@ -2459,9 +2529,9 @@ fn test_examples_subcommand_runs() {
     }
 }
 
-#[test]
-fn test_search_help_demonstrates_env_var_precedence() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "search", "--help"]);
+#[tokio::test]
+async fn test_search_help_demonstrates_env_var_precedence() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "search", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for search --help; stderr: {stderr}");
     assert!(
         stdout.contains("XURL_OUTPUT=json xr search"),
@@ -2469,8 +2539,8 @@ fn test_search_help_demonstrates_env_var_precedence() {
     );
 }
 
-#[test]
-fn test_auth_clear_force_no_interactive_dry_run_envelope() {
+#[tokio::test]
+async fn test_auth_clear_force_no_interactive_dry_run_envelope() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2488,7 +2558,8 @@ fn test_auth_clear_force_no_interactive_dry_run_envelope() {
             "--all",
             "--force",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -2506,7 +2577,8 @@ fn test_auth_clear_force_no_interactive_dry_run_envelope() {
 #[case::oauth1(&["--oauth1"], serde_json::json!({"all": false, "oauth1": true, "oauth2_username": null, "bearer": false}))]
 #[case::bearer(&["--bearer"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": null, "bearer": true}))]
 #[case::oauth2_username(&["--oauth2-username", "alice"], serde_json::json!({"all": false, "oauth1": false, "oauth2_username": "alice", "bearer": false}))]
-fn test_auth_clear_dry_run_names_each_selector(
+#[tokio::test]
+async fn test_auth_clear_dry_run_names_each_selector(
     #[case] flags: &[&str],
     #[case] expected: serde_json::Value,
 ) {
@@ -2525,7 +2597,7 @@ fn test_auth_clear_dry_run_names_each_selector(
         "--force",
     ];
     argv.extend_from_slice(flags);
-    let (code, stdout, stderr) = run_at(&store, &argv);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
 
     assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
     let v = parse_json(&stdout);
@@ -2546,7 +2618,8 @@ fn test_auth_clear_dry_run_names_each_selector(
 #[case::oauth1(&["--oauth1"], false, true, true)]
 #[case::bearer(&["--bearer"], true, true, false)]
 #[case::oauth2_username(&["--oauth2-username", "alice"], true, false, true)]
-fn test_auth_clear_selector_removes_only_its_own_credential(
+#[tokio::test]
+async fn test_auth_clear_selector_removes_only_its_own_credential(
     #[case] flags: &[&str],
     #[case] oauth1_kept: bool,
     #[case] oauth2_alice_kept: bool,
@@ -2559,7 +2632,7 @@ fn test_auth_clear_selector_removes_only_its_own_credential(
 
     let mut argv = vec!["xr", "--no-interactive", "auth", "clear", "--force"];
     argv.extend_from_slice(flags);
-    let (code, stdout, stderr) = run_at(&store, &argv);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
     assert_eq!(code, 0, "flags {flags:?} failed; stderr: {stderr}");
     assert!(
         stdout.contains("cleared"),
@@ -2587,10 +2660,10 @@ fn test_auth_clear_selector_removes_only_its_own_credential(
     );
 }
 
-#[test]
+#[tokio::test]
 #[serial_test::serial]
-fn test_xurl_dry_run_env_var_engages_dry_run() {
-    let ts = CliMockServer::new();
+async fn test_xurl_dry_run_env_var_engages_dry_run() {
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -2601,7 +2674,8 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
             .and(path("/2/tweets"))
             .respond_with(ResponseTemplate::new(200))
             .expect(0),
-    );
+    )
+    .await;
 
     // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
     //
@@ -2618,7 +2692,8 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
         &store,
         &api_env(ts.uri()),
         &["xr", "--output", "json", "post", "Hi", "--auth", "app"],
-    );
+    )
+    .await;
     unsafe {
         std::env::remove_var("XURL_DRY_RUN");
     }
@@ -2634,11 +2709,11 @@ fn test_xurl_dry_run_env_var_engages_dry_run() {
     );
 }
 
-#[test]
-fn test_dry_run_help_advertised_on_post() {
+#[tokio::test]
+async fn test_dry_run_help_advertised_on_post() {
     // Sanity: the help text MUST mention --dry-run so anc's p5-must-dry-run
     // gate sees the advertisement.
-    let (code, stdout, _stderr) = run_isolated(&["xr", "post", "--help"]);
+    let (code, stdout, _stderr) = run_isolated(&["xr", "post", "--help"]).await;
     assert_eq!(code, 0);
     assert!(
         stdout.contains("--dry-run"),
@@ -2646,9 +2721,9 @@ fn test_dry_run_help_advertised_on_post() {
     );
 }
 
-#[test]
-fn test_root_help_lists_env_vars_and_exit_codes() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]);
+#[tokio::test]
+async fn test_root_help_lists_env_vars_and_exit_codes() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
     assert_eq!(code, 0, "expected 0 for --help; stderr: {stderr}");
     assert!(
         stdout.contains("ENVIRONMENT VARIABLES:"),
@@ -2685,8 +2760,8 @@ fn test_root_help_lists_env_vars_and_exit_codes() {
 /// each `--help` carries an Examples block. Parametric coverage: a future
 /// new subcommand without examples fails this test instead of silently
 /// regressing the P3 audit.
-#[test]
-fn test_every_subcommand_help_has_examples_block() {
+#[tokio::test]
+async fn test_every_subcommand_help_has_examples_block() {
     /// The first token of each entry in a help page's `Commands:` block, so
     /// the walk needs no access to the parser definition.
     fn commands_in(help: &str) -> Vec<String> {
@@ -2709,7 +2784,7 @@ fn test_every_subcommand_help_has_examples_block() {
         args.extend(path.iter().cloned());
         args.push("--help".to_string());
         let argv: Vec<&str> = args.iter().map(String::as_str).collect();
-        let (code, stdout, stderr) = run_isolated(&argv);
+        let (code, stdout, stderr) = run_isolated(&argv).await;
         assert_eq!(
             code,
             0,
@@ -2737,14 +2812,14 @@ fn test_every_subcommand_help_has_examples_block() {
     );
 }
 
-#[test]
-fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
+#[tokio::test]
+async fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
     // The two handlers share a body shape with mute/unmute, so a copied
     // `command` value would still emit a well-formed envelope and pass every
     // other gate. Pin the name each one reports.
     for (command, target) in [("block", "@spammer"), ("unblock", "@spammer")] {
         let (code, stdout, stderr) =
-            run_isolated(&["xr", command, target, "--dry-run", "--output", "json"]);
+            run_isolated(&["xr", command, target, "--dry-run", "--output", "json"]).await;
         assert_eq!(
             code, 0,
             "expected 0 for `{command}` dry-run; stderr: {stderr}"
@@ -2758,9 +2833,9 @@ fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
     }
 }
 
-#[test]
-fn test_force_help_advertised_on_delete() {
-    let (code, stdout, _stderr) = run_isolated(&["xr", "delete", "--help"]);
+#[tokio::test]
+async fn test_force_help_advertised_on_delete() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "delete", "--help"]).await;
     assert_eq!(code, 0);
     assert!(
         stdout.contains("--force"),
@@ -2768,9 +2843,9 @@ fn test_force_help_advertised_on_delete() {
     );
 }
 
-#[test]
-fn test_limit_help_advertised_globally() {
-    let (code, stdout, _stderr) = run_isolated(&["xr", "--help"]);
+#[tokio::test]
+async fn test_limit_help_advertised_globally() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "--help"]).await;
     assert_eq!(code, 0);
     assert!(
         stdout.contains("--limit"),
@@ -2785,8 +2860,8 @@ fn test_limit_help_advertised_globally() {
 /// `xr auth default --no-interactive --output json` (no app_name supplied)
 /// must emit the canonical `no-tty` envelope on stderr and skip any dialoguer
 /// call.  Two apps are seeded so the picker would otherwise prompt.
-#[test]
-fn test_auth_default_no_interactive_emits_no_tty_envelope() {
+#[tokio::test]
+async fn test_auth_default_no_interactive_emits_no_tty_envelope() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -2807,7 +2882,8 @@ fn test_auth_default_no_interactive_emits_no_tty_envelope() {
             "--output",
             "json",
         ],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "expected non-zero exit; stdout: {stdout}");
     let trimmed = stderr.trim();
     assert!(
@@ -2831,8 +2907,8 @@ fn test_auth_default_no_interactive_emits_no_tty_envelope() {
 /// stdin/stderr are not real TTYs (cargo test) must still skip dialoguer and
 /// emit the `no-tty` envelope. The TTY check is independent of the
 /// `--no-interactive` flag.
-#[test]
-fn test_auth_default_non_tty_emits_no_tty_envelope() {
+#[tokio::test]
+async fn test_auth_default_non_tty_emits_no_tty_envelope() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -2843,7 +2919,8 @@ fn test_auth_default_non_tty_emits_no_tty_envelope() {
         .expect("add beta");
     drop(ts);
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "auth", "default", "--output", "json"]);
+    let (code, _stdout, stderr) =
+        run_at(&store, &["xr", "auth", "default", "--output", "json"]).await;
     assert_ne!(code, 0, "expected non-zero exit");
     let trimmed = stderr.trim();
     let v: serde_json::Value =
@@ -2855,8 +2932,8 @@ fn test_auth_default_non_tty_emits_no_tty_envelope() {
 /// The named-app branch of `auth default` skips the picker entirely and writes
 /// both defaults. App name and username are adjacent optional positionals, so
 /// the store read-back is what pins which argument reached which setter.
-#[test]
-fn test_auth_default_named_app_sets_default_app_and_user() {
+#[tokio::test]
+async fn test_auth_default_named_app_sets_default_app_and_user() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -2868,14 +2945,15 @@ fn test_auth_default_named_app_sets_default_app_and_user() {
         .expect("add other");
     drop(seed);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "default", "other"]);
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "default", "other"]).await;
     assert_eq!(code, 0, "auth default other failed; stderr: {stderr}");
     assert!(
         stdout.contains("Default app set to \"other\""),
         "expected the named app in the message; got: {stdout}"
     );
 
-    let (code2, stdout2, stderr2) = run_at(&store, &["xr", "auth", "default", "myapp", "alice"]);
+    let (code2, stdout2, stderr2) =
+        run_at(&store, &["xr", "auth", "default", "myapp", "alice"]).await;
     assert_eq!(
         code2, 0,
         "auth default myapp alice failed; stderr: {stderr2}"
@@ -2900,9 +2978,9 @@ fn test_auth_default_named_app_sets_default_app_and_user() {
 }
 
 /// `xr auth oauth2 --help` must advertise the new `XURL_NO_BROWSER` env var.
-#[test]
-fn test_auth_oauth2_help_advertises_no_browser_env_var() {
-    let (code, stdout, _stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]);
+#[tokio::test]
+async fn test_auth_oauth2_help_advertises_no_browser_env_var() {
+    let (code, stdout, _stderr) = run_isolated(&["xr", "auth", "oauth2", "--help"]).await;
     assert_eq!(code, 0);
     assert!(
         stdout.contains("XURL_NO_BROWSER"),
@@ -2912,7 +2990,7 @@ fn test_auth_oauth2_help_advertises_no_browser_env_var() {
 
 /// Registers one credentialed app in `store` through the CLI, so a
 /// sign-in has a client id to build its URL from.
-fn register_app_at(store: &Path) {
+async fn register_app_at(store: &Path) {
     let (code, _stdout, stderr) = run_at(
         store,
         &[
@@ -2926,7 +3004,8 @@ fn register_app_at(store: &Path) {
             "--client-secret",
             "MYAPP-SECRET",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
 }
 
@@ -2937,11 +3016,11 @@ fn register_app_at(store: &Path) {
 ///
 /// Uses a subprocess with `XURL_TOKEN_STORE` pointed at a tempdir store so
 /// the OAuth2 step-1 pending state lands beside that store.
-#[test]
-fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
+#[tokio::test]
+async fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    register_app_at(&store);
+    register_app_at(&store).await;
     let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--no-browser", "--output", "json"])
         .output()
@@ -2966,11 +3045,11 @@ fn test_auth_oauth2_no_browser_emits_awaiting_callback_envelope() {
 
 /// `XURL_NO_BROWSER=1 xr auth oauth2 --output json` is equivalent to passing
 /// `--no-browser` explicitly — env-var routing for headless runners.
-#[test]
-fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
+#[tokio::test]
+async fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    register_app_at(&store);
+    register_app_at(&store).await;
     let output = common::xr_with_store(&store)
         .env("XURL_NO_BROWSER", "1")
         .args(["auth", "oauth2", "--output", "json"])
@@ -2993,11 +3072,11 @@ fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 /// `--no-browser` nor `XURL_NO_BROWSER` is set, `xr auth oauth2 --output
 /// json` must auto-engage the headless path rather than attempting to spawn
 /// a browser. Confirms scenario 5 of the U9 plan.
-#[test]
-fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
+#[tokio::test]
+async fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    register_app_at(&store);
+    register_app_at(&store).await;
     let output = common::xr_with_store(&store)
         .args(["auth", "oauth2", "--output", "json"])
         .output()
@@ -3020,8 +3099,8 @@ fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
 
 // ── Injected environment overrides (U2) ─────────────────────────────────────
 
-#[test]
-fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
+#[tokio::test]
+async fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -3040,7 +3119,8 @@ fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
             "--redirect-uri",
             "https://stored.example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "setup failed; stderr: {stderr}");
 
     let overrides = xurl::config::EnvOverrides {
@@ -3051,7 +3131,8 @@ fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
         &store,
         &overrides,
         &["xr", "auth", "apps", "redirect-uri", "get", "myapp"],
-    );
+    )
+    .await;
 
     assert_eq!(code2, 0, "get failed; stderr: {stderr2}");
     assert!(
@@ -3068,8 +3149,8 @@ fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
     );
 }
 
-#[test]
-fn test_absent_redirect_uri_override_lets_stored_value_win() {
+#[tokio::test]
+async fn test_absent_redirect_uri_override_lets_stored_value_win() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
 
@@ -3088,14 +3169,16 @@ fn test_absent_redirect_uri_override_lets_stored_value_win() {
             "--redirect-uri",
             "https://stored.example.com/cb",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0);
 
     let (code2, stdout2, _) = run_at_with(
         &store,
         &xurl::config::EnvOverrides::default(),
         &["xr", "auth", "apps", "redirect-uri", "get", "myapp"],
-    );
+    )
+    .await;
 
     assert_eq!(code2, 0);
     assert!(
@@ -3122,10 +3205,10 @@ fn api_env_with_bearer(base_url: &str, token: &str) -> xurl::config::EnvOverride
 
 /// `XURL_BEARER_TOKEN=… xr search "x"` on an empty store must resolve the
 /// bearer from the environment and reach the endpoint, not exit 77.
-#[test]
-fn test_env_bearer_resolves_shortcut_on_empty_store() {
+#[tokio::test]
+async fn test_env_bearer_resolves_shortcut_on_empty_store() {
     use wiremock::matchers::header;
-    let ts = CliMockServer::new();
+    let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -3138,13 +3221,15 @@ fn test_env_bearer_resolves_shortcut_on_empty_store() {
                 "meta": {"result_count": 1}
             })))
             .expect(1),
-    );
+    )
+    .await;
 
     let (code, stdout, stderr) = run_at_with(
         &store,
         &api_env_with_bearer(ts.uri(), "env-bearer-value"),
         &["xr", "search", "hello"],
-    );
+    )
+    .await;
 
     assert_eq!(
         code, 0,
@@ -3158,8 +3243,8 @@ fn test_env_bearer_resolves_shortcut_on_empty_store() {
 
 /// `auth status --output json` marks the active app's bearer as present from
 /// the environment when `XURL_BEARER_TOKEN` is set and the app stores none.
-#[test]
-fn test_status_json_reports_env_bearer_on_active_app() {
+#[tokio::test]
+async fn test_status_json_reports_env_bearer_on_active_app() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_app_store(&store);
@@ -3169,7 +3254,7 @@ fn test_status_json_reports_env_bearer_on_active_app() {
         ..xurl::config::EnvOverrides::default()
     };
     let (code, stdout, stderr) =
-        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
 
     let v = parse_json(&stdout);
@@ -3197,8 +3282,8 @@ fn test_status_json_reports_env_bearer_on_active_app() {
 
 /// The text rendering of `auth status` names the env variable beside the
 /// bearer mark for the active app.
-#[test]
-fn test_status_text_reports_env_bearer_on_active_app() {
+#[tokio::test]
+async fn test_status_text_reports_env_bearer_on_active_app() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_app_store(&store);
@@ -3207,7 +3292,7 @@ fn test_status_text_reports_env_bearer_on_active_app() {
         bearer_token: Some("env-bearer-value".to_string()),
         ..xurl::config::EnvOverrides::default()
     };
-    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     assert!(
         stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
@@ -3221,13 +3306,14 @@ fn test_status_text_reports_env_bearer_on_active_app() {
 
 /// A bearer stored on the app reports `bearer_source: store`, so the two
 /// origins are distinguishable in the envelope.
-#[test]
-fn test_status_json_reports_store_bearer_source() {
+#[tokio::test]
+async fn test_status_json_reports_store_bearer_source() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let entry = v["apps"]
@@ -3245,8 +3331,8 @@ fn test_status_json_reports_store_bearer_source() {
 }
 
 /// An app with no bearer anywhere omits `bearer_source` entirely.
-#[test]
-fn test_status_json_omits_bearer_source_when_absent() {
+#[tokio::test]
+async fn test_status_json_omits_bearer_source_when_absent() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3254,7 +3340,8 @@ fn test_status_json_omits_bearer_source_when_absent() {
     ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
         .expect("add_app");
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let entry = v["apps"]
@@ -3273,8 +3360,8 @@ fn test_status_json_omits_bearer_source_when_absent() {
 
 /// On a fresh store the text status still reports the env bearer, so a
 /// bearer-only setup with nothing registered is visible.
-#[test]
-fn test_status_text_reports_env_bearer_on_fresh_store() {
+#[tokio::test]
+async fn test_status_text_reports_env_bearer_on_fresh_store() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -3282,7 +3369,7 @@ fn test_status_text_reports_env_bearer_on_fresh_store() {
         bearer_token: Some("env-bearer-value".to_string()),
         ..xurl::config::EnvOverrides::default()
     };
-    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     assert!(
         stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
@@ -3297,8 +3384,8 @@ fn test_status_text_reports_env_bearer_on_fresh_store() {
 /// With the env bearer set, an empty active app, and credentials stored on
 /// another app, a user-context endpoint still names the other app: the env
 /// bearer counts as available but does not hide the wrong-app recovery hint.
-#[test]
-fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
+#[tokio::test]
+async fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3317,7 +3404,7 @@ fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
         ..xurl::config::EnvOverrides::default()
     };
     let (code, _stdout, stderr) =
-        run_at_with(&store, &env, &["xr", "--output", "json", "like", "12345"]);
+        run_at_with(&store, &env, &["xr", "--output", "json", "like", "12345"]).await;
     assert_eq!(code, 2, "wrong-app mismatch exits 2; stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -3340,8 +3427,8 @@ fn test_env_bearer_keeps_wrong_app_hint_on_user_context_endpoint() {
 
 /// `auth apps list --output json` carries `bearer_source` through the same
 /// builder as `auth status`.
-#[test]
-fn test_apps_list_json_reports_env_bearer_source() {
+#[tokio::test]
+async fn test_apps_list_json_reports_env_bearer_source() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_app_store(&store);
@@ -3354,7 +3441,8 @@ fn test_apps_list_json_reports_env_bearer_source() {
         &store,
         &env,
         &["xr", "--output", "json", "auth", "apps", "list"],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "apps list failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let entry = v["apps"]
@@ -3371,8 +3459,8 @@ fn test_apps_list_json_reports_env_bearer_source() {
 
 /// When both a stored bearer and the env bearer exist, the env value wins
 /// the precedence chain and status reports it as the source.
-#[test]
-fn test_status_json_env_bearer_wins_over_stored_bearer() {
+#[tokio::test]
+async fn test_status_json_env_bearer_wins_over_stored_bearer() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
@@ -3382,7 +3470,7 @@ fn test_status_json_env_bearer_wins_over_stored_bearer() {
         ..xurl::config::EnvOverrides::default()
     };
     let (code, stdout, stderr) =
-        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]);
+        run_at_with(&store, &env, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let entry = v["apps"]
@@ -3400,8 +3488,8 @@ fn test_status_json_env_bearer_wins_over_stored_bearer() {
 }
 
 /// `--app NAME` moves the env bearer mark to NAME's entry and off the default.
-#[test]
-fn test_status_json_env_bearer_follows_app_flag() {
+#[tokio::test]
+async fn test_status_json_env_bearer_follows_app_flag() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_app_store(&store)
@@ -3418,7 +3506,8 @@ fn test_status_json_env_bearer_follows_app_flag() {
         &[
             "xr", "--app", "otherapp", "--output", "json", "auth", "status",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "auth status failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let arr = v["apps"]
@@ -3449,8 +3538,8 @@ fn test_status_json_env_bearer_follows_app_flag() {
 /// The README Quick Start on a fresh install: register an app, then start
 /// the headless sign-in. The authorization URL must carry the registered
 /// app's client id, which requires that app to be the default.
-#[test]
-fn test_fresh_store_quick_start_uses_registered_client_id() {
+#[tokio::test]
+async fn test_fresh_store_quick_start_uses_registered_client_id() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -3467,7 +3556,8 @@ fn test_fresh_store_quick_start_uses_registered_client_id() {
             "--client-secret",
             "MYAPP-SECRET",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "apps add failed; stderr: {stderr}");
 
     let (code, stdout, stderr) = run_at(
@@ -3482,7 +3572,8 @@ fn test_fresh_store_quick_start_uses_registered_client_id() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "step 1 failed; stderr: {stderr}");
     let v = parse_json(&stdout);
     let url = v["auth_url"].as_str().expect("auth_url present");
@@ -3493,8 +3584,8 @@ fn test_fresh_store_quick_start_uses_registered_client_id() {
 }
 
 /// A store file neither parser accepts is reported, never overwritten.
-#[test]
-fn test_unparseable_store_is_never_overwritten() {
+#[tokio::test]
+async fn test_unparseable_store_is_never_overwritten() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let garbage = b"\x00\x01 this is not yaml or json \x02\x03";
@@ -3513,7 +3604,8 @@ fn test_unparseable_store_is_never_overwritten() {
             "--client-secret",
             "MYAPP-SECRET",
         ],
-    );
+    )
+    .await;
     assert_ne!(
         code, 0,
         "apps add must refuse a damaged store; stderr: {stderr}"
@@ -3531,12 +3623,12 @@ fn test_unparseable_store_is_never_overwritten() {
 
 /// `auth status` on an empty store prints the registration sentence and
 /// exits 0; structured mode prints an empty array.
-#[test]
-fn test_status_on_empty_store_names_the_registration_command() {
+#[tokio::test]
+async fn test_status_on_empty_store_names_the_registration_command() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]);
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0, "an empty store is not an error; stderr: {stderr}");
     assert!(
         stdout.contains(
@@ -3545,7 +3637,7 @@ fn test_status_on_empty_store_names_the_registration_command() {
         "got:\n{stdout}"
     );
 
-    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]);
+    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
     assert_eq!(code, 0);
     assert_eq!(
         parse_json(&stdout),
@@ -3555,8 +3647,8 @@ fn test_status_on_empty_store_names_the_registration_command() {
 }
 
 /// With `XURL_BEARER_TOKEN` set, the empty-store text adds the bearer line.
-#[test]
-fn test_status_on_empty_store_reports_the_env_bearer() {
+#[tokio::test]
+async fn test_status_on_empty_store_reports_the_env_bearer() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = xurl::config::EnvOverrides {
@@ -3564,7 +3656,7 @@ fn test_status_on_empty_store_reports_the_env_bearer() {
         ..xurl::config::EnvOverrides::default()
     };
 
-    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]);
+    let (code, stdout, stderr) = run_at_with(&store, &env, &["xr", "auth", "status"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(stdout.contains("No apps registered"), "got:\n{stdout}");
     assert!(
@@ -3576,8 +3668,8 @@ fn test_status_on_empty_store_reports_the_env_bearer() {
 
 /// The first registered app is the default and the message names the
 /// plain sign-in; the second is not and its message names `--app`.
-#[test]
-fn test_apps_add_message_names_the_next_command() {
+#[tokio::test]
+async fn test_apps_add_message_names_the_next_command() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -3594,7 +3686,8 @@ fn test_apps_add_message_names_the_next_command() {
             "--client-secret",
             "B",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.contains("(default)"),
@@ -3621,7 +3714,8 @@ fn test_apps_add_message_names_the_next_command() {
             "--client-secret",
             "D",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["default"], serde_json::Value::Bool(false), "got: {v}");
@@ -3633,8 +3727,8 @@ fn test_apps_add_message_names_the_next_command() {
 }
 
 /// `apps add` rejects a name outside the allowed set.
-#[test]
-fn test_apps_add_rejects_a_spaced_name() {
+#[tokio::test]
+async fn test_apps_add_rejects_a_spaced_name() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let (code, _stdout, stderr) = run_at(
@@ -3650,15 +3744,16 @@ fn test_apps_add_rejects_a_spaced_name() {
             "--client-secret",
             "B",
         ],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "a spaced name must be rejected");
     assert!(stderr.contains("my app"), "names the value; got: {stderr}");
 }
 
 /// Sign-in on an empty store refuses before building a URL or writing the
 /// pending file, and hands an agent a registration template.
-#[test]
-fn test_oauth2_on_empty_store_refuses_with_register_app() {
+#[tokio::test]
+async fn test_oauth2_on_empty_store_refuses_with_register_app() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -3674,7 +3769,8 @@ fn test_oauth2_on_empty_store_refuses_with_register_app() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
     let v: serde_json::Value =
@@ -3690,8 +3786,8 @@ fn test_oauth2_on_empty_store_refuses_with_register_app() {
 
 /// With a credentialed app present but a credential-less one selected, the
 /// refusal names the app to use.
-#[test]
-fn test_oauth2_with_blank_target_names_the_credentialed_app() {
+#[tokio::test]
+async fn test_oauth2_with_blank_target_names_the_credentialed_app() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3714,7 +3810,8 @@ fn test_oauth2_with_blank_target_names_the_credentialed_app() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 2, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -3728,8 +3825,8 @@ fn test_oauth2_with_blank_target_names_the_credentialed_app() {
 }
 
 /// `--app NAME` picks that app's client id for the sign-in URL.
-#[test]
-fn test_oauth2_step1_uses_the_named_app_client_id() {
+#[tokio::test]
+async fn test_oauth2_step1_uses_the_named_app_client_id() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3753,7 +3850,8 @@ fn test_oauth2_step1_uses_the_named_app_client_id() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let url = parse_json(&stdout)["auth_url"]
         .as_str()
@@ -3764,8 +3862,8 @@ fn test_oauth2_step1_uses_the_named_app_client_id() {
 
 /// Env credentials drive a sign-in on an empty store and the token lands on
 /// a lazily created `default`.
-#[test]
-fn test_env_client_id_signs_in_on_an_empty_store() {
+#[tokio::test]
+async fn test_env_client_id_signs_in_on_an_empty_store() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = xurl::config::EnvOverrides {
@@ -3787,7 +3885,8 @@ fn test_env_client_id_signs_in_on_an_empty_store() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(
         code, 0,
         "env credentials must start the flow; stderr: {stderr}"
@@ -3800,8 +3899,8 @@ fn test_env_client_id_signs_in_on_an_empty_store() {
 }
 
 /// Registering beside exported env credentials writes no env secret.
-#[test]
-fn test_apps_add_with_env_credentials_writes_no_env_secret() {
+#[tokio::test]
+async fn test_apps_add_with_env_credentials_writes_no_env_secret() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = xurl::config::EnvOverrides {
@@ -3824,7 +3923,8 @@ fn test_apps_add_with_env_credentials_writes_no_env_secret() {
             "--client-secret",
             "MYAPP-SECRET",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let written = std::fs::read_to_string(&store).expect("store written");
     assert!(
@@ -3839,15 +3939,16 @@ fn test_apps_add_with_env_credentials_writes_no_env_secret() {
 
 /// The text rendering of the sign-in refusal names the app and the fix, and
 /// a structured caller is not required to read it.
-#[test]
-fn test_oauth2_refusal_text_names_the_registration_command() {
+#[tokio::test]
+async fn test_oauth2_refusal_text_names_the_registration_command() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
     let (code, stdout, stderr) = run_at(
         &store,
         &["xr", "auth", "oauth2", "--no-browser", "--step", "1"],
-    );
+    )
+    .await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert!(stdout.is_empty(), "no URL is printed; stdout: {stdout}");
     assert!(
@@ -3857,8 +3958,8 @@ fn test_oauth2_refusal_text_names_the_registration_command() {
 }
 
 /// A bad app name is a usage mistake, not an authentication failure.
-#[test]
-fn test_apps_add_spaced_name_is_a_validation_error() {
+#[tokio::test]
+async fn test_apps_add_spaced_name_is_a_validation_error() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let (code, _stdout, stderr) = run_at(
@@ -3876,7 +3977,8 @@ fn test_apps_add_spaced_name_is_a_validation_error() {
             "--client-secret",
             "B",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 1, "a rejected name is not exit 77; stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -3889,12 +3991,13 @@ fn test_apps_add_spaced_name_is_a_validation_error() {
 #[case::status(&["xr", "auth", "status"])]
 #[case::apps_list(&["xr", "auth", "apps", "list"])]
 #[case::status_json(&["xr", "--output", "json", "auth", "status"])]
-fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
+#[tokio::test]
+async fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     std::fs::write(&store, b"\x00\x01 neither yaml nor json \x02").expect("seed");
 
-    let (code, stdout, stderr) = run_at(&store, args);
+    let (code, stdout, stderr) = run_at(&store, args).await;
     assert_ne!(
         code, 0,
         "a damaged store is not an empty one; args: {args:?}"
@@ -3910,19 +4013,20 @@ fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
 }
 
 /// `auth apps list` mirrors `auth status` on an empty store.
-#[test]
-fn test_apps_list_on_empty_store_matches_status() {
+#[tokio::test]
+async fn test_apps_list_on_empty_store_matches_status() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "list"]);
+    let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "list"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
         stdout.contains("No apps registered. Run: xr auth apps add"),
         "got:\n{stdout}"
     );
 
-    let (code, stdout, _) = run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]);
+    let (code, stdout, _) =
+        run_at(&store, &["xr", "--output", "json", "auth", "apps", "list"]).await;
     assert_eq!(code, 0);
     assert_eq!(
         parse_json(&stdout),
@@ -3934,7 +4038,7 @@ fn test_apps_list_on_empty_store_matches_status() {
         bearer_token: Some("env-bearer-value".to_string()),
         ..xurl::config::EnvOverrides::default()
     };
-    let (code, stdout, _) = run_at_with(&store, &env, &["xr", "auth", "apps", "list"]);
+    let (code, stdout, _) = run_at_with(&store, &env, &["xr", "auth", "apps", "list"]).await;
     assert_eq!(code, 0);
     assert!(
         stdout.contains("bearer: \u{2713} [XURL_BEARER_TOKEN environment variable]"),
@@ -3944,8 +4048,8 @@ fn test_apps_list_on_empty_store_matches_status() {
 
 /// Naming a credential-less app explicitly, with no alternative available,
 /// reports that app rather than the generic sentence.
-#[test]
-fn test_oauth2_explicit_blank_app_names_that_app() {
+#[tokio::test]
+async fn test_oauth2_explicit_blank_app_names_that_app() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3964,7 +4068,8 @@ fn test_oauth2_explicit_blank_app_names_that_app() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert!(stderr.contains("\"blank\""), "names the app; got: {stderr}");
 }
@@ -4020,10 +4125,10 @@ fn test_verb_local_error_envelopes_match_the_declared_body(
 
 /// `xr --quiet whoami` on an empty store reaches `whoami` and its auth
 /// error, not the raw-mode "No URL provided" path.
-#[test]
+#[tokio::test]
 #[serial_test::parallel]
-fn test_quiet_whoami_reaches_whoami() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--quiet", "whoami"]);
+async fn test_quiet_whoami_reaches_whoami() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--quiet", "whoami"]).await;
     assert_eq!(
         code, 77,
         "whoami on an empty store exits 77; stderr: {stderr}"
@@ -4057,24 +4162,25 @@ fn spawn_with_env(
 }
 
 /// Mounts the bearer-capable search endpoint returning a compact JSON body.
-fn mock_search(ts: &CliMockServer) {
+async fn mock_search(ts: &CliMockServer) {
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_string(r#"{"data":[{"id":"1","text":"hi"}]}"#),
             ),
-    );
+    )
+    .await;
 }
 
 const SEARCH_PATH: &str = "/2/tweets/search/recent?query=hi";
 
 /// An env-provided true is read through the value parser and `--flag=false`
 /// still overrides it, for each of the six env-backed boolean flags.
-#[test]
-fn test_env_true_then_equals_false_verbose() {
-    let ts = CliMockServer::new();
-    mock_search(&ts);
+#[tokio::test]
+async fn test_env_true_then_equals_false_verbose() {
+    let ts = CliMockServer::new().await;
+    mock_search(&ts).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = [("XURL_VERBOSE", "true")];
@@ -4099,10 +4205,10 @@ fn test_env_true_then_equals_false_verbose() {
     );
 }
 
-#[test]
-fn test_env_true_then_equals_false_quiet() {
-    let ts = CliMockServer::new();
-    mock_search(&ts);
+#[tokio::test]
+async fn test_env_true_then_equals_false_quiet() {
+    let ts = CliMockServer::new().await;
+    mock_search(&ts).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = [("XURL_QUIET", "true"), ("XURL_VERBOSE", "true")];
@@ -4127,10 +4233,10 @@ fn test_env_true_then_equals_false_quiet() {
     );
 }
 
-#[test]
-fn test_env_true_then_equals_false_raw() {
-    let ts = CliMockServer::new();
-    mock_search(&ts);
+#[tokio::test]
+async fn test_env_true_then_equals_false_raw() {
+    let ts = CliMockServer::new().await;
+    mock_search(&ts).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = [("XURL_RAW", "true")];
@@ -4276,13 +4382,14 @@ fn seeded_store(tmp: &TempDir) -> std::path::PathBuf {
 #[case::default(&["auth", "default", "myapp"], &["message"])]
 #[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], &["message"])]
 #[case::apps_remove(&["auth", "apps", "remove", "myapp", "--force"], &["message"])]
-fn test_auth_verbs_emit_status_ok(#[case] args: &[&str], #[case] expected_keys: &[&str]) {
+#[tokio::test]
+async fn test_auth_verbs_emit_status_ok(#[case] args: &[&str], #[case] expected_keys: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
     let mut argv = vec!["xr", "--output", "json"];
     argv.extend_from_slice(args);
-    let (code, stdout, stderr) = run_at(&store, &argv);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
     assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
 
     let v = parse_json(&stdout);
@@ -4296,8 +4403,8 @@ fn test_auth_verbs_emit_status_ok(#[case] args: &[&str], #[case] expected_keys: 
 }
 
 /// The headless step-1 object gains `status` and keeps its documented keys.
-#[test]
-fn test_oauth2_step1_envelope_carries_status_ok() {
+#[tokio::test]
+async fn test_oauth2_step1_envelope_carries_status_ok() {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
@@ -4313,7 +4420,8 @@ fn test_oauth2_step1_envelope_carries_status_ok() {
             "--step",
             "1",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "ok", "got: {v}");
@@ -4326,13 +4434,14 @@ fn test_oauth2_step1_envelope_carries_status_ok() {
 #[rstest::rstest]
 #[case::status(&["auth", "status"])]
 #[case::apps_list(&["auth", "apps", "list"])]
-fn test_list_shaped_verbs_wrap_entries_under_apps(#[case] args: &[&str]) {
+#[tokio::test]
+async fn test_list_shaped_verbs_wrap_entries_under_apps(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
     let mut argv = vec!["xr", "--output", "json"];
     argv.extend_from_slice(args);
-    let (code, stdout, stderr) = run_at(&store, &argv);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(
@@ -4350,14 +4459,16 @@ fn test_list_shaped_verbs_wrap_entries_under_apps(#[case] args: &[&str]) {
 #[rstest::rstest]
 #[case::jsonl("jsonl")]
 #[case::yaml("yaml")]
-fn test_status_ok_holds_across_structured_formats(#[case] format: &str) {
+#[tokio::test]
+async fn test_status_ok_holds_across_structured_formats(#[case] format: &str) {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
     let (code, stdout, stderr) = run_at(
         &store,
         &["xr", "--output", format, "auth", "default", "myapp"],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "format {format} failed; stderr: {stderr}");
     assert!(
         stdout.contains("ok"),
@@ -4374,13 +4485,14 @@ fn test_status_ok_holds_across_structured_formats(#[case] format: &str) {
 #[case::apps_update(&["auth", "apps", "update", "myapp", "--client-id", "NEW"], "updated")]
 #[case::default(&["auth", "default", "myapp"], "Default app set to")]
 #[case::app_bearer(&["auth", "app", "--bearer-token", "TOK"], "App authentication successful")]
-fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) {
+#[tokio::test]
+async fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) {
     let tmp = TempDir::new().expect("tempdir");
     let store = seeded_store(&tmp);
 
     let mut argv = vec!["xr"];
     argv.extend_from_slice(args);
-    let (code, stdout, stderr) = run_at(&store, &argv);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
     assert_eq!(code, 0, "args {args:?} failed; stderr: {stderr}");
     assert!(stdout.contains(expected), "args {args:?}; got: {stdout}");
     assert!(
@@ -4395,12 +4507,12 @@ fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: &str) 
 
 /// The JSON baseline. Every key the no-credentials envelope carries today
 /// must survive byte-identical, and `next_step` must be the only addition.
-#[test]
-fn test_no_credentials_envelope_keeps_every_existing_key() {
+#[tokio::test]
+async fn test_no_credentials_envelope_keeps_every_existing_key() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -4424,12 +4536,12 @@ fn test_no_credentials_envelope_keeps_every_existing_key() {
 }
 
 /// Text mode on an empty store points at registration.
-#[test]
-fn test_hint_empty_store_names_registration() {
+#[tokio::test]
+async fn test_hint_empty_store_names_registration() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(
         stderr.contains("Auth Error: NoAuthMethod"),
@@ -4442,13 +4554,13 @@ fn test_hint_empty_store_names_registration() {
 }
 
 /// One credentialed app with no tokens points at sign-in, not registration.
-#[test]
-fn test_hint_credentialed_app_names_sign_in() {
+#[tokio::test]
+async fn test_hint_credentialed_app_names_sign_in() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_app_store(&store);
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
     assert!(
@@ -4458,8 +4570,8 @@ fn test_hint_credentialed_app_names_sign_in() {
 }
 
 /// A credentialed app that is not the target is named with `--app`.
-#[test]
-fn test_hint_names_the_credentialed_alternative() {
+#[tokio::test]
+async fn test_hint_names_the_credentialed_alternative() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -4468,7 +4580,7 @@ fn test_hint_names_the_credentialed_alternative() {
         .expect("add work");
     ts.add_app("blank", "", "").expect("add blank");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "--app", "blank", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--app", "blank", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(
         stderr.contains("--app work"),
@@ -4478,8 +4590,8 @@ fn test_hint_names_the_credentialed_alternative() {
 
 /// An app already holding tokens turns the hint into a rerun of this very
 /// invocation with `--app` inserted.
-#[test]
-fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
+#[tokio::test]
+async fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
     use xurl::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -4494,7 +4606,7 @@ fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
     // A raw URL has no endpoint matrix entry, so this reaches the generic
     // no-credentials error rather than the wrong-app envelope.
     let (code, _stdout, stderr) =
-        run_at(&store, &["xr", "--output", "json", "/2/some/unmapped/path"]);
+        run_at(&store, &["xr", "--output", "json", "/2/some/unmapped/path"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -4509,8 +4621,8 @@ fn test_hint_reruns_the_invocation_against_the_signed_in_app() {
 
 /// Exported client credentials mean sign-in, not registration, even with an
 /// empty store: the snapshot carries what the environment supplied.
-#[test]
-fn test_hint_env_client_id_names_sign_in() {
+#[tokio::test]
+async fn test_hint_env_client_id_names_sign_in() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let env = xurl::config::EnvOverrides {
@@ -4519,20 +4631,20 @@ fn test_hint_env_client_id_names_sign_in() {
         ..xurl::config::EnvOverrides::default()
     };
 
-    let (code, _stdout, stderr) = run_at_with(&store, &env, &["xr", "whoami"]);
+    let (code, _stdout, stderr) = run_at_with(&store, &env, &["xr", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(stderr.contains("xr auth oauth2"), "got: {stderr}");
     assert!(!stderr.contains("apps add"), "got: {stderr}");
 }
 
 /// A store the loader could not read sends the reader to the file, naming it.
-#[test]
-fn test_hint_unreadable_store_names_the_path() {
+#[tokio::test]
+async fn test_hint_unreadable_store_names_the_path() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join("store-as-directory");
     std::fs::create_dir(&store).expect("seed a directory");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(
         stderr.contains(store.to_str().expect("utf-8 path")),
@@ -4545,12 +4657,12 @@ fn test_hint_unreadable_store_names_the_path() {
 }
 
 /// `--quiet` suppresses the advice and never the error.
-#[test]
-fn test_hint_is_suppressed_under_quiet() {
+#[tokio::test]
+async fn test_hint_is_suppressed_under_quiet() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami", "--quiet"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "whoami", "--quiet"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     assert!(stderr.contains("Auth Error: NoAuthMethod"), "got: {stderr}");
     assert!(
@@ -4586,11 +4698,12 @@ fn test_hint_carries_no_escape_sequences_under_no_color() {
 #[case::json("json")]
 #[case::jsonl("jsonl")]
 #[case::yaml("yaml")]
-fn test_hint_reaches_every_structured_format(#[case] format: &str) {
+#[tokio::test]
+async fn test_hint_reaches_every_structured_format(#[case] format: &str) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", format, "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", format, "whoami"]).await;
     assert_eq!(code, 77, "format {format}; stderr: {stderr}");
     assert!(
         stderr.contains("next_step") && stderr.contains("register-app"),
@@ -4603,12 +4716,12 @@ fn test_hint_reaches_every_structured_format(#[case] format: &str) {
 }
 
 /// An unrelated error carries no hint at all.
-#[test]
-fn test_other_errors_carry_no_hint() {
+#[tokio::test]
+async fn test_other_errors_carry_no_hint() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "example.com"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "example.com"]).await;
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -4619,8 +4732,8 @@ fn test_other_errors_carry_no_hint() {
 }
 
 /// A grandfathered spaced app name is quoted wherever a hint prints it.
-#[test]
-fn test_hint_quotes_a_spaced_app_name() {
+#[tokio::test]
+async fn test_hint_quotes_a_spaced_app_name() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     std::fs::write(
@@ -4629,7 +4742,7 @@ fn test_hint_quotes_a_spaced_app_name() {
     )
     .expect("seed a store holding a spaced name");
 
-    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]);
+    let (code, _stdout, stderr) = run_at(&store, &["xr", "--output", "json", "whoami"]).await;
     assert_eq!(code, 77, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -4645,13 +4758,14 @@ fn test_hint_quotes_a_spaced_app_name() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Runs a shortcut against a mock returning `body` with the given status.
-fn run_against_canned_response(status: u16, body: &str) -> (i32, String, String) {
-    let ts = CliMockServer::new();
+async fn run_against_canned_response(status: u16, body: &str) -> (i32, String, String) {
+    let ts = CliMockServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(ResponseTemplate::new(status).set_body_string(body)),
-    );
+    )
+    .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     run_at_with(
@@ -4659,14 +4773,15 @@ fn run_against_canned_response(status: u16, body: &str) -> (i32, String, String)
         &api_env_with_bearer(ts.uri(), "env-bearer-value"),
         &["xr", "--output", "json", "search", "hello"],
     )
+    .await
 }
 
 /// The JSON baseline: a canned 403 keeps every key it carries today and
 /// gains `next_step` as the only addition.
-#[test]
-fn test_enrollment_403_envelope_keeps_every_existing_key() {
+#[tokio::test]
+async fn test_enrollment_403_envelope_keeps_every_existing_key() {
     let body = r#"{"title":"Unsupported Authentication","detail":"Your client is not enrolled: client-not-enrolled","status":403}"#;
-    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    let (code, _stdout, stderr) = run_against_canned_response(403, body).await;
     assert_ne!(code, 0, "stderr: {stderr}");
 
     let v: serde_json::Value =
@@ -4700,23 +4815,25 @@ fn test_enrollment_403_envelope_keeps_every_existing_key() {
 }
 
 /// Text mode quotes the body's detail line and points at the recipe.
-#[test]
-fn test_enrollment_403_text_quotes_the_detail() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_enrollment_403_text_quotes_the_detail() {
+    let ts = CliMockServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(ResponseTemplate::new(403).set_body_string(
                 r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
             )),
-    );
+    )
+    .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env_with_bearer(ts.uri(), "env-bearer-value"),
         &["xr", "search", "hello"],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "stderr: {stderr}");
     assert!(
         stderr.contains("Your client is not enrolled"),
@@ -4730,32 +4847,34 @@ fn test_enrollment_403_text_quotes_the_detail() {
 
 /// The other marker fires too, and a body with no detail simply omits the
 /// quote.
-#[test]
-fn test_enrollment_403_without_detail_omits_the_quote() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_enrollment_403_without_detail_omits_the_quote() {
+    let ts = CliMockServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(
                 ResponseTemplate::new(403).set_body_string(r#"{"title":"client-forbidden"}"#),
             ),
-    );
+    )
+    .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env_with_bearer(ts.uri(), "env-bearer-value"),
         &["xr", "search", "hello"],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "stderr: {stderr}");
     assert!(stderr.contains("Troubleshooting"), "got: {stderr}");
 }
 
 /// A 403 that is not an enrollment refusal carries no hint.
-#[test]
-fn test_unrelated_403_carries_no_hint() {
+#[tokio::test]
+async fn test_unrelated_403_carries_no_hint() {
     let body = r#"{"title":"Forbidden","detail":"You cannot like your own post","status":403}"#;
-    let (code, _stdout, stderr) = run_against_canned_response(403, body);
+    let (code, _stdout, stderr) = run_against_canned_response(403, body).await;
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -4766,23 +4885,25 @@ fn test_unrelated_403_carries_no_hint() {
 }
 
 /// `--quiet` keeps the error line and drops the advice.
-#[test]
-fn test_enrollment_403_hint_is_suppressed_under_quiet() {
-    let ts = CliMockServer::new();
+#[tokio::test]
+async fn test_enrollment_403_hint_is_suppressed_under_quiet() {
+    let ts = CliMockServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/tweets/search/recent"))
             .respond_with(ResponseTemplate::new(403).set_body_string(
                 r#"{"detail":"Your client is not enrolled: client-not-enrolled","status":403}"#,
             )),
-    );
+    )
+    .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let (code, _stdout, stderr) = run_at_with(
         &store,
         &api_env_with_bearer(ts.uri(), "env-bearer-value"),
         &["xr", "search", "hello", "--quiet"],
-    );
+    )
+    .await;
     assert_ne!(code, 0, "stderr: {stderr}");
     assert!(
         !stderr.contains("Troubleshooting"),

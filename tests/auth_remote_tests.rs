@@ -21,30 +21,19 @@ use xurl::store::{App, TokenStore};
 // ── Test helpers ───────────────────────────────────────────────────────
 
 struct TestServer {
-    _rt: tokio::runtime::Runtime,
-    server: &'static MockServer,
+    server: MockServer,
     uri: String,
 }
 
 impl TestServer {
-    fn new() -> Self {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let server = rt.block_on(async {
-            let s = MockServer::start().await;
-            Box::leak(Box::new(s))
-        });
+    async fn new() -> Self {
+        let server = MockServer::start().await;
         let uri = server.uri();
-        Self {
-            _rt: rt,
-            server,
-            uri,
-        }
+        Self { server, uri }
     }
 
-    fn mount(&self, mock: Mock) {
-        self._rt.block_on(async {
-            mock.mount(self.server).await;
-        });
+    async fn mount(&self, mock: Mock) {
+        mock.mount(&self.server).await;
     }
 
     fn uri(&self) -> &str {
@@ -57,6 +46,10 @@ impl TestServer {
 fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
     let store_path = token_store.file_path.clone();
     Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+}
+
+fn http() -> reqwest::Client {
+    reqwest::Client::new()
 }
 
 fn create_test_config(base_url: &str) -> Config {
@@ -105,9 +98,9 @@ fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
 
 // ── Step 1 tests ──────────────────────────────────────────────────────
 
-#[test]
-fn step1_creates_pending_file_and_returns_auth_url() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step1_creates_pending_file_and_returns_auth_url() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -139,9 +132,9 @@ fn step1_creates_pending_file_and_returns_auth_url() {
     assert!(!state.state.is_empty());
 }
 
-#[test]
-fn step1_overwrites_existing_pending_file() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step1_overwrites_existing_pending_file() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -161,9 +154,9 @@ fn step1_overwrites_existing_pending_file() {
 
 // ── Step 2 tests ──────────────────────────────────────────────────────
 
-#[test]
-fn step2_happy_path_exchanges_code_and_saves_token() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_happy_path_exchanges_code_and_saves_token() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -182,7 +175,8 @@ fn step2_happy_path_exchanges_code_and_saves_token() {
                 "expires_in": 7200,
                 "token_type": "bearer"
             }))),
-    );
+    )
+    .await;
 
     // Mock /2/users/me for username resolution
     ts.mount(
@@ -191,7 +185,8 @@ fn step2_happy_path_exchanges_code_and_saves_token() {
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "12345", "username": "remoteuser"}
             }))),
-    );
+    )
+    .await;
 
     // Build a fake redirect URL with the correct state (properly encoded)
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
@@ -203,7 +198,8 @@ fn step2_happy_path_exchanges_code_and_saves_token() {
 
     // Step 2
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap();
 
     assert_eq!(access_token, "remote-access-token");
@@ -219,9 +215,9 @@ fn step2_happy_path_exchanges_code_and_saves_token() {
     assert_eq!(oauth2.refresh_token, "remote-refresh-token");
 }
 
-#[test]
-fn step2_with_explicit_username_skips_resolution() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_with_explicit_username_skips_resolution() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -237,7 +233,8 @@ fn step2_with_explicit_username_skips_resolution() {
                 "refresh_token": "explicit-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -247,7 +244,8 @@ fn step2_with_explicit_username_skips_resolution() {
     let redirect_url = redirect.to_string();
 
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "explicituser", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "explicituser", &pending_path)
+        .await
         .unwrap();
 
     assert_eq!(access_token, "explicit-token");
@@ -258,19 +256,21 @@ fn step2_with_explicit_username_skips_resolution() {
     );
 }
 
-#[test]
-fn step2_without_prior_step1_returns_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_without_prior_step1_returns_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
 
     let err = auth
         .remote_oauth2_step2(
+            &http(),
             "http://localhost:8080/callback?code=abc&state=xyz",
             "",
             &pending_path,
         )
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -280,9 +280,9 @@ fn step2_without_prior_step1_returns_error() {
     );
 }
 
-#[test]
-fn step2_state_mismatch_returns_error_and_preserves_pending() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_state_mismatch_returns_error_and_preserves_pending() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -292,7 +292,8 @@ fn step2_state_mismatch_returns_error_and_preserves_pending() {
     let redirect_url = "http://localhost:8080/callback?code=abc&state=wrong-state";
 
     let err = auth
-        .remote_oauth2_step2(redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -305,9 +306,9 @@ fn step2_state_mismatch_returns_error_and_preserves_pending() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_missing_code_parameter_returns_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_missing_code_parameter_returns_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -323,7 +324,8 @@ fn step2_missing_code_parameter_returns_error() {
     let redirect_url = redirect.to_string();
 
     let err = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -336,9 +338,9 @@ fn step2_missing_code_parameter_returns_error() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_client_id_mismatch_returns_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_client_id_mismatch_returns_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let pending_path = tmp.path().join(".xurl.pending");
 
@@ -387,7 +389,8 @@ fn step2_client_id_mismatch_returns_error() {
     let redirect_url = redirect.to_string();
 
     let err = auth2
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -400,9 +403,9 @@ fn step2_client_id_mismatch_returns_error() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_expired_pending_returns_ttl_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_expired_pending_returns_ttl_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -419,10 +422,12 @@ fn step2_expired_pending_returns_ttl_error() {
 
     let err = auth
         .remote_oauth2_step2(
+            &http(),
             "http://localhost:8080/callback?code=abc&state=state",
             "",
             &pending_path,
         )
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -435,9 +440,9 @@ fn step2_expired_pending_returns_ttl_error() {
     assert!(!pending_path.exists());
 }
 
-#[test]
-fn step2_failed_exchange_preserves_pending_for_retry() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_failed_exchange_preserves_pending_for_retry() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -453,7 +458,8 @@ fn step2_failed_exchange_preserves_pending_for_retry() {
                 "error": "invalid_grant",
                 "error_description": "Authorization code expired"
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -463,7 +469,8 @@ fn step2_failed_exchange_preserves_pending_for_retry() {
     let redirect_url = redirect.to_string();
 
     let err = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     // Should be a token exchange error
@@ -477,9 +484,9 @@ fn step2_failed_exchange_preserves_pending_for_retry() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step1_auth_url_contains_redirect_uri() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step1_auth_url_contains_redirect_uri() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -489,11 +496,11 @@ fn step1_auth_url_contains_redirect_uri() {
     assert!(auth_url.contains("localhost"));
 }
 
-#[test]
-fn full_round_trip_token_matches_interactive_format() {
+#[tokio::test]
+async fn full_round_trip_token_matches_interactive_format() {
     // Verify the token saved by remote flow is identical in structure
     // to what the interactive flow would produce.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -509,7 +516,8 @@ fn full_round_trip_token_matches_interactive_format() {
                 "refresh_token": "rt-456",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
 
     ts.mount(
         Mock::given(method("GET"))
@@ -517,7 +525,8 @@ fn full_round_trip_token_matches_interactive_format() {
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "1", "username": "testuser"}
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -526,7 +535,8 @@ fn full_round_trip_token_matches_interactive_format() {
         .append_pair("state", &state.state);
     let redirect_url = redirect.to_string();
 
-    auth.remote_oauth2_step2(&redirect_url, "", &pending_path)
+    auth.remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap();
 
     let token = auth
@@ -542,16 +552,19 @@ fn full_round_trip_token_matches_interactive_format() {
 
 // ── Adversarial / Red Team Tests ──────────────────────────────────────
 
-#[test]
-fn step2_empty_redirect_url_returns_parse_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_empty_redirect_url_returns_parse_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
 
     auth.remote_oauth2_step1(&pending_path).unwrap();
 
-    let err = auth.remote_oauth2_step2("", "", &pending_path).unwrap_err();
+    let err = auth
+        .remote_oauth2_step2(&http(), "", "", &pending_path)
+        .await
+        .unwrap_err();
 
     let msg = err.to_string();
     assert!(
@@ -562,9 +575,9 @@ fn step2_empty_redirect_url_returns_parse_error() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_garbage_redirect_url_returns_parse_error() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_garbage_redirect_url_returns_parse_error() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -572,7 +585,8 @@ fn step2_garbage_redirect_url_returns_parse_error() {
     auth.remote_oauth2_step1(&pending_path).unwrap();
 
     let err = auth
-        .remote_oauth2_step2("not a url at all!!!", "", &pending_path)
+        .remote_oauth2_step2(&http(), "not a url at all!!!", "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -583,10 +597,10 @@ fn step2_garbage_redirect_url_returns_parse_error() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_redirect_with_error_param_returns_missing_code() {
+#[tokio::test]
+async fn step2_redirect_with_error_param_returns_missing_code() {
     // When the user denies authorization, Twitter redirects with ?error=access_denied
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -594,11 +608,11 @@ fn step2_redirect_with_error_param_returns_missing_code() {
     auth.remote_oauth2_step1(&pending_path).unwrap();
 
     let err = auth
-        .remote_oauth2_step2(
+        .remote_oauth2_step2(&http(),
             "http://localhost:8080/callback?error=access_denied&error_description=The+user+denied+the+request",
             "",
             &pending_path,
-        )
+        ).await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -609,10 +623,10 @@ fn step2_redirect_with_error_param_returns_missing_code() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_token_exchange_200_but_no_access_token() {
+#[tokio::test]
+async fn step2_token_exchange_200_but_no_access_token() {
     // Twitter returns 200 but with an error body (no access_token field)
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -627,7 +641,8 @@ fn step2_token_exchange_200_but_no_access_token() {
                 "error": "invalid_request",
                 "error_description": "Value passed for the authorization code was invalid."
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -637,7 +652,8 @@ fn step2_token_exchange_200_but_no_access_token() {
     let redirect_url = redirect.to_string();
 
     let err = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -649,13 +665,13 @@ fn step2_token_exchange_200_but_no_access_token() {
     assert!(pending_path.exists());
 }
 
-#[test]
-fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
+#[tokio::test]
+async fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
     // KTD7: token exchange succeeds + /2/users/me fails + empty caller ->
     // token persists in the unnamed slot, run_remote_step2 reaches the
     // normal pending::delete success branch, and the access token surfaces
     // to the caller as Ok.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -671,7 +687,8 @@ fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
                 "refresh_token": "good-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
 
     // /2/users/me returns an error
     ts.mount(
@@ -681,7 +698,8 @@ fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
                 "title": "Unauthorized",
                 "status": 401
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -691,7 +709,8 @@ fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
     let redirect_url = redirect.to_string();
 
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .expect("empty-caller + /me-failure path must return Ok with the new access token");
     assert_eq!(access_token, "good-token");
 
@@ -711,12 +730,12 @@ fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
     );
 }
 
-#[test]
-fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
+#[tokio::test]
+async fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
     // KTD7: when the CLI threads a `USERNAME` positional through to
     // exchange_code_for_token, the function saves under that username and
     // never consults /2/users/me.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -732,7 +751,8 @@ fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
                 "refresh_token": "alice-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     // Deliberately do NOT mock /2/users/me; any call to it returns 404 from
     // wiremock's default unmatched handler, which would propagate as Err
     // and fail this test if the empty-username branch were taken.
@@ -745,7 +765,8 @@ fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
     let redirect_url = redirect.to_string();
 
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "alice", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "alice", &pending_path)
+        .await
         .expect("non-empty username path must succeed without /me");
     assert_eq!(access_token, "alice-access");
 
@@ -766,11 +787,11 @@ fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
     );
 }
 
-#[test]
-fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
+#[tokio::test]
+async fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
     // KTD7: empty caller + /me Ok -> token saved under the discovered name;
     // unnamed slot untouched.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -786,14 +807,16 @@ fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
                 "refresh_token": "discovered-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "42", "username": "discovered"}
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -803,7 +826,8 @@ fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
     let redirect_url = redirect.to_string();
 
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .expect("empty caller + /me Ok must succeed");
     assert_eq!(access_token, "discovered-access");
 
@@ -823,11 +847,11 @@ fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
     );
 }
 
-#[test]
-fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
+#[tokio::test]
+async fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
     // KTD7: empty caller + /me Err -> token saved in the unnamed slot,
     // named map untouched, function returns Ok with the access token.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -845,7 +869,8 @@ fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
                 "refresh_token": "salvage-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -853,7 +878,8 @@ fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
                 "title": "Server Error",
                 "status": 500
             }))),
-    );
+    )
+    .await;
 
     let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
     redirect
@@ -863,7 +889,8 @@ fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
     let redirect_url = redirect.to_string();
 
     let access_token = auth
-        .remote_oauth2_step2(&redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
         .expect("empty caller + /me Err must still return Ok with the access token");
     assert_eq!(access_token, "salvage-access");
 
@@ -963,9 +990,9 @@ fn cli_step2_without_auth_url_fails() {
     );
 }
 
-#[test]
-fn step2_redirect_url_with_code_but_no_state() {
-    let ts = TestServer::new();
+#[tokio::test]
+async fn step2_redirect_url_with_code_but_no_state() {
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
@@ -976,7 +1003,8 @@ fn step2_redirect_url_with_code_but_no_state() {
     let redirect_url = "http://localhost:8080/callback?code=abc";
 
     let err = auth
-        .remote_oauth2_step2(redirect_url, "", &pending_path)
+        .remote_oauth2_step2(&http(), redirect_url, "", &pending_path)
+        .await
         .unwrap_err();
 
     let msg = err.to_string();
@@ -1026,10 +1054,10 @@ fn seed_expired_named_oauth2(auth: &mut Auth, username: &str) {
         .unwrap();
 }
 
-#[test]
-fn refresh_with_caller_supplied_username_skips_fetch_username() {
+#[tokio::test]
+async fn refresh_with_caller_supplied_username_skips_fetch_username() {
     // KTD2: non-empty caller username -> save under that name, never call /me.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1043,12 +1071,13 @@ fn refresh_with_caller_supplied_username_skips_fetch_username() {
                 "refresh_token": "alice-new-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     // Deliberately do NOT mock /2/users/me. Any call to it returns 404 from
     // wiremock's default unmatched handler, which would propagate as Err
     // before this PR; we assert it is never called.
 
-    let access_token = auth.refresh_oauth2_token("alice").unwrap();
+    let access_token = auth.refresh_oauth2_token(&http(), "alice").await.unwrap();
     assert_eq!(access_token, "alice-new-access");
 
     let token = auth
@@ -1068,10 +1097,10 @@ fn refresh_with_caller_supplied_username_skips_fetch_username() {
     );
 }
 
-#[test]
-fn refresh_with_empty_caller_and_me_ok_saves_named() {
+#[tokio::test]
+async fn refresh_with_empty_caller_and_me_ok_saves_named() {
     // KTD2: empty caller + /me Ok -> save under discovered username.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1087,16 +1116,18 @@ fn refresh_with_empty_caller_and_me_ok_saves_named() {
                 "refresh_token": "discovered-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": {"id": "999", "username": "discovered"}
             }))),
-    );
+    )
+    .await;
 
-    let access_token = auth.refresh_oauth2_token("").unwrap();
+    let access_token = auth.refresh_oauth2_token(&http(), "").await.unwrap();
     assert_eq!(access_token, "discovered-access");
 
     let token = auth
@@ -1115,10 +1146,10 @@ fn refresh_with_empty_caller_and_me_ok_saves_named() {
     );
 }
 
-#[test]
-fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
+#[tokio::test]
+async fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
     // KTD2: empty caller + /me Err -> save into unnamed slot, return Ok.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1133,7 +1164,8 @@ fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
                 "refresh_token": "salvage-refresh",
                 "expires_in": 7200
             }))),
-    );
+    )
+    .await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -1141,9 +1173,10 @@ fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
                 "title": "Server Error",
                 "status": 500
             }))),
-    );
+    )
+    .await;
 
-    let access_token = auth.refresh_oauth2_token("").unwrap();
+    let access_token = auth.refresh_oauth2_token(&http(), "").await.unwrap();
     assert_eq!(access_token, "salvage-access");
 
     let token = auth
@@ -1168,8 +1201,8 @@ fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
     );
 }
 
-#[test]
-fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
+#[tokio::test]
+async fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
     // KTD5: named caller never falls through to the unnamed slot.
     // We seed ONLY the unnamed slot and a fresh-token mock so any successful
     // return would have to come from either named-by-name (miss),
@@ -1179,7 +1212,7 @@ fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
     // to `oauth2_flow`, which will attempt to open a browser and fail in the
     // test environment. We assert the call returns an Err whose message does
     // NOT include the unnamed token's "salvage-bearer" string.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1192,7 +1225,7 @@ fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
         )
         .unwrap();
 
-    let result = auth.get_oauth2_header("alice");
+    let result = auth.get_oauth2_header(&http(), "alice").await;
     let err = result.expect_err(
         "named caller with no named token must NOT return the unnamed slot's Bearer; \
          it must trigger the OAuth2 flow (which fails in the test env)",
@@ -1215,10 +1248,10 @@ fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
     let _ = ts;
 }
 
-#[test]
-fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_token_not_unnamed() {
+#[tokio::test]
+async fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_token_not_unnamed() {
     // KTD5: empty caller + default_user + unnamed populated -> default_user wins.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1232,7 +1265,7 @@ fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_token_n
         .save_oauth2_token_unnamed_for_app("default", "unnamed-bearer", "unnamed-refresh", u64::MAX)
         .unwrap();
 
-    let header = auth.get_oauth2_header("").unwrap();
+    let header = auth.get_oauth2_header(&http(), "").await.unwrap();
     assert_eq!(
         header, "Bearer alice-bearer",
         "default_user must outrank the unnamed slot"
@@ -1240,11 +1273,11 @@ fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_token_n
     let _ = ts;
 }
 
-#[test]
-fn get_oauth2_header_empty_caller_no_named_uses_unnamed() {
+#[tokio::test]
+async fn get_oauth2_header_empty_caller_no_named_uses_unnamed() {
     // KTD5: empty caller + no named token + no default_user + unnamed populated
     // -> return the unnamed slot's Bearer.
-    let ts = TestServer::new();
+    let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
 
@@ -1257,7 +1290,7 @@ fn get_oauth2_header_empty_caller_no_named_uses_unnamed() {
         )
         .unwrap();
 
-    let header = auth.get_oauth2_header("").unwrap();
+    let header = auth.get_oauth2_header(&http(), "").await.unwrap();
     assert_eq!(
         header, "Bearer only-unnamed-bearer",
         "empty-caller falls back to unnamed when no named tokens exist"

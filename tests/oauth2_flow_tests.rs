@@ -24,6 +24,7 @@ use tempfile::TempDir;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use tokio_util::sync::CancellationToken;
 use xurl::auth::Auth;
 use xurl::auth::oauth2::run_oauth2_flow;
 use xurl::config::Config;
@@ -169,37 +170,43 @@ fn test_auth(cfg: Config, tmp: &TempDir, redirect_uri: &str) -> Auth {
 
 // ── The pivotal ordering test ─────────────────────────────────────────────
 
-#[test]
-fn listener_bound_before_browser_opener_invoked() {
+#[tokio::test]
+async fn listener_bound_before_browser_opener_invoked() {
     let port = pick_free_port();
     let callback_target = format!("127.0.0.1:{port}");
     let redirect_uri = format!("http://127.0.0.1:{port}/callback");
     reset_recorder(&callback_target);
 
     // Wiremock token + userinfo endpoints, driven from a dedicated runtime.
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
+    let server = MockServer::start().await;
     let token_url = format!("{}/2/oauth2/token", server.uri());
     let info_url = format!("{}/2/users/me", server.uri());
 
-    rt.block_on(
-        Mock::given(method("POST"))
-            .and(path("/2/oauth2/token"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "access_token": "ACCESS-TOKEN",
-                "refresh_token": "REFRESH-TOKEN",
-                "expires_in": 7200,
-                "token_type": "bearer"
-            })))
-            .mount(&server),
-    );
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "ACCESS-TOKEN",
+            "refresh_token": "REFRESH-TOKEN",
+            "expires_in": 7200,
+            "token_type": "bearer"
+        })))
+        .mount(&server)
+        .await;
 
     let tmp = TempDir::new().unwrap();
     let cfg = test_config(&token_url, &info_url, &redirect_uri);
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
 
     let flow_started_at = Instant::now();
-    let token = run_oauth2_flow(&mut auth, "testuser", recording_opener).expect("flow completes");
+    let token = run_oauth2_flow(
+        &mut auth,
+        &reqwest::Client::new(),
+        "testuser",
+        CancellationToken::new(),
+        recording_opener,
+    )
+    .await
+    .expect("flow completes");
     assert_eq!(token, "ACCESS-TOKEN");
 
     let r = recorder().lock().unwrap();
@@ -310,7 +317,7 @@ fn redirect_url() -> String {
     format!("http://localhost:8080/callback?code=AUTHCODE&state={PENDING_STATE}")
 }
 
-fn run_cli(
+async fn run_cli(
     store: &std::path::Path,
     overrides: &xurl::config::EnvOverrides,
     args: &[&str],
@@ -318,7 +325,8 @@ fn run_cli(
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
     let code =
-        xurl::cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store, overrides);
+        xurl::cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, store, overrides)
+            .await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -342,11 +350,10 @@ fn ok_token_body() -> serde_json::Value {
     })
 }
 
-#[test]
-fn step2_exchanges_the_code_and_saves_the_token() {
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
-    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+#[tokio::test]
+async fn step2_exchanges_the_code_and_saves_the_token() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
 
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -371,7 +378,8 @@ fn step2_exchanges_the_code_and_saves_the_token() {
             &redirect_url(),
             "alice",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
@@ -391,20 +399,18 @@ fn step2_exchanges_the_code_and_saves_the_token() {
     );
 }
 
-#[test]
-fn step2_resolves_the_username_when_the_positional_is_absent() {
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
-    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
-    rt.block_on(
-        Mock::given(method("GET"))
-            .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {"id": "1", "username": "discovered", "name": "Discovered"}
-            })))
-            .expect(1)
-            .mount(&server),
-    );
+#[tokio::test]
+async fn step2_resolves_the_username_when_the_positional_is_absent() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "1", "username": "discovered", "name": "Discovered"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
 
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -428,7 +434,8 @@ fn step2_resolves_the_username_when_the_positional_is_absent() {
             "--auth-url",
             &redirect_url(),
         ],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
@@ -438,11 +445,10 @@ fn step2_resolves_the_username_when_the_positional_is_absent() {
     );
 }
 
-#[test]
-fn step2_reports_success_under_output_json() {
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
-    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+#[tokio::test]
+async fn step2_reports_success_under_output_json() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
 
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -469,7 +475,8 @@ fn step2_reports_success_under_output_json() {
             "--output",
             "json",
         ],
-    );
+    )
+    .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
@@ -486,17 +493,15 @@ fn step2_reports_success_under_output_json() {
     );
 }
 
-#[test]
-fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
-    rt.block_on(
-        token_mock(
-            serde_json::json!({"error": "server_error", "error_description": "upstream failure"}),
-            500,
-        )
-        .mount(&server),
-    );
+#[tokio::test]
+async fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
+    let server = MockServer::start().await;
+    token_mock(
+        serde_json::json!({"error": "server_error", "error_description": "upstream failure"}),
+        500,
+    )
+    .mount(&server)
+    .await;
 
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -521,7 +526,8 @@ fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
             &redirect_url(),
             "alice",
         ],
-    );
+    )
+    .await;
 
     // A failed exchange is an `Error::Auth`, so it carries
     // `EXIT_AUTH_REQUIRED` whatever the upstream status was.
@@ -541,11 +547,10 @@ fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
     );
 }
 
-#[test]
-fn step2_saves_the_token_on_the_app_the_runtime_context_names() {
-    let rt = tokio::runtime::Runtime::new().expect("build mock runtime");
-    let server = rt.block_on(MockServer::start());
-    rt.block_on(token_mock(ok_token_body(), 200).mount(&server));
+#[tokio::test]
+async fn step2_saves_the_token_on_the_app_the_runtime_context_names() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
 
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -572,7 +577,8 @@ fn step2_saves_the_token_on_the_app_the_runtime_context_names() {
             &redirect_url(),
             "alice",
         ],
-    );
+    )
+    .await;
     assert_eq!(code, 0, "stderr: {stderr}");
 
     let saved = xurl::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
