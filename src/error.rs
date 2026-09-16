@@ -4,7 +4,36 @@
 //! that with thiserror variants so Rust callers get pattern matching while
 //! the Display output stays identical to xurl.
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+/// What the caller should do next. Closed set; agents branch on it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
+pub enum NextAction {
+    /// No app carries client credentials; register one.
+    RegisterApp,
+    /// The target app has credentials and no token; sign in.
+    SignIn,
+    /// Another app is the one to use; rerun naming it.
+    SelectApp,
+    /// The store could not be read or parsed; look at the file.
+    InspectStore,
+    /// X refused the app; enroll it in the developer portal.
+    EnrollApp,
+}
+
+/// Whether an API refusal is X declining the app itself rather than the
+/// request: a 403 whose body carries either enrollment marker.
+#[must_use]
+pub fn refuses_enrollment(status: u16, body: &str) -> bool {
+    if status != 403 {
+        return false;
+    }
+    let haystack = body.to_ascii_lowercase();
+    haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
+}
 
 /// Top-level error type for xurl-rs.
 ///
@@ -291,6 +320,22 @@ impl XurlError {
         Self::TokenStore(message.into())
     }
 
+    /// The recovery step this error carries, when the library can name one.
+    ///
+    /// A 403 that says X refused the app is `EnrollApp`; a bare 403 on X's
+    /// Pay-per-use enrollment failure is unactionable without it. Every
+    /// other error is `None` here: the steps that depend on a credential
+    /// store are the binary's to choose.
+    #[must_use]
+    pub fn next_action(&self) -> Option<NextAction> {
+        match self {
+            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+                Some(NextAction::EnrollApp)
+            }
+            _ => None,
+        }
+    }
+
     /// Returns true if this is an API error (HTTP status >= 400).
     #[must_use]
     pub fn is_api(&self) -> bool {
@@ -486,4 +531,27 @@ pub const EXIT_NETWORK_ERROR: i32 = 5;
 #[must_use]
 pub fn exit_code_for_error(e: &XurlError) -> i32 {
     e.exit_code()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_refused_enrollment_names_the_enroll_step() {
+        let refused = XurlError::api(403, r#"{"reason":"client-not-enrolled","detail":"x"}"#);
+        assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
+        let forbidden = XurlError::api(403, "CLIENT-FORBIDDEN");
+        assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn other_errors_carry_no_step() {
+        assert_eq!(XurlError::api(403, "plain forbidden").next_action(), None);
+        assert_eq!(
+            XurlError::api(401, "client-not-enrolled").next_action(),
+            None
+        );
+        assert_eq!(XurlError::auth("x").next_action(), None);
+    }
 }

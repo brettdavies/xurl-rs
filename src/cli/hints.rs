@@ -7,24 +7,8 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use crate::error::NextAction;
 use crate::store::snapshot::StoreSnapshot;
-
-/// What the caller should do next. Closed set; agents branch on it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "kebab-case")]
-#[non_exhaustive]
-pub enum NextAction {
-    /// No app carries client credentials; register one.
-    RegisterApp,
-    /// The target app has credentials and no token; sign in.
-    SignIn,
-    /// Another app is the one to use; rerun naming it.
-    SelectApp,
-    /// The store could not be read or parsed; look at the file.
-    InspectStore,
-    /// X refused the app; enroll it in the developer portal.
-    EnrollApp,
-}
 
 /// The `next_step` object carried by an error envelope.
 ///
@@ -226,11 +210,7 @@ const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform
 /// match is right rather than trusting the label.
 #[must_use]
 pub fn enrollment_hint(status: u16, body: &str) -> Option<Hint> {
-    if status != 403 {
-        return None;
-    }
-    let haystack = body.to_ascii_lowercase();
-    if !haystack.contains("client-not-enrolled") && !haystack.contains("client-forbidden") {
+    if !crate::error::refuses_enrollment(status, body) {
         return None;
     }
 
