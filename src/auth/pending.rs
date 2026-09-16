@@ -8,8 +8,7 @@
 //! The pending file lives at `~/.xurl.pending` by default and is created with
 //! `0o600` permissions on Unix. A 15-minute TTL guards against stale state.
 
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -72,44 +71,12 @@ pub fn default_pending_path() -> Result<PathBuf> {
 
 /// Persists `state` to `path` atomically with restricted permissions.
 ///
-/// Writes to a temporary file (`{path}.tmp`) first, then renames it into
-/// place so that readers never see a partially-written file.
-///
 /// # Errors
 ///
 /// Returns an error if serialisation or filesystem operations fail.
 pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
     let data = serde_yaml::to_string(state).map_err(|e| XurlError::Auth(e.to_string()))?;
-
-    // Append ".tmp" rather than replacing the extension — with_extension("tmp")
-    // would turn ".xurl.pending" into ".xurl.tmp" instead of ".xurl.pending.tmp".
-    let mut tmp_os = path.as_os_str().to_os_string();
-    tmp_os.push(".tmp");
-    let tmp_path = std::path::PathBuf::from(tmp_os);
-
-    // If a stale temp file exists from a previous interrupted save, remove it
-    // so `create_new(true)` can succeed.
-    if tmp_path.exists() {
-        let _ = fs::remove_file(&tmp_path);
-    }
-
-    {
-        let mut opts = OpenOptions::new();
-        opts.write(true).create_new(true);
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            opts.mode(0o600);
-        }
-
-        let mut file = opts.open(&tmp_path)?;
-        file.write_all(data.as_bytes())?;
-        file.flush()?;
-        file.sync_all()?;
-    }
-
-    fs::rename(&tmp_path, path)?;
+    crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
 }
 
