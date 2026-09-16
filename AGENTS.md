@@ -108,13 +108,13 @@ changes: add keys rather than renaming or retyping existing ones.
 ## Shortcut commands
 
 `src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in `vendor/x-api-openapi.json`
-(`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `send_dm`, `lookup_user`,
-`get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
-`get_liked_posts`, `get_bookmarks`, `get_dm_events`, `get_usage`, `get_usage_credits`, and their `un*` inverses where
-the spec documents them). Each maps to one CLI command via `src/cli/` and returns a typed response via
-`src/api/response/types.rs`. `build.rs` generates the auth matrix from the vendored spec and fails the build if a
-shortcut targets an endpoint absent from it; `src/api/auth_matrix.rs` wraps the generated table for runtime lookup.
-Block/unblock are absent from the spec and have no shortcut surface.
+(`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `block_user`, `send_dm`,
+`lookup_user`, `get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
+`get_liked_posts`, `get_bookmarks`, `get_muted`, `get_blocked`, `get_dm_events`, `get_usage`, `get_usage_credits`, and
+their `un*` inverses where the spec documents them). Each maps to one CLI command via `src/cli/` and returns a typed
+response via `src/api/response/types.rs`. `build.rs` generates the auth matrix from the vendored spec and fails the
+build if a shortcut targets an endpoint absent from it; `src/api/auth_matrix.rs` wraps the generated table for runtime
+lookup.
 
 Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed response in `response/types.rs` (or
 reuse), register in `src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response type derives

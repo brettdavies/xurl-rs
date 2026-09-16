@@ -13,8 +13,8 @@ use std::path::Path;
 use serde::de::DeserializeOwned;
 
 use crate::api::{
-    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
+    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 use crate::output::OutputConfig;
@@ -36,7 +36,7 @@ const SCHEMA_UNKNOWN: &str = "unknown";
 fn known_schemas() -> &'static [&'static str] {
     &[
         "post", "posts", "user", "users", "dm", "dms", "usage", "credits", "envelope", "like",
-        "follow", "delete", "repost", "bookmark", "mute",
+        "follow", "delete", "repost", "bookmark", "mute", "block",
     ]
 }
 
@@ -211,6 +211,8 @@ fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), Strin
             .or_else(|_| try_into::<BookmarkedResult>(value)),
         "mute" => try_into::<ApiResponse<MutingResult>>(value)
             .or_else(|_| try_into::<MutingResult>(value)),
+        "block" => try_into::<ApiResponse<BlockingResult>>(value)
+            .or_else(|_| try_into::<BlockingResult>(value)),
         SCHEMA_UNKNOWN => Err(format!(
             "could not auto-detect schema from document shape; pass --schema explicitly (known: {})",
             known_schemas().join(", ")

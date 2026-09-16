@@ -11,8 +11,9 @@ use serde::Serialize;
 
 use super::request::{ApiClient, CallOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BookmarkedResult, DeletedResult, DmEvent, FollowingResult, LikedResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, deserialize_response,
+    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
+    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    deserialize_response,
 };
 use crate::error::Result;
 
@@ -766,25 +767,7 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
-        let mut q = vec![
-            ("max_results".to_string(), max_results.to_string()),
-            (
-                "user.fields".to_string(),
-                "created_at,description,public_metrics,verified".to_string(),
-            ),
-        ];
-        q.extend(build_query(opts));
-
-        let mut req = opts.to_request_options();
-        req.method = "GET".to_string();
-        req.target = RequestTarget::Template {
-            path: "/2/users/{id}/following".to_string(),
-            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
-            query: q,
-        };
-        req.data.clear();
-
-        deserialize_response(self.send_request(&req)?)
+        self.get_user_list("/2/users/{id}/following", user_id, max_results, opts)
     }
 
     /// Fetches followers of a given user.
@@ -798,25 +781,7 @@ impl ApiClient {
         max_results: i32,
         opts: &CallOptions,
     ) -> Result<ApiResponse<Vec<User>>> {
-        let mut q = vec![
-            ("max_results".to_string(), max_results.to_string()),
-            (
-                "user.fields".to_string(),
-                "created_at,description,public_metrics,verified".to_string(),
-            ),
-        ];
-        q.extend(build_query(opts));
-
-        let mut req = opts.to_request_options();
-        req.method = "GET".to_string();
-        req.target = RequestTarget::Template {
-            path: "/2/users/{id}/followers".to_string(),
-            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
-            query: q,
-        };
-        req.data.clear();
-
-        deserialize_response(self.send_request(&req)?)
+        self.get_user_list("/2/users/{id}/followers", user_id, max_results, opts)
     }
 
     /// Sends a direct message.
@@ -998,6 +963,112 @@ impl ApiClient {
                 ("target_user_id".to_string(), target_user_id.to_string()),
             ]),
             query: Vec::new(),
+        };
+        req.data.clear();
+
+        deserialize_response(self.send_request(&req)?)
+    }
+
+    /// Lists the users the authenticated user has muted.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn get_muted(
+        &mut self,
+        user_id: &str,
+        max_results: i32,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<Vec<User>>> {
+        self.get_user_list("/2/users/{id}/muting", user_id, max_results, opts)
+    }
+
+    /// Blocks a user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn block_user(
+        &mut self,
+        source_user_id: &str,
+        target_user_id: &str,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<BlockingResult>> {
+        let mut req = opts.to_request_options();
+        req.method = "POST".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/users/{id}/blocking".to_string(),
+            path_params: HashMap::from([("id".to_string(), source_user_id.to_string())]),
+            query: Vec::new(),
+        };
+        req.data = format!(r#"{{"target_user_id":"{target_user_id}"}}"#);
+
+        deserialize_response(self.send_request(&req)?)
+    }
+
+    /// Unblocks a user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn unblock_user(
+        &mut self,
+        source_user_id: &str,
+        target_user_id: &str,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<BlockingResult>> {
+        let mut req = opts.to_request_options();
+        req.method = "DELETE".to_string();
+        req.target = RequestTarget::Template {
+            path: "/2/users/{source_user_id}/blocking/{target_user_id}".to_string(),
+            path_params: HashMap::from([
+                ("source_user_id".to_string(), source_user_id.to_string()),
+                ("target_user_id".to_string(), target_user_id.to_string()),
+            ]),
+            query: Vec::new(),
+        };
+        req.data.clear();
+
+        deserialize_response(self.send_request(&req)?)
+    }
+
+    /// Lists the users the authenticated user has blocked.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error.
+    pub fn get_blocked(
+        &mut self,
+        user_id: &str,
+        max_results: i32,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<Vec<User>>> {
+        self.get_user_list("/2/users/{id}/blocking", user_id, max_results, opts)
+    }
+
+    /// Shared GET for the user-list endpoints keyed on a single `{id}`.
+    fn get_user_list(
+        &mut self,
+        path: &str,
+        user_id: &str,
+        max_results: i32,
+        opts: &CallOptions,
+    ) -> Result<ApiResponse<Vec<User>>> {
+        let mut q = vec![
+            ("max_results".to_string(), max_results.to_string()),
+            (
+                "user.fields".to_string(),
+                "created_at,description,public_metrics,verified".to_string(),
+            ),
+        ];
+        q.extend(build_query(opts));
+
+        let mut req = opts.to_request_options();
+        req.method = "GET".to_string();
+        req.target = RequestTarget::Template {
+            path: path.to_string(),
+            path_params: HashMap::from([("id".to_string(), user_id.to_string())]),
+            query: q,
         };
         req.data.clear();
 

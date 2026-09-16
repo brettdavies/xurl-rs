@@ -124,6 +124,11 @@ constructible_struct_adds_field = { lint-level = "deny", required-update = "mino
 # Covers Envelope::Error: one declared body is the whole error surface, so the
 # generated schema can close the object.
 enum_struct_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
-# Covers Envelope: the variant shape above already breaks exhaustive matching,
-# so the attribute costs downstream nothing this release does not already spend.
+# Covers Envelope and Commands: each already breaks exhaustive matching this
+# release, so the attribute costs downstream nothing it does not already spend.
 enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }
+# Covers Commands: four variants land mid-enum, shifting the discriminants after
+# them. The lint guards `as isize`, which never compiled against this enum —
+# every variant carries fields, and Rust rejects the cast unless all are
+# field-less. Ordering follows the command grouping instead.
+enum_no_repr_variant_discriminant_changed = { lint-level = "deny", required-update = "minor" }

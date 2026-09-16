@@ -69,8 +69,11 @@ MANAGE SOCIAL GRAPH:
     xr repost 1585341984679469056
     xr bookmark 1585341984679469056 --output json
 
-  Mute (irreversible from CLI side without confirm):
-    xr mute @noisy --output json
+  Mute / unmute, block / unblock:
+    xr mute @noisy
+    xr unmute @noisy --output json
+    xr block @spammer
+    xr unblock @spammer --output json
 
 INSPECT YOUR ACCOUNT:
   Your profile, timeline, mentions:
@@ -81,6 +84,10 @@ INSPECT YOUR ACCOUNT:
   Your bookmarks and liked posts:
     xr bookmarks -n 100 --output jsonl | jaq '.id'
     xr likes -n 100 --output jsonl
+
+  Users you have muted or blocked:
+    xr muted -n 100 --output jsonl
+    xr blocked -n 100 --output jsonl
 
   Your API usage (caps + daily breakdown):
     xr usage --output json

@@ -842,8 +842,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (following)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list following for (default\: you)]:OF:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
@@ -882,8 +882,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (followers)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list followers for (default\: you)]:OF:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
@@ -994,6 +994,160 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':target_username -- Username to unmute:_default' \
+&& ret=0
+;;
+(muted)
+_arguments "${_arguments_options[@]}" : \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(block)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- Username to block:_default' \
+&& ret=0
+;;
+(unblock)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- Username to unblock:_default' \
+&& ret=0
+;;
+(blocked)
+_arguments "${_arguments_options[@]}" : \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (usage)
@@ -2489,6 +2643,22 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(muted)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(block)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(unblock)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(blocked)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__help__subcmd__usage_commands" \
@@ -2721,6 +2891,10 @@ _xr_commands() {
 'followers:List your followers' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'muted:List users you have muted' \
+'block:Block a user' \
+'unblock:Unblock a user' \
+'blocked:List users you have blocked' \
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
@@ -3008,6 +3182,16 @@ _xr__subcmd__auth__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr auth status commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__block_commands] )) ||
+_xr__subcmd__block_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr block commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__blocked_commands] )) ||
+_xr__subcmd__blocked_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr blocked commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__bookmark_commands] )) ||
 _xr__subcmd__bookmark_commands() {
     local commands; commands=()
@@ -3085,6 +3269,10 @@ _xr__subcmd__help_commands() {
 'followers:List your followers' \
 'mute:Mute a user' \
 'unmute:Unmute a user' \
+'muted:List users you have muted' \
+'block:Block a user' \
+'unblock:Unblock a user' \
+'blocked:List users you have blocked' \
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
@@ -3192,6 +3380,16 @@ _xr__subcmd__help__subcmd__auth__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr help auth status commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__block_commands] )) ||
+_xr__subcmd__help__subcmd__block_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help block commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__blocked_commands] )) ||
+_xr__subcmd__help__subcmd__blocked_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help blocked commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__bookmark_commands] )) ||
 _xr__subcmd__help__subcmd__bookmark_commands() {
     local commands; commands=()
@@ -3285,6 +3483,11 @@ _xr__subcmd__help__subcmd__mute_commands() {
     local commands; commands=()
     _describe -t commands 'xr help mute commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__muted_commands] )) ||
+_xr__subcmd__help__subcmd__muted_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help muted commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__post_commands] )) ||
 _xr__subcmd__help__subcmd__post_commands() {
     local commands; commands=()
@@ -3342,6 +3545,11 @@ _xr__subcmd__help__subcmd__skill__subcmd__update_commands() {
 _xr__subcmd__help__subcmd__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr help timeline commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__unblock_commands] )) ||
+_xr__subcmd__help__subcmd__unblock_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help unblock commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__unbookmark_commands] )) ||
 _xr__subcmd__help__subcmd__unbookmark_commands() {
@@ -3463,6 +3671,11 @@ _xr__subcmd__mute_commands() {
     local commands; commands=()
     _describe -t commands 'xr mute commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__muted_commands] )) ||
+_xr__subcmd__muted_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr muted commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__post_commands] )) ||
 _xr__subcmd__post_commands() {
     local commands; commands=()
@@ -3545,6 +3758,11 @@ _xr__subcmd__skill__subcmd__update_commands() {
 _xr__subcmd__timeline_commands() {
     local commands; commands=()
     _describe -t commands 'xr timeline commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__unblock_commands] )) ||
+_xr__subcmd__unblock_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr unblock commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__unbookmark_commands] )) ||
 _xr__subcmd__unbookmark_commands() {
