@@ -68,7 +68,9 @@ R9. Package metadata, lint posture, and MSRV policy meet the standard a reviewer
 client.
 
 R10. Existing CLI users see no behavior change, and the existing distribution channels (release artifacts, Homebrew,
-binstall) keep working.
+binstall) keep working. **Proven, not asserted:** a golden-output baseline captured from the pre-split binary and
+re-asserted byte-for-byte afterward. KTD16 moves the whole output layer across a crate boundary and KTD17 rewrites every
+error Display string, so a green unit suite does not establish that `xr` still prints what it printed.
 
 R11. The library is submitted for listing on X's community libraries page, with the repository in a state that survives
 the review that follows.
@@ -223,10 +225,26 @@ obvious choice, anything else imposes a foreign runtime on every embedder. The r
 decompression for a benefit almost no embedder wants. `ureq` (58M, sync-only, actively shipped) is noted only as a
 blocking-path option, and carrying two HTTP stacks is worse than one.
 
-KTD12. **Tags are per-crate and prefixed; each crate carries its own changelog.** `session-settled: user-directed`;
-chosen over a CLI-only tag line and over separate release workflows. `xdk-rs-v0.1.0` and `xurl-rs-v4.0.0` (the major is
-KTD2's lib-target removal), with git-cliff filtering by tag pattern and path so each crate's changelog reflects its own
-commits. The release workflow's tag check and the existing `vX.Y.Z` history both have to account for two schemes.
+KTD12. **The CLI keeps the `vX.Y.Z` tag line; only the library takes a prefix. Each crate carries its own changelog.**
+`session-settled: user-directed`; this **reverses** an earlier symmetric-prefix decision, which was taken while the plan
+asserted that distribution was unaffected. It is not. Four things are keyed to the CLI's `v*` tag, and a
+`xurl-rs-v4.0.0` rename breaks all four:
+
+1. `.github/workflows/release.yml` fires `on: push: tags: - 'v[0-9]+.[0-9]+.[0-9]+'`. A tag starting with `x` does not
+   match, so **the release workflow never starts** — no binaries, no bottles, no crates.io publish, and no red run to
+   notice, because no run begins.
+2. `[package.metadata.binstall]`'s `pkg-url = "{ repo }/releases/download/v{ version }/..."` resolves to a tag path that
+   would no longer hold the assets.
+3. The Homebrew formula's `url "…/archive/refs/tags/v3.2.0.tar.gz"`.
+4. The Homebrew formula's bottle `root_url "…/releases/download/v3.2.0"`.
+
+Items 3 and 4 live in `brettdavies/homebrew-tap`, so a symmetric rename is a three-repository change whose failure mode
+is a silent no-op.
+
+So: `v4.0.0` for the CLI, `xdk-rs-v0.1.0` for the library. git-cliff filters `v*` for the CLI and `xdk-rs-v*` for the
+library, by tag pattern and path, so each changelog reflects its own commits. The library is new, with no tag history
+and no install paths, so a prefix there costs nothing. The asymmetry is invisible to every consumer; the symmetry it
+replaces was not.
 
 KTD13. **`xr --version` leads with the CLI version and carries the library version alongside.** `session-settled:
 user-directed`. Humans see the version they installed; the verbose and JSON forms also report the `xdk-rs` version the
@@ -1251,10 +1269,18 @@ own arms.
 
 **Approach.** The inversion did most of this unit's work. The CLI stays the `xurl-rs` package producing `xr`, so
 `crate:`, `bin:`, `[package.metadata.binstall]`, every release artifact name, and the Homebrew formula's `url` and
-bottle `root_url` are all unchanged. What remains: the formula's `cargo install` needs `std_cargo_args(path: ...)`
-pointing at the CLI crate rather than the virtual-manifest root (KTD10), the release workflow needs the workspace
-support landed as U6's prerequisite, and publishing now covers two packages on independent version lines (KTD9), which
-the tag scheme and git-cliff configuration both have to express.
+bottle `root_url` are all unchanged — **and they stay unchanged only because KTD12 keeps the CLI on `vX.Y.Z`.** All four
+are keyed to that tag. Verify each against the tag the release actually publishes before declaring this unit done;
+"unchanged" is a claim about the tag scheme, not an independent property.
+
+**`xr --version` is a pinned binary contract.** KTD13 changes what it reports, and `tests/binary_contract_tests.rs` pins
+that output. Update the contract test in the same unit as the change, and keep the plain `xr --version` line CLI-only so
+an agent parsing it sees no new field; the library version belongs to the verbose and JSON forms.
+
+What remains: the formula's `cargo install` needs `std_cargo_args(path: ...)` pointing at the CLI crate rather than the
+virtual-manifest root (KTD10), the release workflow needs the workspace support landed as U6's prerequisite, and
+publishing now covers two packages on independent version lines (KTD9), which the tag scheme and git-cliff configuration
+both have to express.
 
 The CLI ships as `4.0.0`, not a minor: KTD2's lib-target removal is a major break. Write `docs/migrating/v4.0.0.md` in
 the same form as the existing `docs/migrating/v3.0.0.md`, recording that the library moved to `xdk-rs` and that nothing
@@ -1328,6 +1354,18 @@ break of the same kind. There are four entries today, plus each one this plan ad
 
 **Per-unit gates.** `cargo test` for every unit, plus `cargo clippy --all-targets -- -D warnings`.
 
+**CLI golden-output gate — capture the baseline before U2 touches anything.** R10's promise is about the shipped binary,
+and KTD16 relocates the entire output layer while KTD17 rewrites the error Display strings. Record today's `xr` output
+across a fixed matrix and commit it as fixtures: `--help` and every subcommand's `--help`, `--version`, `xr schema
+--list`, `xr examples`, and one `--output json` capture per `reason` in the closed set with its exit code. Re-assert
+byte-equality after U2, after U6, and after U11. Run it against the built binary, never against library functions. The
+baseline is worthless if captured after the first move, so this is the first action of Phase A, ahead of U18.
+
+**Agent-native regression gate.** `anc audit` currently runs nowhere — not in CI, not in `scripts/hooks/pre-push` —
+while the repo carries a `.anc.toml` and a 94% score. That is how the four commands added by #165 (`block`, `unblock`,
+`blocked`, `muted`) drifted out of the `p6` vocabulary unnoticed. Wire `anc audit` into the same CI job that U6 already
+edits, gated on no MUST-tier row in `fail`.
+
 **Full local mirror.** `LC_ALL=C.UTF-8 scripts/hooks/pre-push` — fmt, clippy, test, MSRV, doc build, `cargo deny`,
 shellcheck, Windows cross-clippy, markdownlint, actionlint. Required before every push. Note that it does not cover the
 three CI-only gates: completions freshness, the package check, and the public-API semver gate.
@@ -1377,7 +1415,12 @@ clean tree.
 - No knowledge store cites a path the split moved. The learnings store, the project memory files, and the solutions
   corpus each sweep clean, with frontmatter scanned alongside prose, and every repointed citation has had its claim
   re-read rather than only its path repaired.
-- The CLI's observable behavior is unchanged: same commands, same output shapes, same exit codes.
+- The CLI's observable behavior is unchanged: same commands, same output shapes, same exit codes — proven by the golden
+  fixtures captured before U2 and re-asserted byte-for-byte after U2, U6, and U11, not by a green unit suite.
+- The release workflow fires on the tag the CLI actually publishes, and `cargo binstall xurl-rs`, `brew install
+  brettdavies/tap/xurl-rs`, and the bottle `root_url` all resolve against it (KTD12).
+- `tests/binary_contract_tests.rs` is updated in the same unit that changes `xr --version` (KTD13).
+- `anc audit` reports no MUST-tier `fail`, and it runs in CI rather than on request.
 - Existing distribution channels produce the same artifact names, and `brew install brettdavies/tap/xurl-rs` still
   builds and links `xr`.
 - R11's outcome is recorded, not just its action: either the library appears on X's community-libraries page, or the
@@ -1607,7 +1650,7 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Verify: a library-only build leaves the process's SIGTERM disposition unchanged after a listener runs and returns;
     `xr` still honors Ctrl-C and SIGTERM during sign-in
 
-## DX Review Outcomes
+## DX Review Outcomes — Library (`xdk-rs`)
 
 Mode: DX EXPANSION. Fifteen decisions, all answered. The persona, narrative, benchmark, and journey below are the
 grounding every requirement and KTD added by this review traces back to.
@@ -1864,26 +1907,238 @@ engineering review.
   - Files: `crates/xdk/README.md`, `cliff.toml`, `Cargo.toml`
   - Verify: a breaking changelog entry without a before/after snippet fails review; MSRV bump lands as a minor
 
+## DX Review Outcomes — CLI (`xr`)
+
+Mode: DX POLISH. Eight decisions, all answered. Scope held to the plan's own CLI surface; envelope-shape findings are
+routed to the 3.3.0 work rather than absorbed here.
+
+### Target CLI personas
+
+```text
+CO-PRIMARY
+==========
+B. Agent / automation engineer
+   Context:   Drives `xr` from an AI agent or a CI job
+   Tolerance: One failed parse before switching tools
+   Expects:   Parseable output on every path, stable exit codes, `next_step`
+
+C. New CLI user arriving from X's tools page
+   Context:   Wants an X API command-line tool; holds no X app yet
+   Tolerance: ~10 minutes, most of it inside X's developer console
+   Expects:   One install command, then a working first call
+
+NOT APPLICABLE
+==============
+Existing-user upgrade safety. There is one `xr` user and he wrote it, so
+R10 protects a population of one. That does not make R10 worthless — it
+is what keeps the author's own agent workflows and skill bundle working —
+but it is not a reason to pay a large cost, which is what settles KTD12.
+```
+
+### Developer Perspective — CLI
+
+Both traces confirmed against the installed `xr 3.2.0` and the files named.
+
+> **The new user.** I find `xr` on X's tools page and run `brew install brettdavies/tap/xurl-rs`. Homebrew resolves a
+> formula whose `url` is `…/archive/refs/tags/v3.2.0.tar.gz` and whose bottle `root_url` is
+> `…/releases/download/v3.2.0`. Both embed the git tag. Under a symmetric `xurl-rs-v4.0.0` rename, the release workflow
+> never fires at all, because its trigger is `tags: - 'v[0-9]+.[0-9]+.[0-9]+'` and the new tag starts with `x`. No
+> binaries, no bottles, no publish, and no red run to notice.
+>
+> **The agent.** `xr skill install claude_code` clones the bundle. `xr schema --list` gives me a response type per
+> command. `xr examples` gives copyable invocations. `xr --output json whoami --no-interactive` with no credentials
+> returns exit 77 and a clean envelope on stderr with stdout empty, carrying `reason`, `exit_code`, `message`, and an
+> actionable `next_step`. A typo returns exit 2 and `"suggestion": "whoami"`. This is genuinely good work. Then I typo a
+> *flag*, and the parse fails before `--output` applies, so I get raw clap text instead of JSON. `XURL_OUTPUT=json`
+> fixes it, and the README presents that variable as a convenience for defaulting to JSON rather than as the thing that
+> keeps errors parseable.
+
+### Competitive DX Benchmark — CLI
+
+| Tool                | TTHW      | Notable DX choice                                              | Source                  |
+| ------------------- | --------- | -------------------------------------------------------------- | ----------------------- |
+| Go `xurl` (X's own) | ~5-10 min | go / npm / prebuilt / install script; ships a `SKILL.md`       | docs.x.com/tools/xurl   |
+| `gh`                | ~2 min    | device-flow login; `--json` with `--jq`                        | known                   |
+| `stripe` CLI        | ~2 min    | browser pairing; `stripe listen`                               | known                   |
+| `xr` today          | ~10 min   | `anc` 94%, schema discovery, exit codes, stderr-clean envelope | measured in this review |
+
+TTHW here is category-dominated. Every X API CLI pays the same app-creation and Pay-per-use enrollment tax
+(`README.md:45-57`), and nothing in this plan reduces it. The tool's own contribution to TTHW is roughly one minute. The
+lever that matters for persona B is agent-native compliance, not setup time.
+
+### Magical Moment — CLI
+
+Verified as already delivered rather than designed; POLISH mode does not add a vehicle.
+
+- **Agent:** `xr schema --list` followed by the first structured envelope. Type discovery without scraping `--help` is
+  the thing most CLIs never ship, and it is the clearest advantage over the Go `xurl`.
+- **New user:** the first successful `xr post`. Unchanged by this plan.
+
+### Developer Journey Map — CLI
+
+| Stage          | User does                         | Friction found                                                 | Resolution        |
+| -------------- | --------------------------------- | -------------------------------------------------------------- | ----------------- |
+| 1. Discover    | X tools page, crates.io, Homebrew | U13 submits only the library; the CLI is not listed            | routed, see below |
+| 2. Install     | `brew install` / `binstall`       | Tag rename kills the release trigger and all three paths       | KTD12 (reversed)  |
+| 3. Hello World | X app, then `auth apps add`       | X app plus enrollment dominates; plan does not change it       | category cost     |
+| 4. Real Usage  | shortcuts, raw paths, `--output`  | none — surface is frozen by R10 and already strong             | no change         |
+| 5. Debug       | read the JSON envelope            | one MUST-tier `anc` fail; `--output json` dies on parse errors | routed to 3.3.0   |
+| 6. Upgrade     | 4.0.0 with nothing new            | R10 asserted with no gate behind it                            | R10 + golden gate |
+
+### First-Run Confusion Report — CLI
+
+Commands executed against `xr 3.2.0`, not inferred.
+
+```text
+T+0:00  brew install                    -> fixed by KTD12's reversal
+T+1:00  xr skill install --dry-run      -> prints the resolved git clone. Honest.
+T+1:30  xr schema --list / xr examples  -> ahead of the Go xurl. No issue.
+T+2:00  xr --output json whoami         -> exit 77, envelope on stderr, stdout empty
+T+2:30  RESIDUAL .anc.toml declares 29 p6 domain_verbs; anc 0.5.0 still flags
+        every one, and `anc audit --help` exposes no config flag
+T+3:00  RESIDUAL anc code-unwrap FAIL lists 13 .unwrap() calls, all inside
+        #[cfg(test)] (markers at url.rs:173, validate.rs:264, output/mod.rs:680)
+T+3:30  RESIDUAL KTD13 changes `xr --version`, pinned by binary_contract_tests.rs
+```
+
+All three accepted for fixing.
+
+### anc scorecard at review time
+
+`anc 0.5.0`, scorecard schema 0.7, no audit profile. 69 rows: 61 pass, 3 warn, 2 fail, 3 skip. Badge eligible at
+**94%**.
+
+| Row                           | Tier   | Status | Note                                                                            |
+| ----------------------------- | ------ | ------ | ------------------------------------------------------------------------------- |
+| `p2-must-json-errors`         | must   | FAIL   | Envelope lacks `error` and `kind`. The only MUST-tier failure. Routed to 3.3.0. |
+| `code-unwrap`                 | —      | FAIL   | False positive: all 13 hits are in `#[cfg(test)]`. Source layer, unscored.      |
+| `p2-must-output-flag`         | must   | WARN   | Probe limitation, not a defect.                                                 |
+| `p6-should-consistent-naming` | should | WARN   | `auth` and `media` mix verb and non-verb children. Routed.                      |
+| `p6-may-standard-names`       | may    | WARN   | Domain verbs; `.anc.toml` was meant to cover this and does not.                 |
+
+### NOT in scope — CLI
+
+- **Envelope shape changes.** The plan's own non-goals hand these to the 3.3.0 output-shape work. Decided here, built
+  there; see the routing list below.
+- **Reducing TTHW.** X's app creation and Pay-per-use enrollment are the bulk of it and belong to X.
+- **Renaming domain verbs to `get`/`list`/`create`.** `p6-may-standard-names` is MAY-tier and low confidence; `post`,
+  `like`, and `repost` are X's own vocabulary and an agent reading `xr examples` is better served by them.
+- **An npm distribution channel.** The Go `xurl` has one; four channels already cover this CLI's audience of one.
+- **Submitting the CLI to X's tools page.** U13 submits the library. The CLI is a Rust port of X's own listed tool, so a
+  separate listing is a distinct conversation with a distinct pitch.
+
+### What already exists — CLI
+
+| Sub-problem               | What already exists                                                          | Plan's use                            |
+| ------------------------- | ---------------------------------------------------------------------------- | ------------------------------------- |
+| Agent-native audit        | `anc` + a committed `.anc.toml`, 94% badge-eligible                          | **Now gated.** Wired into CI.         |
+| Structured error contract | `reason` / `exit_code` / `message` / `next_step`, stderr-clean, stdout empty | Preserved verbatim by R10.            |
+| Typo recovery             | `"suggestion": "whoami"` on `unknown-command`                                | Preserved; no change needed.          |
+| Schema discovery          | `xr schema --list`, `xr schema <cmd>`, `xr schema --all`                     | Preserved; the agent magical moment.  |
+| Curated invocations       | `xr examples`                                                                | Preserved.                            |
+| Parse-error envelope      | `XURL_OUTPUT` read before clap so a parse failure still picks its envelope   | **Now documented** as the agent path. |
+| Binary contract tests     | `tests/binary_contract_tests.rs` pins `xr --version` and bare-`xr` behavior  | **Now named** in U12 alongside KTD13. |
+| Pinned error-prefix tests | 3 assertions in `tests/cli_tests.rs`                                         | Move with the renderer under KTD16.   |
+
+### DX Scorecard — CLI
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD (CLI)                      |
++====================================================================+
+| Dimension            | Before | After  | Note                      |
+|----------------------|--------|--------|---------------------------|
+| Getting Started      |  3/10  |  9/10  | install was broken by KTD12 |
+| API/CLI/SDK          |  8/10  |  8/10  | already strong; frozen     |
+| Error Messages       |  6/10  |  8/10  | decided here, built in 3.3.0 |
+| Documentation        |  7/10  |  8/10  | CLI README section settled |
+| Upgrade Path         |  4/10  |  9/10  | R10 now has a gate         |
+| Dev Environment      |  8/10  |  9/10  | anc gated in CI            |
+| Community            |  8/10  |  8/10  | no findings                |
+| DX Measurement       |  3/10  |  8/10  | golden output + anc gate   |
++--------------------------------------------------------------------+
+| TTHW                 | broken by KTD12 as written -> ~10 min       |
+|                      | (category-dominated; tool's share is ~1 min) |
+| Competitive Rank     | Competitive (Champion unreachable: X's      |
+|                      | enrollment step dominates for every entrant) |
+| Magical Moment       | delivered - `xr schema --list` (agent),     |
+|                      | first successful `xr post` (new user)        |
+| Product Type         | CLI Tool                                    |
+| Mode                 | POLISH                                      |
+| Overall DX           |  5.9   |  8.4   |                           |
++====================================================================+
+```
+
+### Routed to the 3.3.0 output-shape work
+
+Decided in this review, built on `feat/v3.3.0-migration-guide`. That branch is stale against `dev` and needs a rebase
+before any of it lands.
+
+1. **Add `error` and `kind` to the JSON error envelope** (clears `p2-must-json-errors`, the only MUST-tier failure).
+   `error: true`. `kind` is a **coarse class** — `auth`, `usage`, `network`, `not-found`, `rate-limit` — and `reason`
+   stays the precise kebab-case code beneath it. This is Stripe's type-plus-code split, so `kind` earns its place
+   instead of echoing `reason`. Every existing key stays, which is what the error-contract rule about additive envelope
+   changes requires.
+2. **Version the envelope.** `schema/output.schema.json` carries only the JSON Schema meta-schema `$schema` and no
+   version of its own, so an agent cannot tell which envelope shape it is parsing. 3.3.0 ships breaking output changes,
+   which is exactly when that matters.
+3. **Document `XURL_OUTPUT=json` as the agent path**, not as a convenience. It is the only way to keep a clap parse
+   error parseable, because `--output json` has not been applied yet when the parse fails.
+4. **`p6-should-consistent-naming`:** `auth` and `media` mix verb and non-verb children, so an agent cannot predict
+   where the action lives.
+
+### Implementation Tasks — CLI
+
+- [ ] **T26 (P1, human: ~1h / CC: ~10min)** — release — Keep the CLI on `vX.Y.Z`; prefix the library tag only
+  - Surfaced by: D6 — `release.yml` fires on `tags: v[0-9]+.[0-9]+.[0-9]+`, so `xurl-rs-v4.0.0` starts no run at all;
+    binstall `pkg-url`, the formula `url`, and the bottle `root_url` each embed the tag
+  - Files: `Cargo.toml`, `cliff.toml`, `.github/workflows/release.yml`
+  - Verify: a dry-run release fires, and all three install paths resolve against the published tag
+- [ ] **T27 (P1, human: ~4h / CC: ~30min)** — tests — Capture the golden-output baseline before U2
+  - Surfaced by: D7 — R10 promises unchanged CLI behavior while KTD16 moves the output layer across a crate boundary and
+    KTD17 rewrites the error Display strings, with no gate comparing before and after
+  - Files: `tests/golden/`, `tests/cli_tests.rs`
+  - Verify: fixtures recorded from the pre-split binary; byte-equality re-asserted after U2, U6, and U11
+- [ ] **T28 (P2, human: ~1h / CC: ~10min)** — ci — Gate `anc audit` on no MUST-tier failure
+  - Surfaced by: Pass 8 — `anc` runs neither in CI nor in `scripts/hooks/pre-push`, which is how #165's four new
+    commands drifted out of the `p6` vocabulary unnoticed
+  - Files: `.github/workflows/ci.yml`
+  - Verify: a planted MUST-tier violation fails the job
+- [ ] **T29 (P2, human: ~30min / CC: ~5min)** — release — Move the `xr --version` contract test with KTD13
+  - Surfaced by: D8 — `tests/binary_contract_tests.rs` pins that output and KTD13 changes it
+  - Files: `tests/binary_contract_tests.rs`, `src/cli/`
+  - Verify: plain `xr --version` gains no field; verbose and JSON forms carry the library version
+- [ ] **T30 (P3, human: ~15min / CC: ~3min)** — config — Make `.anc.toml` work or delete it
+  - Surfaced by: D8 — every one of its 29 `domain_verbs` is still reported as non-standard by `anc 0.5.0`, and `anc
+    audit --help` exposes no config flag, so the committed file has no effect
+  - Files: `.anc.toml`
+  - Verify: either the `p6` evidence reflects the allowlist, or the file is gone
+- [ ] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
+  - Surfaced by: D8 — all 13 reported `.unwrap()` calls sit inside `#[cfg(test)]` blocks; the source scan does not
+    exclude test modules
+  - Files: none here; an issue against `brettdavies/agentnative-cli`
+  - Verify: `code-unwrap` stops reporting test-only hits
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status   | Findings                                     |
-| -------------- | --------------------- | ------------------------------- | ---- | -------- | -------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —        | —                                            |
-| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 1    | DISABLED | none — `codex_reviews` disabled              |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 2    | CLEAR    | 11 issues, 0 critical gaps                   |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —        | —                                            |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 2    | CLEAR    | score 4.4/10 → 8.8/10, TTHW blocked → <2 min |
+| Review         | Trigger               | Why                             | Runs | Status   | Findings                             |
+| -------------- | --------------------- | ------------------------------- | ---- | -------- | ------------------------------------ |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —        | —                                    |
+| Outside Review | `/plan-eng-review`    | Independent 2nd opinion         | 2    | DISABLED | none — `codex_reviews` disabled      |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 2    | CLEAR    | 11 issues, 0 critical gaps           |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —        | —                                    |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 3    | CLEAR    | lib 4.4→8.8, CLI 5.9→8.4, 1 P1 break |
 
-**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` — `codex_reviews` is disabled, so no
-outside process was started and no native substitute was dispatched. This plan has **no outside-model coverage**.
-Re-enable with `gstack-config set codex_reviews enabled`.
+**OUTSIDE COVERAGE:** codex, phase `plan-review`, `outside_status: disabled` on both DX runs — `codex_reviews` is
+disabled, so no outside process was started and no native substitute was dispatched. This plan has **no outside-model
+coverage**. Re-enable with `gstack-config set codex_reviews enabled`.
 
-**STALENESS:** The prior DX Review row (2026-09-10, commit `35f71a6`) graded product type "CLI Tool + Documentation" on
-a different plan and is 50 commits behind; its dimension scores are not comparable. The prior Eng Review row from the
-same date is likewise 49 commits behind. The current DX row and the folded Eng row both cover this plan.
+**STALENESS:** The 2026-09-10 DX and Eng rows graded a different plan and are ~50 commits behind. The current Eng row
+(2026-09-16) predates both DX runs, so it has not seen KTD15 through KTD19, the KTD12 reversal, or the R10 golden-output
+gate.
 
-**VERDICT:** ENG + DX CLEARED — 11 engineering findings folded, 15 DX decisions resolved, 0 critical gaps, 0 unresolved.
-Outside coverage missing by configuration, which never gates shipping.
+**VERDICT:** ENG + DX CLEARED — 11 engineering findings folded, 15 library DX decisions and 8 CLI DX decisions resolved,
+0 critical gaps, 0 unresolved. Outside coverage missing by configuration, which never gates shipping.
 
 **Load-bearing calls, for anyone reading this plan later:**
 
@@ -1902,6 +2157,11 @@ Outside coverage missing by configuration, which never gates shipping.
    it. Shortcuts return one generic `Call<T>`, not a trailing options struct.
 8. **The error type is `xdk::Error`** with library-convention Display (KTD17). `xr`'s printed text is unchanged, because
    KTD16 moved the renderer into the binary.
-9. **Pagination is out of scope at 0.1.0** and the existing pagination plan is stale (KTD18). U18 reserves shape only.
+9. **Pagination is out of scope at 0.1.0** and this repository carries no pagination contract plan (KTD18). U18 reserves
+   shape only.
+10. **The CLI keeps `vX.Y.Z` tags; only the library takes a prefix** (KTD12, reversed). A symmetric rename starts no
+    release workflow at all and 404s every install path, across three repositories, with no red run to notice.
+11. **R10 is proven, not asserted.** Golden CLI output is captured before U2 and re-asserted byte-for-byte afterward,
+    because KTD16 moves the output layer and KTD17 rewrites the error strings.
 
 NO UNRESOLVED DECISIONS
