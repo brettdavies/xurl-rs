@@ -81,8 +81,15 @@ impl TokenStore {
             };
             self.apps.insert("default".to_string(), app);
             self.default_app = "default".to_string();
-            // Persist in new YAML format immediately
-            let _ = self.save_to_file();
+            // The migrated form is written at once, under the same lock every
+            // other write takes, so a second process opening the same legacy
+            // file cannot interleave its copy with this one.
+            if let Err(e) = self.save_locked() {
+                tracing::warn!(
+                    target: "xurl::store",
+                    "legacy token store migrated in memory but not saved: {e}"
+                );
+            }
             return true;
         }
 
@@ -98,6 +105,15 @@ impl TokenStore {
         let data = std::fs::read(file_path)?;
         let twurlrc: TwurlrcConfig = serde_yaml::from_slice(&data)?;
 
+        self.update(|store| {
+            store.import_twurlrc_tokens(&twurlrc);
+            Ok(())
+        })
+    }
+
+    /// Copies the first OAuth1 profile and the first bearer token of a parsed
+    /// `.twurlrc` into the active app, in memory.
+    fn import_twurlrc_tokens(&mut self, twurlrc: &TwurlrcConfig) {
         let app = self.active_app_or_create();
 
         // Import the first OAuth1 tokens from twurlrc
@@ -136,7 +152,5 @@ impl TokenStore {
                 oauth1: None,
             });
         }
-
-        self.save_to_file()
     }
 }

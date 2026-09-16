@@ -615,6 +615,18 @@ impl TokenStore {
         }
     }
 
+    /// Writes the store under the sidecar lock without re-reading the file
+    /// first: the in-memory state is the whole truth, as it is right after a
+    /// legacy file has been migrated.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the lock cannot be taken or the save fails.
+    pub(crate) fn save_locked(&self) -> Result<()> {
+        let _lock = lock::StoreLock::acquire(&self.file_path)?;
+        self.save_to_file()
+    }
+
     /// Writes the store to its file as YAML, atomically and `0600`.
     pub(crate) fn save_to_file(&self) -> Result<()> {
         self.refuse_if_load_failed()?;
