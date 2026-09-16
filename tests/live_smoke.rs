@@ -13,7 +13,8 @@
 //! (`app`, `oauth1`, `oauth2`), and `XURL_LIVE_SMOKE_POST_ID` replaces the
 //! default post with any other post that carries media.
 
-use xurl::api::{ApiClient, CallOptions};
+use xurl::api::Client;
+use xurl::api::auth_matrix::WireScheme;
 use xurl::auth::Auth;
 use xurl::config::Config;
 
@@ -24,7 +25,7 @@ fn env(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())
 }
 
-fn live_client() -> (ApiClient, CallOptions) {
+fn live_client() -> (Client, Option<WireScheme>) {
     assert_eq!(
         env("XURL_LIVE_SMOKE").as_deref(),
         Some("1"),
@@ -35,20 +36,24 @@ fn live_client() -> (ApiClient, CallOptions) {
     if let Some(app) = env("XURL_APP") {
         auth.with_app_name(&app);
     }
-    let opts = CallOptions {
-        auth_type: env("XURL_LIVE_SMOKE_AUTH").unwrap_or_default(),
-        ..CallOptions::default()
-    };
-    (ApiClient::new(&cfg, auth).expect("client builds"), opts)
+    let scheme = env("XURL_LIVE_SMOKE_AUTH").map(|raw| {
+        WireScheme::from_wire(&raw)
+            .unwrap_or_else(|| panic!("XURL_LIVE_SMOKE_AUTH={raw} is not app, oauth1, or oauth2"))
+    });
+    (Client::new(&cfg, auth).expect("client builds"), scheme)
 }
 
 #[tokio::test]
 #[ignore = "spends one post read and one user read on the live X API; see RELEASES-PREFLIGHT.md"]
 async fn live_wire_vocabulary_matches_typed_structs() {
-    let (client, opts) = live_client();
+    let (client, scheme) = live_client();
 
     let post_id = env("XURL_LIVE_SMOKE_POST_ID").unwrap_or_else(|| DEFAULT_POST_ID.to_string());
-    let post = client.read_post(&post_id, &opts).await.expect(
+    let mut read = client.read_post(&post_id);
+    if let Some(scheme) = scheme {
+        read = read.auth(scheme);
+    }
+    let post = read.send().await.expect(
         "post read must succeed; pass XURL_LIVE_SMOKE_POST_ID=<any post id with media> if the default was deleted",
     );
     let metrics = post
@@ -101,10 +106,11 @@ async fn live_wire_vocabulary_matches_typed_structs() {
         );
     }
 
-    let user = client
-        .lookup_user(USERNAME, &opts)
-        .await
-        .expect("user read must succeed");
+    let mut lookup = client.lookup_user(USERNAME);
+    if let Some(scheme) = scheme {
+        lookup = lookup.auth(scheme);
+    }
+    let user = lookup.send().await.expect("user read must succeed");
     let metrics = user
         .data
         .public_metrics

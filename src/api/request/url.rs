@@ -61,7 +61,7 @@ pub(super) fn render_template_template(target: &RequestTarget) -> Result<String>
 /// Renders a [`RequestTarget`] against `base_url` into a full URL string.
 ///
 /// Free function so unit tests can exercise the rendering without
-/// instantiating a full [`ApiClient`].
+/// instantiating a full [`Client`].
 pub(super) fn build_url_for_target(base_url: &str, target: &RequestTarget) -> Result<String> {
     match target {
         RequestTarget::Template {

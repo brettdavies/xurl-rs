@@ -1,22 +1,29 @@
 //! HTTP request building and execution for the X API.
 //!
-//! Mirrors the Go `ApiClient` — builds requests with auth headers,
-//! handles regular/streaming/multipart responses.
+//! A [`Client`] holds the one `reqwest::Client` every request shares and the
+//! credentials that sign them; shortcuts on it return a [`Call`] that is
+//! configured and then sent.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 
 use crate::auth::Auth;
 use crate::config::Config;
 use crate::error::{Error, Result};
 
 mod auth_header;
+mod builder;
+mod call;
+mod source;
 mod transport;
 mod url;
 
+pub use builder::ClientBuilder;
+pub use call::Call;
+pub(crate) use source::CredentialSource;
 pub use transport::{StreamLines, WIRE_TARGET};
 pub(crate) use url::render_template_path;
 use url::{build_url_for_target, render_template_template};
@@ -63,8 +70,8 @@ impl Default for RequestTarget {
 
 /// Common options for API requests.
 ///
-/// Threaded into [`ApiClient::send_request`], [`ApiClient::send_multipart_request`],
-/// and [`ApiClient::stream_request`]; carries everything those calls need
+/// Threaded into [`Client::send_request`], [`Client::send_multipart_request`],
+/// and [`Client::stream_request`]; carries everything those calls need
 /// beyond the client itself.
 #[derive(Debug, Clone, Default)]
 pub struct RequestOptions {
@@ -98,61 +105,20 @@ pub struct RequestOptions {
 /// Default request timeout in seconds when none is supplied.
 pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
-/// Consumer-facing options for shortcut methods.
-///
-/// Exposes only the fields relevant to crate consumers, hiding internal
-/// request construction details like `method`, `endpoint`, `headers`, and `data`.
-#[derive(Debug, Clone)]
-pub struct CallOptions {
-    /// Explicit auth scheme — `"oauth1"`, `"oauth2"`, `"app"`, or empty for
-    /// auto-detect.
-    pub auth_type: String,
-    /// OAuth2 username for the active app. Empty selects the active app's
-    /// first stored OAuth2 token.
-    pub username: String,
-    /// Skip auth-header attachment entirely.
-    pub no_auth: bool,
-    /// Emit the `X-B3-Flags: 1` header for upstream tracing.
-    pub trace: bool,
-    /// Per-call HTTP timeout in seconds. Mirrors the `--timeout` flag /
-    /// `XURL_TIMEOUT` env var. Used by the streaming and per-call refresh
-    /// paths; non-streaming requests inherit the timeout that was passed to
-    /// [`ApiClient::new`].
-    pub timeout_secs: u64,
-    /// Cursor / `pagination_token` query parameter for list endpoints.
-    ///
-    /// Threaded in from the global `--cursor` flag. List shortcuts append
-    /// it to the URL when non-empty; non-paginated endpoints ignore it.
-    pub pagination_token: String,
-}
-
-impl Default for CallOptions {
-    fn default() -> Self {
-        Self {
-            auth_type: String::new(),
-            username: String::new(),
-            no_auth: false,
-            trace: false,
-            timeout_secs: DEFAULT_TIMEOUT_SECS,
-            pagination_token: String::new(),
-        }
-    }
-}
-
-impl CallOptions {
-    /// Converts to a [`RequestOptions`] with consumer fields populated
-    /// and request-specific fields (method, endpoint, data, headers) at defaults.
-    #[must_use]
-    pub(crate) fn to_request_options(&self) -> RequestOptions {
-        RequestOptions {
-            auth_type: self.auth_type.clone(),
-            username: self.username.clone(),
-            no_auth: self.no_auth,
-            trace: self.trace,
-            pagination_token: self.pagination_token.clone(),
-            ..Default::default()
-        }
-    }
+/// The per-call options a [`Call`] carries until it is sent.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct CallOptions {
+    /// Explicit auth scheme wire string; empty for auto-detect.
+    pub(crate) auth_type: String,
+    /// `OAuth2` username for a store-backed client; empty selects the
+    /// active app's first stored token.
+    pub(crate) username: String,
+    /// Emit the `X-B3-Flags: 1` header.
+    pub(crate) trace: bool,
+    /// Per-call bound; `None` inherits the client-level timeout.
+    pub(crate) timeout: Option<Duration>,
+    /// Cursor for list endpoints; single-item endpoints ignore it.
+    pub(crate) pagination_token: String,
 }
 
 /// Options specific to multipart requests.
@@ -176,60 +142,64 @@ pub struct MultipartOptions {
     pub file_data: Vec<u8>,
 }
 
-/// Handles API requests with authentication.
+/// Sends authenticated X API requests.
+///
+/// A `Client` is a handle over shared state: cloning it is an `Arc`
+/// increment, every method takes `&self`, and one clone per task is the
+/// intended shape. Build one from a credential held in code with
+/// [`Client::builder`], or from a token store with [`Client::new`].
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use xurl::api::{ApiClient, RequestOptions, RequestTarget};
-/// use xurl::auth::Auth;
-/// use xurl::config::Config;
-/// use xurl::Error;
-/// use std::collections::HashMap;
+/// use xurl::api::Client;
 ///
-/// # async fn run() -> Result<(), Error> {
-/// let cfg = Config::new();
-/// let auth = Auth::new(&cfg);
-/// let client = ApiClient::new(&cfg, auth)?;
-///
-/// let mut opts = RequestOptions::default();
-/// opts.method = "GET".to_string();
-/// opts.target = RequestTarget::Template {
-///     path: "/2/users/me".to_string(),
-///     path_params: HashMap::new(),
-///     query: Vec::new(),
-/// };
-///
-/// match client.send_request(&opts).await {
-///     Ok(json) => println!("{json}"),
-///     Err(Error::Api { status, body }) => eprintln!("API {status}: {body}"),
-///     Err(e) => eprintln!("error: {e}"),
+/// # async fn run() -> xurl::Result<()> {
+/// let client = Client::builder().bearer("app-only-token").build()?;
+/// let posts = client.search_posts("rustlang", 10).send().await?;
+/// for post in &posts.data {
+///     println!("{}: {}", post.id, post.text);
 /// }
 /// # Ok(()) }
 /// ```
 #[derive(Clone)]
-pub struct ApiClient {
+pub struct Client {
     inner: Arc<Inner>,
 }
 
-/// What every clone of an [`ApiClient`] shares: the one HTTP client, the
-/// base URL and timeout, and the credential state behind the lock a refresh
+/// What every clone of a [`Client`] shares: the one HTTP client, the base
+/// URL and timeout, and the credential state behind the lock a refresh
 /// holds while it rotates a token.
 struct Inner {
     base_url: String,
     http: reqwest::Client,
-    auth: Mutex<Auth>,
-    timeout_secs: u64,
+    credentials: Mutex<CredentialSource>,
+    timeout: Duration,
 }
 
-crate::assert_send_sync!(ApiClient);
+crate::assert_send_sync!(Client);
 
-impl ApiClient {
-    /// Creates a new `ApiClient` using the timeout configured on `config`.
+impl std::fmt::Debug for Client {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Client")
+            .field("base_url", &self.inner.base_url)
+            .field("timeout", &self.inner.timeout)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Client {
+    /// Starts a client from credentials held in code.
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::new()
+    }
+
+    /// Creates a client over a token store, using the timeout configured on
+    /// `config`.
     ///
     /// The CLI runner writes `--timeout` / `XURL_TIMEOUT` into
     /// [`Config::http_timeout_secs`]; library consumers that want a different
-    /// timeout can use [`ApiClient::with_timeout`].
+    /// timeout can use [`Client::with_timeout`].
     ///
     /// # Errors
     ///
@@ -238,7 +208,7 @@ impl ApiClient {
         Self::with_timeout(config, auth, config.http_timeout_secs)
     }
 
-    /// Creates a new `ApiClient` with an explicit request timeout.
+    /// Creates a client over a token store with an explicit request timeout.
     ///
     /// The timeout bounds every non-streaming HTTP call dispatched by this
     /// client, and the token exchange, refresh, and `/2/users/me` lookups
@@ -251,16 +221,30 @@ impl ApiClient {
     /// that cannot honor its configured timeout is a startup failure, not a
     /// silently unbounded client.
     pub fn with_timeout(config: &Config, auth: Auth, timeout_secs: u64) -> Result<Self> {
+        Self::from_source(
+            config.api_base_url.clone(),
+            CredentialSource::Store(auth),
+            Duration::from_secs(timeout_secs),
+        )
+    }
+
+    /// The one construction site: builds the HTTP client every request,
+    /// token exchange, refresh, and `/2/users/me` lookup goes through.
+    pub(crate) fn from_source(
+        base_url: String,
+        credentials: CredentialSource,
+        timeout: Duration,
+    ) -> Result<Self> {
         let http = reqwest::Client::builder()
             .build()
             .map_err(|e| Error::Http(format!("cannot build the HTTP client: {e}")))?;
 
         Ok(Self {
             inner: Arc::new(Inner {
-                base_url: config.api_base_url.clone(),
+                base_url,
                 http,
-                auth: Mutex::new(auth),
-                timeout_secs,
+                credentials: Mutex::new(credentials),
+                timeout,
             }),
         })
     }
@@ -268,18 +252,23 @@ impl ApiClient {
     /// Returns the per-call timeout used by this client (seconds).
     #[must_use]
     pub fn timeout_secs(&self) -> u64 {
-        self.inner.timeout_secs
+        self.inner.timeout.as_secs()
     }
 
     /// The per-request bound every non-streaming call carries.
     pub(crate) fn request_timeout(&self) -> Duration {
-        Duration::from_secs(self.inner.timeout_secs)
+        self.inner.timeout
     }
 
     /// The one HTTP client every request, token exchange, refresh, and
     /// `/2/users/me` lookup goes through.
     pub(crate) fn http(&self) -> &reqwest::Client {
         &self.inner.http
+    }
+
+    /// Locks and returns the credential state.
+    pub(crate) async fn credentials(&self) -> MutexGuard<'_, CredentialSource> {
+        self.inner.credentials.lock().await
     }
 
     /// Runs the `OAuth2` PKCE sign-in for `username` on this client's
@@ -289,7 +278,8 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Everything [`Auth::oauth2_flow`] returns.
+    /// Everything [`Auth::oauth2_flow`] returns, and [`Error::Validation`]
+    /// when the client was built from credentials rather than a store.
     pub async fn oauth2_flow<F>(
         &self,
         username: &str,
@@ -299,7 +289,7 @@ impl ApiClient {
     where
         F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
     {
-        let mut auth = self.auth().await;
+        let mut auth = self.auth().await?;
         auth.oauth2_flow(self.http(), username, cancel, browser_opener)
             .await
     }
@@ -309,33 +299,43 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Everything [`Auth::remote_oauth2_step2`] returns.
+    /// Everything [`Auth::remote_oauth2_step2`] returns, and
+    /// [`Error::Validation`] when the client was built from credentials
+    /// rather than a store.
     pub async fn remote_oauth2_step2(
         &self,
         redirect_url: &str,
         username: &str,
         pending_path: &std::path::Path,
     ) -> Result<String> {
-        let mut auth = self.auth().await;
+        let mut auth = self.auth().await?;
         auth.remote_oauth2_step2(self.http(), redirect_url, username, pending_path)
             .await
     }
 
-    /// Locks and returns the credential state.
+    /// Locks and returns the token-store credential state.
     ///
     /// A refresh holds this lock while it rotates a token, so hold the guard
     /// only for the store read or write at hand and never across a request
     /// on the same client.
-    pub async fn auth(&self) -> MutexGuard<'_, Auth> {
-        self.inner.auth.lock().await
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Validation`] when the client was built from
+    /// credentials held in code: there is no store behind it.
+    pub async fn auth(&self) -> Result<MappedMutexGuard<'_, Auth>> {
+        let credentials = self.credentials().await;
+        MutexGuard::try_map(credentials, CredentialSource::store).map_err(|_| {
+            Error::validation("this client was built from credentials, not a token store")
+        })
     }
 
-    /// Creates an `ApiClient` from environment variables.
+    /// Creates a store-backed client from environment variables.
     ///
     /// Reads `CLIENT_ID`, `CLIENT_SECRET`, and other env vars via [`Config::new()`],
     /// validates that `CLIENT_ID` is non-empty, and returns a ready-to-use client.
     ///
-    /// For full control over configuration and auth, use [`ApiClient::new()`] instead.
+    /// For full control over configuration and auth, use [`Client::new()`] instead.
     ///
     /// # Errors
     ///
@@ -345,7 +345,7 @@ impl ApiClient {
         let cfg = Config::new();
         if cfg.client_id.is_empty() {
             return Err(Error::validation(
-                "CLIENT_ID not set — set the environment variable or use ApiClient::new() for manual configuration",
+                "CLIENT_ID not set — set the environment variable or use Client::new() for manual configuration",
             ));
         }
         let auth = Auth::new(&cfg);
@@ -368,65 +368,5 @@ impl ApiClient {
     /// Builds the full URL from a target.
     fn build_url(&self, target: &RequestTarget) -> Result<String> {
         build_url_for_target(&self.inner.base_url, target)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn call_options_to_request_options_maps_all_fields() {
-        let opts = CallOptions {
-            auth_type: "oauth2".to_string(),
-            username: "testuser".to_string(),
-            no_auth: true,
-            trace: true,
-            timeout_secs: 45,
-            pagination_token: "abc123".to_string(),
-        };
-
-        let req = opts.to_request_options();
-
-        assert_eq!(req.auth_type, "oauth2");
-        assert_eq!(req.username, "testuser");
-        assert!(req.no_auth);
-        assert!(req.trace);
-        assert_eq!(req.pagination_token, "abc123");
-        // Request-specific fields should be at defaults
-        assert!(req.method.is_empty());
-        match &req.target {
-            RequestTarget::Template {
-                path,
-                path_params,
-                query,
-            } => {
-                assert!(path.is_empty());
-                assert!(path_params.is_empty());
-                assert!(query.is_empty());
-            }
-            RequestTarget::RawUrl(_) => panic!("default target must be Template"),
-        }
-        assert!(req.data.is_empty());
-        assert!(req.headers.is_empty());
-    }
-
-    #[test]
-    fn call_options_default_has_safe_values() {
-        let opts = CallOptions::default();
-        let req = opts.to_request_options();
-
-        assert!(!req.no_auth, "no_auth should default to false");
-        assert!(!req.trace);
-        assert!(req.auth_type.is_empty());
-        assert!(req.username.is_empty());
-        assert!(
-            opts.pagination_token.is_empty(),
-            "pagination_token should default to empty so non-paginated endpoints stay clean"
-        );
-        assert_eq!(
-            opts.timeout_secs, DEFAULT_TIMEOUT_SECS,
-            "timeout_secs should default to {DEFAULT_TIMEOUT_SECS}"
-        );
     }
 }

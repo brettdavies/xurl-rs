@@ -4,9 +4,13 @@
 //! env-var config -> active app in `.xurl` store.
 
 pub mod callback;
+pub mod credentials;
 pub mod oauth1;
 pub mod oauth2;
 pub mod pending;
+
+pub(crate) use credentials::DirectCredentials;
+pub use credentials::{BoxError, OAuth1Credential, OAuth2Credential, OnTokenRefreshed};
 
 use crate::config::Config;
 use crate::error::{Error, Result};

@@ -61,6 +61,12 @@ crate::assert_send_sync!(Config);
 /// `REDIRECT_URI` env var nor a stored per-app value is set.
 pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";
 
+/// Built-in X API origin used when `API_BASE_URL` is unset.
+pub const DEFAULT_API_BASE_URL: &str = "https://api.x.com";
+
+/// Built-in `OAuth2` token endpoint used when `TOKEN_URL` is unset.
+pub const DEFAULT_TOKEN_URL: &str = "https://api.x.com/2/oauth2/token";
+
 /// The values `xurl` reads from the process environment, as data.
 ///
 /// [`EnvOverrides::from_env`] is the single place in the crate that reads
@@ -192,7 +198,7 @@ impl Config {
         let api_base_url = overrides
             .api_base_url
             .clone()
-            .unwrap_or_else(|| "https://api.x.com".to_string());
+            .unwrap_or_else(|| DEFAULT_API_BASE_URL.to_string());
         let info_url = overrides
             .info_url
             .clone()
@@ -209,7 +215,7 @@ impl Config {
             token_url: overrides
                 .token_url
                 .clone()
-                .unwrap_or_else(|| "https://api.x.com/2/oauth2/token".to_string()),
+                .unwrap_or_else(|| DEFAULT_TOKEN_URL.to_string()),
             api_base_url,
             info_url,
             app_name: String::new(),

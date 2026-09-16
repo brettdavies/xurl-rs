@@ -11,7 +11,7 @@ use reqwest::multipart;
 
 use crate::error::{Error, Result};
 
-use super::{ApiClient, MultipartOptions, RequestOptions};
+use super::{Client, MultipartOptions, RequestOptions};
 
 /// Target of the wire diagnostics: one `DEBUG` event per request line
 /// (`kind = "request"`, `method`, `url`), response status (`kind =
@@ -20,7 +20,7 @@ use super::{ApiClient, MultipartOptions, RequestOptions};
 /// note (`kind = "note"`, message), in the order a subscriber prints them.
 pub const WIRE_TARGET: &str = "xurl::wire";
 
-impl ApiClient {
+impl Client {
     /// Sends a regular API request and returns the JSON response.
     ///
     /// # Errors
@@ -28,6 +28,17 @@ impl ApiClient {
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// or the API returns an error status (>= 400).
     pub async fn send_request(&self, options: &RequestOptions) -> Result<serde_json::Value> {
+        self.send_request_with(options, self.request_timeout())
+            .await
+    }
+
+    /// [`Self::send_request`] with `timeout` bounding this one request in
+    /// place of the client-level bound.
+    pub(crate) async fn send_request_with(
+        &self,
+        options: &RequestOptions,
+        timeout: std::time::Duration,
+    ) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header` (called
@@ -44,7 +55,7 @@ impl ApiClient {
         let mut builder = self
             .http()
             .request(req_method.clone(), &url)
-            .timeout(self.request_timeout());
+            .timeout(timeout);
 
         // Add body for POST/PUT/PATCH. Content-Type is xurl's auto-detect
         // unless the caller already supplied one; the body itself is always

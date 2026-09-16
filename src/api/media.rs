@@ -7,7 +7,7 @@ use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
-use super::request::{ApiClient, MultipartOptions, RequestOptions, RequestTarget};
+use super::request::{Client, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
 use crate::error::{Error, Result};
 
@@ -45,7 +45,7 @@ pub async fn execute_media_upload(
     trace: bool,
     wait_for_processing: bool,
     headers: &[String],
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
         .map_err(|e| Error::Io(format!("error accessing file: {e}")))?;
@@ -130,7 +130,7 @@ async fn upload_chunks(
     media_id: &str,
     base_opts: &RequestOptions,
     file_size: u64,
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<()> {
     tracing::info!(target: MEDIA_TARGET, "Uploading media in chunks...");
 
@@ -203,7 +203,7 @@ pub async fn execute_media_status(
     wait: bool,
     trace: bool,
     headers: &[String],
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),
@@ -224,7 +224,7 @@ pub async fn execute_media_status(
 async fn check_media_status(
     media_id: &str,
     base_opts: &RequestOptions,
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let mut opts = base_opts.clone();
     opts.method = "GET".to_string();
@@ -245,7 +245,7 @@ async fn check_media_status(
 async fn wait_for_media_processing(
     media_id: &str,
     base_opts: &RequestOptions,
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     loop {
         let response = check_media_status(media_id, base_opts, client).await?;
@@ -295,7 +295,7 @@ async fn wait_for_media_processing(
 pub async fn handle_media_append_request(
     options: &RequestOptions,
     media_file: &str,
-    client: &ApiClient,
+    client: &Client,
 ) -> Result<serde_json::Value> {
     // Raw mode is the only caller — its target is a `RawUrl` carrying
     // the user-supplied URL with the media_id embedded in the path.

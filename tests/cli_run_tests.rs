@@ -148,7 +148,7 @@ async fn schema_unknown_command_exits_general_error() {
 
 /// Compile-time assertion that the library entrypoint surface is `Send + Sync`
 /// where it should be. `OutputConfig` is the most-important type for the
-/// future async/concurrent `ApiClient` (see project_async_requirement).
+/// future async/concurrent `Client` (see project_async_requirement).
 #[test]
 fn entrypoint_types_are_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}

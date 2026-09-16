@@ -1,7 +1,7 @@
 //! One HTTP client, built once, with no timeout-free fallback.
 //!
 //! Every request, token exchange, refresh, and `/2/users/me` lookup goes
-//! through the client `ApiClient` owns. A `Client::new()` fallback would put
+//! through the client `Client` owns. A `reqwest::Client::new()` fallback would put
 //! the whole process on a timeout-free client the moment the builder failed,
 //! so the library keeps exactly one construction site and it returns an
 //! error instead.
@@ -53,7 +53,7 @@ fn the_http_client_is_built_in_exactly_one_place() {
     assert_eq!(
         hits.len(),
         1,
-        "every request shares the one client `ApiClient` builds:\n{}",
+        "every request shares the one client `Client` builds:\n{}",
         hits.join("\n")
     );
     assert!(

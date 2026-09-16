@@ -1,7 +1,7 @@
 //! Streaming request handler: SSE / chunked transfer support.
 use std::io::Write;
 
-use crate::api::{ApiClient, RequestOptions};
+use crate::api::{Client, RequestOptions};
 use crate::cli::output::OutputConfig;
 use crate::cli::shutdown::shutdown_signal;
 use crate::error::Result;
@@ -14,7 +14,7 @@ use crate::error::Result;
 /// structured output, and returns cleanly; dropping the stream closes the
 /// connection.
 pub(super) async fn stream_request_with_output(
-    client: &ApiClient,
+    client: &Client,
     options: &RequestOptions,
     out: &OutputConfig,
     stdout: &mut dyn Write,

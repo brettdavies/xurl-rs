@@ -4,7 +4,7 @@
 //!
 //! - The `xr` binary, a high-level CLI for the X API.
 //! - The `xurl` library exposed via the modules below. Downstream Rust
-//!   consumers build requests via [`api::ApiClient`], drive output through
+//!   consumers build requests via [`api::Client`], drive output through
 //!   [`cli::output::OutputConfig`], pattern-match on [`Error`], and
 //!   persist auth state in [`store::TokenStore`].
 //!

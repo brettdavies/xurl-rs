@@ -6,7 +6,7 @@ use xurl::cli::output::{OutputConfig, OutputFormat};
 
 /// Compile-time assertion: `OutputConfig` must remain a `Send + Sync` config
 /// object so it can be shared across threads / tasks in the planned async
-/// `ApiClient` (see `feedback_async_multithread_first_party`).
+/// `Client` (see `feedback_async_multithread_first_party`).
 #[test]
 fn output_config_is_send_and_sync() {
     fn assert_send_sync<T: Send + Sync>() {}

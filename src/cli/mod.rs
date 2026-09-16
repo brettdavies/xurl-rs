@@ -1546,38 +1546,6 @@ pub struct CommonFlags {
     pub trace: bool,
 }
 
-impl CommonFlags {
-    /// Converts to `CallOptions` for shortcut methods.
-    ///
-    /// `verbose` and `timeout_secs` are sourced from the root [`Cli`] global
-    /// flags rather than per-subcommand, so the caller threads them through
-    /// here.
-    pub fn to_call_options(&self, timeout_secs: u64) -> crate::api::CallOptions {
-        self.to_call_options_with_cursor(timeout_secs, None)
-    }
-
-    /// Like [`to_call_options`] but with an explicit cursor / pagination
-    /// token. The runner threads the global `--cursor` (or `--after` /
-    /// `XURL_CURSOR` / `XURL_AFTER`) here so list shortcuts can append it to
-    /// their URL.
-    ///
-    /// [`to_call_options`]: Self::to_call_options
-    pub fn to_call_options_with_cursor(
-        &self,
-        timeout_secs: u64,
-        cursor: Option<&str>,
-    ) -> crate::api::CallOptions {
-        crate::api::CallOptions {
-            auth_type: self.auth_type.clone().unwrap_or_default(),
-            username: self.username.clone().unwrap_or_default(),
-            no_auth: false,
-            trace: self.trace,
-            timeout_secs,
-            pagination_token: cursor.unwrap_or_default().to_string(),
-        }
-    }
-}
-
 /// Auth subcommands.
 #[derive(Subcommand, Debug)]
 pub enum AuthCommands {

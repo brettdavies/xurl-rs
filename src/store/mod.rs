@@ -8,6 +8,7 @@
 //! - Credential backfill from environment variables
 
 mod atomic;
+mod hook;
 mod lock;
 mod migration;
 pub mod snapshot;

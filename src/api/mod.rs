@@ -15,8 +15,8 @@ pub use media::{
 };
 #[allow(unused_imports)]
 pub use request::{
-    ApiClient, CallOptions, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions, RequestTarget,
-    StreamLines, WIRE_TARGET,
+    Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions,
+    RequestTarget, StreamLines, WIRE_TARGET,
 };
 #[allow(unused_imports)]
 pub use response::types::{
