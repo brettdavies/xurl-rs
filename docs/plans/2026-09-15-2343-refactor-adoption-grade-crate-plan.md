@@ -167,6 +167,29 @@ whose `--path .` fails on a virtual manifest; the reusable release workflow's `c
 pkgid`, which fails the same way; and `scripts/generate-completions.sh` selects the binary via `cargo metadata --no-deps
 ... .packages[0]`, which is ambiguous with two members. Each needs a package-scoped fix before U6 lands.
 
+KTD11. **reqwest and tokio stay, confirmed against current data rather than inherited.** Checked 2026-09-16: reqwest
+0.13.5 shipped eight days prior at 181.8M recent downloads, against isahc's 1.2M and surf's — dead since 2021 — 517k;
+tokio 1.53.1 at 223.2M against smol's 4.6M, with async-std deprecated. For a crate whose pitch is being the safe,
+obvious choice, anything else imposes a foreign runtime on every embedder. The real alternative is `hyper` plus
+`hyper-util` directly for runtime agnosticism, rejected because it means hand-rolling connectors, TLS, redirects, and
+decompression for a benefit almost no embedder wants. `ureq` (58M, sync-only, actively shipped) is noted only as a
+blocking-path option, and carrying two HTTP stacks is worse than one.
+
+KTD12. **Tags are per-crate and prefixed; each crate carries its own changelog.** `session-settled: user-directed`;
+chosen over a CLI-only tag line and over separate release workflows. `xdk-rs-v0.1.0` and `xurl-rs-v3.3.0`, with
+git-cliff filtering by tag pattern and path so each crate's changelog reflects its own commits. The release workflow's
+tag check and the existing `vX.Y.Z` history both have to account for two schemes.
+
+KTD13. **`xr --version` leads with the CLI version and carries the library version alongside.** `session-settled:
+user-directed`. Humans see the version they installed; the verbose and JSON forms also report the `xdk-rs` version the
+binary was built against, so a bug report identifies both. Costs a build-time constant, which `build.rs` already emits
+for the spec metadata.
+
+KTD14. **`xdk-rs` is taken knowing X may one day generate a Rust XDK.** `session-settled: user-directed`. `xdevplatform/xdk`
+is an SDK *generator* and the Python and TypeScript SDKs are its outputs, so a Rust output is possible. If it appears,
+this crate is the hand-written idiomatic alternative rather than a duplicate — a real niche, since generated SDKs are
+rarely idiomatic. The non-affiliation obligation in KTD2 is what keeps that honest.
+
 ### High-Level Technical Design
 
 **Current dependency shape.** The arrows that break the split are the three pointing left, from library modules into
@@ -223,6 +246,7 @@ graph LR
 
 ```mermaid
 graph TD
+    U18[U18 async API shape] --> U4
     U1[U1 Send+Sync locks] --> U4
     U2[U2 move ColorChoice/hints] --> U4[U4 async transport]
     U4 --> U15[U15 async auth]
@@ -299,7 +323,7 @@ defect was only found by looking. Record each as a follow-up rather than absorbi
 
 Three phases, each independently shippable in a minor.
 
-**Phase A — make the library a library (U1, U2, U3, U4, U15, U16, U5, U6).** Ends with a workspace where the library
+**Phase A — make the library a library (U18, U1, U2, U3, U4, U15, U16, U5, U6).** Ends with a workspace where the library
 crate compiles
 with no CLI dependency and the binary crate owns clap.
 
@@ -312,7 +336,8 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 
 | U-ID | Title                                                       | Files touched                                                                                                                                                                                      | Depends on      |
 | ---- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| U17  | Establish that the listing route is live                    | —                                                                                                                                                                                                  | —               |
+| U17  | The listing route, established (answered)                   | —                                                                                                                                                                                                  | —               |
+| U18  | Settle the async API shape                                  | —                                                                                                                                                                                                  | —               |
 | U1   | Lock Send + Sync as compile-time invariants                 | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                              | —               |
 | U2   | Move ColorChoice and the hint types into library homes      | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`                                                                                                    | —               |
 | U3   | Remove clap from the generated skill-host enum              | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                            | —               |
@@ -330,30 +355,61 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 | U13  | Publish and submit for listing                              | `README.md`, `Cargo.toml`                                                                                                                                                                          | U10, U11, U12   |
 | U14  | Delete the accepted-break entries                           | `Cargo.toml`                                                                                                                                                                                       | U13             |
 
-### U17. Establish that the listing route is live
+### U17. The listing route, established
 
-**Goal.** Know, before the budget is spent, whether X still curates the community-libraries page and what it takes to
-get on it.
+**Status.** Answered 2026-09-16. Recorded here because it changes U13 and clears the Phase C stop condition.
 
-**Requirements.** R11.
+**Finding: the route is a pull request, not a forum post.** X's documentation is the public `xdevplatform/docs`
+repository, pushed the same day this was checked, and the page in question is `tools-and-libraries.mdx` at its root.
+Merged pull requests there run daily.
 
-**Dependencies.** None. Runs ahead of Phase A and blocks nothing.
+**The forum route is weak by comparison.** The Libraries, SDKs, and sample code category is active but is almost
+entirely unanswered support questions, and the one historically comparable post — a 2022 announcement of a new
+Dart/Flutter v2 library, the same shape of submission this crate would make — drew zero replies.
 
-**Approach.** Without submitting anything, establish whether the page is actively curated: when entries were last added
-or changed, whether submissions in the Libraries, SDKs, Samples category get responses, and what turnaround looks like.
-The plan's own evidence is ambiguous — the sole Rust entry has been unpublished since October 2022 and Rust has no tab
-of its own, which is equally consistent with a curated directory nobody submits to and an abandoned one. Those two
-readings imply different amounts of work being worth doing.
+**Caveat.** Recent merged pull requests in the docs repo are internal: their Mintlify bot and X staff. External
+contribution throughput is unproven from that window, though 20 forks and 89 open issues show outside engagement
+exists. So the route is open and concrete, not guaranteed.
 
-**Execution note.** Read-only reconnaissance. Do not post, and do not contact maintainers here; U13 owns the approach
-when the time comes.
+**Consequence.** Phase C proceeds. U13 opens a pull request against `tools-and-libraries.mdx` and treats the forum as a
+secondary signal rather than the primary channel.
+
+### U18. Settle the async API shape
+
+**Goal.** Decide the library's async surface before any of it is written, because `0.1.0` is where these choices start
+setting.
+
+**Requirements.** R3, R4.
+
+**Dependencies.** None. Must complete before U4.
+
+**Approach.** Produce KTDs, not code. Four questions, each of which U4 would otherwise improvise:
+
+- **Receiver shape.** `ApiClient::send_request` takes `&mut self` today, which makes concurrent use impossible: an
+  embedder cannot share one client across tasks, and each task holding its own client is what lets two token refreshes
+  clobber each other. `reqwest::Client` is the model — `&self`, cheap `Clone`, `Send + Sync`, connection pool shared
+  internally. Decide the receiver and what interior mutability the token store needs to match it. This is the decision
+  with the longest shadow; converting the transport to async without it satisfies R3's letter and misses its point.
+- **Whether the blocking facade earns its place.** `reqwest` still ships one, and sync consumers are real. Against that:
+  the CLI is a binary and can simply be async throughout, which removes the facade's largest in-repo consumer and the
+  `cfg` surface that comes with it. Decide whether the facade exists for embedders at all, or whether sync callers are
+  told to own a runtime.
+- **Pagination.** Several endpoints are cursor-paged and the CLI already threads a cursor. Decide whether the library
+  exposes raw pages, an iterator-style helper, or `impl Stream<Item = Result<T>>` via `futures-core`, and whether that
+  shape is feature-gated.
+- **Cancellation and timeouts.** What a caller can cancel, what happens to an in-flight token refresh when they do, and
+  where per-request timeouts sit relative to the client-level one.
+
+**Execution note.** Ground each decision in what current, maintained crates do — `reqwest` itself, `octocrab`, the AWS
+SDK — rather than in any single prior art. The earlier draft of this plan inherited a 2022 crate's feature names and
+was wrong about them; that is the failure mode to avoid.
 
 **Test scenarios.**
 
-- Test expectation: none — this unit produces a finding, not behavior. Replacement verification is the written
-  conclusion and the evidence behind it.
+- Test expectation: none — this unit produces decisions, not behavior. Replacement verification is that U4, U15, and
+  U16 each cite the KTD they implement.
 
-**Verification.** A recorded answer to "is this route live, and what does it take", with dates and links.
+**Verification.** The KTDs exist, name their rejected alternatives, and each downstream async unit references one.
 
 ### U1. Lock Send + Sync as compile-time invariants
 
@@ -690,14 +746,17 @@ the plain command cannot show the surface being audited — plus a review of the
 
 **Requirements.** R4, R5.
 
-**Approach.** Introduce `default = ["rustls-tls"]`, plus `native-tls` and `blocking`. The incumbent `twitter-v2` offers
-exactly the two TLS features, which is the shape Rust users expect. Every matrix cell that means "this configuration
-alone" uses `--no-default-features --features X`, per KTD7.
+**Approach.** Use reqwest 0.13's actual feature names, which are not the 0.11-era ones: the backends are `rustls`,
+`rustls-no-provider`, `native-tls`, and `native-tls-vendored`, and `Cargo.toml` already selects `rustls` today. Expose
+them as the crate's own `rustls` (default) and `native-tls` features that forward to reqwest, plus `blocking` if the
+facade survives the design pass. Every matrix cell that means "this configuration alone" uses
+`--no-default-features --features X`, per KTD7.
 
 **Test scenarios.**
 
 - Happy path: default features build and test green.
 - Edge case: `--no-default-features --features native-tls` builds and makes a real request in an ignored test.
+- Edge case: `--no-default-features --features rustls` builds, proving the default is not silently required.
 - Edge case: `--no-default-features --features blocking` builds and the blocking facade works.
 - Error path: `--no-default-features` with no TLS feature fails with a clear `compile_error!` rather than an obscure
   reqwest error.
@@ -803,11 +862,12 @@ the tag scheme and git-cliff configuration both have to express.
 
 **Approach.** Publish the library and the CLI.
 
-For the submission, use the relationship that already exists rather than arriving cold. X's own Go `xurl` is listed on
-the same page under Developer tools, and this crate is a port of it — so open through the `xdevplatform` maintainers as
-the Rust port of a tool X already ships and links, and lead the forum post with that lineage. The Libraries, SDKs,
-Samples category is the documented route for a library to be linked from the developer docs; gap-filling is the weaker
-framing and the fallback, not the opener.
+For the submission, open a pull request against `tools-and-libraries.mdx` in the public `xdevplatform/docs`
+repository, adding the crate to the Rust entry. U17 established that this is the live route and that the developer
+forum is not. Lead with the lineage that already exists — X's own `xurl` is listed there under Developer tools and this
+project is its Rust port — and state the `xdk-rs` name and the absence of any affiliation plainly in the PR body rather
+than leaving either to be discovered. Post in the Libraries, SDKs, Samples forum category as a secondary signal, not as
+the primary channel.
 
 **Post-submission checkpoint.** Record the result. If the submission is rejected or goes unanswered by the window the
 recon unit established, state what the plan does next rather than treating the roadmap as complete.
