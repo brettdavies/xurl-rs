@@ -13,7 +13,7 @@ use url::Url;
 use super::Auth;
 use super::callback;
 use super::pending;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// `OAuth2` scopes requested for xurl.
 #[must_use]
@@ -66,7 +66,7 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
     let scopes = get_oauth2_scopes().join(" ");
     let mut auth_url =
-        Url::parse(auth.auth_url()).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+        Url::parse(auth.auth_url()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")
@@ -122,24 +122,24 @@ pub(crate) fn exchange_code_for_token(
         ])
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
-        .map_err(|e| XurlError::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
 
     let status = token_resp.status();
     let token_data: serde_json::Value = token_resp
         .json()
-        .map_err(|e| XurlError::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
 
     if !status.is_success() {
         let api_error = token_data["error"].as_str().unwrap_or("unknown");
         let api_desc = token_data["error_description"].as_str().unwrap_or("");
-        return Err(XurlError::auth(format!(
+        return Err(Error::auth(format!(
             "TokenExchangeError: HTTP {status} — {api_error}: {api_desc}"
         )));
     }
 
     let access_token = token_data["access_token"]
         .as_str()
-        .ok_or_else(|| XurlError::auth("TokenExchangeError: no access_token in response"))?
+        .ok_or_else(|| Error::auth("TokenExchangeError: no access_token in response"))?
         .to_string();
 
     let refresh_token = token_data["refresh_token"]
@@ -231,8 +231,8 @@ where
     // Parse the resolved redirect URI; the listener binds host, port, and path
     // from it (KTD6 + R25). Validation already accepted https or http+loopback
     // at U2/R8 write/resolve time, so a parse failure here is a programmer error.
-    let redirect_parsed = Url::parse(auth.redirect_uri())
-        .map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+    let redirect_parsed =
+        Url::parse(auth.redirect_uri()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
 
     // The opener runs on the listener's bind-success hook. A failed open
     // cancels the listener immediately rather than waiting out the callback
@@ -252,7 +252,7 @@ where
     let code_result = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound);
 
     if opener_failed.load(std::sync::atomic::Ordering::SeqCst) {
-        return Err(XurlError::auth(
+        return Err(Error::auth(
             "browser-open failed; re-run with --no-browser to paste the URL manually",
         ));
     }
@@ -327,7 +327,7 @@ pub fn run_remote_step2(
 
     // Validate client_id matches runtime context
     if pending_state.client_id != auth.client_id() {
-        return Err(XurlError::auth(format!(
+        return Err(Error::auth(format!(
             "AppMismatch: pending state was created for app {:?} (client_id: {}), \
              but current context uses client_id: {}. Re-run step 1 with the correct --app",
             pending_state.app_name,
@@ -338,7 +338,7 @@ pub fn run_remote_step2(
 
     // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url).map_err(|e| {
-        XurlError::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
+        Error::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
     })?;
 
     let params: std::collections::HashMap<String, String> = parsed
@@ -347,12 +347,12 @@ pub fn run_remote_step2(
         .collect();
 
     // Validate state first (CSRF check before revealing anything about code)
-    let state = params.get("state").ok_or_else(|| {
-        XurlError::auth("MissingState: no 'state' parameter found in redirect URL")
-    })?;
+    let state = params
+        .get("state")
+        .ok_or_else(|| Error::auth("MissingState: no 'state' parameter found in redirect URL"))?;
 
     if *state != pending_state.state {
-        return Err(XurlError::auth(
+        return Err(Error::auth(
             "StateMismatch: the state parameter in the redirect URL does not match \
              the pending auth flow. This may indicate a CSRF attack or that step 1 \
              was re-run. Please start over with step 1",
@@ -361,7 +361,7 @@ pub fn run_remote_step2(
 
     // Extract authorization code
     let code = params.get("code").ok_or_else(|| {
-        XurlError::auth(
+        Error::auth(
             "MissingCode: no 'code' parameter found in redirect URL. \
              Make sure you copied the full URL from your browser's address bar",
         )
@@ -423,11 +423,11 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
             .cloned()
     };
 
-    let token = token.ok_or_else(|| XurlError::auth("TokenNotFound: oauth2 token not found"))?;
+    let token = token.ok_or_else(|| Error::auth("TokenNotFound: oauth2 token not found"))?;
     let oauth2 = token
         .oauth2
         .as_ref()
-        .ok_or_else(|| XurlError::auth("TokenNotFound: oauth2 token not found"))?;
+        .ok_or_else(|| Error::auth("TokenNotFound: oauth2 token not found"))?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -453,15 +453,15 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
         ])
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
-        .map_err(|e| XurlError::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
 
     let token_data: serde_json::Value = token_resp
         .json()
-        .map_err(|e| XurlError::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
 
     let new_access_token = token_data["access_token"]
         .as_str()
-        .ok_or_else(|| XurlError::auth("RefreshTokenError: no access_token in response"))?
+        .ok_or_else(|| Error::auth("RefreshTokenError: no access_token in response"))?
         .to_string();
 
     let new_refresh_token = token_data["refresh_token"]

@@ -18,7 +18,7 @@ use tokio::sync::{Mutex, oneshot};
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Resolves when the process receives SIGINT (Ctrl+C) or, on Unix, SIGTERM.
 ///
@@ -278,18 +278,18 @@ where
 {
     let host = redirect_uri
         .host_str()
-        .ok_or_else(|| XurlError::auth("redirect URI has no host"))?
+        .ok_or_else(|| Error::auth("redirect URI has no host"))?
         .to_string();
     let port = redirect_uri
         .port_or_known_default()
-        .ok_or_else(|| XurlError::auth("redirect URI has no port"))?;
+        .ok_or_else(|| Error::auth("redirect URI has no port"))?;
     let expected_state = expected_state.to_string();
     let uri_path = callback_path_from(redirect_uri);
 
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| XurlError::auth_with_cause("ServerError", &e))?;
+        .map_err(|e| Error::auth_with_cause("ServerError", &e))?;
 
     rt.block_on(async move {
         let addrs = address_list(&host, port);
@@ -301,7 +301,7 @@ where
                 .map(|(addr, err)| format!("{addr}: {err}"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            return Err(XurlError::auth(format!(
+            return Err(Error::auth(format!(
                 "could not bind callback listener: {detail}"
             )));
         }
@@ -355,27 +355,27 @@ where
         let _ = ready_rx.await;
         tokio::task::spawn_blocking(on_bound)
             .await
-            .map_err(|e| XurlError::auth_with_cause("OnBoundJoinError", &e))?;
+            .map_err(|e| Error::auth_with_cause("OnBoundJoinError", &e))?;
 
         let result = tokio::select! {
             biased;
             res = result_rx => {
                 match res {
                     Ok(Ok(code)) => Ok(code),
-                    Ok(Err(e)) => Err(XurlError::auth(format!("CallbackError: {e}"))),
-                    Err(_) => Err(XurlError::auth("ListenerError: oauth2 listener failed")),
+                    Ok(Err(e)) => Err(Error::auth(format!("CallbackError: {e}"))),
+                    Err(_) => Err(Error::auth("ListenerError: oauth2 listener failed")),
                 }
             }
             () = cancel.cancelled() => {
-                Err(XurlError::auth("ListenerError: cancelled before code received"))
+                Err(Error::auth("ListenerError: cancelled before code received"))
             }
             () = shutdown_signal() => {
                 cancel.cancel();
-                Err(XurlError::auth("Cancelled: oauth callback cancelled by signal"))
+                Err(Error::auth("Cancelled: oauth callback cancelled by signal"))
             }
             () = tokio::time::sleep(CALLBACK_TIMEOUT) => {
                 cancel.cancel();
-                Err(XurlError::auth("Timeout: authentication timed out"))
+                Err(Error::auth("Timeout: authentication timed out"))
             }
         };
 

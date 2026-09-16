@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Maximum age of a pending state file before it is considered expired.
 const PENDING_TTL_SECS: u64 = 900; // 15 minutes
@@ -62,7 +62,7 @@ pub fn default_pending_path() -> Result<PathBuf> {
     dirs::home_dir()
         .map(|h| pending_path_for_store(&h.join(".xurl")))
         .ok_or_else(|| {
-            XurlError::auth(
+            Error::auth(
                 "could not determine home directory for pending state file. \
                  Set the HOME environment variable",
             )
@@ -75,7 +75,7 @@ pub fn default_pending_path() -> Result<PathBuf> {
 ///
 /// Returns an error if serialisation or filesystem operations fail.
 pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
-    let data = serde_yaml::to_string(state).map_err(|e| XurlError::Auth(e.to_string()))?;
+    let data = serde_yaml::to_string(state).map_err(|e| Error::Auth(e.to_string()))?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
 }
@@ -104,7 +104,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         let meta = match fs::symlink_metadata(path) {
             Ok(m) => m,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                return Err(XurlError::auth(
+                return Err(Error::auth(
                     "PendingStateNotFound: no pending OAuth2 state file found",
                 ));
             }
@@ -112,14 +112,14 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         };
 
         if meta.file_type().is_symlink() {
-            return Err(XurlError::auth(
+            return Err(Error::auth(
                 "PendingStatePermissions: pending state file is a symlink (rejected for security)",
             ));
         }
 
         let mode = meta.permissions().mode() & 0o777;
         if mode != 0o600 {
-            return Err(XurlError::auth(format!(
+            return Err(Error::auth(format!(
                 "PendingStatePermissions: expected mode 0600, got {mode:04o}"
             )));
         }
@@ -127,7 +127,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         let file_uid = meta.uid();
         let current_uid = unsafe { libc::getuid() };
         if file_uid != current_uid {
-            return Err(XurlError::auth(format!(
+            return Err(Error::auth(format!(
                 "PendingStatePermissions: file owned by uid {file_uid}, expected {current_uid}"
             )));
         }
@@ -136,7 +136,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
     // On non-Unix, do a simple existence check.
     #[cfg(not(unix))]
     if !path.exists() {
-        return Err(XurlError::auth(
+        return Err(Error::auth(
             "PendingStateNotFound: no pending OAuth2 state file found",
         ));
     }
@@ -144,14 +144,14 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
     let data = match fs::read_to_string(path) {
         Ok(d) => d,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Err(XurlError::auth(
+            return Err(Error::auth(
                 "PendingStateNotFound: no pending OAuth2 state file found",
             ));
         }
         Err(e) => return Err(e.into()),
     };
     let state: PendingOAuth2State =
-        serde_yaml::from_str(&data).map_err(|e| XurlError::Auth(e.to_string()))?;
+        serde_yaml::from_str(&data).map_err(|e| Error::Auth(e.to_string()))?;
 
     // TTL check.
     let now = SystemTime::now()
@@ -161,7 +161,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
 
     if now.saturating_sub(state.created_at) > PENDING_TTL_SECS {
         let _ = fs::remove_file(path);
-        return Err(XurlError::auth(
+        return Err(Error::auth(
             "PendingStateExpired: pending OAuth2 state is older than 15 minutes",
         ));
     }

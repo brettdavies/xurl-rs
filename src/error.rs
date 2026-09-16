@@ -5,7 +5,6 @@
 //! the Display output stays identical to xurl.
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 /// What the caller should do next. Closed set; agents branch on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -45,21 +44,21 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// # Example
 ///
 /// ```rust,no_run
-/// use xurl::error::XurlError;
-/// # fn run() -> Result<(), XurlError> {
-/// # let result: Result<(), XurlError> = Err(XurlError::validation("missing field"));
+/// use xurl::Error;
+/// # fn run() -> Result<(), Error> {
+/// # let result: Result<(), Error> = Err(Error::validation("missing field"));
 /// match result {
 ///     Ok(()) => println!("ok"),
-///     Err(XurlError::Api { status, body }) => eprintln!("api {status}: {body}"),
-///     Err(XurlError::Validation(msg)) => eprintln!("validation: {msg}"),
-///     Err(XurlError::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(Error::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
+///     Err(Error::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
 /// }
 /// # Ok(()) }
 /// ```
 #[allow(clippy::result_large_err)]
-#[derive(Debug, Error)]
-pub enum XurlError {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     /// HTTP transport / request construction error.
     #[error("HTTP Error: {0}")]
     Http(String),
@@ -193,11 +192,11 @@ pub enum XurlError {
     },
 }
 
-// Compile-time guarantee: `XurlError` stays shareable across tasks and threads,
+// Compile-time guarantee: `Error` stays shareable across tasks and threads,
 // so the failure surfaces here rather than at a distant call site.
 const _: fn() = || {
     fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<XurlError>();
+    _assert_send_sync::<Error>();
 };
 
 /// Builds the user-facing message that fills both the `Display` output and
@@ -291,7 +290,7 @@ fn pretty_scheme(name: &str) -> String {
 }
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
-impl XurlError {
+impl Error {
     /// Create an API error with an HTTP status code and response body.
     pub fn api(status: u16, body: impl Into<String>) -> Self {
         Self::Api {
@@ -422,38 +421,38 @@ impl XurlError {
     }
 }
 
-impl From<reqwest::Error> for XurlError {
+impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
         Self::Http(err.to_string())
     }
 }
 
-impl From<std::io::Error> for XurlError {
+impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         Self::Io(err.to_string())
     }
 }
 
-impl From<serde_json::Error> for XurlError {
+impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         Self::Json(err.to_string())
     }
 }
 
-impl From<serde_yaml::Error> for XurlError {
+impl From<serde_yaml::Error> for Error {
     fn from(err: serde_yaml::Error) -> Self {
         Self::Json(err.to_string())
     }
 }
 
-impl From<url::ParseError> for XurlError {
+impl From<url::ParseError> for Error {
     fn from(err: url::ParseError) -> Self {
         Self::Http(err.to_string())
     }
 }
 
 /// Convenience alias used throughout the crate.
-pub type Result<T> = std::result::Result<T, XurlError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 // ── Exit codes ─────────────────────────────────────────────────────
 
@@ -524,12 +523,12 @@ pub const EXIT_NOT_FOUND: i32 = 4;
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 
-/// Maps an [`XurlError`] to a structured exit code.
+/// Maps an [`Error`] to a structured exit code.
 ///
-/// Free-function shim delegating to [`XurlError::exit_code`].
+/// Free-function shim delegating to [`Error::exit_code`].
 #[allow(dead_code)] // Public library API — used by consumers
 #[must_use]
-pub fn exit_code_for_error(e: &XurlError) -> i32 {
+pub fn exit_code_for_error(e: &Error) -> i32 {
     e.exit_code()
 }
 
@@ -539,19 +538,16 @@ mod tests {
 
     #[test]
     fn a_refused_enrollment_names_the_enroll_step() {
-        let refused = XurlError::api(403, r#"{"reason":"client-not-enrolled","detail":"x"}"#);
+        let refused = Error::api(403, r#"{"reason":"client-not-enrolled","detail":"x"}"#);
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
-        let forbidden = XurlError::api(403, "CLIENT-FORBIDDEN");
+        let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
     }
 
     #[test]
     fn other_errors_carry_no_step() {
-        assert_eq!(XurlError::api(403, "plain forbidden").next_action(), None);
-        assert_eq!(
-            XurlError::api(401, "client-not-enrolled").next_action(),
-            None
-        );
-        assert_eq!(XurlError::auth("x").next_action(), None);
+        assert_eq!(Error::api(403, "plain forbidden").next_action(), None);
+        assert_eq!(Error::api(401, "client-not-enrolled").next_action(), None);
+        assert_eq!(Error::auth("x").next_action(), None);
     }
 }

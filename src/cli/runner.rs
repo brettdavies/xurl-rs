@@ -17,7 +17,7 @@
 //!   real `~/.xurl` and never depend on ambient variables.
 //!
 //! All four return a structured exit code per
-//! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
+//! [`crate::error::Error::exit_code`], matching the binary's exit-code
 //! contract. They never call `process::exit`.
 
 use std::ffi::OsString;
@@ -286,7 +286,7 @@ where
             // `print_confirmation_required`) and we must NOT emit a second
             // `{"error":...,"kind":...}` line. The carried exit code surfaces
             // as the process exit unchanged.
-            if !matches!(e, crate::error::XurlError::EnvelopeAlreadyEmitted { .. }) {
+            if !matches!(e, crate::error::Error::EnvelopeAlreadyEmitted { .. }) {
                 if carries_no_auth_method(&e) {
                     let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                     out.print_error_with_hint(stderr, &e, code, &hint);
@@ -306,18 +306,18 @@ where
 /// Matched on the carried message rather than a new variant, because the
 /// public error enum is exhaustively matched downstream and cannot grow one
 /// in a 3.x release.
-fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
+fn carries_no_auth_method(error: &crate::error::Error) -> bool {
     matches!(
         error,
-        crate::error::XurlError::Auth(msg)
+        crate::error::Error::Auth(msg)
             if msg == crate::error::NO_AUTH_METHOD || msg == "TokenNotFound: oauth2 token not found"
     )
 }
 
 /// The enrollment hint for an API refusal, when this error is one.
-fn enrollment_hint_for(error: &crate::error::XurlError) -> Option<crate::cli::hints::Hint> {
+fn enrollment_hint_for(error: &crate::error::Error) -> Option<crate::cli::hints::Hint> {
     match error {
-        crate::error::XurlError::Api { status, body } => {
+        crate::error::Error::Api { status, body } => {
             crate::cli::hints::enrollment_hint(*status, body)
         }
         _ => None,

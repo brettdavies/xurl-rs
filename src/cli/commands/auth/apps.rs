@@ -14,7 +14,7 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
 use crate::config;
-use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
+use crate::error::{EXIT_GENERAL_ERROR, Error, Result};
 
 pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> {
     let AuthCtx {
@@ -79,7 +79,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
             redirect_uri,
         } => {
             if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
-                return Err(XurlError::validation(
+                return Err(Error::validation(
                     "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
                 ));
             }
@@ -121,7 +121,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> 
                 Gate::Declined => return Ok(()),
                 Gate::ConfirmationRequired => {
                     out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                    return Err(Error::EnvelopeAlreadyEmitted {
                         exit_code: EXIT_GENERAL_ERROR,
                     });
                 }
@@ -203,7 +203,7 @@ fn run_redirect_uri_command(
                 None => {
                     let default = auth.token_store.get_default_app();
                     if default.is_empty() {
-                        return Err(XurlError::validation("no default app set; specify NAME"));
+                        return Err(Error::validation("no default app set; specify NAME"));
                     }
                     default.to_string()
                 }

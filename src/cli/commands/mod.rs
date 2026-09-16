@@ -19,7 +19,7 @@ use crate::auth::Auth;
 use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, UsageCommands};
 use crate::config::Config;
-use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
+use crate::error::{EXIT_GENERAL_ERROR, Error, Result};
 
 /// Default page size when neither `--max-results` nor `--limit` is supplied.
 const DEFAULT_PAGE_SIZE: i32 = 10;
@@ -57,10 +57,10 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
     let stderr = std::io::stderr();
     let mut handle = stderr.lock();
     write!(handle, "{prompt} [y/N]: ")
-        .map_err(|e| XurlError::validation(format!("confirmation prompt failed: {e}")))?;
+        .map_err(|e| Error::validation(format!("confirmation prompt failed: {e}")))?;
     handle
         .flush()
-        .map_err(|e| XurlError::validation(format!("confirmation prompt failed: {e}")))?;
+        .map_err(|e| Error::validation(format!("confirmation prompt failed: {e}")))?;
     drop(handle);
 
     let stdin = std::io::stdin();
@@ -121,7 +121,7 @@ pub(super) fn gate_destructive(
 /// Validation errors surface as either:
 ///   - Dry-run envelope with `would_succeed: false` and the kebab-case
 ///     reason when `dry_run` is true.
-///   - A `XurlError::validation` when `dry_run` is false (so the runtime
+///   - A `Error::validation` when `dry_run` is false (so the runtime
 ///     path still rejects bad input).
 fn dry_run_or_validate(
     out: &OutputConfig,
@@ -154,7 +154,7 @@ fn dry_run_or_validate(
         return Ok(false);
     }
     if let Err(reason) = validation {
-        return Err(XurlError::validation(reason.to_string()));
+        return Err(Error::validation(reason.to_string()));
     }
     Ok(true)
 }
@@ -229,7 +229,7 @@ pub fn run(
             EXIT_GENERAL_ERROR,
             "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
         );
-        return Err(XurlError::EnvelopeAlreadyEmitted {
+        return Err(Error::EnvelopeAlreadyEmitted {
             exit_code: EXIT_GENERAL_ERROR,
         });
     }
@@ -291,7 +291,7 @@ fn run_raw_mode(
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
-        return Err(XurlError::validation(
+        return Err(Error::validation(
             "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.",
         ));
     };
@@ -310,7 +310,7 @@ fn run_raw_mode(
     } else if url.starts_with('/') {
         format!("{}{}", cfg.api_base_url, url)
     } else {
-        return Err(XurlError::validation(format!(
+        return Err(Error::validation(format!(
             "URL {url:?} must be an absolute http(s) URL or an absolute path starting with `/`."
         )));
     };
@@ -474,7 +474,7 @@ fn run_subcommand(
                 Gate::Declined => return Ok(()),
                 Gate::ConfirmationRequired => {
                     out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                    return Err(XurlError::EnvelopeAlreadyEmitted {
+                    return Err(Error::EnvelopeAlreadyEmitted {
                         exit_code: EXIT_GENERAL_ERROR,
                     });
                 }
@@ -950,9 +950,7 @@ fn resolve_my_user_id(client: &mut ApiClient, opts: &CallOptions) -> Result<Stri
         client.lookup_user(&opts.username, opts)?.data.id
     };
     if id.is_empty() {
-        return Err(XurlError::auth(
-            "user ID was empty -- check your auth tokens",
-        ));
+        return Err(Error::auth("user ID was empty -- check your auth tokens"));
     }
     Ok(id)
 }
@@ -963,7 +961,7 @@ fn resolve_user_id(client: &mut ApiClient, username: &str, opts: &CallOptions) -
     let id = &resp.data.id;
     if id.is_empty() {
         let clean = username.trim_start_matches('@');
-        return Err(XurlError::validation(format!("user @{clean} not found")));
+        return Err(Error::validation(format!("user @{clean} not found")));
     }
     Ok(id.clone())
 }

@@ -9,7 +9,7 @@ use std::path::Path;
 use serde::Serialize;
 use url::Url;
 
-use crate::error::XurlError;
+use crate::error::Error;
 
 /// Application configuration resolved from environment variables.
 ///
@@ -256,11 +256,11 @@ impl Config {
     ///
     /// # Errors
     ///
-    /// Returns [`XurlError::Validation`] when parsing fails or the URI does
+    /// Returns [`Error::Validation`] when parsing fails or the URI does
     /// not satisfy the https-or-loopback rule.
     pub fn validate_redirect_uri(uri: &str) -> crate::error::Result<Url> {
-        let parsed = Url::parse(uri)
-            .map_err(|e| XurlError::validation(format!("invalid redirect URI: {e}")))?;
+        let parsed =
+            Url::parse(uri).map_err(|e| Error::validation(format!("invalid redirect URI: {e}")))?;
 
         let scheme = parsed.scheme();
         if scheme == "https" {
@@ -274,7 +274,7 @@ impl Config {
             return Ok(parsed);
         }
 
-        Err(XurlError::validation(format!(
+        Err(Error::validation(format!(
             "redirect URI must be https, or http on loopback (localhost / 127.0.0.1 / [::1]); got: {uri}"
         )))
     }

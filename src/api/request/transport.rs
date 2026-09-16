@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, Lines};
 
 use reqwest::blocking::{Client, Response, multipart};
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 use super::{ApiClient, MultipartOptions, RequestOptions};
 
@@ -30,13 +30,13 @@ impl ApiClient {
         // Auth-matrix validation lives inside `get_auth_header` (called
         // below) so each request performs one matrix lookup, not two. The
         // explicit-auth branch there rejects with
-        // `XurlError::AuthMethodMismatch` before any header is produced;
+        // `Error::AuthMethodMismatch` before any header is produced;
         // `no_auth: true` short-circuits past the call site entirely.
         let url = self.build_url(&options.target)?;
 
         // Build the request
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
-            .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
+            .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
         let mut builder = self.client.request(req_method.clone(), &url);
 
@@ -106,16 +106,13 @@ impl ApiClient {
             v
         } else {
             if status.as_u16() >= 400 {
-                return Err(XurlError::api(
-                    status.as_u16(),
-                    format!("HTTP error: {status}"),
-                ));
+                return Err(Error::api(status.as_u16(), format!("HTTP error: {status}")));
             }
             serde_json::json!({})
         };
 
         if status.as_u16() >= 400 {
-            return Err(XurlError::api(status.as_u16(), json.to_string()));
+            return Err(Error::api(status.as_u16(), json.to_string()));
         }
 
         Ok(json)
@@ -138,14 +135,14 @@ impl ApiClient {
         let url = self.build_url(&options.request.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
-            .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
+            .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
         let mut form = multipart::Form::new();
 
         // Add file from path or data
         if !options.file_field.is_empty() && !options.file_path.is_empty() {
             let part = multipart::Part::file(&options.file_path)
-                .map_err(|e| XurlError::Io(format!("error opening file: {e}")))?;
+                .map_err(|e| Error::Io(format!("error opening file: {e}")))?;
             form = form.part(options.file_field.clone(), part);
         } else if !options.file_field.is_empty() && !options.file_data.is_empty() {
             let part = multipart::Part::bytes(options.file_data.clone())
@@ -207,7 +204,7 @@ impl ApiClient {
         };
 
         if status.as_u16() >= 400 {
-            return Err(XurlError::api(status.as_u16(), json.to_string()));
+            return Err(Error::api(status.as_u16(), json.to_string()));
         }
 
         Ok(json)
@@ -232,7 +229,7 @@ impl ApiClient {
         let url = self.build_url(&options.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
-            .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
+            .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
         let mut builder = Client::builder()
             .timeout(None)
@@ -288,9 +285,9 @@ impl ApiClient {
         if resp_status.as_u16() >= 400 {
             let body = resp.text().unwrap_or_default();
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-                return Err(XurlError::api(resp_status.as_u16(), json.to_string()));
+                return Err(Error::api(resp_status.as_u16(), json.to_string()));
             }
-            return Err(XurlError::api(resp_status.as_u16(), body));
+            return Err(Error::api(resp_status.as_u16(), body));
         }
 
         Ok(StreamLines {
@@ -321,7 +318,7 @@ impl Iterator for StreamLines {
             match self.lines.next()? {
                 Ok(line) if line.is_empty() => continue,
                 Ok(line) => return Some(Ok(line)),
-                Err(e) => return Some(Err(XurlError::Io(e.to_string()))),
+                Err(e) => return Some(Err(Error::Io(e.to_string()))),
             }
         }
     }

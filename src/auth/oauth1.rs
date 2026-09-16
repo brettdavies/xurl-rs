@@ -12,7 +12,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use sha1::Sha1;
 use url::Url;
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 use crate::store::OAuth1Token;
 
 type HmacSha1 = Hmac<Sha1>;
@@ -45,8 +45,7 @@ pub fn build_oauth1_header_with_nonce_ts(
     fixed_nonce: Option<&str>,
     fixed_timestamp: Option<&str>,
 ) -> Result<String> {
-    let parsed_url =
-        Url::parse(url_str).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+    let parsed_url = Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
 
     let mut params = BTreeMap::new();
 
@@ -108,8 +107,7 @@ fn generate_signature(
     consumer_secret: &str,
     token_secret: &str,
 ) -> Result<String> {
-    let parsed_url =
-        Url::parse(url_str).map_err(|e| XurlError::auth_with_cause("InvalidURL", &e))?;
+    let parsed_url = Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
 
     let base_url = format!(
         "{}://{}{}",
@@ -134,7 +132,7 @@ fn generate_signature(
     let signing_key = format!("{}&{}", encode(consumer_secret), encode(token_secret));
 
     let mut mac = HmacSha1::new_from_slice(signing_key.as_bytes())
-        .map_err(|e| XurlError::auth_with_cause("SignatureGenerationError", &e))?;
+        .map_err(|e| Error::auth_with_cause("SignatureGenerationError", &e))?;
     mac.update(signature_base_string.as_bytes());
     let result = mac.finalize();
 

@@ -9,7 +9,7 @@ pub mod oauth2;
 pub mod pending;
 
 use crate::config::Config;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -219,12 +219,12 @@ impl Auth {
         let token = self
             .token_store
             .get_oauth1_tokens_for_app(&self.app_name)
-            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
 
         let oauth1_token = token
             .oauth1
             .as_ref()
-            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
 
         oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
     }
@@ -295,7 +295,7 @@ impl Auth {
         // No stored token means no header: the library never starts an
         // interactive sign-in inside a request. The binary decides whether to
         // sign in and retry.
-        Err(XurlError::auth("TokenNotFound: oauth2 token not found"))
+        Err(Error::auth("TokenNotFound: oauth2 token not found"))
     }
 
     /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
@@ -396,18 +396,18 @@ impl Auth {
             .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
-            .map_err(|e| XurlError::auth_with_cause("NetworkError", &e))?;
+            .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
 
         let body: serde_json::Value = resp
             .json()
-            .map_err(|e| XurlError::auth_with_cause("JSONDeserializationError", &e))?;
+            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
 
         body.get("data")
             .and_then(|d| d.get("username"))
             .and_then(|u| u.as_str())
             .map(std::string::ToString::to_string)
             .ok_or_else(|| {
-                XurlError::auth("UsernameNotFound: username not found when fetching username")
+                Error::auth("UsernameNotFound: username not found when fetching username")
             })
     }
 
@@ -520,12 +520,12 @@ pub fn resolve_bearer_token(
 
     let token = store
         .get_bearer_token_for_app(app_name)
-        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
 
     let bearer = token
         .bearer
         .as_ref()
-        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
 
     Ok(format!("Bearer {bearer}"))
 }

@@ -11,7 +11,7 @@ use super::{
 };
 use crate::auth::Auth;
 use crate::cli::output::OutputConfig;
-use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
+use crate::error::{EXIT_GENERAL_ERROR, Error, Result};
 
 pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     // Read through the runner-constructed store so tempdir-based
@@ -159,7 +159,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> Result<()> {
             Gate::Declined => return Ok(()),
             Gate::ConfirmationRequired => {
                 out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                return Err(XurlError::EnvelopeAlreadyEmitted {
+                return Err(Error::EnvelopeAlreadyEmitted {
                     exit_code: EXIT_GENERAL_ERROR,
                 });
             }
@@ -184,7 +184,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> Result<()> {
         auth.token_store.clear_bearer_token()?;
         out.print_ok_message(stdout, "Bearer token cleared!");
     } else {
-        return Err(XurlError::validation(
+        return Err(Error::validation(
             "No authentication cleared! Use --all to clear all authentication.",
         ));
     }
@@ -245,7 +245,7 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> Result<()> 
                 EXIT_GENERAL_ERROR,
                 "no default app set; pass --app or run 'xr auth default <name>' interactively",
             );
-            return Err(XurlError::EnvelopeAlreadyEmitted {
+            return Err(Error::EnvelopeAlreadyEmitted {
                 exit_code: EXIT_GENERAL_ERROR,
             });
         }
@@ -295,17 +295,16 @@ fn prompt_select(label: &str, items: &[String]) -> Result<Option<String>> {
     use std::io::BufRead;
     let stderr = std::io::stderr();
     let mut handle = stderr.lock();
-    writeln!(handle, "{label}:")
-        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+    writeln!(handle, "{label}:").map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
     for (idx, item) in items.iter().enumerate() {
         writeln!(handle, "  {}) {item}", idx + 1)
-            .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+            .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
     }
     write!(handle, "Choice [1-{}]: ", items.len())
-        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+        .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
     handle
         .flush()
-        .map_err(|e| XurlError::validation(format!("prompt failed: {e}")))?;
+        .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
     drop(handle);
 
     let stdin = std::io::stdin();

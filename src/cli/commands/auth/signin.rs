@@ -9,7 +9,7 @@ use super::{AuthCtx, AuthGlobalFlags};
 use crate::auth::Auth;
 use crate::cli::envelope::ErrorBody;
 use crate::cli::hints::NextStep;
-use crate::error::{EXIT_USAGE_ERROR, Result, XurlError};
+use crate::error::{EXIT_USAGE_ERROR, Error, Result};
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
 /// manual step to run, the redirect URL that step 2 exchanges, and the
@@ -56,7 +56,7 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
     // credential-less warning is unreachable behind this guard.
     if let Some(body) = client_credentials_missing(auth, app_explicit, out.format.is_structured()) {
         out.emit_error_envelope(stderr, body);
-        return Err(XurlError::EnvelopeAlreadyEmitted {
+        return Err(Error::EnvelopeAlreadyEmitted {
             exit_code: EXIT_USAGE_ERROR,
         });
     }
@@ -108,7 +108,7 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
         match effective_step {
             Some(1) => {
                 if auth_url.is_some() {
-                    return Err(crate::error::XurlError::auth(
+                    return Err(crate::error::Error::auth(
                         "--auth-url is only used with --step 2, not --step 1",
                     ));
                 }
@@ -163,7 +163,7 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
             }
             Some(2) => {
                 let url_value = auth_url.ok_or_else(|| {
-                    crate::error::XurlError::auth(
+                    crate::error::Error::auth(
                         "--auth-url is required for step 2. Pass the redirect URL from your browser, \
                          or use --auth-url - to read from stdin",
                     )
@@ -172,14 +172,14 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
                 let redirect_url = if url_value == "-" {
                     let mut line = String::new();
                     std::io::stdin().read_line(&mut line).map_err(|e| {
-                        crate::error::XurlError::auth_with_cause(
+                        crate::error::Error::auth_with_cause(
                             "Failed to read redirect URL from stdin",
                             &e,
                         )
                     })?;
                     let trimmed = line.trim().to_string();
                     if trimmed.is_empty() {
-                        return Err(crate::error::XurlError::auth(
+                        return Err(crate::error::Error::auth(
                             "No redirect URL provided on stdin. \
                              Pipe the URL or paste it and press Enter",
                         ));
@@ -197,7 +197,7 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
                 // `--auth-url` is also omitted, `effective_step` is set
                 // to `Some(1)` above; when `--auth-url` is given without
                 // `--step`, clap rejects it via `requires = "step"`.
-                return Err(crate::error::XurlError::auth(
+                return Err(crate::error::Error::auth(
                     "--no-browser requires --step 1 or --step 2",
                 ));
             }

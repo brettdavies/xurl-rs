@@ -8,7 +8,7 @@ use crate::auth::Auth;
 use crate::cli::AuthCommands;
 use crate::cli::output::OutputConfig;
 use crate::config::{self, ResolveSource};
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 use crate::store::TokenStore;
 
 mod apps;
@@ -184,7 +184,7 @@ fn print_no_apps_registered(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Wr
     // registered" about a file the loader could not read would send the
     // reader to `apps add`, which then refuses.
     if auth.token_store.load_failed() {
-        return Err(XurlError::token_store(format!(
+        return Err(Error::token_store(format!(
             "cannot read the token store at {}: it exists but could not be loaded; inspect or move it",
             auth.token_store.file_path.display()
         )));

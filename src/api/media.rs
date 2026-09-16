@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use super::request::{ApiClient, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Base path for the X API media upload endpoint family.
 pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
@@ -49,10 +49,10 @@ pub fn execute_media_upload(
     client: &mut ApiClient,
 ) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
-        .map_err(|e| XurlError::Io(format!("error accessing file: {e}")))?;
+        .map_err(|e| Error::Io(format!("error accessing file: {e}")))?;
 
     if !metadata.is_file() {
-        return Err(XurlError::Io(format!("{file_path} is not a regular file")));
+        return Err(Error::Io(format!("{file_path} is not a regular file")));
     }
 
     let file_size = metadata.len();
@@ -87,7 +87,7 @@ pub fn execute_media_upload(
         deserialize_response(client.send_request(&init_opts)?)?;
     let media_id = init_response.data.id.clone();
     if media_id.is_empty() {
-        return Err(XurlError::Json(
+        return Err(Error::Json(
             "failed to parse media ID from init response".to_string(),
         ));
     }
@@ -261,7 +261,7 @@ fn wait_for_media_processing(
             tracing::info!(target: MEDIA_TARGET, "Media processing complete!");
             return Ok(response);
         } else if state == "failed" {
-            return Err(XurlError::validation("media processing failed"));
+            return Err(Error::validation("media processing failed"));
         }
 
         let check_after = response
@@ -306,14 +306,14 @@ pub fn handle_media_append_request(
     let url_for_id = match &options.target {
         RequestTarget::RawUrl(u) => u.clone(),
         RequestTarget::Template { path, .. } => {
-            return Err(XurlError::validation(format!(
+            return Err(Error::validation(format!(
                 "handle_media_append_request requires a RawUrl target; got Template {{ path: {path:?} }} — call this only from the raw-mode path"
             )));
         }
     };
     let media_id = extract_media_id(&url_for_id);
     if media_id.is_empty() {
-        return Err(XurlError::validation(
+        return Err(Error::validation(
             "media_id is required for append endpoint",
         ));
     }

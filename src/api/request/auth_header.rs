@@ -2,7 +2,7 @@
 //! follows an empty intersection between the active app's stored credentials
 //! and the endpoint's accepted schemes.
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 use super::render_template_template;
 use super::{ApiClient, RequestOptions, RequestTarget};
@@ -15,7 +15,7 @@ impl ApiClient {
     /// Returns an error if no valid auth method is found, or — when the
     /// auto-detect path resolves an empty intersection between stored
     /// credentials and the endpoint's accepted schemes — an
-    /// [`XurlError::AuthMethodMismatch`] in the empty-intersection shape.
+    /// [`Error::AuthMethodMismatch`] in the empty-intersection shape.
     pub fn get_auth_header_public(&mut self, options: &RequestOptions) -> Result<String> {
         self.get_auth_header(options)
     }
@@ -70,7 +70,7 @@ impl ApiClient {
                     } else {
                         raw_app.to_string()
                     };
-                    return Err(XurlError::AuthMethodMismatch {
+                    return Err(Error::AuthMethodMismatch {
                         endpoint: path.clone(),
                         rendered_url,
                         method: method.to_string(),
@@ -87,7 +87,7 @@ impl ApiClient {
                 "oauth1" => self.auth.get_oauth1_header(method, &url, None),
                 "oauth2" => self.auth.get_oauth2_header(&options.username),
                 "app" => self.auth.get_bearer_token_header(),
-                _ => Err(XurlError::auth(format!("invalid auth type: {auth_type}"))),
+                _ => Err(Error::auth(format!("invalid auth type: {auth_type}"))),
             };
         }
 
@@ -151,7 +151,7 @@ impl ApiClient {
                     // stays truthful, but it never hides the wrong-app hint.
                     let other_apps = self.other_apps_with_credentials(&app_name);
                     if !other_apps.is_empty() {
-                        return Err(XurlError::AuthMethodMismatch {
+                        return Err(Error::AuthMethodMismatch {
                             endpoint: path.clone(),
                             rendered_url,
                             method: method.to_string(),
@@ -165,10 +165,10 @@ impl ApiClient {
                         });
                     }
                     if available_in_app.is_empty() {
-                        return Err(XurlError::auth(crate::error::NO_AUTH_METHOD));
+                        return Err(Error::auth(crate::error::NO_AUTH_METHOD));
                     }
                 }
-                return Err(XurlError::AuthMethodMismatch {
+                return Err(Error::AuthMethodMismatch {
                     endpoint: path.clone(),
                     rendered_url,
                     method: method.to_string(),
@@ -181,7 +181,7 @@ impl ApiClient {
                     other_apps_with_creds: None,
                 });
             }
-            return Err(XurlError::auth(crate::error::NO_AUTH_METHOD));
+            return Err(Error::auth(crate::error::NO_AUTH_METHOD));
         }
 
         // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference
