@@ -27,10 +27,10 @@ fn main() {
 ///
 /// Reads the manifest's `install` map and emits, for every `<host>` key:
 ///
-/// - a `SkillHost` enum variant (PascalCase of the snake_case key) with
-///   `clap::ValueEnum` derive + `#[value(rename_all = "snake_case")]` so
-///   surface names round-trip back to the JSON key verbatim;
-/// - an entry in `KNOWN_HOSTS: &[&str]`;
+/// - a `SkillHost` enum variant (PascalCase of the snake_case key);
+/// - an entry in `KNOWN_HOSTS: &[&str]`, in the same order as
+///   `SkillHost::ALL`, with `SkillHost::from_key` mapping a key back onto
+///   its variant;
 /// - a match arm in `resolve_host(SkillHost) -> (&'static str, &'static str)`
 ///   returning the `(url, dest_template)` parsed from the host's install
 ///   command;
@@ -114,15 +114,39 @@ fn emit_skill_hosts(manifest_dir: &Path) {
         "// Add or remove hosts via the JSON file and `cargo build` regenerates this file.\n\n",
     );
 
-    src.push_str("/// Hosts the binary knows how to install into. Surface names match\n");
-    src.push_str("/// `src/skill_install/skill.json` keys verbatim via\n");
-    src.push_str("/// `rename_all = \"snake_case\"`.\n");
-    src.push_str("#[derive(Clone, Copy, Debug, PartialEq, Eq, ::clap::ValueEnum)]\n");
-    src.push_str("#[value(rename_all = \"snake_case\")]\n");
+    src.push_str("/// Hosts the binary knows how to install into. Surface names are the\n");
+    src.push_str(
+        "/// `src/skill_install/skill.json` keys verbatim; see [`SkillHost::from_key`].\n",
+    );
+    src.push_str("#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n");
     src.push_str("pub enum SkillHost {\n");
     for (_, variant, _, _) in &hosts {
         src.push_str(&format!("    {variant},\n"));
     }
+    src.push_str("}\n\n");
+
+    src.push_str("impl SkillHost {\n");
+    src.push_str(
+        "    /// Every host, in JSON-key sort order: the same order as [`KNOWN_HOSTS`].\n",
+    );
+    src.push_str("    pub const ALL: &'static [SkillHost] = &[\n");
+    for (_, variant, _, _) in &hosts {
+        src.push_str(&format!("        SkillHost::{variant},\n"));
+    }
+    src.push_str("    ];\n\n");
+    src.push_str("    /// The host whose JSON key is `key`, or `None` for a name the manifest\n");
+    src.push_str("    /// does not carry.\n");
+    src.push_str("    #[must_use]\n");
+    src.push_str("    pub fn from_key(key: &str) -> Option<Self> {\n");
+    src.push_str("        match key {\n");
+    for (key, variant, _, _) in &hosts {
+        src.push_str(&format!(
+            "            {key:?} => Some(SkillHost::{variant}),\n"
+        ));
+    }
+    src.push_str("            _ => None,\n");
+    src.push_str("        }\n");
+    src.push_str("    }\n");
     src.push_str("}\n\n");
 
     src.push_str("/// Host names accepted by `xr skill install <host>`, in JSON-key sort order.\n");

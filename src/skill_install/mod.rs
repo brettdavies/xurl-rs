@@ -322,11 +322,9 @@ fn run_for_all_hosts(
     stdout: &mut dyn Write,
     home: Option<&str>,
 ) -> i32 {
-    use clap::ValueEnum as _;
-
-    let mut installations = Vec::with_capacity(KNOWN_HOSTS.len());
+    let mut installations = Vec::with_capacity(SkillHost::ALL.len());
     let mut worst: i32 = 0;
-    for host in SkillHost::value_variants() {
+    for host in SkillHost::ALL {
         let env = compute_install_envelope(*host, dry_run, home);
         if env.status == STATUS_ERROR {
             worst = worst.max(env.exit_code.unwrap_or(1));
@@ -376,37 +374,27 @@ fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::ValueEnum;
 
     #[test]
-    fn skill_host_clap_value_names_match_known_hosts() {
+    fn every_known_host_key_round_trips_through_from_key() {
         for &expected in KNOWN_HOSTS {
-            let parsed = SkillHost::from_str(expected, false)
-                .unwrap_or_else(|_| panic!("KNOWN_HOSTS entry {expected:?} not parseable"));
-            let rendered = parsed
-                .to_possible_value()
-                .expect("clap ValueEnum variant always has a possible value")
-                .get_name()
-                .to_string();
-            assert_eq!(rendered, expected);
+            let parsed = SkillHost::from_key(expected)
+                .unwrap_or_else(|| panic!("KNOWN_HOSTS entry {expected:?} not parseable"));
+            assert_eq!(host_envelope_str(parsed), expected);
         }
+        assert_eq!(SkillHost::from_key("no_such_host"), None);
     }
 
     #[test]
-    fn known_hosts_matches_skill_host_variant_count_and_names() {
-        let variant_names: Vec<String> = SkillHost::value_variants()
+    fn known_hosts_matches_all_in_count_and_order() {
+        let variant_names: Vec<&str> = SkillHost::ALL
             .iter()
-            .map(|v| {
-                v.to_possible_value()
-                    .expect("clap ValueEnum variant always has a possible value")
-                    .get_name()
-                    .to_string()
-            })
+            .map(|host| host_envelope_str(*host))
             .collect();
-        let known: Vec<String> = KNOWN_HOSTS.iter().map(|s| (*s).to_string()).collect();
         assert_eq!(
-            variant_names, known,
-            "SkillHost variants and KNOWN_HOSTS must stay in lockstep",
+            variant_names,
+            KNOWN_HOSTS.to_vec(),
+            "SkillHost::ALL and KNOWN_HOSTS must stay in lockstep",
         );
     }
 
@@ -429,8 +417,8 @@ mod tests {
             let expected_url = tokens[4];
             let expected_dest = tokens[5];
 
-            let host = SkillHost::from_str(host_name, false)
-                .unwrap_or_else(|_| panic!("KNOWN_HOSTS entry {host_name:?} unparseable"));
+            let host = SkillHost::from_key(host_name)
+                .unwrap_or_else(|| panic!("KNOWN_HOSTS entry {host_name:?} unparseable"));
             let (url, dest) = resolve_host(host);
 
             assert_eq!(url, expected_url, "url mismatch for {host_name}");
