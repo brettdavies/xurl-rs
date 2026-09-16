@@ -23,14 +23,16 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn save_bearer_token_for_app(&mut self, app_name: &str, token: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.bearer_token = Some(Token {
-            token_type: TokenType::Bearer,
-            bearer: Some(token.to_string()),
-            oauth2: None,
-            oauth1: None,
-        });
-        self.save_to_file()
+        self.update(|store| {
+            let app = store.resolve_app_mut(app_name);
+            app.bearer_token = Some(Token {
+                token_type: TokenType::Bearer,
+                bearer: Some(token.to_string()),
+                oauth2: None,
+                oauth1: None,
+            });
+            Ok(())
+        })
     }
 
     /// Saves an `OAuth2` token into the resolved app.
@@ -61,21 +63,23 @@ impl TokenStore {
         refresh_token: &str,
         expiration_time: u64,
     ) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.oauth2_tokens.insert(
-            username.to_string(),
-            Token {
-                token_type: TokenType::Oauth2,
-                bearer: None,
-                oauth2: Some(OAuth2Token {
-                    access_token: access_token.to_string(),
-                    refresh_token: refresh_token.to_string(),
-                    expiration_time,
-                }),
-                oauth1: None,
-            },
-        );
-        self.save_to_file()
+        self.update(|store| {
+            let app = store.resolve_app_mut(app_name);
+            app.oauth2_tokens.insert(
+                username.to_string(),
+                Token {
+                    token_type: TokenType::Oauth2,
+                    bearer: None,
+                    oauth2: Some(OAuth2Token {
+                        access_token: access_token.to_string(),
+                        refresh_token: refresh_token.to_string(),
+                        expiration_time,
+                    }),
+                    oauth1: None,
+                },
+            );
+            Ok(())
+        })
     }
 
     /// Saves an `OAuth2` token into the named app's unnamed (`/me`-failed salvage) slot.
@@ -94,18 +98,20 @@ impl TokenStore {
         refresh_token: &str,
         expiration_time: u64,
     ) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.unnamed_oauth2_token = Some(Token {
-            token_type: TokenType::Oauth2,
-            bearer: None,
-            oauth2: Some(OAuth2Token {
-                access_token: access_token.to_string(),
-                refresh_token: refresh_token.to_string(),
-                expiration_time,
-            }),
-            oauth1: None,
-        });
-        self.save_to_file()
+        self.update(|store| {
+            let app = store.resolve_app_mut(app_name);
+            app.unnamed_oauth2_token = Some(Token {
+                token_type: TokenType::Oauth2,
+                bearer: None,
+                oauth2: Some(OAuth2Token {
+                    access_token: access_token.to_string(),
+                    refresh_token: refresh_token.to_string(),
+                    expiration_time,
+                }),
+                oauth1: None,
+            });
+            Ok(())
+        })
     }
 
     /// Saves `OAuth1` tokens into the resolved app.
@@ -142,19 +148,21 @@ impl TokenStore {
         consumer_key: &str,
         consumer_secret: &str,
     ) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        app.oauth1_token = Some(Token {
-            token_type: TokenType::Oauth1,
-            bearer: None,
-            oauth2: None,
-            oauth1: Some(OAuth1Token {
-                access_token: access_token.to_string(),
-                token_secret: token_secret.to_string(),
-                consumer_key: consumer_key.to_string(),
-                consumer_secret: consumer_secret.to_string(),
-            }),
-        });
-        self.save_to_file()
+        self.update(|store| {
+            let app = store.resolve_app_mut(app_name);
+            app.oauth1_token = Some(Token {
+                token_type: TokenType::Oauth1,
+                bearer: None,
+                oauth2: None,
+                oauth1: Some(OAuth1Token {
+                    access_token: access_token.to_string(),
+                    token_secret: token_secret.to_string(),
+                    consumer_key: consumer_key.to_string(),
+                    consumer_secret: consumer_secret.to_string(),
+                }),
+            });
+            Ok(())
+        })
     }
 
     // ── Get ──────────────────────────────────────────────────────────
@@ -276,13 +284,25 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth2_token_for_app(&mut self, app_name: &str, username: &str) -> Result<()> {
-        let Some(name) = self.existing_app_name(app_name) else {
-            return Ok(());
-        };
-        if let Some(app) = self.apps.get_mut(&name) {
+        self.clear_in_app(app_name, |app| {
             app.oauth2_tokens.remove(username);
+        })
+    }
+
+    /// Applies `clear` to the app a clear should act on, under the lock, and
+    /// does nothing when that app does not exist.
+    fn clear_in_app(&mut self, app_name: &str, clear: impl FnOnce(&mut super::App)) -> Result<()> {
+        if self.existing_app_name(app_name).is_none() {
+            return Ok(());
         }
-        self.save_to_file()
+        self.update(|store| {
+            if let Some(name) = store.existing_app_name(app_name)
+                && let Some(app) = store.apps.get_mut(&name)
+            {
+                clear(app);
+            }
+            Ok(())
+        })
     }
 
     /// Clears `OAuth1` tokens from the resolved app.
@@ -300,13 +320,7 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_oauth1_tokens_for_app(&mut self, app_name: &str) -> Result<()> {
-        let Some(name) = self.existing_app_name(app_name) else {
-            return Ok(());
-        };
-        if let Some(app) = self.apps.get_mut(&name) {
-            app.oauth1_token = None;
-        }
-        self.save_to_file()
+        self.clear_in_app(app_name, |app| app.oauth1_token = None)
     }
 
     /// Clears the bearer token from the resolved app.
@@ -324,13 +338,7 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_bearer_token_for_app(&mut self, app_name: &str) -> Result<()> {
-        let Some(name) = self.existing_app_name(app_name) else {
-            return Ok(());
-        };
-        if let Some(app) = self.apps.get_mut(&name) {
-            app.bearer_token = None;
-        }
-        self.save_to_file()
+        self.clear_in_app(app_name, |app| app.bearer_token = None)
     }
 
     /// Clears all tokens from the resolved app.
@@ -348,16 +356,12 @@ impl TokenStore {
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn clear_all_for_app(&mut self, app_name: &str) -> Result<()> {
-        let Some(name) = self.existing_app_name(app_name) else {
-            return Ok(());
-        };
-        if let Some(app) = self.apps.get_mut(&name) {
+        self.clear_in_app(app_name, |app| {
             app.oauth2_tokens.clear();
             app.oauth1_token = None;
             app.bearer_token = None;
             app.unnamed_oauth2_token = None;
-        }
-        self.save_to_file()
+        })
     }
 
     // ── Query ────────────────────────────────────────────────────────
