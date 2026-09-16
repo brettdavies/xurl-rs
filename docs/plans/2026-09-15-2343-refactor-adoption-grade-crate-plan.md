@@ -11,13 +11,14 @@ execution: code
 
 ## Goal Capsule
 
-**Objective.** A Rust developer who needs the X API reaches for `xurl-rs` and finds it obviously alive, obviously
+**Objective.** A Rust developer who needs the X API reaches for `xdk-rs` and finds it obviously alive, obviously
 idiomatic, and usable from the async application they are already writing — so that it can credibly stand as the Rust
 client listed on X's developer documentation.
 
 **Means.** Untangle the library from the CLI, convert the client core to async with a blocking facade, split the
-workspace so an embedder compiles no CLI code, then bring metadata, features, docs, examples, and error design up to the
-bar a reviewer applies when deciding whether a crate is worth depending on.
+workspace so an embedder compiles no CLI code, publish the library as a new crate at `0.1.0`, then bring metadata,
+features, docs, examples, and error design up to the bar a reviewer applies when deciding whether a crate is worth
+depending on.
 
 **Authority hierarchy.** This plan, then the repo's active instructions (`AGENTS.md`, `CONTRIBUTING.md`, `CONCEPTS.md`),
 then the implementer's judgment on details the plan leaves open. Where this plan and
@@ -25,9 +26,9 @@ then the implementer's judgment on details the plan leaves open. Where this plan
 and U2 records why.
 
 **Stop conditions.** Stop and report rather than improvising if: the async conversion cannot preserve an existing CLI
-behavior covered by a test; the workspace split would require renaming the published library package; or `bird`'s owner
-has not resolved the drift-alarm question that U11 depends on; or U17 finds the listing route unmaintained, in which
-case Phase C stops for a scope decision rather than proceeding.
+behavior covered by a test; the Homebrew formula or the reusable release workflow cannot be made workspace-aware before
+the split lands; or U17 finds the listing route unmaintained, in which case Phase C stops for a scope decision rather
+than proceeding.
 
 ## Product Contract
 
@@ -85,8 +86,11 @@ the review that follows.
 
 **Deferred to Follow-Up Work.**
 
-- Requesting the `xurl` name on crates.io. It is held by an unrelated 2021 URL utility that has never been updated; the
-  crates.io abandoned-name process is slow and uncertain, and the plan does not depend on it.
+- Requesting the `xurl` name on crates.io. It is X's own CLI's name, so claiming it in the Rust ecosystem would be
+  presumptuous regardless of whether the current holder would release it. (For the record, they likely would not:
+  crates.io is first-come-first-served with no policy that forces transfer, and the holder's crate has real content and
+  live downloads rather than being an empty placeholder.)
+
 - A `blocking`-only build profile for the CLI, if the async core turns out to make the binary meaningfully larger or
   slower to start.
 - Promoting the `#[non_exhaustive]` placement rule from session memory into `docs/solutions/`, once U11 settles it.
@@ -102,25 +106,21 @@ type backing `schema/output.schema.json`, and `src/auth/mod.rs:296-308` construc
 `ColorChoice::Auto` and writes to stdout. Until those are resolved, neither the async conversion nor the split can
 proceed, because the "library" does not currently compile without the CLI module.
 
-KTD2. **The library keeps the `xurl-rs` package name; the binary moves to a new package.** The library is the artifact
-being positioned for adoption, so it keeps the published name, the crates.io history, and the `https://docs.rs/xurl-rs`
-URL that `Cargo.toml` already advertises. The cost lands on the binary: `cargo install xurl-rs` stops producing `xr`,
-and `[package.metadata.binstall]`, the Homebrew formula, and the reusable release workflow's `bin:` input all move.
-(`crate:` deliberately stays `xurl-rs`; it only labels archives, and holding it still preserves the artifact names.)
-That cost is acceptable because most CLI users arrive through Homebrew or release artifacts rather than `cargo
-install`.
+KTD2. **The library becomes a new crate, `xdk-rs`, starting at `0.1.0`; `xurl-rs` stays the CLI on its 3.x line.** X's
+own naming already splits these two things the same way: `xurl` is its CLI, listed under Developer tools, and `xdk` is
+its SDK, shipped as `pip install xdk` and `@xdevplatform/xdk`. The Rust slot in that taxonomy is empty, and the `-rs`
+suffix is the convention this project already uses for it. Package `xdk-rs`, lib target `xdk`, so an embedder writes
+`cargo add xdk-rs` then `use xdk::`.
 
-**The binary package's name is an open user decision**, recorded here rather than invented during execution. It becomes
-a permanent crates.io identifier and determines the `cargo install` line in `README.md`, `[package.metadata.binstall]`'s
-`pkg-url`, the Homebrew formula URL, and the release workflow's `bin:` input. `xurl` is unavailable — an unrelated 2021
-utility holds it. Confirm the chosen name is free before U6 starts.
+The inversion is what makes the rest cheap. A published crates.io version can never be deleted or overwritten — yanking
+blocks new resolution but leaves the version in the index — so `xurl-rs` cannot be rewound off 3.x. It does not need to
+be: the library is new code looking for its first adopters, and `0.1.0` states that honestly. Meanwhile the CLI package
+never moves, so `cargo install xurl-rs`, the Homebrew formula, `[package.metadata.binstall]`, the release workflow's
+`crate:` and `bin:` inputs, and every release artifact name stay exactly as they are.
 
-**Rejected alternative: stay one package and feature-gate the CLI.** Mark `clap`, `clap_complete`, `colored`, and `open`
-optional, set `default = []`, and give `[[bin]] xr` `required-features = ["cli"]`. That reaches R1 and R2 for the
-default build with no distribution churn at all — no renamed package, no cross-repo release change, no `pub(crate)`
-promotion. It loses on R2 under any build with the feature on: clap-derived types re-enter the public API whenever `cli`
-is enabled, including the `all-features = true` docs.rs build U9 configures, so the published documentation would show
-exactly the surface the split exists to remove. A workspace makes the guarantee unconditional.
+**The name carries an obligation.** `xdk` is X's SDK name, and no affiliation exists. The crate description, the README,
+and the docs.rs landing text each state that plainly, and U13 raises the name explicitly when approaching the
+xdevplatform maintainers rather than letting them discover it.
 
 KTD3. **Async-first core with a blocking facade behind a feature.** This mirrors what `reqwest` itself does and what the
 abandoned incumbent `twitter-v2` already did in 2022. The alternative — keeping blocking as the only posture — is what
@@ -130,19 +130,20 @@ KTD4. **The clap parser types become crate-private.** `session-settled: user-dir
 over leaving `#[non_exhaustive]` as the answer. Governs R2. After KTD2 this is largely mechanical, because the parser
 types end up in a different crate entirely.
 
-KTD5. **Each increment ships in a minor with its breaks recorded as accepted breaks.** `session-settled: user-directed`;
-chosen over forcing a major. `CONCEPTS.md` defines the mechanism and `Cargo.toml` already carries four entries. Every
-phase here is independently capable of a major-level break, so `cargo semver-checks --baseline-rev <last tag>` is run at
-the head of each unit as a design instrument, not only at release.
+KTD5. **Breaking changes ride `0.x` minors until the API settles, then the library reaches `1.0` and strict semver.**
+`session-settled: user-directed`; chosen over forcing majors now and over carrying an accept-breaks-in-a-minor policy
+indefinitely. Starting the library at `0.1.0` makes this conventional rather than exceptional: under Cargo's
+compatibility rules a `0.x` breaking change bumps the minor, which is exactly what this roadmap does repeatedly. The
+tightening point is publication maturity, not a date — once the async surface and the module boundaries have stopped
+moving, cut `1.0` and break only on majors from there.
 
-KTD6. **`XurlError` gains `#[non_exhaustive]`, and `bird`'s drift alarm becomes an explicit test.** This contradicts a
-recorded rule that says never to add the attribute to `XurlError`, because `bird` matches it exhaustively with no
-wildcard arm as a deliberate alarm against upstream variant additions. That rule was correct when `bird` was the only
-consumer; under R8 it inverts, because every new error variant would otherwise force a major on every other consumer.
-The alarm moves into `xurl-rs` as a variant-set snapshot test, because a downstream crate cannot enumerate a
-`#[non_exhaustive]` foreign enum at all — `bird` gains a wildcard arm and **loses** compile-time drift detection rather
-than keeping it in another form. That loss is the substance of what its owner is being asked to approve. **This
-decision requires `bird`'s owner to agree before U11 starts.**
+The `xurl-rs` CLI keeps its own 3.x line and its own release cadence; see KTD9.
+
+KTD6. **`XurlError` gains `#[non_exhaustive]`, with a variant-set snapshot test in-crate.** A public error enum that
+cannot gain a variant without a major is a liability for a crate courting embedders. The earlier objection — that a
+first-party consumer matched the enum exhaustively as a deliberate drift alarm — no longer applies: that consumer is
+explicitly out of scope for this plan, and its owner will adapt it afterward. The snapshot test lives in this crate,
+where an exhaustive match still compiles, so drift is still caught; it just catches it here rather than downstream.
 
 KTD7. **Feature-matrix cells that mean "this configuration alone" use `--no-default-features --features X`.** Cargo
 features are additive, so a matrix that only ever adds to the default set can be fully green while never compiling the
@@ -153,6 +154,18 @@ KTD8. **Cross-crate visibility replaces `pub(crate)` at the split boundary.** `p
 member boundary, and it does not reach `tests/*.rs` either, since each integration test file is its own crate. Items the
 binary crate or the test crates legitimately need become `pub` with `#[doc(hidden)]` where they are not embedder API,
 per `docs/solutions/best-practices/rust-workspace-pub-crate-doesnt-cross-crates-2026-04-20.md`.
+
+KTD9. **The two crates version independently.** `session-settled: user-directed`; chosen over a shared version line.
+Decoupling the library's semver from CLI churn is the point of the split, and a shared line would re-couple them — a
+CLI-only fix would bump the library and vice versa. The cost is real and lands on tooling: the release pipeline derives
+its tag check from a single package version and git-cliff generates a repo-wide changelog, so both need a per-package
+scheme, and `xr --version` stops matching the library's `CRATE_VERSION`.
+
+KTD10. **Three build surfaces assume a single root package, and all three break on the virtual manifest.** They are
+prerequisites of the split, not consequences of it: the Homebrew formula runs `cargo install` with `std_cargo_args`,
+whose `--path .` fails on a virtual manifest; the reusable release workflow's `check-version` job runs a bare `cargo
+pkgid`, which fails the same way; and `scripts/generate-completions.sh` selects the binary via `cargo metadata --no-deps
+... .packages[0]`, which is ambiguous with two members. Each needs a package-scoped fix before U6 lands.
 
 ### High-Level Technical Design
 
@@ -188,7 +201,7 @@ nothing depends back.
 
 ```mermaid
 graph LR
-    subgraph libc["xurl-rs crate (library)"]
+    subgraph libc["xdk-rs crate (library)"]
         api2[api: async core + blocking facade]
         auth2[auth]
         output2[output: OutputConfig, ColorChoice]
@@ -196,7 +209,7 @@ graph LR
         store2[store]
         skill2[skill_install: no clap]
     end
-    subgraph binc["CLI crate (binary xr)"]
+    subgraph binc["xurl-rs crate (binary xr)"]
         parser2[clap parser types]
         cmds[command handlers]
     end
@@ -243,15 +256,21 @@ a bare `cargo pkgid`, which errors on a virtual manifest, so every tag push fail
 workspace. The upstream changes in `brettdavies/.github` are a hard prerequisite of U6 — package-scoped `cargo pkgid`,
 an artifact-name input, and two-package publish ordering — and that repo is outside this one.
 
-**U11 is blocked on a decision, not on code.** It contradicts a recorded rule and needs `bird`'s owner to agree. It is
-drawn with no dependency edge so it can proceed in parallel once unblocked, but it must not be started on the assumption
-that the answer is yes.
+**There is no embedder to measure, which makes U7 harder than it looks.** The public surface cannot be derived from
+observed consumption, because the only consumer is first-party, out of scope by direction, and pinned two minors back.
+U7 has to reason from what an X API client is for and what the official Python and TypeScript SDKs expose, which is a
+judgment call rather than a measurement — and judgment calls made once, at `0.x`, are what `1.0` later freezes.
 
-**A package-scoped green test run is not proof.** `cargo test -p xurl-rs` passing says nothing about whether `bird`
-still compiles against a reshaped surface.
+**A package-scoped green test run is not proof.** `cargo test -p xdk-rs` passing says nothing about whether an
+out-of-package consumer still compiles.
 `docs/solutions/conventions/package-test-gate-misses-app-target-exhaustive-match-breaks.md` records exactly this blind
-spot, with `bird` as the consumer that fell through it. Build `bird` against the local path before declaring U7 or U11
-done.
+spot. With no real embedder to build, the substitute is a scratch consumer crate in the repo that exercises the
+documented surface and is compiled in CI — it stands in for the embedder the measurement no longer provides.
+
+**Three first-party build surfaces break on the virtual manifest, and one of them is Homebrew.** The formula builds from
+source via `cargo install` with `std_cargo_args`, so `--path .` fails the moment the root stops being a package — a
+broken `brew install` is the most user-visible failure in the plan and the least likely to be caught by repo CI. See
+KTD10.
 
 **Accepted-break entries accumulate.** Every phase adds entries to a table whose own policy says a standing entry
 understates the next break of the same kind. U14 exists to clear them, but it only fires after U13, so the table is at
@@ -265,10 +284,12 @@ defect was only found by looking. Record each as a follow-up rather than absorbi
 
 - `ApiClient` still owns `Auth` by value with no lifetime parameter. The library-ergonomics work removed `<'a>`
   specifically to make `Send + Sync` reachable; U1 verifies this before U4 depends on it.
-- `bird` is the only consumer that matters for break assessment. It is a git dependency pinned to a rev, so nothing here
-  reaches it until that pin moves.
-- The reusable release workflow in `brettdavies/.github` can take new `crate:`/`bin:` inputs. If it cannot, U12 becomes
-  a two-repo change.
+- No downstream embedder exists yet whose compilation this plan must preserve. The one first-party consumer is
+  explicitly out of scope by the owner's direction, and is not used as evidence of what the public surface should be
+  either — a sample of one, written by the same author against a two-year-old pin, describes that consumer's accidents
+  rather than an embedder's needs.
+- The Homebrew formula, the reusable release workflow, and the completions script can each be made workspace-aware
+  before U6 lands. All three are first-party and under the same ownership; see KTD10.
 - The CLI keeps using the blocking facade rather than becoming async itself, so most command handlers need no rewrite.
   The binary target does **not** build between the transport conversion and the facade, which is why U4, U15, and U16
   land as one increment, and `src/cli/commands/streaming.rs` is the one handler that does need rewriting because it
@@ -289,25 +310,25 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 
 ## Implementation Units
 
-| U-ID | Title                                                  | Files touched                                                                                                                                                                                      | Depends on      |
-| ---- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| U17  | Establish that the listing route is live               | —                                                                                                                                                                                                  | —               |
-| U1   | Lock Send + Sync as compile-time invariants            | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                              | —               |
-| U2   | Move ColorChoice and the hint types into library homes | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`                                                                                                    | —               |
-| U3   | Remove clap from the generated skill-host enum         | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                            | —               |
-| U4   | Async transport core                                   | `src/api/request/*`, `src/api/media.rs`                                                                                                                                                            | U1, U2          |
-| U15  | Async auth paths                                       | `src/auth/{mod,oauth2,callback}.rs`                                                                                                                                                                | U4              |
-| U16  | Blocking facade behind a feature                       | `src/api/`, `Cargo.toml`                                                                                                                                                                           | U4, U15         |
-| U5   | Migrate parser-introspection tests                     | `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs`, `tests/binary_contract_tests.rs`, `tests/unknown_command_tests.rs`, `src/cli/mod.rs` | U2              |
-| U6   | Split into a workspace                                 | `Cargo.toml`, `crates/**`, `tests/**`, `scripts/hooks/pre-push`, `scripts/generate-completions.sh`, `.github/workflows/ci.yml`                                                                     | U2, U3, U5, U16 |
-| U7   | Audit and close the published surface                  | `crates/xurl/src/lib.rs`, module roots                                                                                                                                                             | U6              |
-| U8   | Feature design and the CI matrix                       | `Cargo.toml`, `.github/workflows/ci.yml`                                                                                                                                                           | U7              |
-| U9   | docs.rs metadata, lints, rustdoc posture               | `Cargo.toml`, `crates/xurl/src/lib.rs`                                                                                                                                                             | U8              |
-| U10  | Runnable examples                                      | `crates/xurl/examples/**`                                                                                                                                                                          | U9              |
-| U11  | `XurlError` non-exhaustive and the bird drift test     | `src/error.rs`, `Cargo.toml`, plus a change in `bird`                                                                                                                                              | —               |
-| U12  | Rewire release and distribution for the split          | `.github/workflows/release.yml`, `Cargo.toml`, Homebrew formula                                                                                                                                    | U6              |
-| U13  | Publish and submit for listing                         | `README.md`, `Cargo.toml`                                                                                                                                                                          | U10, U11, U12   |
-| U14  | Delete the accepted-break entries                      | `Cargo.toml`                                                                                                                                                                                       | U13             |
+| U-ID | Title                                                       | Files touched                                                                                                                                                                                      | Depends on      |
+| ---- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| U17  | Establish that the listing route is live                    | —                                                                                                                                                                                                  | —               |
+| U1   | Lock Send + Sync as compile-time invariants                 | `src/api/request/mod.rs`, `src/auth/mod.rs`, `src/config/mod.rs`, `src/error.rs`, `src/output/mod.rs`                                                                                              | —               |
+| U2   | Move ColorChoice and the hint types into library homes      | `src/output/mod.rs`, `src/envelope.rs`, `src/cli/hints.rs`, `src/cli/mod.rs`, `src/auth/mod.rs`                                                                                                    | —               |
+| U3   | Remove clap from the generated skill-host enum              | `build.rs`, `src/skill_install/mod.rs`, `src/skill_install/update.rs`, `src/cli/mod.rs`                                                                                                            | —               |
+| U4   | Async transport core                                        | `src/api/request/*`, `src/api/media.rs`                                                                                                                                                            | U1, U2          |
+| U15  | Async auth paths                                            | `src/auth/{mod,oauth2,callback}.rs`                                                                                                                                                                | U4              |
+| U16  | Blocking facade behind a feature                            | `src/api/`, `Cargo.toml`                                                                                                                                                                           | U4, U15         |
+| U5   | Migrate parser-introspection tests                          | `tests/cli_tests.rs`, `tests/cli_run_tests.rs`, `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs`, `tests/binary_contract_tests.rs`, `tests/unknown_command_tests.rs`, `src/cli/mod.rs` | U2              |
+| U6   | Split into a workspace                                      | `Cargo.toml`, `crates/**`, `tests/**`, `scripts/hooks/pre-push`, `scripts/generate-completions.sh`, `.github/workflows/ci.yml`                                                                     | U2, U3, U5, U16 |
+| U7   | Audit and close the published surface                       | `crates/xdk/src/lib.rs`, module roots                                                                                                                                                              | U6              |
+| U8   | Feature design and the CI matrix                            | `Cargo.toml`, `.github/workflows/ci.yml`                                                                                                                                                           | U7              |
+| U9   | docs.rs metadata, lints, rustdoc posture                    | `Cargo.toml`, `crates/xdk/src/lib.rs`                                                                                                                                                              | U8              |
+| U10  | Runnable examples                                           | `crates/xdk/examples/**`                                                                                                                                                                           | U9              |
+| U11  | `XurlError` non-exhaustive, with an in-crate drift snapshot | `src/error.rs`, `Cargo.toml`                                                                                                                                                                       | —               |
+| U12  | Rewire release and distribution for the split               | `.github/workflows/release.yml`, `Cargo.toml`, Homebrew formula                                                                                                                                    | U6              |
+| U13  | Publish and submit for listing                              | `README.md`, `Cargo.toml`                                                                                                                                                                          | U10, U11, U12   |
+| U14  | Delete the accepted-break entries                           | `Cargo.toml`                                                                                                                                                                                       | U13             |
 
 ### U17. Establish that the listing route is live
 
@@ -372,7 +393,7 @@ that already carry it.
 **Requirements.** R1, R2, R6.
 
 **Approach.** `ColorChoice` moves to `src/output/`, where its only public consumer (`OutputConfig::new`) already lives
-and where `bird` reaches for it. `Hint` and `NextStep` move to `src/envelope.rs` or a sibling module, since `ErrorBody`
+`Hint` and `NextStep` move to `src/envelope.rs` or a sibling module, since `ErrorBody`
 embeds `NextStep` and that type backs the committed `schema/output.schema.json`. Then remove the terminal I/O from
 `src/auth/mod.rs:296-308` by threading an `OutputConfig` in from the caller rather than constructing one, per
 `docs/solutions/best-practices/rust-library-cli-separation-for-interactive-concerns-2026-04-20.md`.
@@ -401,7 +422,6 @@ those types.
   `cargo tree -i clap` against that build returns nothing. This is the real proof; run it, observe it, then restore.
 - Happy path: `xr --color never` and `xr --output json` still parse and behave identically through the new parsers.
 - Error path: an invalid `--color` or `--output` value produces the same error text and exit code as before.
-- Integration: `bird` still compiles against the relocated `ColorChoice`, built from a local path override.
 
 **Verification.** `cargo test`, `bash scripts/generate-response-schemas.sh` with a clean `git status`, and the
 library-only build above.
@@ -588,8 +608,9 @@ which errors on a virtual manifest. Land the upstream changes **before** startin
 `cargo pkgid -p <library>`, an artifact-name input so releases keep the `xurl-rs-<target>` prefix the Definition of
 Done requires, and two-package publish ordering.
 
-**Approach.** Convert the root `Cargo.toml` to a workspace with two members. The library keeps the `xurl-rs` package
-name per KTD2, and takes `build.rs`, `vendor/`, and every module except `cli`. The binary crate takes `src/cli/`,
+**Approach.** Convert the root `Cargo.toml` to a workspace with two members. The library becomes the `xdk-rs` package
+(lib target `xdk`) per KTD2, and takes `build.rs`, `vendor/`, and every module except `cli`. The binary crate takes
+`src/cli/`,
 `src/main.rs`, clap, the terminal dependencies, and its own `reqwest` dependency until U16's facade absorbs the
 streaming handler. `pub(crate)` seams at the new boundary become `pub` with `#[doc(hidden)]` where they are not
 embedder API. Update `scripts/hooks/pre-push` path scoping, `scripts/generate-completions.sh` (it selects the binary
@@ -614,48 +635,54 @@ gate), and the `semver` job in `.github/workflows/ci.yml` to target the library 
 
 **Test scenarios.**
 
-- Happy path: `cargo build -p xurl-rs` produces no clap in the dependency graph. Assert with
-  `cargo tree -p xurl-rs -i clap` returning nothing.
+- Happy path: `cargo build -p xdk-rs` produces no clap in the dependency graph. Assert with
+  `cargo tree -p xdk-rs -i clap` returning nothing.
 - Integration: the full test suite passes with the same count as before the split.
 - Error path: planting a deliberate `Auth::new(` call in each crate's `tests/` tree makes that crate's isolation guard
   report a violation. Observe both failures, then remove the plants.
-- Edge case: `cargo package -p xurl-rs` succeeds and excludes the CLI crate.
+- Edge case: `cargo package -p xdk-rs` succeeds and excludes the CLI crate.
 - Error path: `cargo semver-checks --baseline-rev <last tag>` reports exactly the removals this split intends.
-- Integration: `bird` compiles against the library from a local path override.
+- Integration: the scratch consumer crate compiles and runs against the library from a local path override.
 
-**Verification.** `cargo test --workspace`, `cargo tree -p xurl-rs -i clap`, `cargo package -p xurl-rs`,
+**Verification.** `cargo test --workspace`, `cargo tree -p xdk-rs -i clap`, `cargo package -p xdk-rs`,
 `scripts/generate-completions.sh --check`, and the pre-push mirror.
 
 ### U7. Audit and close the published surface
 
-**Goal.** Every published module is something an embedder calls, and every item promoted to reach across the split is
-reviewed rather than merely hidden.
+**Goal.** Every published module is something an embedder has reason to call, and every item promoted to reach across
+the split is reviewed rather than merely hidden.
 
 **Requirements.** R6.
 
-**Approach.** With the split done, decide which library modules stay public. Measured consumption from `bird` is the
-starting evidence — it reaches `error`, `api`, `auth`, `config`, `store::types`, and `output` — but `bird` is pinned to
-a rev from the v2.0.0 era, so its import set describes a surface two minors old. Build it against the local path before
-treating any demotion as safe. `skill_install` has no external consumer; `envelope` has none either, though it backs
-the published output schema and may be API by intent rather than by current use.
+**Approach.** With the split done, decide which library modules stay public — and decide it from first principles,
+because there is nothing to measure. The only existing consumer is out of scope by direction and would be a sample of
+one in any case. Reason instead from what an X API client is for and what X's own Python and TypeScript SDKs expose: a
+client, typed responses, auth, configuration, errors. `skill_install` is binary machinery. `envelope` backs the
+published output schema, so it is API by intent even with no caller today; say so explicitly rather than leaving it
+public by default.
+
+Build a scratch consumer crate in the repo that uses the surface an embedder would, and compile it in CI. It replaces
+the measurement this unit no longer has, and it fails loudly when a demotion goes too far.
 
 Audit the items KTD8 promoted, not only the modules. `pub` plus `#[doc(hidden)]` removes an item from rustdoc and from
 the semver contract, but it stays callable — and in `store` and `auth` those items are credential-mutating
 (`TokenStore::save_to_file`, `active_app_or_create`, `StoreFile`, `migration::load_from_data`,
-`exchange_code_for_token`, `fetch_username`). Give each one the `_raw` / `_unchecked` naming and the
+`exchange_code_for_token`, `fetch_username`). Give each the `_raw` / `_unchecked` naming and the
 `# Safety (caller-beware)` doc section that
 `docs/solutions/best-practices/rust-workspace-pub-crate-doesnt-cross-crates-2026-04-20.md` prescribes; hiding an item
-from rustdoc is not access control. Record each demotion as an accepted break.
+from rustdoc is not access control.
+
+**Execution note.** At `0.x` these calls are cheap to revise and at `1.0` they freeze. Prefer publishing less: a module
+withheld now can be published later in a minor, while one published now cannot be withdrawn without a major.
 
 **Test scenarios.**
 
-- Happy path: a scratch crate depending on the library path-locally compiles against every documented capability.
-- Integration: `bird` compiles against the library from a local path override.
+- Happy path: the scratch consumer crate compiles against every documented capability and runs a read end to end.
+- Error path: demoting a module the scratch consumer uses breaks its build. Observe it, then decide deliberately.
 - Error path: `cargo semver-checks` names each demotion, and each has a matching `required-update` entry.
 
 **Verification.** `cargo doc --no-deps --document-private-items` — the default render omits `#[doc(hidden)]` items, so
-the plain command cannot show the surface being audited — plus a review of the enumerated promoted items against the
-decision.
+the plain command cannot show the surface being audited — plus a review of the enumerated promoted items.
 
 ### U8. Feature design and the CI matrix
 
@@ -703,7 +730,7 @@ that is the first thing a docs.rs visitor reads.
 - Happy path: the rendered crates.io metadata describes a library, with no CLI category or keyword.
 - Error path: an undocumented public item fails the build.
 
-**Verification.** `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`, and `cargo package -p xurl-rs`
+**Verification.** `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`, and `cargo package -p xdk-rs`
 followed by a read of the generated metadata.
 
 ### U10. Runnable examples
@@ -723,33 +750,28 @@ than embedding them.
 
 **Verification.** `cargo build --examples` in CI.
 
-### U11. `XurlError` non-exhaustive and the bird drift test
+### U11. `XurlError` non-exhaustive, with an in-crate drift snapshot
 
-**Goal.** New error variants stop forcing a major version, without silently deleting the drift alarm that justified
-keeping the enum exhaustive.
+**Goal.** New error variants stop forcing a version bump the crate cannot afford, without losing drift detection.
 
 **Requirements.** R8.
 
-**Approach.** Add `#[non_exhaustive]` to `XurlError` and record the accepted break.
+**Approach.** Add `#[non_exhaustive]` to `XurlError` and add a variant-set snapshot test in this crate, where an
+exhaustive match still compiles. Drift is still caught; it is caught here rather than in a downstream build.
 
-The compensating control cannot live where it first seems to. `#[non_exhaustive]` is precisely the attribute that stops
-a downstream crate from enumerating a foreign enum's variants, so no test inside `bird` can observe a new one: its
-converter must gain a `_ =>` arm, and new variants then fall into it silently. Put the variant-set snapshot test inside
-`xurl-rs`, where an exhaustive match still compiles, and give `bird` the wildcard arm mapping unknown variants to its
-generic error plus a rev-bump checklist item to re-read that snapshot.
-
-**Execution note.** Blocked on the KTD6 decision, and the decision must be stated accurately: `bird` **loses**
-compile-time drift detection. It does not keep it in another form. That is the trade its owner is being asked to
-approve, and the earlier framing of this unit understated it.
+The attribute is unambiguously right for a public error type on a crate seeking embedders: without it, every new error
+variant is a breaking change, and an X API client will grow error variants as the API does. The earlier hesitation came
+from a first-party consumer that matched the enum exhaustively as a deliberate alarm; that consumer is out of scope for
+this plan by its owner's direction and will be adapted afterward.
 
 **Test scenarios.**
 
 - Happy path: adding a throwaway variant to `XurlError` fails the in-crate snapshot test. Observe it, then remove the
   variant.
-- Integration: `bird` compiles against the changed enum with its new wildcard arm.
-- Error path: `cargo semver-checks` classifies the change as the recorded accepted break.
+- Error path: `cargo semver-checks` classifies the change at the level KTD5 expects for a `0.x` line.
+- Integration: the scratch consumer crate still compiles, matching with a wildcard arm.
 
-**Verification.** `cargo test` in both repos.
+**Verification.** `cargo test`.
 
 ### U12. Rewire release and distribution for the split
 
@@ -757,12 +779,12 @@ approve, and the earlier framing of this unit understated it.
 
 **Requirements.** R10.
 
-**Approach.** The upstream workflow changes are a prerequisite of U6, not of this unit; by the time this runs they
-exist. What remains here is the caller side. Keep `crate: xurl-rs` as the input — it only labels archives, and holding
-it still is what keeps the `xurl-rs-<target>` artifact names R10 promises. Change only `bin:`. Move
-`[package.metadata.binstall]` to the binary package, and re-check the Homebrew formula's source URL against the
-artifact names. Verify the status-check context names still match what the required checks expect, since a job inside a
-reusable workflow reports as `<caller-job> / <job>`.
+**Approach.** The inversion did most of this unit's work. The CLI stays the `xurl-rs` package producing `xr`, so
+`crate:`, `bin:`, `[package.metadata.binstall]`, every release artifact name, and the Homebrew formula's `url` and
+bottle `root_url` are all unchanged. What remains: the formula's `cargo install` needs `std_cargo_args(path: ...)`
+pointing at the CLI crate rather than the virtual-manifest root (KTD10), the release workflow needs the workspace
+support landed as U6's prerequisite, and publishing now covers two packages on independent version lines (KTD9), which
+the tag scheme and git-cliff configuration both have to express.
 
 **Test scenarios.**
 
@@ -796,7 +818,7 @@ recon unit established, state what the plan does next rather than treating the r
 - Error path: no optional git dependency lacks a `version` field, which `cargo publish --dry-run` rejects and which
   fmt, clippy, and test do not catch.
 
-**Verification.** `cargo publish --dry-run -p xurl-rs`, then the real publish.
+**Verification.** `cargo publish --dry-run -p xdk-rs`, then the real publish.
 
 ### U14. Delete the accepted-break entries
 
@@ -827,9 +849,9 @@ three CI-only gates: completions freshness, the package check, and the public-AP
 the head of every unit, not only at release. Baseline against the last released tag, never the PR base. Record accepted
 breaks with `required-update`, never `lint-level = "allow"`.
 
-**Cross-crate proof.** `cargo tree -p xurl-rs -i clap` must return nothing after U6. A package-scoped green test run
-does not prove an out-of-package consumer still compiles, so build `bird` against the local path before declaring U7 or
-U11 done.
+**Cross-crate proof.** `cargo tree -p xdk-rs -i clap` must return nothing after U6. A package-scoped green test run
+does not prove an out-of-package consumer still compiles, so compile the scratch consumer crate against the library
+before declaring U7 or U11 done.
 
 **Feature matrix.** At minimum: default; `--no-default-features --features blocking`; `--no-default-features --features
 native-tls`; `--all-features`.
@@ -841,7 +863,7 @@ clean tree.
 
 **Global.**
 
-- A downstream crate depending on `xurl-rs` compiles no clap, proven by `cargo tree`.
+- A downstream crate depending on `xdk-rs` compiles no clap, proven by `cargo tree`.
 - A shortcut method is callable from inside `#[tokio::test]` without `spawn_blocking` and without panicking.
 - The blocking facade exists behind a feature and returns the same results as the async path.
 - No clap-derived type appears in `cargo doc` output for the library.
@@ -850,7 +872,8 @@ clean tree.
 - Every accepted break has a `required-update` entry that names what it covers, and every entry whose release has
   shipped is deleted.
 - The CLI's observable behavior is unchanged: same commands, same output shapes, same exit codes.
-- Existing distribution channels produce the same artifact names.
+- Existing distribution channels produce the same artifact names, and `brew install brettdavies/tap/xurl-rs` still
+  builds and links `xr`.
 - R11's outcome is recorded, not just its action: either the library appears on X's community-libraries page, or the
   submission's result is written down along with what the plan does next. A forum post with no recorded response does
   not close this.
@@ -869,7 +892,13 @@ call for observing a failure first record the actual failure output.
 - `twitter-v2` on crates.io: version 0.1.8, last updated 2022-10-25, 86,727 total downloads against 2,227 recent. Its
   `Cargo.toml` uses async `reqwest` with no `blocking` feature, and offers `rustls-tls` and `native-tls` as selectable
   features.
-- `xurl-rs` on crates.io: version 3.2.0, 313 total downloads, 172 recent.
+- `xurl-rs` on crates.io: version 3.2.0, 313 total downloads, 172 recent. It keeps the 3.x line as the CLI package.
+- Library name availability, checked 2026-09-16: `xdk-rs` free on both crates.io and npm; `xdk` free on crates.io, taken
+  on npm by an unrelated placeholder. `xurl` is held by an unrelated 2021 utility and is X's own CLI's name; `xr` is
+  held by i18n.site; `xurl-cli` is an active unrelated project by Xuanwo.
+- crates.io publishing is permanent: versions cannot be deleted or overwritten, and yanking blocks new resolution
+  without removing the version or its code. A lower version may be published out of order, but Cargo resolves by semver
+  rather than publish order, so it does not rewind a crate's line.
 - The `xurl` crate name is held by an unrelated URL-manipulation utility published once in June 2021.
 - Submission route: X's developer forum, Libraries, SDKs, Samples category, described as the place to announce libraries
   for inclusion or linking in the developer documentation.
@@ -880,8 +909,8 @@ call for observing a failure first record the actual failure output.
   cites this repo's own earlier split as its source.
 - `docs/solutions/best-practices/rust-workspace-pub-crate-doesnt-cross-crates-2026-04-20.md` — the visibility hazard at
   the new boundary.
-- `docs/solutions/best-practices/rust-library-ergonomics-api-design.md` — the API choices already fixed when `bird`
-  became the first consumer.
+- `docs/solutions/best-practices/rust-library-ergonomics-api-design.md` — API choices this crate already settled
+  when it first gained a library consumer, including the lifetime removal that makes `Send + Sync` reachable.
 - `docs/solutions/logic-errors/regex-diff-heuristic-cannot-gate-public-api-breakage.md` — how the semver gate is meant
   to be operated.
 - `docs/solutions/build-errors/rust-ci-feature-matrix-additive-gotcha.md` — why an isolation cell needs
@@ -894,7 +923,7 @@ call for observing a failure first record the actual failure output.
 - `docs/solutions/best-practices/rust-store-http-client-on-struct-not-per-request-2026-04-20.md` — the client-storage
   pattern U4 depends on.
 - `docs/solutions/conventions/package-test-gate-misses-app-target-exhaustive-match-breaks.md` — the package-scoped-test
-  blind spot, with `bird` as the consumer that fell through it.
+  blind spot: a package-scoped gate reports green while an out-of-package consumer's build breaks.
 
 ### Corpus gaps worth compounding later
 
