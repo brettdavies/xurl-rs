@@ -190,6 +190,39 @@ pub enum Error {
 
 crate::assert_send_sync!(Error);
 
+/// Which situation an `AuthMethodMismatch`'s fields describe.
+///
+/// The library's Display and the `xr` renderer both classify through
+/// [`mismatch_shape`], so the two cannot sort one error into different
+/// shapes.
+pub(crate) enum MismatchShape<'a> {
+    /// The caller asked for a scheme the endpoint does not accept.
+    Explicit { requested: &'a str },
+    /// The active app stores nothing, but other apps hold credentials.
+    WrongApp { others: &'a [String] },
+    /// Nothing the active app stores is accepted at the endpoint.
+    EmptyIntersection { available: &'a [String] },
+    /// No app context was available when the error was built.
+    Unknown,
+}
+
+/// Classifies the three optional fields into one [`MismatchShape`].
+///
+/// Only the wrong-app branch sets `other_apps_with_creds`, so
+/// `available_in_app` may still carry an env-supplied bearer there.
+pub(crate) fn mismatch_shape<'a>(
+    requested: Option<&'a str>,
+    available_in_app: Option<&'a [String]>,
+    other_apps_with_creds: Option<&'a [String]>,
+) -> MismatchShape<'a> {
+    match (requested, available_in_app, other_apps_with_creds) {
+        (Some(requested), _, _) => MismatchShape::Explicit { requested },
+        (None, Some(_), Some(others)) if !others.is_empty() => MismatchShape::WrongApp { others },
+        (None, Some(available), _) => MismatchShape::EmptyIntersection { available },
+        (None, None, _) => MismatchShape::Unknown,
+    }
+}
+
 /// Builds the Display fragment for `AuthMethodMismatch`: which method was
 /// refused where, and what the endpoint accepts, in the wire vocabulary the
 /// fields carry. Prefers `rendered_url` over `endpoint` so `{id}`
@@ -214,28 +247,28 @@ fn auth_method_mismatch_fragment(
             items.join(", ")
         }
     };
-    match (requested, available_in_app, other_apps_with_creds) {
-        (Some(req), _, _) if supported.is_empty() => {
-            format!("{req} auth is not accepted at {method} {path}")
+    match mismatch_shape(requested, available_in_app, other_apps_with_creds) {
+        MismatchShape::Explicit { requested } if supported.is_empty() => {
+            format!("{requested} auth is not accepted at {method} {path}")
         }
-        (Some(req), _, _) => {
+        MismatchShape::Explicit { requested } => {
             let accepts = list(supported);
-            format!("{req} auth is not accepted at {method} {path} (accepts {accepts})")
+            format!("{requested} auth is not accepted at {method} {path} (accepts {accepts})")
         }
-        (None, Some(_), Some(others)) if !others.is_empty() => {
+        MismatchShape::WrongApp { others } => {
             let alts = others.join(", ");
             format!(
                 "app '{app_name}' holds no credentials for {method} {path} (other apps with credentials: {alts})"
             )
         }
-        (None, Some(avail), _) => {
-            let has = list(avail);
+        MismatchShape::EmptyIntersection { available } => {
+            let has = list(available);
             let accepts = list(supported);
             format!(
                 "no stored auth method on app '{app_name}' is accepted at {method} {path} (app has {has}; endpoint accepts {accepts})"
             )
         }
-        (None, None, _) => format!("auth method is not accepted at {method} {path}"),
+        MismatchShape::Unknown => format!("auth method is not accepted at {method} {path}"),
     }
 }
 
@@ -281,7 +314,20 @@ impl Error {
             Self::Api { status, body } if refuses_enrollment(*status, body) => {
                 Some(NextAction::EnrollApp)
             }
-            _ => None,
+            Self::Api { .. }
+            | Self::Http(_)
+            | Self::Io(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
+            | Self::InvalidUrl(_)
+            | Self::InvalidPathParam { .. }
+            | Self::Internal(_)
+            | Self::Json(_)
+            | Self::Auth(_)
+            | Self::TokenStore(_) => None,
+            // The stored-credential recovery steps are the binary's: it knows
+            // which apps hold what and names the invocation.
+            Self::AuthMethodMismatch { .. } => None,
         }
     }
 
@@ -504,8 +550,9 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// Network / connectivity issue. Surfaces for non-401/404/429 HTTP errors
-/// and for `reqwest` transport failures (DNS, TLS, timeout).
+/// A filesystem or connection failure the library reports as
+/// [`Error::Io`]. An API response with any other status and a transport
+/// failure both exit `EXIT_GENERAL_ERROR`.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

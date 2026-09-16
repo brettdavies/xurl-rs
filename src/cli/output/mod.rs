@@ -6,10 +6,10 @@
 //! so the same config can drive real stdout, real stderr, or a captured
 //! `Vec<u8>` in library tests.
 //!
-//! This module is the single owner of `println!` / `eprintln!`. Every other
-//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods, and
-//! the library's `tracing` events reach stderr through the `Diagnostics` subscriber. A CI
-//! guard in `scripts/lint-stdio.sh` enforces the invariant.
+//! Nothing under `src/` outside `src/cli/` writes to a terminal: library
+//! code routes its diagnostics through `tracing` events that the
+//! `Diagnostics` subscriber renders, and every printed line goes through one
+//! of [`OutputConfig`]'s methods. `scripts/lint-stdio.sh` enforces both.
 
 mod delimited;
 mod diagnostics;

@@ -5,7 +5,7 @@
 //! byte-identical across releases.
 
 use crate::api::auth_matrix::WireScheme;
-use crate::error::Error;
+use crate::error::{Error, MismatchShape, mismatch_shape};
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -78,10 +78,9 @@ fn auth_method_mismatch_message(
         }
     };
 
-    match (requested, available_in_app, other_apps_with_creds) {
-        // Explicit mismatch: the user passed --auth X explicitly.
-        (Some(req), _, _) => {
-            let pretty_req = pretty_scheme(req);
+    match mismatch_shape(requested, available_in_app, other_apps_with_creds) {
+        MismatchShape::Explicit { requested } => {
+            let pretty_req = pretty_scheme(requested);
             let alt = supported
                 .iter()
                 .map(|s| format!("--auth {s}"))
@@ -93,26 +92,22 @@ fn auth_method_mismatch_message(
                 format!("{pretty_req} auth is not accepted at {method} {display_path}. Use {alt}.")
             }
         }
-        // Wrong-app: active app stores nothing but other apps do. Only that
-        // branch sets `other_apps_with_creds`, so `avail` may still carry an
-        // env-supplied bearer here.
-        (None, Some(_), Some(others)) if !others.is_empty() => {
+        MismatchShape::WrongApp { others } => {
             let alts = others.join(", ");
             let accepts = list(supported);
             format!(
                 "App '{app_name}' has no stored credentials, but other apps do ({alts}). Endpoint {method} {display_path} accepts: {accepts}. Try --app NAME with one of the apps above."
             )
         }
-        // Empty intersection on a non-empty active app.
-        (None, Some(avail), _) => {
-            let has = list(avail);
+        MismatchShape::EmptyIntersection { available } => {
+            let has = list(available);
             let accepts = list(supported);
             let suggest = suggest_first(app_name);
             format!(
                 "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
             )
         }
-        (None, None, _) => {
+        MismatchShape::Unknown => {
             format!("Auth method is not accepted at {method} {display_path}.")
         }
     }
