@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::Error;
 pub use crate::error::NextAction;
 use crate::store::snapshot::StoreSnapshot;
 
@@ -200,19 +201,17 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     }
 }
 
-/// The enrollment recipe an `enroll-app` step points at.
-const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
-
-/// Builds the enrollment hint when a 403 body says X refused the app.
+/// Builds the enrollment hint when `error` is X refusing the app.
 ///
-/// The two markers both appear in observed refusals, and the body's own
-/// `detail` line is quoted when present so the reader can judge whether the
-/// match is right rather than trusting the label.
+/// The body's own `detail` line is quoted when present so the reader can
+/// judge whether the match is right rather than trusting the label.
 #[must_use]
-pub fn enrollment_hint(status: u16, body: &str) -> Option<Hint> {
-    if !crate::error::refuses_enrollment(status, body) {
+pub fn enrollment_hint(error: &Error) -> Option<Hint> {
+    let (Error::Api { body, .. }, Some(NextAction::EnrollApp), Some(docs)) =
+        (error, error.next_action(), error.docs_url())
+    else {
         return None;
-    }
+    };
 
     let mut text_lines = Vec::with_capacity(2);
     if let Some(detail) = detail_line(body) {
@@ -221,12 +220,12 @@ pub fn enrollment_hint(status: u16, body: &str) -> Option<Hint> {
         text_lines.push("X refused the app.".to_string());
     }
     text_lines.push(format!(
-        "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {ENROLLMENT_DOCS}"
+        "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {docs}"
     ));
 
     Some(Hint {
         text_lines,
-        next_step: NextStep::enroll_app(ENROLLMENT_DOCS.to_string()),
+        next_step: NextStep::enroll_app(docs.to_string()),
     })
 }
 

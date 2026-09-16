@@ -237,6 +237,56 @@ fn test_xurl_error_from_serde_json() {
     assert!(matches!(xurl_err, Error::Json(_)));
 }
 
+// ── docs_url tests ─────────────────────────────────────────────────
+
+#[test]
+fn an_enrollment_refusal_points_at_the_enrollment_recipe() {
+    let refused = Error::api(403, r#"{"reason":"client-not-enrolled"}"#);
+    assert_eq!(
+        refused.docs_url(),
+        Some("https://github.com/brettdavies/xurl-rs#x-platform-enrollment")
+    );
+}
+
+#[test]
+fn a_rate_limit_points_at_the_rate_limit_rules() {
+    assert_eq!(
+        Error::api(429, "slow down").docs_url(),
+        Some("https://docs.x.com/resources/fundamentals/rate-limits")
+    );
+}
+
+#[test]
+fn credential_failures_point_at_the_authentication_overview() {
+    let docs = Some("https://docs.x.com/resources/fundamentals/authentication");
+    assert_eq!(Error::api(401, "unauthorized").docs_url(), docs);
+    assert_eq!(Error::auth("token expired").docs_url(), docs);
+    assert_eq!(mismatch(Some("oauth1"), None, None).docs_url(), docs);
+}
+
+#[test]
+fn errors_without_a_documented_recovery_carry_no_pointer() {
+    let undocumented = [
+        Error::api(500, "server error"),
+        Error::api(403, "plain forbidden"),
+        Error::Http("connection refused".into()),
+        Error::Io("permission denied".into()),
+        Error::Json("expected value".into()),
+        Error::validation("missing field"),
+        Error::token_store("corrupt yaml"),
+        Error::InvalidMethod("bad method".into()),
+        Error::InvalidUrl("ftp://example".into()),
+        Error::InvalidPathParam {
+            name: "id".into(),
+            value: "1/2".into(),
+        },
+        Error::Internal("missing {id}".into()),
+    ];
+    for err in undocumented {
+        assert_eq!(err.docs_url(), None, "{err:?}");
+    }
+}
+
 // ── exit_code_for_error tests ──────────────────────────────────────
 
 #[test]

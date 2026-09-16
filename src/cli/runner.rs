@@ -286,7 +286,7 @@ where
             if carries_no_auth_method(&e) {
                 let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                 out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = enrollment_hint_for(&e) {
+            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e) {
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else {
                 out.print_error(stderr, &e, code);
@@ -307,16 +307,6 @@ fn carries_no_auth_method(error: &crate::error::Error) -> bool {
         crate::error::Error::Auth(msg)
             if msg == crate::error::NO_AUTH_METHOD || msg == "TokenNotFound: oauth2 token not found"
     )
-}
-
-/// The enrollment hint for an API refusal, when this error is one.
-fn enrollment_hint_for(error: &crate::error::Error) -> Option<crate::cli::hints::Hint> {
-    match error {
-        crate::error::Error::Api { status, body } => {
-            crate::cli::hints::enrollment_hint(*status, body)
-        }
-        _ => None,
-    }
 }
 
 /// Renders a clap parse failure.

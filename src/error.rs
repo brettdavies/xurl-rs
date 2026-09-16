@@ -23,6 +23,13 @@ pub enum NextAction {
     EnrollApp,
 }
 
+/// The enrollment recipe for an app X refuses.
+const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+/// Where X documents its authentication methods.
+const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
+/// Where X documents its rate limits.
+const RATE_LIMIT_DOCS: &str = "https://docs.x.com/resources/fundamentals/rate-limits";
+
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
 #[must_use]
@@ -280,6 +287,35 @@ impl Error {
                 Some(NextAction::EnrollApp)
             }
             _ => None,
+        }
+    }
+
+    /// The page that documents this error's recovery, when one exists.
+    ///
+    /// An enrollment refusal names the recipe that moves the app to the
+    /// right package, a credential failure points at X's authentication
+    /// overview, and a 429 at its rate-limit rules. One arm per variant, so
+    /// a new variant decides its pointer before it ships.
+    #[must_use]
+    pub fn docs_url(&self) -> Option<&'static str> {
+        match self {
+            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+                Some(ENROLLMENT_DOCS)
+            }
+            Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch { .. } => {
+                Some(AUTHENTICATION_DOCS)
+            }
+            Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
+            Self::Api { .. }
+            | Self::Http(_)
+            | Self::Io(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
+            | Self::InvalidUrl(_)
+            | Self::InvalidPathParam { .. }
+            | Self::Internal(_)
+            | Self::Json(_)
+            | Self::TokenStore(_) => None,
         }
     }
 
