@@ -17,6 +17,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 pub mod env;
 pub mod envelope;
 pub mod output;
+#[cfg(test)]
+mod parse_tests;
 pub mod skill_install;
 
 pub use output::OutputFormat;
