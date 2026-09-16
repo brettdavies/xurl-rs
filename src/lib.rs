@@ -33,6 +33,20 @@ pub mod store;
 
 pub use error::{Error, Result};
 
+/// Fails the build when `$t` stops being shareable across tasks and threads.
+///
+/// Invoked beside each type it guards, so the failure surfaces there rather
+/// than at a distant call site.
+macro_rules! assert_send_sync {
+    ($t:ty) => {
+        const _: fn() = || {
+            fn assert<T: Send + Sync>() {}
+            assert::<$t>();
+        };
+    };
+}
+pub(crate) use assert_send_sync;
+
 // ── Compile-time build and provenance metadata ──────────────────────────
 //
 // API spec consts are read from a checked-in sidecar at

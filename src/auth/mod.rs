@@ -54,12 +54,7 @@ pub struct Auth {
     bearer_token_override: Option<String>,
 }
 
-// Compile-time guarantee: `Auth` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<Auth>();
-};
+crate::assert_send_sync!(Auth);
 
 impl Auth {
     /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
@@ -295,7 +290,7 @@ impl Auth {
         // No stored token means no header: the library never starts an
         // interactive sign-in inside a request. The binary decides whether to
         // sign in and retry.
-        Err(Error::auth("TokenNotFound: oauth2 token not found"))
+        Err(Error::auth(crate::error::NO_OAUTH2_TOKEN))
     }
 
     /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
@@ -529,12 +524,3 @@ pub fn resolve_bearer_token(
 
     Ok(format!("Bearer {bearer}"))
 }
-
-// Compile-time guarantee: `Auth` is `Send + Sync` so it can be shared across
-// threads in the planned async/concurrent `ApiClient` (see plan KTD8). Any
-// future change that introduces a `!Send` or `!Sync` field will fail this
-// assertion at compile time.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<Auth>();
-};

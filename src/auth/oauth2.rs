@@ -423,11 +423,11 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
             .cloned()
     };
 
-    let token = token.ok_or_else(|| Error::auth("TokenNotFound: oauth2 token not found"))?;
+    let token = token.ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     let oauth2 = token
         .oauth2
         .as_ref()
-        .ok_or_else(|| Error::auth("TokenNotFound: oauth2 token not found"))?;
+        .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

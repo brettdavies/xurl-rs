@@ -265,10 +265,6 @@ where
             .as_deref()
             .is_some_and(|value| !value.is_empty()),
     );
-    let invocation: Vec<String> = args_vec
-        .iter()
-        .map(|a| a.to_string_lossy().into_owned())
-        .collect();
     let structured = out.format.is_structured();
 
     // The library reports its diagnostics as `tracing` events; this renderer
@@ -284,6 +280,10 @@ where
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
             if carries_no_auth_method(&e) {
+                let invocation: Vec<String> = args_vec
+                    .iter()
+                    .map(|a| a.to_string_lossy().into_owned())
+                    .collect();
                 let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e) {
@@ -296,16 +296,15 @@ where
     }
 }
 
-/// Whether this error is the no-credentials failure a recovery hint answers.
+/// Whether this error is a missing-credential failure a recovery hint answers.
 ///
-/// Matched on the carried message rather than a new variant, because the
-/// public error enum is exhaustively matched downstream and cannot grow one
-/// in a 3.x release.
+/// Both messages are constants shared with their construction sites, so the
+/// seam and the library agree on the exact strings.
 fn carries_no_auth_method(error: &crate::error::Error) -> bool {
     matches!(
         error,
         crate::error::Error::Auth(msg)
-            if msg == crate::error::NO_AUTH_METHOD || msg == "TokenNotFound: oauth2 token not found"
+            if msg == crate::error::NO_AUTH_METHOD || msg == crate::error::NO_OAUTH2_TOKEN
     )
 }
 
@@ -396,11 +395,7 @@ fn render_unknown_command(
     EXIT_USAGE_ERROR
 }
 
-// Compile-time guarantee: the canonical entrypoint signature is callable
-// from any thread. The trait objects `&mut dyn Write` are not `Send` by
-// themselves, but the function-pointer type below is `Send + Sync`, which
-// is what library consumers need to dispatch the runner from a thread pool.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<fn() -> i32>();
-};
+// The trait objects `&mut dyn Write` in the entrypoint signature are not
+// `Send` by themselves, but the function-pointer type below is, which is
+// what library consumers need to dispatch the runner from a thread pool.
+crate::assert_send_sync!(fn() -> i32);

@@ -70,6 +70,13 @@ fn auth_method_mismatch_message(
             .map(|s| format!(" Add credentials with: xr auth {s} --app {fallback}."))
             .unwrap_or_default()
     };
+    let list = |items: &[String]| {
+        if items.is_empty() {
+            "none".to_string()
+        } else {
+            items.join(", ")
+        }
+    };
 
     match (requested, available_in_app, other_apps_with_creds) {
         // Explicit mismatch: the user passed --auth X explicitly.
@@ -91,27 +98,15 @@ fn auth_method_mismatch_message(
         // env-supplied bearer here.
         (None, Some(_), Some(others)) if !others.is_empty() => {
             let alts = others.join(", ");
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
+            let accepts = list(supported);
             format!(
                 "App '{app_name}' has no stored credentials, but other apps do ({alts}). Endpoint {method} {display_path} accepts: {accepts}. Try --app NAME with one of the apps above."
             )
         }
         // Empty intersection on a non-empty active app.
         (None, Some(avail), _) => {
-            let has = if avail.is_empty() {
-                "none".to_string()
-            } else {
-                avail.join(", ")
-            };
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
+            let has = list(avail);
+            let accepts = list(supported);
             let suggest = suggest_first(app_name);
             format!(
                 "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"

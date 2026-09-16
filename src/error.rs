@@ -188,12 +188,7 @@ pub enum Error {
     },
 }
 
-// Compile-time guarantee: `Error` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<Error>();
-};
+crate::assert_send_sync!(Error);
 
 /// Builds the Display fragment for `AuthMethodMismatch`: which method was
 /// refused where, and what the endpoint accepts, in the wire vocabulary the
@@ -440,6 +435,18 @@ impl From<url::ParseError> for Error {
 /// Convenience alias used throughout the crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
+// ── Auth failure messages ──────────────────────────────────────────
+//
+// One constant per message so its construction sites and the runner's
+// hint seam agree on the exact string; the runner matches on them to
+// decide whether a recovery hint applies.
+
+/// The message every no-credentials failure carries.
+pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method available";
+
+/// The message every missing-`OAuth2`-token failure carries.
+pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
+
 // ── Exit codes ─────────────────────────────────────────────────────
 
 /// Structured exit codes for machine-readable error handling.
@@ -476,13 +483,6 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// missing credential).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
-/// The message every no-credentials failure carries.
-///
-/// One constant so the two construction sites and the runner's hint seam
-/// agree on the exact string; the runner matches on it to decide whether a
-/// recovery hint applies.
-pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method available";
-
 /// Usage error. `EX_USAGE` from sysexits — `2`.
 ///
 /// Clap parse failures share this value, as do the errors a caller can fix

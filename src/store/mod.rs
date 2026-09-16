@@ -254,6 +254,19 @@ impl TokenStore {
         }
     }
 
+    /// The not-found error for `username` in `app`, checked on the caller's
+    /// view before the lock is taken and again on disk truth inside it, as
+    /// [`Self::require_app`] is.
+    fn require_user(app: &App, username: &str) -> Result<()> {
+        if app.oauth2_tokens.contains_key(username) {
+            Ok(())
+        } else {
+            Err(Error::token_store(format!(
+                "user {username:?} not found in app"
+            )))
+        }
+    }
+
     /// The already-exists error for `name`, the registration counterpart of
     /// [`Self::require_app`].
     fn refuse_if_app_present(&self, name: &str) -> Result<()> {
@@ -404,22 +417,10 @@ impl TokenStore {
     ///
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
-        if !self
-            .resolve_app(app_name)
-            .oauth2_tokens
-            .contains_key(username)
-        {
-            return Err(Error::token_store(format!(
-                "user {username:?} not found in app"
-            )));
-        }
+        Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
-            if !app.oauth2_tokens.contains_key(username) {
-                return Err(Error::token_store(format!(
-                    "user {username:?} not found in app"
-                )));
-            }
+            Self::require_user(app, username)?;
             app.default_user = username.to_string();
             Ok(())
         })

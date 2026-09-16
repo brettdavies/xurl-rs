@@ -211,12 +211,7 @@ pub struct ApiClient {
     timeout_secs: u64,
 }
 
-// Compile-time guarantee: `ApiClient` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<ApiClient>();
-};
+crate::assert_send_sync!(ApiClient);
 
 impl ApiClient {
     /// Creates a new `ApiClient` using the timeout configured on `config`.
