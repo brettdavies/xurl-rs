@@ -581,9 +581,14 @@ impl TokenStore {
         F: FnOnce(&mut Self) -> Result<R> + Send + 'static,
         R: Send + 'static,
     {
+        // A blocking-pool thread has no thread-local dispatcher, so the
+        // caller's is carried in; otherwise the store's warnings vanish.
+        let dispatch = tracing::Dispatch::default();
         tokio::task::spawn_blocking(move || {
-            let mut store = Self::new_with_path(&path.to_string_lossy());
-            store.update(f)
+            tracing::dispatcher::with_default(&dispatch, || {
+                let mut store = Self::new_with_path(&path.to_string_lossy());
+                store.update(f)
+            })
         })
         .await
         .map_err(|e| Error::Internal(format!("store update task failed: {e}")))?

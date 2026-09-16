@@ -324,18 +324,22 @@ where
         let ready_flag = Arc::clone(&ready_flag);
         let expected_state = expected_state.clone();
         let uri_path = uri_path.clone();
-        tasks.handles.push(tokio::spawn(async move {
-            run_accept_loop(
-                b.listener,
-                expected_state,
-                uri_path,
-                result_tx,
-                cancel,
-                ready_flag,
-                ready_tx,
-            )
-            .await;
-        }));
+        // The accept loops are polled outside the caller's future, so they
+        // carry its dispatcher or their warnings never reach the binary.
+        tasks.handles.push(tokio::spawn(
+            tracing::instrument::WithSubscriber::with_current_subscriber(async move {
+                run_accept_loop(
+                    b.listener,
+                    expected_state,
+                    uri_path,
+                    result_tx,
+                    cancel,
+                    ready_flag,
+                    ready_tx,
+                )
+                .await;
+            }),
+        ));
     }
 
     // Await the inside-accept ready signal, then run the on_bound hook on

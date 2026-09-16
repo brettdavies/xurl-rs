@@ -2,6 +2,8 @@
 //! follows an empty intersection between the credentials at hand and the
 //! endpoint's accepted schemes.
 
+use tracing::instrument::WithSubscriber;
+
 use crate::api::auth_matrix::WireScheme;
 use crate::error::{Error, Result};
 
@@ -65,12 +67,18 @@ impl Client {
         }
         let client = self.clone();
         let username = username.to_string();
-        let access_token = tokio::spawn(async move {
-            let mut credentials = client.credentials().await;
-            credentials
-                .refresh_oauth2_token(client.http(), &username)
-                .await
-        })
+        // The task is polled outside the request future, so without the
+        // caller's dispatcher it would report under the global no-op one and
+        // the binary would never render the refresh warnings.
+        let access_token = tokio::spawn(
+            async move {
+                let mut credentials = client.credentials().await;
+                credentials
+                    .refresh_oauth2_token(client.http(), &username)
+                    .await
+            }
+            .with_current_subscriber(),
+        )
         .await
         .map_err(|e| Error::Internal(format!("token refresh task failed: {e}")))??;
         Ok(format!("Bearer {access_token}"))
