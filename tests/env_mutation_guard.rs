@@ -103,7 +103,7 @@ const ALLOWLIST: &[Allowed] = &[
     Allowed {
         file: "output_writer_tests.rs",
         test: "no_color_env_reaches_the_resolved_color_decision",
-        reason: "the only proof that OutputConfig::new_with_raw reads NO_COLOR from the process",
+        reason: "the only proof that the binary reads NO_COLOR from the process",
     },
     Allowed {
         file: "src/config/mod.rs",

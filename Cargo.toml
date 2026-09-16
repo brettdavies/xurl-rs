@@ -57,6 +57,9 @@ url = "2"
 # Terminal
 colored = "3"
 
+# Diagnostics
+tracing = "0.1"
+
 # Schema generation
 schemars = "1"
 

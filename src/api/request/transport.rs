@@ -1,14 +1,21 @@
-//! HTTP transport for the three response shapes — JSON, multipart, and
-//! streaming — with request-header assembly and verbose wire diagnostics.
+//! HTTP transport for the three response shapes (JSON, multipart, and
+//! streaming) with request-header assembly and wire diagnostics emitted as
+//! `tracing` events.
 
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Lines};
 
-use reqwest::blocking::{Client, multipart};
+use reqwest::blocking::{Client, Response, multipart};
 
-use crate::cli::output::OutputConfig;
 use crate::error::{Result, XurlError};
 
 use super::{ApiClient, MultipartOptions, RequestOptions};
+
+/// Target of the wire diagnostics: one `DEBUG` event per request line
+/// (`kind = "request"`, `method`, `url`), response status (`kind =
+/// "status"`, `status`), response header (`kind = "header"`, `name`,
+/// `value`), the end of a response (`kind = "end"`), and each header-override
+/// note (`kind = "note"`, message), in the order a subscriber prints them.
+pub const WIRE_TARGET: &str = "xurl::wire";
 
 impl ApiClient {
     /// Sends a regular API request and returns the JSON response.
@@ -79,34 +86,16 @@ impl ApiClient {
             builder = builder.header("X-B3-Flags", "1");
         }
 
-        if options.verbose {
-            let mut err = std::io::stderr().lock();
-            log_header_overrides(
-                &self.out,
-                &mut err,
-                &options.headers,
-                xurl_would_set_content_type,
-                !options.no_auth,
-                options.trace,
-            );
-        }
-
-        if options.verbose {
-            let mut err = std::io::stderr().lock();
-            if self.out.use_color {
-                self.out
-                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
-            } else {
-                self.out.verbose(&mut err, &format!("> {method} {url}"));
-            }
-        }
+        note_header_overrides(
+            &options.headers,
+            xurl_would_set_content_type,
+            !options.no_auth,
+            options.trace,
+        );
+        trace_request(method, &url);
 
         let resp = builder.send()?;
-
-        if options.verbose {
-            let mut err = std::io::stderr().lock();
-            log_response_headers(&self.out, &mut err, resp.status(), resp.headers());
-        }
+        trace_response(resp.status(), resp.headers());
 
         let status = resp.status();
         let body = resp.text().unwrap_or_default();
@@ -197,26 +186,15 @@ impl ApiClient {
             builder = builder.header("X-B3-Flags", "1");
         }
 
-        if options.request.verbose {
-            let mut err = std::io::stderr().lock();
-            // Multipart's Content-Type is owned by `reqwest`'s multipart
-            // builder (carries the boundary); xurl never explicitly sets it
-            // here, so the override advisory skips Content-Type for this path.
-            log_header_overrides(
-                &self.out,
-                &mut err,
-                &options.request.headers,
-                false,
-                !options.request.no_auth,
-                options.request.trace,
-            );
-            if self.out.use_color {
-                self.out
-                    .verbose(&mut err, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
-            } else {
-                self.out.verbose(&mut err, &format!("> {method} {url}"));
-            }
-        }
+        // Multipart's Content-Type is owned by `reqwest`'s multipart builder
+        // (it carries the boundary), so the override note skips Content-Type.
+        note_header_overrides(
+            &options.request.headers,
+            false,
+            !options.request.no_auth,
+            options.request.trace,
+        );
+        trace_request(method, &url);
 
         let resp = builder.send()?;
         let status = resp.status();
@@ -235,26 +213,16 @@ impl ApiClient {
         Ok(json)
     }
 
-    /// Sends a streaming request — reads lines until EOF.
+    /// Opens a streaming request and returns its lines as they arrive.
     ///
-    /// All output flows through this client's configured `OutputConfig`
-    /// (set via [`ApiClient::set_output`]); the CLI binary calls the
-    /// `stream_request_with_output` helper in `cli::commands` which threads
-    /// the runner's `OutputConfig` and writers in directly. Library callers
-    /// pass their own `stdout`/`stderr` here so a streaming session can be
-    /// captured in tests or redirected to a custom sink.
+    /// The connection stays open until the returned iterator is dropped or
+    /// the server ends the stream; the caller decides what to print.
     ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, the request fails,
-    /// the API returns an error status (>= 400), or a read error occurs.
-    #[allow(dead_code)] // Public library API — used by consumers and integration tests
-    pub fn stream_request(
-        &mut self,
-        options: &RequestOptions,
-        stdout: &mut dyn std::io::Write,
-        stderr: &mut dyn std::io::Write,
-    ) -> Result<()> {
+    /// or the API returns an error status (>= 400).
+    pub fn stream_request(&mut self, options: &RequestOptions) -> Result<StreamLines> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header` (called
@@ -305,31 +273,16 @@ impl ApiClient {
             builder = builder.header("X-B3-Flags", "1");
         }
 
-        if options.verbose {
-            log_header_overrides(
-                &self.out,
-                stderr,
-                &options.headers,
-                xurl_would_set_content_type,
-                !options.no_auth,
-                options.trace,
-            );
-            if self.out.use_color {
-                self.out
-                    .verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
-            } else {
-                self.out.verbose(stderr, &format!("> {method} {url}"));
-            }
-        }
-
-        self.out
-            .status(stderr, &format!("Connecting to streaming endpoint: {url}"));
+        note_header_overrides(
+            &options.headers,
+            xurl_would_set_content_type,
+            !options.no_auth,
+            options.trace,
+        );
+        trace_request(method, &url);
 
         let resp = builder.send()?;
-
-        if options.verbose {
-            log_response_headers(&self.out, stderr, resp.status(), resp.headers());
-        }
+        trace_response(resp.status(), resp.headers());
 
         let resp_status = resp.status();
         if resp_status.as_u16() >= 400 {
@@ -340,27 +293,37 @@ impl ApiClient {
             return Err(XurlError::api(resp_status.as_u16(), body));
         }
 
-        self.out
-            .status(stderr, "--- Streaming response started ---");
-        self.out.status(stderr, "--- Press Ctrl+C to stop ---");
+        Ok(StreamLines {
+            lines: BufReader::with_capacity(1024 * 1024, resp).lines(),
+        })
+    }
+}
 
-        let reader = BufReader::with_capacity(1024 * 1024, resp);
-        for line in reader.lines() {
-            match line {
-                Ok(line) => {
-                    if line.is_empty() {
-                        continue;
-                    }
-                    self.out.print_stream_line(stdout, &line);
-                }
-                Err(e) => {
-                    return Err(XurlError::Io(e.to_string()));
-                }
+/// Lines of a streaming response, delivered as they arrive.
+///
+/// Empty keep-alive lines are skipped. Dropping the iterator closes the
+/// connection.
+pub struct StreamLines {
+    lines: Lines<BufReader<Response>>,
+}
+
+impl std::fmt::Debug for StreamLines {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamLines").finish_non_exhaustive()
+    }
+}
+
+impl Iterator for StreamLines {
+    type Item = Result<String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.lines.next()? {
+                Ok(line) if line.is_empty() => continue,
+                Ok(line) => return Some(Ok(line)),
+                Err(e) => return Some(Err(XurlError::Io(e.to_string()))),
             }
         }
-
-        self.out.status(stderr, "--- End of stream ---");
-        Ok(())
     }
 }
 
@@ -381,18 +344,16 @@ fn user_supplied_header(headers: &[String], name: &str) -> bool {
         .any(|(key, _)| key.trim().eq_ignore_ascii_case(name))
 }
 
-/// Emits an `info:` advisory for each xurl-added header that was suppressed
-/// because the caller already supplied one via `options.headers`.
+/// Emits one wire note for each xurl-added header that was suppressed because
+/// the caller already supplied it via `options.headers`.
 ///
 /// The four xurl-added headers are `Content-Type` (only when there's a body
 /// to send), `Authorization` (only when `no_auth` is false), `User-Agent`
 /// (always), and `X-B3-Flags` (only when `trace` is true). The corresponding
-/// `would_*` booleans gate which headers are eligible for advisory in this
-/// call site — `send_multipart_request` passes `would_set_content_type: false`
+/// `would_*` booleans gate which headers are eligible for a note at this
+/// call site; `send_multipart_request` passes `would_set_content_type: false`
 /// because reqwest's multipart builder owns the Content-Type.
-fn log_header_overrides(
-    out: &OutputConfig,
-    err: &mut dyn std::io::Write,
+fn note_header_overrides(
     headers: &[String],
     would_set_content_type: bool,
     would_set_auth: bool,
@@ -406,39 +367,33 @@ fn log_header_overrides(
     ];
     for (name, xurl_wanted) in candidates {
         if xurl_wanted && user_supplied_header(headers, name) {
-            out.verbose(
-                err,
-                &format!("info: user-supplied {name} detected; skipping xurl append"),
+            tracing::debug!(
+                target: WIRE_TARGET,
+                kind = "note",
+                "info: user-supplied {name} detected; skipping xurl append"
             );
         }
     }
 }
 
-/// Emits the verbose response-header dump (`< STATUS`, `< key: value`, blank
-/// line) through the supplied `OutputConfig`. Lives at module scope so
-/// `send_request`, `send_multipart_request`, and `stream_request` share one
-/// implementation.
-fn log_response_headers(
-    out: &OutputConfig,
-    err: &mut dyn std::io::Write,
-    status: reqwest::StatusCode,
-    headers: &reqwest::header::HeaderMap,
-) {
-    if out.use_color {
-        out.verbose(err, &format!("\x1b[1;31m< {status}\x1b[0m"));
-        for (key, value) in headers {
-            out.verbose(
-                err,
-                &format!("\x1b[1;32m< {key}\x1b[0m: {}", value.to_str().unwrap_or("")),
-            );
-        }
-    } else {
-        out.verbose(err, &format!("< {status}"));
-        for (key, value) in headers {
-            out.verbose(err, &format!("< {key}: {}", value.to_str().unwrap_or("")));
-        }
+/// Emits the request line as one wire event.
+fn trace_request(method: &str, url: &str) {
+    tracing::debug!(target: WIRE_TARGET, kind = "request", method, url);
+}
+
+/// Emits the response status, each header, and the end marker as wire
+/// events, in the order `xr --verbose` prints them.
+fn trace_response(status: reqwest::StatusCode, headers: &reqwest::header::HeaderMap) {
+    tracing::debug!(target: WIRE_TARGET, kind = "status", status = %status);
+    for (key, value) in headers {
+        tracing::debug!(
+            target: WIRE_TARGET,
+            kind = "header",
+            name = %key,
+            value = value.to_str().unwrap_or("")
+        );
     }
-    out.verbose(err, "");
+    tracing::debug!(target: WIRE_TARGET, kind = "end");
 }
 
 #[cfg(test)]

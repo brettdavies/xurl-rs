@@ -1134,18 +1134,12 @@ fn test_stream_request_error() {
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let mut client = ApiClient::new(&cfg, auth);
 
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
     let err = client
-        .stream_request(
-            &RequestOptions {
-                method: "GET".to_string(),
-                target: target_path("/2/tweets/search/stream/error"),
-                ..Default::default()
-            },
-            &mut stdout,
-            &mut stderr,
-        )
+        .stream_request(&RequestOptions {
+            method: "GET".to_string(),
+            target: target_path("/2/tweets/search/stream/error"),
+            ..Default::default()
+        })
         .unwrap_err();
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
@@ -2137,10 +2131,8 @@ fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
         ..Default::default()
     };
 
-    let mut stdout: Vec<u8> = Vec::new();
-    let mut stderr: Vec<u8> = Vec::new();
     client
-        .stream_request(&opts, &mut stdout, &mut stderr)
+        .stream_request(&opts)
         .expect("stream request must succeed with user-supplied Authorization");
 
     let auths = ts.received_header_values("Authorization");
@@ -2322,10 +2314,8 @@ fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
         headers: vec!["User-Agent: streamer/1.0".to_string()],
         ..Default::default()
     };
-    let mut stdout: Vec<u8> = Vec::new();
-    let mut stderr: Vec<u8> = Vec::new();
     client
-        .stream_request(&opts, &mut stdout, &mut stderr)
+        .stream_request(&opts)
         .expect("stream request must succeed with user-supplied User-Agent");
 
     let uas = ts.received_header_values("User-Agent");
@@ -2815,19 +2805,13 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
     // though it isn't a "real" streaming endpoint, stream_request applies
     // the validator before opening any connection, so the matrix surface
     // is what matters here.
-    let mut stdout: Vec<u8> = Vec::new();
-    let mut stderr: Vec<u8> = Vec::new();
     let err = client
-        .stream_request(
-            &RequestOptions {
-                method: "POST".to_string(),
-                target: target_path("/2/media/upload"),
-                auth_type: "app".to_string(),
-                ..Default::default()
-            },
-            &mut stdout,
-            &mut stderr,
-        )
+        .stream_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            auth_type: "app".to_string(),
+            ..Default::default()
+        })
         .unwrap_err();
 
     match &err {
@@ -2884,21 +2868,15 @@ fn u7_streaming_propagates_auth_resolution_errors() {
     );
     let mut client = ApiClient::new(&cfg, auth);
 
-    let mut stdout: Vec<u8> = Vec::new();
-    let mut stderr: Vec<u8> = Vec::new();
     let err = client
-        .stream_request(
-            &RequestOptions {
-                method: "POST".to_string(),
-                target: target_path("/2/media/upload"),
-                // No --auth set; auto-detect path. Empty token store →
-                // auth-required (exit 77), not silent unauth request.
-                auth_type: String::new(),
-                ..Default::default()
-            },
-            &mut stdout,
-            &mut stderr,
-        )
+        .stream_request(&RequestOptions {
+            method: "POST".to_string(),
+            target: target_path("/2/media/upload"),
+            // No --auth set; auto-detect path. Empty token store →
+            // auth-required (exit 77), not silent unauth request.
+            auth_type: String::new(),
+            ..Default::default()
+        })
         .unwrap_err();
 
     assert_eq!(err.kind(), "auth-required");

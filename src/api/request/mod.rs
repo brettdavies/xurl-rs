@@ -9,7 +9,6 @@ use std::time::Duration;
 use reqwest::blocking::Client;
 
 use crate::auth::Auth;
-use crate::cli::output::OutputConfig;
 use crate::config::Config;
 use crate::error::{Result, XurlError};
 
@@ -17,6 +16,7 @@ mod auth_header;
 mod transport;
 mod url;
 
+pub use transport::{StreamLines, WIRE_TARGET};
 pub(crate) use url::render_template_path;
 use url::{build_url_for_target, render_template_template};
 
@@ -84,9 +84,6 @@ pub struct RequestOptions {
     pub username: String,
     /// Skip auth-header attachment entirely. Used for unauthenticated probes.
     pub no_auth: bool,
-    /// Emit verbose request / response diagnostics through the client's
-    /// [`OutputConfig`].
-    pub verbose: bool,
     /// Emit the `X-B3-Flags: 1` header to flag the request for upstream tracing.
     pub trace: bool,
     /// Cursor / `pagination_token` query parameter for list endpoints.
@@ -114,8 +111,6 @@ pub struct CallOptions {
     pub username: String,
     /// Skip auth-header attachment entirely.
     pub no_auth: bool,
-    /// Emit verbose request / response diagnostics.
-    pub verbose: bool,
     /// Emit the `X-B3-Flags: 1` header for upstream tracing.
     pub trace: bool,
     /// Per-call HTTP timeout in seconds. Mirrors the `--timeout` flag /
@@ -136,7 +131,6 @@ impl Default for CallOptions {
             auth_type: String::new(),
             username: String::new(),
             no_auth: false,
-            verbose: false,
             trace: false,
             timeout_secs: DEFAULT_TIMEOUT_SECS,
             pagination_token: String::new(),
@@ -153,7 +147,6 @@ impl CallOptions {
             auth_type: self.auth_type.clone(),
             username: self.username.clone(),
             no_auth: self.no_auth,
-            verbose: self.verbose,
             trace: self.trace,
             pagination_token: self.pagination_token.clone(),
             ..Default::default()
@@ -167,7 +160,7 @@ impl CallOptions {
 /// in one `multipart/form-data` POST.
 #[derive(Debug, Clone)]
 pub struct MultipartOptions {
-    /// Base request configuration (target, headers, auth, verbose, trace).
+    /// Base request configuration (target, headers, auth, trace).
     pub request: RequestOptions,
     /// Non-file form fields keyed by field name.
     pub form_fields: std::collections::HashMap<String, String>,
@@ -216,11 +209,6 @@ pub struct ApiClient {
     client: Client,
     auth: Auth,
     timeout_secs: u64,
-    /// Output configuration used to route verbose request/response logs
-    /// through the single owner in `src/cli/output/`. Library callers that
-    /// haven't supplied one get the [`OutputConfig::default`] (text, no
-    /// verbose) — `verbose=false` suppresses diagnostics.
-    out: OutputConfig,
 }
 
 // Compile-time guarantee: `ApiClient` stays shareable across tasks and threads,
@@ -257,7 +245,6 @@ impl ApiClient {
             client,
             auth,
             timeout_secs,
-            out: OutputConfig::default(),
         }
     }
 
@@ -265,15 +252,6 @@ impl ApiClient {
     #[must_use]
     pub fn timeout_secs(&self) -> u64 {
         self.timeout_secs
-    }
-
-    /// Installs an `OutputConfig` for verbose request/response diagnostics.
-    ///
-    /// The CLI runner calls this after constructing the client so the
-    /// verbose logs route through the single output owner. Library callers
-    /// that skip this get a default config (text, verbose off).
-    pub fn set_output(&mut self, out: OutputConfig) {
-        self.out = out;
     }
 
     /// Creates an `ApiClient` from environment variables.
@@ -337,7 +315,6 @@ mod tests {
             auth_type: "oauth2".to_string(),
             username: "testuser".to_string(),
             no_auth: true,
-            verbose: true,
             trace: true,
             timeout_secs: 45,
             pagination_token: "abc123".to_string(),
@@ -348,7 +325,6 @@ mod tests {
         assert_eq!(req.auth_type, "oauth2");
         assert_eq!(req.username, "testuser");
         assert!(req.no_auth);
-        assert!(req.verbose);
         assert!(req.trace);
         assert_eq!(req.pagination_token, "abc123");
         // Request-specific fields should be at defaults
@@ -375,7 +351,6 @@ mod tests {
         let req = opts.to_request_options();
 
         assert!(!req.no_auth, "no_auth should default to false");
-        assert!(!req.verbose);
         assert!(!req.trace);
         assert!(req.auth_type.is_empty());
         assert!(req.username.is_empty());

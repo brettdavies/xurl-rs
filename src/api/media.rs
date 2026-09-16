@@ -3,18 +3,32 @@
 /// Mirrors the Go `MediaUploader` with three-phase upload, 4MB chunks,
 /// and status polling with backoff.
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
 use super::request::{ApiClient, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
-use crate::cli::output::OutputConfig;
 use crate::error::{Result, XurlError};
 
 /// Base path for the X API media upload endpoint family.
 pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
+
+/// Target of the upload's progress events: `INFO` for each phase's status
+/// line and `DEBUG` for per-chunk and per-poll progress.
+pub const MEDIA_TARGET: &str = "xurl::media";
+
+/// What a completed upload returned, phase by phase.
+#[derive(Debug)]
+pub struct MediaUploadOutcome {
+    /// The INIT response, carrying the media id the later phases used.
+    pub init: ApiResponse<MediaUploadResponse>,
+    /// The FINALIZE response.
+    pub finalize: ApiResponse<MediaUploadResponse>,
+    /// The final STATUS response when the caller waited for processing.
+    pub processing: Option<ApiResponse<MediaUploadResponse>>,
+}
 
 /// Handles the full media upload lifecycle.
 ///
@@ -29,15 +43,11 @@ pub fn execute_media_upload(
     media_category: &str,
     auth_type: &str,
     username: &str,
-    verbose: bool,
     trace: bool,
     wait_for_processing: bool,
     headers: &[String],
     client: &mut ApiClient,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
+) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
         .map_err(|e| XurlError::Io(format!("error accessing file: {e}")))?;
 
@@ -50,14 +60,13 @@ pub fn execute_media_upload(
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),
         username: username.to_string(),
-        verbose,
         trace,
         headers: headers.to_vec(),
         ..Default::default()
     };
 
     // INIT
-    out.status(stderr, "Initializing media upload...");
+    tracing::info!(target: MEDIA_TARGET, "Initializing media upload...");
 
     let init_body = serde_json::json!({
         "total_bytes": file_size,
@@ -83,18 +92,11 @@ pub fn execute_media_upload(
         ));
     }
 
-    if verbose {
-        let value = serde_json::to_value(&init_response)?;
-        out.print_response(stdout, &value);
-    }
-
     // APPEND — upload in 4MB chunks
-    upload_chunks(
-        file_path, &media_id, &base_opts, verbose, file_size, client, out, stderr,
-    )?;
+    upload_chunks(file_path, &media_id, &base_opts, file_size, client)?;
 
     // FINALIZE
-    out.status(stderr, "Finalizing media upload...");
+    tracing::info!(target: MEDIA_TARGET, "Finalizing media upload...");
 
     let mut finalize_opts = base_opts.clone();
     finalize_opts.method = "POST".to_string();
@@ -107,39 +109,31 @@ pub fn execute_media_upload(
 
     let finalize_response: ApiResponse<MediaUploadResponse> =
         deserialize_response(client.send_request(&finalize_opts)?)?;
-    let finalize_value = serde_json::to_value(&finalize_response)?;
-    out.print_response(stdout, &finalize_value);
 
-    // Wait for processing if requested
-    if wait_for_processing && media_category.contains("video") {
-        out.status(stderr, "Waiting for media processing to complete...");
+    let processing = if wait_for_processing && media_category.contains("video") {
+        tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
+        Some(wait_for_media_processing(&media_id, &base_opts, client)?)
+    } else {
+        None
+    };
 
-        let processing_response =
-            wait_for_media_processing(&media_id, &base_opts, verbose, client, out, stderr)?;
-        let processing_value = serde_json::to_value(&processing_response)?;
-        out.print_response(stdout, &processing_value);
-    }
-
-    out.status(
-        stderr,
-        &format!("Media uploaded successfully! Media ID: {media_id}"),
-    );
-    Ok(())
+    tracing::info!(target: MEDIA_TARGET, "Media uploaded successfully! Media ID: {media_id}");
+    Ok(MediaUploadOutcome {
+        init: init_response,
+        finalize: finalize_response,
+        processing,
+    })
 }
 
 /// Uploads file data in 4 MB chunks via APPEND requests.
-#[allow(clippy::too_many_arguments)]
 fn upload_chunks(
     file_path: &str,
     media_id: &str,
     base_opts: &RequestOptions,
-    verbose: bool,
     file_size: u64,
     client: &mut ApiClient,
-    out: &OutputConfig,
-    stderr: &mut dyn Write,
 ) -> Result<()> {
-    out.status(stderr, "Uploading media in chunks...");
+    tracing::info!(target: MEDIA_TARGET, "Uploading media in chunks...");
 
     let mut file = std::fs::File::open(file_path)?;
     let chunk_size = 4 * 1024 * 1024;
@@ -171,7 +165,6 @@ fn upload_chunks(
                 headers: base_opts.headers.clone(),
                 auth_type: base_opts.auth_type.clone(),
                 username: base_opts.username.clone(),
-                verbose,
                 trace: base_opts.trace,
                 ..Default::default()
             },
@@ -187,17 +180,15 @@ fn upload_chunks(
         bytes_uploaded += bytes_read as u64;
         segment_index += 1;
 
-        if verbose {
-            #[allow(clippy::cast_precision_loss)]
-            let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
-            out.info(
-                stderr,
-                &format!("Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"),
-            );
-        }
+        #[allow(clippy::cast_precision_loss)]
+        let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
+        tracing::debug!(
+            target: MEDIA_TARGET,
+            "Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"
+        );
     }
 
-    out.status(stderr, "Upload complete!");
+    tracing::info!(target: MEDIA_TARGET, "Upload complete!");
     Ok(())
 }
 
@@ -206,41 +197,28 @@ fn upload_chunks(
 /// # Errors
 ///
 /// Returns an error if the status request fails or processing times out.
-#[allow(clippy::too_many_arguments)]
 pub fn execute_media_status(
     media_id: &str,
     auth_type: &str,
     username: &str,
-    verbose: bool,
     wait: bool,
     trace: bool,
     headers: &[String],
     client: &mut ApiClient,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<()> {
+) -> Result<ApiResponse<MediaUploadResponse>> {
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),
         username: username.to_string(),
-        verbose,
         trace,
         headers: headers.to_vec(),
         ..Default::default()
     };
 
     if wait {
-        let response =
-            wait_for_media_processing(media_id, &base_opts, verbose, client, out, stderr)?;
-        let value = serde_json::to_value(&response)?;
-        out.print_response(stdout, &value);
+        wait_for_media_processing(media_id, &base_opts, client)
     } else {
-        let response = check_media_status(media_id, &base_opts, client)?;
-        let value = serde_json::to_value(&response)?;
-        out.print_response(stdout, &value);
+        check_media_status(media_id, &base_opts, client)
     }
-
-    Ok(())
 }
 
 /// Checks media upload status.
@@ -268,10 +246,7 @@ fn check_media_status(
 fn wait_for_media_processing(
     media_id: &str,
     base_opts: &RequestOptions,
-    verbose: bool,
     client: &mut ApiClient,
-    out: &OutputConfig,
-    stderr: &mut dyn Write,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     loop {
         let response = check_media_status(media_id, base_opts, client)?;
@@ -283,7 +258,7 @@ fn wait_for_media_processing(
             .map_or("", |p| p.state.as_str());
 
         if state == "succeeded" {
-            out.status(stderr, "Media processing complete!");
+            tracing::info!(target: MEDIA_TARGET, "Media processing complete!");
             return Ok(response);
         } else if state == "failed" {
             return Err(XurlError::validation("media processing failed"));
@@ -297,20 +272,16 @@ fn wait_for_media_processing(
             .unwrap_or(1)
             .max(1);
 
-        if verbose {
-            let pct = response
-                .data
-                .processing_info
-                .as_ref()
-                .and_then(|p| p.progress_percent)
-                .unwrap_or(0);
-            out.info(
-                stderr,
-                &format!(
-                    "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
-                ),
-            );
-        }
+        let pct = response
+            .data
+            .processing_info
+            .as_ref()
+            .and_then(|p| p.progress_percent)
+            .unwrap_or(0);
+        tracing::debug!(
+            target: MEDIA_TARGET,
+            "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
+        );
 
         thread::sleep(Duration::from_secs(check_after));
     }

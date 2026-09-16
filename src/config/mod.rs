@@ -73,7 +73,7 @@ pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";
 /// A caller that embeds the library — or a test that must stay isolated from
 /// whatever else the process is doing — builds this directly and passes it to
 /// [`Config::from_overrides`] or to
-/// [`run_with_overrides`](crate::cli::runner::run_with_overrides).
+/// `run_with_overrides` in the CLI runner.
 ///
 /// `None` means the variable was unset, which is distinct from `Some(String::new())`
 /// for `redirect_uri`: an unset value falls through to the next precedence
@@ -109,22 +109,29 @@ pub struct EnvOverrides {
     ///
     /// Supplied here so a caller can install into a directory of its choosing
     /// without redirecting a core system variable for the whole process.
-    /// Consumed by [`crate::cli::skill_install`] rather than by [`Config`].
+    /// Consumed by the skill installer rather than by [`Config`].
     pub home: Option<String>,
     /// `XURL_TOKEN_STORE` — path of the token-store file the binary uses in
     /// place of `~/.xurl`. The OAuth2 pending state sits beside it.
     ///
-    /// Consumed by [`crate::cli::runner::run`] rather than by [`Config`]; the
+    /// Consumed by the CLI runner rather than by [`Config`]; the
     /// explicit-path entrypoints ignore it.
     pub token_store: Option<String>,
+    /// `NO_COLOR` set to a non-empty value, which disables colour regardless
+    /// of `--color`.
+    ///
+    /// Consumed by the CLI runner rather than by [`Config`].
+    pub no_color: bool,
 }
 
 impl EnvOverrides {
-    /// Reads every supported variable from the process environment.
+    /// Reads the variables an X API client needs from the process
+    /// environment.
     ///
-    /// The binary calls this once per run. Nothing else in the crate reads
-    /// these variables, so a caller that supplies its own `EnvOverrides` is
-    /// unaffected by the process environment.
+    /// `output`, `home`, `token_store`, and `no_color` are the CLI's alone
+    /// and stay at their defaults here; the binary fills them. Nothing else
+    /// in the crate reads these variables, so a caller that supplies its own
+    /// `EnvOverrides` is unaffected by the process environment.
     #[must_use]
     pub fn from_env() -> Self {
         Self {
@@ -136,9 +143,10 @@ impl EnvOverrides {
             api_base_url: std::env::var("API_BASE_URL").ok(),
             info_url: std::env::var("INFO_URL").ok(),
             bearer_token: std::env::var("XURL_BEARER_TOKEN").ok(),
-            output: std::env::var("XURL_OUTPUT").ok(),
-            home: std::env::var("HOME").ok(),
-            token_store: std::env::var("XURL_TOKEN_STORE").ok(),
+            output: None,
+            home: None,
+            token_store: None,
+            no_color: false,
         }
     }
 }
@@ -326,12 +334,8 @@ pub(crate) struct ResolvedRedirectUri {
 /// `stored` is the per-app value from `TokenStore::get_app_redirect_uri`.
 ///
 /// When `env_value` is set but fails [`Config::validate_redirect_uri`](Config::validate_redirect_uri), the helper
-/// emits a one-line warning to stderr (via [`crate::cli::output::warn_stderr`])
-/// and falls through to the next precedence level. The pure helper has no
-/// `OutputConfig` available, so the warning shape is intentionally minimal;
-/// the binary's `OutputConfig::print_message` equivalent would be redundant
-/// here since callers cannot suppress the env-var rejection in any meaningful
-/// way.
+/// emits a `tracing` warning and falls through to the next precedence level;
+/// callers cannot suppress the env-var rejection in any meaningful way.
 ///
 /// Stored values are assumed valid — validation is enforced at `set_app_redirect_uri`
 /// write time per R2.
@@ -346,8 +350,9 @@ pub(crate) fn resolve_redirect_uri_from(
                 source: ResolveSource::EnvVar,
             };
         }
-        crate::cli::output::warn_stderr(
-            "REDIRECT_URI env value rejected by validation; falling through to next precedence level",
+        tracing::warn!(
+            target: "xurl::config",
+            "REDIRECT_URI env value rejected by validation; falling through to next precedence level"
         );
     }
 

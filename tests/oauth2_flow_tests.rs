@@ -26,7 +26,6 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::auth::Auth;
 use xurl::auth::oauth2::run_oauth2_flow;
-use xurl::cli::output::{OutputConfig, OutputFormat};
 use xurl::config::Config;
 
 // ── Recording opener shared state ─────────────────────────────────────────
@@ -199,17 +198,8 @@ fn listener_bound_before_browser_opener_invoked() {
     let cfg = test_config(&token_url, &info_url, &redirect_uri);
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
 
-    let out = OutputConfig::new(
-        OutputFormat::Text,
-        false,
-        false,
-        xurl::cli::ColorChoice::Auto,
-    );
-    let mut stdout = Vec::<u8>::new();
-
     let flow_started_at = Instant::now();
-    let token = run_oauth2_flow(&mut auth, "testuser", &out, &mut stdout, recording_opener)
-        .expect("flow completes");
+    let token = run_oauth2_flow(&mut auth, "testuser", recording_opener).expect("flow completes");
     assert_eq!(token, "ACCESS-TOKEN");
 
     let r = recorder().lock().unwrap();

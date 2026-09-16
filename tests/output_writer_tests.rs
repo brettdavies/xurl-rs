@@ -704,21 +704,24 @@ fn info_suppressed_under_every_structured_format() {
 
 // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
 //
-// `OutputConfig::new_with_raw` reads `NO_COLOR` from the process and hands the
-// result to `new_with_no_color`, which every other color test drives directly.
-// This is the only test covering that read, so it exports the variable. It is
-// the sole mutation in this binary, so nothing races it.
+// The binary reads `NO_COLOR` once, in `xurl::cli::env::from_process`, and
+// hands the flag to `new_with_no_color`, which every other color test drives
+// directly. This is the only test covering that read, so it exports the
+// variable. It is the sole mutation in this binary, so nothing races it.
 #[test]
 fn no_color_env_reaches_the_resolved_color_decision() {
     let prior = std::env::var_os("NO_COLOR");
     unsafe {
         std::env::set_var("NO_COLOR", "1");
     }
-    let cfg = OutputConfig::new(
+    let overrides = xurl::cli::env::from_process();
+    let cfg = OutputConfig::new_with_no_color(
         OutputFormat::Text,
         false,
         false,
         xurl::cli::ColorChoice::Always,
+        false,
+        overrides.no_color,
     );
     unsafe {
         match prior {

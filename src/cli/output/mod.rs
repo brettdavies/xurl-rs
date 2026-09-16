@@ -7,13 +7,15 @@
 //! `Vec<u8>` in library tests.
 //!
 //! This module is the single owner of `println!` / `eprintln!`. Every other
-//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods or
-//! [`warn_stderr`] for the rare deep call sites that cannot carry an
-//! `OutputConfig`. A CI guard in `scripts/lint-stdio.sh` enforces the
-//! invariant.
+//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods, and
+//! the library's `tracing` events reach stderr through the `Diagnostics` subscriber. A CI
+//! guard in `scripts/lint-stdio.sh` enforces the invariant.
 
 mod delimited;
+mod diagnostics;
 mod format;
+
+pub(crate) use diagnostics::Diagnostics;
 
 use std::io::{IsTerminal, Write};
 
@@ -114,46 +116,32 @@ pub struct OutputConfig {
 }
 
 impl OutputConfig {
-    /// Creates an `OutputConfig` from resolved CLI flags and environment.
+    /// Creates an `OutputConfig` from resolved CLI flags, with `raw` off and
+    /// no `NO_COLOR` override.
     ///
-    /// `use_color` is computed from `color` together with `NO_COLOR` and
-    /// `std::io::stderr().is_terminal()`:
-    /// - `NO_COLOR` is absolute (per <https://no-color.org/>): when set,
-    ///   color is disabled regardless of `--color`.
-    /// - `--color always` overrides the TTY check (still loses to `NO_COLOR`).
+    /// `use_color` is computed from `color` and `std::io::stderr().is_terminal()`:
+    /// - `--color always` overrides the TTY check.
     /// - `--color never` disables color unconditionally.
     /// - `--color auto` enables color only when stderr is a TTY.
     ///
-    /// `raw` forces `use_color = false` and switches JSON output to compact
-    /// form (no pretty-printing).
+    /// The runner reads `NO_COLOR` from the process and calls
+    /// [`new_with_no_color`]; this constructor never consults the environment.
+    ///
+    /// [`new_with_no_color`]: Self::new_with_no_color
     #[must_use]
     pub fn new(format: OutputFormat, quiet: bool, verbose: bool, color: ColorChoice) -> Self {
-        Self::new_with_raw(format, quiet, verbose, color, false)
+        Self::new_with_no_color(format, quiet, verbose, color, false, false)
     }
 
-    /// Like [`new`], with an explicit `raw` flag.
+    /// The full constructor, with the `raw` flag and the `NO_COLOR` decision
+    /// supplied.
     ///
-    /// [`new`]: Self::new
-    #[must_use]
-    pub fn new_with_raw(
-        format: OutputFormat,
-        quiet: bool,
-        verbose: bool,
-        color: ColorChoice,
-        raw: bool,
-    ) -> Self {
-        let no_color_env = std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty());
-        Self::new_with_no_color(format, quiet, verbose, color, raw, no_color_env)
-    }
-
-    /// Pure core of [`new_with_raw`], with the `NO_COLOR` decision supplied.
-    ///
-    /// `no_color_env` is the value [`new_with_raw`] derives from the process:
-    /// `true` when `NO_COLOR` is set to a non-empty value. Callers that already
-    /// resolved their environment, and tests, pass it directly rather than
-    /// exporting the variable.
-    ///
-    /// [`new_with_raw`]: Self::new_with_raw
+    /// `no_color_env` is `true` when `NO_COLOR` is set to a non-empty value,
+    /// which disables colour regardless of `color` (per
+    /// <https://no-color.org/>). `raw` forces `use_color = false` and switches
+    /// JSON output to compact form. Callers that already resolved their
+    /// environment, and tests, pass the flag directly rather than exporting
+    /// the variable.
     #[must_use]
     pub fn new_with_no_color(
         format: OutputFormat,
@@ -649,16 +637,6 @@ impl Default for OutputConfig {
     }
 }
 
-/// Emits a one-line warning to stderr. Single-owner escape hatch for deep
-/// call sites that cannot reasonably carry an `OutputConfig` (token-store
-/// migration, env-var rejection during config resolution, callback partial-
-/// bind notices, OAuth2 salvage warnings). The CI guard at
-/// `scripts/lint-stdio.sh` allow-lists this module so the discipline holds:
-/// every `eprintln!` lives here.
-pub fn warn_stderr(msg: &str) {
-    eprintln!("warning: {msg}");
-}
-
 /// Strips ANSI escape codes from a string.
 fn strip_ansi(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
@@ -785,8 +763,14 @@ mod tests {
 
     #[test]
     fn test_raw_forces_color_off() {
-        let cfg =
-            OutputConfig::new_with_raw(OutputFormat::Text, false, false, ColorChoice::Always, true);
+        let cfg = OutputConfig::new_with_no_color(
+            OutputFormat::Text,
+            false,
+            false,
+            ColorChoice::Always,
+            true,
+            false,
+        );
         assert!(!cfg.use_color, "--raw must force use_color = false");
         assert!(cfg.raw);
     }

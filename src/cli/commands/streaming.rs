@@ -86,7 +86,7 @@ pub(super) fn stream_request_with_output(
         builder = builder.header("X-B3-Flags", "1");
     }
 
-    if options.verbose {
+    if out.verbose {
         if out.use_color {
             out.verbose(stderr, &format!("\x1b[1;34m> {method}\x1b[0m {url}"));
         } else {
@@ -98,7 +98,7 @@ pub(super) fn stream_request_with_output(
 
     let resp = builder.send()?;
 
-    if options.verbose {
+    if out.verbose {
         let status = resp.status();
         if out.use_color {
             out.verbose(stderr, &format!("\x1b[1;31m< {status}\x1b[0m"));
