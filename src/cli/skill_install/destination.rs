@@ -31,17 +31,10 @@ impl DestinationStatus {
     }
 }
 
-/// Expand a leading `~` or `~/` to `$HOME`. Pure passthrough on inputs that
+/// Expands a leading `~` or `~/` to `home`. Pure passthrough on inputs that
 /// do not start with `~`. `MissingHome` only fires when the input actually
-/// begins with `~` and `$HOME` is unset or empty.
-pub fn expand_tilde(template: &str) -> Result<PathBuf, InstallError> {
-    let home = std::env::var("HOME").ok();
-    expand_tilde_with(template, home.as_deref())
-}
-
-/// Pure-function core of [`expand_tilde`]. Tests pass `home` explicitly so
-/// they never mutate the process environment (which would race with parallel
-/// tests).
+/// begins with `~` and `home` is `None` or empty. The caller supplies `home`
+/// from the environment it resolved, so nothing here reads the process.
 pub fn expand_tilde_with(template: &str, home: Option<&str>) -> Result<PathBuf, InstallError> {
     let needs_home = template == "~" || template.starts_with("~/");
     if !needs_home {

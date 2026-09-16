@@ -145,7 +145,7 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
 - `src/config/`: env-var-based configuration.
 - `src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
 - `src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv serializer.
-- `src/error.rs`: `XurlError` via `thiserror`.
+- `src/error.rs`: `Error` (re-exported as `xurl::Error`) via `thiserror`.
 - `src/lib.rs`: public library surface. The `xurl` library is consumable from downstream Rust crates; the binary `xr` is
   one consumer among potentially several.
 

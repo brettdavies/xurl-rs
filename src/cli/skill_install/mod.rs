@@ -11,7 +11,7 @@
 //!   resolve_host(SkillHost) -> (url, dest_template)
 //!         |
 //!         v
-//!   expand_tilde(dest_template) via $HOME  -- HOME unset --> MissingHome
+//!   expand_tilde_with(dest_template, home)  -- home unset --> MissingHome
 //!         |                                                  (reason=home-not-set)
 //!         v
 //!      dry_run? --yes--> emit envelope (mode=dry-run, would_succeed)
@@ -53,7 +53,7 @@ mod git;
 mod render;
 mod update;
 
-pub use destination::{DestinationStatus, check_destination, expand_tilde, expand_tilde_with};
+pub use destination::{DestinationStatus, check_destination, expand_tilde_with};
 pub use git::{
     GIT_HARDEN_ENV_REMOVE, GIT_HARDEN_ENV_SET, GIT_HARDEN_FLAGS, build_clone_command,
     format_clone_command,
@@ -187,7 +187,7 @@ pub fn compute_install_envelope(
                 reason: Some(InstallError::MissingHome.reason()),
             };
         }
-        Err(_) => unreachable!("expand_tilde only emits MissingHome"),
+        Err(_) => unreachable!("expand_tilde_with only emits MissingHome"),
     };
 
     let dest_display = dest.display().to_string();
