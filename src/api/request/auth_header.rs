@@ -106,7 +106,6 @@ impl Client {
         } else {
             method_raw.as_str()
         };
-        let facts = credentials.scheme_facts();
 
         // One matrix lookup for the entire decision. Both the explicit-auth
         // validation below and the auto-detect intersection further down
@@ -140,7 +139,7 @@ impl Client {
                         requested: Some(requested_norm),
                         supported,
                         available_in_app: None,
-                        app: facts.app,
+                        app: credentials.active_app(),
                         other_apps_with_creds: None,
                     });
                 }
@@ -158,24 +157,22 @@ impl Client {
             };
         }
 
-        // Auto-detect: walk the preference order and keep every scheme the
-        // credentials can serve, optionally intersected with the endpoint's
-        // accepted set.
+        // Auto-detect: walk the preference order and take the first scheme
+        // the credentials can serve, optionally intersected with the
+        // endpoint's accepted set.
+        let facts = credentials.scheme_facts();
         let endpoint_supported_static: Option<Vec<&'static str>> = endpoint_schemes
             .as_ref()
             .map(|(_, schemes)| crate::api::auth_matrix::schemes_to_wire_list(schemes));
-        let candidate_order: Vec<WireScheme> = WireScheme::ALL_BY_PREFERENCE
-            .into_iter()
-            .filter(|m| {
-                let in_hand = facts.available.contains(m);
-                let in_endpoint = endpoint_supported_static
-                    .as_ref()
-                    .is_none_or(|sup| sup.contains(&m.as_wire()));
-                in_hand && in_endpoint
-            })
-            .collect();
+        let selected_scheme = WireScheme::ALL_BY_PREFERENCE.into_iter().find(|m| {
+            let in_hand = facts.available.contains(m);
+            let in_endpoint = endpoint_supported_static
+                .as_ref()
+                .is_none_or(|sup| sup.contains(&m.as_wire()));
+            in_hand && in_endpoint
+        });
 
-        if candidate_order.is_empty() {
+        let Some(selected_scheme) = selected_scheme else {
             // Empty intersection (or nothing at hand at all). The matrix-hit
             // branches construct the typed envelope; the matrix-miss branch
             // falls back to the generic auth error because no endpoint
@@ -199,7 +196,9 @@ impl Client {
                     // invoked. An env bearer is still reported in
                     // `available_in_app` so the envelope stays truthful, but
                     // it never hides the wrong-app hint.
-                    if !facts.other_apps_with_creds.is_empty() {
+                    let other_apps =
+                        credentials.other_apps_with_creds(facts.app.as_deref().unwrap_or_default());
+                    if !other_apps.is_empty() {
                         return Err(Error::AuthMethodMismatch {
                             endpoint: path.clone(),
                             rendered_url,
@@ -208,7 +207,7 @@ impl Client {
                             supported: endpoint_supported,
                             available_in_app: Some(available_in_app),
                             app: facts.app,
-                            other_apps_with_creds: Some(facts.other_apps_with_creds),
+                            other_apps_with_creds: Some(other_apps),
                         });
                     }
                     if facts.available.is_empty() {
@@ -227,12 +226,11 @@ impl Client {
                 });
             }
             return Err(Error::auth(crate::error::NO_AUTH_METHOD));
-        }
+        };
 
-        // Pick the first candidate in OAuth2 → OAuth1 → Bearer preference
-        // order. Dispatching on the typed [`WireScheme`] makes adding a
-        // new variant a compile error.
-        match candidate_order[0] {
+        // Dispatching on the typed [`WireScheme`] makes adding a new variant
+        // a compile error.
+        match selected_scheme {
             WireScheme::OAuth2 => Ok(Selection::OAuth2 {
                 username: options.username.clone(),
             }),

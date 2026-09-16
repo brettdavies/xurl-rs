@@ -102,7 +102,8 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// # Errors
 ///
 /// Returns an error if the token-exchange request fails or the response is
-/// missing an access token. `fetch_username` failures no longer propagate.
+/// missing an access token. A `fetch_username` failure is warned, not
+/// returned.
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -151,11 +152,7 @@ pub(crate) async fn exchange_code_for_token(
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let expiration_time = now + expires_in;
+    let expiration_time = epoch_secs(SystemTime::now()) + expires_in;
 
     let app_name = auth.app_name().to_string();
 
@@ -413,11 +410,7 @@ pub(crate) fn stored_oauth2_token(auth: &Auth, username: &str) -> Option<OAuth2T
 
 /// Whether the stored expiry has passed.
 pub(crate) fn is_expired(token: &OAuth2Token) -> bool {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::ZERO)
-        .as_secs();
-    now >= token.expiration_time
+    epoch_secs(SystemTime::now()) >= token.expiration_time
 }
 
 /// Seconds since the Unix epoch, the store's expiry representation.
@@ -508,7 +501,7 @@ pub(crate) async fn refresh_grant(
 /// # Errors
 ///
 /// Returns an error when no cached token is found or the refresh-token POST
-/// itself fails. `fetch_username` failures no longer propagate.
+/// itself fails. A `fetch_username` failure is warned, not returned.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,

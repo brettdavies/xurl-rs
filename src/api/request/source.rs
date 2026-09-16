@@ -20,8 +20,6 @@ pub(crate) struct SchemeFacts {
     pub(crate) stored: Vec<WireScheme>,
     /// The active app's name, for a store-backed client.
     pub(crate) app: Option<String>,
-    /// Other apps in the store holding credentials.
-    pub(crate) other_apps_with_creds: Vec<String>,
 }
 
 impl CredentialSource {
@@ -29,6 +27,25 @@ impl CredentialSource {
         match self {
             Self::Store(auth) => Some(auth),
             Self::Direct(_) => None,
+        }
+    }
+
+    /// The app the credentials are read from, for a store-backed client.
+    ///
+    /// An empty active app name is the "use default app" convention; the
+    /// envelope names the store's actual default so the user has something
+    /// to act on.
+    pub(crate) fn active_app(&self) -> Option<String> {
+        match self {
+            Self::Direct(_) => None,
+            Self::Store(auth) => {
+                let raw_app = auth.app_name();
+                Some(if raw_app.is_empty() {
+                    auth.token_store.default_app.clone()
+                } else {
+                    raw_app.to_string()
+                })
+            }
         }
     }
 
@@ -40,37 +57,36 @@ impl CredentialSource {
                     stored: available.clone(),
                     available,
                     app: None,
-                    other_apps_with_creds: Vec::new(),
                 }
             }
             Self::Store(auth) => {
-                // An empty active app name is the "use default app" convention;
-                // the envelope names the store's actual default so the user has
-                // something to act on.
-                let raw_app = auth.app_name();
-                let app_name = if raw_app.is_empty() {
-                    auth.token_store.default_app.clone()
-                } else {
-                    raw_app.to_string()
-                };
+                let app_name = self.active_app().unwrap_or_default();
                 let stored = stored_in_app(auth, &app_name);
                 let mut available = stored.clone();
                 if auth.env_bearer_token_present() && !available.contains(&WireScheme::App) {
                     available.push(WireScheme::App);
                 }
-                let other_apps_with_creds = auth
-                    .token_store
-                    .apps_with_credentials()
-                    .into_iter()
-                    .filter(|name| name != &app_name)
-                    .collect();
                 SchemeFacts {
                     available,
                     stored,
                     app: Some(app_name),
-                    other_apps_with_creds,
                 }
             }
+        }
+    }
+
+    /// Other apps in the store holding credentials. Only the wrong-app
+    /// envelope reads this, so it walks the store on demand rather than on
+    /// every request.
+    pub(crate) fn other_apps_with_creds(&self, app_name: &str) -> Vec<String> {
+        match self {
+            Self::Store(auth) => auth
+                .token_store
+                .apps_with_credentials()
+                .into_iter()
+                .filter(|name| name != app_name)
+                .collect(),
+            Self::Direct(_) => Vec::new(),
         }
     }
 

@@ -319,7 +319,10 @@ impl Client {
     ///
     /// A refresh holds this lock while it rotates a token, so hold the guard
     /// only for the store read or write at hand and never across a request
-    /// on the same client.
+    /// on the same client. The one deliberate exception is sign-in:
+    /// [`Client::oauth2_flow`] and [`Client::remote_oauth2_step2`] hold it for
+    /// the whole flow so no request on another clone can race a
+    /// half-installed credential.
     ///
     /// # Errors
     ///

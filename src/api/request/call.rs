@@ -38,7 +38,9 @@ pub struct Call<T> {
     response: PhantomData<fn() -> T>,
 }
 
-crate::assert_send_sync!(Call<serde_json::Value>);
+// A `T` that is neither `Send` nor `Sync` is the only one that can catch the
+// bound starting to depend on `T`.
+crate::assert_send_sync!(Call<std::rc::Rc<()>>);
 
 impl<T> Call<T> {
     pub(crate) fn new(client: &Client, request: RequestOptions) -> Self {
