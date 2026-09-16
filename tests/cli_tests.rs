@@ -2043,7 +2043,7 @@ fn skill_install_all_dry_run_lists_every_host() {
         .iter()
         .map(|e| e["host"].as_str().expect("host string"))
         .collect();
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(
             host_names.contains(expected),
             "host {expected} missing from --all envelope; got {host_names:?}"
@@ -2073,7 +2073,7 @@ fn skill_install_no_args_lists_supported_hosts() {
         code, 2,
         "expected 2 (usage error) for missing host; stderr: {stderr}"
     );
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(
             stdout.contains(expected),
             "host {expected} missing from text listing: {stdout}"
@@ -2096,7 +2096,7 @@ fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
         .as_array()
         .expect("known_hosts is an array");
     let names: Vec<&str> = hosts.iter().map(|h| h.as_str().expect("str")).collect();
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(names.contains(expected), "missing {expected}: {names:?}");
     }
 }
@@ -4050,7 +4050,7 @@ fn test_verb_local_error_envelopes_match_the_declared_body(
     let obj = value.as_object_mut().expect("an object");
     assert_eq!(obj["reason"], expected_reason, "got: {emitted}");
     obj.remove("status");
-    serde_json::from_value::<xurl::envelope::ErrorBody>(value)
+    serde_json::from_value::<xurl::cli::envelope::ErrorBody>(value)
         .unwrap_or_else(|e| panic!("undeclared key in a verb-local envelope ({e}): {emitted}"));
 }
 

@@ -129,7 +129,7 @@ fn path_matches(uri_path: &str, request_path: &str) -> bool {
 }
 
 /// One-line warning body for partial-bind cases. The `warning:` prefix is
-/// added by [`crate::output::warn_stderr`] at the emission site.
+/// added by [`crate::cli::output::warn_stderr`] at the emission site.
 fn format_partial_bind_warning(bound_addr: &str, failed_addr: &str, failed_err: &str) -> String {
     format!(
         "callback listener bound {bound_addr} but failed to bind {failed_addr} ({failed_err}); continuing with the bound address"
@@ -313,7 +313,7 @@ where
             && let Some((failed_addr, failed_err)) = failed.first()
         {
             let bound_addr = &bound[0].addr;
-            crate::output::warn_stderr(&format_partial_bind_warning(
+            crate::cli::output::warn_stderr(&format_partial_bind_warning(
                 bound_addr,
                 failed_addr,
                 failed_err,

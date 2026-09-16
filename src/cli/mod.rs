@@ -14,9 +14,13 @@ pub use runner::{run, run_argv, run_with_store_path};
 use clap::builder::FalseyValueParser;
 use clap::{Parser, Subcommand, ValueEnum};
 
-pub use crate::output::OutputFormat;
-use crate::skill_install::KNOWN_HOSTS;
-pub use crate::skill_install::SkillHost;
+pub mod envelope;
+pub mod output;
+pub mod skill_install;
+
+pub use output::OutputFormat;
+use skill_install::KNOWN_HOSTS;
+pub use skill_install::SkillHost;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.

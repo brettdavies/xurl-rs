@@ -32,11 +32,11 @@ use crate::cli::classify::{
     Classified, classify, context_string, nearest_command, structured_intent,
     suggestion_for_rejected,
 };
+use crate::cli::envelope::ErrorBody;
+use crate::cli::output::{OutputConfig, OutputFormat};
 use crate::cli::{Cli, ColorChoice, Commands};
 use crate::config::Config;
-use crate::envelope::ErrorBody;
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
-use crate::output::{OutputConfig, OutputFormat};
 
 /// What the structured rendering says when there is nothing to run.
 ///

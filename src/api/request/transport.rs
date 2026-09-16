@@ -5,8 +5,8 @@ use std::io::{BufRead, BufReader};
 
 use reqwest::blocking::{Client, multipart};
 
+use crate::cli::output::OutputConfig;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 
 use super::{ApiClient, MultipartOptions, RequestOptions};
 

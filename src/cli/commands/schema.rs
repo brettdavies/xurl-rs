@@ -11,9 +11,9 @@ use crate::api::{
     LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
+use crate::cli::output::OutputConfig;
+use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
-use crate::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -179,7 +179,7 @@ pub fn run_schema(
         return print_all_schemas(out, stdout);
     }
     if envelope || command == Some("envelope") {
-        let schema = crate::envelope::envelope_schema();
+        let schema = crate::cli::envelope::envelope_schema();
         out.print_response(stdout, &schema);
         return Ok(());
     }

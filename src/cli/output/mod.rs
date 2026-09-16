@@ -13,6 +13,7 @@
 //! invariant.
 
 mod delimited;
+mod format;
 
 use std::io::{IsTerminal, Write};
 
@@ -20,7 +21,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
-use crate::envelope::ErrorBody;
+use crate::cli::envelope::ErrorBody;
 use crate::error::XurlError;
 use delimited::write_flattened;
 
@@ -72,7 +73,7 @@ impl OutputFormat {
 ///
 /// ```rust,no_run
 /// use xurl::cli::ColorChoice;
-/// use xurl::output::{OutputConfig, OutputFormat};
+/// use xurl::cli::output::{OutputConfig, OutputFormat};
 ///
 /// let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
 ///
@@ -341,7 +342,7 @@ impl OutputConfig {
                         serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
                     let _ = writeln!(out, "{pretty}");
                 } else {
-                    let _ = crate::api::response::format_response(out, value);
+                    let _ = format::format_response(out, value);
                 }
             }
         }

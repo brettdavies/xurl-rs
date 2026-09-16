@@ -16,10 +16,10 @@ use serde_json::json;
 use crate::api::shortcuts;
 use crate::api::{self, ApiClient, CallOptions, RequestOptions, RequestTarget};
 use crate::auth::Auth;
+use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, UsageCommands};
 use crate::config::Config;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
-use crate::output::OutputConfig;
 
 /// Default page size when neither `--max-results` nor `--limit` is supplied.
 const DEFAULT_PAGE_SIZE: i32 = 10;
@@ -172,7 +172,7 @@ fn print_typed<T: Serialize>(
 
 /// Constructs an `ApiClient` with the runner's `OutputConfig` already
 /// installed so verbose request/response diagnostics flow through the
-/// single owner of stdio (`src/output/`).
+/// single owner of stdio (`src/cli/output/`).
 fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
     let mut client = ApiClient::new(cfg, auth);
     client.set_output(out.clone());

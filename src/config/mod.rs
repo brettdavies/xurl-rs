@@ -109,7 +109,7 @@ pub struct EnvOverrides {
     ///
     /// Supplied here so a caller can install into a directory of its choosing
     /// without redirecting a core system variable for the whole process.
-    /// Consumed by [`crate::skill_install`] rather than by [`Config`].
+    /// Consumed by [`crate::cli::skill_install`] rather than by [`Config`].
     pub home: Option<String>,
     /// `XURL_TOKEN_STORE` — path of the token-store file the binary uses in
     /// place of `~/.xurl`. The OAuth2 pending state sits beside it.
@@ -326,7 +326,7 @@ pub(crate) struct ResolvedRedirectUri {
 /// `stored` is the per-app value from `TokenStore::get_app_redirect_uri`.
 ///
 /// When `env_value` is set but fails [`Config::validate_redirect_uri`](Config::validate_redirect_uri), the helper
-/// emits a one-line warning to stderr (via [`crate::output::warn_stderr`])
+/// emits a one-line warning to stderr (via [`crate::cli::output::warn_stderr`])
 /// and falls through to the next precedence level. The pure helper has no
 /// `OutputConfig` available, so the warning shape is intentionally minimal;
 /// the binary's `OutputConfig::print_message` equivalent would be redundant
@@ -346,7 +346,7 @@ pub(crate) fn resolve_redirect_uri_from(
                 source: ResolveSource::EnvVar,
             };
         }
-        crate::output::warn_stderr(
+        crate::cli::output::warn_stderr(
             "REDIRECT_URI env value rejected by validation; falling through to next precedence level",
         );
     }

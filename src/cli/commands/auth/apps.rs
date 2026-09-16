@@ -11,10 +11,10 @@ use super::{
 };
 use crate::auth::Auth;
 use crate::cli::hints::NextStep;
+use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
 use crate::config;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
-use crate::output::OutputConfig;
 
 pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> Result<()> {
     let AuthCtx {

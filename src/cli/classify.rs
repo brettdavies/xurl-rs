@@ -12,7 +12,7 @@ use clap::CommandFactory;
 use clap::error::{ContextKind, ContextValue};
 
 use crate::cli::Cli;
-use crate::output::OutputFormat;
+use crate::cli::output::OutputFormat;
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
 const SUGGESTION_THRESHOLD: f64 = 0.7;

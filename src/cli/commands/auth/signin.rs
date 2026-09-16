@@ -7,8 +7,8 @@ use serde_json::json;
 
 use super::{AuthCtx, AuthGlobalFlags};
 use crate::auth::Auth;
+use crate::cli::envelope::ErrorBody;
 use crate::cli::hints::NextStep;
-use crate::envelope::ErrorBody;
 use crate::error::{EXIT_USAGE_ERROR, Result, XurlError};
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which

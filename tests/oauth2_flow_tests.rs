@@ -26,8 +26,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::auth::Auth;
 use xurl::auth::oauth2::run_oauth2_flow;
+use xurl::cli::output::{OutputConfig, OutputFormat};
 use xurl::config::Config;
-use xurl::output::{OutputConfig, OutputFormat};
 
 // ── Recording opener shared state ─────────────────────────────────────────
 //

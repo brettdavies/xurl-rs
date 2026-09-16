@@ -5,7 +5,7 @@
 use std::fs;
 use std::io::Write;
 
-use crate::output::OutputConfig;
+use crate::cli::output::OutputConfig;
 
 use super::{
     ACTION_UPDATE, DestinationStatus, InstallEnvelope, InstallError, InstallMultiEnvelope,
@@ -186,7 +186,7 @@ pub fn run_update_multi(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::output::OutputFormat;
+    use crate::cli::output::OutputFormat;
     use tempfile::TempDir;
 
     fn first_host() -> SkillHost {

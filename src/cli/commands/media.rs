@@ -6,9 +6,9 @@ use serde_json::json;
 use crate::api::{self, ApiClient};
 use crate::auth::Auth;
 use crate::cli::MediaCommands;
+use crate::cli::output::OutputConfig;
 use crate::config::Config;
 use crate::error::Result;
-use crate::output::OutputConfig;
 
 fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
     let mut client = ApiClient::new(cfg, auth);

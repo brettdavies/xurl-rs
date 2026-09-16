@@ -9,9 +9,9 @@ use std::time::Duration;
 use reqwest::blocking::Client;
 
 use crate::auth::Auth;
+use crate::cli::output::OutputConfig;
 use crate::config::Config;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 
 mod auth_header;
 mod transport;
@@ -217,7 +217,7 @@ pub struct ApiClient {
     auth: Auth,
     timeout_secs: u64,
     /// Output configuration used to route verbose request/response logs
-    /// through the single owner in `src/output/`. Library callers that
+    /// through the single owner in `src/cli/output/`. Library callers that
     /// haven't supplied one get the [`OutputConfig::default`] (text, no
     /// verbose) — `verbose=false` suppresses diagnostics.
     out: OutputConfig,

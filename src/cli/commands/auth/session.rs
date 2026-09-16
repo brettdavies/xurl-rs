@@ -10,8 +10,8 @@ use super::{
     print_no_apps_registered,
 };
 use crate::auth::Auth;
+use crate::cli::output::OutputConfig;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
-use crate::output::OutputConfig;
 
 pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     // Read through the runner-constructed store so tempdir-based

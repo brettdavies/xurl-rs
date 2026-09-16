@@ -8,9 +8,9 @@ pub mod oauth1;
 pub mod oauth2;
 pub mod pending;
 
+use crate::cli::output::OutputConfig;
 use crate::config::Config;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -306,7 +306,7 @@ impl Auth {
         // time (which U4 wires correctly via the runner's writers). This
         // stub is the only remaining direct-stdio site after U4.
         let out = OutputConfig::new(
-            crate::output::OutputFormat::Text,
+            crate::cli::output::OutputFormat::Text,
             false,
             false,
             crate::cli::ColorChoice::Auto,

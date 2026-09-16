@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::api::{ApiClient, RequestOptions};
 use crate::auth::callback::shutdown_signal;
+use crate::cli::output::OutputConfig;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 
 /// Spawns a background thread that waits for SIGINT/SIGTERM and flips the
 /// returned `AtomicBool` to true. The thread holds its own current-thread

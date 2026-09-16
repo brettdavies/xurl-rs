@@ -135,7 +135,7 @@ const SCANNED: &[&str] = &[
 /// Library sources with inline `#[cfg(test)]` modules, relative to the repo
 /// root. Unit tests share the library test binary, so a mutation here races
 /// every other test in that binary exactly as it did in the integration ones.
-const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/output/mod.rs"];
+const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/cli/output/mod.rs"];
 
 #[test]
 fn integration_tests_do_not_mutate_the_process_environment() {
