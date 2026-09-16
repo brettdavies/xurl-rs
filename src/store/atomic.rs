@@ -16,7 +16,7 @@
 //! a holder has it open lets the next process lock a fresh inode. Both guard
 //! against xurl's own concurrent processes, not a hostile neighbour.
 
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -109,6 +109,8 @@ impl Drop for TempFile {
 /// not a failure.
 #[cfg(unix)]
 fn sync_parent(target: &Path) -> io::Result<()> {
+    use std::fs::File;
+
     let parent = match target.parent() {
         Some(p) if !p.as_os_str().is_empty() => p,
         _ => Path::new("."),
@@ -202,7 +204,7 @@ mod tests {
         let recent = dir.path().join("store.tmp.2.2");
         fs::write(&stale, b"old secret").unwrap();
         fs::write(&recent, b"live writer").unwrap();
-        File::open(&stale)
+        fs::File::open(&stale)
             .unwrap()
             .set_modified(SystemTime::now() - Duration::from_secs(3600))
             .unwrap();
