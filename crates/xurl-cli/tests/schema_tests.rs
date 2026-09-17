@@ -70,16 +70,42 @@ fn schema_no_extra_named_property() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn schema_list_shows_all_commands_plus_envelope() {
+fn schema_list_advertises_every_registered_command_plus_envelope() {
     let output = common::xr().args(["schema", "--list"]).output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    let lines: Vec<&str> = stdout.lines().collect();
-    // 41 typed response commands + 1 envelope schema row.
-    assert_eq!(lines.len(), 42, "Expected 42 rows, got {}", lines.len());
+    let listed: BTreeSet<&str> = stdout
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+        .collect();
     assert!(
-        stdout.contains("envelope"),
+        listed.contains("envelope"),
         "--list should advertise the envelope schema"
+    );
+
+    let registry: BTreeSet<&str> = registered_commands().collect();
+    let missing: Vec<&&str> = registry.difference(&listed).collect();
+    assert!(
+        missing.is_empty(),
+        "`xr schema --list` omits registered commands: {missing:?}\n\
+         Cause: print_schema_list in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Fix: make the listing read SCHEMA_ENTRIES in full; a command reaches `--list` by \
+         being in the registry, never by being listed again."
+    );
+    let extra: Vec<&&str> = listed
+        .difference(&registry)
+        .filter(|name| **name != "envelope")
+        .collect();
+    assert!(
+        extra.is_empty(),
+        "`xr schema --list` advertises commands with no registry row: {extra:?}\n\
+         Cause: print_schema_list in {SCHEMA_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
+         Fix: add the command's row to SCHEMA_ENTRIES or drop it from the listing."
+    );
+    assert_eq!(
+        stdout.lines().count(),
+        registry.len() + 1,
+        "`xr schema --list` prints one row per registered command plus the envelope row"
     );
 }
 
@@ -141,12 +167,29 @@ fn schema_list_shows_type_names() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn schema_all_outputs_json_with_all_commands() {
+fn schema_all_emits_one_schema_per_registered_command() {
     let output = common::xr().args(["schema", "--all"]).output().unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
-    assert_eq!(obj.len(), 41, "Expected 41 entries, got {}", obj.len());
+
+    let emitted: BTreeSet<&str> = obj.keys().map(String::as_str).collect();
+    let registry: BTreeSet<&str> = registered_commands().collect();
+    let missing: Vec<&&str> = registry.difference(&emitted).collect();
+    assert!(
+        missing.is_empty(),
+        "`xr schema --all` omits registered commands: {missing:?}\n\
+         Cause: print_all_schemas in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Fix: make `--all` read SCHEMA_ENTRIES in full; a command reaches `--all` by being in \
+         the registry, never by being listed again."
+    );
+    let extra: Vec<&&str> = emitted.difference(&registry).collect();
+    assert!(
+        extra.is_empty(),
+        "`xr schema --all` emits schemas for commands with no registry row: {extra:?}\n\
+         Cause: print_all_schemas in {SCHEMA_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
+         Fix: add the command's row to SCHEMA_ENTRIES or drop it from `--all`."
+    );
     // Each value should be a valid schema object — either an object schema
     // with `properties` or an array schema with `items`.
     for (cmd, schema) in obj {
