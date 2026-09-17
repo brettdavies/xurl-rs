@@ -1185,6 +1185,49 @@
         },
         "type": "object"
       },
+      "AddChatModeratorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "user_id": {
+            "description": "The user to appoint as a moderator.",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "AddChatModeratorResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddChatModeratorResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddChatModeratorResponseData": {
+        "properties": {
+          "moderator_user_ids": {
+            "description": "The user IDs currently appointed as chat moderators.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "moderator_user_ids"
+        ],
+        "type": "object"
+      },
       "AddConversationKeysActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -2901,7 +2944,7 @@
             "type": "string"
           },
           "scopes": {
-            "description": "Scopes for the bot's bearer token; defaults to the standard bot scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
+            "description": "Scopes for the bot's bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
             "items": {
               "type": "string"
             },
@@ -6382,6 +6425,36 @@
                 "description": "Pagination token for the next page of results.",
                 "type": "string"
               },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatModeratorsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          },
+          "meta": {
+            "properties": {
               "result_count": {
                 "description": "Number of items in the data array.",
                 "format": "int32",
@@ -11573,6 +11646,7 @@
             "https://api.x.com/2/problems/invalid-request": "#/components/schemas/InvalidRequestProblem",
             "https://api.x.com/2/problems/not-authorized-for-field": "#/components/schemas/NotAuthorizedForFieldProblem",
             "https://api.x.com/2/problems/not-authorized-for-resource": "#/components/schemas/NotAuthorizedForResourceProblem",
+            "https://api.x.com/2/problems/recipient-not-messageable": "#/components/schemas/RecipientNotMessageableProblem",
             "https://api.x.com/2/problems/resource-not-found": "#/components/schemas/ResourceNotFoundProblem",
             "https://api.x.com/2/problems/resource-unavailable": "#/components/schemas/ResourceUnavailableProblem"
           },
@@ -11602,6 +11676,9 @@
           },
           {
             "$ref": "#/components/schemas/DisallowedResourceProblem"
+          },
+          {
+            "$ref": "#/components/schemas/RecipientNotMessageableProblem"
           },
           {
             "$ref": "#/components/schemas/InternalErrorProblem"
@@ -11644,6 +11721,60 @@
         "description": "Unique identifier of a PublicKey",
         "pattern": "^[0-9]{1,19}$",
         "type": "string"
+      },
+      "RecipientNotMessageableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/recipient-not-messageable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "RemoveChatModeratorResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RemoveChatModeratorResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatModeratorResponseData": {
+        "properties": {
+          "moderator_user_ids": {
+            "description": "The user IDs currently appointed as chat moderators.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "moderator_user_ids"
+        ],
+        "type": "object"
       },
       "RemoveListsMemberByUserIdResponse": {
         "properties": {
@@ -11815,7 +11946,7 @@
         "additionalProperties": false,
         "properties": {
           "scopes": {
-            "description": "Scopes for the new bearer token; defaults to the standard bot scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
+            "description": "Scopes for the new bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
             "items": {
               "type": "string"
             },
@@ -15922,6 +16053,183 @@
         ]
       }
     },
+    "/2/broadcasts/chat/moderators": {
+      "get": {
+        "description": "Returns the authenticated broadcaster's persistent moderators as User resources. The list applies to all of their current and future broadcast chats.",
+        "operationId": "getChatModerators",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/PostFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatModeratorsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get chat moderators",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Adds a moderator to the authenticated broadcaster's persistent list and returns the updated moderator user IDs. The list applies to all current and future broadcast chats.",
+        "operationId": "addChatModerator",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddChatModeratorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddChatModeratorResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add a chat moderator",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/chat/moderators/{user_id}": {
+      "delete": {
+        "description": "Removes a moderator from the authenticated broadcaster's persistent list and returns the updated moderator user IDs.",
+        "operationId": "removeChatModerator",
+        "parameters": [
+          {
+            "description": "A 64-bit signed integer.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveChatModeratorResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Remove a chat moderator",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
     "/2/broadcasts/scheduled": {
       "get": {
         "description": "Returns scheduled broadcasts owned by the authenticated user.",
@@ -16543,7 +16851,7 @@
     },
     "/2/broadcasts/{id}/chat/mutes": {
       "post": {
-        "description": "Prevents a user from posting further messages in a running broadcast chat. When `end_at_ms` is provided, the mute expires at that time. The authenticated user must own the broadcast.",
+        "description": "Prevents a user from posting further messages in a running broadcast chat. When `end_at_ms` is provided, the mute expires at that time. The authenticated user must be the broadcast host or a moderator.",
         "operationId": "muteBroadcastChatUser",
         "parameters": [
           {
@@ -16613,7 +16921,7 @@
     },
     "/2/broadcasts/{id}/chat/mutes/{user_id}": {
       "delete": {
-        "description": "Allows a muted user to post messages in a running broadcast chat again. The authenticated user must own the broadcast.",
+        "description": "Allows a muted user to post messages in a running broadcast chat again. The authenticated user must be the broadcast host or a moderator.",
         "operationId": "unmuteBroadcastChatUser",
         "parameters": [
           {
@@ -16684,7 +16992,7 @@
     },
     "/2/broadcasts/{id}/chat/{message_id}": {
       "delete": {
-        "description": "Removes a specific chat message from a running broadcast owned by the authenticated user.",
+        "description": "Removes a specific chat message from a running broadcast where the authenticated user is the host or a moderator.",
         "operationId": "deleteBroadcastChatMessage",
         "parameters": [
           {
@@ -17259,7 +17567,7 @@
     },
     "/2/chat/conversations/{id}/messages": {
       "post": {
-        "description": "Sends an encrypted message to a specific Chat conversation. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Sends an encrypted message to a specific Chat conversation. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
