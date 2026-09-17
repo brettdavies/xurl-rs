@@ -4,6 +4,15 @@ mod common;
 
 use predicates::prelude::*;
 
+use std::collections::BTreeSet;
+
+use rstest::rstest;
+use xurl::cli::commands::schema::{
+    FLAG_FORMS, SCHEMA_LESS_COMMANDS, registered_commands, schema_name_for_path,
+};
+
+const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema.rs";
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Single command schema
 // ═══════════════════════════════════════════════════════════════════════════
@@ -61,16 +70,42 @@ fn schema_no_extra_named_property() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn schema_list_shows_all_commands_plus_envelope() {
+fn schema_list_advertises_every_registered_command_plus_envelope() {
     let output = common::xr().args(["schema", "--list"]).output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    let lines: Vec<&str> = stdout.lines().collect();
-    // 41 typed response commands + 1 envelope schema row.
-    assert_eq!(lines.len(), 42, "Expected 42 rows, got {}", lines.len());
+    let listed: BTreeSet<&str> = stdout
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+        .collect();
     assert!(
-        stdout.contains("envelope"),
+        listed.contains("envelope"),
         "--list should advertise the envelope schema"
+    );
+
+    let registry: BTreeSet<&str> = registered_commands().collect();
+    let missing: Vec<&&str> = registry.difference(&listed).collect();
+    assert!(
+        missing.is_empty(),
+        "`xr schema --list` omits registered commands: {missing:?}\n\
+         Cause: print_schema_list in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Fix: make the listing read SCHEMA_ENTRIES in full; a command reaches `--list` by \
+         being in the registry, never by being listed again."
+    );
+    let extra: Vec<&&str> = listed
+        .difference(&registry)
+        .filter(|name| **name != "envelope")
+        .collect();
+    assert!(
+        extra.is_empty(),
+        "`xr schema --list` advertises commands with no registry row: {extra:?}\n\
+         Cause: print_schema_list in {SCHEMA_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
+         Fix: add the command's row to SCHEMA_ENTRIES or drop it from the listing."
+    );
+    assert_eq!(
+        stdout.lines().count(),
+        registry.len() + 1,
+        "`xr schema --list` prints one row per registered command plus the envelope row"
     );
 }
 
@@ -132,12 +167,29 @@ fn schema_list_shows_type_names() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn schema_all_outputs_json_with_all_commands() {
+fn schema_all_emits_one_schema_per_registered_command() {
     let output = common::xr().args(["schema", "--all"]).output().unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let obj = json.as_object().unwrap();
-    assert_eq!(obj.len(), 41, "Expected 41 entries, got {}", obj.len());
+
+    let emitted: BTreeSet<&str> = obj.keys().map(String::as_str).collect();
+    let registry: BTreeSet<&str> = registered_commands().collect();
+    let missing: Vec<&&str> = registry.difference(&emitted).collect();
+    assert!(
+        missing.is_empty(),
+        "`xr schema --all` omits registered commands: {missing:?}\n\
+         Cause: print_all_schemas in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Fix: make `--all` read SCHEMA_ENTRIES in full; a command reaches `--all` by being in \
+         the registry, never by being listed again."
+    );
+    let extra: Vec<&&str> = emitted.difference(&registry).collect();
+    assert!(
+        extra.is_empty(),
+        "`xr schema --all` emits schemas for commands with no registry row: {extra:?}\n\
+         Cause: print_all_schemas in {SCHEMA_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
+         Fix: add the command's row to SCHEMA_ENTRIES or drop it from `--all`."
+    );
     // Each value should be a valid schema object — either an object schema
     // with `properties` or an array schema with `items`.
     for (cmd, schema) in obj {
@@ -363,4 +415,121 @@ fn schema_commands_sharing_type_produce_identical_output() {
         post.stdout, reply.stdout,
         "post and reply should share the same schema"
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Registry exhaustiveness: clap's command tree is the source of truth
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Every command clap parses, under the name `xr schema` accepts for it.
+fn clap_schema_names() -> BTreeSet<String> {
+    common::command_paths()
+        .iter()
+        .map(|path| {
+            let parts: Vec<&str> = path.iter().map(String::as_str).collect();
+            schema_name_for_path(&parts)
+        })
+        .collect()
+}
+
+#[test]
+fn every_clap_command_is_in_exactly_one_schema_set() {
+    let registry: BTreeSet<&str> = registered_commands().collect();
+    let schema_less: BTreeSet<&str> = SCHEMA_LESS_COMMANDS.iter().copied().collect();
+    let names = clap_schema_names();
+
+    let in_neither: Vec<&str> = names
+        .iter()
+        .map(String::as_str)
+        .filter(|name| !registry.contains(name) && !schema_less.contains(name))
+        .collect();
+    assert!(
+        in_neither.is_empty(),
+        "`xr schema` reports these commands as unknown, though clap parses them: {in_neither:?}\n\
+         Cause: each is neither a SCHEMA_ENTRIES row nor named in SCHEMA_LESS_COMMANDS, so the \
+         lookup falls through to the unknown-command error.\n\
+         Fix: in {SCHEMA_SOURCE}, add a SCHEMA_ENTRIES row when the command emits a typed \
+         response (then run scripts/generate-response-schemas.sh), or add its name to \
+         SCHEMA_LESS_COMMANDS when it does not."
+    );
+
+    let in_both: Vec<&&str> = registry.intersection(&schema_less).collect();
+    assert!(
+        in_both.is_empty(),
+        "these commands are both registered and declared schema-less: {in_both:?}\n\
+         Cause: a name appears in a SCHEMA_ENTRIES row and in SCHEMA_LESS_COMMANDS, so which \
+         answer `xr schema` gives depends on lookup order.\n\
+         Fix: in {SCHEMA_SOURCE}, keep each name in exactly one of the two."
+    );
+}
+
+#[test]
+fn declared_schema_sets_name_only_commands_clap_parses() {
+    let names = clap_schema_names();
+    let flag_forms: BTreeSet<&str> = FLAG_FORMS.iter().map(|(name, _)| *name).collect();
+
+    let stale_registry: Vec<&str> = registered_commands()
+        .filter(|name| !names.contains(*name) && !flag_forms.contains(name))
+        .collect();
+    assert!(
+        stale_registry.is_empty(),
+        "SCHEMA_ENTRIES names commands clap does not parse: {stale_registry:?}\n\
+         Cause: the command was renamed or removed from the clap tree, or its schema name \
+         differs from its clap path without a SCHEMA_NAME_OVERRIDES entry.\n\
+         Fix: in {SCHEMA_SOURCE}, drop the row, rename it to the clap path joined with `-`, \
+         or add the override; then run scripts/generate-response-schemas.sh."
+    );
+
+    let stale_schema_less: Vec<&&str> = SCHEMA_LESS_COMMANDS
+        .iter()
+        .filter(|name| !names.contains(**name))
+        .collect();
+    assert!(
+        stale_schema_less.is_empty(),
+        "SCHEMA_LESS_COMMANDS names commands clap does not parse: {stale_schema_less:?}\n\
+         Cause: the command was renamed or removed from the clap tree.\n\
+         Fix: in {SCHEMA_SOURCE}, drop each stale name from SCHEMA_LESS_COMMANDS."
+    );
+
+    let stale_flag_forms: Vec<&&str> = FLAG_FORMS
+        .iter()
+        .map(|(_, base)| base)
+        .filter(|base| !names.contains(**base))
+        .collect();
+    assert!(
+        stale_flag_forms.is_empty(),
+        "FLAG_FORMS points at commands clap does not parse: {stale_flag_forms:?}\n\
+         Cause: the base command was renamed or removed from the clap tree.\n\
+         Fix: in {SCHEMA_SOURCE}, point each entry at the command whose flag it describes."
+    );
+}
+
+#[test]
+fn registry_names_each_command_once() {
+    let mut seen = BTreeSet::new();
+    let repeated: Vec<&str> = registered_commands()
+        .filter(|name| !seen.insert(*name))
+        .collect();
+    assert!(
+        repeated.is_empty(),
+        "SCHEMA_ENTRIES names these commands in more than one row: {repeated:?}\n\
+         Cause: two rows list the same command, so `xr schema --list` prints it twice and \
+         `xr schema <command>` answers from whichever row comes first.\n\
+         Fix: in {SCHEMA_SOURCE}, keep the command in the row whose type it returns."
+    );
+}
+
+#[rstest]
+#[case("skill")]
+#[case("examples")]
+#[case("validate")]
+#[case("auth-oauth2")]
+#[case("media-upload")]
+fn schema_less_command_is_not_reported_unknown(#[case] command: &str) {
+    common::xr()
+        .args(["schema", command])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("schema not available"))
+        .stderr(predicate::str::contains("unknown command").not());
 }
