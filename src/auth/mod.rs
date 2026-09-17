@@ -9,7 +9,7 @@ pub mod oauth2;
 pub mod pending;
 
 use crate::config::Config;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -54,12 +54,7 @@ pub struct Auth {
     bearer_token_override: Option<String>,
 }
 
-// Compile-time guarantee: `Auth` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<Auth>();
-};
+crate::assert_send_sync!(Auth);
 
 impl Auth {
     /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
@@ -219,12 +214,12 @@ impl Auth {
         let token = self
             .token_store
             .get_oauth1_tokens_for_app(&self.app_name)
-            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
 
         let oauth1_token = token
             .oauth1
             .as_ref()
-            .ok_or_else(|| XurlError::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
 
         oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
     }
@@ -295,7 +290,7 @@ impl Auth {
         // No stored token means no header: the library never starts an
         // interactive sign-in inside a request. The binary decides whether to
         // sign in and retry.
-        Err(XurlError::auth("TokenNotFound: oauth2 token not found"))
+        Err(Error::auth(crate::error::NO_OAUTH2_TOKEN))
     }
 
     /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
@@ -396,18 +391,18 @@ impl Auth {
             .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
-            .map_err(|e| XurlError::auth_with_cause("NetworkError", &e))?;
+            .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
 
         let body: serde_json::Value = resp
             .json()
-            .map_err(|e| XurlError::auth_with_cause("JSONDeserializationError", &e))?;
+            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
 
         body.get("data")
             .and_then(|d| d.get("username"))
             .and_then(|u| u.as_str())
             .map(std::string::ToString::to_string)
             .ok_or_else(|| {
-                XurlError::auth("UsernameNotFound: username not found when fetching username")
+                Error::auth("UsernameNotFound: username not found when fetching username")
             })
     }
 
@@ -520,21 +515,12 @@ pub fn resolve_bearer_token(
 
     let token = store
         .get_bearer_token_for_app(app_name)
-        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
 
     let bearer = token
         .bearer
         .as_ref()
-        .ok_or_else(|| XurlError::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
 
     Ok(format!("Bearer {bearer}"))
 }
-
-// Compile-time guarantee: `Auth` is `Send + Sync` so it can be shared across
-// threads in the planned async/concurrent `ApiClient` (see plan KTD8). Any
-// future change that introduces a `!Send` or `!Sync` field will fail this
-// assertion at compile time.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<Auth>();
-};

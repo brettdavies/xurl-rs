@@ -41,8 +41,12 @@ impl Diagnostics {
         let meta = event.metadata();
         let colour = self.out.use_color;
 
-        if *meta.level() == Level::WARN {
-            return Some(format!("warning: {}", fields.message.unwrap_or_default()));
+        match *meta.level() {
+            Level::ERROR => return Some(format!("error: {}", fields.message.unwrap_or_default())),
+            Level::WARN => {
+                return Some(format!("warning: {}", fields.message.unwrap_or_default()));
+            }
+            _ => {}
         }
         match meta.target() {
             WIRE_TARGET => {
@@ -262,6 +266,21 @@ mod tests {
             vec![
                 None,
                 Some("warning: token stored under unnamed slot".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn error_events_print_on_every_target_and_never_as_warnings() {
+        let lines = rendered(diagnostics(false, ColorChoice::Never), || {
+            tracing::error!(target: "xurl::store", "the store could not be saved");
+            tracing::error!(target: WIRE_TARGET, "the connection dropped");
+        });
+        assert_eq!(
+            lines,
+            vec![
+                Some("error: the store could not be saved".to_string()),
+                Some("error: the connection dropped".to_string())
             ]
         );
     }

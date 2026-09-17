@@ -1,11 +1,10 @@
-//! Typed error system matching xurl's error categories.
+//! The library's error type and the exit codes that classify it.
 //!
-//! The Go source uses string-typed errors with a `Type` field. We replicate
-//! that with thiserror variants so Rust callers get pattern matching while
-//! the Display output stays identical to xurl.
+//! Display strings are lowercase fragments with no prefix and no trailing
+//! period, so they read cleanly inside an embedder's error chain; `xr`
+//! applies its own prefixes when it renders one.
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 /// What the caller should do next. Closed set; agents branch on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -24,6 +23,13 @@ pub enum NextAction {
     EnrollApp,
 }
 
+/// The enrollment recipe for an app X refuses.
+const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+/// Where X documents its authentication methods.
+const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
+/// Where X documents its rate limits.
+const RATE_LIMIT_DOCS: &str = "https://docs.x.com/resources/fundamentals/rate-limits";
+
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
 #[must_use]
@@ -35,7 +41,12 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
     haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
 }
 
-/// Top-level error type for xurl-rs.
+/// The library's error type.
+///
+/// The enum is `#[non_exhaustive]`: variants are added as the X API grows,
+/// so a downstream match keeps a wildcard arm. In-crate, [`Self::kind`] and
+/// [`Self::exit_code`] match every variant by name, so a new variant is
+/// classified before it ships.
 ///
 /// `result_large_err` would fire because the largest variant
 /// (`AuthMethodMismatch`) carries multiple `String`/`Vec<String>` fields.
@@ -45,31 +56,32 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// # Example
 ///
 /// ```rust,no_run
-/// use xurl::error::XurlError;
-/// # fn run() -> Result<(), XurlError> {
-/// # let result: Result<(), XurlError> = Err(XurlError::validation("missing field"));
+/// use xurl::Error;
+/// # fn run() -> Result<(), Error> {
+/// # let result: Result<(), Error> = Err(Error::validation("missing field"));
 /// match result {
 ///     Ok(()) => println!("ok"),
-///     Err(XurlError::Api { status, body }) => eprintln!("api {status}: {body}"),
-///     Err(XurlError::Validation(msg)) => eprintln!("validation: {msg}"),
-///     Err(XurlError::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(Error::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
+///     Err(Error::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
 /// }
 /// # Ok(()) }
 /// ```
 #[allow(clippy::result_large_err)]
-#[derive(Debug, Error)]
-pub enum XurlError {
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum Error {
     /// HTTP transport / request construction error.
-    #[error("HTTP Error: {0}")]
+    #[error("{0}")]
     Http(String),
 
     /// File / IO error.
-    #[error("IO Error: {0}")]
+    #[error("{0}")]
     Io(String),
 
     /// Invalid HTTP method supplied.
-    #[error("Invalid Method: Invalid HTTP method: {0}")]
+    #[error("invalid HTTP method: {0}")]
     InvalidMethod(String),
 
     /// API returned an HTTP error response (status >= 400).
@@ -88,13 +100,13 @@ pub enum XurlError {
     /// Raw URL supplied with an unsupported scheme. Only `http://` and
     /// `https://` are accepted; file/ftp/etc are rejected before any
     /// network or filesystem activity.
-    #[error("Invalid URL: {0}")]
+    #[error("invalid URL: {0}")]
     InvalidUrl(String),
 
     /// Path-parameter value contained a character that would break URL
     /// semantics (`/`, `?`, `#`, or `%`). Surfaces real IDs that contain
     /// stray separators rather than silently encoding them.
-    #[error("Invalid path parameter {name:?}: value {value:?} contains a reserved character")]
+    #[error("invalid path parameter {name:?}: value {value:?} contains a reserved character")]
     InvalidPathParam {
         /// Name of the offending `{param}` segment in the path template.
         name: String,
@@ -105,34 +117,20 @@ pub enum XurlError {
     /// Internal invariant violated — typically a programmer error such as
     /// a path template referencing a `{name}` segment that the caller never
     /// supplied in `path_params`.
-    #[error("Internal error: {0}")]
+    #[error("internal error: {0}")]
     Internal(String),
 
     /// JSON serialization / deserialization error.
-    #[error("JSON Error: {0}")]
+    #[error("{0}")]
     Json(String),
 
     /// Authentication error with sub-type context.
-    #[error("Auth Error: {0}")]
+    #[error("{0}")]
     Auth(String),
 
     /// Token store persistence / lookup error.
-    #[error("Token Store Error: {0}")]
+    #[error("{0}")]
     TokenStore(String),
-
-    /// Sentinel: a structured envelope was already emitted by the call site.
-    ///
-    /// The runner short-circuits its trailing `print_error` for this variant
-    /// and propagates the carried exit code unchanged. Used by
-    /// `print_confirmation_required` so the canonical envelope
-    /// `{"status":"error","reason":"confirmation-required",…}` is the only
-    /// thing the agent sees on stderr (no duplicated `{"error":...,"kind":...}`
-    /// from the generic `print_error` path).
-    #[error("envelope-already-emitted")]
-    EnvelopeAlreadyEmitted {
-        /// Exit code the runner should surface for this error.
-        exit_code: i32,
-    },
 
     /// Auth method mismatch: the user supplied (or the auto-detect resolved)
     /// an auth method the endpoint's matrix entry doesn't accept.
@@ -157,10 +155,7 @@ pub enum XurlError {
     /// (`/2/users/12345/likes`) for user-facing messages while `endpoint`
     /// stays as the spec template (`/2/users/{id}/likes`) for agents to
     /// pattern-match against.
-    ///
-    /// The `Display` impl renders the same body that fills the envelope's
-    /// `message` field.
-    #[error("{}", auth_method_mismatch_message(.endpoint, .rendered_url.as_deref(), .method, .requested.as_deref(), .supported, .available_in_app.as_deref(), .app.as_deref(), .other_apps_with_creds.as_deref()))]
+    #[error("{}", auth_method_mismatch_fragment(.endpoint, .rendered_url.as_deref(), .method, .requested.as_deref(), .supported, .available_in_app.as_deref(), .app.as_deref(), .other_apps_with_creds.as_deref()))]
     AuthMethodMismatch {
         /// Path template (e.g. `/2/users/{id}/likes`) — keyed verbatim
         /// against the spec for agent pattern matching.
@@ -193,21 +188,47 @@ pub enum XurlError {
     },
 }
 
-// Compile-time guarantee: `XurlError` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<XurlError>();
-};
+crate::assert_send_sync!(Error);
 
-/// Builds the user-facing message that fills both the `Display` output and
-/// the JSON envelope's `message` field for `AuthMethodMismatch`.
+/// Which situation an `AuthMethodMismatch`'s fields describe.
 ///
-/// Three shapes per the variant's docstring; each ends with an actionable
-/// recovery instruction. Prefers `rendered_url` over `endpoint` for
-/// user-facing strings so `{id}` placeholders don't leak into messages.
+/// The library's Display and the `xr` renderer both classify through
+/// [`mismatch_shape`], so the two cannot sort one error into different
+/// shapes.
+pub(crate) enum MismatchShape<'a> {
+    /// The caller asked for a scheme the endpoint does not accept.
+    Explicit { requested: &'a str },
+    /// The active app stores nothing, but other apps hold credentials.
+    WrongApp { others: &'a [String] },
+    /// Nothing the active app stores is accepted at the endpoint.
+    EmptyIntersection { available: &'a [String] },
+    /// No app context was available when the error was built.
+    Unknown,
+}
+
+/// Classifies the three optional fields into one [`MismatchShape`].
+///
+/// Only the wrong-app branch sets `other_apps_with_creds`, so
+/// `available_in_app` may still carry an env-supplied bearer there.
+pub(crate) fn mismatch_shape<'a>(
+    requested: Option<&'a str>,
+    available_in_app: Option<&'a [String]>,
+    other_apps_with_creds: Option<&'a [String]>,
+) -> MismatchShape<'a> {
+    match (requested, available_in_app, other_apps_with_creds) {
+        (Some(requested), _, _) => MismatchShape::Explicit { requested },
+        (None, Some(_), Some(others)) if !others.is_empty() => MismatchShape::WrongApp { others },
+        (None, Some(available), _) => MismatchShape::EmptyIntersection { available },
+        (None, None, _) => MismatchShape::Unknown,
+    }
+}
+
+/// Builds the Display fragment for `AuthMethodMismatch`: which method was
+/// refused where, and what the endpoint accepts, in the wire vocabulary the
+/// fields carry. Prefers `rendered_url` over `endpoint` so `{id}`
+/// placeholders don't leak into the message.
 #[allow(clippy::too_many_arguments)]
-fn auth_method_mismatch_message(
+fn auth_method_mismatch_fragment(
     endpoint: &str,
     rendered_url: Option<&str>,
     method: &str,
@@ -217,81 +238,42 @@ fn auth_method_mismatch_message(
     app: Option<&str>,
     other_apps_with_creds: Option<&[String]>,
 ) -> String {
-    let display_path = rendered_url.unwrap_or(endpoint);
+    let path = rendered_url.unwrap_or(endpoint);
     let app_name = app.unwrap_or("the active app");
-    let suggest_first = |fallback: &str| {
-        supported
-            .first()
-            .map(|s| format!(" Add credentials with: xr auth {s} --app {fallback}."))
-            .unwrap_or_default()
+    let list = |items: &[String]| {
+        if items.is_empty() {
+            "none".to_string()
+        } else {
+            items.join(", ")
+        }
     };
-
-    match (requested, available_in_app, other_apps_with_creds) {
-        // Explicit mismatch: the user passed --auth X explicitly.
-        (Some(req), _, _) => {
-            let pretty_req = pretty_scheme(req);
-            let alt = supported
-                .iter()
-                .map(|s| format!("--auth {s}"))
-                .collect::<Vec<_>>()
-                .join(" or ");
-            if alt.is_empty() {
-                format!("{pretty_req} auth is not accepted at {method} {display_path}.")
-            } else {
-                format!("{pretty_req} auth is not accepted at {method} {display_path}. Use {alt}.")
-            }
+    match mismatch_shape(requested, available_in_app, other_apps_with_creds) {
+        MismatchShape::Explicit { requested } if supported.is_empty() => {
+            format!("{requested} auth is not accepted at {method} {path}")
         }
-        // Wrong-app: active app stores nothing but other apps do. Only that
-        // branch sets `other_apps_with_creds`, so `avail` may still carry an
-        // env-supplied bearer here.
-        (None, Some(_), Some(others)) if !others.is_empty() => {
+        MismatchShape::Explicit { requested } => {
+            let accepts = list(supported);
+            format!("{requested} auth is not accepted at {method} {path} (accepts {accepts})")
+        }
+        MismatchShape::WrongApp { others } => {
             let alts = others.join(", ");
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
             format!(
-                "App '{app_name}' has no stored credentials, but other apps do ({alts}). Endpoint {method} {display_path} accepts: {accepts}. Try --app NAME with one of the apps above."
+                "app '{app_name}' holds no credentials for {method} {path} (other apps with credentials: {alts})"
             )
         }
-        // Empty intersection on a non-empty active app.
-        (None, Some(avail), _) => {
-            let has = if avail.is_empty() {
-                "none".to_string()
-            } else {
-                avail.join(", ")
-            };
-            let accepts = if supported.is_empty() {
-                "none".to_string()
-            } else {
-                supported.join(", ")
-            };
-            let suggest = suggest_first(app_name);
+        MismatchShape::EmptyIntersection { available } => {
+            let has = list(available);
+            let accepts = list(supported);
             format!(
-                "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
+                "no stored auth method on app '{app_name}' is accepted at {method} {path} (app has {has}; endpoint accepts {accepts})"
             )
         }
-        (None, None, _) => {
-            format!("Auth method is not accepted at {method} {display_path}.")
-        }
+        MismatchShape::Unknown => format!("auth method is not accepted at {method} {path}"),
     }
 }
 
-/// Maps a wire-format auth string to its pretty-printed scheme name.
-///
-/// Delegates to [`crate::api::auth_matrix::WireScheme::pretty`] so the
-/// display vocabulary lives in one place. Unknown strings fall back to
-/// the input verbatim so a future scheme added to the matrix without an
-/// updated pretty mapping still surfaces something readable.
-fn pretty_scheme(name: &str) -> String {
-    crate::api::auth_matrix::WireScheme::from_wire(name)
-        .map(|ws| ws.pretty().to_string())
-        .unwrap_or_else(|| name.to_string())
-}
-
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
-impl XurlError {
+impl Error {
     /// Create an API error with an HTTP status code and response body.
     pub fn api(status: u16, body: impl Into<String>) -> Self {
         Self::Api {
@@ -332,7 +314,49 @@ impl XurlError {
             Self::Api { status, body } if refuses_enrollment(*status, body) => {
                 Some(NextAction::EnrollApp)
             }
-            _ => None,
+            Self::Api { .. }
+            | Self::Http(_)
+            | Self::Io(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
+            | Self::InvalidUrl(_)
+            | Self::InvalidPathParam { .. }
+            | Self::Internal(_)
+            | Self::Json(_)
+            | Self::Auth(_)
+            | Self::TokenStore(_) => None,
+            // The stored-credential recovery steps are the binary's: it knows
+            // which apps hold what and names the invocation.
+            Self::AuthMethodMismatch { .. } => None,
+        }
+    }
+
+    /// The page that documents this error's recovery, when one exists.
+    ///
+    /// An enrollment refusal names the recipe that moves the app to the
+    /// right package, a credential failure points at X's authentication
+    /// overview, and a 429 at its rate-limit rules. One arm per variant, so
+    /// a new variant decides its pointer before it ships.
+    #[must_use]
+    pub fn docs_url(&self) -> Option<&'static str> {
+        match self {
+            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+                Some(ENROLLMENT_DOCS)
+            }
+            Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch { .. } => {
+                Some(AUTHENTICATION_DOCS)
+            }
+            Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
+            Self::Api { .. }
+            | Self::Http(_)
+            | Self::Io(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
+            | Self::InvalidUrl(_)
+            | Self::InvalidPathParam { .. }
+            | Self::Internal(_)
+            | Self::Json(_)
+            | Self::TokenStore(_) => None,
         }
     }
 
@@ -369,7 +393,6 @@ impl XurlError {
     /// | `InvalidUrl`           | `invalid-url`    |
     /// | `InvalidPathParam`     | `invalid-path-param` |
     /// | `Internal`             | `internal`       |
-    /// | `EnvelopeAlreadyEmitted` | `confirmation-required` |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
@@ -389,7 +412,6 @@ impl XurlError {
             Self::InvalidUrl(_) => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
-            Self::EnvelopeAlreadyEmitted { .. } => "confirmation-required",
         }
     }
 
@@ -398,6 +420,8 @@ impl XurlError {
     /// Pattern-matches on `Api { status, .. }` directly for HTTP errors,
     /// preserves string-scanning for `Http` transport errors (no structured
     /// status available), and maps `Validation` to `EXIT_GENERAL_ERROR`.
+    /// One arm per variant, with no wildcard: a variant added without an
+    /// exit-code decision is a compile error, not a silent exit 1.
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
@@ -405,55 +429,69 @@ impl XurlError {
             Self::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
+            Self::Api { .. } => EXIT_GENERAL_ERROR,
             Self::Http(msg) if msg.contains("401") || msg.contains("Unauthorized") => {
                 EXIT_AUTH_REQUIRED
             }
             Self::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
             Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
+            Self::Http(_) => EXIT_GENERAL_ERROR,
             Self::Io(_) => EXIT_NETWORK_ERROR,
-            Self::Validation(_)
+            Self::Json(_)
+            | Self::InvalidMethod(_)
+            | Self::Validation(_)
             | Self::InvalidUrl(_)
             | Self::InvalidPathParam { .. }
             | Self::Internal(_) => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch { .. } => EXIT_AUTH_MISMATCH,
-            Self::EnvelopeAlreadyEmitted { exit_code } => *exit_code,
-            _ => EXIT_GENERAL_ERROR,
         }
     }
 }
 
-impl From<reqwest::Error> for XurlError {
+impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
         Self::Http(err.to_string())
     }
 }
 
-impl From<std::io::Error> for XurlError {
+impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         Self::Io(err.to_string())
     }
 }
 
-impl From<serde_json::Error> for XurlError {
+impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         Self::Json(err.to_string())
     }
 }
 
-impl From<serde_yaml::Error> for XurlError {
+impl From<serde_yaml::Error> for Error {
     fn from(err: serde_yaml::Error) -> Self {
         Self::Json(err.to_string())
     }
 }
 
-impl From<url::ParseError> for XurlError {
+impl From<url::ParseError> for Error {
     fn from(err: url::ParseError) -> Self {
         Self::Http(err.to_string())
     }
 }
 
 /// Convenience alias used throughout the crate.
-pub type Result<T> = std::result::Result<T, XurlError>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+// ── Auth failure messages ──────────────────────────────────────────
+//
+// One constant per message so its construction sites and the runner's
+// hint seam agree on the exact string; the runner matches on them to
+// decide whether a recovery hint applies.
+
+/// The message every no-credentials failure carries.
+pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method available";
+
+/// The message every missing-`OAuth2`-token failure carries.
+pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
 
 // ── Exit codes ─────────────────────────────────────────────────────
 
@@ -491,13 +529,6 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// missing credential).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
-/// The message every no-credentials failure carries.
-///
-/// One constant so the two construction sites and the runner's hint seam
-/// agree on the exact string; the runner matches on it to decide whether a
-/// recovery hint applies.
-pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method available";
-
 /// Usage error. `EX_USAGE` from sysexits — `2`.
 ///
 /// Clap parse failures share this value, as do the errors a caller can fix
@@ -519,17 +550,18 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// Network / connectivity issue. Surfaces for non-401/404/429 HTTP errors
-/// and for `reqwest` transport failures (DNS, TLS, timeout).
+/// A filesystem or connection failure the library reports as
+/// [`Error::Io`]. An API response with any other status and a transport
+/// failure both exit `EXIT_GENERAL_ERROR`.
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 
-/// Maps an [`XurlError`] to a structured exit code.
+/// Maps an [`Error`] to a structured exit code.
 ///
-/// Free-function shim delegating to [`XurlError::exit_code`].
+/// Free-function shim delegating to [`Error::exit_code`].
 #[allow(dead_code)] // Public library API — used by consumers
 #[must_use]
-pub fn exit_code_for_error(e: &XurlError) -> i32 {
+pub fn exit_code_for_error(e: &Error) -> i32 {
     e.exit_code()
 }
 
@@ -539,19 +571,16 @@ mod tests {
 
     #[test]
     fn a_refused_enrollment_names_the_enroll_step() {
-        let refused = XurlError::api(403, r#"{"reason":"client-not-enrolled","detail":"x"}"#);
+        let refused = Error::api(403, r#"{"reason":"client-not-enrolled","detail":"x"}"#);
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
-        let forbidden = XurlError::api(403, "CLIENT-FORBIDDEN");
+        let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
     }
 
     #[test]
     fn other_errors_carry_no_step() {
-        assert_eq!(XurlError::api(403, "plain forbidden").next_action(), None);
-        assert_eq!(
-            XurlError::api(401, "client-not-enrolled").next_action(),
-            None
-        );
-        assert_eq!(XurlError::auth("x").next_action(), None);
+        assert_eq!(Error::api(403, "plain forbidden").next_action(), None);
+        assert_eq!(Error::api(401, "client-not-enrolled").next_action(), None);
+        assert_eq!(Error::auth("x").next_action(), None);
     }
 }

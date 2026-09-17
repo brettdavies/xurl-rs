@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "follow", ""]
+store: empty
+exit_code: 0
+stdout_len: 148
+stderr_len: 0
+--- stdout ---
+{
+  "command": "follow",
+  "exit_code": 1,
+  "reason": "empty-username",
+  "status": "dry_run",
+  "target_username": "",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::api::{ApiClient, RequestOptions};
 use crate::auth::callback::shutdown_signal;
 use crate::cli::output::OutputConfig;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Spawns a background thread that waits for SIGINT/SIGTERM and flips the
 /// returned `AtomicBool` to true. The thread holds its own current-thread
@@ -45,7 +45,7 @@ pub(super) fn stream_request_with_output(
     let url = client.build_url_public(&options.target)?;
 
     let req_method = reqwest::Method::from_bytes(method.as_bytes())
-        .map_err(|_| XurlError::InvalidMethod(method.to_string()))?;
+        .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
     let mut builder = reqwest::blocking::Client::builder()
         .timeout(None)
@@ -124,9 +124,9 @@ pub(super) fn stream_request_with_output(
     if resp_status.as_u16() >= 400 {
         let body = resp.text().unwrap_or_default();
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-            return Err(XurlError::api(resp_status.as_u16(), json.to_string()));
+            return Err(Error::api(resp_status.as_u16(), json.to_string()));
         }
-        return Err(XurlError::api(resp_status.as_u16(), body));
+        return Err(Error::api(resp_status.as_u16(), body));
     }
 
     out.status(stderr, "--- Streaming response started ---");
@@ -158,7 +158,7 @@ pub(super) fn stream_request_with_output(
                 out.print_stream_line(stdout, &line);
             }
             Err(e) => {
-                return Err(XurlError::Io(e.to_string()));
+                return Err(Error::Io(e.to_string()));
             }
         }
     }

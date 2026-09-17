@@ -5,7 +5,7 @@
 //! - The `xr` binary, a high-level CLI for the X API.
 //! - The `xurl` library exposed via the modules below. Downstream Rust
 //!   consumers build requests via [`api::ApiClient`], drive output through
-//!   [`cli::output::OutputConfig`], pattern-match on [`error::XurlError`], and
+//!   [`cli::output::OutputConfig`], pattern-match on [`Error`], and
 //!   persist auth state in [`store::TokenStore`].
 //!
 //! Four authentication paths are supported, selected per request from the
@@ -17,7 +17,7 @@
 //! - **Bearer (app-only)** — v2 read-only endpoints and search; set via
 //!   `XURL_BEARER_TOKEN`.
 
-// `XurlError`'s largest variant (`AuthMethodMismatch`) carries multiple
+// `Error`'s largest variant (`AuthMethodMismatch`) carries multiple
 // `String` and `Vec<String>` fields so agents can pattern-match on the
 // envelope structure. Boxing the variant would change the public
 // construction surface and break consumer code; allow the lint instead.
@@ -30,6 +30,22 @@ pub mod cli;
 pub mod config;
 pub mod error;
 pub mod store;
+
+pub use error::{Error, Result};
+
+/// Fails the build when `$t` stops being shareable across tasks and threads.
+///
+/// Invoked beside each type it guards, so the failure surfaces there rather
+/// than at a distant call site.
+macro_rules! assert_send_sync {
+    ($t:ty) => {
+        const _: fn() = || {
+            fn assert<T: Send + Sync>() {}
+            assert::<$t>();
+        };
+    };
+}
+pub(crate) use assert_send_sync;
 
 // ── Compile-time build and provenance metadata ──────────────────────────
 //

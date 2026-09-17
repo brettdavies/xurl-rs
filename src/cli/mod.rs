@@ -6,6 +6,7 @@
 mod classify;
 pub mod commands;
 pub mod exit_codes;
+mod failure;
 pub mod hints;
 pub mod runner;
 

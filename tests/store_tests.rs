@@ -1688,16 +1688,18 @@ fn readers_never_observe_a_partial_store() {
     assert_eq!(partial, 0, "{partial} of {reads} reads saw a partial store");
 }
 
-/// A temp file an interrupted save left behind neither blocks the next save
-/// nor survives it.
+/// A temp file a crashed save left behind neither blocks the next save nor
+/// survives it once it is old enough to be nobody's.
 #[test]
-fn a_temp_file_from_an_interrupted_save_is_replaced() {
+fn a_temp_file_from_an_interrupted_save_is_swept() {
     let tmp = TempDir::new().unwrap();
     let path = tmp.path().join(".xurl");
-    let mut tmp_os = path.as_os_str().to_os_string();
-    tmp_os.push(".tmp");
-    let stale = std::path::PathBuf::from(tmp_os);
+    let stale = tmp.path().join(".xurl.tmp.1.1");
     fs::write(&stale, b"apps: {\n").unwrap();
+    fs::File::open(&stale)
+        .unwrap()
+        .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
+        .unwrap();
 
     let mut store = store_at(&path);
     store.add_app("alpha", "id", "secret").unwrap();
@@ -1806,4 +1808,66 @@ async fn a_held_lock_does_not_park_the_runtime() {
     update.await.unwrap().unwrap();
     ticker.abort();
     assert!(store_at(&path).get_app("beta").is_some());
+}
+
+// ── Every write takes the sidecar lock, including the ones construction makes ──
+
+#[test]
+fn legacy_json_migration_saves_under_the_store_lock() {
+    let tmp = TempDir::new().unwrap();
+    let store_path = tmp.path().join(".xurl");
+    let legacy = serde_json::json!({
+        "bearer_token": {"type": "bearer", "bearer": "leg-bearer"}
+    });
+    fs::write(&store_path, serde_json::to_string(&legacy).unwrap()).unwrap();
+
+    let store = TokenStore::new_with_path(&store_path.to_string_lossy());
+
+    assert_eq!(store.get_default_app(), "default");
+    let mut lock_path = store_path.clone().into_os_string();
+    lock_path.push(".lock");
+    assert!(
+        std::path::Path::new(&lock_path).exists(),
+        "the migration write must go through the sidecar lock"
+    );
+    let migrated = fs::read_to_string(&store_path).unwrap();
+    assert!(
+        migrated.contains("apps:"),
+        "the file is rewritten in the current format: {migrated}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_store_is_written_through_and_locked_beside_its_target() {
+    let tmp = TempDir::new().unwrap();
+    let real_dir = tmp.path().join("real");
+    fs::create_dir_all(&real_dir).unwrap();
+    let real = real_dir.join(".xurl");
+    fs::write(&real, "").unwrap();
+    let link = tmp.path().join(".xurl");
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+
+    let mut store = TokenStore::new_with_path(&link.to_string_lossy());
+    store.add_app("linked", "cid", "csec").expect("add_app");
+
+    assert!(
+        fs::symlink_metadata(&link)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "the store path stays a symlink"
+    );
+    assert!(
+        fs::read_to_string(&real).unwrap().contains("linked"),
+        "the write lands on the link's target"
+    );
+    assert!(
+        real_dir.join(".xurl.lock").exists(),
+        "the lock sits beside the target, not beside the link"
+    );
+    assert!(
+        !tmp.path().join(".xurl.lock").exists(),
+        "no second lock beside the link"
+    );
 }

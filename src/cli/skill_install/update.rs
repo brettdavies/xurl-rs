@@ -43,7 +43,7 @@ fn compute_update_envelope(host: SkillHost, dry_run: bool, home: Option<&str>) -
                 reason: Some(InstallError::MissingHome.reason()),
             };
         }
-        Err(_) => unreachable!("expand_tilde only emits MissingHome"),
+        Err(_) => unreachable!("expand_tilde_with only emits MissingHome"),
     };
 
     let dest_display = dest.display().to_string();

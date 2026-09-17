@@ -90,7 +90,12 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
         }
     }
 
+    // A library file is scanned from its inline `#[cfg(test)]` marker, or in
+    // full when its parent declares it as a test-only module.
+    let test_module =
+        regex::Regex::new(r"#\[cfg\(test\)\]\s*(?:pub(?:\([^)]*\))? )?mod (\w+);").unwrap();
     let mut stack = vec![root.join("src")];
+    let mut sources = Vec::new();
     while let Some(dir) = stack.pop() {
         for entry in std::fs::read_dir(&dir).expect("src/ must be readable") {
             let path = entry.expect("dir entry").path();
@@ -98,15 +103,41 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
                 stack.push(path);
             } else if path.extension().is_some_and(|e| e == "rs") {
                 let source = std::fs::read_to_string(&path).expect("source must be readable");
-                if let Some(offset) = source.find("#[cfg(test)]") {
-                    let name = path
-                        .strip_prefix(root)
-                        .expect("under root")
-                        .to_string_lossy()
-                        .into_owned();
-                    files.push((name, path, offset));
-                }
+                sources.push((path, source));
             }
+        }
+    }
+    let test_only: std::collections::BTreeSet<PathBuf> = sources
+        .iter()
+        .flat_map(|(path, source)| {
+            let dir = path.parent().expect("a file has a parent").to_path_buf();
+            let stem = path.file_stem().expect("a file has a stem").to_os_string();
+            test_module
+                .captures_iter(source)
+                .map(move |m| {
+                    let child = format!("{}.rs", &m[1]);
+                    if stem == "mod" || stem == "lib" || stem == "main" {
+                        dir.join(child)
+                    } else {
+                        dir.join(&stem).join(child)
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    for (path, source) in sources {
+        let offset = if test_only.contains(&path) {
+            Some(0)
+        } else {
+            source.find("#[cfg(test)]")
+        };
+        if let Some(offset) = offset {
+            let name = path
+                .strip_prefix(root)
+                .expect("under root")
+                .to_string_lossy()
+                .into_owned();
+            files.push((name, path, offset));
         }
     }
     files

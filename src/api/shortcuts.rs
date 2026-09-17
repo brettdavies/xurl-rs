@@ -175,7 +175,7 @@ impl ApiClient {
     ///
     /// let resp = client.create_post("hello from xurl", &[], &CallOptions::default())?;
     /// println!("created post id={}", resp.data.id);
-    /// # Ok::<(), xurl::error::XurlError>(())
+    /// # Ok::<(), xurl::Error>(())
     /// ```
     pub fn create_post(
         &mut self,
@@ -356,7 +356,7 @@ impl ApiClient {
     /// for post in &resp.data {
     ///     println!("{}: {}", post.id, post.text);
     /// }
-    /// # Ok::<(), xurl::error::XurlError>(())
+    /// # Ok::<(), xurl::Error>(())
     /// ```
     pub fn search_posts(
         &mut self,
@@ -412,7 +412,7 @@ impl ApiClient {
     ///
     /// let resp = client.get_me(&CallOptions::default())?;
     /// println!("@{} ({})", resp.data.username, resp.data.id);
-    /// # Ok::<(), xurl::error::XurlError>(())
+    /// # Ok::<(), xurl::Error>(())
     /// ```
     pub fn get_me(&mut self, opts: &CallOptions) -> Result<ApiResponse<User>> {
         let mut req = opts.to_request_options();

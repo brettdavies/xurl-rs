@@ -114,19 +114,17 @@ pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
 pkg-fmt = "zip"
 
 # Breaking library-API changes shipping in a minor by decision. `required-update`
-# reclassifies the break rather than silencing it: `cargo semver-checks` still
-# reports each one by name and still fails a patch release, so the floor is
-# enforced and the break stays visible in the gate output. Each entry is scoped
-# to one release and is self-clearing: once the tag moves the baseline past the
-# change, the lint stops firing and the entry must be deleted. A standing entry
-# understates the next break of the same kind.
+# reclassifies the break rather than silencing it: the gate CI runs
+# (`release-type: minor`) passes silently, while a patch-level probe
+# (`cargo semver-checks --release-type patch`) still names every break, which
+# is how the entries below were verified. Each entry is scoped to one release
+# and is self-clearing: once the tag moves the baseline past the change, the
+# lint stops firing and the entry must be deleted. A standing entry understates
+# the next break of the same kind.
 [package.metadata.cargo-semver-checks.lints]
 # Covers TokenStore.load_state: the store records how its file resolved, which
 # is what the refusal-to-overwrite guard reads.
 constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
-# Covers Envelope::Error: one declared body is the whole error surface, so the
-# generated schema can close the object.
-enum_struct_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
 # Covers Envelope and Commands: each already breaks exhaustive matching this
 # release, so the attribute costs downstream nothing it does not already spend.
 enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }
@@ -146,13 +144,14 @@ module_missing = { lint-level = "deny", required-update = "minor" }
 # `InstallMultiEnvelope`, which moved with their modules.
 struct_missing = { lint-level = "deny", required-update = "minor" }
 # Covers the enums those modules declared, `OutputFormat` and `InstallError`
-# among them.
+# among them, and `XurlError`, which is `Error` at the crate root.
 enum_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `KNOWN_HOSTS` and the `GIT_HARDEN_*` constants, which moved with the
 # installer.
 pub_module_level_const_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `format_response`, `warn_stderr`, and the installer's free functions:
-# the library neither colours JSON nor writes to stderr.
+# the library neither colours JSON nor writes to stderr. Also `cli::commands::run`,
+# whose result type is the binary's own.
 function_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `run_oauth2_flow`, which takes the browser opener as a closure in
 # place of an output config, a writer, and a function pointer.

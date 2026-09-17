@@ -1,0 +1,22 @@
+args: ["--output", "json", "skill", "install", "claude_code"]
+env: PATH={{SCRATCH}}/refusing-git
+env: HOME={{HOME}}
+store: empty
+exit_code: 128
+stdout_len: 341
+stderr_len: 28
+--- stdout ---
+{
+  "action": "skill-install",
+  "host": "claude_code",
+  "install_dir": "{{HOME}}/.claude/skills/xurl-rs",
+  "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.claude/skills/xurl-rs",
+  "destination_status": "absent",
+  "status": "error",
+  "exit_code": 128,
+  "reason": "git-clone-failed"
+}
+
+--- stderr ---
+fatal: golden clone refused
+

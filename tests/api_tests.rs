@@ -658,10 +658,9 @@ fn slow_endpoint_trips_explicit_timeout() {
         elapsed < std::time::Duration::from_secs(5),
         "timeout should fire well under the server's 10s delay; elapsed = {elapsed:?}"
     );
-    let msg = err.to_string();
     assert!(
-        msg.contains("HTTP Error"),
-        "expected an HTTP/transport error, got: {msg}"
+        matches!(err, xurl::Error::Http(_)),
+        "expected an HTTP/transport error, got: {err:?}"
     );
 }
 
@@ -1369,7 +1368,7 @@ fn test_get_usage_rejects_oauth_only_app() {
 
     let err = client.get_usage(&base_call_opts()).unwrap_err();
     match err {
-        xurl::error::XurlError::AuthMethodMismatch {
+        xurl::Error::AuthMethodMismatch {
             endpoint,
             supported,
             available_in_app,
@@ -2459,7 +2458,7 @@ fn redteam_api_error_preserves_status_and_body() {
     assert!(err.is_api());
     // Verify structured error carries status
     match &err {
-        xurl::error::XurlError::Api { status, body } => {
+        xurl::Error::Api { status, body } => {
             assert_eq!(*status, 403);
             assert!(body.contains("Forbidden"));
         }
@@ -2525,7 +2524,7 @@ fn redteam_api_error_429_gives_rate_limit_exit_code() {
 // `ApiClient::send_request` (and its sibling paths) must propagate the
 // `get_auth_header` error rather than silently sending the request
 // unauthenticated. The older `if let Ok(...)` form let auth bugs masquerade
-// as upstream 401s; the new path returns the real `XurlError::Auth` so the
+// as upstream 401s; the new path returns the real `Error::Auth` so the
 // user can tell the difference between "we couldn't sign the request" and
 // "we signed it and X rejected it".
 
@@ -2563,7 +2562,7 @@ fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     // If Bug B regresses (request sent unauthenticated), the wiremock would
     // need to be mounted; we deliberately mount nothing so a regression
     // surfaces as a network-layer error against an unmatched path rather
-    // than as `XurlError::Auth`. The assertion then catches the regression.
+    // than as `Error::Auth`. The assertion then catches the regression.
     //
     // Target `/2/tweets/search/recent` (Bearer-accepting per the spec
     // matrix) rather than `get_me`'s `/2/users/me` (OAuth1/OAuth2 only),
@@ -2600,7 +2599,7 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
     // get_me with --auth oauth2 and an explicit username triggers the
     // named-caller branch; with no stored token the flow attempts to start
     // an interactive OAuth2 PKCE flow which fails (no DISPLAY in tests).
-    // The end state is `XurlError::Auth`, not a request to wiremock.
+    // The end state is `Error::Auth`, not a request to wiremock.
     opts.username = "ghost-user".to_string();
     let err = client.get_me(&opts).unwrap_err();
     // Accept either the TokenNotFound from refresh_oauth2_token or any
@@ -2609,10 +2608,7 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
     // returns Err without silently sending a request — not the exact
     // failure mode.
     assert!(
-        matches!(
-            err,
-            xurl::error::XurlError::Auth(_) | xurl::error::XurlError::Http(_)
-        ),
+        matches!(err, xurl::Error::Auth(_) | xurl::Error::Http(_)),
         "expected auth-layer error, got: {err:?}"
     );
 }
@@ -2631,7 +2627,7 @@ fn auth_error_propagates_for_oauth2_path_with_no_token() {
 /// AE1 — explicit mismatch.
 ///
 /// Bearer-only app, `--auth app`, `POST /2/media/upload`. The validator
-/// must short-circuit with `XurlError::AuthMethodMismatch` carrying the
+/// must short-circuit with `Error::AuthMethodMismatch` carrying the
 /// U6 explicit-mismatch shape (`requested = Some("app")`,
 /// `available_in_app = None`), and wiremock must observe zero requests.
 #[test]
@@ -2654,7 +2650,7 @@ fn u6_ae1_explicit_mismatch_app_against_media_upload() {
         .unwrap_err();
 
     match &err {
-        xurl::error::XurlError::AuthMethodMismatch {
+        xurl::Error::AuthMethodMismatch {
             endpoint,
             method,
             requested,
@@ -2756,7 +2752,7 @@ fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     let err = client.send_multipart_request(&mp_opts).unwrap_err();
 
     match &err {
-        xurl::error::XurlError::AuthMethodMismatch {
+        xurl::Error::AuthMethodMismatch {
             endpoint,
             method,
             requested,
@@ -2815,7 +2811,7 @@ fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
         .unwrap_err();
 
     match &err {
-        xurl::error::XurlError::AuthMethodMismatch {
+        xurl::Error::AuthMethodMismatch {
             endpoint,
             requested,
             supported,
@@ -2987,7 +2983,7 @@ fn u7_ae4_auto_detect_empty_intersection_envelope() {
         .unwrap_err();
 
     match err {
-        xurl::error::XurlError::AuthMethodMismatch {
+        xurl::Error::AuthMethodMismatch {
             endpoint,
             method: m,
             requested,

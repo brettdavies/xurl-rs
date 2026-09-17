@@ -175,7 +175,13 @@ if code_touched; then
         echo "  - deny (skipped, cargo-deny not installed)"
     fi
 
-    # 7. Shellcheck — lint shell scripts (and the pre-push hook itself). Severity
+    # 7. Output discipline — the same guard CI's `lint-stdio` job runs: no
+    # naked stdio macro outside the output module, no terminal handle in
+    # library code.
+    bash scripts/lint-stdio.sh >/dev/null 2>&1 || fail "scripts/lint-stdio.sh"
+    pass "lint-stdio"
+
+    # 8. Shellcheck — lint shell scripts (and the pre-push hook itself). Severity
     # threshold "warning" catches real bugs (unused vars, quoting issues, missing
     # exits) while ignoring info/style noise like SC2016 for intentional jaq
     # filters with single quotes. Skip silently if shellcheck isn't installed —
@@ -188,7 +194,7 @@ if code_touched; then
             check_shellcheck "${shell_files[@]}" || exit 1
     fi
 
-    # 8. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
+    # 9. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
     # Catches the libc::SIGPIPE class of issue without invoking a Windows toolchain
     # — runs in milliseconds. Step 9 is the comprehensive backstop.
     if rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust src/ | rg -v '#\[cfg(unix)\]' | rg -v '// *#\[cfg' | rg -qv '^$'; then
@@ -208,7 +214,7 @@ if code_touched; then
         pass "windows compat (libc grep)"
     fi
 
-    # 9. Windows cross-clippy: full type-check of the codebase as if compiling for
+    # 10. Windows cross-clippy: full type-check of the codebase as if compiling for
     # x86_64-pc-windows-gnu. Catches cfg-gated unused imports, conditional dead
     # code, and any other warning class that only surfaces on Windows. Linux
     # clippy alone misses these because `#[cfg(unix)]` filters out their usage
@@ -234,7 +240,7 @@ else
     note "rust battery (nothing in this push reaches cargo)"
 fi
 
-# 10. Markdown lint, over tracked files. This checks the same set as the
+# 11. Markdown lint, over tracked files. This checks the same set as the
 # `lint / markdownlint` CI job: that job globs a clean checkout, which holds
 # exactly the tracked files, minus the generated `CHANGELOG.md`.
 #

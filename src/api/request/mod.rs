@@ -10,7 +10,7 @@ use reqwest::blocking::Client;
 
 use crate::auth::Auth;
 use crate::config::Config;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 mod auth_header;
 mod transport;
@@ -183,7 +183,7 @@ pub struct MultipartOptions {
 /// use xurl::api::{ApiClient, RequestOptions, RequestTarget};
 /// use xurl::auth::Auth;
 /// use xurl::config::Config;
-/// use xurl::error::XurlError;
+/// use xurl::Error;
 /// use std::collections::HashMap;
 ///
 /// let cfg = Config::new();
@@ -200,7 +200,7 @@ pub struct MultipartOptions {
 ///
 /// match client.send_request(&opts) {
 ///     Ok(json) => println!("{json}"),
-///     Err(XurlError::Api { status, body }) => eprintln!("API {status}: {body}"),
+///     Err(Error::Api { status, body }) => eprintln!("API {status}: {body}"),
 ///     Err(e) => eprintln!("error: {e}"),
 /// }
 /// ```
@@ -211,12 +211,7 @@ pub struct ApiClient {
     timeout_secs: u64,
 }
 
-// Compile-time guarantee: `ApiClient` stays shareable across tasks and threads,
-// so the failure surfaces here rather than at a distant call site.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<ApiClient>();
-};
+crate::assert_send_sync!(ApiClient);
 
 impl ApiClient {
     /// Creates a new `ApiClient` using the timeout configured on `config`.
@@ -263,12 +258,12 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Returns `XurlError::Validation` if `CLIENT_ID` is not set or empty.
+    /// Returns `Error::Validation` if `CLIENT_ID` is not set or empty.
     #[allow(dead_code)] // Public library API — used by consumers
     pub fn from_env() -> Result<Self> {
         let cfg = Config::new();
         if cfg.client_id.is_empty() {
-            return Err(XurlError::validation(
+            return Err(Error::validation(
                 "CLIENT_ID not set — set the environment variable or use ApiClient::new() for manual configuration",
             ));
         }
@@ -280,10 +275,10 @@ impl ApiClient {
     ///
     /// # Errors
     ///
-    /// Returns [`XurlError::InvalidUrl`] when a `RawUrl` target's scheme
-    /// is not `http` or `https`, [`XurlError::InvalidPathParam`] when a
+    /// Returns [`Error::InvalidUrl`] when a `RawUrl` target's scheme
+    /// is not `http` or `https`, [`Error::InvalidPathParam`] when a
     /// substituted value contains a URL-reserved character, or
-    /// [`XurlError::Internal`] when a path template references a `{name}`
+    /// [`Error::Internal`] when a path template references a `{name}`
     /// segment missing from `path_params`.
     pub fn build_url_public(&self, target: &RequestTarget) -> Result<String> {
         self.build_url(target)

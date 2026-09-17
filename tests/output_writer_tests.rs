@@ -1,8 +1,8 @@
 //! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`
 //! (U1 of the library-CLI-entrypoint plan).
 
+use xurl::Error;
 use xurl::cli::output::{OutputConfig, OutputFormat};
-use xurl::error::XurlError;
 
 /// Compile-time assertion: `OutputConfig` must remain a `Send + Sync` config
 /// object so it can be shared across threads / tasks in the planned async
@@ -222,7 +222,7 @@ fn print_error_writes_to_error_writer_only() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = XurlError::auth("token expired");
+    let err = Error::auth("token expired");
     cfg.print_error(&mut err_buf, &err, 2);
     let s = String::from_utf8(err_buf).expect("utf8");
     assert!(s.contains("token expired"), "expected error text: {s:?}");
@@ -241,7 +241,7 @@ fn print_error_emits_structured_json_when_format_is_json() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = XurlError::auth("bad token");
+    let err = Error::auth("bad token");
     cfg.print_error(&mut err_buf, &err, 77);
     let s = String::from_utf8(err_buf).expect("utf8");
     let parsed: serde_json::Value = serde_json::from_str(s.trim()).expect("valid JSON");
@@ -266,7 +266,7 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = XurlError::AuthMethodMismatch {
+    let err = Error::AuthMethodMismatch {
         endpoint: "/2/media/upload".to_string(),
         rendered_url: None,
         method: "POST".to_string(),
@@ -335,7 +335,7 @@ fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = XurlError::AuthMethodMismatch {
+    let err = Error::AuthMethodMismatch {
         endpoint: "/2/media/upload".to_string(),
         rendered_url: None,
         method: "POST".to_string(),
@@ -374,7 +374,7 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
     };
     let mut stdout_buf: Vec<u8> = Vec::new();
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = XurlError::validation("nope");
+    let err = Error::validation("nope");
     cfg.print_error(&mut err_buf, &err, 1);
     // Caller did not pass stdout_buf — it must remain untouched.
     assert!(stdout_buf.is_empty());
@@ -767,12 +767,12 @@ fn json_config() -> OutputConfig {
 fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
     // 1. A plain error through `print_error`.
     let mut buf: Vec<u8> = Vec::new();
-    json_config().print_error(&mut buf, &XurlError::auth("NoAuthMethod: none"), 77);
+    json_config().print_error(&mut buf, &Error::auth("NoAuthMethod: none"), 77);
     assert_round_trips(&String::from_utf8_lossy(&buf), "auth-required");
 
     // 2. The auth-method-mismatch shape, with its eight extra fields.
     let mut buf: Vec<u8> = Vec::new();
-    let mismatch = XurlError::AuthMethodMismatch {
+    let mismatch = Error::AuthMethodMismatch {
         endpoint: "/2/users/{id}/likes".to_string(),
         rendered_url: Some("/2/users/12345/likes".to_string()),
         method: "POST".to_string(),

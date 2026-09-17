@@ -17,7 +17,7 @@
 //!   real `~/.xurl` and never depend on ambient variables.
 //!
 //! All four return a structured exit code per
-//! [`crate::error::XurlError::exit_code`], matching the binary's exit-code
+//! [`crate::error::Error::exit_code`], matching the binary's exit-code
 //! contract. They never call `process::exit`.
 
 use std::ffi::OsString;
@@ -33,6 +33,7 @@ use crate::cli::classify::{
     suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
+use crate::cli::failure::Failure;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::{Cli, ColorChoice, Commands};
 use crate::config::Config;
@@ -264,10 +265,6 @@ where
             .as_deref()
             .is_some_and(|value| !value.is_empty()),
     );
-    let invocation: Vec<String> = args_vec
-        .iter()
-        .map(|a| a.to_string_lossy().into_owned())
-        .collect();
     let structured = out.format.is_structured();
 
     // The library reports its diagnostics as `tracing` events; this renderer
@@ -279,49 +276,36 @@ where
     });
     match dispatched {
         Ok(()) => EXIT_SUCCESS,
-        Err(e) => {
+        Err(Failure::Emitted { exit_code }) => exit_code,
+        Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            // `EnvelopeAlreadyEmitted` is the U7 sentinel: the call site has
-            // already written the canonical envelope (e.g.
-            // `print_confirmation_required`) and we must NOT emit a second
-            // `{"error":...,"kind":...}` line. The carried exit code surfaces
-            // as the process exit unchanged.
-            if !matches!(e, crate::error::XurlError::EnvelopeAlreadyEmitted { .. }) {
-                if carries_no_auth_method(&e) {
-                    let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
-                    out.print_error_with_hint(stderr, &e, code, &hint);
-                } else if let Some(hint) = enrollment_hint_for(&e) {
-                    out.print_error_with_hint(stderr, &e, code, &hint);
-                } else {
-                    out.print_error(stderr, &e, code);
-                }
+            if carries_no_auth_method(&e) {
+                let invocation: Vec<String> = args_vec
+                    .iter()
+                    .map(|a| a.to_string_lossy().into_owned())
+                    .collect();
+                let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
+                out.print_error_with_hint(stderr, &e, code, &hint);
+            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e) {
+                out.print_error_with_hint(stderr, &e, code, &hint);
+            } else {
+                out.print_error(stderr, &e, code);
             }
             code
         }
     }
 }
 
-/// Whether this error is the no-credentials failure a recovery hint answers.
+/// Whether this error is a missing-credential failure a recovery hint answers.
 ///
-/// Matched on the carried message rather than a new variant, because the
-/// public error enum is exhaustively matched downstream and cannot grow one
-/// in a 3.x release.
-fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
+/// Both messages are constants shared with their construction sites, so the
+/// seam and the library agree on the exact strings.
+fn carries_no_auth_method(error: &crate::error::Error) -> bool {
     matches!(
         error,
-        crate::error::XurlError::Auth(msg)
-            if msg == crate::error::NO_AUTH_METHOD || msg == "TokenNotFound: oauth2 token not found"
+        crate::error::Error::Auth(msg)
+            if msg == crate::error::NO_AUTH_METHOD || msg == crate::error::NO_OAUTH2_TOKEN
     )
-}
-
-/// The enrollment hint for an API refusal, when this error is one.
-fn enrollment_hint_for(error: &crate::error::XurlError) -> Option<crate::cli::hints::Hint> {
-    match error {
-        crate::error::XurlError::Api { status, body } => {
-            crate::cli::hints::enrollment_hint(*status, body)
-        }
-        _ => None,
-    }
 }
 
 /// Renders a clap parse failure.
@@ -411,11 +395,7 @@ fn render_unknown_command(
     EXIT_USAGE_ERROR
 }
 
-// Compile-time guarantee: the canonical entrypoint signature is callable
-// from any thread. The trait objects `&mut dyn Write` are not `Send` by
-// themselves, but the function-pointer type below is `Send + Sync`, which
-// is what library consumers need to dispatch the runner from a thread pool.
-const _: fn() = || {
-    fn _assert_send_sync<T: Send + Sync>() {}
-    _assert_send_sync::<fn() -> i32>();
-};
+// The trait objects `&mut dyn Write` in the entrypoint signature are not
+// `Send` by themselves, but the function-pointer type below is, which is
+// what library consumers need to dispatch the runner from a thread pool.
+crate::assert_send_sync!(fn() -> i32);

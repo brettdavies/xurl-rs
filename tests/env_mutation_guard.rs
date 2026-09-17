@@ -122,40 +122,60 @@ const ALLOWLIST: &[Allowed] = &[
     },
 ];
 
-/// Integration test files the guard reads, relative to `tests/`.
-const SCANNED: &[&str] = &[
-    "cli_tests.rs",
-    "api_tests.rs",
-    "auth_tests.rs",
-    "config_tests.rs",
-    "conformance_runner.rs",
-    "output_writer_tests.rs",
-];
-
-/// Library sources with inline `#[cfg(test)]` modules, relative to the repo
-/// root. Unit tests share the library test binary, so a mutation here races
-/// every other test in that binary exactly as it did in the integration ones.
-const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/cli/output/mod.rs"];
+/// Every source the guard reads: each integration test file (named relative
+/// to `tests/`) and each library file (named relative to the repo root).
+/// The two guard files are skipped because their pattern strings would match
+/// themselves.
+fn scanned_files() -> Vec<(String, std::path::PathBuf)> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files = Vec::new();
+    let tests = root.join("tests");
+    for entry in std::fs::read_dir(&tests).expect("tests/ must be readable") {
+        let path = entry.expect("dir entry").path();
+        let is_guard = path
+            .file_name()
+            .is_some_and(|n| n.to_string_lossy().ends_with("_guard.rs"));
+        if path.extension().is_some_and(|e| e == "rs") && !is_guard {
+            let name = path
+                .strip_prefix(&tests)
+                .expect("under tests/")
+                .to_string_lossy()
+                .into_owned();
+            files.push((name, path));
+        }
+    }
+    let mut stack = vec![root.join("src")];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("src/ must be readable") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let name = path
+                    .strip_prefix(root)
+                    .expect("under root")
+                    .to_string_lossy()
+                    .into_owned();
+                files.push((name, path));
+            }
+        }
+    }
+    files.sort();
+    files
+}
 
 #[test]
 fn integration_tests_do_not_mutate_the_process_environment() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     let mut violations = Vec::new();
 
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    for file in SCANNED.iter().chain(SCANNED_SRC.iter()) {
-        let path = if file.starts_with("src/") {
-            root.join(file)
-        } else {
-            dir.join(file)
-        };
+    for (file, path) in scanned_files() {
         let source = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
 
         for pattern in ["env::set_var(", "env::remove_var("] {
             for (offset, _) in source.match_indices(pattern) {
                 let test = enclosing_test(&source, offset);
-                let allowed = ALLOWLIST.iter().any(|a| a.file == *file && a.test == test);
+                let allowed = ALLOWLIST.iter().any(|a| a.file == file && a.test == test);
                 if !allowed {
                     violations.push(format!("{file}::{test} calls {pattern}"));
                 }

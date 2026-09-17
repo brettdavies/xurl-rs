@@ -422,13 +422,13 @@ pub struct UsageCreditsData {
 ///
 /// # Errors
 ///
-/// Returns `XurlError::Json` if the Value is an empty object or cannot
+/// Returns `Error::Json` if the Value is an empty object or cannot
 /// be deserialized into the target type.
 pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     value: Value,
 ) -> crate::error::Result<ApiResponse<T>> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
-        return Err(crate::error::XurlError::Json(
+        return Err(crate::error::Error::Json(
             "empty response body — expected JSON with a \"data\" field".to_string(),
         ));
     }
@@ -440,7 +440,7 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
         && !obj.contains_key("data")
         && obj.contains_key("errors")
     {
-        return Err(crate::error::XurlError::validation(value.to_string()));
+        return Err(crate::error::Error::validation(value.to_string()));
     }
     Ok(serde_json::from_value(value)?)
 }
@@ -961,7 +961,7 @@ mod tests {
     #[test]
     fn errors_only_response_returns_validation_error() {
         // X API v2 returns {"errors": [...]} with no "data" on 200 for not-found resources.
-        // deserialize_response should return XurlError::Validation with the raw JSON.
+        // deserialize_response should return Error::Validation with the raw JSON.
         let json = json!({
             "errors": [{
                 "detail": "Could not find tweet with id: [123].",

@@ -6,14 +6,15 @@
 //! so the same config can drive real stdout, real stderr, or a captured
 //! `Vec<u8>` in library tests.
 //!
-//! This module is the single owner of `println!` / `eprintln!`. Every other
-//! `src/**/*.rs` site routes through one of [`OutputConfig`]'s methods, and
-//! the library's `tracing` events reach stderr through the `Diagnostics` subscriber. A CI
-//! guard in `scripts/lint-stdio.sh` enforces the invariant.
+//! Nothing under `src/` outside `src/cli/` writes to a terminal: library
+//! code routes its diagnostics through `tracing` events that the
+//! `Diagnostics` subscriber renders, and every printed line goes through one
+//! of [`OutputConfig`]'s methods. `scripts/lint-stdio.sh` enforces both.
 
 mod delimited;
 mod diagnostics;
 mod format;
+mod message;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -24,7 +25,7 @@ use serde_json::Value;
 
 use crate::cli::ColorChoice;
 use crate::cli::envelope::ErrorBody;
-use crate::error::XurlError;
+use crate::error::Error;
 use delimited::write_flattened;
 
 /// Output format for machine/human consumption.
@@ -200,7 +201,7 @@ impl OutputConfig {
     /// Emits a canonical error envelope with an explicit kebab-case `reason`.
     ///
     /// Mirrors [`Self::print_error`] but lets the caller pin the `reason`
-    /// (e.g. `"no-tty"`) rather than reading it from `XurlError::kind()`.
+    /// (e.g. `"no-tty"`) rather than reading it from `Error::kind()`.
     /// Under text mode falls back to a plain "Error: …" line.
     pub fn print_error_envelope(
         &self,
@@ -229,12 +230,12 @@ impl OutputConfig {
     pub(crate) fn print_error_with_hint(
         &self,
         err: &mut dyn Write,
-        error: &XurlError,
+        error: &Error,
         exit_code: i32,
         hint: &crate::cli::hints::Hint,
     ) {
         if self.format.is_structured() {
-            let display = error.to_string();
+            let display = message::render(error);
             let body = ErrorBody {
                 reason: error.kind().to_string(),
                 exit_code,
@@ -347,8 +348,8 @@ impl OutputConfig {
     /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
     /// emit a JSON line carrying the envelope (delimited formats are not a good
     /// fit for nested error metadata).
-    pub fn print_error(&self, err: &mut dyn Write, error: &XurlError, exit_code: i32) {
-        let display = error.to_string();
+    pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
+        let display = message::render(error);
         let mut body = ErrorBody {
             reason: error.kind().to_string(),
             exit_code,
@@ -360,7 +361,7 @@ impl OutputConfig {
         // `requested`, `supported`, `available_in_app`, `app`, and
         // `other_apps_with_creds` alongside the standard `message`. Agents
         // pattern-match on these without re-parsing the human message.
-        if let XurlError::AuthMethodMismatch {
+        if let Error::AuthMethodMismatch {
             endpoint,
             rendered_url,
             method,
@@ -669,20 +670,17 @@ mod tests {
 
     #[test]
     fn test_xurl_error_kind_mapping() {
-        assert_eq!(XurlError::Auth("test".into()).kind(), "auth-required");
-        assert_eq!(XurlError::Http("test".into()).kind(), "network-error");
-        assert_eq!(XurlError::api(400, "test").kind(), "network-error");
-        assert_eq!(XurlError::api(401, "x").kind(), "auth-required");
-        assert_eq!(XurlError::api(404, "x").kind(), "not-found");
-        assert_eq!(XurlError::api(429, "x").kind(), "rate-limited");
-        assert_eq!(XurlError::validation("test").kind(), "validation");
-        assert_eq!(XurlError::Io("test".into()).kind(), "io");
-        assert_eq!(XurlError::Json("test".into()).kind(), "serialization");
-        assert_eq!(
-            XurlError::InvalidMethod("X".into()).kind(),
-            "invalid-method"
-        );
-        assert_eq!(XurlError::token_store("x").kind(), "token-store");
+        assert_eq!(Error::Auth("test".into()).kind(), "auth-required");
+        assert_eq!(Error::Http("test".into()).kind(), "network-error");
+        assert_eq!(Error::api(400, "test").kind(), "network-error");
+        assert_eq!(Error::api(401, "x").kind(), "auth-required");
+        assert_eq!(Error::api(404, "x").kind(), "not-found");
+        assert_eq!(Error::api(429, "x").kind(), "rate-limited");
+        assert_eq!(Error::validation("test").kind(), "validation");
+        assert_eq!(Error::Io("test".into()).kind(), "io");
+        assert_eq!(Error::Json("test".into()).kind(), "serialization");
+        assert_eq!(Error::InvalidMethod("X".into()).kind(), "invalid-method");
+        assert_eq!(Error::token_store("x").kind(), "token-store");
     }
 
     #[test]

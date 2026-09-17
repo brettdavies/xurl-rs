@@ -15,7 +15,7 @@
 use std::fmt::Write as _;
 
 use crate::api::request::RequestTarget;
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Auth schemes an X API endpoint accepts, as declared by its OpenAPI
 /// `security:` list. Scope lists are captured verbatim so a future
@@ -193,7 +193,7 @@ pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<&'static str> 
 /// 4. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` in
 ///    the supported set → `Ok(())`.
 /// 5. [`RequestTarget::Template`] with matrix-hit AND `requested_auth` NOT
-///    in the supported set → `Err(XurlError::AuthMethodMismatch{...})`.
+///    in the supported set → `Err(Error::AuthMethodMismatch{...})`.
 ///
 /// The error variant carries `requested = Some(requested_auth)` and
 /// `available_in_app = None`. The auto-detect empty-intersection envelope
@@ -206,7 +206,7 @@ pub(crate) fn schemes_to_wire_list(schemes: &[AuthScheme]) -> Vec<&'static str> 
 ///
 /// # Errors
 ///
-/// Returns [`XurlError::AuthMethodMismatch`] when rule 5 fires.
+/// Returns [`Error::AuthMethodMismatch`] when rule 5 fires.
 pub fn validate(
     target: &RequestTarget,
     method: &str,
@@ -242,7 +242,7 @@ pub fn validate(
     let supported: Vec<String> = static_supported.iter().map(|s| (*s).to_string()).collect();
 
     let rendered_url = crate::api::request::render_template_path(path, path_params).ok();
-    Err(XurlError::AuthMethodMismatch {
+    Err(Error::AuthMethodMismatch {
         endpoint: path.clone(),
         rendered_url,
         method: method.to_ascii_uppercase(),
@@ -260,7 +260,7 @@ mod tests {
 
     use super::{AUTH_MATRIX, AuthScheme, SHORTCUT_TEMPLATES, supported_auth, validate};
     use crate::api::request::RequestTarget;
-    use crate::error::XurlError;
+    use crate::error::Error;
 
     /// Shortcut + media layer currently targets 35 (method, path) pairs.
     /// Updating this requires updating the allowlist in `build.rs`.
@@ -447,7 +447,7 @@ mod tests {
         let target = tmpl("/2/media/upload");
         let err = validate(&target, "POST", "app", None).unwrap_err();
         match err {
-            XurlError::AuthMethodMismatch {
+            Error::AuthMethodMismatch {
                 endpoint,
                 method,
                 requested,
@@ -470,24 +470,15 @@ mod tests {
     }
 
     #[test]
-    fn validate_envelope_message_lists_alternatives() {
-        // The Display message (and envelope `message` field) must surface
-        // the actionable `--auth ...` alternatives so a user can fix the
-        // invocation without consulting the matrix by hand.
+    fn validate_display_names_the_refused_scheme_and_the_alternatives() {
+        // The Display fragment carries what was refused, where, and what
+        // the endpoint accepts, so an embedder can act without consulting
+        // the matrix by hand.
         let target = tmpl("/2/media/upload");
         let err = validate(&target, "POST", "app", None).unwrap_err();
-        let msg = err.to_string();
-        assert!(
-            msg.contains("Bearer (app)"),
-            "message must pretty-print requested scheme: {msg}"
-        );
-        assert!(
-            msg.contains("--auth oauth2") && msg.contains("--auth oauth1"),
-            "message must list both supported alternatives: {msg}"
-        );
-        assert!(
-            msg.contains("POST /2/media/upload"),
-            "message must include method + endpoint: {msg}"
+        assert_eq!(
+            err.to_string(),
+            "app auth is not accepted at POST /2/media/upload (accepts oauth2, oauth1)"
         );
     }
 }

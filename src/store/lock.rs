@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
 use std::path::{Path, PathBuf};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 thread_local! {
     /// Sidecars this thread holds, by canonical path.
@@ -42,15 +42,17 @@ pub(crate) enum StoreLock {
 impl StoreLock {
     /// Blocks until the sidecar lock for `store_path` is held by this thread.
     ///
-    /// The sidecar is created on first use with mode `0600`; its parent
-    /// directory is never created, so a store path whose directory does not
-    /// exist fails here exactly as its save would.
+    /// The sidecar sits beside the file the store path resolves to, so a
+    /// store reached through a symlink shares its lock with the store
+    /// reached directly. It is created on first use with mode `0600`; its
+    /// parent directory is never created, so a store path whose directory
+    /// does not exist fails here exactly as its save would.
     ///
     /// # Errors
     ///
-    /// Returns an error when the sidecar cannot be opened or locked.
+    /// Returns an error naming the sidecar when it cannot be opened or locked.
     pub(crate) fn acquire(store_path: &Path) -> Result<Self> {
-        let path = lock_path_for(store_path);
+        let path = lock_path_for(&super::atomic::resolve(store_path));
         let key = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
         if HELD.with(|held| held.borrow().contains(&key)) {
             return Ok(Self::Reentrant);
@@ -63,8 +65,14 @@ impl StoreLock {
             use std::os::unix::fs::OpenOptionsExt;
             opts.mode(0o600);
         }
-        let file = opts.open(&path)?;
-        file.lock()?;
+        let file = opts.open(&path).map_err(|e| {
+            Error::Io(format!(
+                "cannot open the store lock {}: {e}",
+                path.display()
+            ))
+        })?;
+        file.lock()
+            .map_err(|e| Error::Io(format!("cannot lock {}: {e}", path.display())))?;
         let key = fs::canonicalize(&path).unwrap_or(key);
         HELD.with(|held| held.borrow_mut().push(key.clone()));
         Ok(Self::Owner { file, key })

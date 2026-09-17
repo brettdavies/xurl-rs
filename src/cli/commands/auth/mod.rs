@@ -6,9 +6,10 @@ use serde::Serialize;
 use super::{Gate, gate_destructive};
 use crate::auth::Auth;
 use crate::cli::AuthCommands;
+use crate::cli::failure::CommandResult;
 use crate::cli::output::OutputConfig;
 use crate::config::{self, ResolveSource};
-use crate::error::{Result, XurlError};
+use crate::error::Error;
 use crate::store::TokenStore;
 
 mod apps;
@@ -99,7 +100,7 @@ pub(super) fn run_auth_command(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> Result<()> {
+) -> CommandResult<()> {
     let ctx = AuthCtx {
         auth: &mut auth,
         flags,
@@ -179,15 +180,20 @@ fn truncate(s: &str, max_len: usize) -> &str {
 /// when one is set, since that alone can already drive app-only calls.
 /// Structured output carries an empty `apps` array inside the same success
 /// envelope, so a caller iterates it without a zero-app special case.
-fn print_no_apps_registered(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
+fn print_no_apps_registered(
+    auth: &Auth,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> CommandResult<()> {
     // An empty `apps` map means two different things. Saying "nothing is
     // registered" about a file the loader could not read would send the
     // reader to `apps add`, which then refuses.
     if auth.token_store.load_failed() {
-        return Err(XurlError::token_store(format!(
+        return Err(Error::token_store(format!(
             "cannot read the token store at {}: it exists but could not be loaded; inspect or move it",
             auth.token_store.file_path.display()
-        )));
+        ))
+        .into());
     }
     if out.format.is_structured() {
         out.print_success(stdout, &serde_json::json!({ "apps": [] }));

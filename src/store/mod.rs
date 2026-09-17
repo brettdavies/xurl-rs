@@ -23,7 +23,7 @@ use std::path::PathBuf;
 #[allow(unused_imports)] // Re-exported for library consumers and integration tests
 pub use types::{App, LoadState, OAuth1Token, OAuth2Token, Token, TokenType};
 
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 // ── TokenStore ───────────────────────────────────────────────────────
 
@@ -250,7 +250,20 @@ impl TokenStore {
         if self.apps.contains_key(name) {
             Ok(())
         } else {
-            Err(XurlError::token_store(format!("app {name:?} not found")))
+            Err(Error::token_store(format!("app {name:?} not found")))
+        }
+    }
+
+    /// The not-found error for `username` in `app`, checked on the caller's
+    /// view before the lock is taken and again on disk truth inside it, as
+    /// [`Self::require_app`] is.
+    fn require_user(app: &App, username: &str) -> Result<()> {
+        if app.oauth2_tokens.contains_key(username) {
+            Ok(())
+        } else {
+            Err(Error::token_store(format!(
+                "user {username:?} not found in app"
+            )))
         }
     }
 
@@ -258,9 +271,7 @@ impl TokenStore {
     /// [`Self::require_app`].
     fn refuse_if_app_present(&self, name: &str) -> Result<()> {
         if self.apps.contains_key(name) {
-            Err(XurlError::token_store(format!(
-                "app {name:?} already exists"
-            )))
+            Err(Error::token_store(format!("app {name:?} already exists")))
         } else {
             Ok(())
         }
@@ -289,7 +300,7 @@ impl TokenStore {
             let app = store
                 .apps
                 .get_mut(name)
-                .ok_or_else(|| XurlError::token_store(format!("app {name:?} not found")))?;
+                .ok_or_else(|| Error::token_store(format!("app {name:?} not found")))?;
             if !client_id.is_empty() {
                 app.client_id = client_id.to_string();
             }
@@ -406,22 +417,10 @@ impl TokenStore {
     ///
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
-        if !self
-            .resolve_app(app_name)
-            .oauth2_tokens
-            .contains_key(username)
-        {
-            return Err(XurlError::token_store(format!(
-                "user {username:?} not found in app"
-            )));
-        }
+        Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
-            if !app.oauth2_tokens.contains_key(username) {
-                return Err(XurlError::token_store(format!(
-                    "user {username:?} not found in app"
-                )));
-            }
+            Self::require_user(app, username)?;
             app.default_user = username.to_string();
             Ok(())
         })
@@ -586,7 +585,7 @@ impl TokenStore {
             store.update(f)
         })
         .await
-        .map_err(|e| XurlError::Internal(format!("store update task failed: {e}")))?
+        .map_err(|e| Error::Internal(format!("store update task failed: {e}")))?
     }
 
     /// Re-reads the backing file, keeping a backfilled credential where the
@@ -616,6 +615,18 @@ impl TokenStore {
         }
     }
 
+    /// Writes the store under the sidecar lock without re-reading the file
+    /// first: the in-memory state is the whole truth, as it is right after a
+    /// legacy file has been migrated.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the lock cannot be taken or the save fails.
+    pub(crate) fn save_locked(&self) -> Result<()> {
+        let _lock = lock::StoreLock::acquire(&self.file_path)?;
+        self.save_to_file()
+    }
+
     /// Writes the store to its file as YAML, atomically and `0600`.
     pub(crate) fn save_to_file(&self) -> Result<()> {
         self.refuse_if_load_failed()?;
@@ -623,7 +634,7 @@ impl TokenStore {
             apps: self.apps.clone(),
             default_app: self.default_app.clone(),
         };
-        let data = serde_yaml::to_string(&sf).map_err(|e| XurlError::Json(e.to_string()))?;
+        let data = serde_yaml::to_string(&sf).map_err(|e| Error::Json(e.to_string()))?;
         write_atomically(&self.file_path, data.as_bytes())?;
         Ok(())
     }
@@ -648,7 +659,7 @@ impl TokenStore {
     /// never overwritten.
     fn refuse_if_load_failed(&self) -> Result<()> {
         if self.load_failed() {
-            return Err(XurlError::token_store(format!(
+            return Err(Error::token_store(format!(
                 "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",
                 self.file_path.display()
             )));
@@ -673,7 +684,7 @@ pub fn is_app_name_char(c: char) -> bool {
 /// registration validates.
 fn validate_app_name(name: &str) -> Result<()> {
     if name.is_empty() || !name.chars().all(is_app_name_char) {
-        return Err(XurlError::validation(format!(
+        return Err(Error::validation(format!(
             "invalid app name {name:?}: use letters, digits, '_', '.', and '-' only"
         )));
     }

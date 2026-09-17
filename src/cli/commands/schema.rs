@@ -13,7 +13,7 @@ use crate::api::{
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
-use crate::error::{Result, XurlError};
+use crate::error::{Error, Result};
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -135,7 +135,7 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "skill-install" => schema_for!(InstallEnvelope),
         "skill-install-all" => schema_for!(InstallMultiEnvelope),
         "auth" | "media" | "completions" | "version" | "schema" => {
-            return Err(XurlError::validation(format!(
+            return Err(Error::validation(format!(
                 "schema not available for '{command}' (no typed response)"
             )));
         }
@@ -145,7 +145,7 @@ fn schema_for_command(command: &str) -> Result<Value> {
                 .flat_map(|e| e.commands.iter())
                 .copied()
                 .collect();
-            return Err(XurlError::validation(format!(
+            return Err(Error::validation(format!(
                 "unknown command '{command}'. Valid commands: {}",
                 valid.join(", ")
             )));
@@ -194,7 +194,7 @@ pub fn run_schema(
         }
         None => {
             // No argument: show help text (same as `xr schema --help`)
-            Err(XurlError::validation(
+            Err(Error::validation(
                 "usage: xr schema <COMMAND> | xr schema envelope | xr schema --list | xr schema --all",
             ))
         }

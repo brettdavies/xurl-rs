@@ -523,7 +523,7 @@ fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
         ],
     );
 
-    // A failed exchange is an `XurlError::Auth`, so it carries
+    // A failed exchange is an `Error::Auth`, so it carries
     // `EXIT_AUTH_REQUIRED` whatever the upstream status was.
     assert_eq!(code, xurl::error::EXIT_AUTH_REQUIRED, "stderr: {stderr}");
     assert!(
