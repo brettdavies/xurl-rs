@@ -180,6 +180,24 @@ const ROUTES: &[Route] = &[
         fixture: "usage",
         status: 200,
     },
+    Route {
+        method: "GET",
+        path: r"^/2/broadcasts/chat/moderators$",
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        method: "POST",
+        path: r"^/2/broadcasts/chat/moderators$",
+        fixture: "chat_moderators",
+        status: 200,
+    },
+    Route {
+        method: "DELETE",
+        path: r"^/2/broadcasts/chat/moderators/[0-9]+$",
+        fixture: "chat_moderators",
+        status: 200,
+    },
 ];
 
 fn fixtures() -> &'static Value {

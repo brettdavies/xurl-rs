@@ -4,7 +4,7 @@
 
 use clap::Parser;
 
-use super::{AuthCommands, Cli, Commands};
+use super::{AuthCommands, BroadcastsCommands, Cli, Commands, ModeratorsCommands};
 
 /// `xr auth oauth2 alice --no-browser --step 1` binds the positional to
 /// `alice`. Driving the flow end to end lives in `tests/auth_remote_tests.rs`.
@@ -135,4 +135,23 @@ fn quiet_space_true_is_not_a_flag_value() {
     let parsed = parse_flags(&["xr", "--quiet", "true"]);
     assert!(parsed.quiet);
     assert_eq!(parsed.url.as_deref(), Some("true"));
+}
+
+/// `xr broadcasts moderators add @alice` binds the handle to the add verb of
+/// the moderators family.
+#[test]
+fn broadcasts_moderators_add_binds_the_handle() {
+    let parsed = Cli::try_parse_from(["xr", "broadcasts", "moderators", "add", "@alice"])
+        .expect("the family parses");
+
+    let Some(Commands::Broadcasts { target }) = parsed.command else {
+        panic!("expected Broadcasts subcommand");
+    };
+    let BroadcastsCommands::Moderators { action } = target;
+    match action {
+        ModeratorsCommands::Add {
+            target_username, ..
+        } => assert_eq!(target_username, "@alice"),
+        other => panic!("expected the add verb, got {other:?}"),
+    }
 }

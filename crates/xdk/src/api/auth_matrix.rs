@@ -262,9 +262,9 @@ mod tests {
     use crate::api::request::RequestTarget;
     use crate::error::Error;
 
-    /// Shortcut + media layer currently targets 35 (method, path) pairs.
+    /// Shortcut + media layer currently targets 38 (method, path) pairs.
     /// Updating this requires updating the allowlist in `build.rs`.
-    const EXPECTED_SHORTCUT_COUNT: usize = 35;
+    const EXPECTED_SHORTCUT_COUNT: usize = 38;
 
     #[test]
     fn shortcut_templates_anchor_count() {

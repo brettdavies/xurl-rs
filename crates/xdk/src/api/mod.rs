@@ -29,10 +29,10 @@ pub use request::{
 pub use request::{DEFAULT_USER_AGENT, RateLimit};
 #[allow(unused_imports)]
 pub use response::types::{
-    ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,
-    FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
-    UsageData, User, UserPublicMetrics, deserialize_response,
+    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
+    DmEvent, FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse,
+    MutingResult, Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, deserialize_response,
 };
 #[allow(unused_imports)]
 pub use shortcuts::{resolve_post_id, resolve_username};

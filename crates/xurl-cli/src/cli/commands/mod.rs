@@ -16,7 +16,9 @@ use serde_json::json;
 
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
-use crate::cli::{Cli, Commands, CommonFlags, UsageCommands};
+use crate::cli::{
+    BroadcastsCommands, Cli, Commands, CommonFlags, ModeratorsCommands, UsageCommands,
+};
 use xdk::api::shortcuts;
 use xdk::api::{self, Call, Client, RequestOptions, RequestTarget};
 use xdk::auth::Auth;
@@ -930,6 +932,64 @@ async fn run_subcommand(
                 .await?;
             print_typed(out, stdout, &response)?;
         }
+
+        // ── Broadcasts ───────────────────────────────────────────────
+        Commands::Broadcasts { target } => match target {
+            BroadcastsCommands::Moderators { action } => match action {
+                ModeratorsCommands::List { common } => {
+                    let client = make_client(cfg, auth)?;
+                    let response = with_flags(client.get_chat_moderators(), &common, None)
+                        .send()
+                        .await?;
+                    print_typed(out, stdout, &response)?;
+                }
+                ModeratorsCommands::Add {
+                    target_username,
+                    common,
+                } => {
+                    let ctx = json!({
+                        "command": "broadcasts-moderators-add",
+                        "target_username": target_username
+                    });
+                    let user = target_username.clone();
+                    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                        shortcuts::validate_target_username(&user)
+                    })?;
+                    if !proceed {
+                        return Ok(());
+                    }
+                    let client = make_client(cfg, auth)?;
+                    let target_id = resolve_user_id(&client, &target_username, &common).await?;
+                    let response = with_flags(client.add_chat_moderator(&target_id), &common, None)
+                        .send()
+                        .await?;
+                    print_typed(out, stdout, &response)?;
+                }
+                ModeratorsCommands::Remove {
+                    target_username,
+                    common,
+                } => {
+                    let ctx = json!({
+                        "command": "broadcasts-moderators-remove",
+                        "target_username": target_username
+                    });
+                    let user = target_username.clone();
+                    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+                        shortcuts::validate_target_username(&user)
+                    })?;
+                    if !proceed {
+                        return Ok(());
+                    }
+                    let client = make_client(cfg, auth)?;
+                    let target_id = resolve_user_id(&client, &target_username, &common).await?;
+                    let response =
+                        with_flags(client.remove_chat_moderator(&target_id), &common, None)
+                            .send()
+                            .await?;
+                    print_typed(out, stdout, &response)?;
+                }
+            },
+        },
 
         // ── Auth ─────────────────────────────────────────────────────
         Commands::Auth { command } => {

@@ -92,6 +92,10 @@ const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
     ("POST", "/2/media/upload/initialize"),
     ("POST", "/2/media/upload/{id}/append"),
     ("POST", "/2/media/upload/{id}/finalize"),
+    // broadcasts
+    ("GET", "/2/broadcasts/chat/moderators"),
+    ("POST", "/2/broadcasts/chat/moderators"),
+    ("DELETE", "/2/broadcasts/chat/moderators/{user_id}"),
 ];
 
 #[derive(Deserialize)]
