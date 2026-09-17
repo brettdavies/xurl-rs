@@ -32,12 +32,22 @@ pub struct MediaUploadOutcome {
     pub processing: Option<Result<ApiResponse<MediaUploadResponse>>>,
 }
 
+impl MediaUploadOutcome {
+    /// The media id the upload produced, valid whether or not processing
+    /// was awaited.
+    #[must_use]
+    pub fn media_id(&self) -> &str {
+        &self.init.data.id
+    }
+}
+
 /// Handles the full media upload lifecycle.
 ///
 /// # Errors
 ///
 /// Returns an error if the file cannot be read, any upload phase (INIT, APPEND,
 /// FINALIZE) fails, or media processing times out.
+#[doc(hidden)]
 #[allow(clippy::too_many_arguments)]
 pub async fn execute_media_upload(
     file_path: &str,

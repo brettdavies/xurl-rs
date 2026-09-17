@@ -1,4 +1,5 @@
 //! Uploads one media file and publishes a post that carries it, as a user.
+//! The media type and category come from the file's extension.
 //!
 //! ```bash
 //! CLIENT_ID=... CLIENT_SECRET=... ACCESS_TOKEN=... \
@@ -7,7 +8,7 @@
 
 mod common;
 
-use xdk::api::{Client, execute_media_upload};
+use xdk::api::Client;
 use xdk::auth::OAuth2Credential;
 
 #[tokio::main]
@@ -21,17 +22,6 @@ async fn run() -> xdk::Result<()> {
     let mut args = std::env::args().skip(1);
     let file = args.next().unwrap_or_else(|| "photo.png".to_string());
     let text = args.next().unwrap_or_else(|| "hello from xdk".to_string());
-    let media_type = match file.rsplit('.').next() {
-        Some("jpg" | "jpeg") => "image/jpeg",
-        Some("gif") => "image/gif",
-        Some("mp4") => "video/mp4",
-        _ => "image/png",
-    };
-    let category = if media_type.starts_with("video/") {
-        "tweet_video"
-    } else {
-        "tweet_image"
-    };
 
     let client = Client::builder()
         .oauth2(OAuth2Credential {
@@ -43,27 +33,13 @@ async fn run() -> xdk::Result<()> {
         })
         .build()?;
 
-    let auth_scheme = ""; // empty: pick per the endpoint's auth matrix
-    let username = ""; // empty: the credential's own user
-    let trace = false;
-    let wait_for_processing = true;
-    let extra_headers: &[String] = &[];
-    let upload = execute_media_upload(
-        &file,
-        media_type,
-        category,
-        auth_scheme,
-        username,
-        trace,
-        wait_for_processing,
-        extra_headers,
-        &client,
-    )
-    .await?;
-    let media_id = upload.init.data.id.clone();
-    println!("uploaded {file} as media {media_id}");
+    let upload = client.upload_media(&file).send().await?;
+    println!("uploaded {file} as media {}", upload.media_id());
 
-    let post = client.create_post(&text, &[media_id]).send().await?;
+    let post = client
+        .create_post(&text, &[upload.media_id().to_string()])
+        .send()
+        .await?;
     println!("posted {}: {}", post.data.id, post.data.text);
     Ok(())
 }
