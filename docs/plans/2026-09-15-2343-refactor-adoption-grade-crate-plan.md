@@ -5,6 +5,9 @@ date: 2026-09-15
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
+status: implemented
+implementation: stacked PRs #167-#177 on dev (S01-S11), each green at its head; merge pending
+open_tasks: T3 (waiver deletion at the xdk-rs-v0.1.0 tag), T12 (release-plz, out of scope), T30, T31
 ---
 
 # Adoption-Grade Crate and CLI - Plan
@@ -1985,12 +1988,12 @@ finish A, then U6 alone. Phase B and Phase C are sequential after U6.
 
 Synthesized from this review's findings. Each derives from a specific finding above.
 
-- [ ] **T1 (P1, human: ~1d / CC: ~40min)** — store — Add U0: atomic write, `0600` at open, OS file lock, two-process
+- [x] **T1 (P1, human: ~1d / CC: ~40min)** — store — Add U0: atomic write, `0600` at open, OS file lock, two-process
   test
   - Surfaced by: Issue 3 + Issue 8 — `src/store/mod.rs:503` uses `fs::write` with post-hoc `set_permissions` and no lock
   - Files: `src/store/mod.rs`, `src/auth/pending.rs`, `tests/store_tests.rs`
   - Verify: two-process test observed failing against today's `fs::write` path first
-- [ ] **T2 (P1, human: ~1.5d / CC: ~1h)** — cli — Convert the CLI to async; delete the facade and the `blocking` feature
+- [x] **T2 (P1, human: ~1.5d / CC: ~1h)** — cli — Convert the CLI to async; delete the facade and the `blocking` feature
   - Surfaced by: Issue 9 reopened (9E) — 4 entrypoints, 40 `.await` sites, 17 test refs
   - Files: `src/main.rs`, `src/cli/runner.rs`, `src/cli/commands/*`
   - Verify: `cargo test` at the same count, plus `xr <cmd> | head -1` exits clean
@@ -1998,26 +2001,26 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Surfaced by: Issue 1 — `Cargo.toml:73-75` declares `[lib] name = "xurl"` on a published crate
   - Files: `Cargo.toml`, `docs/migrating/v4.0.0.md`, `.github/workflows/release.yml`
   - Verify: `cargo semver-checks --release-type major` passes with no waiver entries
-- [ ] **T4 (P1, human: ~2h / CC: ~15min)** — workspace — Manifest-partition table and a standing CI binary-size ceiling
+- [x] **T4 (P1, human: ~2h / CC: ~15min)** — workspace — Manifest-partition table and a standing CI binary-size ceiling
   - Surfaced by: Issue 5 — `[profile.release]` is silently ignored in a member manifest
   - Files: `Cargo.toml`, `.github/workflows/ci.yml`
   - Verify: the release `xr` is under its recorded ceiling
-- [ ] **T5 (P1, human: ~1d / CC: ~45min)** — workspace — Move `skill_install` to the binary crate; split `build.rs`
+- [x] **T5 (P1, human: ~1d / CC: ~45min)** — workspace — Move `skill_install` to the binary crate; split `build.rs`
   - Surfaced by: Issue 7 — `OUT_DIR` cannot cross a crate boundary (`src/skill_install/mod.rs:71`)
   - Files: `build.rs`, `src/skill_install/`, `Cargo.toml`
   - Verify: both crates build; `git blame -C -C -C` shows preserved history
-- [ ] **T6 (P2, human: ~15min / CC: ~3min)** — tests — Fold the four test repoints and the doc links into U2
+- [x] **T6 (P2, human: ~15min / CC: ~3min)** — tests — Fold the four test repoints and the doc links into U2
   - Surfaced by: Issue 2 — `cargo test` does not compile between U2 and U5
   - Files: `tests/output_writer_tests.rs`, `tests/oauth2_flow_tests.rs`, `src/config/mod.rs`,
     `src/skill_install/update.rs`
   - Verify: `cargo test` green at the end of U2
-- [ ] **T7 (P2, human: ~1h / CC: ~10min)** — workspace — Mechanical pre-flight and exit gates on U6
+- [x] **T7 (P2, human: ~1h / CC: ~10min)** — workspace — Mechanical pre-flight and exit gates on U6
   - Surfaced by: Issue 4 — three verified omissions in hand-written file lists; extended to cover `build.rs`, which
     addresses source by string literal (`:44`, `:45`) so no compiler error fires when the target moves
   - Files: `.github/workflows/ci.yml`, `scripts/hooks/pre-push`, `build.rs`
   - Verify: `rg 'crate::cli' src/ --glob '!src/cli/**'` returns empty, and every `src/**` literal in `build.rs` sits in
     the crate that owns the file it names
-- [ ] **T14 (P2, human: ~3h / CC: ~20min)** — workspace — Sweep the knowledge stores in U6, frontmatter included
+- [x] **T14 (P2, human: ~3h / CC: ~20min)** — workspace — Sweep the knowledge stores in U6, frontmatter included
   - Surfaced by: the U6 corpus-sweep section — the stores are unlisted consumers that no gate reads, and a dead citation
     in one reads as "not located yet" rather than "wrong"
   - Files: `~/.gstack/projects/<slug>/learnings.jsonl`, `~/.claude/projects/<slug>/memory/*.md`, ~5 xurl-rs-scoped docs
@@ -2025,23 +2028,23 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Verify: all three sweeps report no `DEAD:` lines; `rust-module-splitting-srp-not-loc-20260327.md:13`'s `module:`
     frontmatter pin is repointed and its two paths noted as landing in different crates; each repointed citation's claim
     re-read, not just its path
-- [ ] **T8 (P2, human: ~1h / CC: ~10min)** — error — Make `exit_code()` exhaustive; drop U11's snapshot test
+- [x] **T8 (P2, human: ~1h / CC: ~10min)** — error — Make `exit_code()` exhaustive; drop U11's snapshot test
   - Surfaced by: Issue 6 — `src/error.rs:368` wildcard means every new variant silently returns exit 1
   - Files: `src/error.rs`
   - Verify: a planted throwaway variant fails the build at both `kind()` and `exit_code()`
-- [ ] **T9 (P2, human: ~4h / CC: ~25min)** — auth — One shared HTTP client; hard-error the timeout fallback
+- [x] **T9 (P2, human: ~4h / CC: ~25min)** — auth — One shared HTTP client; hard-error the timeout fallback
   - Surfaced by: Issue 10 — `unwrap_or_else(|_| Client::new())` discards `http_timeout_secs` at six sites, derived by
     `rg`: three in `auth/`, plus `transport.rs:272`, `request/mod.rs:246`, `streaming.rs:53`
   - Files: `src/auth/oauth2.rs`, `src/auth/mod.rs`, `src/api/request/{auth_header,transport,mod}.rs`,
     `src/cli/commands/streaming.rs`
   - Verify: a refresh against a non-responding server gives up at `http_timeout_secs`; the builder-failure test targets
     the single surviving construction site; a guard asserts the `rg` pattern matches nothing in either crate
-- [ ] **T10 (P2, human: ~4h / CC: ~25min)** — tests — Media-poll-sleep and listener-future-drop tests
+- [x] **T10 (P2, human: ~4h / CC: ~25min)** — tests — Media-poll-sleep and listener-future-drop tests
   - Surfaced by: Test review — `tests/api_tests.rs:1099` returns `succeeded` immediately; `callback_tests.rs:338` covers
     API cancellation, not future drop
   - Files: `tests/api_tests.rs`, `tests/callback_tests.rs`
   - Verify: `src/api/media.rs:315` executes under test; the port rebinds after a dropped future
-- [ ] **T11 (P3, human: ~10min / CC: ~2min)** — tests — Rename `test_concurrent_app_operations`
+- [x] **T11 (P3, human: ~10min / CC: ~2min)** — tests — Rename `test_concurrent_app_operations`
   - Surfaced by: Issue 8 — `tests/store_tests.rs:914` is a sequential loop claiming concurrency coverage
   - Files: `tests/store_tests.rs`
   - Verify: `cargo test` green
@@ -2049,7 +2052,7 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Surfaced by: Step 0 solutions search — a working two-crate setup is already documented
   - Files: `release-plz.toml`, `.github/workflows/release.yml`
   - Verify: a dry-run release produces the same artifact names
-- [ ] **T13 (P1, human: ~4h / CC: ~25min)** — auth — Move `shutdown_signal()` to the binary; library takes a
+- [x] **T13 (P1, human: ~4h / CC: ~25min)** — auth — Move `shutdown_signal()` to the binary; library takes a
   `CancellationToken`
   - Surfaced by: Issue 11 — `src/auth/callback.rs:31` registers a process-global SIGTERM handler that outlives the
     future awaiting it; was the review's only silent-and-untested-and-unhandled failure mode
@@ -2260,7 +2263,7 @@ different plan. Its dimension scores are not comparable to these; only the overa
 Synthesized from this review. Each derives from a specific decision above and continues the numbering from the
 engineering review.
 
-- [ ] **T15 (P1, human: ~4h / CC: ~30min)** — api — Client builder taking credentials directly; fluent `Call<T>` per
+- [x] **T15 (P1, human: ~4h / CC: ~30min)** — api — Client builder taking credentials directly; fluent `Call<T>` per
   call
   - Surfaced by: D3 + D7 — `Auth::new(&cfg)` reads `~/.xurl`, which only the CLI writes; 34 `&CallOptions` params across
     32 public methods at `src/api/shortcuts.rs`
@@ -2268,49 +2271,49 @@ engineering review.
     `src/cli/commands/*`, `tests/api_tests.rs`; counts derived by `rg` at unit start, never copied
   - Verify: an embedder reaches a typed response in under 2 min with no CLI, no store file, and no `env::set_var`; `rg
     '&CallOptions' src/cli/` is empty; the golden fixtures re-assert
-- [ ] **T16 (P1, human: ~3d / CC: ~2h)** — lib — Move presentation and side effects to the binary crate
+- [x] **T16 (P1, human: ~3d / CC: ~2h)** — lib — Move presentation and side effects to the binary crate
   - Surfaced by: D8 — R1 forbids `colored` and `open` in the library; `colored` is at `src/api/response/format.rs` and
     `open` in all three `auth/` files; `src/api/request/transport.rs:345,354` writes to the caller's terminal
   - Files: `src/api/response/format.rs`, `src/api/request/{transport,mod}.rs`, `src/auth/{mod,oauth2,callback}.rs`,
     `src/output/` → `src/cli/output/`, `src/envelope.rs` → `src/cli/envelope.rs`, `src/config/mod.rs`
   - Verify: `cargo tree -p xdk-rs -i <dep>` empty for all four R1 names; no stdout/stderr reference in `crates/xdk/src/`
-- [ ] **T17 (P1, human: ~1h / CC: ~10min)** — error — Rename `XurlError` to `xdk::Error`, re-export at the crate root
+- [x] **T17 (P1, human: ~1h / CC: ~10min)** — error — Rename `XurlError` to `xdk::Error`, re-export at the crate root
   - Surfaced by: D6 — the only public identifier still carrying the old brand, across 267 references in 30 files
   - Files: `src/error.rs`, `src/lib.rs`
   - Verify: `rg 'pub (struct|enum|fn|const|type) .*[Xx][Uu][Rr][Ll]' crates/xdk/src` returns empty
-- [ ] **T18 (P2, human: ~2h / CC: ~15min)** — error — Lowercase Display, drop the sentinel, add `docs_url()`
+- [x] **T18 (P2, human: ~2h / CC: ~15min)** — error — Lowercase Display, drop the sentinel, add `docs_url()`
   - Surfaced by: D12 — `"Auth Error: {0}"` stutters inside an embedder's `anyhow` chain;
     `#[error("envelope-already-emitted")]` at `src/error.rs:102` is internal control flow in a public enum
   - Files: `src/error.rs`, `src/output/mod.rs` (prefix re-application at `print_error_with_hint`), `tests/cli_tests.rs`
   - Verify: `xr` error text is byte-identical to the previous tag; the three pinned assertions still pass
-- [ ] **T19 (P1, human: ~3h / CC: ~20min)** — docs — Complete docs.rs landing example with the credential line
+- [x] **T19 (P1, human: ~3h / CC: ~20min)** — docs — Complete docs.rs landing example with the credential line
   - Surfaced by: D4 + D10 — the magical moment; a fragment that stops before auth reproduces the Developer Perspective
     dead end
   - Files: `crates/xdk/src/lib.rs`
   - Verify: paste into an empty crate with only the stated `Cargo.toml` additions; it compiles and returns a post
-- [ ] **T20 (P1, human: ~3h / CC: ~20min)** — docs — Root README: router nav, library-first, deep-linked CLI section
+- [x] **T20 (P1, human: ~3h / CC: ~20min)** — docs — Root README: router nav, library-first, deep-linked CLI section
   - Surfaced by: D13 — U9 specified two member READMEs and never said what lands at the repository root, which is what
     GitHub, the docs.rs Repository link, and U13's reviewer all see
   - Files: `README.md`, `crates/xdk/README.md`, `crates/xurl-cli/README.md`
   - Verify: a library visitor reaches `cargo add` and a working example without scrolling past CLI install instructions
-- [ ] **T21 (P2, human: ~2h / CC: ~15min)** — docs — Doctest the README via `include_str!`; tag every shell fence
+- [x] **T21 (P2, human: ~2h / CC: ~15min)** — docs — Doctest the README via `include_str!`; tag every shell fence
   - Surfaced by: D15 — `src/lib.rs` has no `include_str!`, so README code has never been compiled
   - Files: `crates/xdk/src/lib.rs`, `crates/xdk/README.md`
   - Verify: break a snippet deliberately, observe `cargo test --doc -p xdk-rs` fail, revert
-- [ ] **T22 (P2, human: ~2h / CC: ~15min)** — docs — Document X's playground as the embedder integration-test path
+- [x] **T22 (P2, human: ~2h / CC: ~15min)** — docs — Document X's playground as the embedder integration-test path
   - Surfaced by: D14 — `CONTRIBUTING.md:68-81` offers it to contributors only; binary present at
     `~/.cache/go/bin/playground`
   - Files: `crates/xdk/src/lib.rs`, `crates/xdk/README.md`
   - Verify: the documented sequence answers a real read; the Go-toolchain and spec-vocabulary limits are both stated
-- [ ] **T23 (P2, human: ~3d / CC: ~2h)** — testing — Non-default `testing` feature: mock-server builder plus fixtures
+- [x] **T23 (P2, human: ~3d / CC: ~2h)** — testing — Non-default `testing` feature: mock-server builder plus fixtures
   - Surfaced by: D14 — an embedder testing against a metered API pays real credits on every CI run
   - Files: `crates/xdk/src/testing/`, `Cargo.toml`, `.github/workflows/ci.yml`
   - Verify: `--features testing` green; a default build's dependency graph is unchanged
-- [ ] **T24 (P2, human: ~1h / CC: ~10min)** — ci — Run the credential-free example to completion in CI
+- [x] **T24 (P2, human: ~1h / CC: ~10min)** — ci — Run the credential-free example to completion in CI
   - Surfaced by: D15 — `cargo build --examples` proves compilation and nothing about whether the example works
   - Files: `.github/workflows/ci.yml`; depends on T23 — runs `cargo run --example <name> --features testing`
   - Verify: breaking the example's runtime path fails CI, not just its compilation; the job needs no Go toolchain
-- [ ] **T25 (P2, human: ~2h / CC: ~15min)** — release — State and enforce the breaking-change and MSRV policy
+- [x] **T25 (P2, human: ~2h / CC: ~15min)** — release — State and enforce the breaking-change and MSRV policy
   - Surfaced by: D9 — KTD5 has 0.x minors breaking repeatedly with no guidance, and R9 names an MSRV policy the plan
     never states
   - Files: `crates/xdk/README.md`, `cliff.toml`, `Cargo.toml`
@@ -2498,19 +2501,19 @@ before any of it lands.
 
 ### Implementation Tasks — CLI
 
-- [ ] **T26 (P1, human: ~1h / CC: ~10min)** — release — Keep the CLI on `vX.Y.Z`; prefix the library tag only
+- [x] **T26 (P1, human: ~1h / CC: ~10min)** — release — Keep the CLI on `vX.Y.Z`; prefix the library tag only
   - Surfaced by: D6 — `release.yml` fires on `tags: v[0-9]+.[0-9]+.[0-9]+`, so `xurl-rs-v4.0.0` starts no run at all;
     binstall `pkg-url`, the formula `url`, and the bottle `root_url` each embed the tag
   - Files: `Cargo.toml`, `cliff.toml`, `.github/workflows/release.yml`
   - Verify: a dry-run release fires, and all three install paths resolve against the published tag
-- [ ] **T27 (P1, human: ~4h / CC: ~30min)** — tests — Capture the golden-output baseline before U2
+- [x] **T27 (P1, human: ~4h / CC: ~30min)** — tests — Capture the golden-output baseline before U2
   - Surfaced by: D7 — R10 promises unchanged CLI behavior while KTD16 moves the output layer across a crate boundary and
     KTD17 rewrites the error Display strings, with no gate comparing before and after
   - Files: `tests/golden/`, `tests/cli_tests.rs`, `schema/output.schema.json` (source of the reason set)
   - Verify: fixtures recorded from the pre-split binary, reason set derived from the schema enum with a trigger per
     reason and a committed untriggerable list, one `--verbose` capture against the mock; byte-equality re-asserted after
     U2, U19, U6, and U11; a schema reason with neither fixture nor list entry fails the matrix test
-- [ ] **T28 (P2, human: ~1.5h / CC: ~15min)** — ci — Gate `anc audit` on MUST-tier failures and a score floor
+- [x] **T28 (P2, human: ~1.5h / CC: ~15min)** — ci — Gate `anc audit` on MUST-tier failures and a score floor
   - Surfaced by: Pass 8 — `anc` runs neither in CI nor in `scripts/hooks/pre-push`, which is how #165's four new
     commands drifted out of the `p6` vocabulary unnoticed; final eng pass — `anc audit` exits 2 today on
     `p2-must-json-errors` (routed to 3.3.0), and `p6` drift is `warn`, so a MUST-only gate is red now and blind to #165
@@ -2518,7 +2521,7 @@ before any of it lands.
   - Verify: `cargo binstall agentnative --force`, audit the release `xr` via `--command`; a planted MUST-tier violation
     fails the job; a planted `p6` vocabulary drift that lowers the score below the committed floor (94) fails the job;
     `p2-must-json-errors` is the only id exempted, and 3.3.0 deletes the exemption
-- [ ] **T29 (P2, human: ~30min / CC: ~5min)** — release — Move the `xr --version` contract test with KTD13
+- [x] **T29 (P2, human: ~30min / CC: ~5min)** — release — Move the `xr --version` contract test with KTD13
   - Surfaced by: D8 — `tests/binary_contract_tests.rs` pins that output and KTD13 changes it
   - Files: `tests/binary_contract_tests.rs`, `src/cli/`
   - Verify: plain `xr --version` gains no field; verbose and JSON forms carry the library version
@@ -2540,64 +2543,64 @@ answered; every finding is folded above. The tasks below continue the numbering.
 
 ### Implementation Tasks — Final Eng Pass
 
-- [ ] **T32 (P1, human: ~1d / CC: ~1h)** — api — U19: credential constructor, on-token-refreshed hook, `Call<T>` across
+- [x] **T32 (P1, human: ~1d / CC: ~1h)** — api — U19: credential constructor, on-token-refreshed hook, `Call<T>` across
   the CLI call sites
   - Surfaced by: Issue 2 + Issue 7 — KTD15 and R12 had no implementing unit; `src/auth/oauth2.rs:501-548` persists a
     rotated refresh token only through the CLI store
   - Files: `src/api/request/mod.rs`, `src/api/shortcuts.rs`, `src/auth/mod.rs`, `src/store/mod.rs`,
     `src/cli/commands/*`, `tests/api_tests.rs`
   - Verify: `rg '&CallOptions' src/cli/` empty; the hook test receives the rotated pair; golden fixtures re-assert
-- [ ] **T33 (P1, human: ~3h / CC: ~20min)** — release — `release-lib.yml` thin caller on `xdk-rs-v*` into an upstream
+- [x] **T33 (P1, human: ~3h / CC: ~20min)** — release — `release-lib.yml` thin caller on `xdk-rs-v*` into an upstream
   `rust-lib-release.yml`; library-before-CLI ordering in the runbook; second git-cliff configuration
   - Surfaced by: Issue 3 — `release.yml:10-11` fires only on `v*`; `rust-release.yml:33-36` requires `bin`
   - Files: `.github/workflows/release-lib.yml`, `cliff.toml`,
     `brettdavies/.github/.github/workflows/rust-lib-release.yml`
   - Verify: a `workflow_dispatch` dry run reaches the publish dry-run; `check-version` fails by name on an unpublished
     bound
-- [ ] **T34 (P1, human: ~1h / CC: ~10min)** — ci-upstream — `package-check` gains `--workspace`; `changelog-check`
+- [x] **T34 (P1, human: ~1h / CC: ~10min)** — ci-upstream — `package-check` gains `--workspace`; `changelog-check`
   matches any `Cargo.toml` path
   - Surfaced by: Issue 4 — `rust-ci.yml:120,123` bare `cargo package --list` / `cargo publish --dry-run`;
     `rust-ci.yml:174` exact `Cargo.toml` match
   - Files: `brettdavies/.github/.github/workflows/rust-ci.yml`
   - Verify: `cargo publish --dry-run --workspace` green on the split branch before U13; a PR bumping
     `crates/xdk/Cargo.toml` without a changelog change fails the Changelog check
-- [ ] **T35 (P2, human: ~1h / CC: ~10min)** — ci — Library-scoped semver baseline, visible first-release skip,
+- [x] **T35 (P2, human: ~1h / CC: ~10min)** — ci — Library-scoped semver baseline, visible first-release skip,
   planted-break probe for `release-type`
   - Surfaced by: Issue 5 — `ci.yml:104` `git tag --sort=-version:refname | head -n 1`; `ci.yml:111` `release-type:
     minor`
   - Files: `.github/workflows/ci.yml`
   - Verify: the job resolves the newest `xdk-rs-v*` tag or skips with a notice; the probe result is recorded in the
     Verification Contract and the flag set from it
-- [ ] **T36 (P2, human: ~4h / CC: ~30min)** — lib — `trace` stays on `Call<T>`; `verbose` becomes `tracing` events; the
+- [x] **T36 (P2, human: ~4h / CC: ~30min)** — lib — `trace` stays on `Call<T>`; `verbose` becomes `tracing` events; the
   binary's subscriber owns the line format
   - Surfaced by: Issue 8 — `transport.rs:78` sets `X-B3-Flags` from `trace`; `ApiClient.out` at `request/mod.rs:223`
   - Files: `src/api/request/{mod,transport}.rs`, `src/cli/output/`, `Cargo.toml`
   - Verify: golden `--verbose` byte-equal; `X-B3-Flags` precedence test green on the builder
-- [ ] **T37 (P2, human: ~1h / CC: ~10min)** — tests — One workspace-rooted guard per property
+- [x] **T37 (P2, human: ~1h / CC: ~10min)** — tests — One workspace-rooted guard per property
   - Surfaced by: Issue 9 — U6 duplicated both guards with separate allowlists
   - Files: `tests/store_isolation_guard.rs`, `tests/env_mutation_guard.rs`
   - Verify: a planted `Auth::new(` in each crate's `tests/` trips the single guard
-- [ ] **T38 (P3, human: ~2h / CC: ~15min)** — store — std `File::lock` on the sidecar, `spawn_blocking` on the async
+- [x] **T38 (P3, human: ~2h / CC: ~15min)** — store — std `File::lock` on the sidecar, `spawn_blocking` on the async
   path, runtime-responsiveness test
   - Surfaced by: Issue 10 — U0 named the syscalls but not the mechanism or its async cost
   - Files: `src/store/mod.rs`, `tests/store_tests.rs`
   - Verify: tasks on the same `current_thread` runtime progress while a sibling process holds the lock
-- [ ] **T39 (P2, human: ~2h / CC: ~15min)** — config — Split `Config`; `EnvOverrides` owns `XURL_OUTPUT`, `HOME`,
+- [x] **T39 (P2, human: ~2h / CC: ~15min)** — config — Split `Config`; `EnvOverrides` owns `XURL_OUTPUT`, `HOME`,
   `NO_COLOR`
   - Surfaced by: Issue 11 — `src/config/mod.rs:96-97,132-133` read CLI-only env into the library type
   - Files: `src/config/mod.rs`, `src/cli/`
   - Verify: `XURL_OUTPUT=json xr --bogus-flag` exits 2 with the envelope carrying `reason: invalid-args`
-- [ ] **T40 (P2, human: ~3h / CC: ~25min)** — tests — Schema-derived reason matrix with a trigger per reason and a
+- [x] **T40 (P2, human: ~3h / CC: ~25min)** — tests — Schema-derived reason matrix with a trigger per reason and a
   committed untriggerable list
   - Surfaced by: Issue 12 — T27 named no source for the reason set; the CLI emits reasons `kind()` never sees
   - Files: `tests/golden/`, `schema/output.schema.json`
   - Verify: a schema reason with neither fixture nor list entry fails the matrix test
-- [ ] **T41 (P2, human: ~1h / CC: ~10min)** — transport — Derived fallback-site list, single-site builder-failure test,
+- [x] **T41 (P2, human: ~1h / CC: ~10min)** — transport — Derived fallback-site list, single-site builder-failure test,
   grep guard
   - Surfaced by: Issue 13 — six `unwrap_or_else(|_| Client::new())` sites, U15 listed three
   - Files: `src/api/request/{mod,transport}.rs`, `src/cli/commands/streaming.rs`, `src/auth/*`
   - Verify: the `rg` pattern matches nothing in either crate; the builder-failure test targets the one construction site
-- [ ] **T42 (P2, human: ~30min / CC: ~5min)** — ci — Credential-free example runs against the `testing` mock; T24
+- [x] **T42 (P2, human: ~30min / CC: ~5min)** — ci — Credential-free example runs against the `testing` mock; T24
   depends on T23
   - Surfaced by: Issue 14 — T24 named no backend
   - Files: `.github/workflows/ci.yml`, `crates/xdk/examples/`
