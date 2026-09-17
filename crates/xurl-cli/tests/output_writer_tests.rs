@@ -266,7 +266,7 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = Error::AuthMethodMismatch {
+    let err = Error::from(xdk::error::AuthMismatch {
         endpoint: "/2/media/upload".to_string(),
         rendered_url: None,
         method: "POST".to_string(),
@@ -275,7 +275,7 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
         available_in_app: None,
         app: None,
         other_apps_with_creds: None,
-    };
+    });
     cfg.print_error(&mut err_buf, &err, 2);
     let s = String::from_utf8(err_buf).expect("utf8");
     let parsed: serde_json::Value = serde_json::from_str(s.trim()).expect("valid JSON");
@@ -335,7 +335,7 @@ fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
         no_interactive: false,
     };
     let mut err_buf: Vec<u8> = Vec::new();
-    let err = Error::AuthMethodMismatch {
+    let err = Error::from(xdk::error::AuthMismatch {
         endpoint: "/2/media/upload".to_string(),
         rendered_url: None,
         method: "POST".to_string(),
@@ -344,7 +344,7 @@ fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
         available_in_app: Some(vec!["oauth1".to_string()]),
         app: Some("default".to_string()),
         other_apps_with_creds: None,
-    };
+    });
     cfg.print_error(&mut err_buf, &err, 2);
     let s = String::from_utf8(err_buf).expect("utf8");
     let parsed: serde_json::Value = serde_json::from_str(s.trim()).expect("valid JSON");
@@ -772,7 +772,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
 
     // 2. The auth-method-mismatch shape, with its eight extra fields.
     let mut buf: Vec<u8> = Vec::new();
-    let mismatch = Error::AuthMethodMismatch {
+    let mismatch = Error::from(xdk::error::AuthMismatch {
         endpoint: "/2/users/{id}/likes".to_string(),
         rendered_url: Some("/2/users/12345/likes".to_string()),
         method: "POST".to_string(),
@@ -781,7 +781,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
         available_in_app: Some(vec!["app".to_string()]),
         app: Some("default".to_string()),
         other_apps_with_creds: Some(vec!["work".to_string()]),
-    };
+    });
     json_config().print_error(&mut buf, &mismatch, 2);
     assert_round_trips(&String::from_utf8_lossy(&buf), "auth-method-mismatch");
 

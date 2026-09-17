@@ -4,10 +4,6 @@
 //! binary's own integration tests can drive the dispatcher in-process; it is
 //! not an embedder API. Rust programs use the `xdk-rs` crate.
 
-// `xdk::Error`'s largest variant carries several `String` and `Vec<String>`
-// fields, and every handler returns it through `Failure`; boxing would change
-// the library's public construction surface for a size the CLI never pays for.
-#![allow(clippy::result_large_err)]
 #![deny(missing_docs)]
 
 #[doc(hidden)]

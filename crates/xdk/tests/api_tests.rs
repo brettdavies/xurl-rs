@@ -1383,12 +1383,13 @@ async fn test_get_usage_rejects_oauth_only_app() {
 
     let err = client.get_usage().send().await.unwrap_err();
     match err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                supported,
+                available_in_app,
+                ..
+            } = *mismatch;
             assert_eq!(endpoint, "/2/usage/tweets");
             assert_eq!(supported, vec!["app"]);
             assert_eq!(available_in_app, Some(vec!["oauth1".to_string()]));
@@ -2624,14 +2625,15 @@ async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
         .unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(method, "POST");
             assert_eq!(requested.as_deref(), Some("app"));
@@ -2728,14 +2730,15 @@ async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     let err = client.send_multipart_request(&mp_opts).await.unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(method, "POST");
             assert_eq!(requested.as_deref(), Some("app"));
@@ -2788,13 +2791,14 @@ async fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
         .unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(requested.as_deref(), Some("app"));
             assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
@@ -2967,15 +2971,16 @@ async fn u7_ae4_auto_detect_empty_intersection_envelope() {
         .unwrap_err();
 
     match err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method: m,
-            requested,
-            supported,
-            available_in_app,
-            app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method: m,
+                requested,
+                supported,
+                available_in_app,
+                app,
+                ..
+            } = *mismatch;
             assert_eq!(endpoint, "/2/media/upload/initialize");
             assert_eq!(m, "POST");
             assert_eq!(requested, None);

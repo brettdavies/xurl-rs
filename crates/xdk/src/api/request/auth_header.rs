@@ -5,7 +5,7 @@
 use tracing::instrument::WithSubscriber;
 
 use crate::api::auth_matrix::WireScheme;
-use crate::error::{Error, Result};
+use crate::error::{AuthMismatch, Error, Result};
 
 use super::render_template_template;
 use super::source::CredentialSource;
@@ -130,7 +130,7 @@ impl Client {
                     let supported: Vec<String> =
                         supported_static.iter().map(|s| (*s).to_string()).collect();
                     let rendered_url = render_template_template(&options.target).ok();
-                    return Err(Error::AuthMethodMismatch {
+                    return Err(Error::from(AuthMismatch {
                         endpoint: path.clone(),
                         rendered_url,
                         method: method.to_string(),
@@ -139,7 +139,7 @@ impl Client {
                         available_in_app: None,
                         app: credentials.active_app(),
                         other_apps_with_creds: None,
-                    });
+                    }));
                 }
             }
             let url = self.build_url(&options.target)?;
@@ -197,7 +197,7 @@ impl Client {
                     let other_apps =
                         credentials.other_apps_with_creds(facts.app.as_deref().unwrap_or_default());
                     if !other_apps.is_empty() {
-                        return Err(Error::AuthMethodMismatch {
+                        return Err(Error::from(AuthMismatch {
                             endpoint: path.clone(),
                             rendered_url,
                             method: method.to_string(),
@@ -206,13 +206,13 @@ impl Client {
                             available_in_app: Some(available_in_app),
                             app: facts.app,
                             other_apps_with_creds: Some(other_apps),
-                        });
+                        }));
                     }
                     if facts.available.is_empty() {
                         return Err(Error::auth(crate::error::NO_AUTH_METHOD));
                     }
                 }
-                return Err(Error::AuthMethodMismatch {
+                return Err(Error::from(AuthMismatch {
                     endpoint: path.clone(),
                     rendered_url,
                     method: method.to_string(),
@@ -221,7 +221,7 @@ impl Client {
                     available_in_app: Some(available_in_app),
                     app: facts.app,
                     other_apps_with_creds: None,
-                });
+                }));
             }
             return Err(Error::auth(crate::error::NO_AUTH_METHOD));
         };

@@ -1741,7 +1741,6 @@ fn store_and_lock_are_0600_from_first_creation_and_after_every_save() {
 }
 
 /// Two tasks on one runtime each land their write through a locked update.
-#[allow(clippy::result_large_err)]
 #[tokio::test]
 async fn two_tasks_updating_one_store_both_land() {
     let tmp = TempDir::new().unwrap();
@@ -1761,7 +1760,6 @@ async fn two_tasks_updating_one_store_both_land() {
 /// While another holder keeps the sidecar locked, a `current_thread`
 /// runtime keeps running other tasks; the write lands once the holder lets
 /// go.
-#[allow(clippy::result_large_err)]
 #[tokio::test(flavor = "current_thread")]
 async fn a_held_lock_does_not_park_the_runtime() {
     use std::sync::atomic::AtomicU32;

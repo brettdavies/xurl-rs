@@ -361,17 +361,17 @@ impl OutputConfig {
         // `requested`, `supported`, `available_in_app`, `app`, and
         // `other_apps_with_creds` alongside the standard `message`. Agents
         // pattern-match on these without re-parsing the human message.
-        if let Error::AuthMethodMismatch {
-            endpoint,
-            rendered_url,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            app,
-            other_apps_with_creds,
-        } = error
-        {
+        if let Error::AuthMethodMismatch(mismatch) = error {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                rendered_url,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                app,
+                other_apps_with_creds,
+            } = &**mismatch;
             body.endpoint = Some(endpoint.clone());
             body.rendered_url = rendered_url.clone();
             body.method = Some(method.clone());

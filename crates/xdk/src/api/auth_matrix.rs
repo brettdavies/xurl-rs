@@ -15,7 +15,7 @@
 use std::fmt::Write as _;
 
 use crate::api::request::RequestTarget;
-use crate::error::{Error, Result};
+use crate::error::{AuthMismatch, Error, Result};
 
 /// Auth schemes an X API endpoint accepts, as declared by its OpenAPI
 /// `security:` list. Scope lists are captured verbatim so a future
@@ -242,7 +242,7 @@ pub fn validate(
     let supported: Vec<String> = static_supported.iter().map(|s| (*s).to_string()).collect();
 
     let rendered_url = crate::api::request::render_template_path(path, path_params).ok();
-    Err(Error::AuthMethodMismatch {
+    Err(Error::from(AuthMismatch {
         endpoint: path.clone(),
         rendered_url,
         method: method.to_ascii_uppercase(),
@@ -251,7 +251,7 @@ pub fn validate(
         available_in_app: None,
         app: app.map(str::to_string),
         other_apps_with_creds: None,
-    })
+    }))
 }
 
 #[cfg(test)]
@@ -447,14 +447,15 @@ mod tests {
         let target = tmpl("/2/media/upload");
         let err = validate(&target, "POST", "app", None).unwrap_err();
         match err {
-            Error::AuthMethodMismatch {
-                endpoint,
-                method,
-                requested,
-                supported,
-                available_in_app,
-                ..
-            } => {
+            Error::AuthMethodMismatch(mismatch) => {
+                let crate::error::AuthMismatch {
+                    endpoint,
+                    method,
+                    requested,
+                    supported,
+                    available_in_app,
+                    ..
+                } = *mismatch;
                 assert_eq!(endpoint, "/2/media/upload");
                 assert_eq!(method, "POST");
                 assert_eq!(requested.as_deref(), Some("app"));
