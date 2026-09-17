@@ -102,6 +102,14 @@ DIRECT MESSAGES:
   List recent DM events:
     xr dms -n 50 --output json
 
+BROADCASTS:
+  Who moderates your broadcast chats:
+    xr broadcasts moderators list --output json
+
+  Add / remove a chat moderator:
+    xr broadcasts moderators add @helper
+    xr broadcasts moderators remove @helper --output json
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image

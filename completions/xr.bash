@@ -31,6 +31,9 @@ _xr() {
             xr,bookmarks)
                 cmd="xr__subcmd__bookmarks"
                 ;;
+            xr,broadcasts)
+                cmd="xr__subcmd__broadcasts"
+                ;;
             xr,completions)
                 cmd="xr__subcmd__completions"
                 ;;
@@ -265,6 +268,51 @@ _xr() {
             xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect__subcmd__uri,set)
                 cmd="xr__subcmd__auth__subcmd__help__subcmd__apps__subcmd__redirect__subcmd__uri__subcmd__set"
                 ;;
+            xr__subcmd__broadcasts,help)
+                cmd="xr__subcmd__broadcasts__subcmd__help"
+                ;;
+            xr__subcmd__broadcasts,moderators)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators"
+                ;;
+            xr__subcmd__broadcasts__subcmd__help,help)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__help"
+                ;;
+            xr__subcmd__broadcasts__subcmd__help,moderators)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__moderators"
+                ;;
+            xr__subcmd__broadcasts__subcmd__help__subcmd__moderators,add)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__add"
+                ;;
+            xr__subcmd__broadcasts__subcmd__help__subcmd__moderators,list)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list"
+                ;;
+            xr__subcmd__broadcasts__subcmd__help__subcmd__moderators,remove)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators,add)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__add"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators,help)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__help"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators,list)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__list"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators,remove)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators__subcmd__help,add)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__add"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators__subcmd__help,help)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__help"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators__subcmd__help,list)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__list"
+                ;;
+            xr__subcmd__broadcasts__subcmd__moderators__subcmd__help,remove)
+                cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__remove"
+                ;;
             xr__subcmd__help,auth)
                 cmd="xr__subcmd__help__subcmd__auth"
                 ;;
@@ -279,6 +327,9 @@ _xr() {
                 ;;
             xr__subcmd__help,bookmarks)
                 cmd="xr__subcmd__help__subcmd__bookmarks"
+                ;;
+            xr__subcmd__help,broadcasts)
+                cmd="xr__subcmd__help__subcmd__broadcasts"
                 ;;
             xr__subcmd__help,completions)
                 cmd="xr__subcmd__help__subcmd__completions"
@@ -427,6 +478,18 @@ _xr() {
             xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect__subcmd__uri,set)
                 cmd="xr__subcmd__help__subcmd__auth__subcmd__apps__subcmd__redirect__subcmd__uri__subcmd__set"
                 ;;
+            xr__subcmd__help__subcmd__broadcasts,moderators)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__moderators"
+                ;;
+            xr__subcmd__help__subcmd__broadcasts__subcmd__moderators,add)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__add"
+                ;;
+            xr__subcmd__help__subcmd__broadcasts__subcmd__moderators,list)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list"
+                ;;
+            xr__subcmd__help__subcmd__broadcasts__subcmd__moderators,remove)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove"
+                ;;
             xr__subcmd__help__subcmd__media,status)
                 cmd="xr__subcmd__help__subcmd__media__subcmd__status"
                 ;;
@@ -497,7 +560,7 @@ _xr() {
 
     case "${cmd}" in
         xr)
-            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help --version post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms auth media skill schema completions version examples validate help"
+            opts="-X -H -d -u -v -t -s -F -q -h -V --method --header --data --auth --username --verbose --trace --stream --file --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help --version post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2550,6 +2613,566 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        xr__subcmd__broadcasts)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help moderators help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help)
+            opts="moderators help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__moderators)
+            opts="list add remove"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__add)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators)
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help list add remove help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__add)
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --auth)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --username)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__help)
+            opts="list add remove help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__add)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__list)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__list)
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --auth)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --username)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove)
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --auth)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --username)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         xr__subcmd__completions)
             opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help bash elvish fish powershell zsh"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -3247,7 +3870,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__help)
-            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms auth media skill schema completions version examples validate help"
+            opts="post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -3515,6 +4138,76 @@ _xr() {
         xr__subcmd__help__subcmd__bookmarks)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts)
+            opts="moderators"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts__subcmd__moderators)
+            opts="list add remove"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__add)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi

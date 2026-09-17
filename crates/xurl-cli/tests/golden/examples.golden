@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 3637
+stdout_len: 3869
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -86,6 +86,14 @@ DIRECT MESSAGES:
 
   List recent DM events:
     xr dms -n 50 --output json
+
+BROADCASTS:
+  Who moderates your broadcast chats:
+    xr broadcasts moderators list --output json
+
+  Add / remove a chat moderator:
+    xr broadcasts moderators add @helper
+    xr broadcasts moderators remove @helper --output json
 
 MEDIA UPLOAD:
   Upload an image (returns media_id):

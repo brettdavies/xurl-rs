@@ -1338,6 +1338,287 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
+(broadcasts)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__broadcasts_commands" \
+"*::: :->broadcasts" \
+&& ret=0
+
+    case $state in
+    (broadcasts)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-command-$line[1]:"
+        case $line[1] in
+            (moderators)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__broadcasts__subcmd__moderators_commands" \
+"*::: :->moderators" \
+&& ret=0
+
+    case $state in
+    (moderators)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-moderators-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- Username to add:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print verbose information]::VERBOSE:(true false)' \
+'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- Username to remove:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-moderators-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-help-command-$line[1]:"
+        case $line[1] in
+            (moderators)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators_commands" \
+"*::: :->moderators" \
+&& ret=0
+
+    case $state in
+    (moderators)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-help-moderators-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (auth)
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print verbose information]::VERBOSE:(true false)' \
@@ -2687,6 +2968,50 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(broadcasts)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__broadcasts_commands" \
+"*::: :->broadcasts" \
+&& ret=0
+
+    case $state in
+    (broadcasts)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-broadcasts-command-$line[1]:"
+        case $line[1] in
+            (moderators)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators_commands" \
+"*::: :->moderators" \
+&& ret=0
+
+    case $state in
+    (moderators)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-broadcasts-moderators-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (auth)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__help__subcmd__auth_commands" \
@@ -2898,6 +3223,7 @@ _xr_commands() {
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
+'broadcasts:Broadcast chat moderation' \
 'auth:Authentication management' \
 'media:Media upload operations' \
 'skill:Install or manage the xurl-rs skill bundle' \
@@ -3202,6 +3528,106 @@ _xr__subcmd__bookmarks_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmarks commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts_commands] )) ||
+_xr__subcmd__broadcasts_commands() {
+    local commands; commands=(
+'moderators:Manage who moderates your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help_commands() {
+    local commands; commands=(
+'moderators:Manage who moderates your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators_commands() {
+    local commands; commands=(
+'list:List your broadcast chat moderators' \
+'add:Add a broadcast chat moderator' \
+'remove:Remove a broadcast chat moderator' \
+    )
+    _describe -t commands 'xr broadcasts help moderators commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help moderators add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help moderators list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators_commands() {
+    local commands; commands=(
+'list:List your broadcast chat moderators' \
+'add:Add a broadcast chat moderator' \
+'remove:Remove a broadcast chat moderator' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts moderators commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help_commands() {
+    local commands; commands=(
+'list:List your broadcast chat moderators' \
+'add:Add a broadcast chat moderator' \
+'remove:Remove a broadcast chat moderator' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts moderators help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts moderators remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__completions_commands] )) ||
 _xr__subcmd__completions_commands() {
     local commands; commands=()
@@ -3276,6 +3702,7 @@ _xr__subcmd__help_commands() {
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
+'broadcasts:Broadcast chat moderation' \
 'auth:Authentication management' \
 'media:Media upload operations' \
 'skill:Install or manage the xurl-rs skill bundle' \
@@ -3399,6 +3826,37 @@ _xr__subcmd__help__subcmd__bookmark_commands() {
 _xr__subcmd__help__subcmd__bookmarks_commands() {
     local commands; commands=()
     _describe -t commands 'xr help bookmarks commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts_commands() {
+    local commands; commands=(
+'moderators:Manage who moderates your broadcast chats' \
+    )
+    _describe -t commands 'xr help broadcasts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators_commands() {
+    local commands; commands=(
+'list:List your broadcast chat moderators' \
+'add:Add a broadcast chat moderator' \
+'remove:Remove a broadcast chat moderator' \
+    )
+    _describe -t commands 'xr help broadcasts moderators commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts moderators add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts moderators list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts moderators remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__completions_commands] )) ||
 _xr__subcmd__help__subcmd__completions_commands() {

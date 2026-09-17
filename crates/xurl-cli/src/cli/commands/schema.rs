@@ -10,8 +10,9 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
+    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
+    User,
 };
 use xdk::error::{Error, Result};
 
@@ -86,6 +87,14 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         type_name: "ApiResponse<UsageCreditsData>",
     },
     SchemaEntry {
+        commands: &["broadcasts-moderators-list"],
+        type_name: "ApiResponse<Vec<User>>",
+    },
+    SchemaEntry {
+        commands: &["broadcasts-moderators-add", "broadcasts-moderators-remove"],
+        type_name: "ApiResponse<ChatModeratorsResult>",
+    },
+    SchemaEntry {
         commands: &["auth-status", "auth-apps-list"],
         type_name: "Vec<AppStatusEntry>",
     },
@@ -129,12 +138,16 @@ fn schema_for_command(command: &str) -> Result<Value> {
         "dms" => schema_for!(ApiResponse<Vec<DmEvent>>),
         "usage" => schema_for!(ApiResponse<UsageData>),
         "usage-credits" => schema_for!(ApiResponse<UsageCreditsData>),
+        "broadcasts-moderators-list" => schema_for!(ApiResponse<Vec<User>>),
+        "broadcasts-moderators-add" | "broadcasts-moderators-remove" => {
+            schema_for!(ApiResponse<ChatModeratorsResult>)
+        }
         "auth-status" | "auth-apps-list" => schema_for!(Vec<AppStatusEntry>),
         "redirect-uri-get" => schema_for!(RedirectUriGetResponse),
         "redirect-uri-set" => schema_for!(RedirectUriSetResponse),
         "skill-install" => schema_for!(InstallEnvelope),
         "skill-install-all" => schema_for!(InstallMultiEnvelope),
-        "auth" | "media" | "completions" | "version" | "schema" => {
+        "auth" | "media" | "broadcasts" | "completions" | "version" | "schema" => {
             return Err(Error::validation(format!(
                 "schema not available for '{command}' (no typed response)"
             )));

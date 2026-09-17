@@ -1329,6 +1329,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Broadcasts ───────────────────────────────────────────────────
+    /// Broadcast chat moderation
+    #[command(after_help = BROADCASTS_HELP)]
+    Broadcasts {
+        /// `broadcasts` family subcommand.
+        #[command(subcommand)]
+        target: BroadcastsCommands,
+    },
+
     // ── Auth ─────────────────────────────────────────────────────────
     /// Authentication management
     #[command(after_help = AUTH_HELP)]
@@ -1435,6 +1444,96 @@ pub enum UsageCommands {
     /// Show credits-based usage for the project
     #[command(after_help = USAGE_CREDITS_HELP)]
     Credits {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts` examples — the moderators family.
+const BROADCASTS_HELP: &str = "\
+Examples:
+  Who moderates your broadcast chats (text):
+    xr broadcasts moderators list
+  Add and remove a moderator, JSON envelope:
+    xr broadcasts moderators add @helper --output json
+    xr broadcasts moderators remove @helper --output json
+";
+
+/// `xr broadcasts moderators` examples — paired text + JSON.
+const BROADCASTS_MODERATORS_HELP: &str = "\
+Examples:
+  List your broadcast chat moderators (text):
+    xr broadcasts moderators list
+  Add a moderator (JSON envelope):
+    xr broadcasts moderators add @helper --output json
+";
+
+/// `xr broadcasts moderators list` examples — paired text + JSON.
+const BROADCASTS_MODERATORS_LIST_HELP: &str = "\
+Examples:
+  List your broadcast chat moderators (text):
+    xr broadcasts moderators list
+  As a JSON envelope:
+    xr broadcasts moderators list --output json
+";
+
+/// `xr broadcasts moderators add` examples — paired text + JSON.
+const BROADCASTS_MODERATORS_ADD_HELP: &str = "\
+Examples:
+  Add a chat moderator (text):
+    xr broadcasts moderators add @helper
+  Add (JSON envelope):
+    xr broadcasts moderators add @helper --output json
+";
+
+/// `xr broadcasts moderators remove` examples — paired text + JSON.
+const BROADCASTS_MODERATORS_REMOVE_HELP: &str = "\
+Examples:
+  Remove a chat moderator (text):
+    xr broadcasts moderators remove @helper
+  Remove (JSON envelope):
+    xr broadcasts moderators remove @helper --output json
+";
+
+/// `xr broadcasts` family subcommands.
+#[derive(Subcommand, Debug)]
+pub enum BroadcastsCommands {
+    /// Manage who moderates your broadcast chats
+    #[command(after_help = BROADCASTS_MODERATORS_HELP)]
+    Moderators {
+        /// `moderators` verb to dispatch.
+        #[command(subcommand)]
+        action: ModeratorsCommands,
+    },
+}
+
+/// `xr broadcasts moderators` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ModeratorsCommands {
+    /// List your broadcast chat moderators
+    #[command(after_help = BROADCASTS_MODERATORS_LIST_HELP)]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add a broadcast chat moderator
+    #[command(after_help = BROADCASTS_MODERATORS_ADD_HELP)]
+    Add {
+        /// Username to add
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove a broadcast chat moderator
+    #[command(after_help = BROADCASTS_MODERATORS_REMOVE_HELP)]
+    Remove {
+        /// Username to remove
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
