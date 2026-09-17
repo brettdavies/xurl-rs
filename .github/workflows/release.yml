@@ -16,10 +16,7 @@ permissions:
 
 jobs:
   pipeline:
-    # Pinned to the upstream commit whose check-version refuses a release whose
-    # workspace bound is not on crates.io (brettdavies/.github#64) until it
-    # merges; repoint to `@main` after the merge.
-    uses: brettdavies/.github/.github/workflows/rust-release.yml@fd2f59d07e02e7d37a7475238cd51cbb70ea45a1 # feat/rust-release-workspace-bounds
+    uses: brettdavies/.github/.github/workflows/rust-release.yml@main
     with:
       crate: xurl-rs
       bin: xr
