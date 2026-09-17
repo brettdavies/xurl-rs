@@ -321,6 +321,19 @@ pub struct MutingResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// Confirmation that a direct message was sent: the conversation it landed
+/// in and the event it created, which is all the send endpoint returns.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct DmSentResult {
+    /// The conversation the message was sent to.
+    pub dm_conversation_id: String,
+    /// The id of the created DM event.
+    pub dm_event_id: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// The moderator set after a broadcast chat moderator is added or removed.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ChatModeratorsResult {
@@ -579,6 +592,17 @@ mod tests {
             .public_metrics
             .expect("user.public_metrics must be present");
         assert_eq!(metrics.followers_count, 100);
+    }
+
+    #[test]
+    fn deserialize_dm_sent_result() {
+        let json = json!({
+            "data": {"dm_conversation_id": "222-111", "dm_event_id": "1580705921830768647"}
+        });
+        let resp: ApiResponse<DmSentResult> =
+            serde_json::from_value(json).expect("the send confirmation must deserialize");
+        assert_eq!(resp.data.dm_conversation_id, "222-111");
+        assert_eq!(resp.data.dm_event_id, "1580705921830768647");
     }
 
     #[test]

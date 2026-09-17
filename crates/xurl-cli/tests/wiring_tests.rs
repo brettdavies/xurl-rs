@@ -565,3 +565,38 @@ async fn follow_resolves_the_caller_and_the_handle_before_calling_the_shortcut()
         "the caller's id and the handle resolve before the one shortcut call"
     );
 }
+
+#[tokio::test]
+async fn dm_prints_the_send_confirmation_the_spec_documents() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by/username/helper"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "222", "name": "Helper", "username": "helper"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/dm_conversations/with/222/messages"))
+        .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
+            "data": {"dm_conversation_id": "222-111", "dm_event_id": "1580705921830768647"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = common::oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = common::run_in_process(
+        &store,
+        &server.uri(),
+        &["dm", "@helper", "hello there", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["dm_event_id"], "1580705921830768647");
+    assert_eq!(body["data"]["dm_conversation_id"], "222-111");
+}

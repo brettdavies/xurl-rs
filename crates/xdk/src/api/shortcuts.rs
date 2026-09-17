@@ -15,8 +15,8 @@ use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
-    User,
+    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
+    UsageCreditsData, UsageData, User,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -598,8 +598,9 @@ impl Client {
         self.get_user_list(endpoints::GET_FOLLOWERS.path, user_id, max_results)
     }
 
-    /// Sends a direct message.
-    pub fn send_dm(&self, participant_id: &str, text: &str) -> Call<ApiResponse<DmEvent>> {
+    /// Sends a direct message; the response names the conversation and the
+    /// event the message created.
+    pub fn send_dm(&self, participant_id: &str, text: &str) -> Call<ApiResponse<DmSentResult>> {
         let body = serde_json::json!({"text": text});
         self.post_json(
             template(

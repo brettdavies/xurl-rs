@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 2257
+stdout_len: 2262
 stderr_len: 0
 --- stdout ---
 auth-apps-list                Vec<AppStatusEntry>
@@ -14,7 +14,7 @@ broadcasts-moderators-add     ApiResponse<ChatModeratorsResult>
 broadcasts-moderators-list    ApiResponse<Vec<User>>
 broadcasts-moderators-remove  ApiResponse<ChatModeratorsResult>
 delete                        ApiResponse<DeletedResult>
-dm                            ApiResponse<DmEvent>
+dm                            ApiResponse<DmSentResult>
 dms                           ApiResponse<Vec<DmEvent>>
 follow                        ApiResponse<FollowingResult>
 followers                     ApiResponse<Vec<User>>

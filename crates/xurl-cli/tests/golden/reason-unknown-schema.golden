@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 561
+stderr_len: 587
 --- stdout ---
 
 --- stderr ---
@@ -16,6 +16,7 @@ stderr_len: 561
     "users",
     "dm",
     "dms",
+    "dm-event",
     "usage",
     "credits",
     "envelope",
@@ -28,7 +29,7 @@ stderr_len: 561
     "block",
     "moderators"
   ],
-  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators or omit --schema for auto-detection",
+  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators or omit --schema for auto-detection",
   "reason": "unknown-schema",
   "schema": "bogus",
   "status": "error"

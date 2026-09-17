@@ -19,8 +19,8 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult,
-    UsageCreditsData, UsageData, User,
+    DmSentResult, FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post,
+    RepostedResult, UsageCreditsData, UsageData, User,
 };
 
 /// Loads the cached example responses fixture.
@@ -144,12 +144,12 @@ fn spec_action_muting() {
 }
 
 #[test]
-fn spec_dm_event() {
+fn spec_dm_sent() {
     let examples = load_examples();
-    let resp: ApiResponse<DmEvent> = serde_json::from_value(examples["dm_event"].clone()).unwrap();
-    assert_eq!(resp.data.id, "1580705921830768647");
-    assert_eq!(resp.data.text.as_deref(), Some("hello there"));
-    assert!(resp.data.sender_id.is_some());
+    let resp: ApiResponse<DmSentResult> =
+        serde_json::from_value(examples["dm_sent"].clone()).unwrap();
+    assert_eq!(resp.data.dm_event_id, "1580705921830768647");
+    assert_eq!(resp.data.dm_conversation_id, "1580705921830768643");
 }
 
 #[test]
@@ -259,7 +259,7 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint)] = &[
     ("action_bookmarked", endpoints::BOOKMARK),
     ("action_blocking", endpoints::BLOCK_USER),
     ("action_muting", endpoints::MUTE_USER),
-    ("dm_event", endpoints::SEND_DM),
+    ("dm_sent", endpoints::SEND_DM),
     ("dm_event_list", endpoints::GET_DM_EVENTS),
     ("media_upload_init", endpoints::MEDIA_UPLOAD_INITIALIZE),
     ("media_upload_status", endpoints::MEDIA_UPLOAD_STATUS),
@@ -272,21 +272,12 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint)] = &[
 /// Fixtures that carry what X really sends where the vendored spec says
 /// otherwise, each with the reason. The walk requires every entry to keep
 /// failing validation, so an exemption cannot outlive the drift it names.
-const SPEC_EXEMPT_FIXTURES: &[(&str, &str)] = &[
-    (
-        "user_single_wire",
-        "X sends `tweet_count` where spec 2.168 names `post_count`; the fixture carries the wire \
+const SPEC_EXEMPT_FIXTURES: &[(&str, &str)] = &[(
+    "user_single_wire",
+    "X sends `tweet_count` where spec 2.168 names `post_count`; the fixture carries the wire \
          shape and `UserPublicMetrics` reads either \
          (https://github.com/brettdavies/xurl-rs/pull/118)",
-    ),
-    (
-        "dm_event",
-        "the fixture is the `DmEvent` object `GET /2/dm_events` lists, while the spec says the \
-         send response carries only `dm_conversation_id` and `dm_event_id`; `send_dm` returns \
-         `ApiResponse<DmEvent>`, whose required `id` that response has no value for, so the \
-         fixture waits on that return type",
-    ),
-];
+)];
 
 /// The JSON schema of `endpoint`'s first 2xx response.
 fn success_schema<'a>(spec: &'a Value, endpoint: &Endpoint) -> &'a Value {
