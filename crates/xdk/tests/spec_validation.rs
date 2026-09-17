@@ -198,3 +198,25 @@ fn spec_chat_moderators() {
         serde_json::from_value(examples["chat_moderators"].clone()).unwrap();
     assert_eq!(resp.data.moderator_user_ids, vec!["2244994945"]);
 }
+
+#[test]
+fn every_fixture_is_exercised_by_a_validation_test() {
+    let source_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/spec_validation.rs");
+    let source = std::fs::read_to_string(&source_path).expect("this test file is readable");
+    let examples = load_examples();
+    let untested: Vec<&String> = examples
+        .as_object()
+        .expect("the fixture file is a JSON object")
+        .keys()
+        .filter(|key| *key != "description")
+        .filter(|key| !source.contains(&format!("examples[\"{key}\"]")))
+        .collect();
+    assert!(
+        untested.is_empty(),
+        "these fixtures in tests/fixtures/openapi/example_responses.json have no validation test: {untested:?}\n\
+         Cause: a fixture was added to the file without a `spec_*` test that deserializes \
+         `examples[\"<key>\"]` into its response type.\n\
+         Fix: add the test to crates/xdk/tests/spec_validation.rs, or remove the fixture."
+    );
+}

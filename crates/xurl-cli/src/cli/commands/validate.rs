@@ -32,86 +32,102 @@ const SCHEMA_UNKNOWN: &str = "unknown";
 struct SchemaAlias {
     name: &'static str,
     validate: fn(&serde_json::Value) -> Result<(), String>,
+    /// The response type the validator deserializes, by the compiler's
+    /// name; `None` for a structural validator with no type.
+    response_type: Option<fn() -> &'static str>,
 }
+
+/// An alias whose validator deserializes the API envelope around `T` or a
+/// bare `T`.
+const fn typed_alias<T: DeserializeOwned + Default>(name: &'static str) -> SchemaAlias {
+    SchemaAlias {
+        name,
+        validate: typed::<T>,
+        response_type: Some(std::any::type_name::<ApiResponse<T>>),
+    }
+}
+
+/// Registry response types `xr validate` has no alias for, each with the
+/// reason. Every one is a shape the CLI builds itself rather than an API
+/// response, so nothing an agent pipes in would carry it.
+pub const UNVALIDATED_TYPES: &[(&str, &str)] = &[
+    (
+        "Vec<AppStatusEntry>",
+        "the auth status table the CLI renders from its own store",
+    ),
+    (
+        "RedirectUriGetResponse",
+        "the CLI's own redirect-uri lookup",
+    ),
+    (
+        "RedirectUriSetResponse",
+        "the CLI's own redirect-uri update",
+    ),
+    ("InstallEnvelope", "the skill installer's own report"),
+    (
+        "InstallMultiEnvelope",
+        "the skill installer's own multi-host report",
+    ),
+];
 
 /// Every schema `xr validate` accepts, in the order the `--schema` help and
 /// the `unknown-schema` envelope list them. Singular and plural aliases
 /// both resolve to the typed-response variant that round-trips a non-empty
 /// value; auto-detection (`detect_schema`) follows the same precedence.
 const SCHEMA_ALIASES: &[SchemaAlias] = &[
-    SchemaAlias {
-        name: "post",
-        validate: typed::<Post>,
-    },
-    SchemaAlias {
-        name: "posts",
-        validate: typed::<Vec<Post>>,
-    },
-    SchemaAlias {
-        name: "user",
-        validate: typed::<User>,
-    },
-    SchemaAlias {
-        name: "users",
-        validate: typed::<Vec<User>>,
-    },
-    SchemaAlias {
-        name: "dm",
-        validate: typed::<DmEvent>,
-    },
-    SchemaAlias {
-        name: "dms",
-        validate: typed::<Vec<DmEvent>>,
-    },
-    SchemaAlias {
-        name: "usage",
-        validate: typed::<UsageData>,
-    },
-    SchemaAlias {
-        name: "credits",
-        validate: typed::<UsageCreditsData>,
-    },
+    typed_alias::<Post>("post"),
+    typed_alias::<Vec<Post>>("posts"),
+    typed_alias::<User>("user"),
+    typed_alias::<Vec<User>>("users"),
+    typed_alias::<DmEvent>("dm"),
+    typed_alias::<Vec<DmEvent>>("dms"),
+    typed_alias::<UsageData>("usage"),
+    typed_alias::<UsageCreditsData>("credits"),
     SchemaAlias {
         name: "envelope",
         validate: validate_envelope,
+        response_type: None,
     },
-    SchemaAlias {
-        name: "like",
-        validate: typed::<LikedResult>,
-    },
-    SchemaAlias {
-        name: "follow",
-        validate: typed::<FollowingResult>,
-    },
-    SchemaAlias {
-        name: "delete",
-        validate: typed::<DeletedResult>,
-    },
-    SchemaAlias {
-        name: "repost",
-        validate: typed::<RepostedResult>,
-    },
-    SchemaAlias {
-        name: "bookmark",
-        validate: typed::<BookmarkedResult>,
-    },
-    SchemaAlias {
-        name: "mute",
-        validate: typed::<MutingResult>,
-    },
-    SchemaAlias {
-        name: "block",
-        validate: typed::<BlockingResult>,
-    },
-    SchemaAlias {
-        name: "moderators",
-        validate: typed::<ChatModeratorsResult>,
-    },
+    typed_alias::<LikedResult>("like"),
+    typed_alias::<FollowingResult>("follow"),
+    typed_alias::<DeletedResult>("delete"),
+    typed_alias::<RepostedResult>("repost"),
+    typed_alias::<BookmarkedResult>("bookmark"),
+    typed_alias::<MutingResult>("mute"),
+    typed_alias::<BlockingResult>("block"),
+    typed_alias::<ChatModeratorsResult>("moderators"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.
 pub fn schema_names() -> impl Iterator<Item = &'static str> {
     SCHEMA_ALIASES.iter().map(|alias| alias.name)
+}
+
+/// Every response type an alias validates, written the way the schema
+/// registry writes it (`ApiResponse<Vec<Post>>`, no module paths).
+pub fn validated_types() -> impl Iterator<Item = String> {
+    SCHEMA_ALIASES
+        .iter()
+        .filter_map(|alias| alias.response_type)
+        .map(|response_type| short_type_name(response_type()))
+}
+
+/// Strips every module path from a `std::any::type_name` rendering, so
+/// `xdk::api::response::types::ApiResponse<alloc::vec::Vec<...::Post>>`
+/// reads `ApiResponse<Vec<Post>>`.
+fn short_type_name(full: &str) -> String {
+    let mut out = String::new();
+    let mut rest = full;
+    while let Some(idx) = rest.find("::") {
+        let head = &rest[..idx];
+        let keep = head
+            .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .map_or(0, |i| i + 1);
+        out.push_str(&head[..keep]);
+        rest = &rest[idx + 2..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The `--schema` argument's help text, listing every accepted name.
@@ -341,6 +357,17 @@ mod tests {
             String::from_utf8(stdout).unwrap(),
             String::from_utf8(stderr).unwrap(),
         )
+    }
+
+    #[test]
+    fn short_type_name_drops_every_module_path() {
+        assert_eq!(
+            short_type_name(
+                "xdk::api::response::types::ApiResponse<alloc::vec::Vec<xdk::api::response::types::Post>>"
+            ),
+            "ApiResponse<Vec<Post>>"
+        );
+        assert_eq!(short_type_name("Plain"), "Plain");
     }
 
     #[test]
