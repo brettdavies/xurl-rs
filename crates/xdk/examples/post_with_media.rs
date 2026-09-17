@@ -43,15 +43,20 @@ async fn run() -> xdk::Result<()> {
         })
         .build()?;
 
+    let auth_scheme = ""; // empty: pick per the endpoint's auth matrix
+    let username = ""; // empty: the credential's own user
+    let trace = false;
+    let wait_for_processing = true;
+    let extra_headers: &[String] = &[];
     let upload = execute_media_upload(
         &file,
         media_type,
         category,
-        "",
-        "",
-        false,
-        true,
-        &[],
+        auth_scheme,
+        username,
+        trace,
+        wait_for_processing,
+        extra_headers,
         &client,
     )
     .await?;

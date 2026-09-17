@@ -5,8 +5,9 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
 Async Rust client for the X (Twitter) API v2: credentials held in code, one typed call per endpoint, OAuth1, OAuth2
-PKCE, bearer tokens, media upload, and streaming. An independent project, not affiliated with, endorsed by, or
-maintained by X. The `xr` command-line tool ([`xurl-rs`](https://crates.io/crates/xurl-rs)) is built on this crate.
+PKCE, bearer tokens, media upload, and streaming. `xdk` is the name X uses for its own SDKs; this is an independent
+project, not affiliated with, endorsed by, or maintained by X. The `xr` command-line tool
+([`xurl-rs`](https://crates.io/crates/xurl-rs)) is built on this crate.
 
 ## Quick start
 
@@ -197,7 +198,8 @@ request.
 
 The crate is `0.x`, so a breaking change ships in a minor. Two rules make that livable:
 
-- **Every breaking entry in `crates/xdk/CHANGELOG.md` carries a before/after snippet**, not only a description, so
+- **Every breaking entry in the [changelog](https://github.com/brettdavies/xurl-rs/blob/main/crates/xdk/CHANGELOG.md)
+  carries a before/after snippet**, not only a description, so
   the developer who adopted at one minor and upgrades two later types the new form straight from the changelog. A
   release that breaks something and ships no snippet does not go out.
 - **An MSRV bump is a minor, never a patch.** `rust-version` is declared once, in the workspace's

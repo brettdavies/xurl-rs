@@ -14,7 +14,8 @@ Two crates for the X (Twitter) API v2, in one repository:
   machine-readable output, and structured exit codes for agents.
   [The CLI](#the-cli-xr) · [crates/xurl-cli/README.md](crates/xurl-cli/README.md)
 
-An independent project, not affiliated with, endorsed by, or maintained by X.
+`xdk` is the name X uses for its own SDKs; this is an independent project, not affiliated with, endorsed by, or
+maintained by X.
 
 ## The library: xdk-rs
 
@@ -28,7 +29,7 @@ cargo add tokio --features macros,rt-multi-thread
 A complete program: the app-only bearer token from the
 [X developer portal](https://developer.x.com/en/portal/dashboard) in `XURL_BEARER_TOKEN`, one search, the text printed.
 
-```rust
+```rust,no_run
 use xdk::api::Client;
 
 #[tokio::main]

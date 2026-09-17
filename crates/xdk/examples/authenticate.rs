@@ -3,10 +3,13 @@
 //!
 //! X rotates the refresh token on every refresh, so the pair the hook
 //! receives is the only live copy; this example prints where a real hook
-//! would persist it instead of writing anything.
+//! would persist it instead of writing anything. The access token's expiry
+//! comes from `EXPIRES_IN` (seconds, the token response's own field); with
+//! no value the token is treated as already expired, so a run with a
+//! `REFRESH_TOKEN` refreshes once and the hook fires.
 //!
 //! ```bash
-//! CLIENT_ID=... CLIENT_SECRET=... ACCESS_TOKEN=... REFRESH_TOKEN=... \
+//! CLIENT_ID=... CLIENT_SECRET=... ACCESS_TOKEN=... REFRESH_TOKEN=... EXPIRES_IN=7200 \
 //!   cargo run -p xdk-rs --example authenticate
 //! ```
 
@@ -57,7 +60,14 @@ async fn run() -> xdk::Result<()> {
         refresh_token: std::env::var("REFRESH_TOKEN")
             .ok()
             .filter(|v| !v.is_empty()),
-        expires_at: Some(SystemTime::now() + Duration::from_secs(7200)),
+        expires_at: Some(
+            std::env::var("EXPIRES_IN")
+                .ok()
+                .and_then(|secs| secs.parse::<u64>().ok())
+                .map_or(SystemTime::UNIX_EPOCH, |secs| {
+                    SystemTime::now() + Duration::from_secs(secs)
+                }),
+        ),
     };
     let token_file = std::env::var_os("XDK_TOKEN_FILE")
         .map(PathBuf::from)
