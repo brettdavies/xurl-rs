@@ -600,3 +600,47 @@ async fn dm_prints_the_send_confirmation_the_spec_documents() {
     assert_eq!(body["data"]["dm_event_id"], "1580705921830768647");
     assert_eq!(body["data"]["dm_conversation_id"], "222-111");
 }
+
+#[tokio::test]
+async fn dm_reports_a_recipient_not_messageable_problem_in_the_envelope() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by/username/helper"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "222", "name": "Helper", "username": "helper"}
+        })))
+        .mount(&server)
+        .await;
+    let problem = fixture("api_problem");
+    Mock::given(method("POST"))
+        .and(path("/2/dm_conversations/with/222/messages"))
+        .respond_with(
+            ResponseTemplate::new(403)
+                .insert_header("content-type", "application/problem+json")
+                .set_body_json(problem.clone()),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = common::oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = common::run_in_process(
+        &store,
+        &server.uri(),
+        &["dm", "@helper", "hello there", "--output", "json"],
+    )
+    .await;
+
+    assert_ne!(code, 0, "stdout: {stdout}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(envelope["status"], "error");
+    assert_eq!(envelope["exit_code"], code);
+    assert!(envelope["reason"].is_string(), "got: {envelope}");
+    let message = envelope["message"].as_str().unwrap();
+    assert!(
+        message.contains(problem["detail"].as_str().unwrap()),
+        "the problem's detail reaches the user: {message}"
+    );
+}

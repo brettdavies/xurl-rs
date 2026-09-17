@@ -13,13 +13,13 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use common::{check, load_spec, success_schema};
+use common::{ReplyKind, check, fixture_schema, load_spec};
 use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post,
+    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
+    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post,
     RepostedResult, UsageCreditsData, UsageData, User,
 };
 
@@ -213,6 +213,31 @@ fn spec_usage_credits() {
 }
 
 #[test]
+fn spec_api_error() {
+    let examples = load_examples();
+    let err: ApiError = serde_json::from_value(examples["api_error"].clone()).unwrap();
+    assert_eq!(err.message.as_deref(), Some("Invalid or expired token."));
+    assert_eq!(err.extra["code"], 89);
+}
+
+#[test]
+fn spec_api_problem() {
+    let examples = load_examples();
+    let err: ApiError = serde_json::from_value(examples["api_problem"].clone()).unwrap();
+    assert_eq!(err.title.as_deref(), Some("Recipient Not Messageable"));
+    assert!(
+        err.detail
+            .as_deref()
+            .is_some_and(|d| d.contains("Direct Messages"))
+    );
+    assert_eq!(
+        err.r#type.as_deref(),
+        Some("https://api.x.com/2/problems/recipient-not-messageable")
+    );
+    assert_eq!(err.extra["status"], 403);
+}
+
+#[test]
 fn spec_user_list() {
     let examples = load_examples();
     let resp: ApiResponse<Vec<User>> =
@@ -255,28 +280,59 @@ fn every_fixture_is_exercised_by_a_validation_test() {
 // Every fixture is the shape the spec gives the endpoint it answers
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Which declared endpoint each fixture answers, by the fixture's key.
-const FIXTURE_ENDPOINTS: &[(&str, Endpoint)] = &[
-    ("post_single", endpoints::READ_POST),
-    ("post_list", endpoints::SEARCH_POSTS),
-    ("user_single", endpoints::GET_ME),
-    ("user_single_wire", endpoints::GET_ME),
-    ("action_liked", endpoints::LIKE_POST),
-    ("action_following", endpoints::FOLLOW_USER),
-    ("action_deleted", endpoints::DELETE_POST),
-    ("action_retweeted", endpoints::REPOST),
-    ("action_bookmarked", endpoints::BOOKMARK),
-    ("action_blocking", endpoints::BLOCK_USER),
-    ("action_muting", endpoints::MUTE_USER),
-    ("dm_sent", endpoints::SEND_DM),
-    ("dm_event_list", endpoints::GET_DM_EVENTS),
-    ("media_upload_init", endpoints::MEDIA_UPLOAD_INITIALIZE),
-    ("media_upload_append", endpoints::MEDIA_UPLOAD_APPEND),
-    ("media_upload_status", endpoints::MEDIA_UPLOAD_STATUS),
-    ("usage", endpoints::GET_USAGE),
-    ("usage_credits", endpoints::GET_USAGE_CREDITS),
-    ("user_list", endpoints::GET_FOLLOWERS),
-    ("chat_moderators", endpoints::ADD_CHAT_MODERATOR),
+/// Which declared endpoint each fixture answers, by the fixture's key, and
+/// which of that endpoint's replies it is.
+const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
+    ("post_single", endpoints::READ_POST, ReplyKind::Success),
+    ("post_list", endpoints::SEARCH_POSTS, ReplyKind::Success),
+    ("user_single", endpoints::GET_ME, ReplyKind::Success),
+    ("user_single_wire", endpoints::GET_ME, ReplyKind::Success),
+    ("action_liked", endpoints::LIKE_POST, ReplyKind::Success),
+    (
+        "action_following",
+        endpoints::FOLLOW_USER,
+        ReplyKind::Success,
+    ),
+    ("action_deleted", endpoints::DELETE_POST, ReplyKind::Success),
+    ("action_retweeted", endpoints::REPOST, ReplyKind::Success),
+    ("action_bookmarked", endpoints::BOOKMARK, ReplyKind::Success),
+    ("action_blocking", endpoints::BLOCK_USER, ReplyKind::Success),
+    ("action_muting", endpoints::MUTE_USER, ReplyKind::Success),
+    ("dm_sent", endpoints::SEND_DM, ReplyKind::Success),
+    (
+        "dm_event_list",
+        endpoints::GET_DM_EVENTS,
+        ReplyKind::Success,
+    ),
+    (
+        "media_upload_init",
+        endpoints::MEDIA_UPLOAD_INITIALIZE,
+        ReplyKind::Success,
+    ),
+    (
+        "media_upload_append",
+        endpoints::MEDIA_UPLOAD_APPEND,
+        ReplyKind::Success,
+    ),
+    (
+        "media_upload_status",
+        endpoints::MEDIA_UPLOAD_STATUS,
+        ReplyKind::Success,
+    ),
+    ("usage", endpoints::GET_USAGE, ReplyKind::Success),
+    (
+        "usage_credits",
+        endpoints::GET_USAGE_CREDITS,
+        ReplyKind::Success,
+    ),
+    ("user_list", endpoints::GET_FOLLOWERS, ReplyKind::Success),
+    (
+        "chat_moderators",
+        endpoints::ADD_CHAT_MODERATOR,
+        ReplyKind::Success,
+    ),
+    ("api_error", endpoints::GET_ME, ReplyKind::Error),
+    ("api_problem", endpoints::SEND_DM, ReplyKind::Problem),
 ];
 
 /// Fixtures that carry what X really sends where the vendored spec says
@@ -293,9 +349,9 @@ const SPEC_EXEMPT_FIXTURES: &[(&str, &str)] = &[(
 fn every_fixture_validates_against_its_endpoint_schema() {
     let spec = load_spec();
     let examples = load_examples();
-    let endpoints_by_fixture: BTreeMap<&str, &Endpoint> = FIXTURE_ENDPOINTS
+    let endpoints_by_fixture: BTreeMap<&str, (&Endpoint, ReplyKind)> = FIXTURE_ENDPOINTS
         .iter()
-        .map(|(key, ep)| (*key, ep))
+        .map(|(key, ep, kind)| (*key, (ep, *kind)))
         .collect();
     let exempt: BTreeMap<&str, &str> = SPEC_EXEMPT_FIXTURES.iter().copied().collect();
 
@@ -309,14 +365,14 @@ fn every_fixture_validates_against_its_endpoint_schema() {
         if key == "description" {
             continue;
         }
-        let Some(endpoint) = endpoints_by_fixture.get(key.as_str()) else {
+        let Some((endpoint, kind)) = endpoints_by_fixture.get(key.as_str()) else {
             unmapped.push(key.clone());
             continue;
         };
         let mut errors = Vec::new();
         check(
             fixture,
-            success_schema(&spec, endpoint),
+            fixture_schema(&spec, endpoint, *kind),
             &spec,
             key,
             &mut errors,
@@ -365,7 +421,7 @@ fn fixture_endpoint_map_names_only_fixtures_that_exist() {
     let examples = load_examples();
     let stale: Vec<&str> = FIXTURE_ENDPOINTS
         .iter()
-        .map(|(key, _)| *key)
+        .map(|(key, _, _)| *key)
         .filter(|key| examples.get(key).is_none())
         .collect();
     assert!(
