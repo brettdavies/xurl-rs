@@ -82,6 +82,10 @@ rustix = { version = "1", features = ["process"] }
 name = "offline_search"
 required-features = ["testing"]
 
+[[test]]
+name = "mock_endpoint_coverage"
+required-features = ["testing"]
+
 [build-dependencies]
 serde.workspace = true
 serde_json.workspace = true
