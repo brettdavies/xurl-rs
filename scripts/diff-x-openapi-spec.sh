@@ -179,15 +179,16 @@ auth_diff_tsv="$(jq -n -r \
 
 # The allowlist feeds the generated auth matrix, so an auth change on an
 # allowlisted operation changes what `xr` enforces; every other operation is
-# permissive at runtime. Parsed from build.rs so the list has one home; when
+# permissive at runtime. Parsed from build.rs, where each row is the constant
+# name, the method, and the spec path, so the list has one home; when
 # build.rs is not beside this script the report says so instead of guessing.
 BUILD_RS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/crates/xdk/build.rs"
 allowlist=""
 if [ -f "${BUILD_RS}" ]; then
     allowlist="$(sed -n '/^const SHORTCUT_TEMPLATES/,/^\];/p' "${BUILD_RS}" \
         | tr -d '\n' \
-        | grep -oE '\([[:space:]]*"[A-Z]+",[[:space:]]*"[^"]+",?[[:space:]]*\)' \
-        | sed -E 's/^\([[:space:]]*"([A-Z]+)",[[:space:]]*"([^"]+)",?[[:space:]]*\)$/\1 \2/' \
+        | grep -oE '\([[:space:]]*"[A-Z_]+",[[:space:]]*"[A-Z]+",[[:space:]]*"[^"]+",?[[:space:]]*\)' \
+        | sed -E 's/^\([[:space:]]*"[A-Z_]+",[[:space:]]*"([A-Z]+)",[[:space:]]*"([^"]+)",?[[:space:]]*\)$/\1 \2/' \
         | sort)"
 fi
 

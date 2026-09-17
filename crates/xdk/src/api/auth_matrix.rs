@@ -117,6 +117,23 @@ mod generated {
 
 pub use generated::{AUTH_MATRIX, SHORTCUT_TEMPLATES};
 
+/// The named endpoint declarations `build.rs` emits, one per
+/// `SHORTCUT_TEMPLATES` row. The request layer and the testing mock read an
+/// endpoint's method and path from here rather than spelling them.
+#[doc(hidden)]
+pub use generated::endpoints;
+
+/// One endpoint the shortcut layer calls: its HTTP method and the spec's
+/// path template, parameters in braces.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Endpoint {
+    /// Uppercase HTTP method.
+    pub method: &'static str,
+    /// Path template exactly as the spec writes it, which is what the
+    /// auth matrix is keyed on.
+    pub path: &'static str,
+}
+
 /// Maximum HTTP method length we accept. Standard methods top out at
 /// 7 characters (`OPTIONS`); the matrix only emits five of them. Anything
 /// longer can't match a real entry, so we short-circuit lookup.
@@ -258,44 +275,35 @@ pub fn validate(
 mod tests {
     use std::collections::HashMap;
 
+    use super::endpoints::{DELETE_POST, GET_ME, MEDIA_UPLOAD};
     use super::{AUTH_MATRIX, AuthScheme, SHORTCUT_TEMPLATES, supported_auth, validate};
     use crate::api::request::RequestTarget;
     use crate::error::Error;
 
-    /// Shortcut + media layer currently targets 38 (method, path) pairs.
-    /// Updating this requires updating the allowlist in `build.rs`.
-    const EXPECTED_SHORTCUT_COUNT: usize = 38;
-
     #[test]
-    fn shortcut_templates_anchor_count() {
-        assert_eq!(
-            SHORTCUT_TEMPLATES.len(),
-            EXPECTED_SHORTCUT_COUNT,
-            "SHORTCUT_TEMPLATES drifted from the locked-in shortcut count"
-        );
-    }
-
-    #[test]
-    fn matrix_has_at_least_one_entry_per_allowlist_pair() {
-        // Every allowlist pair either appears in the matrix or its spec
-        // entry had no `security:` field (treated as permissive at
-        // runtime). At minimum the matrix must be non-empty.
+    fn matrix_entries_all_come_from_the_declaration() {
         assert!(
             !AUTH_MATRIX.is_empty(),
-            "AUTH_MATRIX is empty — build-time codegen produced nothing"
+            "AUTH_MATRIX is empty: build-time codegen produced nothing"
         );
+        let declared: Vec<String> = SHORTCUT_TEMPLATES
+            .iter()
+            .map(|(method, path)| format!("{method}\0{path}"))
+            .collect();
+        let undeclared: Vec<&&str> = AUTH_MATRIX
+            .keys()
+            .filter(|key| !declared.contains(&(**key).to_string()))
+            .collect();
         assert!(
-            AUTH_MATRIX.len() >= EXPECTED_SHORTCUT_COUNT - 2,
-            "AUTH_MATRIX has {} entries, expected at least {}",
-            AUTH_MATRIX.len(),
-            EXPECTED_SHORTCUT_COUNT - 2,
+            undeclared.is_empty(),
+            "AUTH_MATRIX carries entries no SHORTCUT_TEMPLATES row declares: {undeclared:?}"
         );
     }
 
     #[test]
     fn supported_auth_media_upload_post() {
-        let schemes = supported_auth("POST", "/2/media/upload")
-            .expect("/2/media/upload POST must be in the matrix");
+        let schemes = supported_auth(MEDIA_UPLOAD.method, MEDIA_UPLOAD.path)
+            .expect("POST /2/media/upload must be in the matrix");
         assert_eq!(
             schemes,
             &[
@@ -308,7 +316,7 @@ mod tests {
 
     #[test]
     fn supported_auth_delete_post() {
-        let schemes = supported_auth("DELETE", "/2/tweets/{id}")
+        let schemes = supported_auth(DELETE_POST.method, DELETE_POST.path)
             .expect("DELETE /2/tweets/{{id}} must be in the matrix");
         assert!(
             !schemes.is_empty(),
@@ -325,7 +333,7 @@ mod tests {
         // `/2/users/me` is in the allowlist; `/2/users/{id}` is NOT (no
         // shortcut targets the bare user-lookup endpoint). Lookup must hit
         // the literal entry only — no fallback to the sibling param path.
-        let me = supported_auth("GET", "/2/users/me");
+        let me = supported_auth(GET_ME.method, GET_ME.path);
         assert!(me.is_some(), "/2/users/me must be in the matrix");
 
         let bare = supported_auth("GET", "/2/users/{id}");

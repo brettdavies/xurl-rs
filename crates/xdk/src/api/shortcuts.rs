@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
@@ -250,7 +251,10 @@ impl Client {
                 media_ids: media_ids.to_vec(),
             });
         }
-        self.post_json(template("/2/tweets", HashMap::new(), Vec::new()), &body)
+        self.post_json(
+            template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
+            &body,
+        )
     }
 
     /// Replies to an existing post.
@@ -274,7 +278,10 @@ impl Client {
                 media_ids: media_ids.to_vec(),
             });
         }
-        self.post_json(template("/2/tweets", HashMap::new(), Vec::new()), &body)
+        self.post_json(
+            template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
+            &body,
+        )
     }
 
     /// Quotes an existing post.
@@ -286,16 +293,19 @@ impl Client {
             quote: Some(post_id),
             media: None,
         };
-        self.post_json(template("/2/tweets", HashMap::new(), Vec::new()), &body)
+        self.post_json(
+            template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
+            &body,
+        )
     }
 
     /// Deletes a post.
     pub fn delete_post(&self, post_id: &str) -> Call<ApiResponse<DeletedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call(
-            "DELETE",
+            endpoints::DELETE_POST.method,
             template(
-                "/2/tweets/{id}",
+                endpoints::DELETE_POST.path,
                 HashMap::from([("id".to_string(), post_id)]),
                 Vec::new(),
             ),
@@ -306,9 +316,9 @@ impl Client {
     pub fn read_post(&self, post_id: &str) -> Call<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
         self.call(
-            "GET",
+            endpoints::READ_POST.method,
             template(
-                "/2/tweets/{id}",
+                endpoints::READ_POST.path,
                 HashMap::from([("id".to_string(), post_id)]),
                 vec![
                     (
@@ -347,9 +357,9 @@ impl Client {
     pub fn search_posts(&self, query: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
         let max_results = max_results.clamp(10, 100);
         self.call(
-            "GET",
+            endpoints::SEARCH_POSTS.method,
             template(
-                "/2/tweets/search/recent",
+                endpoints::SEARCH_POSTS.path,
                 HashMap::new(),
                 vec![
                     ("query".to_string(), query.to_string()),
@@ -385,9 +395,9 @@ impl Client {
     /// ```
     pub fn get_me(&self) -> Call<ApiResponse<User>> {
         self.call(
-            "GET",
+            endpoints::GET_ME.method,
             template(
-                "/2/users/me",
+                endpoints::GET_ME.path,
                 HashMap::new(),
                 vec![(
                     "user.fields".to_string(),
@@ -401,9 +411,9 @@ impl Client {
     pub fn lookup_user(&self, username: &str) -> Call<ApiResponse<User>> {
         let username = resolve_username(username);
         self.call(
-            "GET",
+            endpoints::LOOKUP_USER.method,
             template(
-                "/2/users/by/username/{username}",
+                endpoints::LOOKUP_USER.path,
                 HashMap::from([("username".to_string(), username)]),
                 vec![(
                     "user.fields".to_string(),
@@ -416,9 +426,9 @@ impl Client {
     /// Fetches the home timeline.
     pub fn get_timeline(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
         self.call(
-            "GET",
+            endpoints::GET_TIMELINE.method,
             template(
-                "/2/users/{id}/timelines/reverse_chronological",
+                endpoints::GET_TIMELINE.path,
                 id_param(user_id),
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
@@ -437,9 +447,9 @@ impl Client {
     /// Fetches recent mentions.
     pub fn get_mentions(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
         self.call(
-            "GET",
+            endpoints::GET_MENTIONS.method,
             template(
-                "/2/users/{id}/mentions",
+                endpoints::GET_MENTIONS.path,
                 id_param(user_id),
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
@@ -459,8 +469,8 @@ impl Client {
     pub fn like_post(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<LikedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call_with_body(
-            "POST",
-            template("/2/users/{id}/likes", id_param(user_id), Vec::new()),
+            endpoints::LIKE_POST.method,
+            template(endpoints::LIKE_POST.path, id_param(user_id), Vec::new()),
             post_id_body(&post_id),
         )
     }
@@ -469,9 +479,9 @@ impl Client {
     pub fn unlike_post(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<LikedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call(
-            "DELETE",
+            endpoints::UNLIKE_POST.method,
             template(
-                "/2/users/{id}/likes/{tweet_id}",
+                endpoints::UNLIKE_POST.path,
                 id_and(user_id, "tweet_id", post_id),
                 Vec::new(),
             ),
@@ -482,8 +492,8 @@ impl Client {
     pub fn repost(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call_with_body(
-            "POST",
-            template("/2/users/{id}/retweets", id_param(user_id), Vec::new()),
+            endpoints::REPOST.method,
+            template(endpoints::REPOST.path, id_param(user_id), Vec::new()),
             post_id_body(&post_id),
         )
     }
@@ -492,9 +502,9 @@ impl Client {
     pub fn unrepost(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<RepostedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call(
-            "DELETE",
+            endpoints::UNREPOST.method,
             template(
-                "/2/users/{id}/retweets/{source_tweet_id}",
+                endpoints::UNREPOST.path,
                 id_and(user_id, "source_tweet_id", post_id),
                 Vec::new(),
             ),
@@ -505,8 +515,8 @@ impl Client {
     pub fn bookmark(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<BookmarkedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call_with_body(
-            "POST",
-            template("/2/users/{id}/bookmarks", id_param(user_id), Vec::new()),
+            endpoints::BOOKMARK.method,
+            template(endpoints::BOOKMARK.path, id_param(user_id), Vec::new()),
             post_id_body(&post_id),
         )
     }
@@ -515,9 +525,9 @@ impl Client {
     pub fn unbookmark(&self, user_id: &str, post_id: &str) -> Call<ApiResponse<BookmarkedResult>> {
         let post_id = resolve_post_id(post_id);
         self.call(
-            "DELETE",
+            endpoints::UNBOOKMARK.method,
             template(
-                "/2/users/{id}/bookmarks/{tweet_id}",
+                endpoints::UNBOOKMARK.path,
                 id_and(user_id, "tweet_id", post_id),
                 Vec::new(),
             ),
@@ -527,9 +537,9 @@ impl Client {
     /// Fetches bookmarks.
     pub fn get_bookmarks(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
         self.call(
-            "GET",
+            endpoints::GET_BOOKMARKS.method,
             template(
-                "/2/users/{id}/bookmarks",
+                endpoints::GET_BOOKMARKS.path,
                 id_param(user_id),
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
@@ -552,9 +562,9 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<FollowingResult>> {
         self.call_with_body(
-            "POST",
+            endpoints::FOLLOW_USER.method,
             template(
-                "/2/users/{id}/following",
+                endpoints::FOLLOW_USER.path,
                 id_param(source_user_id),
                 Vec::new(),
             ),
@@ -569,9 +579,9 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<FollowingResult>> {
         self.call(
-            "DELETE",
+            endpoints::UNFOLLOW_USER.method,
             template(
-                "/2/users/{source_user_id}/following/{target_user_id}",
+                endpoints::UNFOLLOW_USER.path,
                 source_and_target(source_user_id, target_user_id),
                 Vec::new(),
             ),
@@ -580,12 +590,12 @@ impl Client {
 
     /// Fetches users that a given user follows.
     pub fn get_following(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
-        self.get_user_list("/2/users/{id}/following", user_id, max_results)
+        self.get_user_list(endpoints::GET_FOLLOWING.path, user_id, max_results)
     }
 
     /// Fetches followers of a given user.
     pub fn get_followers(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
-        self.get_user_list("/2/users/{id}/followers", user_id, max_results)
+        self.get_user_list(endpoints::GET_FOLLOWERS.path, user_id, max_results)
     }
 
     /// Sends a direct message.
@@ -593,7 +603,7 @@ impl Client {
         let body = serde_json::json!({"text": text});
         self.post_json(
             template(
-                "/2/dm_conversations/with/{participant_id}/messages",
+                endpoints::SEND_DM.path,
                 HashMap::from([("participant_id".to_string(), participant_id.to_string())]),
                 Vec::new(),
             ),
@@ -604,9 +614,9 @@ impl Client {
     /// Fetches recent DM events.
     pub fn get_dm_events(&self, max_results: i32) -> Call<ApiResponse<Vec<DmEvent>>> {
         self.call(
-            "GET",
+            endpoints::GET_DM_EVENTS.method,
             template(
-                "/2/dm_events",
+                endpoints::GET_DM_EVENTS.path,
                 HashMap::new(),
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
@@ -625,9 +635,9 @@ impl Client {
     /// Fetches posts liked by a user.
     pub fn get_liked_posts(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
         self.call(
-            "GET",
+            endpoints::GET_LIKED_POSTS.method,
             template(
-                "/2/users/{id}/liked_tweets",
+                endpoints::GET_LIKED_POSTS.path,
                 id_param(user_id),
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
@@ -650,8 +660,12 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<MutingResult>> {
         self.call_with_body(
-            "POST",
-            template("/2/users/{id}/muting", id_param(source_user_id), Vec::new()),
+            endpoints::MUTE_USER.method,
+            template(
+                endpoints::MUTE_USER.path,
+                id_param(source_user_id),
+                Vec::new(),
+            ),
             target_user_body(target_user_id),
         )
     }
@@ -659,9 +673,9 @@ impl Client {
     /// Fetches API usage data (post caps, daily breakdowns).
     pub fn get_usage(&self) -> Call<ApiResponse<UsageData>> {
         self.call(
-            "GET",
+            endpoints::GET_USAGE.method,
             template(
-                "/2/usage/tweets",
+                endpoints::GET_USAGE.path,
                 HashMap::new(),
                 vec![(
                     "usage.fields".to_string(),
@@ -673,7 +687,10 @@ impl Client {
 
     /// Fetches credits-based usage for the project.
     pub fn get_usage_credits(&self) -> Call<ApiResponse<UsageCreditsData>> {
-        self.call("GET", template("/2/usage/credits", HashMap::new(), vec![]))
+        self.call(
+            endpoints::GET_USAGE_CREDITS.method,
+            template(endpoints::GET_USAGE_CREDITS.path, HashMap::new(), vec![]),
+        )
     }
 
     /// Unmutes a user.
@@ -683,9 +700,9 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<MutingResult>> {
         self.call(
-            "DELETE",
+            endpoints::UNMUTE_USER.method,
             template(
-                "/2/users/{source_user_id}/muting/{target_user_id}",
+                endpoints::UNMUTE_USER.path,
                 source_and_target(source_user_id, target_user_id),
                 Vec::new(),
             ),
@@ -694,7 +711,7 @@ impl Client {
 
     /// Lists the users the authenticated user has muted.
     pub fn get_muted(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
-        self.get_user_list("/2/users/{id}/muting", user_id, max_results)
+        self.get_user_list(endpoints::GET_MUTED.path, user_id, max_results)
     }
 
     /// Blocks a user.
@@ -704,9 +721,9 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<BlockingResult>> {
         self.call_with_body(
-            "POST",
+            endpoints::BLOCK_USER.method,
             template(
-                "/2/users/{id}/blocking",
+                endpoints::BLOCK_USER.path,
                 id_param(source_user_id),
                 Vec::new(),
             ),
@@ -721,9 +738,9 @@ impl Client {
         target_user_id: &str,
     ) -> Call<ApiResponse<BlockingResult>> {
         self.call(
-            "DELETE",
+            endpoints::UNBLOCK_USER.method,
             template(
-                "/2/users/{source_user_id}/blocking/{target_user_id}",
+                endpoints::UNBLOCK_USER.path,
                 source_and_target(source_user_id, target_user_id),
                 Vec::new(),
             ),
@@ -732,7 +749,7 @@ impl Client {
 
     /// Lists the users the authenticated user has blocked.
     pub fn get_blocked(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
-        self.get_user_list("/2/users/{id}/blocking", user_id, max_results)
+        self.get_user_list(endpoints::GET_BLOCKED.path, user_id, max_results)
     }
 
     // ── Broadcasts ───────────────────────────────────────────────────
@@ -740,9 +757,9 @@ impl Client {
     /// Lists the users who moderate the authenticated user's broadcast chats.
     pub fn get_chat_moderators(&self) -> Call<ApiResponse<Vec<User>>> {
         self.call(
-            "GET",
+            endpoints::GET_CHAT_MODERATORS.method,
             template(
-                "/2/broadcasts/chat/moderators",
+                endpoints::GET_CHAT_MODERATORS.path,
                 HashMap::new(),
                 vec![(
                     "user.fields".to_string(),
@@ -756,7 +773,11 @@ impl Client {
     /// chats; the response carries the whole moderator set.
     pub fn add_chat_moderator(&self, user_id: &str) -> Call<ApiResponse<ChatModeratorsResult>> {
         self.post_json(
-            template("/2/broadcasts/chat/moderators", HashMap::new(), Vec::new()),
+            template(
+                endpoints::ADD_CHAT_MODERATOR.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
             &ChatModeratorBody {
                 user_id: user_id.to_string(),
             },
@@ -767,9 +788,9 @@ impl Client {
     /// broadcast chats; the response carries the remaining set.
     pub fn remove_chat_moderator(&self, user_id: &str) -> Call<ApiResponse<ChatModeratorsResult>> {
         self.call(
-            "DELETE",
+            endpoints::REMOVE_CHAT_MODERATOR.method,
             template(
-                "/2/broadcasts/chat/moderators/{user_id}",
+                endpoints::REMOVE_CHAT_MODERATOR.path,
                 HashMap::from([("user_id".to_string(), user_id.to_string())]),
                 Vec::new(),
             ),

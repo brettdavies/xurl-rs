@@ -7,12 +7,16 @@ use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
+use super::auth_matrix::endpoints::{
+    MEDIA_UPLOAD, MEDIA_UPLOAD_APPEND, MEDIA_UPLOAD_FINALIZE, MEDIA_UPLOAD_INITIALIZE,
+    MEDIA_UPLOAD_STATUS,
+};
 use super::request::{Client, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
 use crate::error::{Error, Result};
 
 /// Base path for the X API media upload endpoint family.
-pub const MEDIA_ENDPOINT: &str = "/2/media/upload";
+pub const MEDIA_ENDPOINT: &str = MEDIA_UPLOAD.path;
 
 /// Target of the upload's progress events: `INFO` for each phase's status
 /// line and `DEBUG` for per-chunk and per-poll progress.
@@ -87,9 +91,9 @@ pub async fn execute_media_upload(
     });
 
     let mut init_opts = base_opts.clone();
-    init_opts.method = "POST".to_string();
+    init_opts.method = MEDIA_UPLOAD_INITIALIZE.method.to_string();
     init_opts.target = RequestTarget::Template {
-        path: "/2/media/upload/initialize".to_string(),
+        path: MEDIA_UPLOAD_INITIALIZE.path.to_string(),
         path_params: HashMap::new(),
         query: Vec::new(),
     };
@@ -111,9 +115,9 @@ pub async fn execute_media_upload(
     tracing::info!(target: MEDIA_TARGET, "Finalizing media upload...");
 
     let mut finalize_opts = base_opts.clone();
-    finalize_opts.method = "POST".to_string();
+    finalize_opts.method = MEDIA_UPLOAD_FINALIZE.method.to_string();
     finalize_opts.target = RequestTarget::Template {
-        path: "/2/media/upload/{id}/finalize".to_string(),
+        path: MEDIA_UPLOAD_FINALIZE.path.to_string(),
         path_params: HashMap::from([("id".to_string(), media_id.clone())]),
         query: Vec::new(),
     };
@@ -167,9 +171,9 @@ async fn upload_chunks(
 
         let multipart_opts = MultipartOptions {
             request: RequestOptions {
-                method: "POST".to_string(),
+                method: MEDIA_UPLOAD_APPEND.method.to_string(),
                 target: RequestTarget::Template {
-                    path: "/2/media/upload/{id}/append".to_string(),
+                    path: MEDIA_UPLOAD_APPEND.path.to_string(),
                     path_params: HashMap::from([("id".to_string(), media_id.to_string())]),
                     query: Vec::new(),
                 },
@@ -239,9 +243,9 @@ async fn check_media_status(
     client: &Client,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let mut opts = base_opts.clone();
-    opts.method = "GET".to_string();
+    opts.method = MEDIA_UPLOAD_STATUS.method.to_string();
     opts.target = RequestTarget::Template {
-        path: "/2/media/upload".to_string(),
+        path: MEDIA_UPLOAD_STATUS.path.to_string(),
         path_params: HashMap::new(),
         query: vec![
             ("command".to_string(), "STATUS".to_string()),
@@ -359,16 +363,20 @@ pub async fn handle_media_append_request(
 /// Extracts `media_id` from a URL.
 #[must_use]
 pub fn extract_media_id(url: &str) -> String {
-    if url.is_empty() || !url.contains("/2/media/upload") {
+    if url.is_empty() || !url.contains(MEDIA_ENDPOINT) {
         return String::new();
     }
 
-    if url.ends_with("/2/media/upload/initialize") {
+    if url.ends_with(MEDIA_UPLOAD_INITIALIZE.path) {
         return String::new();
     }
 
     // Extract media ID from path for append/finalize endpoints
-    if let Some(rest) = url.split("/2/media/upload/").nth(1) {
+    if let Some(rest) = url
+        .split(MEDIA_ENDPOINT)
+        .nth(1)
+        .and_then(|rest| rest.strip_prefix('/'))
+    {
         for suffix in &["/append", "/finalize"] {
             if let Some(idx) = rest.find(suffix) {
                 return rest[..idx].to_string();
@@ -402,5 +410,5 @@ pub fn extract_segment_index(data: &str) -> Option<String> {
 /// Checks if the request is a media append request.
 #[must_use]
 pub fn is_media_append_request(url: &str, media_file: &str) -> bool {
-    url.contains("/2/media/upload") && url.contains("append") && !media_file.is_empty()
+    url.contains(MEDIA_ENDPOINT) && url.contains("append") && !media_file.is_empty()
 }
