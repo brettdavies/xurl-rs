@@ -649,15 +649,17 @@ async fn dm_reports_a_recipient_not_messageable_problem_in_the_envelope() {
 async fn a_refused_connection_reports_network_error() {
     // Port 1 has no listener, so the connection is refused before any HTTP
     // status exists; that, not an API refusal, is what `network-error` names.
+    // The query puts `429` into the URL the failure message quotes, which
+    // must not read as a rate limit.
     let tmp = TempDir::new().expect("tempdir");
     let store = common::oauth1_store(tmp.path());
     let (code, _stdout, stderr) = common::run_in_process(
         &store,
         "http://127.0.0.1:1",
-        &["whoami", "--output", "json"],
+        &["search", "429", "--output", "json"],
     )
     .await;
-    assert_ne!(code, 0);
+    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR);
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
     assert_eq!(envelope["reason"], "network-error", "got: {envelope}");

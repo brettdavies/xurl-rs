@@ -439,11 +439,11 @@ impl Error {
 
     /// Returns the structured exit code for this error.
     ///
-    /// Pattern-matches on `Api { status, .. }` directly for HTTP errors,
-    /// preserves string-scanning for `Http` transport errors (no structured
-    /// status available), and maps `Validation` to `EXIT_GENERAL_ERROR`.
-    /// One arm per variant, with no wildcard: a variant added without an
-    /// exit-code decision is a compile error, not a silent exit 1.
+    /// Pattern-matches on `Api { status, .. }` for HTTP errors; a transport
+    /// failure (`Http`) never carries a status, and its message quotes the
+    /// URL, so it is never read for one. One arm per variant, with no
+    /// wildcard: a variant added without an exit-code decision is a compile
+    /// error, not a silent exit 1.
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
@@ -452,13 +452,7 @@ impl Error {
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
             Self::Api { .. } => EXIT_GENERAL_ERROR,
-            Self::Http(msg) if msg.contains("401") || msg.contains("Unauthorized") => {
-                EXIT_AUTH_REQUIRED
-            }
-            Self::Http(msg) if msg.contains("429") => EXIT_RATE_LIMITED,
-            Self::Http(msg) if msg.contains("404") => EXIT_NOT_FOUND,
-            Self::Http(_) => EXIT_GENERAL_ERROR,
-            Self::Io(_) => EXIT_NETWORK_ERROR,
+            Self::Http(_) | Self::Io(_) => EXIT_NETWORK_ERROR,
             Self::Json(_)
             | Self::InvalidMethod(_)
             | Self::Validation(_)

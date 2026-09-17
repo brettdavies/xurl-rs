@@ -361,11 +361,20 @@ fn test_exit_code_io() {
 }
 
 #[test]
-fn test_exit_code_http_401_string() {
-    assert_eq!(
-        exit_code_for_error(&Error::Http("401 Unauthorized".into())),
-        EXIT_AUTH_REQUIRED
-    );
+fn test_exit_code_http_is_network_error_whatever_the_message_says() {
+    // A transport failure's message carries the URL, so digits in a path or
+    // query must not be read as an HTTP status.
+    for message in [
+        "error sending request for url (http://127.0.0.1:1/2/tweets/search/recent?query=429)",
+        "error sending request for url (http://127.0.0.1:1/2/tweets/1404)",
+        "401 Unauthorized",
+    ] {
+        assert_eq!(
+            exit_code_for_error(&Error::Http(message.into())),
+            EXIT_NETWORK_ERROR,
+            "{message}"
+        );
+    }
 }
 
 #[test]
@@ -388,7 +397,7 @@ fn test_exit_code_invalid_method() {
 fn test_exit_code_http_generic() {
     assert_eq!(
         exit_code_for_error(&Error::Http("connection refused".into())),
-        EXIT_GENERAL_ERROR
+        EXIT_NETWORK_ERROR
     );
 }
 
