@@ -578,100 +578,100 @@ async fn run_subcommand(
 
         // ── Engagement ───────────────────────────────────────────────
         Commands::Like { post_id, common } => {
-            let ctx = json!({"command": "like", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.like_post(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "like",
+                &post_id,
+                &common,
+                Client::like_post,
+            )
+            .await?;
         }
         Commands::Unlike { post_id, common } => {
-            let ctx = json!({"command": "unlike", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.unlike_post(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unlike",
+                &post_id,
+                &common,
+                Client::unlike_post,
+            )
+            .await?;
         }
         Commands::Repost { post_id, common } => {
-            let ctx = json!({"command": "repost", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.repost(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "repost",
+                &post_id,
+                &common,
+                Client::repost,
+            )
+            .await?;
         }
         Commands::Unrepost { post_id, common } => {
-            let ctx = json!({"command": "unrepost", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.unrepost(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unrepost",
+                &post_id,
+                &common,
+                Client::unrepost,
+            )
+            .await?;
         }
         Commands::Bookmark { post_id, common } => {
-            let ctx = json!({"command": "bookmark", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.bookmark(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "bookmark",
+                &post_id,
+                &common,
+                Client::bookmark,
+            )
+            .await?;
         }
         Commands::Unbookmark { post_id, common } => {
-            let ctx = json!({"command": "unbookmark", "post_id": post_id});
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.unbookmark(&user_id, &post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_post(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unbookmark",
+                &post_id,
+                &common,
+                Client::unbookmark,
+            )
+            .await?;
         }
         Commands::Bookmarks {
             max_results,
@@ -703,41 +703,39 @@ async fn run_subcommand(
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "follow", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.follow_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "follow",
+                &target_username,
+                &common,
+                Client::follow_user,
+            )
+            .await?;
         }
         Commands::Unfollow {
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "unfollow", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.unfollow_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unfollow",
+                &target_username,
+                &common,
+                Client::unfollow_user,
+            )
+            .await?;
         }
         Commands::Following {
             max_results,
@@ -777,41 +775,39 @@ async fn run_subcommand(
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "mute", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.mute_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "mute",
+                &target_username,
+                &common,
+                Client::mute_user,
+            )
+            .await?;
         }
         Commands::Unmute {
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "unmute", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.unmute_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unmute",
+                &target_username,
+                &common,
+                Client::unmute_user,
+            )
+            .await?;
         }
         Commands::Muted {
             max_results,
@@ -829,41 +825,39 @@ async fn run_subcommand(
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "block", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.block_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "block",
+                &target_username,
+                &common,
+                Client::block_user,
+            )
+            .await?;
         }
         Commands::Unblock {
             target_username,
             common,
         } => {
-            let ctx = json!({"command": "unblock", "target_username": target_username});
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let my_id = resolve_my_user_id(&client, &common).await?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.unblock_user(&my_id, &target_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            act_from_me_on_user(
+                Exec {
+                    out,
+                    stdout,
+                    dry_run,
+                    cfg,
+                    auth,
+                },
+                "unblock",
+                &target_username,
+                &common,
+                Client::unblock_user,
+            )
+            .await?;
         }
         Commands::Blocked {
             max_results,
@@ -947,46 +941,39 @@ async fn run_subcommand(
                     target_username,
                     common,
                 } => {
-                    let ctx = json!({
-                        "command": "broadcasts-moderators-add",
-                        "target_username": target_username
-                    });
-                    let user = target_username.clone();
-                    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                        shortcuts::validate_target_username(&user)
-                    })?;
-                    if !proceed {
-                        return Ok(());
-                    }
-                    let client = make_client(cfg, auth)?;
-                    let target_id = resolve_user_id(&client, &target_username, &common).await?;
-                    let response = with_flags(client.add_chat_moderator(&target_id), &common, None)
-                        .send()
-                        .await?;
-                    print_typed(out, stdout, &response)?;
+                    act_on_user(
+                        Exec {
+                            out,
+                            stdout,
+                            dry_run,
+                            cfg,
+                            auth,
+                        },
+                        "broadcasts-moderators-add",
+                        &target_username,
+                        &common,
+                        Client::add_chat_moderator,
+                    )
+                    .await?;
                 }
                 ModeratorsCommands::Remove {
                     target_username,
                     common,
                 } => {
-                    let ctx = json!({
-                        "command": "broadcasts-moderators-remove",
-                        "target_username": target_username
-                    });
-                    let user = target_username.clone();
-                    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                        shortcuts::validate_target_username(&user)
-                    })?;
-                    if !proceed {
-                        return Ok(());
-                    }
-                    let client = make_client(cfg, auth)?;
-                    let target_id = resolve_user_id(&client, &target_username, &common).await?;
-                    let response =
-                        with_flags(client.remove_chat_moderator(&target_id), &common, None)
-                            .send()
-                            .await?;
-                    print_typed(out, stdout, &response)?;
+                    act_on_user(
+                        Exec {
+                            out,
+                            stdout,
+                            dry_run,
+                            cfg,
+                            auth,
+                        },
+                        "broadcasts-moderators-remove",
+                        &target_username,
+                        &common,
+                        Client::remove_chat_moderator,
+                    )
+                    .await?;
                 }
             },
         },
@@ -1092,6 +1079,120 @@ async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<Str
         return Err(Error::auth("user ID was empty -- check your auth tokens"));
     }
     Ok(id)
+}
+
+/// What every write verb needs before it can call a shortcut.
+struct Exec<'a> {
+    out: &'a OutputConfig,
+    stdout: &'a mut dyn Write,
+    dry_run: bool,
+    cfg: &'a Config,
+    auth: Auth,
+}
+
+/// A verb that acts on another user from the caller's account: gate on the
+/// handle, resolve the caller's id and the target's, call one shortcut with
+/// both, and print the typed response.
+async fn act_from_me_on_user<T>(
+    exec: Exec<'_>,
+    command: &str,
+    target_username: &str,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
+) -> Result<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let Exec {
+        out,
+        stdout,
+        dry_run,
+        cfg,
+        auth,
+    } = exec;
+    let ctx = json!({"command": command, "target_username": target_username});
+    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+        shortcuts::validate_target_username(target_username)
+    })?;
+    if !proceed {
+        return Ok(());
+    }
+    let client = make_client(cfg, auth)?;
+    let my_id = resolve_my_user_id(&client, common).await?;
+    let target_id = resolve_user_id(&client, target_username, common).await?;
+    let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)
+}
+
+/// A verb that acts on another user without naming the caller: gate on the
+/// handle, resolve it, call one shortcut, and print the typed response.
+async fn act_on_user<T>(
+    exec: Exec<'_>,
+    command: &str,
+    target_username: &str,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
+) -> Result<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let Exec {
+        out,
+        stdout,
+        dry_run,
+        cfg,
+        auth,
+    } = exec;
+    let ctx = json!({"command": command, "target_username": target_username});
+    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+        shortcuts::validate_target_username(target_username)
+    })?;
+    if !proceed {
+        return Ok(());
+    }
+    let client = make_client(cfg, auth)?;
+    let target_id = resolve_user_id(&client, target_username, common).await?;
+    let response = with_flags(shortcut(&client, &target_id), common, None)
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)
+}
+
+/// A verb that acts on a post from the caller's account: gate on the post
+/// id, resolve the caller's id, call one shortcut, and print the typed
+/// response.
+async fn act_from_me_on_post<T>(
+    exec: Exec<'_>,
+    command: &str,
+    post_id: &str,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
+) -> Result<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let Exec {
+        out,
+        stdout,
+        dry_run,
+        cfg,
+        auth,
+    } = exec;
+    let ctx = json!({"command": command, "post_id": post_id});
+    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+        shortcuts::validate_post_id(post_id)
+    })?;
+    if !proceed {
+        return Ok(());
+    }
+    let client = make_client(cfg, auth)?;
+    let my_id = resolve_my_user_id(&client, common).await?;
+    let response = with_flags(shortcut(&client, &my_id, post_id), common, None)
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)
 }
 
 /// Resolves a username to a user ID.

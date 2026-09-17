@@ -2,51 +2,13 @@
 //! the runner: the list is a GET, add resolves the handle and POSTs the user
 //! id, and both print the typed response as JSON.
 
+mod common;
+
 use tempfile::TempDir;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use xdk::config::EnvOverrides;
-use xdk::store::TokenStore;
-use xurl::cli;
-
-/// A store whose default app carries an `OAuth1` token, a scheme every
-/// chat moderator endpoint accepts.
-fn oauth1_store(tmp: &TempDir) -> std::path::PathBuf {
-    let store = tmp.path().join(".xurl");
-    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
-    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
-        .expect("add_app");
-    ts.save_oauth1_tokens_for_app(
-        "myapp",
-        "OA1-ACCESS-TOKEN",
-        "TOKEN-SECRET",
-        "OA1-CONSUMER-KEY",
-        "CONSUMER-SECRET",
-    )
-    .expect("save_oauth1");
-    ts.set_default_app("myapp").expect("set_default_app");
-    let _ = ts.remove_app("default");
-    store
-}
-
-async fn run(store: &std::path::Path, base_url: &str, args: &[&str]) -> (i32, String, String) {
-    let overrides = EnvOverrides {
-        api_base_url: Some(base_url.to_string()),
-        ..EnvOverrides::default()
-    };
-    let mut argv = vec!["xr"];
-    argv.extend_from_slice(args);
-    let mut stdout: Vec<u8> = Vec::new();
-    let mut stderr: Vec<u8> = Vec::new();
-    let code =
-        cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides).await;
-    (
-        code,
-        String::from_utf8_lossy(&stdout).into_owned(),
-        String::from_utf8_lossy(&stderr).into_owned(),
-    )
-}
+use common::{oauth1_store, run_in_process as run};
 
 #[tokio::test]
 async fn moderators_list_prints_the_users_as_json() {
@@ -61,7 +23,7 @@ async fn moderators_list_prints_the_users_as_json() {
         .mount(&server)
         .await;
     let tmp = TempDir::new().expect("tempdir");
-    let store = oauth1_store(&tmp);
+    let store = oauth1_store(tmp.path());
 
     let (code, stdout, stderr) = run(
         &store,
@@ -96,7 +58,7 @@ async fn moderators_add_resolves_the_handle_and_posts_the_user_id() {
         .mount(&server)
         .await;
     let tmp = TempDir::new().expect("tempdir");
-    let store = oauth1_store(&tmp);
+    let store = oauth1_store(tmp.path());
 
     let (code, stdout, stderr) = run(
         &store,
@@ -137,7 +99,7 @@ async fn moderators_remove_deletes_by_the_resolved_user_id() {
         .mount(&server)
         .await;
     let tmp = TempDir::new().expect("tempdir");
-    let store = oauth1_store(&tmp);
+    let store = oauth1_store(tmp.path());
 
     let (code, _stdout, stderr) = run(
         &store,
@@ -160,7 +122,7 @@ async fn moderators_remove_deletes_by_the_resolved_user_id() {
 async fn moderators_add_dry_run_validates_without_a_request() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
-    let store = oauth1_store(&tmp);
+    let store = oauth1_store(tmp.path());
 
     let (code, stdout, _stderr) = run(
         &store,

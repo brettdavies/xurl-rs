@@ -239,3 +239,45 @@ pub fn top_level_families() -> Vec<String> {
         .map(|cmd| cmd.get_name().to_string())
         .collect()
 }
+
+/// A store at `dir/.xurl` whose default app carries an `OAuth1` token, a
+/// scheme every user-context endpoint accepts, so an in-process run can
+/// reach a mock server without a browser flow.
+pub fn oauth1_store(dir: &Path) -> PathBuf {
+    let store = dir.join(".xurl");
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_oauth1_tokens_for_app(
+        "myapp",
+        "OA1-ACCESS-TOKEN",
+        "TOKEN-SECRET",
+        "OA1-CONSUMER-KEY",
+        "CONSUMER-SECRET",
+    )
+    .expect("save_oauth1");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+    store
+}
+
+/// Runs `xr <args>` in-process against `base_url` with the store at `store`,
+/// returning the exit code, stdout, and stderr.
+pub async fn run_in_process(store: &Path, base_url: &str, args: &[&str]) -> (i32, String, String) {
+    let overrides = xdk::config::EnvOverrides {
+        api_base_url: Some(base_url.to_string()),
+        ..xdk::config::EnvOverrides::default()
+    };
+    let mut argv = vec!["xr"];
+    argv.extend_from_slice(args);
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code =
+        xurl::cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides)
+            .await;
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}
