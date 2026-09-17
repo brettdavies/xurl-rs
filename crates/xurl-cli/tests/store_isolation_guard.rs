@@ -21,15 +21,9 @@ mod common;
 
 use std::path::PathBuf;
 
-use common::{enclosing_test, member_dirs, rust_files, workspace_root};
-
-/// A test permitted to resolve the real home directory, with the reason.
-/// `file` is workspace-relative.
-struct Allowed {
-    file: &'static str,
-    test: &'static str,
-    reason: &'static str,
-}
+use common::{
+    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_root,
+};
 
 /// Every sanctioned real-home resolution in the suite.
 const ALLOWLIST: &[Allowed] = &[
@@ -64,10 +58,21 @@ const PATTERNS: &[&str] = &[
     "cargo_bin!(\"xr\")",
 ];
 
-/// Integration test files, plus source files that carry an inline test
-/// module, across every workspace member. Names are workspace-relative.
-fn scanned_files() -> Vec<(String, PathBuf, usize)> {
+/// Integration test files in full, plus the test-carrying region of each
+/// source file, across every workspace member. Each entry is the
+/// workspace-relative name and the text to scan, read once.
+fn scanned_sources() -> Vec<(String, String)> {
     let root = workspace_root();
+    let read = |path: &std::path::Path| {
+        std::fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
+    };
+    let name_of = |path: &std::path::Path| {
+        path.strip_prefix(root)
+            .expect("under the workspace")
+            .to_string_lossy()
+            .into_owned()
+    };
     let mut files = Vec::new();
     let mut sources = Vec::new();
 
@@ -83,15 +88,10 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
             if under_common || is_self {
                 continue;
             }
-            let name = path
-                .strip_prefix(root)
-                .expect("under the workspace")
-                .to_string_lossy()
-                .into_owned();
-            files.push((name, path, 0));
+            files.push((name_of(&path), read(&path)));
         }
         for path in rust_files(&member.join("src")) {
-            let source = std::fs::read_to_string(&path).expect("source must be readable");
+            let source = read(&path);
             sources.push((path, source));
         }
     }
@@ -125,12 +125,7 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
             source.find("#[cfg(test)]")
         };
         if let Some(offset) = offset {
-            let name = path
-                .strip_prefix(root)
-                .expect("under the workspace")
-                .to_string_lossy()
-                .into_owned();
-            files.push((name, path, offset));
+            files.push((name_of(&path), source[offset..].to_string()));
         }
     }
     files
@@ -140,14 +135,10 @@ fn scanned_files() -> Vec<(String, PathBuf, usize)> {
 fn tests_do_not_resolve_the_real_home_directory() {
     let mut violations = Vec::new();
 
-    for (file, path, from) in scanned_files() {
-        let source = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        let scanned = &source[from..];
-
+    for (file, scanned) in scanned_sources() {
         for pattern in PATTERNS {
             for (offset, _) in scanned.match_indices(pattern) {
-                let test = enclosing_test(scanned, offset);
+                let test = enclosing_test(&scanned, offset);
                 let allowed = ALLOWLIST.iter().any(|a| a.file == file && a.test == test);
                 if !allowed {
                     violations.push(format!("{file}::{test} calls {pattern}"));
@@ -169,16 +160,7 @@ fn tests_do_not_resolve_the_real_home_directory() {
 
 #[test]
 fn allowlist_entries_still_exist() {
-    let mut stale = Vec::new();
-
-    for entry in ALLOWLIST {
-        let path = workspace_root().join(entry.file);
-        let source = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        if !source.contains(&format!("fn {}(", entry.test)) {
-            stale.push(format!("{}::{} ({})", entry.file, entry.test, entry.reason));
-        }
-    }
+    let stale = stale_allowlist_entries(ALLOWLIST);
 
     assert!(
         stale.is_empty(),

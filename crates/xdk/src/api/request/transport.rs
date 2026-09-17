@@ -20,6 +20,10 @@ use super::{Client, MultipartOptions, RequestOptions};
 /// note (`kind = "note"`, message), in the order a subscriber prints them.
 pub const WIRE_TARGET: &str = "xdk::wire";
 
+/// The `User-Agent` the three send paths append when the caller supplied
+/// none. One definition so the paths cannot advertise different clients.
+const USER_AGENT: &str = concat!("xdk-rs/", env!("CARGO_PKG_VERSION"));
+
 impl Client {
     /// Sends a regular API request and returns the JSON response.
     ///
@@ -57,9 +61,9 @@ impl Client {
         // Add body for POST/PUT/PATCH. Content-Type is the client's auto-detect
         // unless the caller already supplied one; the body itself is always
         // attached regardless.
-        let xurl_would_set_content_type =
+        let would_set_content_type =
             !options.data.is_empty() && (method == "POST" || method == "PUT" || method == "PATCH");
-        if xurl_would_set_content_type {
+        if would_set_content_type {
             if !user_supplied_header(&options.headers, "Content-Type") {
                 let content_type =
                     if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
@@ -92,10 +96,7 @@ impl Client {
 
         // Add common headers (skip when the caller already supplied them).
         if !user_supplied_header(&options.headers, "User-Agent") {
-            builder = builder.header(
-                "User-Agent",
-                format!("xdk-rs/{}", env!("CARGO_PKG_VERSION")),
-            );
+            builder = builder.header("User-Agent", USER_AGENT);
         }
 
         if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
@@ -104,7 +105,7 @@ impl Client {
 
         note_header_overrides(
             &options.headers,
-            xurl_would_set_content_type,
+            would_set_content_type,
             !options.no_auth,
             options.trace,
         );
@@ -197,10 +198,7 @@ impl Client {
         }
 
         if !user_supplied_header(&options.request.headers, "User-Agent") {
-            builder = builder.header(
-                "User-Agent",
-                format!("xdk-rs/{}", env!("CARGO_PKG_VERSION")),
-            );
+            builder = builder.header("User-Agent", USER_AGENT);
         }
 
         if options.request.trace && !user_supplied_header(&options.request.headers, "X-B3-Flags") {
@@ -258,8 +256,8 @@ impl Client {
 
         let mut builder = self.http().request(req_method, &url);
 
-        let xurl_would_set_content_type = !options.data.is_empty();
-        if xurl_would_set_content_type {
+        let would_set_content_type = !options.data.is_empty();
+        if would_set_content_type {
             if !user_supplied_header(&options.headers, "Content-Type") {
                 let content_type =
                     if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
@@ -284,10 +282,7 @@ impl Client {
         }
 
         if !user_supplied_header(&options.headers, "User-Agent") {
-            builder = builder.header(
-                "User-Agent",
-                format!("xdk-rs/{}", env!("CARGO_PKG_VERSION")),
-            );
+            builder = builder.header("User-Agent", USER_AGENT);
         }
 
         if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
@@ -296,7 +291,7 @@ impl Client {
 
         note_header_overrides(
             &options.headers,
-            xurl_would_set_content_type,
+            would_set_content_type,
             !options.no_auth,
             options.trace,
         );

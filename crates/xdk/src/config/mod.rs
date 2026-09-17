@@ -380,7 +380,6 @@ pub fn resolve_redirect_uri_from(
 /// directly with the env var and the result of
 /// `store.get_app_redirect_uri(app_name)` to avoid a second disk read.
 #[must_use]
-#[allow(private_interfaces)] // ResolvedRedirectUri is pub(crate) per KTD9; the plan keeps this resolver pub
 pub fn resolve_redirect_uri(store_path: &Path, app_name: &str) -> ResolvedRedirectUri {
     let env = std::env::var("REDIRECT_URI").ok();
     let store = crate::store::TokenStore::new_with_path(store_path.to_str().unwrap_or("."));
@@ -388,11 +387,10 @@ pub fn resolve_redirect_uri(store_path: &Path, app_name: &str) -> ResolvedRedire
     resolve_redirect_uri_from(env, stored.as_deref())
 }
 
-// In-source unit tests cover the `pub(crate)` resolver internals that the
-// external integration-test crate cannot reach without breaking visibility.
-// Tests touching only the public API (`resolve_redirect_uri`,
-// `validate_redirect_uri`, `DEFAULT_REDIRECT_URI`) live in
-// `tests/config_tests.rs`.
+// In-source unit tests cover the doc-hidden resolver internals, which carry
+// no published contract. Tests touching only the embedder-facing API
+// (`resolve_redirect_uri`, `validate_redirect_uri`, `DEFAULT_REDIRECT_URI`)
+// live in `tests/config_tests.rs`.
 #[cfg(test)]
 mod tests {
     use super::*;

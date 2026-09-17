@@ -17,8 +17,8 @@ use serde::Deserialize;
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-    emit_auth_matrix(&manifest_dir);
-    emit_build_info(&manifest_dir);
+    let spec_version = emit_auth_matrix(&manifest_dir);
+    emit_build_info(&manifest_dir, spec_version.as_deref());
 }
 
 // ── Auth matrix codegen ─────────────────────────────────────────────────
@@ -97,7 +97,15 @@ const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
 #[derive(Deserialize)]
 struct Spec {
     #[serde(default)]
+    info: Info,
+    #[serde(default)]
     paths: BTreeMap<String, PathItem>,
+}
+
+#[derive(Deserialize, Default)]
+struct Info {
+    #[serde(default)]
+    version: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -134,13 +142,15 @@ enum SchemeRepr {
     OAuth2User(Vec<String>),
 }
 
-/// Emit `$OUT_DIR/auth_matrix.rs` from `vendor/x-api-openapi.json`.
+/// Emit `$OUT_DIR/auth_matrix.rs` from `vendor/x-api-openapi.json` and
+/// return the spec's own `info.version`, so the sidecar cross-check in
+/// [`emit_build_info`] reuses this parse of the 900 KB document.
 ///
 /// The output is a `phf::Map<&'static str, &'static [AuthScheme]>` plus one
 /// `static SUP_<N>` slice per entry. Keys are packed as `"METHOD\0/path"`.
 /// Iteration order over `SHORTCUT_TEMPLATES` plus the BTreeMap-backed spec
 /// keeps the emitted source byte-deterministic.
-fn emit_auth_matrix(manifest_dir: &Path) {
+fn emit_auth_matrix(manifest_dir: &Path) -> Option<String> {
     let spec_path = manifest_dir.join("vendor").join("x-api-openapi.json");
     println!("cargo::rerun-if-changed=vendor/x-api-openapi.json");
 
@@ -255,6 +265,8 @@ fn emit_auth_matrix(manifest_dir: &Path) {
     let out_path = out_dir.join("auth_matrix.rs");
     fs::write(&out_path, src)
         .unwrap_or_else(|e| panic!("cannot write {}: {e}", out_path.display()));
+
+    spec.info.version
 }
 
 // ── Build-info emission ─────────────────────────────────────────────────
@@ -279,10 +291,18 @@ fn emit_auth_matrix(manifest_dir: &Path) {
 /// `env!` / `option_env!`. Panics if the vendored spec and sidecar
 /// disagree on `info.version` (a stale sidecar — re-run
 /// `scripts/refresh-x-openapi.sh`).
-fn emit_build_info(manifest_dir: &Path) {
-    // Invalidate the build when HEAD moves so `XDK_CRATE_GIT_SHA` tracks
-    // the actual current commit on rebuild.
-    println!("cargo:rerun-if-changed=.git/HEAD");
+fn emit_build_info(manifest_dir: &Path, spec_info_version: Option<&str>) {
+    // Invalidate the build when HEAD moves so `XDK_CRATE_GIT_SHA` tracks the
+    // actual current commit on rebuild. Git resolves the path because HEAD is
+    // neither beside this manifest nor always under `.git/` — a linked
+    // worktree keeps it in `.git/worktrees/<name>/`. A path cargo cannot stat
+    // makes it rerun this script on every build, so a resolution that fails
+    // (a crates.io tarball, no git) declares nothing instead.
+    if let Some(head) = run_git(manifest_dir, &["rev-parse", "--git-path", "HEAD"])
+        .filter(|head| Path::new(head).exists())
+    {
+        println!("cargo:rerun-if-changed={head}");
+    }
     println!("cargo:rerun-if-changed=vendor/spec-metadata.json");
 
     if let Some(sha) = run_git(manifest_dir, &["rev-parse", "HEAD"]) {
@@ -310,20 +330,12 @@ fn emit_build_info(manifest_dir: &Path) {
     // other; fail the build with a pointer to the refresh script rather
     // than letting drifted metadata reach consumers.
     let spec_path = manifest_dir.join("vendor").join("x-api-openapi.json");
-    let spec_content = fs::read_to_string(&spec_path)
-        .unwrap_or_else(|e| panic!("read {}: {e}", spec_path.display()));
-    let spec: serde_json::Value = serde_json::from_str(&spec_content)
-        .unwrap_or_else(|e| panic!("parse {}: {e}", spec_path.display()));
-    let spec_info_version = spec
-        .get("info")
-        .and_then(|v| v.get("version"))
-        .and_then(|v| v.as_str())
-        .unwrap_or_else(|| {
-            panic!(
-                "{}: must have an `info.version` string field",
-                spec_path.display()
-            )
-        });
+    let spec_info_version = spec_info_version.unwrap_or_else(|| {
+        panic!(
+            "{}: must have an `info.version` string field",
+            spec_path.display()
+        )
+    });
     if spec_info_version != metadata_version {
         panic!(
             "vendor/x-api-openapi.json `info.version` is {spec_info_version:?} but \

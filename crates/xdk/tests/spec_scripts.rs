@@ -166,7 +166,7 @@ fn drift_report_shows_scope_changes_on_a_requirement() {
 fn vendor_readme_matches_renderer_output() {
     let rendered = run_script("render-vendor-readme.sh", &[]);
     let committed = fs::read_to_string(repo_root().join("crates/xdk/vendor/README.md"))
-        .expect("read vendor/README.md");
+        .expect("read crates/xdk/vendor/README.md");
     assert_eq!(
         rendered, committed,
         "crates/xdk/vendor/README.md is stale; regenerate with: scripts/render-vendor-readme.sh > crates/xdk/vendor/README.md"

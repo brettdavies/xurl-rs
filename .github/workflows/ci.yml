@@ -153,9 +153,8 @@ jobs:
   # Cargo honors [profile.release] only in the workspace root, and a profile
   # that silently stops applying inflates `xr` several times over while every
   # test stays green; the ceiling turns that into a red job. The release `xr`
-  # measured 7,443,112 bytes when the async core landed and 7,727,512 bytes
-  # after the workspace split; a dropped `strip` alone roughly doubles it, so
-  # the ceiling leaves room for ordinary growth and none for a lost profile.
+  # measures 7,727,512 bytes and a dropped `strip` alone roughly doubles it,
+  # so the ceiling leaves room for ordinary growth and none for a lost profile.
   anc:
     name: Agent-native audit
     runs-on: ubuntu-latest

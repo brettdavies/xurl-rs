@@ -112,9 +112,9 @@ fn test_config_default_trait() {
     assert!(!cfg.auth_url.is_empty());
 }
 
-// Resolver thin-wrapper precedence tests live inline in src/config/mod.rs
-// because `ResolvedRedirectUri` is `pub(crate)` per KTD9 and integration-test
-// crates cannot reach it. The validator-only tests below use the public API.
+// Resolver thin-wrapper precedence tests live inline in src/config/mod.rs,
+// beside the doc-hidden internals they exercise. The validator-only tests
+// below use the embedder-facing API.
 
 // ── Config::from_overrides ──────────────────────────────────────────────────
 

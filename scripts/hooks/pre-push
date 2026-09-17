@@ -197,22 +197,20 @@ if code_touched; then
     # 9. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
     # Catches the libc::SIGPIPE class of issue without invoking a Windows toolchain
     # — runs in milliseconds. Step 9 is the comprehensive backstop.
-    if rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ | rg -v '#\[cfg(unix)\]' | rg -v '// *#\[cfg' | rg -qv '^$'; then
-        violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ 2>/dev/null || true)
-        if [ -n "$violations" ]; then
-            while IFS= read -r line; do
-                file=$(echo "$line" | cut -d: -f1)
-                lineno=$(echo "$line" | cut -d: -f2)
-                before=$(sed -n "$((lineno > 3 ? lineno - 3 : 1)),${lineno}p" "$file")
-                if ! echo "$before" | rg -q 'cfg\(unix\)'; then
-                    fail "libc unix-only API used without #[cfg(unix)] at $file:$lineno"
-                fi
-            done <<< "$violations"
-        fi
-        pass "windows compat (libc grep)"
-    else
-        pass "windows compat (libc grep)"
+    # Each hit is judged by the `cfg(unix)` lookback below, so the search runs
+    # once and every hit goes through that one check.
+    violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ 2>/dev/null || true)
+    if [ -n "$violations" ]; then
+        while IFS= read -r line; do
+            file=$(echo "$line" | cut -d: -f1)
+            lineno=$(echo "$line" | cut -d: -f2)
+            before=$(sed -n "$((lineno > 3 ? lineno - 3 : 1)),${lineno}p" "$file")
+            if ! echo "$before" | rg -q 'cfg\(unix\)'; then
+                fail "libc unix-only API used without #[cfg(unix)] at $file:$lineno"
+            fi
+        done <<< "$violations"
     fi
+    pass "windows compat (libc grep)"
 
     # 10. Windows cross-clippy: full type-check of the codebase as if compiling for
     # x86_64-pc-windows-gnu. Catches cfg-gated unused imports, conditional dead

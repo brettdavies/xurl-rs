@@ -149,6 +149,30 @@ pub fn workspace_sources() -> Vec<PathBuf> {
         .collect()
 }
 
+/// A test a source-scanning guard exempts, with the reason it is exempt.
+/// `file` is workspace-relative.
+pub struct Allowed {
+    pub file: &'static str,
+    pub test: &'static str,
+    pub reason: &'static str,
+}
+
+/// The entries of `allowlist` naming a test that no longer exists, rendered
+/// for the assertion message. A stale exemption silently widens what a guard
+/// permits, so every guard checks its own allowlist through here.
+pub fn stale_allowlist_entries(allowlist: &[Allowed]) -> Vec<String> {
+    allowlist
+        .iter()
+        .filter(|entry| {
+            let path = workspace_root().join(entry.file);
+            let source = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+            !source.contains(&format!("fn {}(", entry.test))
+        })
+        .map(|entry| format!("{}::{} ({})", entry.file, entry.test, entry.reason))
+        .collect()
+}
+
 /// Returns the name of the `fn` a given byte offset falls inside.
 pub fn enclosing_test(source: &str, offset: usize) -> String {
     source[..offset]

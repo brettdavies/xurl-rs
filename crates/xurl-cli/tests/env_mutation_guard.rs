@@ -19,15 +19,10 @@
 
 mod common;
 
-use common::{enclosing_test, member_dirs, workspace_root, workspace_sources};
-
-/// A test permitted to mutate the process environment, with the reason.
-/// `file` is workspace-relative.
-struct Allowed {
-    file: &'static str,
-    test: &'static str,
-    reason: &'static str,
-}
+use common::{
+    Allowed, enclosing_test, member_dirs, stale_allowlist_entries, workspace_root,
+    workspace_sources,
+};
 
 /// Every sanctioned process-environment mutation in the integration suite.
 const ALLOWLIST: &[Allowed] = &[
@@ -186,16 +181,7 @@ fn integration_tests_do_not_mutate_the_process_environment() {
 
 #[test]
 fn allowlist_entries_still_exist() {
-    let mut stale = Vec::new();
-
-    for entry in ALLOWLIST {
-        let path = workspace_root().join(entry.file);
-        let source = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        if !source.contains(&format!("fn {}(", entry.test)) {
-            stale.push(format!("{}::{} ({})", entry.file, entry.test, entry.reason));
-        }
-    }
+    let stale = stale_allowlist_entries(ALLOWLIST);
 
     assert!(
         stale.is_empty(),

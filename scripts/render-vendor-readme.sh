@@ -7,7 +7,7 @@
 # Reads crates/xdk/vendor/spec-metadata.json (info.version, content SHA256, refresh
 # date, upstream URL) and crates/xdk/vendor/x-api-openapi.json (path count, byte size)
 # and prints the README to stdout. Every value comes from the vendored
-# artifacts, so the output is reproducible offline and tests/spec_scripts.rs
+# artifacts, so the output is reproducible offline and crates/xdk/tests/spec_scripts.rs
 # holds the committed README to it.
 #
 # Exit codes:
