@@ -119,7 +119,7 @@ ensure_smoke_home() {
 gate_surface() {
   header "Establish surface"
   local last_tag commits files breaking
-  last_tag="${LAST_TAG:-$(git tag --sort=-version:refname | head -n 1)}"
+  last_tag="${LAST_TAG:-$(last_release_tag)}"
   [[ -n "$last_tag" ]] || {
     gate_skip "LAST_TAG" "no tags in repo yet (first release); surface is everything on the branch"
     return
@@ -137,7 +137,7 @@ gate_api_contract() {
   header "API contract surface"
   require_built_binary
   local last_tag tmpdir
-  last_tag="${LAST_TAG:-$(git tag --sort=-version:refname | head -n 1)}"
+  last_tag="${LAST_TAG:-$(last_release_tag)}"
   tmpdir=$(mktemp -d -t xr-api-XXXXXX)
 
   # Command surface diff
@@ -461,8 +461,8 @@ gate_mechanics() {
   local project_version changelog_version
 
   if [[ -f Cargo.toml ]]; then
-    project_version=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
-    gate_pass "Cargo.toml version = $project_version"
+    project_version=$(project_version)
+    gate_pass "$(release_manifest) version = $project_version"
     if [[ -f Cargo.lock ]]; then
       gate_pass "Cargo.lock present"
     else

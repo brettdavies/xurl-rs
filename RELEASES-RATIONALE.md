@@ -297,5 +297,5 @@ Committing the JSON alongside code means ruleset changes land via the same revie
 
 - [`RELEASES.md`](./RELEASES.md) (operational runbook: commands, paths, decision tables)
 - [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) (pre-cut checklist gating the release-branch cut)
-- [`README.md`](README.md) (install channels, library usage, CLI reference)
+- [`README.md`](README.md) (the router between the library and the CLI)
 - [`.github/pull_request_template.md`](.github/pull_request_template.md) (PR body structure with changelog sections)

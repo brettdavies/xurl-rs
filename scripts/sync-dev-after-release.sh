@@ -4,8 +4,10 @@
 # Writes the released version into every version carrier the repo has and
 # copies CHANGELOG.md from main, then lands them via a PR against dev (per
 # this repo's PR-only convention: direct commits to dev are not permitted).
-#   - Version carriers, each updated in place when present: Cargo.toml (and
-#     the crate's own entry in Cargo.lock), package.json, pyproject.toml,
+#   - Version carriers, each updated in place when present: the release
+#     package's Cargo.toml (the workspace member that builds the binary when
+#     the root manifest is virtual, `RELEASE_MANIFEST`; the root otherwise)
+#     and the crate's own entry in Cargo.lock, package.json, pyproject.toml,
 #     VERSION (plain text, no leading "v").
 #   - CHANGELOG.md, copied verbatim from origin/main when main carries one.
 #     Main is fully authoritative for CHANGELOG; dev never edits it directly.
@@ -172,11 +174,22 @@ set_version_line() {
   mv "$tmp" "$file"
 }
 
+# The manifest the release tag names: the root when it is a package, the
+# binary crate's own when the root is a virtual workspace manifest.
+RELEASE_MANIFEST="${RELEASE_MANIFEST:-crates/xurl-cli/Cargo.toml}"
+release_manifest() {
+  if grep -q '^\[package\]' Cargo.toml 2>/dev/null; then
+    echo Cargo.toml
+  else
+    echo "$RELEASE_MANIFEST"
+  fi
+}
+
 # Cargo.lock carries the crate's own version too; a stale entry fails
-# `cargo build --locked`. Update it for the crate named in Cargo.toml.
+# `cargo build --locked`. Update it for the crate the release manifest names.
 set_cargo_lock_version() {
   local crate tmp
-  crate="$(grep -m1 '^name = ' Cargo.toml | sed -E 's/^name = "(.*)"/\1/')"
+  crate="$(grep -m1 '^name = ' "$(release_manifest)" | sed -E 's/^name = "(.*)"/\1/')"
   [[ -n "$crate" && -f Cargo.lock ]] || return 0
   tmp="$(mktemp)"
   awk -v crate="$crate" -v v="$VERSION_NO_V" '
@@ -191,8 +204,8 @@ set_cargo_lock_version() {
 # on main bumped each of them.
 SYNC_PATHS=()
 if [[ -f Cargo.toml ]]; then
-  set_version_line Cargo.toml
-  SYNC_PATHS+=(Cargo.toml)
+  set_version_line "$(release_manifest)"
+  SYNC_PATHS+=("$(release_manifest)")
   if [[ -f Cargo.lock ]]; then
     set_cargo_lock_version
     SYNC_PATHS+=(Cargo.lock)
@@ -231,7 +244,7 @@ fi
 
 # The previous release tag is the last commit where the branches agreed, which
 # is what makes it the reference for "did dev move this file too?".
-PREV_TAG="$(git tag --list --sort=-version:refname \
+PREV_TAG="$(git tag --list 'v[0-9]*' --sort=-version:refname \
   | awk -v cur="$VERSION" '$0 != cur { print; exit }')"
 
 blob_at() {

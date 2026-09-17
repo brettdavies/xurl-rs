@@ -19,22 +19,22 @@ fn register_app_at(store: &std::path::Path) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn test_version_outputs_plain_text_ignoring_json_flag() {
-    // version is a Tier 1 meta-command — ignores --output json, always plain text
+fn test_version_honors_the_json_flag_with_one_object() {
+    // version is a Tier 1 meta-command; the structured forms carry the CLI
+    // and library versions as fields, and the plain form stays one line.
     let output = common::xr()
         .args(["version", "--output", "json"])
         .output()
         .unwrap();
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("version --output json prints one JSON object");
+    assert_eq!(value["name"], "xr");
+    assert_eq!(value["version"], env!("CARGO_PKG_VERSION"));
     assert!(
-        stdout.contains("xr"),
-        "version should output plain text: {stdout}"
-    );
-    assert!(
-        !stdout.starts_with('{'),
-        "version should not output JSON: {stdout}"
+        value["xdk_rs"].is_string(),
+        "the structured form names the library version: {value}"
     );
 }
 

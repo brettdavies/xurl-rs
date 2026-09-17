@@ -164,8 +164,25 @@ where
                 clap_complete::generate(*shell, &mut cmd, "xr", stdout);
                 return EXIT_SUCCESS;
             }
+            // The plain line is a pinned contract that scripts parse; the library
+            // version rides only on the verbose and structured forms, so a bug
+            // report can name both without the plain line gaining a field.
             Commands::Version => {
-                let _ = writeln!(stdout, "xr {}", env!("CARGO_PKG_VERSION"));
+                let cli_version = env!("CARGO_PKG_VERSION");
+                if out.format.is_structured() {
+                    out.print_response(
+                        stdout,
+                        &serde_json::json!({
+                            "name": "xr",
+                            "version": cli_version,
+                            "xdk_rs": xdk::CRATE_VERSION,
+                        }),
+                    );
+                } else if out.verbose {
+                    let _ = writeln!(stdout, "xr {cli_version} (xdk-rs {})", xdk::CRATE_VERSION);
+                } else {
+                    let _ = writeln!(stdout, "xr {cli_version}");
+                }
                 return EXIT_SUCCESS;
             }
             Commands::Examples => {
