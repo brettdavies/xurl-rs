@@ -47,6 +47,12 @@ const FIXTURE_EXT: &str = "golden";
 /// Reasons the schema names that no argv can reach, each with why.
 const UNTRIGGERABLE: &[(&str, &str)] = &[
     (
+        "network-error",
+        "raised only by a transport failure, whose message carries the OS error \
+         text (`os error 111` on Linux, `61` on macOS), so no fixture is byte-stable \
+         across platforms; `wiring_tests.rs` pins the reason against a refused port",
+    ),
+    (
         "invalid-url",
         "raw mode rejects a URL that is neither http(s) nor an absolute path as \
          `validation` before a raw-URL target exists, so the scheme allowlist \
@@ -185,6 +191,31 @@ impl MockApi {
             ResponseTemplate::new(500).set_body_json(serde_json::json!({
                 "title": "Internal Server Error",
                 "status": 500
+            })),
+        ));
+        self.mount(search(
+            "q403",
+            ResponseTemplate::new(403).set_body_json(serde_json::json!({
+                "title": "Forbidden",
+                "detail": "Your client app is not configured with the appropriate oauth1 app permissions for this endpoint.",
+                "type": "https://api.x.com/2/problems/not-authorized-for-resource",
+                "status": 403
+            })),
+        ));
+        self.mount(search(
+            "q400",
+            ResponseTemplate::new(400).set_body_json(serde_json::json!({
+                "title": "Invalid Request",
+                "detail": "One or more parameters to your request was invalid.",
+                "type": "https://api.x.com/2/problems/invalid-request",
+                "status": 400
+            })),
+        ));
+        self.mount(search(
+            "q409",
+            ResponseTemplate::new(409).set_body_json(serde_json::json!({
+                "title": "Conflict",
+                "status": 409
             })),
         ));
         self.mount(
@@ -355,8 +386,20 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             &["--output", "json", "--auth", "app", "search", "q404"],
         )),
         bearer(reason_case(
-            "network-error",
+            "server-error",
             &["--output", "json", "--auth", "app", "search", "q500"],
+        )),
+        bearer(reason_case(
+            "forbidden",
+            &["--output", "json", "--auth", "app", "search", "q403"],
+        )),
+        bearer(reason_case(
+            "invalid-request",
+            &["--output", "json", "--auth", "app", "search", "q400"],
+        )),
+        bearer(reason_case(
+            "api-error",
+            &["--output", "json", "--auth", "app", "search", "q409"],
         )),
         bearer(reason_case(
             "invalid-method",

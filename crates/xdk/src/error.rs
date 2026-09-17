@@ -394,9 +394,12 @@ impl Error {
     /// | `Auth`                 | `auth-required`  |
     /// | `TokenStore`           | `token-store`    |
     /// | `Api { 401, .. }`      | `auth-required`  |
-    /// | `Api { 429, .. }`      | `rate-limited`   |
+    /// | `Api { 403, .. }`      | `forbidden`      |
     /// | `Api { 404, .. }`      | `not-found`      |
-    /// | `Api { other, .. }`    | `network-error`  |
+    /// | `Api { 429, .. }`      | `rate-limited`   |
+    /// | `Api { 400 \| 422, .. }` | `invalid-request` |
+    /// | `Api { 5xx, .. }`      | `server-error`   |
+    /// | `Api { other, .. }`    | `api-error`      |
     /// | `Http`                 | `network-error`  |
     /// | `Io`                   | `io`             |
     /// | `Json`                 | `serialization`  |
@@ -412,9 +415,16 @@ impl Error {
             Self::Auth(_) => "auth-required",
             Self::TokenStore(_) => "token-store",
             Self::Api { status: 401, .. } => "auth-required",
-            Self::Api { status: 429, .. } => "rate-limited",
+            Self::Api { status: 403, .. } => "forbidden",
             Self::Api { status: 404, .. } => "not-found",
-            Self::Api { .. } => "network-error",
+            Self::Api { status: 429, .. } => "rate-limited",
+            Self::Api {
+                status: 400 | 422, ..
+            } => "invalid-request",
+            Self::Api {
+                status: 500..=599, ..
+            } => "server-error",
+            Self::Api { .. } => "api-error",
             Self::Http(_) => "network-error",
             Self::Io(_) => "io",
             Self::Json(_) => "serialization",

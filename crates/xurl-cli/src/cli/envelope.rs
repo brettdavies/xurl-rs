@@ -73,8 +73,9 @@ pub struct ErrorBody {
     /// Typed kebab-case kind; agents pattern-match on this.
     ///
     /// The runtime emits: `auth-required`, `auth-method-mismatch`,
-    /// `client-credentials-missing`, `rate-limited`, `not-found`,
-    /// `network-error`, `invalid-args`, `unknown-command`, `invalid-method`,
+    /// `client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,
+    /// `invalid-request`, `server-error`, `api-error`, `network-error`,
+    /// `invalid-args`, `unknown-command`, `invalid-method`,
     /// `invalid-url`, `invalid-path-param`, `validation`, `serialization`,
     /// `io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,
     /// `unsupported-pagination`, and the verb-local `invalid-json`,
