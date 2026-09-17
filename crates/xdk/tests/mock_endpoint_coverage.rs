@@ -10,6 +10,7 @@ mod common;
 
 use common::{Reply, check, load_spec, response_schema};
 use xdk::api::auth_matrix::{Endpoint, SHORTCUT_TEMPLATES};
+use xdk::error::Error;
 use xdk::testing::MockX;
 
 /// `path` with every `{parameter}` replaced by a token both `[0-9]+` and
@@ -111,4 +112,33 @@ async fn every_mock_reply_is_the_shape_the_spec_gives_its_endpoint() {
          and answer with a status the spec declares.",
         failures.join("\n")
     );
+}
+
+#[tokio::test]
+async fn a_stubbed_problem_body_surfaces_as_an_api_error() {
+    let mock = MockX::start().await;
+    let problem = MockX::fixture("api_problem").expect("the fixture file carries api_problem");
+    mock.stub(
+        "POST",
+        r"^/2/dm_conversations/with/[0-9]+/messages$",
+        403,
+        problem.clone(),
+    )
+    .await;
+    let client = mock.user_client().expect("client");
+    let err = client
+        .send_dm("222", "hello")
+        .send()
+        .await
+        .expect_err("a 403 is an error");
+    match err {
+        Error::Api { status, body } => {
+            assert_eq!(status, 403);
+            assert!(
+                body.contains(problem["detail"].as_str().unwrap()),
+                "the problem's detail reaches the caller: {body}"
+            );
+        }
+        other => panic!("expected Error::Api, got {other:?}"),
+    }
 }

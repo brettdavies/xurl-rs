@@ -74,6 +74,40 @@ pub fn response_schema<'a>(spec: &'a Value, endpoint: &Endpoint, status: u16) ->
     }
 }
 
+/// Which of an endpoint's declared replies a fixture represents.
+#[derive(Clone, Copy, Debug)]
+pub enum ReplyKind {
+    /// The first 2xx reply, as `application/json`.
+    Success,
+    /// The `default` failure reply as `application/json` (the `Error` shape).
+    Error,
+    /// The `default` failure reply as `application/problem+json` (a `Problem`).
+    Problem,
+}
+
+/// The schema a fixture of `kind` for `endpoint` must satisfy.
+pub fn fixture_schema<'a>(spec: &'a Value, endpoint: &Endpoint, kind: ReplyKind) -> &'a Value {
+    let (status, content_type) = match kind {
+        ReplyKind::Success => return success_schema(spec, endpoint),
+        ReplyKind::Error => ("default", "application/json"),
+        ReplyKind::Problem => ("default", "application/problem+json"),
+    };
+    declared_responses(spec, endpoint)
+        .get(status)
+        .and_then(|response| {
+            response.pointer(&format!(
+                "/content/{}/schema",
+                content_type.replace('/', "~1")
+            ))
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "{} {} declares no {status} reply as {content_type}",
+                endpoint.method, endpoint.path
+            )
+        })
+}
+
 /// The JSON schema of `endpoint`'s first 2xx response.
 pub fn success_schema<'a>(spec: &'a Value, endpoint: &Endpoint) -> &'a Value {
     let (status, _) = declared_responses(spec, endpoint)

@@ -236,5 +236,15 @@
         }
       ]
     }
+  },
+  "api_error": {
+    "code": 89,
+    "message": "Invalid or expired token."
+  },
+  "api_problem": {
+    "type": "https://api.x.com/2/problems/recipient-not-messageable",
+    "title": "Recipient Not Messageable",
+    "detail": "The recipient does not accept Direct Messages from this account.",
+    "status": 403
   }
 }

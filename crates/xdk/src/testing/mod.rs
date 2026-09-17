@@ -34,6 +34,9 @@
 //!
 //! A route the fixtures do not cover, or a failure to rehearse, is stubbed
 //! with [`MockX::stub`]; a stub outranks the seeded route for the same path.
+//! The fixture file also carries the two failure shapes the API documents,
+//! `api_error` (`code` and `message`) and `api_problem` (a problem+json
+//! body), so [`MockX::fixture`] hands a real failure body to a stub.
 
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
