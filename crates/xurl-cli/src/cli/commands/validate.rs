@@ -15,8 +15,8 @@ use serde::de::DeserializeOwned;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
-    User,
+    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
+    UsageCreditsData, UsageData, User,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -73,14 +73,17 @@ pub const UNVALIDATED_TYPES: &[(&str, &str)] = &[
 /// Every schema `xr validate` accepts, in the order the `--schema` help and
 /// the `unknown-schema` envelope list them. Singular and plural aliases
 /// both resolve to the typed-response variant that round-trips a non-empty
-/// value; auto-detection (`detect_schema`) follows the same precedence.
+/// value; auto-detection (`detect_schema`) follows the same precedence. `dm`
+/// is the send confirmation `xr dm` prints, `dm-event` one event as `xr dms`
+/// lists them.
 const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Post>("post"),
     typed_alias::<Vec<Post>>("posts"),
     typed_alias::<User>("user"),
     typed_alias::<Vec<User>>("users"),
-    typed_alias::<DmEvent>("dm"),
+    typed_alias::<DmSentResult>("dm"),
     typed_alias::<Vec<DmEvent>>("dms"),
+    typed_alias::<DmEvent>("dm-event"),
     typed_alias::<UsageData>("usage"),
     typed_alias::<UsageCreditsData>("credits"),
     SchemaAlias {
@@ -170,8 +173,10 @@ fn detect_schema(value: &serde_json::Value) -> &'static str {
                 "post"
             } else if map.contains_key("username") || map.contains_key("name") {
                 "user"
-            } else if map.contains_key("event_type") {
+            } else if map.contains_key("dm_event_id") {
                 "dm"
+            } else if map.contains_key("event_type") {
+                "dm-event"
             } else if map.contains_key("project_cap") || map.contains_key("cap_reset_day") {
                 "usage"
             } else if map.contains_key("total_balance") || map.contains_key("free_balance") {
@@ -379,6 +384,23 @@ mod tests {
         assert_eq!(code, 0);
         assert!(stdout.contains("\"valid\": true"), "got: {stdout}");
         assert!(stdout.contains("\"schema\": \"post\""), "got: {stdout}");
+    }
+
+    #[test]
+    fn auto_detects_the_dm_send_confirmation_and_a_dm_event_apart() {
+        let sent = serde_json::json!({
+            "data": {"dm_conversation_id": "222-111", "dm_event_id": "1580705921830768647"},
+        });
+        let (code, stdout, _) = run(&sent, None, OutputFormat::Json);
+        assert_eq!(code, 0);
+        assert!(stdout.contains("\"schema\": \"dm\""), "got: {stdout}");
+
+        let event = serde_json::json!({
+            "data": {"id": "1", "event_type": "ParticipantsJoin", "participant_ids": ["2"]},
+        });
+        let (code, stdout, _) = run(&event, None, OutputFormat::Json);
+        assert_eq!(code, 0);
+        assert!(stdout.contains("\"schema\": \"dm-event\""), "got: {stdout}");
     }
 
     #[test]

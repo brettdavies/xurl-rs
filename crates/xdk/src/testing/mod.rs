@@ -199,7 +199,7 @@ const ROUTES: &[Route] = &[
     },
     Route {
         endpoint: endpoints::SEND_DM,
-        fixture: Some("dm_event"),
+        fixture: Some("dm_sent"),
         status: 201,
     },
     Route {

@@ -130,14 +130,10 @@
       "muting": true
     }
   },
-  "dm_event": {
+  "dm_sent": {
     "data": {
-      "id": "1580705921830768647",
-      "text": "hello there",
-      "event_type": "MessageCreate",
       "dm_conversation_id": "1580705921830768643",
-      "sender_id": "906948460078698496",
-      "created_at": "2022-10-14T00:00:00.000Z"
+      "dm_event_id": "1580705921830768647"
     }
   },
   "dm_event_list": {

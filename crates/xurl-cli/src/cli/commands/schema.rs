@@ -11,8 +11,8 @@ use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
-    User,
+    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
+    UsageCreditsData, UsageData, User,
 };
 use xdk::error::{Error, Result};
 
@@ -86,8 +86,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     },
     SchemaEntry {
         commands: &["dm"],
-        type_name: "ApiResponse<DmEvent>",
-        schema: || schema_for!(ApiResponse<DmEvent>).into(),
+        type_name: "ApiResponse<DmSentResult>",
+        schema: || schema_for!(ApiResponse<DmSentResult>).into(),
     },
     SchemaEntry {
         commands: &["dms"],
