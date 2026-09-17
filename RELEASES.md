@@ -315,6 +315,9 @@ bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any targ
 # 1. On the release branch, bump the library and regenerate its changelog. The library
 #    config scopes to `crates/xdk/**` and to the `xdk-rs-v*` tag line.
 sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
+#    The CLI's declared bound lives in the workspace manifest and must move with it,
+#    or the workspace stops resolving; this bound is what the tag order below protects.
+sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
 cargo update -p xdk-rs
 git cliff -c crates/xdk/cliff.toml --unreleased --tag xdk-rs-v0.2.0 --prepend crates/xdk/CHANGELOG.md
 

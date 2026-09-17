@@ -47,8 +47,9 @@ Flags:
 - `--env staging|prod`: target environment (default: `prod`); ignored here
 - `--repo OWNER/REPO`: override the auto-detected nameWithOwner
 - `--tap-repo OWNER/REPO`: override the homebrew-tap repo (default: `brettdavies/homebrew-tap`)
-- `--tag vX.Y.Z`: override auto-detection (default: derived from `Cargo.toml` version, falls back to latest git tag)
-- `--crate NAME`: override the crate name for the `crates` gate (default: `Cargo.toml` `[package].name`)
+- `--tag vX.Y.Z`: override auto-detection (default: derived from the CLI crate's `crates/xurl-cli/Cargo.toml`
+  version, falls back to the newest `v*` tag)
+- `--crate NAME`: override the crate name for the `crates` gate (default: the CLI crate's `[package].name`)
 - `--staging-url URL` / `--prod-url URL`: surface-smoke URLs; unused here
 
 ## Checklist
@@ -93,8 +94,9 @@ Run immediately after the tag push triggers `release.yml`.
   `releases/latest`, revert the formula bump), then land a `fix` or `revert` through the normal `dev` to `release/*` to
   `main` flow so `main` reconverges with what is live.
 - [ ] **Sync `dev` with the release** via a **merged PR to `dev` carrying the released tag in its title.**
-  `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into `Cargo.toml` and the
-  crate's `Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens the PR; merge it once CI is green. Keeps the
+  `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into `crates/xurl-cli/Cargo.toml`
+  and the crate's `Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens the PR; merge it once CI is green.
+  Keeps the
   next release's PREFLIGHT `diff-B` step quiet so a real missed change stands out instead of hiding in expected
   divergence noise.
 

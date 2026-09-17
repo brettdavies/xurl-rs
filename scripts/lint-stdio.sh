@@ -56,7 +56,7 @@ handles=$(
     --no-heading \
     --line-number \
     --pcre2 \
-    "${NOT_COMMENT}.*\bio::(stdout|stderr)\(\)" \
+    "${NOT_COMMENT}.*(\bio::(stdout|stderr)\(\)|\bio::(Stdout|Stderr)\b|\bfrom_raw_fd\b)" \
     crates \
     || true
 )

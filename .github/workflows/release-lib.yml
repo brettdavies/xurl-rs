@@ -23,9 +23,10 @@ permissions:
 
 jobs:
   pipeline:
-    # Pinned to the upstream branch that adds `dry_run` until brettdavies/.github#64
-    # merges; a first-party reusable may pin a branch.
-    uses: brettdavies/.github/.github/workflows/rust-lib-release.yml@feat/rust-release-workspace-bounds
+    # Pinned to the upstream commit that adds `dry_run` (brettdavies/.github#64)
+    # until it merges; the commit outlives the branch, so the pin survives the
+    # branch's deletion. Repoint to `@main` after the merge.
+    uses: brettdavies/.github/.github/workflows/rust-lib-release.yml@fd2f59d07e02e7d37a7475238cd51cbb70ea45a1 # feat/rust-release-workspace-bounds
     with:
       crate: xdk-rs
       dry_run: ${{ github.event_name == 'workflow_dispatch' }}

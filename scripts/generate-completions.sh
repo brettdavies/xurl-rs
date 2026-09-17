@@ -29,9 +29,10 @@ done
 
 cd "$REPO_PATH"
 
-# Detect the binary name from the one workspace member that declares a bin
-# target; `.packages[0]` is whichever member cargo lists first.
-BIN_FILTER='[.packages[].targets[] | select(.kind[] == "bin") | .name] | first // empty'
+# The binary is the `xurl-rs` package's bin target. Two members declare bin
+# targets (the consumer-check crate has one), so the package is named rather
+# than taking whichever member cargo lists first.
+BIN_FILTER='.packages[] | select(.name == "xurl-rs") | .targets[] | select(.kind[] == "bin") | .name'
 BIN=$(cargo metadata --no-deps --format-version 1 2>/dev/null \
   | jaq -r "$BIN_FILTER" 2>/dev/null \
   || cargo metadata --no-deps --format-version 1 \

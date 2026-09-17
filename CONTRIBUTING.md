@@ -31,8 +31,10 @@ the whole repo. Every step that is skipped says so on its own line, so a skip ne
 Four CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, or a release build:
 completions freshness (`./scripts/generate-completions.sh --check`), the package check (`cargo publish --dry-run
 --workspace`), the public-API semver gate (`cargo semver-checks` against the last `xdk-rs-v*` tag), and the
-agent-native audit with the release binary's size ceiling (`anc audit` on `target/release/xr`). Run those yourself
-when a change touches the CLI surface, the library API, or the release profile. The live-API checks stay manual by
+agent-native audit with the release binary's size ceiling (`anc audit` on `target/release/xr`). The feature matrix's
+`--all-features` and `--features testing` test runs and its `rustls`-alone cell are CI-only too. Run those yourself
+when a change touches the CLI surface, the library API, the feature set, or the release profile. The live-API checks
+stay manual by
 design: `cargo test -- --ignored` runs the TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary
 smoke; `crates/xurl-cli/tests/conformance/` compares against the Go `xurl` only when that binary is on `PATH`; and
 `benches/benchmark.sh` times `xr` against the Go `xurl` with hyperfine.
