@@ -132,3 +132,17 @@ method_requires_different_generic_type_params = { lint-level = "deny", required-
 # Covers `RequestOptions.verbose` and `CallOptions.verbose`: verbosity is the
 # subscriber's decision, not a per-call field.
 struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }
+# The three entries below cover the surface audit: items the binary reaches
+# across the crate boundary left the documented API behind `#[doc(hidden)]`.
+#
+# Covers the OAuth1 signing primitives (`auth::oauth1`), the callback listener
+# (`auth::callback`), the two-step pending-state helpers (`auth::pending`),
+# `store::is_app_name_char`, and the raw-URL media helpers
+# (`handle_media_append_request`, `is_media_append_request`,
+# `extract_media_id`, `extract_segment_index`).
+function_now_doc_hidden = { lint-level = "deny", required-update = "minor" }
+# Covers `MEDIA_ENDPOINT`, which the raw-URL media path matches against.
+pub_module_level_const_now_doc_hidden = { lint-level = "deny", required-update = "minor" }
+# Covers `StoreSnapshot` and `AppFacts` (facts `xr auth status` renders) and
+# `PendingOAuth2State` (the headless two-step sign-in's file).
+struct_now_doc_hidden = { lint-level = "deny", required-update = "minor" }

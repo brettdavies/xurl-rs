@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/xdk", "crates/xurl-cli"]
+members = ["crates/xdk", "crates/xurl-cli", "crates/xdk-consumer-check"]
 
 [workspace.package]
 edition = "2024"

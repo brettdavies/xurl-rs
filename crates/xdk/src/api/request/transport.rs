@@ -108,6 +108,7 @@ impl Client {
         trace_request(method, &url);
 
         let resp = builder.send().await?;
+        self.record_rate_limit(resp.headers());
         trace_response(resp.status(), resp.headers());
 
         let status = resp.status();
@@ -212,6 +213,7 @@ impl Client {
         trace_request(method, &url);
 
         let resp = builder.send().await?;
+        self.record_rate_limit(resp.headers());
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
 
@@ -294,6 +296,7 @@ impl Client {
         trace_request(method, &url);
 
         let resp = builder.send().await?;
+        self.record_rate_limit(resp.headers());
         trace_response(resp.status(), resp.headers());
 
         let resp_status = resp.status();

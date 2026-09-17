@@ -136,12 +136,12 @@ fn test_help_advertises_xurl_verbose_env() {
 #[test]
 fn test_help_advertises_every_env_var_the_source_reads() {
     // p1-must-env-var: every variable the binary reads must surface in --help.
-    // The set comes from both crates' sources rather than a list here, so a
-    // new variable cannot land without a help entry.
+    // The set comes from the shipped crates' sources rather than a list here,
+    // so a new variable cannot land without a help entry.
     let pattern = regex::Regex::new(r#"env = "([A-Z_]+)"|env::var(?:_os)?\("([A-Z_]+)"\)"#)
         .expect("valid pattern");
     let mut names = std::collections::BTreeSet::new();
-    for path in common::workspace_sources() {
+    for path in common::shipped_sources() {
         let source = std::fs::read_to_string(&path).expect("source must be readable");
         let production = source.split("#[cfg(test)]").next().unwrap_or("");
         for cap in pattern.captures_iter(production) {

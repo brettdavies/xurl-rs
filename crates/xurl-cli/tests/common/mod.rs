@@ -149,6 +149,31 @@ pub fn workspace_sources() -> Vec<PathBuf> {
         .collect()
 }
 
+/// The members that ship: every member whose manifest does not opt out with
+/// `publish = false`. The unpublished consumer-check crate is an embedder,
+/// not part of the product's own contracts.
+pub fn shipped_member_dirs() -> Vec<PathBuf> {
+    member_dirs()
+        .into_iter()
+        .filter(|member| {
+            let manifest = std::fs::read_to_string(member.join("Cargo.toml"))
+                .expect("member manifest must be readable");
+            !manifest
+                .lines()
+                .any(|line| line.trim_start().starts_with("publish = false"))
+        })
+        .collect()
+}
+
+/// Every `.rs` file under the shipped members' `src/` trees: the sources
+/// whose environment reads and error reasons are the product's contract.
+pub fn shipped_sources() -> Vec<PathBuf> {
+    shipped_member_dirs()
+        .iter()
+        .flat_map(|member| rust_files(&member.join("src")))
+        .collect()
+}
+
 /// A test a source-scanning guard exempts, with the reason it is exempt.
 /// `file` is workspace-relative.
 pub struct Allowed {

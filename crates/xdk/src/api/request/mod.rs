@@ -162,6 +162,9 @@ pub struct MultipartOptions {
 /// for post in &posts.data {
 ///     println!("{}: {}", post.id, post.text);
 /// }
+/// if let Some(window) = client.last_rate_limit() {
+///     println!("{:?} requests left until {:?}", window.remaining, window.reset_at);
+/// }
 /// # Ok(()) }
 /// ```
 #[derive(Clone)]
@@ -169,19 +172,59 @@ pub struct Client {
     inner: Arc<Inner>,
 }
 
-/// What every clone of a [`Client`] shares: the one HTTP client, the base
-/// URL and timeout, and the credential state behind the lock a refresh
-/// holds while it rotates a token.
 /// The `User-Agent` a client sends when the caller sets none: the library's
 /// own name, so an embedder that never thinks about it is still identifiable.
 pub const DEFAULT_USER_AGENT: &str = concat!("xdk-rs/", env!("CARGO_PKG_VERSION"));
 
+/// The rate-limit window X reported on the most recent response, from the
+/// `x-rate-limit-limit`, `x-rate-limit-remaining`, and `x-rate-limit-reset`
+/// headers. A field is `None` when the response did not carry that header.
+///
+/// Read it through [`Client::last_rate_limit`] before retrying a failed call,
+/// so a retry loop can wait for `reset_at` instead of spending requests that
+/// will be refused.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RateLimit {
+    /// Requests allowed in the current window.
+    pub limit: Option<u32>,
+    /// Requests left in the current window.
+    pub remaining: Option<u32>,
+    /// When the window resets, as seconds since the Unix epoch.
+    pub reset_at: Option<u64>,
+}
+
+impl RateLimit {
+    /// Reads the three `x-rate-limit-*` headers; `None` when the response
+    /// carried none of them, so an unrelated response never erases the last
+    /// window a rate-limited endpoint reported.
+    fn from_headers(headers: &reqwest::header::HeaderMap) -> Option<Self> {
+        fn number<T: std::str::FromStr>(
+            headers: &reqwest::header::HeaderMap,
+            name: &str,
+        ) -> Option<T> {
+            headers.get(name)?.to_str().ok()?.trim().parse().ok()
+        }
+        let window = Self {
+            limit: number(headers, "x-rate-limit-limit"),
+            remaining: number(headers, "x-rate-limit-remaining"),
+            reset_at: number(headers, "x-rate-limit-reset"),
+        };
+        (window.limit.is_some() || window.remaining.is_some() || window.reset_at.is_some())
+            .then_some(window)
+    }
+}
+
+/// What every clone of a [`Client`] shares: the one HTTP client, the base
+/// URL and timeout, the credential state behind the lock a refresh holds
+/// while it rotates a token, and the last rate-limit window seen.
 struct Inner {
     base_url: String,
     http: reqwest::Client,
     credentials: Mutex<CredentialSource>,
     timeout: Duration,
     user_agent: String,
+    rate_limit: std::sync::Mutex<Option<RateLimit>>,
 }
 
 crate::assert_send_sync!(Client);
@@ -275,8 +318,34 @@ impl Client {
                 credentials: Mutex::new(credentials),
                 timeout,
                 user_agent,
+                rate_limit: std::sync::Mutex::new(None),
             }),
         })
+    }
+
+    /// The rate-limit window X reported on the most recent response that
+    /// carried one, or `None` before any such response. Usage credits are a
+    /// separate, account-wide figure: read them with
+    /// [`Client::get_usage_credits`](crate::api::shortcuts).
+    #[must_use]
+    pub fn last_rate_limit(&self) -> Option<RateLimit> {
+        *self
+            .inner
+            .rate_limit
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Records the window a response reported; a response without the
+    /// headers leaves the last window in place.
+    pub(crate) fn record_rate_limit(&self, headers: &reqwest::header::HeaderMap) {
+        if let Some(window) = RateLimit::from_headers(headers) {
+            *self
+                .inner
+                .rate_limit
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(window);
+        }
     }
 
     /// Returns the per-call timeout used by this client (seconds).

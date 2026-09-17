@@ -9,16 +9,21 @@ pub mod shortcuts;
 
 pub use endpoints::is_streaming_endpoint;
 #[allow(unused_imports)]
-pub use media::{
-    MEDIA_ENDPOINT, MEDIA_TARGET, MediaUploadOutcome, execute_media_status, execute_media_upload,
-    extract_media_id, extract_segment_index, handle_media_append_request, is_media_append_request,
-};
+pub use media::{MEDIA_TARGET, MediaUploadOutcome, execute_media_status, execute_media_upload};
+// Raw-URL media plumbing: the binary's `xr <URL>` path recognises and services
+// an append request by hand; an embedder uploads through `execute_media_upload`.
+#[doc(hidden)]
 #[allow(unused_imports)]
-pub use request::DEFAULT_USER_AGENT;
+pub use media::{
+    MEDIA_ENDPOINT, extract_media_id, extract_segment_index, handle_media_append_request,
+    is_media_append_request,
+};
 pub use request::{
     Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions,
     RequestTarget, StreamLines, WIRE_TARGET,
 };
+#[allow(unused_imports)]
+pub use request::{DEFAULT_USER_AGENT, RateLimit};
 #[allow(unused_imports)]
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent,

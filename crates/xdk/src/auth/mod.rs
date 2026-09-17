@@ -3,10 +3,16 @@
 //! Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
 //! env-var config -> active app in `.xurl` store.
 
+// The listener, the signing primitives, and the two-step pending state are
+// driven by `oauth2::run_oauth2_flow`, the client's headers, and `xr auth`;
+// an embedder reaches them through those, not directly.
+#[doc(hidden)]
 pub mod callback;
 pub mod credentials;
+#[doc(hidden)]
 pub mod oauth1;
 pub mod oauth2;
+#[doc(hidden)]
 pub mod pending;
 
 pub(crate) use credentials::DirectCredentials;

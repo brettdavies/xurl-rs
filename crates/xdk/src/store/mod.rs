@@ -11,6 +11,8 @@ mod atomic;
 mod hook;
 mod lock;
 mod migration;
+// Facts the binary renders in `xr auth status` and its hints; not a store API.
+#[doc(hidden)]
 pub mod snapshot;
 mod tokens;
 pub mod types;
@@ -681,6 +683,7 @@ impl TokenStore {
 /// registration rejects anything else and the hint builder quotes the
 /// grandfathered names an older store can still hold.
 #[must_use]
+#[doc(hidden)]
 pub fn is_app_name_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-')
 }

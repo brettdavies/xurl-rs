@@ -310,6 +310,11 @@ impl Error {
     /// Pay-per-use enrollment failure is unactionable without it. Every
     /// other error is `None` here: the steps that depend on a credential
     /// store are the binary's to choose.
+    ///
+    /// [`NextAction`] is library API by intent, not a rendering detail: an
+    /// embedder branches on it the way `xr` renders it, so it stays on the
+    /// error rather than in any one consumer. The enum is `#[non_exhaustive]`,
+    /// so a new action is a minor release and a `match` needs a wildcard arm.
     #[must_use]
     pub fn next_action(&self) -> Option<NextAction> {
         match self {

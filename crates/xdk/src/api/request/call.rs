@@ -68,10 +68,17 @@ impl<T> Call<T> {
         self
     }
 
-    /// Sets the scheme from its wire string, unvalidated, so the binary's
-    /// `--auth` value reaches scheme selection exactly as typed.
+    /// Sets the scheme from its wire string without validating it.
+    ///
+    /// # Safety (caller-beware)
+    ///
+    /// Nothing checks that `scheme` names a scheme this client can send. An
+    /// unknown string reaches scheme selection as typed and surfaces there as
+    /// an auth-method mismatch, which is what `xr --auth <value>` relies on to
+    /// report the user's own text back. Prefer [`Call::auth`], which takes a
+    /// [`WireScheme`] and cannot be misspelled.
     #[doc(hidden)]
-    pub fn auth_wire(mut self, scheme: impl Into<String>) -> Self {
+    pub fn auth_wire_unchecked(mut self, scheme: impl Into<String>) -> Self {
         self.options.auth_type = scheme.into();
         self
     }
@@ -80,7 +87,7 @@ impl<T> Call<T> {
 impl<T: DeserializeOwned> Call<T> {
     /// Sends under `scheme` instead of the auto-detected one.
     pub fn auth(self, scheme: WireScheme) -> Self {
-        self.auth_wire(scheme.as_wire())
+        self.auth_wire_unchecked(scheme.as_wire())
     }
 
     /// Selects which stored `OAuth2` user a store-backed client sends as. A

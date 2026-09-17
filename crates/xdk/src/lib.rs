@@ -5,6 +5,25 @@
 //! [`store::TokenStore`]. The `xr` command-line client is a separate crate,
 //! `xurl-rs`, built on this one.
 //!
+//! Every published module is one an embedder has a reason to call:
+//!
+//! - [`api`]: the client and its builder, one [`api::Call`] per shortcut,
+//!   the typed responses, the raw-request path for endpoints without a
+//!   shortcut, and the last rate-limit window a response reported.
+//! - [`auth`]: credentials held in code, the refresh hook that receives a
+//!   rotated token pair, the store-backed [`auth::Auth`], and the OAuth2
+//!   sign-in flows.
+//! - [`config`]: base URL, timeouts, and the environment overrides a client
+//!   built from the environment reads.
+//! - [`error`]: [`Error`], [`Result`], the machine-readable
+//!   [`error::NextAction`], and the exit codes a CLI built on this crate maps
+//!   them to.
+//! - [`store`]: [`store::TokenStore`], the on-disk credential store the CLI
+//!   shares, and the reference implementation of the refresh hook.
+//!
+//! Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the
+//! crate boundary; they stay callable but are not part of this surface.
+//!
 //! Four authentication paths are supported, selected per request from the
 //! token store and environment:
 //!
