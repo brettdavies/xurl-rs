@@ -14,8 +14,9 @@ use serde::de::DeserializeOwned;
 
 use crate::cli::output::OutputConfig;
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
+    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
+    User,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -27,17 +28,99 @@ const EXIT_VALIDATION_FAILED: i32 = 1;
 /// shape doesn't map cleanly to a known type.
 const SCHEMA_UNKNOWN: &str = "unknown";
 
-/// Schema-name aliases.
-///
-/// Singular and plural aliases both resolve to the typed-response variant
-/// that round-trips a non-empty value. The order in the auto-detection
-/// fallback (`detect_schema`) follows the same precedence: object-with-id
-/// looks like a `post`, an array → `posts`, etc.
-fn known_schemas() -> &'static [&'static str] {
-    &[
-        "post", "posts", "user", "users", "dm", "dms", "usage", "credits", "envelope", "like",
-        "follow", "delete", "repost", "bookmark", "mute", "block",
-    ]
+/// One name `--schema` accepts and the validator it dispatches to.
+struct SchemaAlias {
+    name: &'static str,
+    validate: fn(&serde_json::Value) -> Result<(), String>,
+}
+
+/// Every schema `xr validate` accepts, in the order the `--schema` help and
+/// the `unknown-schema` envelope list them. Singular and plural aliases
+/// both resolve to the typed-response variant that round-trips a non-empty
+/// value; auto-detection (`detect_schema`) follows the same precedence.
+const SCHEMA_ALIASES: &[SchemaAlias] = &[
+    SchemaAlias {
+        name: "post",
+        validate: typed::<Post>,
+    },
+    SchemaAlias {
+        name: "posts",
+        validate: typed::<Vec<Post>>,
+    },
+    SchemaAlias {
+        name: "user",
+        validate: typed::<User>,
+    },
+    SchemaAlias {
+        name: "users",
+        validate: typed::<Vec<User>>,
+    },
+    SchemaAlias {
+        name: "dm",
+        validate: typed::<DmEvent>,
+    },
+    SchemaAlias {
+        name: "dms",
+        validate: typed::<Vec<DmEvent>>,
+    },
+    SchemaAlias {
+        name: "usage",
+        validate: typed::<UsageData>,
+    },
+    SchemaAlias {
+        name: "credits",
+        validate: typed::<UsageCreditsData>,
+    },
+    SchemaAlias {
+        name: "envelope",
+        validate: validate_envelope,
+    },
+    SchemaAlias {
+        name: "like",
+        validate: typed::<LikedResult>,
+    },
+    SchemaAlias {
+        name: "follow",
+        validate: typed::<FollowingResult>,
+    },
+    SchemaAlias {
+        name: "delete",
+        validate: typed::<DeletedResult>,
+    },
+    SchemaAlias {
+        name: "repost",
+        validate: typed::<RepostedResult>,
+    },
+    SchemaAlias {
+        name: "bookmark",
+        validate: typed::<BookmarkedResult>,
+    },
+    SchemaAlias {
+        name: "mute",
+        validate: typed::<MutingResult>,
+    },
+    SchemaAlias {
+        name: "block",
+        validate: typed::<BlockingResult>,
+    },
+    SchemaAlias {
+        name: "moderators",
+        validate: typed::<ChatModeratorsResult>,
+    },
+];
+
+/// Every name `--schema` accepts, in declaration order.
+pub fn schema_names() -> impl Iterator<Item = &'static str> {
+    SCHEMA_ALIASES.iter().map(|alias| alias.name)
+}
+
+/// The `--schema` argument's help text, listing every accepted name.
+pub fn schema_arg_help() -> String {
+    let names: Vec<String> = schema_names().map(|name| format!("`{name}`")).collect();
+    format!(
+        "Schema name to validate against ({}). Omit for auto-detection",
+        names.join(", ")
+    )
 }
 
 /// Detects the most likely schema from the document's top-level shape.
@@ -123,23 +206,24 @@ pub fn run_validate(
         None => detect_schema(&value).to_string(),
     };
 
-    if !known_schemas().iter().any(|k| *k == schema) {
+    let Some(alias) = SCHEMA_ALIASES.iter().find(|alias| alias.name == schema) else {
+        let known: Vec<&str> = schema_names().collect();
         let payload = serde_json::json!({
             "status": "error",
             "reason": "unknown-schema",
             "exit_code": EXIT_VALIDATION_FAILED,
             "schema": schema,
-            "known_schemas": known_schemas(),
+            "known_schemas": known,
             "message": format!(
                 "unknown schema {schema:?}; pass one of {} or omit --schema for auto-detection",
-                known_schemas().join(", ")
+                known.join(", ")
             ),
         });
         out.print_response(stderr, &payload);
         return EXIT_VALIDATION_FAILED;
-    }
+    };
 
-    match validate_against(&schema, &value) {
+    match (alias.validate)(&value) {
         Ok(()) => {
             let payload = serde_json::json!({
                 "status": "ok",
@@ -178,47 +262,9 @@ fn read_input(path: Option<&str>) -> Result<String, String> {
     }
 }
 
-/// Dispatches `value` against the requested schema name.
-fn validate_against(schema: &str, value: &serde_json::Value) -> Result<(), String> {
-    match schema {
-        "post" => try_into::<ApiResponse<Post>>(value).or_else(|_| try_into::<Post>(value)),
-        "posts" => {
-            try_into::<ApiResponse<Vec<Post>>>(value).or_else(|_| try_into::<Vec<Post>>(value))
-        }
-        "user" => try_into::<ApiResponse<User>>(value).or_else(|_| try_into::<User>(value)),
-        "users" => {
-            try_into::<ApiResponse<Vec<User>>>(value).or_else(|_| try_into::<Vec<User>>(value))
-        }
-        "dm" => try_into::<ApiResponse<DmEvent>>(value).or_else(|_| try_into::<DmEvent>(value)),
-        "dms" => try_into::<ApiResponse<Vec<DmEvent>>>(value)
-            .or_else(|_| try_into::<Vec<DmEvent>>(value)),
-        "usage" => {
-            try_into::<ApiResponse<UsageData>>(value).or_else(|_| try_into::<UsageData>(value))
-        }
-        "credits" => try_into::<ApiResponse<UsageCreditsData>>(value)
-            .or_else(|_| try_into::<UsageCreditsData>(value)),
-        "envelope" => validate_envelope(value),
-        "like" => {
-            try_into::<ApiResponse<LikedResult>>(value).or_else(|_| try_into::<LikedResult>(value))
-        }
-        "follow" => try_into::<ApiResponse<FollowingResult>>(value)
-            .or_else(|_| try_into::<FollowingResult>(value)),
-        "delete" => try_into::<ApiResponse<DeletedResult>>(value)
-            .or_else(|_| try_into::<DeletedResult>(value)),
-        "repost" => try_into::<ApiResponse<RepostedResult>>(value)
-            .or_else(|_| try_into::<RepostedResult>(value)),
-        "bookmark" => try_into::<ApiResponse<BookmarkedResult>>(value)
-            .or_else(|_| try_into::<BookmarkedResult>(value)),
-        "mute" => try_into::<ApiResponse<MutingResult>>(value)
-            .or_else(|_| try_into::<MutingResult>(value)),
-        "block" => try_into::<ApiResponse<BlockingResult>>(value)
-            .or_else(|_| try_into::<BlockingResult>(value)),
-        SCHEMA_UNKNOWN => Err(format!(
-            "could not auto-detect schema from document shape; pass --schema explicitly (known: {})",
-            known_schemas().join(", ")
-        )),
-        other => Err(format!("schema {other:?} has no validator wired up")),
-    }
+/// Accepts `value` as either the API envelope around `T` or a bare `T`.
+fn typed<T: DeserializeOwned + Default>(value: &serde_json::Value) -> Result<(), String> {
+    try_into::<ApiResponse<T>>(value).or_else(|_| try_into::<T>(value))
 }
 
 /// Validates that `value` matches the canonical xurl error / success envelope.

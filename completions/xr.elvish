@@ -1882,7 +1882,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection'
             cand -v 'Print verbose information'
             cand --verbose 'Print verbose information'
             cand --app 'Use a specific registered app (overrides default)'

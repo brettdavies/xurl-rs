@@ -1,7 +1,7 @@
 args: ["validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5998
+stdout_len: 6079
 stderr_len: 0
 --- stdout ---
 Validate a JSON document against a bundled response schema.
@@ -16,7 +16,7 @@ Arguments:
 
 Options:
       --schema <NAME>
-          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection
+          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection
 
   -v, --verbose[=<VERBOSE>]
           Print verbose information
