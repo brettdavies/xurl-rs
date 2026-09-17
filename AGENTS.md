@@ -10,8 +10,8 @@ repository: https://github.com/brettdavies/xurl-rs
 
 ## Running xr
 
-The CLI package is `xurl-rs` and the installed binary is `xr`. The library is the `xdk-rs` package, imported as
-`xdk`; the `xurl` library target inside the CLI crate exists for its own tests and is not an API.
+The CLI package is `xurl-rs` and the installed binary is `xr`. The library is the `xdk-rs` package, imported as `xdk`;
+the `xurl` library target inside the CLI crate exists for its own tests and is not an API.
 
 ```bash
 # Raw request — full control over verb, path, body, headers
@@ -109,17 +109,56 @@ changes: add keys rather than renaming or retyping existing ones.
 ## Shortcut commands
 
 `crates/xdk/src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in
-`crates/xdk/vendor/x-api-openapi.json` (`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`,
-`mute_user`, `block_user`, `send_dm`, `lookup_user`, `get_timeline`, `get_mentions`, `search_posts`, `read_post`,
-`get_me`, `get_followers`, `get_following`, `get_liked_posts`, `get_bookmarks`, `get_muted`, `get_blocked`,
-`get_dm_events`, `get_usage`, `get_usage_credits`, and their `un*` inverses where the spec documents them). Each maps to
-one CLI command via `crates/xurl-cli/src/cli/` and returns a typed response via `crates/xdk/src/api/response/types.rs`.
-The library's `build.rs` generates the auth matrix from the vendored spec and fails the build if a shortcut targets an
-endpoint absent from it; `crates/xdk/src/api/auth_matrix.rs` wraps the generated table for runtime lookup.
+`crates/xdk/vendor/x-api-openapi.json`; the file is the list. Each shortcut names its endpoint through the constants
+`crates/xdk/build.rs` generates from its `SHORTCUT_TEMPLATES` rows (`auth_matrix::endpoints`), maps to one CLI command
+via `crates/xurl-cli/src/cli/`, and returns a typed response via `crates/xdk/src/api/response/types.rs`. The build
+script also generates the auth matrix from the vendored spec and fails the build if a declared endpoint is absent from
+it; `crates/xdk/src/api/auth_matrix.rs` wraps the generated table for runtime lookup.
 
-Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed response in `response/types.rs` (or
-reuse), register in `crates/xurl-cli/src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response
-type derives `schemars::JsonSchema`.
+### Adding a command family
+
+A family touches the surfaces below, about nine files across the two crates. Every surface a contributor could forget is
+covered by a walk that reads the live declaration (clap's command tree, the schema registry, the alias table, or the
+declared endpoint list) and names what is missing, the likely cause, and the file to edit. Forget a surface, and a test
+says which one. No walk checks against a list written into the test, so adding a family means editing the surfaces,
+never the tests.
+
+- **Endpoint declaration.** A `SHORTCUT_TEMPLATES` row in `crates/xdk/build.rs`: the constant name, the method, and the
+  spec path. The build panics when the path is not in the vendored spec, and `crates/xdk/tests/auth_matrix_coverage.rs`
+  fails when the generated auth matrix has no entry for it.
+- **Shortcut.** A `pub fn` in `crates/xdk/src/api/shortcuts.rs` that reads `endpoints::<NAME>` for its method and path.
+  `crates/xdk/tests/path_literal_guard.rs` fails on a `/2/` literal in the request layer or the mock.
+- **Typed response.** A struct in `crates/xdk/src/api/response/types.rs` deriving `JsonSchema`, or an existing one.
+  `crates/xdk/tests/spec_types_validation.rs` fails when a struct field is not in the spec's schema.
+- **Response fixture.** A key in `crates/xdk/tests/fixtures/openapi/example_responses.json`, with a `spec_*` test and a
+  `FIXTURE_ENDPOINTS` row in `crates/xdk/tests/spec_validation.rs`. That file fails for a fixture with no test, no
+  endpoint mapping, or a shape the spec does not give the endpoint.
+- **Mock route.** A `Route` in `crates/xdk/src/testing/mod.rs` naming the endpoint constant and the fixture that answers
+  it. `crates/xdk/tests/mock_endpoint_coverage.rs` fails for a declared endpoint the running mock does not answer.
+- **Clap command.** A variant in `crates/xurl-cli/src/cli/mod.rs` with its `after_help`, through a
+  `crates/xurl-cli/src/cli/family_help.rs` declaration when the family has several verbs.
+  `crates/xurl-cli/tests/golden_tests.rs` demands a `help-<command>.golden` fixture for every command.
+- **Dispatch arm.** An arm in `crates/xurl-cli/src/cli/commands/mod.rs`; a verb that resolves a handle or acts on a post
+  from the caller's account goes through `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`. The dry-run
+  golden fixtures pin the envelope.
+- **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
+  `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
+  `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that
+  drifted.
+- **Validate alias.** A `typed_alias` row, or an `UNVALIDATED_TYPES` entry for a shape the CLI builds itself, in
+  `crates/xurl-cli/src/cli/commands/validate.rs`. The walk in `crates/xurl-cli/tests/schema_tests.rs` fails for a
+  registry response type with neither, and `crates/xurl-cli/tests/validate_tests.rs` fails when the `--schema` help and
+  the `unknown-schema` envelope disagree.
+- **Examples page.** An `xr <family>` line under the use-case section it belongs to in
+  `crates/xurl-cli/src/cli/commands/examples.rs`. `crates/xurl-cli/tests/agentic_tests.rs` fails for a family the page
+  never invokes.
+- **Completions.** `scripts/generate-completions.sh`; CI's completions freshness gate fails when they are stale.
+
+Re-bless a golden fixture only where a surface above says the content moved, with `XURL_GOLDEN_BLESS=1 cargo test -p
+xurl-rs --test golden_tests`; a fixture that moves for any other reason is a defect.
+
+`crates/xurl-cli/tests/recipe_guard.rs` checks this section: every file it names exists, every walk (a test whose
+failure message carries a `Cause:` line) is named here, and no document lists the shortcut functions by hand.
 
 ### Command grammar: flags vs subcommands
 
@@ -182,12 +221,12 @@ The line between the crates holds on four rules; a change that crosses one belon
 Deciding where a new feature lands:
 
 - It talks to X (an endpoint, an auth scheme, a media phase, a stream), reads or writes the credential store, or
-  classifies a failure: `crates/xdk`. The shortcut, its typed response, and its `Error` arm land there; the `xr`
-  command that exposes it is a separate change in `crates/xurl-cli`.
+  classifies a failure: `crates/xdk`. The shortcut, its typed response, and its `Error` arm land there; the `xr` command
+  that exposes it is a separate change in `crates/xurl-cli`.
 - It parses argv, renders output in any format, reads terminal-shaped environment, prompts, opens a browser, installs a
   skill bundle, or turns an error into prose: `crates/xurl-cli`.
-- `xr` needs a library internal no embedder would call: `pub` plus `#[doc(hidden)]` in the library with a comment
-  naming the `xr` path; never `pub(crate)` (it does not cross crates) and never a copy in the binary.
+- `xr` needs a library internal no embedder would call: `pub` plus `#[doc(hidden)]` in the library with a comment naming
+  the `xr` path; never `pub(crate)` (it does not cross crates) and never a copy in the binary.
 - A new dependency goes in the library only when an embedder's build needs it; test-only helpers sit behind the
   `testing` feature; anything terminal-shaped goes to the binary.
 
@@ -234,9 +273,9 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Four CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the
-public-API semver gate, and the agent-native audit with the release binary's size ceiling. Run them yourself when a
-change touches the CLI surface, the library API, or the release profile.
+Four CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, and the agent-native audit with the release binary's size ceiling. Run them yourself when a change touches
+the CLI surface, the library API, or the release profile.
 
 ## Releasing
 
