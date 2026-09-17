@@ -87,7 +87,7 @@ impl fmt::Debug for OAuth1Credential {
 
 /// Stands in for a secret in `Debug` output so a logged credential never
 /// carries the value.
-const REDACTED: &str = "<redacted>";
+pub(crate) const REDACTED: &str = "<redacted>";
 
 /// Receives every rotated `OAuth2` pair the client installs.
 ///

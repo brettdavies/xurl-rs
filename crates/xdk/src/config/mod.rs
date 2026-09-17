@@ -322,6 +322,7 @@ impl ResolveSource {
 
 /// A resolved redirect URI plus the precedence level that produced it.
 #[doc(hidden)]
+#[derive(Debug)]
 pub struct ResolvedRedirectUri {
     /// The effective URI to use for the `OAuth2` flow.
     pub uri: String,

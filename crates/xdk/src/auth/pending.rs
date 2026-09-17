@@ -125,7 +125,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         }
 
         let file_uid = meta.uid();
-        let current_uid = unsafe { libc::getuid() };
+        let current_uid = rustix::process::getuid().as_raw();
         if file_uid != current_uid {
             return Err(Error::auth(format!(
                 "PendingStatePermissions: file owned by uid {file_uid}, expected {current_uid}"

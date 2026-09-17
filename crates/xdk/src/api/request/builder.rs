@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::auth::credentials::REDACTED;
 use crate::auth::{DirectCredentials, OAuth1Credential, OAuth2Credential, OnTokenRefreshed};
 use crate::config::{DEFAULT_API_BASE_URL, DEFAULT_TOKEN_URL};
 use crate::error::{Error, Result};
@@ -33,6 +34,21 @@ pub struct ClientBuilder {
     token_url: String,
     timeout: Duration,
     user_agent: Option<String>,
+}
+
+impl std::fmt::Debug for ClientBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClientBuilder")
+            .field("bearer", &self.bearer.as_ref().map(|_| REDACTED))
+            .field("oauth2", &self.oauth2)
+            .field("oauth1", &self.oauth1)
+            .field("hook", &self.hook.is_some())
+            .field("base_url", &self.base_url)
+            .field("token_url", &self.token_url)
+            .field("timeout", &self.timeout)
+            .field("user_agent", &self.user_agent)
+            .finish()
+    }
 }
 
 impl ClientBuilder {

@@ -5,7 +5,7 @@ description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, b
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]
 categories = ["api-bindings", "web-programming", "asynchronous"]
-readme = "../../README.md"
+readme = "README.md"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -17,6 +17,10 @@ exclude = ["tests/"]
 [lib]
 name = "xdk"
 path = "src/lib.rs"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["rustls"]
@@ -63,7 +67,9 @@ percent-encoding = "2"
 phf = "0.14"
 
 [target.'cfg(unix)'.dependencies]
-libc.workspace = true
+# One safe `getuid` for the pending-state ownership check; the crate
+# forbids `unsafe`, which rules out the libc call.
+rustix = { version = "1", features = ["process"] }
 
 [build-dependencies]
 serde.workspace = true

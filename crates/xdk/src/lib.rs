@@ -1,60 +1,18 @@
-//! xdk — async Rust client for the X (Twitter) API.
-//!
-//! Downstream Rust consumers build requests via [`api::Client`],
-//! pattern-match on [`Error`], and persist auth state in
-//! [`store::TokenStore`]. The `xr` command-line client is a separate crate,
-//! `xurl-rs`, built on this one.
-//!
-//! Every published module is one an embedder has a reason to call:
-//!
-//! - [`api`]: the client and its builder, one [`api::Call`] per shortcut,
-//!   the typed responses, the raw-request path for endpoints without a
-//!   shortcut, and the last rate-limit window a response reported.
-//! - [`auth`]: credentials held in code, the refresh hook that receives a
-//!   rotated token pair, the store-backed [`auth::Auth`], and the OAuth2
-//!   sign-in flows.
-//! - [`config`]: base URL, timeouts, and the environment overrides a client
-//!   built from the environment reads.
-//! - [`error`]: [`Error`], [`Result`], the machine-readable
-//!   [`error::NextAction`], and the exit codes a CLI built on this crate maps
-//!   them to.
-//! - [`store`]: [`store::TokenStore`], the on-disk credential store the CLI
-//!   shares, and the reference implementation of the refresh hook.
-//!
-//! Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the
-//! crate boundary; they stay callable but are not part of this surface.
-//!
-//! # Cargo features
-//!
-//! - `rustls` (default): TLS through [rustls](https://docs.rs/rustls) with
-//!   the platform's certificate verifier; no system TLS library is linked.
-//! - `native-tls`: TLS through the operating system's library (OpenSSL on
-//!   Linux, Secure Transport on macOS, SChannel on Windows) via
-//!   [native-tls](https://docs.rs/native-tls). To use it alone, turn the
-//!   default off: `xdk-rs = { version = "0.1", default-features = false,
-//!   features = ["native-tls"] }`. With both backends enabled, reqwest
-//!   picks `native-tls`.
-//! - `testing`: reserved for an in-process mock server and fixtures; it
-//!   enables nothing yet.
-//!
-//! A build with neither TLS feature fails at compile time with a message
-//! naming both, rather than at the first `https` request.
-//!
-//! Four authentication paths are supported, selected per request from the
-//! token store and environment:
-//!
-//! - **OAuth2 PKCE** (browser-driven or headless copy-paste) — every v2
-//!   user-scoped endpoint.
-//! - **OAuth1 HMAC-SHA1** — legacy v1.1 endpoints and some v2 write paths.
-//! - **Bearer (app-only)** — v2 read-only endpoints and search; set via
-//!   `XURL_BEARER_TOKEN`.
-
+#![doc = include_str!("../README.md")]
 // `Error`'s largest variant (`AuthMethodMismatch`) carries multiple
 // `String` and `Vec<String>` fields so agents can pattern-match on the
 // envelope structure. Boxing the variant would change the public
 // construction surface and break consumer code; allow the lint instead.
 #![allow(clippy::result_large_err)]
 #![deny(missing_docs)]
+// The three `REDIRECT_URI` unit tests need edition 2024's `unsafe { set_var }`
+// (allowlisted in the env-mutation guard), so the ban covers every build an
+// embedder compiles and leaves the test build alone.
+#![cfg_attr(not(test), forbid(unsafe_code))]
+#![warn(missing_debug_implementations)]
+// docs.rs passes `--cfg docsrs` on nightly, where `doc_cfg` renders a feature
+// badge on every gated item; stable never sees the feature gate.
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 // reqwest compiles without a TLS backend and only fails at the first https
 // request, with an error that never mentions TLS; failing the build names

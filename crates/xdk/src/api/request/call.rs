@@ -42,6 +42,17 @@ pub struct Call<T> {
 // bound starting to depend on `T`.
 crate::assert_send_sync!(Call<std::rc::Rc<()>>);
 
+impl<T> std::fmt::Debug for Call<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Call")
+            .field("method", &self.request.method)
+            .field("target", &self.request.target)
+            .field("paginated", &self.paginated)
+            .field("failed", &self.failed)
+            .finish_non_exhaustive()
+    }
+}
+
 impl<T> Call<T> {
     pub(crate) fn new(client: &Client, request: RequestOptions) -> Self {
         Self {
