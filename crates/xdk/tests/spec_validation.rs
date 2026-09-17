@@ -8,8 +8,9 @@
 use serde_json::Value;
 
 use xdk::api::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
+    FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult,
+    UsageData, User,
 };
 
 /// Loads the cached example responses fixture.
@@ -179,4 +180,21 @@ fn spec_usage() {
     assert_eq!(resp.data.cap_reset_day, Some(19));
     assert!(resp.data.daily_project_usage.is_some());
     assert!(resp.data.daily_client_app_usage.is_some());
+}
+
+#[test]
+fn spec_user_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<User>> =
+        serde_json::from_value(examples["user_list"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 1);
+    assert_eq!(resp.data[0].username, "TwitterDev");
+}
+
+#[test]
+fn spec_chat_moderators() {
+    let examples = load_examples();
+    let resp: ApiResponse<ChatModeratorsResult> =
+        serde_json::from_value(examples["chat_moderators"].clone()).unwrap();
+    assert_eq!(resp.data.moderator_user_ids, vec!["2244994945"]);
 }

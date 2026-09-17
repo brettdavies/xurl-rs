@@ -321,6 +321,16 @@ pub struct MutingResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// The moderator set after a broadcast chat moderator is added or removed.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ChatModeratorsResult {
+    /// Ids of every user who moderates the account's broadcast chats.
+    pub moderator_user_ids: Vec<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Media ───────────────────────────────────────────────────────────
 
 /// Response from media upload INIT and FINALIZE steps.
@@ -756,6 +766,14 @@ mod tests {
             data: post,
             ..Default::default()
         };
+    }
+
+    #[test]
+    fn chat_moderators_result_reads_the_moderator_ids() {
+        let json = json!({"data": {"moderator_user_ids": ["1", "2"]}});
+        let r: ApiResponse<ChatModeratorsResult> =
+            serde_json::from_value(json).expect("moderator set deserializes");
+        assert_eq!(r.data.moderator_user_ids, vec!["1", "2"]);
     }
 
     #[test]

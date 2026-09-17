@@ -202,5 +202,24 @@
         }
       ]
     }
+  },
+  "user_list": {
+    "data": [
+      {
+        "id": "2244994945",
+        "name": "Twitter Dev",
+        "username": "TwitterDev"
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "chat_moderators": {
+    "data": {
+      "moderator_user_ids": [
+        "2244994945"
+      ]
+    }
   }
 }

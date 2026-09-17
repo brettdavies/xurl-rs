@@ -1,6 +1,6 @@
 //! API shortcut functions — high-level X API v2 operations.
 //!
-//! Each method maps to one of the 27 shortcut commands, building the
+//! Each method maps to one of the 30 shortcut commands, building the
 //! appropriate endpoint target and request body into a [`Call`] the caller
 //! configures and sends. Paths are spec-shaped templates (e.g.
 //! `/2/users/{id}/likes`) so the auth-matrix validator can key on the same
@@ -13,8 +13,9 @@ use serde::de::DeserializeOwned;
 
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
-    LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
+    FollowingResult, LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData,
+    User,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -39,6 +40,11 @@ struct PostReply {
 #[derive(Serialize)]
 struct PostMedia {
     media_ids: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct ChatModeratorBody {
+    user_id: String,
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -727,6 +733,47 @@ impl Client {
     /// Lists the users the authenticated user has blocked.
     pub fn get_blocked(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
         self.get_user_list("/2/users/{id}/blocking", user_id, max_results)
+    }
+
+    // ── Broadcasts ───────────────────────────────────────────────────
+
+    /// Lists the users who moderate the authenticated user's broadcast chats.
+    pub fn get_chat_moderators(&self) -> Call<ApiResponse<Vec<User>>> {
+        self.call(
+            "GET",
+            template(
+                "/2/broadcasts/chat/moderators",
+                HashMap::new(),
+                vec![(
+                    "user.fields".to_string(),
+                    "created_at,description,public_metrics,verified".to_string(),
+                )],
+            ),
+        )
+    }
+
+    /// Makes `user_id` a moderator of the authenticated user's broadcast
+    /// chats; the response carries the whole moderator set.
+    pub fn add_chat_moderator(&self, user_id: &str) -> Call<ApiResponse<ChatModeratorsResult>> {
+        self.post_json(
+            template("/2/broadcasts/chat/moderators", HashMap::new(), Vec::new()),
+            &ChatModeratorBody {
+                user_id: user_id.to_string(),
+            },
+        )
+    }
+
+    /// Removes `user_id` from the moderators of the authenticated user's
+    /// broadcast chats; the response carries the remaining set.
+    pub fn remove_chat_moderator(&self, user_id: &str) -> Call<ApiResponse<ChatModeratorsResult>> {
+        self.call(
+            "DELETE",
+            template(
+                "/2/broadcasts/chat/moderators/{user_id}",
+                HashMap::from([("user_id".to_string(), user_id.to_string())]),
+                Vec::new(),
+            ),
+        )
     }
 
     /// Shared GET for the user-list endpoints keyed on a single `{id}`.
