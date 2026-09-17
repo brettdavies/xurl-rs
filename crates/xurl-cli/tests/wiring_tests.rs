@@ -5,6 +5,8 @@
 mod common;
 
 use tempfile::TempDir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Registers one app at `store` so the per-app renderers have an entry to
 /// emit; an empty store is empty and renders an empty array.
@@ -488,5 +490,78 @@ fn test_auth_status_empty_store_emits_empty_apps_array() {
         parsed["apps"].as_array().map(Vec::len),
         Some(0),
         "empty store should emit apps: []: {stdout}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Resolve-then-call verbs
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The response fixture the library's spec tests use for `key`.
+fn fixture(key: &str) -> serde_json::Value {
+    let all: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            common::workspace_root()
+                .join("crates/xdk/tests/fixtures/openapi/example_responses.json"),
+        )
+        .expect("fixture file"),
+    )
+    .expect("fixture JSON");
+    all[key].clone()
+}
+
+#[tokio::test]
+async fn follow_resolves_the_caller_and_the_handle_before_calling_the_shortcut() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "111", "name": "Me", "username": "me"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by/username/helper"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "222", "name": "Helper", "username": "helper"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/users/111/following"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(fixture("action_following")))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = common::oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = common::run_in_process(
+        &store,
+        &server.uri(),
+        &["follow", "@helper", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["following"], true);
+    let sequence: Vec<String> = server
+        .received_requests()
+        .await
+        .expect("recorded")
+        .iter()
+        .map(|req| format!("{} {}", req.method, req.url.path()))
+        .collect();
+    assert_eq!(
+        sequence,
+        [
+            "GET /2/users/me",
+            "GET /2/users/by/username/helper",
+            "POST /2/users/111/following",
+        ],
+        "the caller's id and the handle resolve before the one shortcut call"
     );
 }
