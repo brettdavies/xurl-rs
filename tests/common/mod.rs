@@ -37,8 +37,14 @@ pub fn xr_std() -> std::process::Command {
 /// [`xr_std`] for the binary at `program`, so a harness that compares builds
 /// keeps the same isolation for whichever `xr` it runs.
 pub fn xr_std_at(program: &str) -> std::process::Command {
+    xr_std_with_store_at(program, &unwritable_store())
+}
+
+/// [`xr_std_at`] with `XURL_TOKEN_STORE` set to `store`, for a harness that
+/// seeds a store and still chooses which `xr` build it runs.
+pub fn xr_std_with_store_at(program: &str, store: &Path) -> std::process::Command {
     let mut cmd = std::process::Command::new(program);
-    hermetic(&mut cmd, &unwritable_store());
+    hermetic(&mut cmd, store);
     cmd
 }
 

@@ -1,0 +1,151 @@
+args: ["auth", "apps", "--help"]
+store: empty
+exit_code: 0
+stdout_len: 5595
+stderr_len: 0
+--- stdout ---
+Manage registered X API apps
+
+Usage: xr auth apps [OPTIONS] <COMMAND>
+
+Commands:
+  add           Register a new X API app
+  update        Update credentials for an existing app
+  remove        Remove a registered app
+  list          List registered apps
+  redirect-uri  Inspect or set the stored `OAuth2` redirect URI for an app
+  help          Print this message or the help of the given subcommand(s)
+
+Options:
+  -v, --verbose[=<VERBOSE>]
+          Print verbose information
+          
+          [env: XURL_VERBOSE=]
+          [default: false]
+          [possible values: true, false]
+
+      --app <APP>
+          Use a specific registered app (overrides default)
+          
+          [env: XURL_APP=]
+
+      --output <OUTPUT>
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+
+          Possible values:
+          - text:   Default: colored, human-readable
+          - json:   Machine-readable JSON, no color
+          - jsonl:  JSON Lines (useful for streaming)
+          - ndjson: Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name
+          - yaml:   YAML document (best-effort serialization of the JSON shape)
+          - csv:    Comma-separated values (best-effort flattening of the top-level shape)
+          - tsv:    Tab-separated values (best-effort flattening of the top-level shape)
+          
+          [env: XURL_OUTPUT=]
+          [default: text]
+
+      --json
+          Shorthand for `--output json` (P2 alias)
+          
+          [env: XURL_JSON=]
+
+      --jsonl
+          Shorthand for `--output jsonl` (P2 alias)
+          
+          [env: XURL_JSONL=]
+
+      --raw[=<RAW>]
+          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          
+          [env: XURL_RAW=]
+          [default: false]
+          [possible values: true, false]
+
+      --no-pager
+          Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it
+          
+          [env: XURL_NO_PAGER=]
+
+  -q, --quiet[=<QUIET>]
+          Suppress all non-essential output (errors still go to stderr)
+          
+          [env: XURL_QUIET=]
+          [default: false]
+          [possible values: true, false]
+
+      --no-interactive[=<NO_INTERACTIVE>]
+          Disable interactive prompts; fail with error instead
+          
+          [env: XURL_NO_INTERACTIVE=]
+          [default: false]
+          [possible values: true, false]
+
+      --timeout <TIMEOUT>
+          Request timeout in seconds
+          
+          [env: XURL_TIMEOUT=]
+          [default: 30]
+
+      --color <COLOR>
+          Colorize output: auto (TTY-aware), always, or never
+
+          Possible values:
+          - auto:   Enable color when stderr is a TTY and `NO_COLOR` is unset
+          - always: Always emit ANSI color escapes (still suppressed by `NO_COLOR`)
+          - never:  Never emit ANSI color escapes
+          
+          [env: XURL_COLOR=]
+          [default: auto]
+
+      --dry-run[=<DRY_RUN>]
+          Validate inputs and skip the API call (U7).
+          
+          Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
+          
+          [env: XURL_DRY_RUN=]
+          [default: false]
+          [possible values: true, false]
+
+      --limit <LIMIT>
+          Global result-set limit, clamped to 1..=100 (U7).
+          
+          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          
+          [env: XURL_LIMIT=]
+
+      --cursor <TOKEN>
+          Pagination cursor / `pagination_token` for list endpoints.
+          
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          
+          [env: XURL_CURSOR=]
+
+      --page <N>
+          Documented alias for `--cursor`.
+          
+          X's API does not offer offset-style pagination (`--page 2` is not addressable). Passing `--page` returns a canonical `unsupported-pagination` envelope on stderr suggesting `--cursor` instead. Exposed so agents trained on offset-pagination conventions get a structured error rather than a silent no-op.
+          
+          [env: XURL_PAGE=]
+
+      --after <TOKEN>
+          Documented alias for `--cursor` (`--after <token>`).
+          
+          Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
+          
+          [env: XURL_AFTER=]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Examples:
+  Register a new app:
+    xr auth apps add my-app --client-id ID --client-secret SECRET
+  List registered apps (JSON):
+    xr auth apps list --output json
+  Update credentials for an existing app:
+    xr auth apps update my-app --client-secret NEW
+  Inspect or set the stored OAuth2 redirect URI:
+    xr auth apps redirect-uri get my-app --output json
+
+--- stderr ---
+

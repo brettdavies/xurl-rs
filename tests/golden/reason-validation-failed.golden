@@ -1,0 +1,18 @@
+args: ["--output", "json", "validate", "--schema", "user"]
+store: empty
+stdin: "{\"foo\":1}"
+exit_code: 1
+stdout_len: 0
+stderr_len: 148
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "missing field `id`",
+  "reason": "validation-failed",
+  "schema": "user",
+  "status": "error",
+  "valid": false
+}
+

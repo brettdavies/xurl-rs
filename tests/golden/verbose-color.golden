@@ -1,0 +1,26 @@
+args: ["--verbose", "--color", "always", "--auth", "app", "search", "hi"]
+store: bearer-env
+exit_code: 0
+stdout_len: 102
+stderr_len: 356
+--- stdout ---
+{
+  "data":[
+    {
+      "id":"1",
+      "text":"hi"
+    }
+  ],
+  "meta":{
+    "result_count":1
+  }
+}
+
+--- stderr ---
+[1;34m> GET[0m {{API_BASE_URL}}/2/tweets/search/recent?query=hi&max_results=10&post.fields=created_at%2Cpublic_metrics%2Cconversation_id%2Centities&expansions=author_id&user.fields=username%2Cname%2Cverified
+[1;31m< 200 OK[0m
+[1;32m< date[0m: Thu, 01 Jan 2026 00:00:00 GMT
+[1;32m< content-type[0m: application/json
+[1;32m< content-length[0m: 59
+
+

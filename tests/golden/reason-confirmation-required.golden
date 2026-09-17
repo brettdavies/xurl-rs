@@ -1,0 +1,16 @@
+args: ["--output", "json", "--no-interactive", "delete", "123"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 122
+--- stdout ---
+
+--- stderr ---
+{
+  "command": "delete",
+  "exit_code": 1,
+  "post_id": "123",
+  "reason": "confirmation-required",
+  "status": "error"
+}
+

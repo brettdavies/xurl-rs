@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "search", "q500"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 140
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "{\"status\":500,\"title\":\"Internal Server Error\"}",
+  "reason": "network-error",
+  "status": "error"
+}
+
