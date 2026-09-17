@@ -426,26 +426,27 @@ impl Client {
         })
     }
 
-    /// Creates a store-backed client from environment variables.
+    /// Creates a store-backed client from the process environment and the
+    /// `~/.xurl` token store.
     ///
-    /// Reads `CLIENT_ID`, `CLIENT_SECRET`, and other env vars via [`Config::new()`],
-    /// validates that `CLIENT_ID` is non-empty, and returns a ready-to-use client.
+    /// Reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`,
+    /// `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, and `XURL_BEARER_TOKEN`
+    /// through [`Config::new()`], then loads the store the `xr` CLI writes.
+    /// The store's default app supplies the client id and secret the
+    /// environment does not, so a sign-in done with `xr auth oauth2` is
+    /// reusable with nothing exported. A client with no credential anywhere
+    /// still builds; its first call fails with the auth-required error and
+    /// its [`NextAction`](crate::error::NextAction).
     ///
-    /// For full control over configuration and auth, use [`Client::new()`] instead.
+    /// [`Client::builder()`] is the path for a credential held in code;
+    /// [`Client::new()`] takes an explicit [`Config`] and [`Auth`].
     ///
     /// # Errors
     ///
-    /// Returns `Error::Validation` if `CLIENT_ID` is not set or empty.
-    #[allow(dead_code)] // Public library API — used by consumers
+    /// Returns [`Error::Http`] when the HTTP client cannot be built.
     pub fn from_env() -> Result<Self> {
         let cfg = Config::new();
-        if cfg.client_id.is_empty() {
-            return Err(Error::validation(
-                "CLIENT_ID not set — set the environment variable or use Client::new() for manual configuration",
-            ));
-        }
-        let auth = Auth::new(&cfg);
-        Self::new(&cfg, auth)
+        Self::new(&cfg, Auth::new(&cfg))
     }
 
     /// Builds the full URL from a target (public accessor for command layer).

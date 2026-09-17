@@ -43,12 +43,7 @@ const ALLOWLIST: &[Allowed] = &[
     },
     Allowed {
         file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_missing_client_id_returns_validation_error",
-        reason: "Client::from_env's contract is reading the environment",
-    },
-    Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_empty_client_id_returns_validation_error",
+        test: "test_from_env_without_client_id_builds_a_store_backed_client",
         reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
