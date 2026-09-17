@@ -2944,7 +2944,7 @@
             "type": "string"
           },
           "scopes": {
-            "description": "Scopes for the bot's bearer token; defaults to the standard bot scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
+            "description": "Scopes for the bot's bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
             "items": {
               "type": "string"
             },
@@ -11946,7 +11946,7 @@
         "additionalProperties": false,
         "properties": {
           "scopes": {
-            "description": "Scopes for the new bearer token; defaults to the standard bot scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
+            "description": "Scopes for the new bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
             "items": {
               "type": "string"
             },

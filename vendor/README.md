@@ -10,9 +10,9 @@ matrix in `src/api/auth_matrix.rs` (see `build.rs`).
 | Upstream URL        | https://api.x.com/2/openapi.json                                   |
 | Spec `info.version` | 2.168                                                              |
 | Path count          | 159                                                                |
-| File size           | 909354 bytes                                                       |
-| SHA256              | `9df38d17dda6be4d475935934f1d74e49877794fb651c0858c195082534e4a20` |
-| Refreshed (UTC)     | 2026-09-16                                                         |
+| File size           | 909498 bytes                                                       |
+| SHA256              | `abf05185b3fc217d83cf50a465acda8abacd115fdc321c7ae9daf2537a344fb8` |
+| Refreshed (UTC)     | 2026-09-17                                                         |
 
 ## Refresh
 
