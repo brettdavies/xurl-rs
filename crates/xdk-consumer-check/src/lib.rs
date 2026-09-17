@@ -6,7 +6,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use xdk::api::{Client, RateLimit};
 use xdk::auth::{BoxError, OAuth2Credential, OnTokenRefreshed};
@@ -43,17 +43,24 @@ pub fn describe_failure(error: &xdk::Error) -> (String, Option<NextAction>, i32)
     )
 }
 
+/// An access token and the refresh token X rotated alongside it, which is
+/// absent when the credential carried none.
+pub type TokenPair = (String, Option<String>);
+
 /// A hook that keeps the rotated pair in memory, standing in for the
 /// secrets manager an embedder would persist to.
-#[derive(Debug, Default)]
+///
+/// The builder takes a hook by value, so every clone shares one cell: hand
+/// a clone to the client and keep one to read the rotated pair back.
+#[derive(Debug, Default, Clone)]
 pub struct RememberedPair {
-    latest: Mutex<Option<(String, Option<String>)>>,
+    latest: Arc<Mutex<Option<TokenPair>>>,
 }
 
 impl RememberedPair {
     /// The access and refresh tokens the last refresh delivered.
     #[must_use]
-    pub fn latest(&self) -> Option<(String, Option<String>)> {
+    pub fn latest(&self) -> Option<TokenPair> {
         self.latest
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)

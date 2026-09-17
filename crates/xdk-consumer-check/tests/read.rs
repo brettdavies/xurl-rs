@@ -2,8 +2,6 @@
 //! base URL, plus the two things they touch next: a failure's next action and
 //! the refresh hook.
 
-use std::sync::Arc;
-
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -93,7 +91,7 @@ async fn the_refresh_hook_receives_the_rotated_pair() {
         .mount(&server)
         .await;
 
-    let hook = Arc::new(RememberedPair::default());
+    let hook = RememberedPair::default();
     let client = Client::builder()
         .oauth2(OAuth2Credential {
             client_id: "client-id".into(),
@@ -102,7 +100,7 @@ async fn the_refresh_hook_receives_the_rotated_pair() {
             refresh_token: Some("stale-refresh".into()),
             expires_at: Some(std::time::UNIX_EPOCH),
         })
-        .on_token_refreshed(SharedHook(Arc::clone(&hook)))
+        .on_token_refreshed(hook.clone())
         .base_url(server.uri())
         .token_url(format!("{}/2/oauth2/token", server.uri()))
         .build()
@@ -117,19 +115,4 @@ async fn the_refresh_hook_receives_the_rotated_pair() {
             Some("fresh-refresh".to_string())
         ))
     );
-}
-
-/// The builder takes the hook by value; sharing it with the test needs an
-/// `Arc` wrapper that forwards.
-struct SharedHook(Arc<RememberedPair>);
-
-impl xdk::auth::OnTokenRefreshed for SharedHook {
-    fn on_token_refreshed<'a>(
-        &'a self,
-        credential: &'a OAuth2Credential,
-    ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<(), xdk::auth::BoxError>> + Send + 'a>,
-    > {
-        self.0.on_token_refreshed(credential)
-    }
 }

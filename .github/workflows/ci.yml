@@ -178,6 +178,11 @@ jobs:
   # fail, and it asserts on the guard's message so a build that fails for any
   # other reason still turns the cell red. The two cells that also run the
   # tests are the ones whose feature set the default `ci` job never sees.
+  #
+  # `default` and `rustls only` compile the same set today and only because
+  # `default` holds exactly one feature. `default` stays as the cell that
+  # follows whatever `[features] default` lists, so a feature added there is
+  # compiled under the name a reader looks for rather than silently untested.
   features:
     name: Features (${{ matrix.name }})
     runs-on: ubuntu-latest

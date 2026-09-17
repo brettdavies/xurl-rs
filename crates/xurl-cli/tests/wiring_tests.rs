@@ -20,21 +20,22 @@ fn register_app_at(store: &std::path::Path) {
 
 #[test]
 fn test_version_honors_the_json_flag_with_one_object() {
-    // version is a Tier 1 meta-command; the structured forms carry the CLI
-    // and library versions as fields, and the plain form stays one line.
-    let output = common::xr()
+    // version is a Tier 1 meta-command, so the question here is only whether
+    // the flag reaches it: an object where the plain form is one line. The
+    // fields it carries are pinned in binary_contract_tests.rs.
+    let structured = common::xr()
         .args(["version", "--output", "json"])
         .output()
         .unwrap();
+    let plain = common::xr().arg("version").output().unwrap();
 
-    assert!(output.status.success());
-    let value: serde_json::Value = serde_json::from_slice(&output.stdout)
+    assert!(structured.status.success());
+    let value: serde_json::Value = serde_json::from_slice(&structured.stdout)
         .expect("version --output json prints one JSON object");
-    assert_eq!(value["name"], "xr");
-    assert_eq!(value["version"], env!("CARGO_PKG_VERSION"));
-    assert!(
-        value["xdk_rs"].is_string(),
-        "the structured form names the library version: {value}"
+    assert!(value.is_object(), "the flag reached the command: {value}");
+    assert_ne!(
+        structured.stdout, plain.stdout,
+        "--output json changed what version printed"
     );
 }
 

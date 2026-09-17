@@ -81,8 +81,6 @@ impl<T> Call<T> {
 
     /// Sets the scheme from its wire string without validating it.
     ///
-    /// # Safety (caller-beware)
-    ///
     /// Nothing checks that `scheme` names a scheme this client can send. An
     /// unknown string reaches scheme selection as typed and surfaces there as
     /// an auth-method mismatch, which is what `xr --auth <value>` relies on to

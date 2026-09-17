@@ -97,6 +97,13 @@ VERSION_NO_V="${VERSION#v}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# `RELEASE_MANIFEST`, `release_manifest`, and `project_crate` answer which
+# manifest a `vX.Y.Z` tag names. Preflight and postflight read them from here,
+# so this script reads the same definitions rather than keeping a second copy
+# that can drift when the binary crate moves.
+# shellcheck disable=SC1091  # sibling release lib, always vendored alongside
+. scripts/release/_lib.sh
+
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "error: working tree not clean -- commit or stash first" >&2
   git status --short >&2
@@ -174,22 +181,11 @@ set_version_line() {
   mv "$tmp" "$file"
 }
 
-# The manifest the release tag names: the root when it is a package, the
-# binary crate's own when the root is a virtual workspace manifest.
-RELEASE_MANIFEST="${RELEASE_MANIFEST:-crates/xurl-cli/Cargo.toml}"
-release_manifest() {
-  if grep -q '^\[package\]' Cargo.toml 2>/dev/null; then
-    echo Cargo.toml
-  else
-    echo "$RELEASE_MANIFEST"
-  fi
-}
-
 # Cargo.lock carries the crate's own version too; a stale entry fails
 # `cargo build --locked`. Update it for the crate the release manifest names.
 set_cargo_lock_version() {
   local crate tmp
-  crate="$(grep -m1 '^name = ' "$(release_manifest)" | sed -E 's/^name = "(.*)"/\1/')"
+  crate="$(project_crate)"
   [[ -n "$crate" && -f Cargo.lock ]] || return 0
   tmp="$(mktemp)"
   awk -v crate="$crate" -v v="$VERSION_NO_V" '
