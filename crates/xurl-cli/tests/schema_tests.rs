@@ -8,8 +8,9 @@ use std::collections::BTreeSet;
 
 use rstest::rstest;
 use xurl::cli::commands::schema::{
-    FLAG_FORMS, SCHEMA_LESS_COMMANDS, registered_commands, schema_name_for_path,
+    FLAG_FORMS, SCHEMA_LESS_COMMANDS, registered_commands, registered_types, schema_name_for_path,
 };
+use xurl::cli::commands::validate::{UNVALIDATED_TYPES, validated_types};
 
 const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema.rs";
 
@@ -532,4 +533,55 @@ fn schema_less_command_is_not_reported_unknown(#[case] command: &str) {
         .failure()
         .stderr(predicate::str::contains("schema not available"))
         .stderr(predicate::str::contains("unknown command").not());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Every registry response type has a validator or a declared exemption
+// ═══════════════════════════════════════════════════════════════════════════
+
+const VALIDATE_SOURCE: &str = "crates/xurl-cli/src/cli/commands/validate.rs";
+
+#[test]
+fn every_registry_response_type_has_a_validator_or_a_declared_exemption() {
+    let registry: BTreeSet<&str> = registered_types().collect();
+    let validated: BTreeSet<String> = validated_types().collect();
+    let exempt: BTreeSet<&str> = UNVALIDATED_TYPES.iter().map(|(name, _)| *name).collect();
+
+    let uncovered: Vec<&&str> = registry
+        .iter()
+        .filter(|name| !validated.contains(**name) && !exempt.contains(*name))
+        .collect();
+    assert!(
+        uncovered.is_empty(),
+        "these registry response types have no `xr validate` alias and no exemption: {uncovered:?}\n\
+         Cause: a schema row names a response type that SCHEMA_ALIASES does not validate and \
+         UNVALIDATED_TYPES does not exempt, so agents can print the shape but never check a \
+         document against it.\n\
+         Fix: in {VALIDATE_SOURCE}, add a typed_alias row for the type, or add it to \
+         UNVALIDATED_TYPES with the reason it is not an API response; then re-bless \
+         help-validate.golden and reason-unknown-schema.golden if an alias was added.\n\
+         Exempt today: {exempt:?}"
+    );
+
+    let stale: Vec<&&str> = exempt
+        .iter()
+        .filter(|name| !registry.contains(**name))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "UNVALIDATED_TYPES exempts response types the registry no longer names: {stale:?}\n\
+         Cause: the row was removed or its type_name changed while the exemption stayed.\n\
+         Fix: in {VALIDATE_SOURCE}, drop each stale entry from UNVALIDATED_TYPES."
+    );
+
+    let both: Vec<&&str> = exempt
+        .iter()
+        .filter(|name| validated.contains(**name))
+        .collect();
+    assert!(
+        both.is_empty(),
+        "UNVALIDATED_TYPES exempts response types that already have a validator: {both:?}\n\
+         Cause: an alias was added for a type still listed as unvalidatable.\n\
+         Fix: in {VALIDATE_SOURCE}, drop each entry from UNVALIDATED_TYPES."
+    );
 }

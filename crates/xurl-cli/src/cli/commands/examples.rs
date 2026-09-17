@@ -3,7 +3,7 @@
 //! Prints a grouped, copy-pasteable list of common `xr` invocations so an
 //! operator or agent can discover the surface without paging through every
 //! subcommand's `--help`. The same examples are advertised piecemeal via each
-//! subcommand's `after_help`; this command is the single-screen overview.
+//! subcommand's `after_help`; this command is the whole gallery on one page.
 //!
 //! Tier 1: no config, no auth, no network. Safe to run before any setup.
 
@@ -15,7 +15,7 @@ use xdk::error::Result;
 ///
 /// Sections mirror the operator's mental model: pick an auth path, then
 /// post-and-read, then manage social graph, then stream, then inspect
-/// schemas, then install the agent skill. Every section contains at least
+/// schemas, then the tooling around the binary. Every section contains at least
 /// one paired text + `--output json` invocation per the agent-native CLI
 /// spec's progressive-help principle.
 pub const EXAMPLES_BLOCK: &str = "\
@@ -48,6 +48,9 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 \"Worth a read.\" --output json
 
+  Delete a post by ID (confirms unless --no-interactive):
+    xr delete 1585341984679469056 --no-interactive --output json
+
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
 
@@ -63,11 +66,17 @@ MANAGE SOCIAL GRAPH:
     xr follow @elonmusk
     xr unfollow @elonmusk --output json
 
+  Who you follow, and who follows you (or another account):
+    xr following -n 100 --output jsonl
+    xr followers --of @elonmusk --output json
+
   Like / unlike, repost / unrepost, bookmark / unbookmark:
     xr like 1585341984679469056
     xr unlike 1585341984679469056 --output json
     xr repost 1585341984679469056
-    xr bookmark 1585341984679469056 --output json
+    xr unrepost 1585341984679469056 --output json
+    xr bookmark 1585341984679469056
+    xr unbookmark 1585341984679469056 --output json
 
   Mute / unmute, block / unblock:
     xr mute @noisy
@@ -137,6 +146,9 @@ INSPECT SCHEMAS:
   Get a single schema:
     xr schema post --output json
 
+  Validate a JSON document against a response schema:
+    cat post.json | xr validate --schema post --output json
+
 MULTI-APP:
   Register, list, set default:
     xr auth apps add my-app --client-id ID --client-secret SECRET
@@ -145,6 +157,17 @@ MULTI-APP:
 
   Per-request app override:
     xr --app my-app /2/users/me --output json
+
+TOOLING:
+  Install the agent skill bundle into a host, or every known host:
+    xr skill install claude_code
+    xr skill install --all --output json
+
+  Shell completions (bash, elvish, fish, powershell, zsh):
+    xr completions zsh
+
+  Version, machine-readable:
+    xr version --output json
 
 ENVIRONMENT VARIABLE PRECEDENCE:
   Env vars are equivalent to flags; flags override env when both are set.
@@ -182,6 +205,7 @@ mod tests {
             "RAW MODE",
             "INSPECT SCHEMAS:",
             "MULTI-APP:",
+            "TOOLING:",
             "ENVIRONMENT VARIABLE PRECEDENCE:",
         ] {
             assert!(

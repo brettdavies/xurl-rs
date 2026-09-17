@@ -190,6 +190,11 @@ pub fn schema_name_for_path(path: &[&str]) -> String {
         .map_or(joined, |(_, name)| (*name).to_string())
 }
 
+/// Every response type the registry names, one per row, in table order.
+pub fn registered_types() -> impl Iterator<Item = &'static str> {
+    SCHEMA_ENTRIES.iter().map(|entry| entry.type_name)
+}
+
 /// Every command name with a registry row, in table order.
 pub fn registered_commands() -> impl Iterator<Item = &'static str> {
     SCHEMA_ENTRIES

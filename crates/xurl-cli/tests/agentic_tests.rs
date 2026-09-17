@@ -551,3 +551,35 @@ fn test_validate_subcommand_appears_in_help() {
         "expected 'validate' subcommand in --help: {stdout}"
     );
 }
+
+// ── Every command family appears on the examples page ─────────────────
+
+/// True when `line` shows an invocation of `xr <family>`, whatever precedes
+/// the `xr` token (an env assignment, a pipe).
+fn invokes(line: &str, family: &str) -> bool {
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+    tokens
+        .windows(2)
+        .any(|pair| pair[0] == "xr" && pair[1] == family)
+}
+
+#[test]
+fn every_command_family_appears_on_the_examples_page() {
+    let output = common::xr().arg("examples").output().unwrap();
+    assert!(output.status.success());
+    let page = String::from_utf8(output.stdout).unwrap();
+    let missing: Vec<String> = common::top_level_families()
+        .into_iter()
+        .filter(|family| !page.lines().any(|line| invokes(line, family)))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "`xr examples` shows no invocation of these command families: {missing:?}\n\
+         Cause: the family was added to clap without a section on the curated examples page.\n\
+         Fix: in crates/xurl-cli/src/cli/commands/examples.rs, add an `xr <family> ...` line \
+         under the use-case section it belongs to (AUTHENTICATE, POST AND READ, MANAGE SOCIAL \
+         GRAPH, INSPECT YOUR ACCOUNT, DIRECT MESSAGES, BROADCASTS, MEDIA UPLOAD, RAW MODE, \
+         INSPECT SCHEMAS, MULTI-APP, TOOLING), then re-bless examples.golden with \
+         XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests."
+    );
+}

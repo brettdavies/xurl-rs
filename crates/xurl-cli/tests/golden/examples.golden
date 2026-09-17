@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 3869
+stdout_len: 4635
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -33,6 +33,9 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 "Worth a read." --output json
 
+  Delete a post by ID (confirms unless --no-interactive):
+    xr delete 1585341984679469056 --no-interactive --output json
+
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
 
@@ -48,11 +51,17 @@ MANAGE SOCIAL GRAPH:
     xr follow @elonmusk
     xr unfollow @elonmusk --output json
 
+  Who you follow, and who follows you (or another account):
+    xr following -n 100 --output jsonl
+    xr followers --of @elonmusk --output json
+
   Like / unlike, repost / unrepost, bookmark / unbookmark:
     xr like 1585341984679469056
     xr unlike 1585341984679469056 --output json
     xr repost 1585341984679469056
-    xr bookmark 1585341984679469056 --output json
+    xr unrepost 1585341984679469056 --output json
+    xr bookmark 1585341984679469056
+    xr unbookmark 1585341984679469056 --output json
 
   Mute / unmute, block / unblock:
     xr mute @noisy
@@ -122,6 +131,9 @@ INSPECT SCHEMAS:
   Get a single schema:
     xr schema post --output json
 
+  Validate a JSON document against a response schema:
+    cat post.json | xr validate --schema post --output json
+
 MULTI-APP:
   Register, list, set default:
     xr auth apps add my-app --client-id ID --client-secret SECRET
@@ -130,6 +142,17 @@ MULTI-APP:
 
   Per-request app override:
     xr --app my-app /2/users/me --output json
+
+TOOLING:
+  Install the agent skill bundle into a host, or every known host:
+    xr skill install claude_code
+    xr skill install --all --output json
+
+  Shell completions (bash, elvish, fish, powershell, zsh):
+    xr completions zsh
+
+  Version, machine-readable:
+    xr version --output json
 
 ENVIRONMENT VARIABLE PRECEDENCE:
   Env vars are equivalent to flags; flags override env when both are set.
