@@ -17,6 +17,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 pub mod env;
 pub mod envelope;
+pub mod family_help;
 pub mod output;
 #[cfg(test)]
 mod parse_tests;
@@ -1331,7 +1332,7 @@ pub enum Commands {
 
     // ── Broadcasts ───────────────────────────────────────────────────
     /// Broadcast chat moderation
-    #[command(after_help = BROADCASTS_HELP)]
+    #[command(after_help = family_help::broadcasts::root_page())]
     Broadcasts {
         /// `broadcasts` family subcommand.
         #[command(subcommand)]
@@ -1449,57 +1450,11 @@ pub enum UsageCommands {
     },
 }
 
-/// `xr broadcasts` examples — the moderators family.
-const BROADCASTS_HELP: &str = "\
-Examples:
-  Who moderates your broadcast chats (text):
-    xr broadcasts moderators list
-  Add and remove a moderator, JSON envelope:
-    xr broadcasts moderators add @helper --output json
-    xr broadcasts moderators remove @helper --output json
-";
-
-/// `xr broadcasts moderators` examples — paired text + JSON.
-const BROADCASTS_MODERATORS_HELP: &str = "\
-Examples:
-  List your broadcast chat moderators (text):
-    xr broadcasts moderators list
-  Add a moderator (JSON envelope):
-    xr broadcasts moderators add @helper --output json
-";
-
-/// `xr broadcasts moderators list` examples — paired text + JSON.
-const BROADCASTS_MODERATORS_LIST_HELP: &str = "\
-Examples:
-  List your broadcast chat moderators (text):
-    xr broadcasts moderators list
-  As a JSON envelope:
-    xr broadcasts moderators list --output json
-";
-
-/// `xr broadcasts moderators add` examples — paired text + JSON.
-const BROADCASTS_MODERATORS_ADD_HELP: &str = "\
-Examples:
-  Add a chat moderator (text):
-    xr broadcasts moderators add @helper
-  Add (JSON envelope):
-    xr broadcasts moderators add @helper --output json
-";
-
-/// `xr broadcasts moderators remove` examples — paired text + JSON.
-const BROADCASTS_MODERATORS_REMOVE_HELP: &str = "\
-Examples:
-  Remove a chat moderator (text):
-    xr broadcasts moderators remove @helper
-  Remove (JSON envelope):
-    xr broadcasts moderators remove @helper --output json
-";
-
 /// `xr broadcasts` family subcommands.
 #[derive(Subcommand, Debug)]
 pub enum BroadcastsCommands {
     /// Manage who moderates your broadcast chats
-    #[command(after_help = BROADCASTS_MODERATORS_HELP)]
+    #[command(after_help = family_help::broadcasts::moderators_page())]
     Moderators {
         /// `moderators` verb to dispatch.
         #[command(subcommand)]
@@ -1511,14 +1466,14 @@ pub enum BroadcastsCommands {
 #[derive(Subcommand, Debug)]
 pub enum ModeratorsCommands {
     /// List your broadcast chat moderators
-    #[command(after_help = BROADCASTS_MODERATORS_LIST_HELP)]
+    #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::LIST))]
     List {
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Add a broadcast chat moderator
-    #[command(after_help = BROADCASTS_MODERATORS_ADD_HELP)]
+    #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::ADD))]
     Add {
         /// Username to add
         #[arg(value_name = "USERNAME")]
@@ -1528,7 +1483,7 @@ pub enum ModeratorsCommands {
         common: CommonFlags,
     },
     /// Remove a broadcast chat moderator
-    #[command(after_help = BROADCASTS_MODERATORS_REMOVE_HELP)]
+    #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::REMOVE))]
     Remove {
         /// Username to remove
         #[arg(value_name = "USERNAME")]
