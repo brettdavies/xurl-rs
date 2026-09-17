@@ -212,14 +212,13 @@ fn test_xurl_error_auth_with_cause() {
     assert!(msg.contains("timeout"));
 }
 
-#[test]
-fn test_xurl_error_from_reqwest() {
-    // Create a reqwest error by trying to build an invalid request
-    let result = reqwest::blocking::Client::new().get("not-a-url").send();
-    if let Err(reqwest_err) = result {
-        let xurl_err: Error = reqwest_err.into();
-        assert!(matches!(xurl_err, Error::Http(_)));
-    }
+#[tokio::test]
+async fn test_xurl_error_from_reqwest() {
+    // A relative URL cannot be sent, so this fails before any connection.
+    let result = reqwest::Client::new().get("not-a-url").send().await;
+    let reqwest_err = result.expect_err("a relative URL is not sendable");
+    let xurl_err: Error = reqwest_err.into();
+    assert!(matches!(xurl_err, Error::Http(_)));
 }
 
 #[test]

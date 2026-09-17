@@ -14,6 +14,8 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{Error, Result};
+use crate::store::OAuth2Token;
+use tokio_util::sync::CancellationToken;
 
 /// `OAuth2` scopes requested for xurl.
 #[must_use]
@@ -101,18 +103,16 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///
 /// Returns an error if the token-exchange request fails or the response is
 /// missing an access token. `fetch_username` failures no longer propagate.
-pub(crate) fn exchange_code_for_token(
+pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
+    http: &reqwest::Client,
     code: &str,
     verifier: &str,
     username: &str,
 ) -> Result<String> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(auth.http_timeout_secs()))
-        .build()
-        .unwrap_or_else(|_| reqwest::blocking::Client::new());
-    let token_resp = client
+    let token_resp = http
         .post(auth.token_url())
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
             ("code", code),
@@ -122,11 +122,13 @@ pub(crate) fn exchange_code_for_token(
         ])
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
+        .await
         .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
 
     let status = token_resp.status();
     let token_data: serde_json::Value = token_resp
         .json()
+        .await
         .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
 
     if !status.is_success() {
@@ -158,7 +160,7 @@ pub(crate) fn exchange_code_for_token(
     let app_name = auth.app_name().to_string();
 
     if username.is_empty() {
-        match auth.fetch_username(&access_token) {
+        match auth.fetch_username(http, &access_token).await {
             Ok(discovered) => {
                 auth.token_store.save_oauth2_token_for_app(
                     &app_name,
@@ -212,11 +214,21 @@ pub(crate) fn exchange_code_for_token(
 /// cancelled at once and the flow returns the browser-open error rather than
 /// waiting out the callback timeout.
 ///
+/// `cancel` is the caller's stop: the binary cancels it on a shutdown
+/// signal, a library caller passes a child of its own token. The flow
+/// registers no signal handler of its own.
+///
 /// # Errors
 ///
 /// Returns an error if the authorization URL is invalid, the opener fails,
 /// the callback server fails, or the token exchange fails.
-pub fn run_oauth2_flow<F>(auth: &mut Auth, username: &str, browser_opener: F) -> Result<String>
+pub async fn run_oauth2_flow<F>(
+    auth: &mut Auth,
+    http: &reqwest::Client,
+    username: &str,
+    cancel: CancellationToken,
+    browser_opener: F,
+) -> Result<String>
 where
     F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
 {
@@ -240,7 +252,6 @@ where
     // browser-open error the caller can act on.
     let opener_failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let opener_failed_for_closure = std::sync::Arc::clone(&opener_failed);
-    let cancel = tokio_util::sync::CancellationToken::new();
     let cancel_for_closure = cancel.clone();
     let on_bound = move || {
         if browser_opener(&auth_url_str).is_err() {
@@ -249,7 +260,8 @@ where
         }
     };
 
-    let code_result = callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound);
+    let code_result =
+        callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound).await;
 
     if opener_failed.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(Error::auth(
@@ -258,7 +270,7 @@ where
     }
 
     let code = code_result?;
-    exchange_code_for_token(auth, &code, &verifier, username)
+    exchange_code_for_token(auth, http, &code, &verifier, username).await
 }
 
 /// Runs step 1 of the remote `OAuth2` PKCE flow (headless machines).
@@ -317,8 +329,9 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
 /// Returns an error if the pending state is missing/expired/invalid,
 /// the client ID doesn't match, the state parameter doesn't match,
 /// the redirect URL is missing the code, or the token exchange fails.
-pub fn run_remote_step2(
+pub async fn run_remote_step2(
     auth: &mut Auth,
+    http: &reqwest::Client,
     redirect_url: &str,
     username: &str,
     pending_path: &std::path::Path,
@@ -368,12 +381,43 @@ pub fn run_remote_step2(
     })?;
 
     // Exchange code for token
-    let access_token = exchange_code_for_token(auth, code, &pending_state.code_verifier, username)?;
+    let access_token =
+        exchange_code_for_token(auth, http, code, &pending_state.code_verifier, username).await?;
 
     // Only delete on success
     pending::delete(pending_path)?;
 
     Ok(access_token)
+}
+
+/// The stored OAuth2 token a request for `username` would use, if any.
+///
+/// An empty `username` follows the empty-caller precedence of
+/// [`Auth::get_oauth2_header`]: `default_user` or the first named token in
+/// the active app, then the unnamed (`/me`-failed salvage) slot. A named
+/// caller reads its own entry in the active app. Both lookups are scoped to
+/// the active app, so a `--app NAME` invocation reads NAME's tokens rather
+/// than whichever app happens to be the default.
+pub(crate) fn stored_oauth2_token(auth: &Auth, username: &str) -> Option<OAuth2Token> {
+    let app_name = auth.app_name().to_string();
+    let token = if username.is_empty() {
+        auth.token_store
+            .get_first_oauth2_token_for_app(&app_name)
+            .or_else(|| auth.token_store.get_oauth2_token_unnamed_for_app(&app_name))
+    } else {
+        auth.token_store
+            .get_oauth2_token_for_app(&app_name, username)
+    };
+    token.and_then(|t| t.oauth2.clone())
+}
+
+/// Whether the stored expiry has passed.
+pub(crate) fn is_expired(token: &OAuth2Token) -> bool {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+        .as_secs();
+    now >= token.expiration_time
 }
 
 /// Refreshes an `OAuth2` token if expired.
@@ -396,56 +440,23 @@ pub fn run_remote_step2(
 ///
 /// Returns an error when no cached token is found or the refresh-token POST
 /// itself fails. `fetch_username` failures no longer propagate.
-pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
-    let app_name_lookup = auth.app_name().to_string();
-    let token = if username.is_empty() {
-        // Empty-caller precedence mirrors `Auth::get_oauth2_header` (KTD5):
-        // default_user/arbitrary-first in the named map first, then the
-        // unnamed (`/me`-failed salvage) slot. Both lookups MUST be
-        // scoped to `app_name_lookup` so a `--app NAME` invocation reads
-        // NAME's tokens, not whichever app happens to be the default. The
-        // previous `get_first_oauth2_token()` call (no arg) defaulted the
-        // lookup to the empty app name, which `resolve_app` resolved to
-        // the default app, causing a freshly minted token in a named app
-        // to be invisible to the refresh path. Fixed alongside the
-        // `--app NAME` client_id regression (#51).
-        auth.token_store
-            .get_first_oauth2_token_for_app(&app_name_lookup)
-            .cloned()
-            .or_else(|| {
-                auth.token_store
-                    .get_oauth2_token_unnamed_for_app(&app_name_lookup)
-                    .cloned()
-            })
-    } else {
-        auth.token_store
-            .get_oauth2_token_for_app(&app_name_lookup, username)
-            .cloned()
-    };
-
-    let token = token.ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
-    let oauth2 = token
-        .oauth2
-        .as_ref()
+pub async fn refresh_oauth2_token(
+    auth: &mut Auth,
+    http: &reqwest::Client,
+    username: &str,
+) -> Result<String> {
+    let oauth2 = stored_oauth2_token(auth, username)
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::ZERO)
-        .as_secs();
-
     // Token is still valid
-    if now < oauth2.expiration_time {
+    if !is_expired(&oauth2) {
         return Ok(oauth2.access_token.clone());
     }
 
     // Token is expired, refresh it
-    let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(auth.http_timeout_secs()))
-        .build()
-        .unwrap_or_else(|_| reqwest::blocking::Client::new());
-    let token_resp = client
+    let token_resp = http
         .post(auth.token_url())
+        .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "refresh_token"),
             ("refresh_token", &oauth2.refresh_token),
@@ -453,10 +464,12 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
         ])
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
+        .await
         .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
 
     let token_data: serde_json::Value = token_resp
         .json()
+        .await
         .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
 
     let new_access_token = token_data["access_token"]
@@ -480,7 +493,7 @@ pub fn refresh_oauth2_token(auth: &mut Auth, username: &str) -> Result<String> {
     let app_name = auth.app_name().to_string();
 
     if username.is_empty() {
-        match auth.fetch_username(&new_access_token) {
+        match auth.fetch_username(http, &new_access_token).await {
             Ok(discovered) => {
                 auth.token_store.save_oauth2_token_for_app(
                     &app_name,

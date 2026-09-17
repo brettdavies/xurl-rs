@@ -19,12 +19,12 @@ use xurl::config::EnvOverrides;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Runs the entrypoint with a fresh tempdir-rooted store and no environment.
-fn run_isolated(args: &[&str]) -> (i32, String, String) {
-    run_with_overrides(args, &EnvOverrides::default())
+async fn run_isolated(args: &[&str]) -> (i32, String, String) {
+    run_with_overrides(args, &EnvOverrides::default()).await
 }
 
 /// Runs the entrypoint with `XURL_OUTPUT` supplied as data.
-fn run_with_output_env(args: &[&str], output: &str) -> (i32, String, String) {
+async fn run_with_output_env(args: &[&str], output: &str) -> (i32, String, String) {
     run_with_overrides(
         args,
         &EnvOverrides {
@@ -32,14 +32,16 @@ fn run_with_output_env(args: &[&str], output: &str) -> (i32, String, String) {
             ..EnvOverrides::default()
         },
     )
+    .await
 }
 
-fn run_with_overrides(args: &[&str], overrides: &EnvOverrides) -> (i32, String, String) {
+async fn run_with_overrides(args: &[&str], overrides: &EnvOverrides) -> (i32, String, String) {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
-    let code = cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, &store, overrides);
+    let code =
+        cli::runner::run_with_overrides(args, &mut stdout, &mut stderr, &store, overrides).await;
     (
         code,
         String::from_utf8_lossy(&stdout).into_owned(),
@@ -112,9 +114,9 @@ fn text_line(word: &str, suggestion: Option<&str>) -> String {
 // The classifier path: a bare word that is not a command
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn mistyped_command_names_the_nearest_one() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "whoam"]);
+#[tokio::test]
+async fn mistyped_command_names_the_nearest_one() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert!(stdout.is_empty(), "stdout stays empty: {stdout}");
     assert_eq!(
@@ -123,34 +125,34 @@ fn mistyped_command_names_the_nearest_one() {
     );
 }
 
-#[test]
-fn mistyped_command_envelope_carries_command_and_suggestion() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "whoam"]);
+#[tokio::test]
+async fn mistyped_command_envelope_carries_command_and_suggestion() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "whoam", Some("whoami"));
 }
 
-#[test]
-fn the_output_flag_is_read_after_the_word_too() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "whoam", "--output", "json"]);
+#[tokio::test]
+async fn the_output_flag_is_read_after_the_word_too() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "whoam", "--output", "json"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "whoam", Some("whoami"));
 }
 
-#[test]
-fn a_mistyped_command_is_matched_case_insensitively_and_echoed_verbatim() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "Whoam"]);
+#[tokio::test]
+async fn a_mistyped_command_is_matched_case_insensitively_and_echoed_verbatim() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "Whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "Whoam", Some("whoami"));
 }
 
-#[test]
-fn a_word_near_nothing_gets_no_suggestion() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "zzzzzz"]);
+#[tokio::test]
+async fn a_word_near_nothing_gets_no_suggestion() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "zzzzzz"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "zzzzzz", None);
 
-    let (code, _stdout, stderr) = run_isolated(&["xr", "zzzzzz"]);
+    let (code, _stdout, stderr) = run_isolated(&["xr", "zzzzzz"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_eq!(
         plain(&stderr).trim_end(),
@@ -158,24 +160,25 @@ fn a_word_near_nothing_gets_no_suggestion() {
     );
 }
 
-#[test]
-fn a_hostname_without_a_dot_is_an_unknown_command() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "localhost"]);
+#[tokio::test]
+async fn a_hostname_without_a_dot_is_an_unknown_command() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "localhost"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "localhost", None);
 }
 
-#[test]
-fn a_swallowed_flag_value_is_reported_as_the_word_it_is() {
+#[tokio::test]
+async fn a_swallowed_flag_value_is_reported_as_the_word_it_is() {
     // `--quiet false` no longer consumes `false`, so it falls through to the
     // positional and is classified there.
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "--quiet", "false"]);
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", "--quiet", "false"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "false", None);
 }
 
-#[test]
-fn classification_precedes_the_store_load() {
+#[tokio::test]
+async fn classification_precedes_the_store_load() {
     let tmp = TempDir::new().expect("tempdir");
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
@@ -186,7 +189,8 @@ fn classification_precedes_the_store_load() {
         &mut stderr,
         tmp.path(),
         &EnvOverrides::default(),
-    );
+    )
+    .await;
     let rendered = String::from_utf8_lossy(&stderr);
     assert_eq!(code, 2, "stderr: {rendered}");
     assert_eq!(
@@ -200,9 +204,9 @@ fn classification_precedes_the_store_load() {
 // The clap path: a word clap itself rejected
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn help_for_a_mistyped_command_scores_it_against_the_root() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "help", "whoam"]);
+#[tokio::test]
+async fn help_for_a_mistyped_command_scores_it_against_the_root() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "help", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_eq!(
         plain(&stderr).trim_end(),
@@ -210,23 +214,23 @@ fn help_for_a_mistyped_command_scores_it_against_the_root() {
     );
 }
 
-#[test]
-fn the_output_flag_is_read_before_the_word_on_the_clap_path() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "help", "whoam"]);
+#[tokio::test]
+async fn the_output_flag_is_read_before_the_word_on_the_clap_path() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "help", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "whoam", Some("whoami"));
 }
 
-#[test]
-fn a_mistyped_verb_takes_claps_own_suggestion() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "statsu"]);
+#[tokio::test]
+async fn a_mistyped_verb_takes_claps_own_suggestion() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "statsu"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "statsu", Some("status"));
 }
 
-#[test]
-fn a_verb_near_nothing_gets_no_suggestion() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "whoam"]);
+#[tokio::test]
+async fn a_verb_near_nothing_gets_no_suggestion() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_unknown_command(&stderr, "json", "whoam", None);
 }
@@ -241,8 +245,9 @@ fn a_verb_near_nothing_gets_no_suggestion() {
 #[case::leading_digit(&["xr", "--output", "json", "123"])]
 #[case::method_flag(&["xr", "--output", "json", "-X", "POST", "whoam"])]
 #[case::data_flag(&["xr", "--output", "json", "-d", "{}", "whoam"])]
-fn a_raw_target_keeps_the_url_error(#[case] args: &[&str]) {
-    let (code, _stdout, stderr) = run_isolated(args);
+#[tokio::test]
+async fn a_raw_target_keeps_the_url_error(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
     assert_eq!(code, 1, "args {args:?}; stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
@@ -256,8 +261,9 @@ fn a_raw_target_keeps_the_url_error(#[case] args: &[&str]) {
 #[rstest::rstest]
 #[case::bare(&["xr"])]
 #[case::quiet(&["xr", "-q"])]
-fn a_bare_invocation_prints_help(#[case] args: &[&str]) {
-    let (code, stdout, stderr) = run_isolated(args);
+#[tokio::test]
+async fn a_bare_invocation_prints_help(#[case] args: &[&str]) {
+    let (code, stdout, stderr) = run_isolated(args).await;
     assert_eq!(code, 0, "args {args:?}; stderr: {stderr}");
     assert!(
         stdout.contains("Usage: xr") && stdout.contains("Commands:"),
@@ -266,9 +272,9 @@ fn a_bare_invocation_prints_help(#[case] args: &[&str]) {
     assert!(stderr.is_empty(), "args {args:?}; stderr: {stderr}");
 }
 
-#[test]
-fn a_bare_invocation_under_structured_intent_is_a_usage_error() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--output", "json"]);
+#[tokio::test]
+async fn a_bare_invocation_under_structured_intent_is_a_usage_error() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--output", "json"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert!(stdout.is_empty(), "stdout stays empty: {stdout}");
     let v = envelope(&stderr, "json");
@@ -276,9 +282,9 @@ fn a_bare_invocation_under_structured_intent_is_a_usage_error() {
     assert_eq!(v["exit_code"], 2, "got: {v}");
 }
 
-#[test]
-fn a_raw_only_flag_alone_still_asks_for_a_url() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]);
+#[tokio::test]
+async fn a_raw_only_flag_alone_still_asks_for_a_url() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]).await;
     assert_eq!(code, 1, "stderr: {stderr}");
     assert!(
         plain(&stderr).contains("No URL provided"),
@@ -298,8 +304,9 @@ fn a_raw_only_flag_alone_still_asks_for_a_url() {
 #[case::yaml("yaml")]
 #[case::csv("csv")]
 #[case::tsv("tsv")]
-fn unknown_command_renders_in_every_format(#[case] format: &str) {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", format, "whoam"]);
+#[tokio::test]
+async fn unknown_command_renders_in_every_format(#[case] format: &str) {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", format, "whoam"]).await;
     assert_eq!(code, 2, "flag source, {format}; stderr: {stderr}");
     assert_unknown_command(&stderr, format, "whoam", Some("whoami"));
 }
@@ -334,28 +341,29 @@ fn unknown_command_reads_the_output_env_var(#[case] format: &str) {
 #[case::yaml("yaml")]
 #[case::csv("csv")]
 #[case::tsv("tsv")]
-fn invalid_args_renders_in_every_format(#[case] format: &str) {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", format, "--frobnicate"]);
+#[tokio::test]
+async fn invalid_args_renders_in_every_format(#[case] format: &str) {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", format, "--frobnicate"]).await;
     assert_eq!(code, 2, "flag source, {format}; stderr: {stderr}");
     assert_invalid_args(&stderr, format);
 
-    let (code, _stdout, stderr) = run_with_output_env(&["xr", "--frobnicate"], format);
+    let (code, _stdout, stderr) = run_with_output_env(&["xr", "--frobnicate"], format).await;
     assert_eq!(code, 2, "env source, {format}; stderr: {stderr}");
     assert_invalid_args(&stderr, format);
 }
 
 /// `yml` names the YAML rendering on the parse-error path, where the value
 /// never reaches clap's own parser.
-#[test]
-fn the_yml_spelling_still_picks_the_yaml_rendering() {
-    let (code, _stdout, stderr) = run_with_output_env(&["xr", "--frobnicate"], "yml");
+#[tokio::test]
+async fn the_yml_spelling_still_picks_the_yaml_rendering() {
+    let (code, _stdout, stderr) = run_with_output_env(&["xr", "--frobnicate"], "yml").await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_invalid_args(&stderr, "yaml");
 }
 
-#[test]
-fn the_json_alias_picks_the_json_rendering() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--frobnicate"]);
+#[tokio::test]
+async fn the_json_alias_picks_the_json_rendering() {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--frobnicate"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_invalid_args(&stderr, "json");
 }

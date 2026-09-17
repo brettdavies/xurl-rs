@@ -4,9 +4,10 @@
 //! handles regular/streaming/multipart responses.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
-use reqwest::blocking::Client;
+use tokio::sync::{Mutex, MutexGuard};
 
 use crate::auth::Auth;
 use crate::config::Config;
@@ -186,9 +187,10 @@ pub struct MultipartOptions {
 /// use xurl::Error;
 /// use std::collections::HashMap;
 ///
+/// # async fn run() -> Result<(), Error> {
 /// let cfg = Config::new();
 /// let auth = Auth::new(&cfg);
-/// let mut client = ApiClient::new(&cfg, auth);
+/// let client = ApiClient::new(&cfg, auth)?;
 ///
 /// let mut opts = RequestOptions::default();
 /// opts.method = "GET".to_string();
@@ -198,16 +200,25 @@ pub struct MultipartOptions {
 ///     query: Vec::new(),
 /// };
 ///
-/// match client.send_request(&opts) {
+/// match client.send_request(&opts).await {
 ///     Ok(json) => println!("{json}"),
 ///     Err(Error::Api { status, body }) => eprintln!("API {status}: {body}"),
 ///     Err(e) => eprintln!("error: {e}"),
 /// }
+/// # Ok(()) }
 /// ```
+#[derive(Clone)]
 pub struct ApiClient {
+    inner: Arc<Inner>,
+}
+
+/// What every clone of an [`ApiClient`] shares: the one HTTP client, the
+/// base URL and timeout, and the credential state behind the lock a refresh
+/// holds while it rotates a token.
+struct Inner {
     base_url: String,
-    client: Client,
-    auth: Auth,
+    http: reqwest::Client,
+    auth: Mutex<Auth>,
     timeout_secs: u64,
 }
 
@@ -219,34 +230,104 @@ impl ApiClient {
     /// The CLI runner writes `--timeout` / `XURL_TIMEOUT` into
     /// [`Config::http_timeout_secs`]; library consumers that want a different
     /// timeout can use [`ApiClient::with_timeout`].
-    pub fn new(config: &Config, auth: Auth) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Http`] when the HTTP client cannot be built.
+    pub fn new(config: &Config, auth: Auth) -> Result<Self> {
         Self::with_timeout(config, auth, config.http_timeout_secs)
     }
 
     /// Creates a new `ApiClient` with an explicit request timeout.
     ///
     /// The timeout bounds every non-streaming HTTP call dispatched by this
-    /// client. Streaming requests intentionally retain `.timeout(None)` — the
-    /// long-running shape is the point — and bound runtime via signal handlers
-    /// in the streaming handler.
-    pub fn with_timeout(config: &Config, auth: Auth, timeout_secs: u64) -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(timeout_secs))
+    /// client, and the token exchange, refresh, and `/2/users/me` lookups
+    /// that share its connection pool. Streaming requests carry no total
+    /// timeout: the long-running shape is the point.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Http`] when the HTTP client cannot be built. A client
+    /// that cannot honor its configured timeout is a startup failure, not a
+    /// silently unbounded client.
+    pub fn with_timeout(config: &Config, auth: Auth, timeout_secs: u64) -> Result<Self> {
+        let http = reqwest::Client::builder()
             .build()
-            .unwrap_or_else(|_| Client::new());
+            .map_err(|e| Error::Http(format!("cannot build the HTTP client: {e}")))?;
 
-        Self {
-            base_url: config.api_base_url.clone(),
-            client,
-            auth,
-            timeout_secs,
-        }
+        Ok(Self {
+            inner: Arc::new(Inner {
+                base_url: config.api_base_url.clone(),
+                http,
+                auth: Mutex::new(auth),
+                timeout_secs,
+            }),
+        })
     }
 
     /// Returns the per-call timeout used by this client (seconds).
     #[must_use]
     pub fn timeout_secs(&self) -> u64 {
-        self.timeout_secs
+        self.inner.timeout_secs
+    }
+
+    /// The per-request bound every non-streaming call carries.
+    pub(crate) fn request_timeout(&self) -> Duration {
+        Duration::from_secs(self.inner.timeout_secs)
+    }
+
+    /// The one HTTP client every request, token exchange, refresh, and
+    /// `/2/users/me` lookup goes through.
+    pub(crate) fn http(&self) -> &reqwest::Client {
+        &self.inner.http
+    }
+
+    /// Runs the `OAuth2` PKCE sign-in for `username` on this client's
+    /// connection, holding the credential lock for the whole flow.
+    ///
+    /// See [`Auth::oauth2_flow`] for the opener and the cancellation token.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Auth::oauth2_flow`] returns.
+    pub async fn oauth2_flow<F>(
+        &self,
+        username: &str,
+        cancel: tokio_util::sync::CancellationToken,
+        browser_opener: F,
+    ) -> Result<String>
+    where
+        F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
+    {
+        let mut auth = self.auth().await;
+        auth.oauth2_flow(self.http(), username, cancel, browser_opener)
+            .await
+    }
+
+    /// Completes the headless `OAuth2` flow from the redirect URL the user
+    /// pasted, on this client's connection.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Auth::remote_oauth2_step2`] returns.
+    pub async fn remote_oauth2_step2(
+        &self,
+        redirect_url: &str,
+        username: &str,
+        pending_path: &std::path::Path,
+    ) -> Result<String> {
+        let mut auth = self.auth().await;
+        auth.remote_oauth2_step2(self.http(), redirect_url, username, pending_path)
+            .await
+    }
+
+    /// Locks and returns the credential state.
+    ///
+    /// A refresh holds this lock while it rotates a token, so hold the guard
+    /// only for the store read or write at hand and never across a request
+    /// on the same client.
+    pub async fn auth(&self) -> MutexGuard<'_, Auth> {
+        self.inner.auth.lock().await
     }
 
     /// Creates an `ApiClient` from environment variables.
@@ -268,7 +349,7 @@ impl ApiClient {
             ));
         }
         let auth = Auth::new(&cfg);
-        Ok(Self::new(&cfg, auth))
+        Self::new(&cfg, auth)
     }
 
     /// Builds the full URL from a target (public accessor for command layer).
@@ -284,19 +365,9 @@ impl ApiClient {
         self.build_url(target)
     }
 
-    /// Returns the active app name carried by the underlying [`Auth`].
-    ///
-    /// Library-public so callers building requests outside `ApiClient` (e.g.
-    /// the CLI streaming wrapper) can thread the active app into
-    /// `auth_matrix::validate` for the user-facing message.
-    #[must_use]
-    pub fn auth_app_name(&self) -> &str {
-        self.auth.app_name()
-    }
-
     /// Builds the full URL from a target.
     fn build_url(&self, target: &RequestTarget) -> Result<String> {
-        build_url_for_target(&self.base_url, target)
+        build_url_for_target(&self.inner.base_url, target)
     }
 }
 

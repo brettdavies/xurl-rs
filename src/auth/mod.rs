@@ -248,49 +248,54 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the `OAuth2` flow fails or token refresh fails.
-    pub fn get_oauth2_header(&mut self, username: &str) -> Result<String> {
-        let app_name = self.app_name.clone();
+    /// Returns an error if no token is stored or the refresh fails.
+    pub async fn get_oauth2_header(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+    ) -> Result<String> {
+        if !self.has_oauth2_token(username) {
+            // No stored token means no header: the library never starts an
+            // interactive sign-in inside a request. The binary decides
+            // whether to sign in and retry.
+            return Err(Error::auth(crate::error::NO_OAUTH2_TOKEN));
+        }
+        let access_token = self.refresh_oauth2_token(http, username).await?;
+        Ok(format!("Bearer {access_token}"))
+    }
 
+    /// Whether a stored `OAuth2` token would serve a request for `username`.
+    ///
+    /// Empty-caller precedence: `default_user` (via the first named token),
+    /// then the unnamed slot. Named-caller precedence: the caller's own
+    /// token, then the first named token; the unnamed slot is never
+    /// consulted for a named caller, who has explicit identity intent and
+    /// must not silently receive a salvage-state token under their name.
+    #[must_use]
+    pub fn has_oauth2_token(&self, username: &str) -> bool {
+        let app_name = self.app_name.as_str();
+        let first = self
+            .token_store
+            .get_first_oauth2_token_for_app(app_name)
+            .is_some();
         if username.is_empty() {
-            // Empty-caller precedence: default_user (via get_first) -> unnamed -> flow.
-            if self
-                .token_store
-                .get_first_oauth2_token_for_app(&app_name)
-                .is_some()
-            {
-                let access_token = self.refresh_oauth2_token(username)?;
-                return Ok(format!("Bearer {access_token}"));
-            }
-
-            if self
-                .token_store
-                .get_oauth2_token_unnamed_for_app(&app_name)
-                .is_some()
-            {
-                // Empty-caller + unnamed-hit: refresh delegates with empty username;
-                // if /me fails again the refresh path writes back to the unnamed slot.
-                let access_token = self.refresh_oauth2_token(username)?;
-                return Ok(format!("Bearer {access_token}"));
-            }
-        } else {
-            // Named-caller precedence: own token -> get_first fallback -> flow.
-            // The unnamed slot is never consulted here.
-            if self.token_store.get_oauth2_token(username).is_some()
+            first
                 || self
                     .token_store
-                    .get_first_oauth2_token_for_app(&app_name)
+                    .get_oauth2_token_unnamed_for_app(app_name)
                     .is_some()
-            {
-                let access_token = self.refresh_oauth2_token(username)?;
-                return Ok(format!("Bearer {access_token}"));
-            }
+        } else {
+            self.token_store.get_oauth2_token(username).is_some() || first
         }
+    }
 
-        // No stored token means no header: the library never starts an
-        // interactive sign-in inside a request. The binary decides whether to
-        // sign in and retry.
-        Err(Error::auth(crate::error::NO_OAUTH2_TOKEN))
+    /// The stored `OAuth2` access token for `username` when it has not
+    /// expired, so a caller can skip the refresh entirely.
+    #[must_use]
+    pub fn unexpired_oauth2_access_token(&self, username: &str) -> Option<String> {
+        oauth2::stored_oauth2_token(self, username)
+            .filter(|token| !oauth2::is_expired(token))
+            .map(|token| token.access_token)
     }
 
     /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
@@ -298,17 +303,24 @@ impl Auth {
     ///
     /// The library never opens a browser itself: the binary passes
     /// `open::that`, a test passes a recording closure, and a headless caller
-    /// passes whatever delivers the URL to a person.
+    /// passes whatever delivers the URL to a person. `cancel` is the
+    /// caller's stop; the flow registers no signal handler.
     ///
     /// # Errors
     ///
     /// Returns an error if the authorization flow, the opener, the token
     /// exchange, or username resolution fails.
-    pub fn oauth2_flow<F>(&mut self, username: &str, browser_opener: F) -> Result<String>
+    pub async fn oauth2_flow<F>(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+        cancel: tokio_util::sync::CancellationToken,
+        browser_opener: F,
+    ) -> Result<String>
     where
         F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
     {
-        oauth2::run_oauth2_flow(self, username, browser_opener)
+        oauth2::run_oauth2_flow(self, http, username, cancel, browser_opener).await
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.
@@ -316,8 +328,12 @@ impl Auth {
     /// # Errors
     ///
     /// Returns an error if no token is found or the refresh request fails.
-    pub fn refresh_oauth2_token(&mut self, username: &str) -> Result<String> {
-        oauth2::refresh_oauth2_token(self, username)
+    pub async fn refresh_oauth2_token(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+    ) -> Result<String> {
+        oauth2::refresh_oauth2_token(self, http, username).await
     }
 
     /// Runs step 1 of the remote `OAuth2` PKCE flow.
@@ -342,13 +358,14 @@ impl Auth {
     ///
     /// Returns an error if the pending state is missing/expired/invalid,
     /// the token exchange fails, or the username cannot be resolved.
-    pub fn remote_oauth2_step2(
+    pub async fn remote_oauth2_step2(
         &mut self,
+        http: &reqwest::Client,
         redirect_url: &str,
         username: &str,
         pending_path: &std::path::Path,
     ) -> Result<String> {
-        oauth2::run_remote_step2(self, redirect_url, username, pending_path)
+        oauth2::run_remote_step2(self, http, redirect_url, username, pending_path).await
     }
 
     /// Gets the bearer token Authorization header.
@@ -380,21 +397,24 @@ impl Auth {
     }
 
     /// Fetches the username for an access token from the /2/users/me endpoint.
-    pub(crate) fn fetch_username(&self, access_token: &str) -> Result<String> {
-        let client = reqwest::blocking::Client::builder()
+    pub(crate) async fn fetch_username(
+        &self,
+        http: &reqwest::Client,
+        access_token: &str,
+    ) -> Result<String> {
+        let resp = http
+            .get(&self.config.info_url)
             .timeout(std::time::Duration::from_secs(
                 self.config.http_timeout_secs,
             ))
-            .build()
-            .unwrap_or_else(|_| reqwest::blocking::Client::new());
-        let resp = client
-            .get(&self.config.info_url)
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
+            .await
             .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
 
         let body: serde_json::Value = resp
             .json()
+            .await
             .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
 
         body.get("data")

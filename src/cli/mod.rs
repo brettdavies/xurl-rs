@@ -9,6 +9,7 @@ pub mod exit_codes;
 mod failure;
 pub mod hints;
 pub mod runner;
+pub(crate) mod shutdown;
 
 pub use runner::{run, run_argv, run_with_store_path};
 

@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use std::thread;
 use std::time::Duration;
 
 use super::request::{ApiClient, MultipartOptions, RequestOptions, RequestTarget};
@@ -37,7 +36,7 @@ pub struct MediaUploadOutcome {
 /// Returns an error if the file cannot be read, any upload phase (INIT, APPEND,
 /// FINALIZE) fails, or media processing times out.
 #[allow(clippy::too_many_arguments)]
-pub fn execute_media_upload(
+pub async fn execute_media_upload(
     file_path: &str,
     media_type: &str,
     media_category: &str,
@@ -46,7 +45,7 @@ pub fn execute_media_upload(
     trace: bool,
     wait_for_processing: bool,
     headers: &[String],
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
         .map_err(|e| Error::Io(format!("error accessing file: {e}")))?;
@@ -84,7 +83,7 @@ pub fn execute_media_upload(
     init_opts.data = init_body.to_string();
 
     let init_response: ApiResponse<MediaUploadResponse> =
-        deserialize_response(client.send_request(&init_opts)?)?;
+        deserialize_response(client.send_request(&init_opts).await?)?;
     let media_id = init_response.data.id.clone();
     if media_id.is_empty() {
         return Err(Error::Json(
@@ -93,7 +92,7 @@ pub fn execute_media_upload(
     }
 
     // APPEND — upload in 4MB chunks
-    upload_chunks(file_path, &media_id, &base_opts, file_size, client)?;
+    upload_chunks(file_path, &media_id, &base_opts, file_size, client).await?;
 
     // FINALIZE
     tracing::info!(target: MEDIA_TARGET, "Finalizing media upload...");
@@ -108,11 +107,11 @@ pub fn execute_media_upload(
     finalize_opts.data.clear();
 
     let finalize_response: ApiResponse<MediaUploadResponse> =
-        deserialize_response(client.send_request(&finalize_opts)?)?;
+        deserialize_response(client.send_request(&finalize_opts).await?)?;
 
     let processing = if wait_for_processing && media_category.contains("video") {
         tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
-        Some(wait_for_media_processing(&media_id, &base_opts, client)?)
+        Some(wait_for_media_processing(&media_id, &base_opts, client).await?)
     } else {
         None
     };
@@ -126,12 +125,12 @@ pub fn execute_media_upload(
 }
 
 /// Uploads file data in 4 MB chunks via APPEND requests.
-fn upload_chunks(
+async fn upload_chunks(
     file_path: &str,
     media_id: &str,
     base_opts: &RequestOptions,
     file_size: u64,
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<()> {
     tracing::info!(target: MEDIA_TARGET, "Uploading media in chunks...");
 
@@ -175,7 +174,7 @@ fn upload_chunks(
             file_data: buffer[..bytes_read].to_vec(),
         };
 
-        client.send_multipart_request(&multipart_opts)?;
+        client.send_multipart_request(&multipart_opts).await?;
 
         bytes_uploaded += bytes_read as u64;
         segment_index += 1;
@@ -197,14 +196,14 @@ fn upload_chunks(
 /// # Errors
 ///
 /// Returns an error if the status request fails or processing times out.
-pub fn execute_media_status(
+pub async fn execute_media_status(
     media_id: &str,
     auth_type: &str,
     username: &str,
     wait: bool,
     trace: bool,
     headers: &[String],
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),
@@ -215,17 +214,17 @@ pub fn execute_media_status(
     };
 
     if wait {
-        wait_for_media_processing(media_id, &base_opts, client)
+        wait_for_media_processing(media_id, &base_opts, client).await
     } else {
-        check_media_status(media_id, &base_opts, client)
+        check_media_status(media_id, &base_opts, client).await
     }
 }
 
 /// Checks media upload status.
-fn check_media_status(
+async fn check_media_status(
     media_id: &str,
     base_opts: &RequestOptions,
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     let mut opts = base_opts.clone();
     opts.method = "GET".to_string();
@@ -239,17 +238,17 @@ fn check_media_status(
     };
     opts.data.clear();
 
-    deserialize_response(client.send_request(&opts)?)
+    deserialize_response(client.send_request(&opts).await?)
 }
 
 /// Polls media processing status until completion.
-fn wait_for_media_processing(
+async fn wait_for_media_processing(
     media_id: &str,
     base_opts: &RequestOptions,
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
     loop {
-        let response = check_media_status(media_id, base_opts, client)?;
+        let response = check_media_status(media_id, base_opts, client).await?;
 
         let state = response
             .data
@@ -283,7 +282,7 @@ fn wait_for_media_processing(
             "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
         );
 
-        thread::sleep(Duration::from_secs(check_after));
+        tokio::time::sleep(Duration::from_secs(check_after)).await;
     }
 }
 
@@ -293,10 +292,10 @@ fn wait_for_media_processing(
 ///
 /// Returns an error if the `media_id` is missing, the file cannot be read,
 /// or the multipart request fails.
-pub fn handle_media_append_request(
+pub async fn handle_media_append_request(
     options: &RequestOptions,
     media_file: &str,
-    client: &mut ApiClient,
+    client: &ApiClient,
 ) -> Result<serde_json::Value> {
     // Raw mode is the only caller — its target is a `RawUrl` carrying
     // the user-supplied URL with the media_id embedded in the path.
@@ -342,7 +341,7 @@ pub fn handle_media_append_request(
         file_data: Vec::new(),
     };
 
-    client.send_multipart_request(&multipart_opts)
+    client.send_multipart_request(&multipart_opts).await
 }
 
 /// Extracts `media_id` from a URL.

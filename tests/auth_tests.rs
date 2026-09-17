@@ -17,6 +17,10 @@ use xurl::store::{App, TokenStore};
 
 // ── Test helpers ───────────────────────────────────────────────────────────
 
+fn http() -> reqwest::Client {
+    reqwest::Client::new()
+}
+
 fn test_config() -> Config {
     // `Config` has `pub(crate)` resolver fields that external test code cannot
     // name in a struct literal (or fill via `..Config::new()` from an external
@@ -810,8 +814,8 @@ fn with_app_name_back_to_default_re_resolves_from_default_app() {
 // surface for this bug fires only when the token is still valid and the
 // refresh becomes a fast no-op return of the cached access_token.
 
-#[test]
-fn refresh_finds_named_app_token_when_active_app_set() {
+#[tokio::test]
+async fn refresh_finds_named_app_token_when_active_app_set() {
     use xurl::auth::oauth2::refresh_oauth2_token;
 
     let (mut store, _tmp) = create_temp_token_store();
@@ -838,16 +842,17 @@ fn refresh_finds_named_app_token_when_active_app_set() {
     let mut auth = auth_for(&cfg, store);
     auth.with_app_name("bird-dev");
 
-    let token =
-        refresh_oauth2_token(&mut auth, "alice").expect("refresh must find named app token");
+    let token = refresh_oauth2_token(&mut auth, &http(), "alice")
+        .await
+        .expect("refresh must find named app token");
     assert_eq!(
         token, "alice-access",
         "refresh must read alice's token from bird-dev, not the empty default"
     );
 }
 
-#[test]
-fn refresh_finds_first_token_in_named_app_when_username_empty() {
+#[tokio::test]
+async fn refresh_finds_first_token_in_named_app_when_username_empty() {
     use xurl::auth::oauth2::refresh_oauth2_token;
 
     let (mut store, _tmp) = create_temp_token_store();
@@ -866,12 +871,14 @@ fn refresh_finds_first_token_in_named_app_when_username_empty() {
     // Empty username = "use the first token in the active app". The fix
     // routes this lookup through bird-dev instead of falling back to the
     // empty default app.
-    let token = refresh_oauth2_token(&mut auth, "").expect("refresh with empty username");
+    let token = refresh_oauth2_token(&mut auth, &http(), "")
+        .await
+        .expect("refresh with empty username");
     assert_eq!(token, "u1-token");
 }
 
-#[test]
-fn refresh_falls_back_to_unnamed_slot_within_active_app() {
+#[tokio::test]
+async fn refresh_falls_back_to_unnamed_slot_within_active_app() {
     use xurl::auth::oauth2::refresh_oauth2_token;
 
     let (mut store, _tmp) = create_temp_token_store();
@@ -888,7 +895,9 @@ fn refresh_falls_back_to_unnamed_slot_within_active_app() {
     let mut auth = auth_for(&cfg, store);
     auth.with_app_name("bird-dev");
 
-    let token = refresh_oauth2_token(&mut auth, "").expect("refresh must fall back to unnamed");
+    let token = refresh_oauth2_token(&mut auth, &http(), "")
+        .await
+        .expect("refresh must fall back to unnamed");
     assert_eq!(token, "unnamed-tok");
 }
 
@@ -1023,8 +1032,8 @@ fn bearer_header_via_auth_routes_to_active_app() {
     );
 }
 
-#[test]
-fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
+#[tokio::test]
+async fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
     use xurl::auth::oauth2::refresh_oauth2_token;
 
     let (mut store, _tmp) = create_temp_token_store();
@@ -1043,13 +1052,17 @@ fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
 
     auth.with_app_name("alpha");
     assert_eq!(
-        refresh_oauth2_token(&mut auth, "alice").expect("alpha/alice"),
+        refresh_oauth2_token(&mut auth, &http(), "alice")
+            .await
+            .expect("alpha/alice"),
         "alpha-tok"
     );
 
     auth.with_app_name("beta");
     assert_eq!(
-        refresh_oauth2_token(&mut auth, "bob").expect("beta/bob"),
+        refresh_oauth2_token(&mut auth, &http(), "bob")
+            .await
+            .expect("beta/bob"),
         "beta-tok"
     );
 
@@ -1058,6 +1071,8 @@ fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
     // failing in beta — both arrive at "not found", but for the right
     // reason now.
     auth.with_app_name("beta");
-    let err = refresh_oauth2_token(&mut auth, "alice").expect_err("alice not in beta");
+    let err = refresh_oauth2_token(&mut auth, &http(), "alice")
+        .await
+        .expect_err("alice not in beta");
     assert!(err.to_string().contains("oauth2 token not found"));
 }

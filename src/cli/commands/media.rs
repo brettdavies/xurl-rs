@@ -11,7 +11,7 @@ use crate::config::Config;
 use crate::error::Result;
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn run_media_command(
+pub(super) async fn run_media_command(
     cmd: MediaCommands,
     cfg: &Config,
     auth: Auth,
@@ -41,7 +41,7 @@ pub(super) fn run_media_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            let mut client = ApiClient::new(cfg, auth);
+            let client = ApiClient::new(cfg, auth)?;
             let outcome = api::execute_media_upload(
                 &file,
                 &media_type,
@@ -51,8 +51,9 @@ pub(super) fn run_media_command(
                 trace,
                 wait,
                 &headers,
-                &mut client,
-            )?;
+                &client,
+            )
+            .await?;
             if verbose {
                 out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
             }
@@ -70,7 +71,7 @@ pub(super) fn run_media_command(
             trace,
             headers,
         } => {
-            let mut client = ApiClient::new(cfg, auth);
+            let client = ApiClient::new(cfg, auth)?;
             let response = api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),
@@ -78,8 +79,9 @@ pub(super) fn run_media_command(
                 wait,
                 trace,
                 &headers,
-                &mut client,
-            )?;
+                &client,
+            )
+            .await?;
             out.print_response(stdout, &serde_json::to_value(&response)?);
             Ok(())
         }

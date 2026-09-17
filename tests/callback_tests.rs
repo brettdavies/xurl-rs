@@ -1,6 +1,6 @@
 //! OAuth2 callback listener tests.
 //!
-//! Drives `xurl::auth::callback::wait_for_callback_with` on a worker thread
+//! Drives `xurl::auth::callback::wait_for_callback_with` on a worker thread's own runtime
 //! and exercises bind, path-match, state-validation, partial-bind warning,
 //! and cancellation behaviour from a client-side `tokio::net::TcpStream`.
 
@@ -16,6 +16,17 @@ use url::Url;
 
 use xurl::auth::callback::wait_for_callback_with;
 use xurl::error::Result as XurlResult;
+
+/// Drives the listener future to completion on a runtime private to the
+/// calling thread, so a test can poke the socket with blocking I/O from its
+/// own thread while the listener runs on another.
+fn block_on_listener<F: std::future::Future>(listener: F) -> F::Output {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("listener runtime")
+        .block_on(listener)
+}
 
 // ── Port allocation ───────────────────────────────────────────────────────
 //
@@ -82,7 +93,7 @@ fn single_explicit_ipv4_bind_delivers_code() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -110,7 +121,7 @@ fn single_explicit_ipv6_bind_delivers_code() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -138,7 +149,7 @@ fn dual_bind_localhost_delivers_via_ipv4() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -174,7 +185,7 @@ fn partial_bind_localhost_proceeds_when_ipv6_unavailable() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -204,7 +215,7 @@ fn both_binds_fail_returns_error() {
     let uri = Url::parse(&format!("http://127.0.0.1:{port}/callback")).unwrap();
     let cancel = CancellationToken::new();
 
-    let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+    let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
     assert!(res.is_err(), "expected bind failure error");
     let msg = res.unwrap_err().to_string();
     assert!(
@@ -222,7 +233,7 @@ fn custom_callback_path() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -253,7 +264,7 @@ fn root_path_uri_matches_only_root() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -282,7 +293,12 @@ fn rejects_loose_prefix_path_match() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel_for_thread, || {});
+        let res = block_on_listener(wait_for_callback_with(
+            &uri,
+            "STATE",
+            cancel_for_thread,
+            || {},
+        ));
         tx.send(res).unwrap();
     });
 
@@ -315,7 +331,7 @@ fn state_mismatch_returns_400_and_error() {
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
 
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, || {});
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, || {}));
         tx.send(res).unwrap();
     });
 
@@ -347,7 +363,12 @@ fn external_cancellation_returns_quickly_with_typed_error() {
 
     let started = std::time::Instant::now();
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel_for_thread, || {});
+        let res = block_on_listener(wait_for_callback_with(
+            &uri,
+            "STATE",
+            cancel_for_thread,
+            || {},
+        ));
         tx.send(res).unwrap();
     });
 
@@ -377,9 +398,9 @@ fn on_bound_callback_fires_once_after_listener_ready() {
 
     let (tx, rx) = mpsc::channel::<XurlResult<String>>();
     let h = thread::spawn(move || {
-        let res = wait_for_callback_with(&uri, "STATE", cancel, move || {
+        let res = block_on_listener(wait_for_callback_with(&uri, "STATE", cancel, move || {
             *invocations_for_closure.lock().unwrap() += 1;
-        });
+        }));
         tx.send(res).unwrap();
     });
 
@@ -397,4 +418,31 @@ fn on_bound_callback_fires_once_after_listener_ready() {
 
     let n = *invocations.lock().unwrap();
     assert_eq!(n, 1, "on_bound must fire exactly once, got {n}");
+}
+
+/// The hazard a plain `async fn` listener carries: a caller that drops the
+/// future mid-wait (a `select!` branch, a timeout) must not leave the
+/// loopback port bound for the rest of the process.
+#[tokio::test]
+async fn dropping_the_listener_future_releases_the_port() {
+    let port = pick_free_port_ipv4();
+    let uri = Url::parse(&format!("http://127.0.0.1:{port}/callback")).unwrap();
+
+    let listener = wait_for_callback_with(&uri, "STATE", CancellationToken::new(), || {});
+    let dropped = tokio::time::timeout(Duration::from_millis(200), listener).await;
+    assert!(dropped.is_err(), "the timeout drops the listener mid-wait");
+
+    let mut rebound = None;
+    for _ in 0..100 {
+        tokio::task::yield_now().await;
+        if let Ok(l) = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}")).await {
+            rebound = Some(l);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(
+        rebound.is_some(),
+        "dropping the listener future must release 127.0.0.1:{port}"
+    );
 }

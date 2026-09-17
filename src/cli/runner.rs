@@ -26,6 +26,7 @@ use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ErrorKind};
 use clap::{CommandFactory, Parser};
+use tracing::instrument::WithSubscriber;
 
 use crate::auth::Auth;
 use crate::cli::classify::{
@@ -51,20 +52,20 @@ const NO_COMMAND_MESSAGE: &str =
 /// The binary's `main` calls this. Library consumers wanting capture should
 /// call [`run`] or [`run_with_store_path`] directly.
 #[must_use]
-pub fn run_argv() -> i32 {
+pub async fn run_argv() -> i32 {
     let args: Vec<OsString> = std::env::args_os().collect();
     let stdout = std::io::stdout();
     let stderr = std::io::stderr();
     let mut stdout_lock = stdout.lock();
     let mut stderr_lock = stderr.lock();
-    run(args, &mut stdout_lock, &mut stderr_lock)
+    run(args, &mut stdout_lock, &mut stderr_lock).await
 }
 
 /// Runs the `xr` CLI with caller-supplied args + writers.
 ///
 /// Resolves the token-store path from `XURL_TOKEN_STORE`, falling back to
 /// [`Config::default_store_path`], and delegates to [`run_with_overrides`].
-pub fn run<I, S>(args: I, stdout: &mut dyn Write, stderr: &mut dyn Write) -> i32
+pub async fn run<I, S>(args: I, stdout: &mut dyn Write, stderr: &mut dyn Write) -> i32
 where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
@@ -75,7 +76,7 @@ where
         .as_deref()
         .filter(|p| !p.is_empty())
         .map_or_else(Config::default_store_path, PathBuf::from);
-    run_with_overrides(args, stdout, stderr, &store_path, &overrides)
+    run_with_overrides(args, stdout, stderr, &store_path, &overrides).await
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
@@ -95,7 +96,7 @@ where
 /// preserved. An unrecognized subcommand, and a bare word that names no
 /// command, both render as `unknown-command` at the same exit code, and a
 /// bare invocation prints the root help at exit 0.
-pub fn run_with_store_path<I, S>(
+pub async fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
@@ -112,6 +113,7 @@ where
         store_path,
         &crate::cli::env::from_process(),
     )
+    .await
 }
 
 /// The worker entrypoint — everything [`run_with_store_path`] does, with the
@@ -124,7 +126,7 @@ where
 ///
 /// Parse-error behavior matches [`run_with_store_path`], with the output
 /// intent taken from `overrides` rather than `XURL_OUTPUT`.
-pub fn run_with_overrides<I, S>(
+pub async fn run_with_overrides<I, S>(
     args: I,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
@@ -271,9 +273,9 @@ where
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let dispatched = tracing::subscriber::with_default(diagnostics, || {
-        crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
-    });
+    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
+        .with_subscriber(diagnostics)
+        .await;
     match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,

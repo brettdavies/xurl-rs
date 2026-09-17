@@ -39,16 +39,16 @@ fn live_client() -> (ApiClient, CallOptions) {
         auth_type: env("XURL_LIVE_SMOKE_AUTH").unwrap_or_default(),
         ..CallOptions::default()
     };
-    (ApiClient::new(&cfg, auth), opts)
+    (ApiClient::new(&cfg, auth).expect("client builds"), opts)
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "spends one post read and one user read on the live X API; see RELEASES-PREFLIGHT.md"]
-fn live_wire_vocabulary_matches_typed_structs() {
-    let (mut client, opts) = live_client();
+async fn live_wire_vocabulary_matches_typed_structs() {
+    let (client, opts) = live_client();
 
     let post_id = env("XURL_LIVE_SMOKE_POST_ID").unwrap_or_else(|| DEFAULT_POST_ID.to_string());
-    let post = client.read_post(&post_id, &opts).expect(
+    let post = client.read_post(&post_id, &opts).await.expect(
         "post read must succeed; pass XURL_LIVE_SMOKE_POST_ID=<any post id with media> if the default was deleted",
     );
     let metrics = post
@@ -103,6 +103,7 @@ fn live_wire_vocabulary_matches_typed_structs() {
 
     let user = client
         .lookup_user(USERNAME, &opts)
+        .await
         .expect("user read must succeed");
     let metrics = user
         .data

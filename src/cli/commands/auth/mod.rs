@@ -93,14 +93,42 @@ struct AuthCtx<'a> {
     stderr: &'a mut dyn Write,
 }
 
-pub(super) fn run_auth_command(
+pub(super) async fn run_auth_command(
     cmd: AuthCommands,
     mut auth: Auth,
+    cfg: &config::Config,
     flags: AuthGlobalFlags,
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> CommandResult<()> {
+    // Sign-in is the one auth command that talks to X, so it builds the
+    // client that owns the HTTP connection and the credential lock.
+    let cmd = match cmd {
+        AuthCommands::Oauth2 {
+            no_browser,
+            step,
+            auth_url,
+            username,
+        } => {
+            return signin::oauth2(
+                signin::Oauth2Args {
+                    no_browser,
+                    step,
+                    auth_url,
+                    username,
+                },
+                auth,
+                cfg,
+                flags,
+                out,
+                stdout,
+                stderr,
+            )
+            .await;
+        }
+        other => other,
+    };
     let ctx = AuthCtx {
         auth: &mut auth,
         flags,
@@ -109,20 +137,7 @@ pub(super) fn run_auth_command(
         stderr,
     };
     match cmd {
-        AuthCommands::Oauth2 {
-            no_browser,
-            step,
-            auth_url,
-            username,
-        } => signin::oauth2(
-            signin::Oauth2Args {
-                no_browser,
-                step,
-                auth_url,
-                username,
-            },
-            ctx,
-        ),
+        AuthCommands::Oauth2 { .. } => unreachable!("sign-in returned above"),
         AuthCommands::Oauth1 {
             consumer_key,
             consumer_secret,
