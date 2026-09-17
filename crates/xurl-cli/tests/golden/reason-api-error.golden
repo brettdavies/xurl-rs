@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "search", "q409"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 123
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "{\"status\":409,\"title\":\"Conflict\"}",
+  "reason": "api-error",
+  "status": "error"
+}
+

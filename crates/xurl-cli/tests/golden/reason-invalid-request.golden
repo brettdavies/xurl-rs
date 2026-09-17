@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "search", "q400"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 261
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "{\"detail\":\"One or more parameters to your request was invalid.\",\"status\":400,\"title\":\"Invalid Request\",\"type\":\"https://api.x.com/2/problems/invalid-request\"}",
+  "reason": "invalid-request",
+  "status": "error"
+}
+

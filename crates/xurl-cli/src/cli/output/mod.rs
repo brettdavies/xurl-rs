@@ -671,10 +671,15 @@ mod tests {
     fn test_xurl_error_kind_mapping() {
         assert_eq!(Error::Auth("test".into()).kind(), "auth-required");
         assert_eq!(Error::Http("test".into()).kind(), "network-error");
-        assert_eq!(Error::api(400, "test").kind(), "network-error");
+        assert_eq!(Error::api(400, "test").kind(), "invalid-request");
+        assert_eq!(Error::api(422, "test").kind(), "invalid-request");
         assert_eq!(Error::api(401, "x").kind(), "auth-required");
+        assert_eq!(Error::api(403, "x").kind(), "forbidden");
         assert_eq!(Error::api(404, "x").kind(), "not-found");
+        assert_eq!(Error::api(409, "x").kind(), "api-error");
         assert_eq!(Error::api(429, "x").kind(), "rate-limited");
+        assert_eq!(Error::api(500, "x").kind(), "server-error");
+        assert_eq!(Error::api(503, "x").kind(), "server-error");
         assert_eq!(Error::validation("test").kind(), "validation");
         assert_eq!(Error::Io("test".into()).kind(), "io");
         assert_eq!(Error::Json("test".into()).kind(), "serialization");
