@@ -16,7 +16,7 @@ use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
 
 pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> CommandResult<()> {
     // Read through the runner-constructed store so tempdir-based
-    // CLI tests observe the same `~/.xurl` the runner saw (KTD7).
+    // CLI tests observe the same `~/.xurl` the runner saw.
     let ts = &auth.token_store;
     let apps = ts.list_apps();
     let default_app = ts.get_default_app();
@@ -50,7 +50,7 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
             };
             out.print_message(stdout, &format!("{marker} {name}  [{client_hint}]"));
 
-            // R19 + R24: surface the effective redirect URI + source.
+            // Surface the effective redirect URI and its source.
             out.print_message(
                 stdout,
                 &format!(
@@ -73,7 +73,7 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
                         out.print_message(stdout, &format!("      oauth2: {u}"));
                     }
                 }
-                // KTD8: render the unnamed (`/me`-failed salvage)
+                // Render the unnamed (`/me`-failed salvage)
                 // slot after named users, labelled `(unknown user)`.
                 if entry.oauth2_unnamed {
                     out.print_message(stdout, "      oauth2: (unknown user)");

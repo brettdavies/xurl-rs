@@ -175,6 +175,7 @@ impl TokenStore {
 
     /// Creates a `TokenStore` using a custom home directory (for testing).
     #[must_use]
+    #[doc(hidden)]
     pub fn new_with_home(home: &str) -> Self {
         let home_path = PathBuf::from(home);
         let file_path = home_path.join(".xurl");

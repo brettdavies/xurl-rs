@@ -164,8 +164,8 @@ impl Config {
     /// precedence (env > app-stored > default) is run by
     /// [`Auth::new_with_store_path`](crate::auth::Auth::new_with_store_path),
     /// which overwrites `redirect_uri`, `redirect_uri_source`, and
-    /// `redirect_uri_from_env` on the owned `Config`. The R12 audit confirms
-    /// no consumer reads `redirect_uri` from a pre-resolution `Config`.
+    /// `redirect_uri_from_env` on the owned `Config`. No consumer reads
+    /// `redirect_uri` from a pre-resolution `Config`.
     #[must_use]
     pub fn new() -> Self {
         Self::from_overrides(&EnvOverrides::from_env())
@@ -340,7 +340,7 @@ pub struct ResolvedRedirectUri {
 /// callers cannot suppress the env-var rejection in any meaningful way.
 ///
 /// Stored values are assumed valid — validation is enforced at `set_app_redirect_uri`
-/// write time per R2.
+/// write time.
 #[doc(hidden)]
 pub fn resolve_redirect_uri_from(
     env_value: Option<String>,
@@ -381,6 +381,7 @@ pub fn resolve_redirect_uri_from(
 /// directly with the env var and the result of
 /// `store.get_app_redirect_uri(app_name)` to avoid a second disk read.
 #[must_use]
+#[doc(hidden)]
 pub fn resolve_redirect_uri(store_path: &Path, app_name: &str) -> ResolvedRedirectUri {
     let env = std::env::var("REDIRECT_URI").ok();
     let store = crate::store::TokenStore::new_with_path(store_path.to_str().unwrap_or("."));

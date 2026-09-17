@@ -1076,3 +1076,49 @@ async fn switching_apps_at_runtime_resolves_each_apps_oauth2_token() {
         .expect_err("alice not in beta");
     assert!(err.to_string().contains("oauth2 token not found"));
 }
+
+// A refresh response may omit `refresh_token` (RFC 6749 section 6); the store
+// then keeps the one it sent rather than saving an empty one.
+#[tokio::test]
+async fn refresh_without_a_rotated_token_keeps_the_stored_refresh_token() {
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use xdk::auth::oauth2::refresh_oauth2_token;
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "alice-access-2",
+            "expires_in": 7200
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (mut store, _tmp) = create_temp_token_store();
+    store.add_app("bird-dev", "id", "secret").expect("add app");
+    store
+        .save_oauth2_token_for_app("bird-dev", "alice", "alice-access", "alice-refresh", 1)
+        .expect("save an expired token");
+    let mut cfg = empty_config();
+    cfg.token_url = format!("{}/2/oauth2/token", server.uri());
+    let mut auth = auth_for(&cfg, store);
+    auth.with_app_name("bird-dev");
+
+    let token = refresh_oauth2_token(&mut auth, &http(), "alice")
+        .await
+        .expect("the refresh completes");
+    assert_eq!(token, "alice-access-2");
+    let saved = auth
+        .token_store
+        .get_app("bird-dev")
+        .and_then(|app| app.oauth2_tokens.get("alice").cloned())
+        .and_then(|token| token.oauth2)
+        .expect("alice's token is stored");
+    assert_eq!(saved.access_token, "alice-access-2");
+    assert_eq!(
+        saved.refresh_token, "alice-refresh",
+        "an omitted refresh_token keeps the stored one"
+    );
+}

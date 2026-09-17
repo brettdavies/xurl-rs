@@ -219,3 +219,24 @@ fn save_twice_overwrites_atomically() {
     assert_eq!(loaded.code_verifier, "different_verifier");
     assert_eq!(loaded.state, "different_state");
 }
+
+#[cfg(unix)]
+#[test]
+fn save_refuses_a_symlinked_pending_path_and_leaves_the_target_untouched() {
+    let tmp = TempDir::new().unwrap();
+    let victim = tmp.path().join("victim.txt");
+    std::fs::write(&victim, "precious").unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    std::os::unix::fs::symlink(&victim, &path).unwrap();
+
+    let err =
+        pending::save(&sample_state(), &path).expect_err("a symlinked pending path is refused");
+    assert!(err.to_string().contains("symlink"), "{err}");
+    assert_eq!(std::fs::read_to_string(&victim).unwrap(), "precious");
+    assert!(
+        std::fs::symlink_metadata(&path)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+}

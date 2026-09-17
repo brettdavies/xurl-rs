@@ -25,8 +25,11 @@ pub struct MediaUploadOutcome {
     pub init: ApiResponse<MediaUploadResponse>,
     /// The FINALIZE response.
     pub finalize: ApiResponse<MediaUploadResponse>,
-    /// The final STATUS response when the caller waited for processing.
-    pub processing: Option<ApiResponse<MediaUploadResponse>>,
+    /// The outcome of waiting for processing: `None` when the caller did not
+    /// wait, `Some(Ok)` with the final STATUS response, `Some(Err)` when
+    /// processing failed or timed out after the upload itself completed. The
+    /// media id in [`Self::init`] is valid in every case.
+    pub processing: Option<Result<ApiResponse<MediaUploadResponse>>>,
 }
 
 /// Handles the full media upload lifecycle.
@@ -111,12 +114,11 @@ pub async fn execute_media_upload(
 
     let processing = if wait_for_processing && media_category.contains("video") {
         tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
-        Some(wait_for_media_processing(&media_id, &base_opts, client).await?)
+        Some(wait_for_media_processing(&media_id, &base_opts, client).await)
     } else {
         None
     };
 
-    tracing::info!(target: MEDIA_TARGET, "Media uploaded successfully! Media ID: {media_id}");
     Ok(MediaUploadOutcome {
         init: init_response,
         finalize: finalize_response,

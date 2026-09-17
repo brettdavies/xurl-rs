@@ -21,9 +21,8 @@ pub(super) async fn stream_request_with_output(
     stderr: &mut dyn Write,
 ) -> Result<()> {
     let url = client.build_url_public(&options.target)?;
-    out.status(stderr, &format!("Connecting to streaming endpoint: {url}"));
-
     let mut lines = client.stream_request(options).await?;
+    out.status(stderr, &format!("Connecting to streaming endpoint: {url}"));
 
     out.status(stderr, "--- Streaming response started ---");
     out.status(stderr, "--- Press Ctrl+C to stop ---");

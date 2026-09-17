@@ -106,7 +106,16 @@ fn wire_line(fields: &Fields, colour: bool) -> Option<String> {
             })
         }
         "end" => Some(String::new()),
-        "note" => fields.message.clone(),
+        // The sentence is the binary's: 3.x printed it with the binary's name,
+        // and the library only reports which header the caller supplied.
+        "note" => fields.header.as_ref().map_or_else(
+            || fields.message.clone(),
+            |header| {
+                Some(format!(
+                    "info: user-supplied {header} detected; skipping xurl append"
+                ))
+            },
+        ),
         _ => None,
     }
 }
@@ -120,6 +129,7 @@ struct Fields {
     status: Option<String>,
     name: Option<String>,
     value: Option<String>,
+    header: Option<String>,
     message: Option<String>,
 }
 
@@ -132,6 +142,7 @@ impl Fields {
             "status" => &mut self.status,
             "name" => &mut self.name,
             "value" => &mut self.value,
+            "header" => &mut self.header,
             "message" => &mut self.message,
             _ => return,
         };

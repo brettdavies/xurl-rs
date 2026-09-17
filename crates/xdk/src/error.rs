@@ -515,8 +515,7 @@ pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
 /// - `4` (`EXIT_NOT_FOUND`): resource not found.
 /// - `5` (`EXIT_NETWORK_ERROR`): network / connectivity issue.
 /// - `77` (`EXIT_AUTH_REQUIRED`): authentication required. Matches sysexits
-///   `EX_NOPERM`; disambiguates from clap `EX_USAGE` (2). Behavior change in
-///   v1.3.0 — auth-required errors were previously exit `2`.
+///   `EX_NOPERM`; disambiguates from clap `EX_USAGE` (2).
 /// - `2` (`EXIT_AUTH_MISMATCH`): auth method mismatch — the user supplied
 ///   `--auth X` for an endpoint that does not accept `X`. Distinct from
 ///   `EXIT_AUTH_REQUIRED` (missing credential) — this signals a *wrong*
@@ -546,9 +545,8 @@ pub const EXIT_AUTH_MISMATCH: i32 = 2;
 pub const EXIT_USAGE_ERROR: i32 = 2;
 /// Authentication required. `EX_NOPERM` from sysexits — `77`.
 ///
-/// **Behavior change in v1.3.0:** auth-required errors moved from exit `2`
-/// to `77` so the code unambiguously distinguishes auth failures from clap
-/// usage errors (which keep `EX_USAGE` = `2`).
+/// Auth-required errors exit `77` rather than `2`, so the code unambiguously
+/// distinguishes an auth failure from a clap usage error (`EX_USAGE` = `2`).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_REQUIRED: i32 = 77;
 /// API rate limit hit (HTTP 429). Agents should back off and retry per

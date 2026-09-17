@@ -26,7 +26,7 @@ use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
 /// Default page size when neither `--max-results` nor `--limit` is supplied.
 const DEFAULT_PAGE_SIZE: i32 = 10;
 
-/// Resolves the effective result limit per U7's rule.
+/// Resolves the effective result limit.
 ///
 /// Per-command `-n/--max-results` takes precedence when set. Otherwise the
 /// global `--limit` applies. Otherwise the default falls back to
@@ -87,7 +87,7 @@ pub(super) enum Gate {
 
 /// Gates a destructive op on `--force` / TTY confirmation.
 ///
-/// Rules per U7:
+/// Rules:
 /// - `--force` → proceed.
 /// - `--no-interactive` without `--force` → ConfirmationRequired.
 /// - Interactive terminal without `--force` → dialoguer confirm.
@@ -207,13 +207,13 @@ pub(crate) async fn run(
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;
 
-    // KTD6: capture whether the user passed `--app` BEFORE `cli.app` is
+    // Capture whether the user passed `--app` BEFORE `cli.app` is
     // collapsed into `auth.with_app_name(...)` below. The collapsed
     // `Config.app_name` is always `"default"` in normal runtime paths and
     // therefore cannot distinguish "user passed --app default" from "user
     // passed nothing"; the boolean derived here threads through to
     // `run_auth_command` so the credential-less-default warning gates
-    // correctly (R13).
+    // correctly.
     let app_explicit = cli.app.is_some();
 
     // Apply --app override
@@ -954,9 +954,11 @@ async fn run_subcommand(
 
         // ── Media ────────────────────────────────────────────────────
         Commands::Media { command } => {
-            return media::run_media_command(command, cfg, auth, verbose, dry_run, out, stdout)
-                .await
-                .map_err(Failure::from);
+            return media::run_media_command(
+                command, cfg, auth, verbose, dry_run, out, stdout, stderr,
+            )
+            .await
+            .map_err(Failure::from);
         }
 
         // ── Meta (handled before config init in main) ───────────────

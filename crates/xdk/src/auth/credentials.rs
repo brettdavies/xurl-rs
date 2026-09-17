@@ -193,7 +193,9 @@ impl DirectCredentials {
         )
         .await?;
         credential.access_token = refreshed.access_token;
-        credential.refresh_token = Some(refreshed.refresh_token).filter(|t| !t.is_empty());
+        if let Some(rotated) = refreshed.refresh_token {
+            credential.refresh_token = Some(rotated);
+        }
         credential.expires_at = Some(refreshed.expires_at);
         if let Some(hook) = hook {
             hook.on_token_refreshed(credential)

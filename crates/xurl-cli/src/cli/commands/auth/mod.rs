@@ -71,7 +71,7 @@ pub(crate) struct AppStatusEntry {
     default: bool,
     /// Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.
     ///
-    /// Omitted from JSON output when `false` per KTD9 — a `true` value signals
+    /// Omitted from JSON output when `false`; a `true` value signals
     /// that `App.unnamed_oauth2_token.is_some()`.
     #[serde(skip_serializing_if = "is_false")]
     oauth2_unnamed: bool,
@@ -244,8 +244,8 @@ fn env_bearer_app(auth: &Auth) -> Option<String> {
 
 /// Builds the typed JSON intermediate for `auth status` and `auth apps list`.
 ///
-/// Constructs each `AppStatusEntry` field-by-field from named accessors per
-/// R23 + KTD11; no `From<&App>` and no `Serialize`-on-`App`. The caller
+/// Constructs each `AppStatusEntry` field-by-field from named accessors;
+/// no `From<&App>` and no `Serialize`-on-`App`. The caller
 /// supplies the `REDIRECT_URI` value that drives the resolver and, when
 /// `XURL_BEARER_TOKEN` is set, the name of the app the env bearer applies to.
 fn build_app_status_entries(

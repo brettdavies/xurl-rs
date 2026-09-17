@@ -7,6 +7,7 @@
 //! carries an `OAuth1`, `OAuth2`, or bearer payload alongside its
 //! discriminator.
 
+use crate::auth::credentials::REDACTED;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,7 @@ pub enum LoadState {
 /// Carries the four secrets needed to sign an `OAuth1` request: the
 /// per-user access pair (`access_token` / `token_secret`) and the
 /// per-app consumer pair (`consumer_key` / `consumer_secret`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OAuth1Token {
     /// `OAuth1` user access token (the per-user secret).
     pub access_token: String,
@@ -60,7 +61,7 @@ pub struct OAuth1Token {
 ///
 /// `expiration_time` is a Unix epoch second; the refresh path treats any
 /// `expiration_time <= now` as expired and POSTs the refresh-grant.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OAuth2Token {
     /// Bearer access token returned by the `OAuth2` token endpoint.
     pub access_token: String,
@@ -94,7 +95,7 @@ pub enum TokenType {
 /// `get_oauth2_token`, `get_bearer_token`) rather than reading these fields
 /// directly.
 #[allow(clippy::struct_field_names)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Token {
     /// Discriminator for which payload field is populated.
     #[serde(rename = "type")]
@@ -120,7 +121,7 @@ pub struct Token {
 /// against that app keyed by username, plus optional `OAuth1` and bearer
 /// tokens. The token store carries an arbitrary number of apps and a
 /// `default_app` name; the `--app NAME` flag selects between them.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct App {
     /// `OAuth2` client ID issued by X for this app.
     pub client_id: String,
@@ -150,6 +151,55 @@ pub struct App {
     /// resolved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unnamed_oauth2_token: Option<Token>,
+}
+
+// Every type below reaches `Debug` through the public `TokenStore::apps` field,
+// so a logged store must show which credentials exist and never their values.
+impl std::fmt::Debug for OAuth1Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OAuth1Token")
+            .field("access_token", &REDACTED)
+            .field("token_secret", &REDACTED)
+            .field("consumer_key", &self.consumer_key)
+            .field("consumer_secret", &REDACTED)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for OAuth2Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OAuth2Token")
+            .field("access_token", &REDACTED)
+            .field("refresh_token", &REDACTED)
+            .field("expiration_time", &self.expiration_time)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Token")
+            .field("token_type", &self.token_type)
+            .field("bearer", &self.bearer.as_ref().map(|_| REDACTED))
+            .field("oauth2", &self.oauth2)
+            .field("oauth1", &self.oauth1)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for App {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("App")
+            .field("client_id", &self.client_id)
+            .field("client_secret", &REDACTED)
+            .field("default_user", &self.default_user)
+            .field("redirect_uri", &self.redirect_uri)
+            .field("oauth2_tokens", &self.oauth2_tokens)
+            .field("oauth1_token", &self.oauth1_token)
+            .field("bearer_token", &self.bearer_token)
+            .field("unnamed_oauth2_token", &self.unnamed_oauth2_token)
+            .finish()
+    }
 }
 
 impl App {

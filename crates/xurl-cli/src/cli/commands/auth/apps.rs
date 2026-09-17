@@ -141,7 +141,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
         }
         AppCommands::List => {
             // Read through the runner-constructed store so tempdir-based
-            // CLI tests observe the same `~/.xurl` the runner saw (KTD7).
+            // CLI tests observe the same `~/.xurl` the runner saw.
             let ts = &auth.token_store;
             let apps = ts.list_apps();
             let default_app = ts.get_default_app();
@@ -176,7 +176,7 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
                     } else {
                         format!(" (client_id: {}...)", entry.client_id_hint)
                     };
-                    // R20: inline the effective redirect URI + source hint.
+                    // Inline the effective redirect URI and its source.
                     out.print_message(
                         stdout,
                         &format!(

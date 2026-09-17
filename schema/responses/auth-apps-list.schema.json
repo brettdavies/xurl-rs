@@ -35,7 +35,7 @@
           "type": "boolean"
         },
         "oauth2_unnamed": {
-          "description": "Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.\n\nOmitted from JSON output when `false` per KTD9 — a `true` value signals\nthat `App.unnamed_oauth2_token.is_some()`.",
+          "description": "Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.\n\nOmitted from JSON output when `false`; a `true` value signals\nthat `App.unnamed_oauth2_token.is_some()`.",
           "type": "boolean"
         },
         "oauth2_users": {

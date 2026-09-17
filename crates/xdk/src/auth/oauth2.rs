@@ -87,7 +87,7 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Performs the full post-authorization pipeline: POST to token endpoint,
 /// parse response, resolve the storage key, compute expiration, and save to
 /// the token store. The storage-key resolution mirrors
-/// [`refresh_oauth2_token`]'s three-branch shape (KTD7):
+/// [`refresh_oauth2_token`]'s three-branch shape:
 ///
 /// - caller supplied non-empty `username` -> save under that username, skip
 ///   `fetch_username` entirely;
@@ -238,8 +238,8 @@ where
     let auth_url_str = build_auth_url(auth, &state, &challenge)?;
 
     // Parse the resolved redirect URI; the listener binds host, port, and path
-    // from it (KTD6 + R25). Validation already accepted https or http+loopback
-    // at U2/R8 write/resolve time, so a parse failure here is a programmer error.
+    // from it. Validation already accepted https or http+loopback at write and
+    // resolve time, so a parse failure here is a programmer error.
     let redirect_parsed =
         Url::parse(auth.redirect_uri()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
 
@@ -422,7 +422,9 @@ pub(crate) fn epoch_secs(at: SystemTime) -> u64 {
 pub(crate) struct RefreshedToken {
     pub(crate) access_token: String,
     /// Empty when X returned no refresh token.
-    pub(crate) refresh_token: String,
+    /// `None` when the response carried no `refresh_token`: the caller keeps
+    /// the one it sent, per RFC 6749 section 6.
+    pub(crate) refresh_token: Option<String>,
     pub(crate) expires_at: SystemTime,
 }
 
@@ -471,8 +473,8 @@ pub(crate) async fn refresh_grant(
         .to_string();
     let refresh_token = token_data["refresh_token"]
         .as_str()
-        .unwrap_or("")
-        .to_string();
+        .filter(|token| !token.is_empty())
+        .map(str::to_string);
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
     Ok(RefreshedToken {
@@ -485,7 +487,7 @@ pub(crate) async fn refresh_grant(
 /// Refreshes an `OAuth2` token if expired.
 ///
 /// The refresh-token POST result is the sole source of truth for "is the
-/// refresh successful" (`KTD2`). The refreshed access token is persisted in
+/// refresh successful". The refreshed access token is persisted in
 /// all three success branches:
 ///
 /// - caller supplied non-empty `username` -> save under that username, skip
@@ -526,7 +528,9 @@ pub async fn refresh_oauth2_token(
     .await?;
     let expiration_time = refreshed.expiration_time();
     let new_access_token = refreshed.access_token;
-    let new_refresh_token = refreshed.refresh_token;
+    let new_refresh_token = refreshed
+        .refresh_token
+        .unwrap_or_else(|| oauth2.refresh_token.clone());
 
     let app_name = auth.app_name().to_string();
 

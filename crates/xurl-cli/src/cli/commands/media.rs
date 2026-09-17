@@ -19,6 +19,7 @@ pub(super) async fn run_media_command(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> Result<()> {
     match cmd {
         MediaCommands::Upload {
@@ -58,9 +59,22 @@ pub(super) async fn run_media_command(
                 out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
             }
             out.print_response(stdout, &serde_json::to_value(&outcome.finalize)?);
-            if let Some(processing) = &outcome.processing {
-                out.print_response(stdout, &serde_json::to_value(processing)?);
+            // The upload completed at FINALIZE; a processing failure after it
+            // still leaves the media id on stdout for the caller to act on.
+            match outcome.processing {
+                Some(Ok(processing)) => {
+                    out.print_response(stdout, &serde_json::to_value(&processing)?);
+                }
+                Some(Err(err)) => return Err(err),
+                None => {}
             }
+            out.status(
+                stderr,
+                &format!(
+                    "Media uploaded successfully! Media ID: {}",
+                    outcome.init.data.id
+                ),
+            );
             Ok(())
         }
         MediaCommands::Status {
