@@ -95,7 +95,7 @@ fn address_list(host: &str, port: u16) -> Vec<String> {
 ///
 /// The url crate normalizes path-less URIs to `"/"`, but defensively treat
 /// empty as `/callback` (the upstream-compatible default). Honour `/` exactly
-/// when the URI was registered with a trailing-slash root — KTD6.
+/// when the URI was registered with a trailing-slash root.
 fn callback_path_from(uri: &Url) -> String {
     let p = uri.path();
     if p.is_empty() {
@@ -108,8 +108,7 @@ fn callback_path_from(uri: &Url) -> String {
 /// Match `request_path` against the configured `uri_path`.
 ///
 /// Exact-or-querystring: matches when `request_path == uri_path` or when the
-/// request begins with `uri_path?`. The looser `starts_with` semantics of the
-/// original implementation are tightened — `/callbackOther` no longer matches
+/// request begins with `uri_path?`, so `/callbackOther` does not match
 /// `/callback`.
 fn path_matches(uri_path: &str, request_path: &str) -> bool {
     if request_path == uri_path {
@@ -239,7 +238,7 @@ async fn run_accept_loop(
 ///
 /// `on_bound` is invoked after every listener is bound, after both accept
 /// tasks have been spawned, and after the parent has observed the ready
-/// signal that fires from inside the first task's accept loop (KTD5). For
+/// signal that fires from inside the first task's accept loop. For
 /// the production OAuth2 flow this is where the browser is opened, so the
 /// browser cannot reach the callback URL before the socket is actively
 /// being drained.

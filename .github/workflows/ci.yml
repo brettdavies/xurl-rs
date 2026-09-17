@@ -66,8 +66,8 @@ jobs:
         run: bash scripts/lint-workflow-concurrency.sh
 
   # Docs build with warnings denied; a broken intra-doc link or bad code
-  # fence fails here instead of surfacing after publish. Two builds: stable
-  # is what `cargo doc` gives a consumer, and nightly with `--cfg docsrs` is
+  # fence fails here instead of surfacing after publish. Two builds: the
+  # pinned toolchain is what `cargo doc` gives a consumer, and nightly with `--cfg docsrs` is
   # what docs.rs runs, the only toolchain that accepts the `doc_cfg` feature
   # the library enables under that cfg to render feature badges.
   docs:
@@ -87,11 +87,11 @@ jobs:
       - name: cargo doc
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo +stable doc --workspace --no-deps --locked
+        run: cargo doc --workspace --no-deps --locked
       # The README is the crate doc, so its programs are doctests; this is the
       # gate that fails when the landing example stops compiling.
       - name: README doctests
-        run: cargo +stable test --doc -p xdk-rs --locked
+        run: cargo test --doc -p xdk-rs --locked
       - name: cargo doc as docs.rs builds it
         env:
           RUSTDOCFLAGS: --cfg docsrs -D warnings
@@ -178,6 +178,11 @@ jobs:
   # fail, and it asserts on the guard's message so a build that fails for any
   # other reason still turns the cell red. The two cells that also run the
   # tests are the ones whose feature set the default `ci` job never sees.
+  #
+  # `default` and `rustls only` compile the same set today and only because
+  # `default` holds exactly one feature. `default` stays as the cell that
+  # follows whatever `[features] default` lists, so a feature added there is
+  # compiled under the name a reader looks for rather than silently untested.
   features:
     name: Features (${{ matrix.name }})
     runs-on: ubuntu-latest

@@ -433,7 +433,8 @@ fn note_header_overrides(
             tracing::debug!(
                 target: WIRE_TARGET,
                 kind = "note",
-                "info: user-supplied {name} detected; skipping xdk append"
+                header = name,
+                "user-supplied header detected; the default is not appended"
             );
         }
     }

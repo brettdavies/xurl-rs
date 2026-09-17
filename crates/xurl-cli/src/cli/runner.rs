@@ -164,8 +164,25 @@ where
                 clap_complete::generate(*shell, &mut cmd, "xr", stdout);
                 return EXIT_SUCCESS;
             }
+            // The plain line is a pinned contract that scripts parse; the library
+            // version rides only on the verbose and structured forms, so a bug
+            // report can name both without the plain line gaining a field.
             Commands::Version => {
-                let _ = writeln!(stdout, "xr {}", env!("CARGO_PKG_VERSION"));
+                let cli_version = env!("CARGO_PKG_VERSION");
+                if out.format.is_structured() {
+                    out.print_response(
+                        stdout,
+                        &serde_json::json!({
+                            "name": "xr",
+                            "version": cli_version,
+                            "xdk_rs": xdk::CRATE_VERSION,
+                        }),
+                    );
+                } else if out.verbose {
+                    let _ = writeln!(stdout, "xr {cli_version} (xdk-rs {})", xdk::CRATE_VERSION);
+                } else {
+                    let _ = writeln!(stdout, "xr {cli_version}");
+                }
                 return EXIT_SUCCESS;
             }
             Commands::Examples => {
@@ -251,7 +268,12 @@ where
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;
-    let auth = Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides);
+    // Store loading and redirect-URI resolution warn through `tracing` too,
+    // and they run before the dispatch future the renderer below is attached
+    // to, so the same renderer covers them for the duration of this call.
+    let auth = tracing::subscriber::with_default(Diagnostics::new(out.clone()), || {
+        Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides)
+    });
 
     // Taken before `Auth` moves into dispatch: the recovery hint is chosen at
     // the error site, which is after the store is gone. The snapshot carries

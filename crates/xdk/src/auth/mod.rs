@@ -37,8 +37,8 @@ pub struct Auth {
     /// Owned application configuration. The redirect URI here is the
     /// resolver output (env > app-stored > built-in default), written by
     /// [`Auth::new_with_store_path`] and re-resolved by
-    /// [`Auth::with_app_name`]. This is the single source of truth per
-    /// KTD2 — no parallel `redirect_uri` field lives on `Auth`.
+    /// [`Auth::with_app_name`]. This is the single source of truth: no
+    /// parallel `redirect_uri` field lives on `Auth`.
     config: Config,
     client_id: String,
     client_secret: String,
@@ -104,8 +104,8 @@ impl Auth {
     ///
     /// Runs the three-level redirect URI resolver (env > app-stored >
     /// built-in default) against the constructed token store and writes the
-    /// result back into the owned `Config`, satisfying KTD2's single source
-    /// of truth invariant.
+    /// result back into the owned `Config`, keeping that one field the
+    /// single source of truth.
     #[must_use]
     pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
         Self::new_with_store_path_and_overrides(
@@ -203,7 +203,7 @@ impl Auth {
     /// entry, even when the previous app's stored value was non-empty.
     /// The redirect URI is always re-resolved (env-precedence is enforced
     /// inside the resolver itself, so re-running unconditionally produces
-    /// the right value per KTD3).
+    /// the right value).
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
@@ -255,7 +255,7 @@ impl Auth {
 
     /// Gets or refreshes an `OAuth2` token and returns the Authorization header.
     ///
-    /// Lookup precedence is intent-split per `KTD5`:
+    /// Lookup precedence is split by intent:
     ///
     /// - non-empty `username` (named caller): try the username's own token
     ///   first; on miss, fall through to

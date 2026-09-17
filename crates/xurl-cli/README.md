@@ -260,8 +260,8 @@ instead of the credential-less default.
 ### Token Store Location
 
 Credentials live in `~/.xurl`. Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending
-state (`<path>.pending`) follows it. The variable applies to the binary only: library callers pass the path to
-`run_with_store_path` or `Auth::new_with_store_path` directly.
+state (`<path>.pending`) follows it. The variable applies to the binary only: a program using `xdk` passes the path
+to `Auth::new_with_store_path` and builds its client with `Client::new`.
 
 ## Agent-Native Features
 
@@ -392,6 +392,8 @@ xr completions elvish > xr.elv
 Pre-generated scripts are also available in `completions/`.
 
 ## Library
+
+Upgrading from a 3.x library dependency: [`docs/migrating/v4.0.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.0.0.md).
 
 The X API client behind `xr` is its own crate, `xdk-rs`: credentials in code, one typed call per endpoint, and the same
 `~/.xurl` token store this tool writes. See

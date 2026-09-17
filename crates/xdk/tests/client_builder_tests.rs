@@ -739,3 +739,41 @@ async fn the_client_remembers_the_last_rate_limit_window() {
     assert_eq!(window.remaining, Some(449));
     assert_eq!(window.reset_at, Some(1_758_067_200));
 }
+
+#[tokio::test]
+async fn a_refresh_response_without_a_refresh_token_keeps_the_one_in_hand() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "new-at",
+            "expires_in": 7200
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    mount_me(&server, "new-at").await;
+    let recorder = Recorder::default();
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .on_token_refreshed(recorder.clone())
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+    client
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed read completes");
+
+    let seen = recorder.seen.lock().unwrap();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].access_token, "new-at");
+    assert_eq!(
+        seen[0].refresh_token,
+        expired_oauth2().refresh_token,
+        "a response that omits refresh_token means keep the one in hand"
+    );
+}

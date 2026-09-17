@@ -75,6 +75,14 @@ pub fn default_pending_path() -> Result<PathBuf> {
 ///
 /// Returns an error if serialisation or filesystem operations fail.
 pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
+    // The loader rejects a symlinked pending file; the writer must not follow
+    // one either, or a planted link turns the save into a write of the PKCE
+    // verifier to a path the user did not choose.
+    if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+        return Err(Error::auth(
+            "PendingStatePermissions: pending state path is a symlink (refusing to write through it)",
+        ));
+    }
     let data = serde_yaml::to_string(state).map_err(|e| Error::Auth(e.to_string()))?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())

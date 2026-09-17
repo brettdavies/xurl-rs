@@ -40,6 +40,47 @@ fn version_subcommand_exits_zero_with_stdout() {
 }
 
 #[test]
+fn version_plain_line_carries_no_library_field() {
+    let assert = common::xr().arg("version").assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert_eq!(
+        stdout.trim(),
+        format!("xr {}", env!("CARGO_PKG_VERSION")),
+        "the plain line is `xr <version>` and nothing else"
+    );
+}
+
+#[test]
+fn version_verbose_names_the_library_version() {
+    let assert = common::xr()
+        .args(["version", "--verbose"])
+        .assert()
+        .success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert_eq!(
+        stdout.trim(),
+        format!(
+            "xr {} (xdk-rs {})",
+            env!("CARGO_PKG_VERSION"),
+            xdk::CRATE_VERSION
+        )
+    );
+}
+
+#[test]
+fn version_json_carries_both_versions() {
+    let assert = common::xr()
+        .args(["version", "--output", "json"])
+        .assert()
+        .success();
+    let value: serde_json::Value = serde_json::from_slice(&assert.get_output().stdout)
+        .expect("`xr version --output json` prints one JSON object");
+    assert_eq!(value["name"], "xr");
+    assert_eq!(value["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(value["xdk_rs"], xdk::CRATE_VERSION);
+}
+
+#[test]
 fn bad_flag_exits_two_with_stderr() {
     let assert = common::xr().arg("--bogus").assert().failure().code(2);
     let out = assert.get_output();

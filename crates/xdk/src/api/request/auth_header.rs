@@ -107,11 +107,9 @@ impl Client {
             method_raw.as_str()
         };
 
-        // One matrix lookup for the entire decision. Both the explicit-auth
+        // One matrix lookup for the entire decision: the explicit-auth
         // validation below and the auto-detect intersection further down
-        // consume this, eliminating the prior duplicate `supported_auth`
-        // call that fired from `auth_matrix::validate` plus a second pass
-        // here.
+        // both consume it.
         let endpoint_schemes = match &options.target {
             RequestTarget::Template { path, .. } => {
                 crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))

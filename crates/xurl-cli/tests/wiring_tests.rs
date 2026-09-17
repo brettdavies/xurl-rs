@@ -19,22 +19,23 @@ fn register_app_at(store: &std::path::Path) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn test_version_outputs_plain_text_ignoring_json_flag() {
-    // version is a Tier 1 meta-command — ignores --output json, always plain text
-    let output = common::xr()
+fn test_version_honors_the_json_flag_with_one_object() {
+    // version is a Tier 1 meta-command, so the question here is only whether
+    // the flag reaches it: an object where the plain form is one line. The
+    // fields it carries are pinned in binary_contract_tests.rs.
+    let structured = common::xr()
         .args(["version", "--output", "json"])
         .output()
         .unwrap();
+    let plain = common::xr().arg("version").output().unwrap();
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("xr"),
-        "version should output plain text: {stdout}"
-    );
-    assert!(
-        !stdout.starts_with('{'),
-        "version should not output JSON: {stdout}"
+    assert!(structured.status.success());
+    let value: serde_json::Value = serde_json::from_slice(&structured.stdout)
+        .expect("version --output json prints one JSON object");
+    assert!(value.is_object(), "the flag reached the command: {value}");
+    assert_ne!(
+        structured.stdout, plain.stdout,
+        "--output json changed what version printed"
     );
 }
 

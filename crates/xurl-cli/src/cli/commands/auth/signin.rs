@@ -93,7 +93,17 @@ pub(super) async fn oauth2(
             }
         };
         let cancel = crate::cli::shutdown::cancel_on_shutdown();
-        if let Err(e) = client.oauth2_flow(username_arg, cancel, opener).await {
+        if let Err(e) = client
+            .oauth2_flow(username_arg, cancel.clone(), opener)
+            .await
+        {
+            // The listener reports a cancellation in its own words; the shutdown
+            // signal is this binary's, so the message stays the binary's too.
+            let e = if cancel.is_cancelled() {
+                xdk::Error::auth("Cancelled: oauth callback cancelled by signal")
+            } else {
+                e
+            };
             if let Some(url) = unopened.lock().ok().and_then(|mut slot| slot.take()) {
                 out.print_message(
                     stdout,
@@ -124,7 +134,7 @@ pub(super) async fn oauth2(
                 }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 if out.format.is_structured() {
-                    // U9: explicit `--no-browser` (no `--step`) and
+                    // Explicit `--no-browser` (no `--step`) and
                     // the auto-engaged path both emit the canonical
                     // `awaiting_callback` envelope; the existing
                     // `--step 1` path keeps its legacy shape so
@@ -351,7 +361,7 @@ fn client_credentials_missing(
             NextStep::register_app(),
         ),
     };
-    // KTD12: the text derives from the built value, so the prose and the
+    // The text derives from the built value, so the prose and the
     // machine-readable step cannot name different commands.
     let message = match next_step.display_invocation() {
         Some(invocation) => format!("{prose} Run: {invocation}"),

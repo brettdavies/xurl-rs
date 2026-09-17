@@ -127,8 +127,8 @@ fn no_browser_keeps_username_positional(#[case] argv: &[&str], #[case] expected:
     assert_eq!(username.as_deref(), Some("alice"), "argv: {argv:?}");
 }
 
-/// The space-separated value form no longer parses as a value: the word
-/// after the flag is a positional or a command, never the flag's value.
+/// The space-separated form is not a value: the word after the flag is a
+/// positional or a command, never the flag's value.
 #[test]
 #[serial_test::parallel]
 fn quiet_space_true_is_not_a_flag_value() {

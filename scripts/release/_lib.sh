@@ -67,6 +67,41 @@ gate_skip() {
 }
 header() { printf "\n%s== %s ==%s\n" "$C_BLD" "$1" "$C_RST"; }
 
+# Release package ------------------------------------------------------------
+
+# The manifest whose `[package]` version a `vX.Y.Z` tag names. The workspace
+# root is a virtual manifest with no version of its own, so the binary
+# crate's manifest is the carrier; a single-package repository keeps the root.
+RELEASE_MANIFEST="${RELEASE_MANIFEST:-crates/xurl-cli/Cargo.toml}"
+
+release_manifest() {
+  if grep -q '^\[package\]' Cargo.toml 2>/dev/null; then
+    echo Cargo.toml
+  else
+    echo "$RELEASE_MANIFEST"
+  fi
+}
+
+# The `[package] version` the tag must match.
+project_version() {
+  grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/'
+}
+
+# The `[package] name` of the release package.
+project_crate() {
+  awk '
+    /^\[package\]/ { in_pkg = 1; next }
+    /^\[/          { in_pkg = 0 }
+    in_pkg && /^name = / { sub(/^name = "/, ""); sub(/".*/, ""); print; exit }
+  ' "$(release_manifest)"
+}
+
+# The newest tag on the binary's `vX.Y.Z` line. The library tags
+# (`xdk-rs-vX.Y.Z`) sort into the same list and would name the wrong crate.
+last_release_tag() {
+  git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1
+}
+
 # Semver helpers -------------------------------------------------------------
 
 # Which bump the working tree claims over a baseline tag, for the release type
@@ -78,7 +113,7 @@ header() { printf "\n%s== %s ==%s\n" "$C_BLD" "$1" "$C_RST"; }
 # Rust-only, and callers gate on Cargo.toml themselves.
 semver_release_type() {
   local baseline="${1#v}" current
-  current=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+  current=$(project_version)
   local b_major="${baseline%%.*}" c_major="${current%%.*}"
   local b_rest="${baseline#*.}" c_rest="${current#*.}"
   local b_minor="${b_rest%%.*}" c_minor="${c_rest%%.*}"

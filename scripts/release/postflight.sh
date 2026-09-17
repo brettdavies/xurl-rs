@@ -148,7 +148,7 @@ resolve_tag() {
   # detects it: Cargo.toml, package.json, pyproject.toml, VERSION.
   local version=""
   if [[ -f "$REPO_ROOT/Cargo.toml" ]]; then
-    version=$(grep -m1 '^version = ' "$REPO_ROOT/Cargo.toml" | sed -E 's/^version = "(.*)"/\1/')
+    version=$(cd "$REPO_ROOT" && project_version)
   elif [[ -f "$REPO_ROOT/package.json" ]] && have_bin jaq; then
     version=$(jaq -r '.version // empty' "$REPO_ROOT/package.json")
   elif [[ -f "$REPO_ROOT/pyproject.toml" ]]; then
@@ -162,7 +162,7 @@ resolve_tag() {
   fi
   # Fallback: latest git tag.
   local git_tag
-  git_tag=$(git -C "$REPO_ROOT" tag --sort=-version:refname | head -n 1)
+  git_tag=$(cd "$REPO_ROOT" && last_release_tag)
   if [[ -n "$git_tag" ]]; then
     echo "$git_tag"
     return
@@ -177,14 +177,7 @@ resolve_crate() {
     return
   }
   [[ -f "$REPO_ROOT/Cargo.toml" ]] || return 1
-  # [package].name = "..."
-  awk '
-        /^\[package\]/ { in_pkg = 1; next }
-        /^\[/          { in_pkg = 0 }
-        in_pkg && /^name = / {
-            sub(/^name = "/, ""); sub(/".*/, ""); print; exit
-        }
-    ' "$REPO_ROOT/Cargo.toml"
+  (cd "$REPO_ROOT" && project_crate)
 }
 
 resolve_env_url() {

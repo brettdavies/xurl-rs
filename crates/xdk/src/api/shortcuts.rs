@@ -68,7 +68,7 @@ pub fn resolve_username(input: &str) -> String {
     input.trim().trim_start_matches('@').to_string()
 }
 
-// ── Write-op validators (U7) ─────────────────────────────────────────
+// ── Write-op validators ─────────────────────────────────────────
 //
 // Each validator returns `Ok(())` when the inputs would be accepted by the
 // API and `Err(reason)` with a kebab-case reason otherwise. Callers compose

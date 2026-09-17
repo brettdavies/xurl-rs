@@ -86,7 +86,7 @@ impl TokenStore {
     ///
     /// Used by the refresh and exchange paths when post-token username discovery
     /// fails: the refreshed access token is still valid and is preserved here
-    /// rather than discarded. Single-occupancy, last-write-wins per `KTD1`.
+    /// rather than discarded. Single-occupancy, last-write-wins.
     ///
     /// # Errors
     ///
@@ -271,8 +271,8 @@ impl TokenStore {
     ///
     /// Clearing must not be the operation that materializes an app: a clear
     /// against a store with nothing in it has nothing to do, and creating a
-    /// placeholder to empty it would put back the phantom app an empty store
-    /// no longer carries.
+    /// placeholder to empty it would put back a phantom app an empty store
+    /// does not carry.
     fn existing_app_name(&self, app_name: &str) -> Option<String> {
         let name = self.get_active_app_name(app_name).to_string();
         self.apps.contains_key(&name).then_some(name)

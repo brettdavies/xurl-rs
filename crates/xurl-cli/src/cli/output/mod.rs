@@ -439,7 +439,7 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
-    /// Prints a canonical confirmation-required error envelope (U7).
+    /// Prints a canonical confirmation-required error envelope.
     ///
     /// Emitted when a destructive op was invoked under `--no-interactive`
     /// without `--force`. `ctx` carries verb-context fields; the helper folds
@@ -507,8 +507,7 @@ impl OutputConfig {
 
     /// Emits a warning to `err`. Always goes to stderr in text mode; under
     /// JSON modes the line is suppressed (the canonical envelope is the
-    /// channel for structured warnings — see plan U8's deferred
-    /// `warnings: []` envelope promotion).
+    /// channel for structured warnings).
     ///
     /// Suppressed entirely under `--quiet` combined with JSON modes; under
     /// `--quiet` text mode, warnings still surface (errors and warnings are

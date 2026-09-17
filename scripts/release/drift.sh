@@ -110,7 +110,7 @@ fi
 readonly JQ_BIN
 
 readonly LOCKFILE_PATTERN='(^|/)(package-lock\.json|bun\.lock|Cargo\.lock)$'
-readonly VERSION_CARRIERS='Cargo.toml package.json pyproject.toml VERSION CHANGELOG.md'
+readonly VERSION_CARRIERS='Cargo.toml crates/xurl-cli/Cargo.toml crates/xdk/Cargo.toml package.json pyproject.toml VERSION CHANGELOG.md crates/xdk/CHANGELOG.md'
 
 # Setup ----------------------------------------------------------------------
 

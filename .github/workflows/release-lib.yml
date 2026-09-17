@@ -1,0 +1,29 @@
+# Library release wrapper: calls the centralized reusable workflow for the
+# `xdk-rs` crate. Publishes to crates.io and creates a GitHub Release from
+# `crates/xdk/CHANGELOG.md`; no binaries, no Homebrew.
+#
+# The tag line is `xdk-rs-vX.Y.Z`, so a library release never collides with
+# the binary's bare `vX.Y.Z` tags, which `release.yml` owns. A library tag is
+# pushed and its run is green before any binary tag whose `xdk-rs` bound
+# moved: `cargo publish -p xurl-rs` resolves the library from the registry.
+#
+# `workflow_dispatch` is a rehearsal only: the reusable runs `cargo publish
+# --dry-run`, skips the tag check, and creates no release.
+name: Release library
+
+on:
+  push:
+    tags:
+      - 'xdk-rs-v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: brettdavies/.github/.github/workflows/rust-lib-release.yml@main
+    with:
+      crate: xdk-rs
+      dry_run: ${{ github.event_name == 'workflow_dispatch' }}

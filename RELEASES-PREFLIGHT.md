@@ -24,7 +24,7 @@ Everything below assumes you know what's changing. Run this first.
 Driven by `scripts/release/preflight.sh surface`.
 
 ```bash
-LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
+LAST_TAG=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
 git log "$LAST_TAG..dev" --oneline                              # commits going out
 git diff "$LAST_TAG..dev" --stat                                # file-level scope
 git diff "$LAST_TAG..dev" -- crates/xdk/src/ crates/xurl-cli/src/  # surface area: library, CLI
@@ -57,15 +57,15 @@ mechanics gates) is the skeleton's; the api-contract, smoke, and multi-app gates
 non-zero if any gate fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped
 with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
-| Sub-command    | What it runs                                                                                                                                                                       | Live API?                 |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `drift`        | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)       | no                        |
-| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                            | no                        |
-| `api-contract` | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` vs LAST_TAG                                                                                                      | no (builds prev tag once) |
-| `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                    | yes                       |
-| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                             | yes                       |
-| `mechanics`    | Cargo.toml version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
-| `all`          | every above                                                                                                                                                                        | yes                       |
+| Sub-command    | What it runs                                                                                                                                                                      | Live API?                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `drift`        | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)      | no                        |
+| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                           | no                        |
+| `api-contract` | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` vs LAST_TAG                                                                                                     | no (builds prev tag once) |
+| `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                   | yes                       |
+| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                            | yes                       |
+| `mechanics`    | CLI crate version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
+| `all`          | every above                                                                                                                                                                       | yes                       |
 
 Flags:
 
@@ -352,7 +352,8 @@ Driven by `scripts/release/preflight.sh mechanics`.
 
 These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensive to recover from. Confirm explicitly.
 
-- [ ] `Cargo.toml` `version` bumped to the new tag value (`check-version` in `release.yml` enforces this; catch early).
+- [ ] `crates/xurl-cli/Cargo.toml` `version` bumped to the new tag value (`check-version` in `release.yml` enforces
+  this; catch early).
 - [ ] `Cargo.lock` regenerated via `cargo update -p xurl-rs`, committed.
 - [ ] Rebuild locally, confirm `xr --version` prints the new tag value.
 - [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev

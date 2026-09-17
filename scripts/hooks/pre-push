@@ -121,6 +121,16 @@ code_touched() {
     printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "$INERT_RE"
 }
 
+# library_touched — false only when every changed path provably cannot move a
+# `-p xdk-rs` build: the binary crate's own tree, plus the inert set. The
+# library gates it guards are the slowest in the hook and nothing in
+# crates/xurl-cli can break them, but the test is shaped like code_touched so
+# it fails open — an unrecognized path runs them. CI runs them regardless.
+library_touched() {
+    $scope_all && return 0
+    printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "^crates/xurl-cli/|$INERT_RE"
+}
+
 banner "Running local CI checks..."
 if ! $scope_all; then
     note "scope: $(printf '%s\n' "$changed" | grep -cv '^$') changed path(s) in this push"
@@ -167,47 +177,52 @@ if code_touched; then
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet 2>&1 || fail "cargo doc --workspace --no-deps (RUSTDOCFLAGS=-D warnings)"
     pass "doc"
 
-    # 6. Examples compile under the default features; the one that needs the
-    # mock is skipped here by its required-features and run in step 7.
-    cargo build --examples -p xdk-rs --quiet 2>&1 || fail "cargo build --examples -p xdk-rs"
-    pass "examples"
+    # ── Library battery (steps 6-10), only when the push reaches crates/xdk ──
+    if library_touched; then
+        # 6. Examples compile under the default features; the one that needs the
+        # mock is skipped here by its required-features and run in step 7.
+        cargo build --examples -p xdk-rs --quiet 2>&1 || fail "cargo build --examples -p xdk-rs"
+        pass "examples"
 
-    # 7. The credential-free example runs against the in-process mock; its
-    # assertions are what turn a broken runtime path into a failure.
-    cargo run -p xdk-rs --example offline_search --features testing --quiet >/dev/null 2>&1 \
-        || fail "cargo run -p xdk-rs --example offline_search --features testing"
-    pass "example run (offline_search)"
+        # 7. The credential-free example runs against the in-process mock; its
+        # assertions are what turn a broken runtime path into a failure.
+        cargo run -p xdk-rs --example offline_search --features testing --quiet >/dev/null 2>&1 \
+            || fail "cargo run -p xdk-rs --example offline_search --features testing"
+        pass "example run (offline_search)"
 
-    # 8. TLS backends: native-tls by itself must compile, and no backend at all
-    # must fail on the guard rather than compile silently.
-    cargo check -p xdk-rs --no-default-features --features native-tls --quiet 2>&1 \
-        || fail "cargo check -p xdk-rs --no-default-features --features native-tls"
-    if no_tls_log=$(cargo check -p xdk-rs --no-default-features --quiet 2>&1); then
-        fail "cargo check -p xdk-rs --no-default-features compiled; the TLS guard in crates/xdk/src/lib.rs is gone"
-    elif ! grep -q "needs a TLS backend" <<< "$no_tls_log"; then
-        fail "cargo check -p xdk-rs --no-default-features failed, but not on the TLS guard"
-    fi
-    pass "tls features (native-tls alone; no backend refused)"
+        # 8. TLS backends: native-tls by itself must compile, and no backend at all
+        # must fail on the guard rather than compile silently.
+        cargo check -p xdk-rs --no-default-features --features native-tls --quiet 2>&1 \
+            || fail "cargo check -p xdk-rs --no-default-features --features native-tls"
+        if no_tls_log=$(cargo check -p xdk-rs --no-default-features --quiet 2>&1); then
+            fail "cargo check -p xdk-rs --no-default-features compiled; the TLS guard in crates/xdk/src/lib.rs is gone"
+        elif ! grep -q "needs a TLS backend" <<< "$no_tls_log"; then
+            fail "cargo check -p xdk-rs --no-default-features failed, but not on the TLS guard"
+        fi
+        pass "tls features (native-tls alone; no backend refused)"
 
-    # 9. The docs.rs build: nightly with --cfg docsrs and every feature, which
-    # is the only build that exercises the doc_cfg feature gate. Skips with a
-    # hint when no nightly toolchain is installed; CI always runs it.
-    if rustup toolchain list 2>/dev/null | grep -q "^nightly"; then
-        RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc -p xdk-rs --no-deps --all-features --quiet 2>&1 \
-            || fail "cargo +nightly doc -p xdk-rs --no-deps --all-features (RUSTDOCFLAGS=--cfg docsrs -D warnings)"
-        pass "docs.rs build (nightly)"
+        # 9. The docs.rs build: nightly with --cfg docsrs and every feature, which
+        # is the only build that exercises the doc_cfg feature gate. Skips with a
+        # hint when no nightly toolchain is installed; CI always runs it.
+        if rustup toolchain list 2>/dev/null | grep -q "^nightly"; then
+            RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc -p xdk-rs --no-deps --all-features --quiet 2>&1 \
+                || fail "cargo +nightly doc -p xdk-rs --no-deps --all-features (RUSTDOCFLAGS=--cfg docsrs -D warnings)"
+            pass "docs.rs build (nightly)"
+        else
+            echo "  - docs.rs build (skipped: install via \`rustup toolchain install nightly\` to enable)"
+        fi
+
+        # 10. Every feature subset that carries a backend, as CI's powerset job
+        # runs it. Skips with a hint when cargo-hack is not installed.
+        if cargo hack --version >/dev/null 2>&1; then
+            cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --quiet 2>&1 \
+                || fail "cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features"
+            pass "feature powerset (cargo hack)"
+        else
+            echo "  - feature powerset (skipped: install via \`cargo binstall cargo-hack\` to enable)"
+        fi
     else
-        echo "  - docs.rs build (skipped: install via \`rustup toolchain install nightly\` to enable)"
-    fi
-
-    # 10. Every feature subset that carries a backend, as CI's powerset job
-    # runs it. Skips with a hint when cargo-hack is not installed.
-    if cargo hack --version >/dev/null 2>&1; then
-        cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --quiet 2>&1 \
-            || fail "cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features"
-        pass "feature powerset (cargo hack)"
-    else
-        echo "  - feature powerset (skipped: install via \`cargo binstall cargo-hack\` to enable)"
+        note "library battery (nothing in this push reaches crates/xdk)"
     fi
 
     # 11. Security audit (licenses + advisories) — skip if cargo-deny not installed
