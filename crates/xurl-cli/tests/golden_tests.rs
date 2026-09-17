@@ -976,7 +976,7 @@ fn commands_block_parser_reads_only_direct_entries() {
 /// `kind()` arms, the installer's `reason()` arms, its `REASON_*` constants,
 /// every `print_error_envelope` call, and every `reason:` field literal.
 fn source_reasons() -> BTreeSet<String> {
-    let files = common::workspace_sources();
+    let files = common::shipped_sources();
     let arm = regex::Regex::new(r#"=> "([a-z]+(?:-[a-z]+)+)""#).unwrap();
     let envelope_call =
         regex::Regex::new(r#"print_error_envelope\(\s*[^,]+,\s*"([a-z-]+)""#).unwrap();

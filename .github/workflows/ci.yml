@@ -139,6 +139,119 @@ jobs:
       - name: Verify completions match the CLI definition
         run: ./scripts/generate-completions.sh --check
 
+  # A package-scoped test run proves nothing about an out-of-package consumer,
+  # so an embedder-shaped crate compiles and runs a read against the
+  # documented surface; hiding or removing something it relies on fails here
+  # before it fails a user's build.
+  consumer:
+    name: Consumer check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Build and run the consumer crate's read
+        run: cargo test -p xdk-consumer-check --locked
+
+  # Cargo features are additive: `--features native-tls` on top of the default
+  # set compiles both backends together and never shows that native-tls stands
+  # alone, so every "this backend by itself" cell starts from
+  # `--no-default-features`. The cell with no backend at all is expected to
+  # fail, and it asserts on the guard's message so a build that fails for any
+  # other reason still turns the cell red. The two cells that also run the
+  # tests are the ones whose feature set the default `ci` job never sees.
+  features:
+    name: Features (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ""
+          - name: rustls only
+            flags: --no-default-features --features rustls
+          - name: native-tls only
+            flags: --no-default-features --features native-tls
+          - name: no TLS backend
+            flags: --no-default-features
+            must_fail: true
+          - name: all features
+            flags: --all-features
+            test: true
+          - name: testing
+            flags: --features testing
+            test: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.name }}
+      - name: cargo check
+        if: ${{ !matrix.must_fail }}
+        env:
+          FLAGS: ${{ matrix.flags }}
+        run: |
+          read -ra flags <<< "$FLAGS"
+          cargo check -p xdk-rs --all-targets --locked "${flags[@]}"
+      - name: cargo test
+        if: ${{ matrix.test }}
+        env:
+          FLAGS: ${{ matrix.flags }}
+        run: |
+          read -ra flags <<< "$FLAGS"
+          cargo test -p xdk-rs --locked "${flags[@]}"
+      - name: cargo check must fail on the TLS guard
+        if: ${{ matrix.must_fail }}
+        env:
+          FLAGS: ${{ matrix.flags }}
+        run: |
+          read -ra flags <<< "$FLAGS"
+          if cargo check -p xdk-rs --locked "${flags[@]}" 2> check.log; then
+            echo "::error title=Features::a build with no TLS backend compiled; the compile_error! guard in crates/xdk/src/lib.rs is gone"
+            exit 1
+          fi
+          if ! grep -F "needs a TLS backend" check.log; then
+            echo "::error title=Features::the no-backend build failed, but not on the TLS guard"
+            cat check.log
+            exit 1
+          fi
+
+  # The matrix above names the cells a reader expects; this job compiles every
+  # remaining subset that carries a backend (`native-tls` with `testing`, both
+  # backends without it), each from `--no-default-features`, so a feature added
+  # later cannot break a pairing nobody listed. Subsets with no backend are
+  # left out: the matrix asserts that failure by name.
+  feature-powerset:
+    name: Feature powerset
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@b874e25ea559687bec77e281e9b271aa1367b624 # v1.23.0
+      - name: Install cargo-hack
+        # A second binstall attempt covers a transient release-asset fetch
+        # failure; a source build is the fallback after that.
+        run: |
+          cargo binstall cargo-hack --force --no-confirm \
+            || cargo binstall cargo-hack --force --no-confirm \
+            || cargo install cargo-hack --locked
+          cargo hack --version
+      - name: cargo hack check
+        run: cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --locked
+
   # `anc audit` runs against the release binary because the behavioral rows
   # execute the CLI. The gate has two halves. First, any MUST-tier `fail` other
   # than `p2-must-json-errors` fails the job; that one id is exempt because its

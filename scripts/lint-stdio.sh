@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Output discipline guard.
 #
-# Two invariants, checked over both workspace members' `src/` trees:
+# Two invariants, checked over the `src/` trees of the two members that ship
+# (`crates/xdk` and `crates/xurl-cli`); the unpublished consumer-check crate
+# is an embedder and prints like one:
 #
 # 1. No `println!`, `eprintln!`, `print!`, or `eprint!` macro appears outside
 #    `crates/xurl-cli/src/cli/output/mod.rs`: every printed line goes through
@@ -30,7 +32,7 @@ NOT_COMMENT='^(?!\s*///|\s*//!|\s*//|\s*\*)'
 # is bypassing that writer rather than needing an exemption.
 macros=$(
   rg \
-    --glob 'crates/*/src/**/*.rs' \
+    --glob 'crates/{xdk,xurl-cli}/src/**/*.rs' \
     --glob '!crates/xurl-cli/src/cli/output/mod.rs' \
     --no-heading \
     --line-number \

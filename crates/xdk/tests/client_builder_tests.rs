@@ -702,3 +702,40 @@ async fn builder_user_agent_replaces_the_library_default() {
         .await
         .expect("the mock matched the embedder's User-Agent");
 }
+
+#[tokio::test]
+async fn the_client_remembers_the_last_rate_limit_window() {
+    let server = wiremock::MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .and(wiremock::matchers::path("/2/tweets/search/recent"))
+        .respond_with(
+            wiremock::ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": []}))
+                .insert_header("x-rate-limit-limit", "450")
+                .insert_header("x-rate-limit-remaining", "449")
+                .insert_header("x-rate-limit-reset", "1758067200"),
+        )
+        .mount(&server)
+        .await;
+
+    let client = xdk::api::Client::builder()
+        .bearer("app-only-token")
+        .base_url(server.uri())
+        .build()
+        .expect("client builds");
+    assert!(
+        client.last_rate_limit().is_none(),
+        "no window before the first response"
+    );
+    client
+        .search_posts("rust", 10)
+        .send()
+        .await
+        .expect("mock read");
+    let window = client
+        .last_rate_limit()
+        .expect("the response headers were recorded");
+    assert_eq!(window.limit, Some(450));
+    assert_eq!(window.remaining, Some(449));
+    assert_eq!(window.reset_at, Some(1_758_067_200));
+}

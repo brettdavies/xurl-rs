@@ -993,7 +993,7 @@ fn with_flags<T: DeserializeOwned>(
 ) -> Call<T> {
     let mut call = call.trace(common.trace);
     if let Some(auth_type) = &common.auth_type {
-        call = call.auth_wire(auth_type.clone());
+        call = call.auth_wire_unchecked(auth_type.clone());
     }
     if let Some(username) = &common.username {
         call = call.username(username.clone());
