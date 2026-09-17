@@ -13,7 +13,7 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use common::{load_spec, resolve};
+use common::{check, load_spec, success_schema};
 use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
@@ -172,6 +172,15 @@ fn spec_media_upload_init() {
 }
 
 #[test]
+fn spec_media_upload_append() {
+    // The library does not type the append reply; `upload_chunks` sends the
+    // next chunk on any 2xx. The fixture exists so the mock answers the phase
+    // the way the spec documents it.
+    let examples = load_examples();
+    assert!(examples["media_upload_append"]["data"]["expires_at"].is_i64());
+}
+
+#[test]
 fn spec_media_upload_status() {
     let examples = load_examples();
     let resp: ApiResponse<MediaUploadResponse> =
@@ -262,6 +271,7 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint)] = &[
     ("dm_sent", endpoints::SEND_DM),
     ("dm_event_list", endpoints::GET_DM_EVENTS),
     ("media_upload_init", endpoints::MEDIA_UPLOAD_INITIALIZE),
+    ("media_upload_append", endpoints::MEDIA_UPLOAD_APPEND),
     ("media_upload_status", endpoints::MEDIA_UPLOAD_STATUS),
     ("usage", endpoints::GET_USAGE),
     ("usage_credits", endpoints::GET_USAGE_CREDITS),
@@ -278,139 +288,6 @@ const SPEC_EXEMPT_FIXTURES: &[(&str, &str)] = &[(
          shape and `UserPublicMetrics` reads either \
          (https://github.com/brettdavies/xurl-rs/pull/118)",
 )];
-
-/// The JSON schema of `endpoint`'s first 2xx response.
-fn success_schema<'a>(spec: &'a Value, endpoint: &Endpoint) -> &'a Value {
-    let operation = spec
-        .pointer(&format!(
-            "/paths/{}/{}",
-            endpoint.path.replace('/', "~1"),
-            endpoint.method.to_lowercase()
-        ))
-        .unwrap_or_else(|| {
-            panic!(
-                "{} {} is not in the vendored spec",
-                endpoint.method, endpoint.path
-            )
-        });
-    let responses = operation["responses"]
-        .as_object()
-        .expect("an operation declares responses");
-    let (status, response) = responses
-        .iter()
-        .find(|(status, _)| status.starts_with('2'))
-        .unwrap_or_else(|| {
-            panic!(
-                "{} {} declares no 2xx response",
-                endpoint.method, endpoint.path
-            )
-        });
-    response
-        .pointer("/content/application~1json/schema")
-        .unwrap_or_else(|| {
-            panic!(
-                "{} {} {status} declares no application/json schema",
-                endpoint.method, endpoint.path
-            )
-        })
-}
-
-fn kind(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(_) => "a boolean",
-        Value::Number(_) => "a number",
-        Value::String(_) => "a string",
-        Value::Array(_) => "an array",
-        Value::Object(_) => "an object",
-    }
-}
-
-/// Checks `value` against the OpenAPI `schema`, appending one line per
-/// mismatch to `errors`, each starting with the dotted path of the field.
-fn check(value: &Value, schema: &Value, root: &Value, path: &str, errors: &mut Vec<String>) {
-    let schema = resolve(schema, root);
-    if let Some(all) = schema.get("allOf").and_then(Value::as_array) {
-        for member in all {
-            check(value, member, root, path, errors);
-        }
-    }
-    for key in ["anyOf", "oneOf"] {
-        if let Some(options) = schema.get(key).and_then(Value::as_array) {
-            let matches_one = options.iter().any(|option| {
-                let mut sub = Vec::new();
-                check(value, option, root, path, &mut sub);
-                sub.is_empty()
-            });
-            if !matches_one {
-                errors.push(format!(
-                    "{path}: matches none of the schema's {key} alternatives"
-                ));
-            }
-        }
-    }
-    if value.is_null() {
-        if schema.get("nullable") != Some(&Value::Bool(true)) && schema.get("type").is_some() {
-            errors.push(format!(
-                "{path}: null where the spec wants {}",
-                schema["type"]
-            ));
-        }
-        return;
-    }
-    if let Some(ty) = schema.get("type").and_then(Value::as_str) {
-        let ok = match ty {
-            "string" => value.is_string(),
-            "number" => value.is_number(),
-            "integer" => value.is_i64() || value.is_u64(),
-            "boolean" => value.is_boolean(),
-            "array" => value.is_array(),
-            "object" => value.is_object(),
-            _ => true,
-        };
-        if !ok {
-            errors.push(format!("{path}: is {} but the spec says {ty}", kind(value)));
-            return;
-        }
-    }
-    if let Some(allowed) = schema.get("enum").and_then(Value::as_array)
-        && !allowed.contains(value)
-    {
-        errors.push(format!(
-            "{path}: {value} is not one of the spec's enum values {allowed:?}"
-        ));
-    }
-    if let Some(object) = value.as_object() {
-        let properties = schema.get("properties").and_then(Value::as_object);
-        if let Some(required) = schema.get("required").and_then(Value::as_array) {
-            for name in required.iter().filter_map(Value::as_str) {
-                if !object.contains_key(name) {
-                    errors.push(format!("{path}: missing the required field `{name}`"));
-                }
-            }
-        }
-        for (name, field) in object {
-            let field_path = format!("{path}.{name}");
-            match properties.and_then(|props| props.get(name)) {
-                Some(field_schema) => check(field, field_schema, root, &field_path, errors),
-                None => match schema.get("additionalProperties") {
-                    Some(Value::Bool(false)) => errors.push(format!(
-                        "{field_path}: not in the spec's schema, which allows no other properties"
-                    )),
-                    Some(extra) if extra.is_object() => {
-                        check(field, extra, root, &field_path, errors);
-                    }
-                    _ => {}
-                },
-            }
-        }
-    }
-    if let (Some(items), Some(item_schema)) = (value.as_array(), schema.get("items")) {
-        for (i, item) in items.iter().enumerate() {
-            check(item, item_schema, root, &format!("{path}[{i}]"), errors);
-        }
-    }
-}
 
 #[test]
 fn every_fixture_validates_against_its_endpoint_schema() {

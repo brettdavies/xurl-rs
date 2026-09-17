@@ -56,12 +56,12 @@ const RATE_LIMIT: u32 = 450;
 const RATE_LIMIT_REMAINING: u32 = 449;
 const RATE_LIMIT_WINDOW_SECS: u64 = 900;
 
-/// A seeded route: the declared endpoint, the fixture that answers it (or
-/// none for an empty reply), and the status it answers with. The method and
-/// the path pattern come from the declaration, so no route spells a path.
+/// A seeded route: the declared endpoint, the fixture that answers it, and
+/// the status it answers with. The method and the path pattern come from the
+/// declaration, so no route spells a path.
 struct Route {
     endpoint: Endpoint,
-    fixture: Option<&'static str>,
+    fixture: &'static str,
     status: u16,
 }
 
@@ -69,192 +69,192 @@ struct Route {
 const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::CREATE_POST,
-        fixture: Some("post_single"),
+        fixture: "post_single",
         status: 201,
     },
     Route {
         endpoint: endpoints::READ_POST,
-        fixture: Some("post_single"),
+        fixture: "post_single",
         status: 200,
     },
     Route {
         endpoint: endpoints::DELETE_POST,
-        fixture: Some("action_deleted"),
+        fixture: "action_deleted",
         status: 200,
     },
     Route {
         endpoint: endpoints::SEARCH_POSTS,
-        fixture: Some("post_list"),
+        fixture: "post_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_ME,
-        fixture: Some("user_single"),
+        fixture: "user_single",
         status: 200,
     },
     Route {
         endpoint: endpoints::LOOKUP_USER,
-        fixture: Some("user_single"),
+        fixture: "user_single",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_TIMELINE,
-        fixture: Some("post_list"),
+        fixture: "post_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_MENTIONS,
-        fixture: Some("post_list"),
+        fixture: "post_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_FOLLOWERS,
-        fixture: Some("user_list"),
+        fixture: "user_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_LIKED_POSTS,
-        fixture: Some("post_list"),
+        fixture: "post_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::LIKE_POST,
-        fixture: Some("action_liked"),
+        fixture: "action_liked",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNLIKE_POST,
-        fixture: Some("action_liked"),
+        fixture: "action_liked",
         status: 200,
     },
     Route {
         endpoint: endpoints::REPOST,
-        fixture: Some("action_retweeted"),
+        fixture: "action_retweeted",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNREPOST,
-        fixture: Some("action_retweeted"),
+        fixture: "action_retweeted",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_BOOKMARKS,
-        fixture: Some("post_list"),
+        fixture: "post_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::BOOKMARK,
-        fixture: Some("action_bookmarked"),
+        fixture: "action_bookmarked",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNBOOKMARK,
-        fixture: Some("action_bookmarked"),
+        fixture: "action_bookmarked",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_FOLLOWING,
-        fixture: Some("user_list"),
+        fixture: "user_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::FOLLOW_USER,
-        fixture: Some("action_following"),
+        fixture: "action_following",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNFOLLOW_USER,
-        fixture: Some("action_following"),
+        fixture: "action_following",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_MUTED,
-        fixture: Some("user_list"),
+        fixture: "user_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::MUTE_USER,
-        fixture: Some("action_muting"),
+        fixture: "action_muting",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNMUTE_USER,
-        fixture: Some("action_muting"),
+        fixture: "action_muting",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_BLOCKED,
-        fixture: Some("user_list"),
+        fixture: "user_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::BLOCK_USER,
-        fixture: Some("action_blocking"),
+        fixture: "action_blocking",
         status: 200,
     },
     Route {
         endpoint: endpoints::UNBLOCK_USER,
-        fixture: Some("action_blocking"),
+        fixture: "action_blocking",
         status: 200,
     },
     Route {
         endpoint: endpoints::SEND_DM,
-        fixture: Some("dm_sent"),
+        fixture: "dm_sent",
         status: 201,
     },
     Route {
         endpoint: endpoints::GET_DM_EVENTS,
-        fixture: Some("dm_event_list"),
+        fixture: "dm_event_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_USAGE,
-        fixture: Some("usage"),
+        fixture: "usage",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_USAGE_CREDITS,
-        fixture: Some("usage_credits"),
+        fixture: "usage_credits",
         status: 200,
     },
     Route {
         endpoint: endpoints::MEDIA_UPLOAD,
-        fixture: Some("media_upload_init"),
+        fixture: "media_upload_init",
         status: 200,
     },
     Route {
         endpoint: endpoints::MEDIA_UPLOAD_STATUS,
-        fixture: Some("media_upload_status"),
+        fixture: "media_upload_status",
         status: 200,
     },
     Route {
         endpoint: endpoints::MEDIA_UPLOAD_INITIALIZE,
-        fixture: Some("media_upload_init"),
+        fixture: "media_upload_init",
         status: 200,
     },
     Route {
         endpoint: endpoints::MEDIA_UPLOAD_APPEND,
-        fixture: None,
-        status: 204,
+        fixture: "media_upload_append",
+        status: 200,
     },
     Route {
         endpoint: endpoints::MEDIA_UPLOAD_FINALIZE,
-        fixture: Some("media_upload_status"),
+        fixture: "media_upload_status",
         status: 200,
     },
     Route {
         endpoint: endpoints::GET_CHAT_MODERATORS,
-        fixture: Some("user_list"),
+        fixture: "user_list",
         status: 200,
     },
     Route {
         endpoint: endpoints::ADD_CHAT_MODERATOR,
-        fixture: Some("chat_moderators"),
+        fixture: "chat_moderators",
         status: 200,
     },
     Route {
         endpoint: endpoints::REMOVE_CHAT_MODERATOR,
-        fixture: Some("chat_moderators"),
+        fixture: "chat_moderators",
         status: 200,
     },
 ];
@@ -319,16 +319,14 @@ impl MockX {
             .map(|d| d.as_secs() + RATE_LIMIT_WINDOW_SECS)
             .unwrap_or(RATE_LIMIT_WINDOW_SECS);
         for route in ROUTES {
-            let mut template = ResponseTemplate::new(route.status)
+            let template = ResponseTemplate::new(route.status)
+                .set_body_json(fixtures()[route.fixture].clone())
                 .insert_header("x-rate-limit-limit", RATE_LIMIT.to_string().as_str())
                 .insert_header(
                     "x-rate-limit-remaining",
                     RATE_LIMIT_REMAINING.to_string().as_str(),
                 )
                 .insert_header("x-rate-limit-reset", reset_at.to_string().as_str());
-            if let Some(fixture) = route.fixture {
-                template = template.set_body_json(fixtures()[fixture].clone());
-            }
             Mock::given(method(route.endpoint.method))
                 .and(path_regex(pattern(route.endpoint.path)))
                 .respond_with(template)

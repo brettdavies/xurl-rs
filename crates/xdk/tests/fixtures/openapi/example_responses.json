@@ -166,6 +166,11 @@
       "expires_after_secs": 86400
     }
   },
+  "media_upload_append": {
+    "data": {
+      "expires_at": 1789603200
+    }
+  },
   "media_upload_status": {
     "data": {
       "id": "1455952740635586562",
