@@ -1383,12 +1383,13 @@ async fn test_get_usage_rejects_oauth_only_app() {
 
     let err = client.get_usage().send().await.unwrap_err();
     match err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                supported,
+                available_in_app,
+                ..
+            } = *mismatch;
             assert_eq!(endpoint, "/2/usage/tweets");
             assert_eq!(supported, vec!["app"]);
             assert_eq!(available_in_app, Some(vec!["oauth1".to_string()]));
@@ -1701,50 +1702,25 @@ async fn redteam_lookup_user_wrong_bool_type() {
 
 #[serial_test::serial]
 #[test]
-fn test_from_env_missing_client_id_returns_validation_error() {
-    // Temporarily clear CLIENT_ID to test error path
+fn test_from_env_without_client_id_builds_a_store_backed_client() {
     let original = std::env::var("CLIENT_ID").ok();
     unsafe { std::env::remove_var("CLIENT_ID") };
-
-    let result = Client::from_env();
-    let err = match result {
-        Err(e) => e,
-        Ok(_) => panic!("Expected error when CLIENT_ID is missing"),
-    };
-    assert!(
-        err.is_validation(),
-        "Expected Validation error, got: {err:?}"
-    );
-    assert!(
-        err.to_string().contains("CLIENT_ID"),
-        "Error should mention CLIENT_ID: {err}"
-    );
-
-    // Restore
-    if let Some(val) = original {
-        unsafe { std::env::set_var("CLIENT_ID", val) };
-    }
-}
-
-#[serial_test::serial]
-#[test]
-fn test_from_env_empty_client_id_returns_validation_error() {
-    let original = std::env::var("CLIENT_ID").ok();
+    let unset = Client::from_env();
     unsafe { std::env::set_var("CLIENT_ID", "") };
-
-    let result = Client::from_env();
-    let err = match result {
-        Err(e) => e,
-        Ok(_) => panic!("Expected error when CLIENT_ID is empty"),
-    };
-    assert!(err.is_validation());
-
-    // Restore
-    if let Some(val) = original {
-        unsafe { std::env::set_var("CLIENT_ID", val) };
-    } else {
-        unsafe { std::env::remove_var("CLIENT_ID") };
+    let empty = Client::from_env();
+    match original {
+        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
+        None => unsafe { std::env::remove_var("CLIENT_ID") },
     }
+
+    assert!(
+        unset.is_ok(),
+        "from_env() with CLIENT_ID unset must build over the store: {unset:?}"
+    );
+    assert!(
+        empty.is_ok(),
+        "from_env() with CLIENT_ID empty must build over the store: {empty:?}"
+    );
 }
 
 #[serial_test::serial]
@@ -2649,14 +2625,15 @@ async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
         .unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(method, "POST");
             assert_eq!(requested.as_deref(), Some("app"));
@@ -2753,14 +2730,15 @@ async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     let err = client.send_multipart_request(&mp_opts).await.unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(method, "POST");
             assert_eq!(requested.as_deref(), Some("app"));
@@ -2813,13 +2791,14 @@ async fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
         .unwrap_err();
 
     match &err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            requested,
-            supported,
-            available_in_app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                requested,
+                supported,
+                available_in_app,
+                ..
+            } = &**mismatch;
             assert_eq!(endpoint, "/2/media/upload");
             assert_eq!(requested.as_deref(), Some("app"));
             assert_eq!(supported, &vec!["oauth2".to_string(), "oauth1".to_string()]);
@@ -2992,15 +2971,16 @@ async fn u7_ae4_auto_detect_empty_intersection_envelope() {
         .unwrap_err();
 
     match err {
-        xdk::Error::AuthMethodMismatch {
-            endpoint,
-            method: m,
-            requested,
-            supported,
-            available_in_app,
-            app,
-            ..
-        } => {
+        xdk::Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                method: m,
+                requested,
+                supported,
+                available_in_app,
+                app,
+                ..
+            } = *mismatch;
             assert_eq!(endpoint, "/2/media/upload/initialize");
             assert_eq!(m, "POST");
             assert_eq!(requested, None);

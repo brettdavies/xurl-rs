@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use tempfile::TempDir;
 use xdk::api::Client;
 use xdk::auth::{Auth, OAuth1Credential, OAuth2Credential};
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 use xdk::store::{App, OAuth1Token, OAuth2Token, Token, TokenStore, TokenType};
 
 const SECRET: &str = "SECRET-VALUE-9f3c1a";
@@ -106,4 +106,18 @@ fn store_auth_and_client_types_redact_every_secret() {
     assert_redacted("ClientBuilder", &format!("{builder:?}"));
     let client = builder.build().unwrap();
     assert_redacted("Client", &format!("{client:?}"));
+}
+
+#[test]
+fn config_and_env_overrides_redact_every_secret() {
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
+    cfg.client_secret = SECRET.into();
+    assert_redacted("Config", &format!("{cfg:?}"));
+
+    let overrides = EnvOverrides {
+        client_secret: Some(SECRET.into()),
+        bearer_token: Some(SECRET.into()),
+        ..EnvOverrides::default()
+    };
+    assert_redacted("EnvOverrides", &format!("{overrides:?}"));
 }

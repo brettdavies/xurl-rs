@@ -155,7 +155,7 @@ fn mismatch(
     other_apps_with_creds: Option<&[&str]>,
 ) -> Error {
     let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
-    Error::AuthMethodMismatch {
+    Error::from(xdk::error::AuthMismatch {
         endpoint: "/2/users/{id}/likes".into(),
         rendered_url: Some("/2/users/12345/likes".into()),
         method: "GET".into(),
@@ -164,7 +164,7 @@ fn mismatch(
         available_in_app: available_in_app.map(strings),
         app: Some("default".into()),
         other_apps_with_creds: other_apps_with_creds.map(strings),
-    }
+    })
 }
 
 /// Library convention: a Display string is a fragment an embedder can wrap,

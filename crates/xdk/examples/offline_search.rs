@@ -6,10 +6,6 @@
 //! cargo run -p xdk-rs --example offline_search --features testing
 //! ```
 
-// `xdk::Error` is wide, which the crate allows for itself; a `main` returning
-// `xdk::Result` inherits it.
-#![allow(clippy::result_large_err)]
-
 use xdk::testing::MockX;
 
 #[tokio::main]

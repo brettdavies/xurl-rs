@@ -5,7 +5,7 @@
 //! byte-identical across releases.
 
 use xdk::api::auth_matrix::WireScheme;
-use xdk::error::{Error, MismatchShape, mismatch_shape};
+use xdk::error::{AuthMismatch, Error, MismatchShape};
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -24,25 +24,7 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Json(msg) => format!("JSON Error: {msg}"),
         Error::Auth(msg) => format!("Auth Error: {msg}"),
         Error::TokenStore(msg) => format!("Token Store Error: {msg}"),
-        Error::AuthMethodMismatch {
-            endpoint,
-            rendered_url,
-            method,
-            requested,
-            supported,
-            available_in_app,
-            app,
-            other_apps_with_creds,
-        } => auth_method_mismatch_message(
-            endpoint,
-            rendered_url.as_deref(),
-            method,
-            requested.as_deref(),
-            supported,
-            available_in_app.as_deref(),
-            app.as_deref(),
-            other_apps_with_creds.as_deref(),
-        ),
+        Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch),
         // `Error` is `#[non_exhaustive]`; a variant this build has not seen
         // prints its own fragment rather than failing to compile downstream.
         _ => error.to_string(),
@@ -54,19 +36,14 @@ pub(crate) fn render(error: &Error) -> String {
 /// Three shapes per the variant's docstring; each ends with an actionable
 /// recovery instruction. Prefers `rendered_url` over `endpoint` for
 /// user-facing strings so `{id}` placeholders don't leak into messages.
-#[allow(clippy::too_many_arguments)]
-fn auth_method_mismatch_message(
-    endpoint: &str,
-    rendered_url: Option<&str>,
-    method: &str,
-    requested: Option<&str>,
-    supported: &[String],
-    available_in_app: Option<&[String]>,
-    app: Option<&str>,
-    other_apps_with_creds: Option<&[String]>,
-) -> String {
-    let display_path = rendered_url.unwrap_or(endpoint);
-    let app_name = app.unwrap_or("the active app");
+fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
+    let display_path = mismatch
+        .rendered_url
+        .as_deref()
+        .unwrap_or(&mismatch.endpoint);
+    let method = &mismatch.method;
+    let supported = &mismatch.supported;
+    let app_name = mismatch.app.as_deref().unwrap_or("the active app");
     let suggest_first = |fallback: &str| {
         supported
             .first()
@@ -81,7 +58,7 @@ fn auth_method_mismatch_message(
         }
     };
 
-    match mismatch_shape(requested, available_in_app, other_apps_with_creds) {
+    match mismatch.shape() {
         MismatchShape::Explicit { requested } => {
             let pretty_req = pretty_scheme(requested);
             let alt = supported
@@ -139,7 +116,7 @@ mod tests {
         other_apps_with_creds: Option<&[&str]>,
     ) -> Error {
         let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
-        Error::AuthMethodMismatch {
+        Error::from(AuthMismatch {
             endpoint: "/2/users/me".into(),
             rendered_url: Some("/2/users/me".into()),
             method: "GET".into(),
@@ -148,7 +125,7 @@ mod tests {
             available_in_app: available_in_app.map(strings),
             app: app.map(str::to_string),
             other_apps_with_creds: other_apps_with_creds.map(strings),
-        }
+        })
     }
 
     /// The prefixes are the ones the golden fixtures pin; a library Display

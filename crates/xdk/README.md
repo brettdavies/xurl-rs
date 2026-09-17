@@ -67,8 +67,10 @@ bearer order. Four paths:
 - **OAuth1 HMAC-SHA1**: an `OAuth1Credential` with the consumer pair and the user's access pair, for legacy v1.1
   endpoints and some v2 write paths.
 - **The token store**: `Client::new(&Config, Auth)` or `Client::from_env()` builds a client over the `~/.xurl` store the
-  `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2`. `TokenStore::refresh_hook_for` is the
-  reference implementation of the refresh hook.
+  `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2` with nothing exported; `from_env` also
+  reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, and
+  `XURL_BEARER_TOKEN` when they are set. `TokenStore::refresh_hook_for` is the reference implementation of the refresh
+  hook.
 
 ```rust,no_run
 use std::time::{Duration, SystemTime};
@@ -142,7 +144,7 @@ xdk-rs = { version = "0.1", features = ["testing"] }
 ```
 
 The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no
-X app, no credential, and no network:
+X app, no credential, and no network, from a clone of the repository:
 
 ```bash
 cargo run -p xdk-rs --example offline_search --features testing
@@ -167,8 +169,9 @@ the same refusal they get without credentials against the real API.
 
 Every published module is one an embedder has a reason to call:
 
-- `api`: the client and its builder, one `Call` per shortcut, the typed responses, the raw-request path for endpoints
-  without a shortcut, and the last rate-limit window a response reported.
+- `api`: the client and its builder, one `Call` per shortcut, the `MediaUpload` builder behind `Client::upload_media`,
+  the typed responses, the raw-request path for endpoints without a shortcut, and the last rate-limit window a
+  response reported.
 - `auth`: credentials held in code, the refresh hook that receives a rotated token pair, the store-backed `Auth`, and
   the OAuth2 sign-in flows.
 - `config`: base URL, timeouts, and the environment overrides a client built from the environment reads.

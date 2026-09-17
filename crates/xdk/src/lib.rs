@@ -1,9 +1,4 @@
 #![doc = include_str!("../README.md")]
-// `Error`'s largest variant (`AuthMethodMismatch`) carries multiple
-// `String` and `Vec<String>` fields so agents can pattern-match on the
-// envelope structure. Boxing the variant would change the public
-// construction surface and break consumer code; allow the lint instead.
-#![allow(clippy::result_large_err)]
 #![deny(missing_docs)]
 // The three `REDIRECT_URI` unit tests need edition 2024's `unsafe { set_var }`
 // (allowlisted in the env-mutation guard), so the ban covers every build an

@@ -4,6 +4,7 @@
 //! env vars with sensible defaults for the X API; the redirect URI is
 //! resolved per app at construction.
 
+use crate::auth::credentials::REDACTED;
 use std::path::Path;
 
 use serde::Serialize;
@@ -17,7 +18,7 @@ use crate::error::Error;
 /// with sensible defaults for the X API.
 ///
 /// Holds the application configuration.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Config {
     /// `OAuth2` client ID (may come from env or the active app in `.xurl`).
     pub client_id: String,
@@ -57,6 +58,24 @@ pub struct Config {
 
 crate::assert_send_sync!(Config);
 
+impl std::fmt::Debug for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Config")
+            .field("client_id", &self.client_id)
+            .field("client_secret", &REDACTED)
+            .field("redirect_uri", &self.redirect_uri)
+            .field("auth_url", &self.auth_url)
+            .field("token_url", &self.token_url)
+            .field("api_base_url", &self.api_base_url)
+            .field("info_url", &self.info_url)
+            .field("app_name", &self.app_name)
+            .field("redirect_uri_source", &self.redirect_uri_source)
+            .field("redirect_uri_from_env", &self.redirect_uri_from_env)
+            .field("http_timeout_secs", &self.http_timeout_secs)
+            .finish()
+    }
+}
+
 /// Built-in default `OAuth2` redirect URI used when neither the
 /// `REDIRECT_URI` env var nor a stored per-app value is set.
 pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";
@@ -80,7 +99,7 @@ pub const DEFAULT_TOKEN_URL: &str = "https://api.x.com/2/oauth2/token";
 /// for `redirect_uri`: an unset value falls through to the next precedence
 /// level, while a set-but-empty one is an env-sourced value that fails
 /// validation.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct EnvOverrides {
     /// `CLIENT_ID` — `OAuth2` client ID.
     pub client_id: Option<String>,
@@ -123,6 +142,31 @@ pub struct EnvOverrides {
     ///
     /// Consumed by the CLI runner rather than by [`Config`].
     pub no_color: bool,
+}
+
+impl std::fmt::Debug for EnvOverrides {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EnvOverrides")
+            .field("client_id", &self.client_id)
+            .field(
+                "client_secret",
+                &self.client_secret.as_ref().map(|_| REDACTED),
+            )
+            .field("redirect_uri", &self.redirect_uri)
+            .field("auth_url", &self.auth_url)
+            .field("token_url", &self.token_url)
+            .field("api_base_url", &self.api_base_url)
+            .field("info_url", &self.info_url)
+            .field(
+                "bearer_token",
+                &self.bearer_token.as_ref().map(|_| REDACTED),
+            )
+            .field("output", &self.output)
+            .field("home", &self.home)
+            .field("token_store", &self.token_store)
+            .field("no_color", &self.no_color)
+            .finish()
+    }
 }
 
 impl EnvOverrides {

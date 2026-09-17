@@ -10,7 +10,8 @@ repository: https://github.com/brettdavies/xurl-rs
 
 ## Running xr
 
-The crate is `xurl-rs`. The installed binary is `xr`. The library re-exports under `xurl`.
+The CLI package is `xurl-rs` and the installed binary is `xr`. The library is the `xdk-rs` package, imported as
+`xdk`; the `xurl` library target inside the CLI crate exists for its own tests and is not an API.
 
 ```bash
 # Raw request — full control over verb, path, body, headers
@@ -47,7 +48,7 @@ xr auth status                   # list configured apps and token freshness
 
 Bare `xr` (no arguments) prints the root help on stdout at exit 0. A word that names no command exits 2 with reason
 `unknown-command`, echoing the word in `command` and naming the nearest real command in `suggestion` when one is close
-enough — read those rather than parsing the message.
+enough. Read those rather than parsing the message.
 
 ## Auth paths
 
@@ -154,6 +155,46 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
 - `crates/xdk/src/lib.rs`: public library surface. The `xdk` library is consumable from downstream Rust crates; the
   binary `xr` is one consumer among potentially several. `crates/xurl-cli/src/lib.rs` exposes the CLI module only so the
   binary's own tests can drive it in-process; it is not an embedder API.
+
+### Where a change goes
+
+The line between the crates holds on four rules; a change that crosses one belongs on the other side.
+
+1. **Dependencies.** The library's graph carries no `clap`, `clap_complete`, `colored`, or `open` on any feature
+   combination: `cargo tree -p xdk-rs --all-features -i <crate>` is empty for each, and CI's `Consumer check` compiles
+   an out-of-package embedder against the documented surface.
+2. **I/O.** The library returns data, URLs, and `tracing` events (targets `xdk::wire`, `xdk::media`, `xdk::auth`,
+   `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads the process
+   environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`, `CLIENT_SECRET`,
+   `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`,
+   `XURL_TOKEN_STORE`, and `NO_COLOR` are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2
+   callback listener and reading or writing `~/.xurl` are network and file I/O, and belong to the library.
+3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
+   `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
+   `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can
+   drive the dispatcher in-process.
+4. **Errors.** The library states the fact: an `Error` variant plus `kind()`, `exit_code()`, `next_action()`, and
+   `docs_url()`, each matched exhaustively in-crate. The binary composes the sentence: the `Auth Error:` prefixes, the
+   recovery wording, `next_step.command` and `template`, and the envelope live in `crates/xurl-cli/src/cli/output/`.
+   Exit codes sit on the library side because they are part of the closed classification an embedder branches on; the
+   wording is not.
+
+Deciding where a new feature lands:
+
+- It talks to X (an endpoint, an auth scheme, a media phase, a stream), reads or writes the credential store, or
+  classifies a failure: `crates/xdk`. The shortcut, its typed response, and its `Error` arm land there; the `xr`
+  command that exposes it is a separate change in `crates/xurl-cli`.
+- It parses argv, renders output in any format, reads terminal-shaped environment, prompts, opens a browser, installs a
+  skill bundle, or turns an error into prose: `crates/xurl-cli`.
+- `xr` needs a library internal no embedder would call: `pub` plus `#[doc(hidden)]` in the library with a comment
+  naming the `xr` path; never `pub(crate)` (it does not cross crates) and never a copy in the binary.
+- A new dependency goes in the library only when an embedder's build needs it; test-only helpers sit behind the
+  `testing` feature; anything terminal-shaped goes to the binary.
+
+Three placements are fixed: `schemars::JsonSchema` derives on the response types are library (an embedder can emit the
+same schemas an MCP tool definition needs; `xr schema` is the binary); the token store is library and shared by both
+crates, while `XURL_TOKEN_STORE` is the binary's alone; sign-in logic (PKCE, the callback listener, the token exchange)
+is library, and opening the browser and printing the paste-the-URL advice is binary.
 
 ## Quality bar
 

@@ -6,7 +6,7 @@
 #
 # Environment:
 #   XURL_ORIGINAL_BIN  — path to original xurl binary (default: xurl)
-#   XURL_PORT_BIN      — path to xurl-rs binary (default: ./target/release/xurl-rs)
+#   XURL_PORT_BIN      — path to xurl-rs binary (default: ./target/release/xr)
 #
 # Requires: hyperfine (https://github.com/sharkdp/hyperfine)
 
@@ -15,7 +15,7 @@ set -euo pipefail
 # ── Defaults ────────────────────────────────────────────────────────────────
 
 ORIGINAL="${XURL_ORIGINAL_BIN:-xurl}"
-PORT="${XURL_PORT_BIN:-./target/release/xurl-rs}"
+PORT="${XURL_PORT_BIN:-./target/release/xr}"
 OUTPUT_DIR="${OUTPUT_DIR:-./benchmark-results}"
 WARMUP=3
 MIN_RUNS=10

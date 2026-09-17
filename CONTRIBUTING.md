@@ -1,8 +1,10 @@
 # Contributing to xurl-rs
 
-`xr` is a Rust CLI for the X API v2 and an independent port of
-[`xdevplatform/xurl`](https://github.com/xdevplatform/xurl). Bug reports, feature requests, and code are all welcome. A
-solo maintainer cannot promise merge windows; real PRs land.
+The repository holds two crates: `xdk-rs`, the async X API client library (`crates/xdk`), and `xurl-rs`, the `xr`
+command-line tool built on it (`crates/xurl-cli`) and an independent port of
+[`xdevplatform/xurl`](https://github.com/xdevplatform/xurl). Bug reports, feature requests, and code are welcome for
+either. A solo maintainer cannot promise merge windows; real PRs land. Which crate a change belongs in is decided by
+[Where a change goes](AGENTS.md#where-a-change-goes).
 
 ## Dev setup
 

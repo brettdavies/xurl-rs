@@ -48,11 +48,6 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// [`Self::exit_code`] match every variant by name, so a new variant is
 /// classified before it ships.
 ///
-/// `result_large_err` would fire because the largest variant
-/// (`AuthMethodMismatch`) carries multiple `String`/`Vec<String>` fields.
-/// Boxing the variant would change the public construction surface; allow
-/// the lint on the enum so consumers can keep building the variant inline.
-///
 /// # Example
 ///
 /// ```rust,no_run
@@ -68,7 +63,6 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// }
 /// # Ok(()) }
 /// ```
-#[allow(clippy::result_large_err)]
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -132,63 +126,122 @@ pub enum Error {
     #[error("{0}")]
     TokenStore(String),
 
-    /// Auth method mismatch: the user supplied (or the auto-detect resolved)
-    /// an auth method the endpoint's matrix entry doesn't accept.
-    ///
-    /// Three shapes share the variant:
-    /// - **Explicit-mismatch**: `requested = Some("app"|"oauth1"|"oauth2")`,
-    ///   `available_in_app = None`. The user passed `--auth X` and `X` isn't
-    ///   in the endpoint's supported set.
-    /// - **Empty-intersection**: `requested = None`,
-    ///   `available_in_app = Some([nonempty])`. Auto-detect resolved a
-    ///   non-empty `available_in_app` against `supported` to an empty
-    ///   intersection: no stored credential on the active app satisfies the
-    ///   endpoint.
-    /// - **Wrong-app**: `requested = None`, `other_apps_with_creds =
-    ///   Some([nonempty])`. The active app stores no credentials but other
-    ///   apps in the store do — the user likely forgot `--app NAME`.
-    ///   `available_in_app` is `Some([])`, or `Some(["app"])` when
-    ///   `XURL_BEARER_TOKEN` supplies a bearer the endpoint does not accept.
-    ///
-    /// `app` carries the active app name (when known) so the recovery hint
-    /// can substitute it. `rendered_url` carries the substituted path
-    /// (`/2/users/12345/likes`) for user-facing messages while `endpoint`
-    /// stays as the spec template (`/2/users/{id}/likes`) for agents to
-    /// pattern-match against.
-    #[error("{}", auth_method_mismatch_fragment(.endpoint, .rendered_url.as_deref(), .method, .requested.as_deref(), .supported, .available_in_app.as_deref(), .app.as_deref(), .other_apps_with_creds.as_deref()))]
-    AuthMethodMismatch {
-        /// Path template (e.g. `/2/users/{id}/likes`) — keyed verbatim
-        /// against the spec for agent pattern matching.
-        endpoint: String,
-        /// Path with `{param}` segments substituted from `path_params`
-        /// (e.g. `/2/users/12345/likes`). User-facing messages prefer this
-        /// over `endpoint` so the recovery hint doesn't contain literal
-        /// brace placeholders. `None` when no substitution context was
-        /// available (e.g. construction outside a real call).
-        rendered_url: Option<String>,
-        /// HTTP method, already uppercased.
-        method: String,
-        /// What the user asked for. `Some("app"|"oauth1"|"oauth2")` in the
-        /// explicit-mismatch shape; `None` in the empty-intersection and
-        /// wrong-app shapes.
-        requested: Option<String>,
-        /// Auth methods the endpoint accepts, as user-facing strings.
-        supported: Vec<String>,
-        /// Auth methods the active app actually has stored. `None` in the
-        /// explicit-mismatch shape; `Some([nonempty])` in the empty-
-        /// intersection shape; `Some([])` in the wrong-app shape.
-        available_in_app: Option<Vec<String>>,
-        /// Active app name (e.g. `"default"` or `"bird-prod"`). `None` when
-        /// constructed outside a context that resolved an active app.
-        app: Option<String>,
-        /// Names of other apps in the token store that DO hold credentials.
-        /// Populated only in the wrong-app shape so agents can suggest the
-        /// right `--app NAME` to try.
-        other_apps_with_creds: Option<Vec<String>>,
-    },
+    /// Auth method mismatch: the caller asked for, or auto-detect resolved,
+    /// a scheme the endpoint's matrix entry does not accept. The payload is
+    /// boxed so the error stays small on every `Result` an embedder returns;
+    /// [`AuthMismatch`] describes the three shapes it takes.
+    #[error("{0}")]
+    AuthMethodMismatch(Box<AuthMismatch>),
 }
 
 crate::assert_send_sync!(Error);
+
+/// What an [`Error::AuthMethodMismatch`] describes.
+///
+/// Three shapes share the type:
+/// - **Explicit mismatch**: `requested = Some("app"|"oauth1"|"oauth2")`,
+///   `available_in_app = None`. The caller asked for a scheme the endpoint
+///   does not accept.
+/// - **Empty intersection**: `requested = None`,
+///   `available_in_app = Some([nonempty])`. Auto-detect found no stored
+///   credential on the active app that the endpoint accepts.
+/// - **Wrong app**: `requested = None`, `other_apps_with_creds =
+///   Some([nonempty])`. The active app stores no credentials but other apps
+///   in the store do. `available_in_app` is `Some([])`, or `Some(["app"])`
+///   when `XURL_BEARER_TOKEN` supplies a bearer the endpoint does not accept.
+///
+/// `Display` is the lowercase fragment the library reports; `xr` composes
+/// its own recovery wording from the same fields.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthMismatch {
+    /// Path template (for example `/2/users/{id}/likes`), verbatim from the
+    /// spec so an agent can match on it.
+    pub endpoint: String,
+    /// The path with `{param}` segments substituted (for example
+    /// `/2/users/12345/likes`); messages prefer it over `endpoint`. `None`
+    /// when no substitution context was available.
+    pub rendered_url: Option<String>,
+    /// HTTP method, already uppercased.
+    pub method: String,
+    /// What the caller asked for: `Some("app"|"oauth1"|"oauth2")` in the
+    /// explicit-mismatch shape, `None` otherwise.
+    pub requested: Option<String>,
+    /// The schemes the endpoint accepts, as wire strings.
+    pub supported: Vec<String>,
+    /// The schemes the active app has stored: `None` in the
+    /// explicit-mismatch shape, `Some([nonempty])` in the empty-intersection
+    /// shape, `Some([])` in the wrong-app shape.
+    pub available_in_app: Option<Vec<String>>,
+    /// The active app's name, when one was resolved.
+    pub app: Option<String>,
+    /// Other apps in the store that hold credentials; populated only in the
+    /// wrong-app shape.
+    pub other_apps_with_creds: Option<Vec<String>>,
+}
+
+crate::assert_send_sync!(AuthMismatch);
+
+impl AuthMismatch {
+    /// Which of the three shapes these fields describe.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn shape(&self) -> MismatchShape<'_> {
+        mismatch_shape(
+            self.requested.as_deref(),
+            self.available_in_app.as_deref(),
+            self.other_apps_with_creds.as_deref(),
+        )
+    }
+}
+
+impl std::fmt::Display for AuthMismatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let path = self.rendered_url.as_deref().unwrap_or(&self.endpoint);
+        let method = &self.method;
+        let app_name = self.app.as_deref().unwrap_or("the active app");
+        let list = |items: &[String]| {
+            if items.is_empty() {
+                "none".to_string()
+            } else {
+                items.join(", ")
+            }
+        };
+        match self.shape() {
+            MismatchShape::Explicit { requested } if self.supported.is_empty() => {
+                write!(f, "{requested} auth is not accepted at {method} {path}")
+            }
+            MismatchShape::Explicit { requested } => {
+                let accepts = list(&self.supported);
+                write!(
+                    f,
+                    "{requested} auth is not accepted at {method} {path} (accepts {accepts})"
+                )
+            }
+            MismatchShape::WrongApp { others } => {
+                let alts = others.join(", ");
+                write!(
+                    f,
+                    "app '{app_name}' holds no credentials for {method} {path} (other apps with credentials: {alts})"
+                )
+            }
+            MismatchShape::EmptyIntersection { available } => {
+                let has = list(available);
+                let accepts = list(&self.supported);
+                write!(
+                    f,
+                    "no stored auth method on app '{app_name}' is accepted at {method} {path} (app has {has}; endpoint accepts {accepts})"
+                )
+            }
+            MismatchShape::Unknown => write!(f, "auth method is not accepted at {method} {path}"),
+        }
+    }
+}
+
+impl From<AuthMismatch> for Error {
+    fn from(mismatch: AuthMismatch) -> Self {
+        Self::AuthMethodMismatch(Box::new(mismatch))
+    }
+}
 
 /// Which situation an `AuthMethodMismatch`'s fields describe.
 ///
@@ -223,55 +276,6 @@ pub fn mismatch_shape<'a>(
         (None, Some(_), Some(others)) if !others.is_empty() => MismatchShape::WrongApp { others },
         (None, Some(available), _) => MismatchShape::EmptyIntersection { available },
         (None, None, _) => MismatchShape::Unknown,
-    }
-}
-
-/// Builds the Display fragment for `AuthMethodMismatch`: which method was
-/// refused where, and what the endpoint accepts, in the wire vocabulary the
-/// fields carry. Prefers `rendered_url` over `endpoint` so `{id}`
-/// placeholders don't leak into the message.
-#[allow(clippy::too_many_arguments)]
-fn auth_method_mismatch_fragment(
-    endpoint: &str,
-    rendered_url: Option<&str>,
-    method: &str,
-    requested: Option<&str>,
-    supported: &[String],
-    available_in_app: Option<&[String]>,
-    app: Option<&str>,
-    other_apps_with_creds: Option<&[String]>,
-) -> String {
-    let path = rendered_url.unwrap_or(endpoint);
-    let app_name = app.unwrap_or("the active app");
-    let list = |items: &[String]| {
-        if items.is_empty() {
-            "none".to_string()
-        } else {
-            items.join(", ")
-        }
-    };
-    match mismatch_shape(requested, available_in_app, other_apps_with_creds) {
-        MismatchShape::Explicit { requested } if supported.is_empty() => {
-            format!("{requested} auth is not accepted at {method} {path}")
-        }
-        MismatchShape::Explicit { requested } => {
-            let accepts = list(supported);
-            format!("{requested} auth is not accepted at {method} {path} (accepts {accepts})")
-        }
-        MismatchShape::WrongApp { others } => {
-            let alts = others.join(", ");
-            format!(
-                "app '{app_name}' holds no credentials for {method} {path} (other apps with credentials: {alts})"
-            )
-        }
-        MismatchShape::EmptyIntersection { available } => {
-            let has = list(available);
-            let accepts = list(supported);
-            format!(
-                "no stored auth method on app '{app_name}' is accepted at {method} {path} (app has {has}; endpoint accepts {accepts})"
-            )
-        }
-        MismatchShape::Unknown => format!("auth method is not accepted at {method} {path}"),
     }
 }
 
@@ -335,7 +339,7 @@ impl Error {
             | Self::TokenStore(_) => None,
             // The stored-credential recovery steps are the binary's: it knows
             // which apps hold what and names the invocation.
-            Self::AuthMethodMismatch { .. } => None,
+            Self::AuthMethodMismatch(_) => None,
         }
     }
 
@@ -351,7 +355,7 @@ impl Error {
             Self::Api { status, body } if refuses_enrollment(*status, body) => {
                 Some(ENROLLMENT_DOCS)
             }
-            Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch { .. } => {
+            Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch(_) => {
                 Some(AUTHENTICATION_DOCS)
             }
             Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
@@ -415,7 +419,7 @@ impl Error {
             Self::Io(_) => "io",
             Self::Json(_) => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
-            Self::AuthMethodMismatch { .. } => "auth-method-mismatch",
+            Self::AuthMethodMismatch(_) => "auth-method-mismatch",
             Self::Validation(_) => "validation",
             Self::InvalidUrl(_) => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
@@ -451,7 +455,7 @@ impl Error {
             | Self::InvalidUrl(_)
             | Self::InvalidPathParam { .. }
             | Self::Internal(_) => EXIT_GENERAL_ERROR,
-            Self::AuthMethodMismatch { .. } => EXIT_AUTH_MISMATCH,
+            Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }
     }
 }
@@ -581,6 +585,15 @@ mod tests {
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
         let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn error_fits_under_the_result_large_err_threshold() {
+        let size = std::mem::size_of::<Error>();
+        assert!(
+            size <= 128,
+            "Error is {size} bytes; clippy warns embedders above 128"
+        );
     }
 
     #[test]

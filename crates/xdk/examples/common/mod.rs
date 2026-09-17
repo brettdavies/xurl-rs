@@ -1,10 +1,6 @@
 //! Shared by the examples: credentials come from the environment, and a
 //! failure exits with the code the crate maps the error to.
 
-// `xdk::Error` is wide (its mismatch variant carries several strings), which
-// the crate allows for itself; an example returning `xdk::Result` inherits it.
-#![allow(clippy::result_large_err)]
-
 use xdk::Error;
 
 /// Reads `name`, or fails as a missing credential so the process exits with
