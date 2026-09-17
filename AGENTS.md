@@ -173,8 +173,9 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 ```bash
 cargo test                    # unit + integration
 cargo test -- --ignored       # slower / network-dependent tests
-scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, deny, shellcheck, Windows cross-clippy,
-                              # markdownlint, actionlint)
+scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, examples, the offline example
+                              # run, TLS feature cells, deny, shellcheck, Windows cross-clippy, markdownlint,
+                              # actionlint; docs.rs nightly build and cargo-hack powerset when installed)
 ```
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
@@ -192,8 +193,9 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Three CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, and the
-public-API semver gate.
+Four CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the
+public-API semver gate, and the agent-native audit with the release binary's size ceiling. Run them yourself when a
+change touches the CLI surface, the library API, or the release profile.
 
 ## Releasing
 

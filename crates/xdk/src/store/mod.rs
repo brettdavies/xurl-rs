@@ -63,6 +63,17 @@ pub struct TokenStore {
     pub load_state: LoadState,
 }
 
+impl std::fmt::Debug for TokenStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokenStore")
+            .field("file_path", &self.file_path)
+            .field("default_app", &self.default_app)
+            .field("apps", &self.apps.keys().collect::<Vec<_>>())
+            .field("load_state", &self.load_state)
+            .finish()
+    }
+}
+
 impl Default for TokenStore {
     /// Constructs a `TokenStore` from the default location, identical to
     /// calling [`TokenStore::new`].

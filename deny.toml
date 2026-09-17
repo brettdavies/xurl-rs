@@ -16,7 +16,9 @@ targets = [
     "x86_64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ]
-all-features = false
+# Every optional feature is on so the native-tls tree (openssl and friends)
+# and the testing mock's dependencies are audited, not only the default graph.
+all-features = true
 no-default-features = false
 
 [output]

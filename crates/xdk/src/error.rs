@@ -196,6 +196,7 @@ crate::assert_send_sync!(Error);
 /// [`mismatch_shape`], so the two cannot sort one error into different
 /// shapes.
 #[doc(hidden)]
+#[derive(Debug)]
 pub enum MismatchShape<'a> {
     /// The caller asked for a scheme the endpoint does not accept.
     Explicit { requested: &'a str },

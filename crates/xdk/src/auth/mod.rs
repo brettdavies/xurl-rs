@@ -16,6 +16,7 @@ pub mod oauth2;
 pub mod pending;
 
 pub(crate) use credentials::DirectCredentials;
+use credentials::REDACTED;
 pub use credentials::{BoxError, OAuth1Credential, OAuth2Credential, OnTokenRefreshed};
 
 use crate::config::Config;
@@ -65,6 +66,24 @@ pub struct Auth {
 }
 
 crate::assert_send_sync!(Auth);
+
+impl std::fmt::Debug for Auth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auth")
+            .field("app_name", &self.app_name)
+            .field("store", &self.token_store.file_path)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &REDACTED)
+            .field("client_id_from_env", &self.client_id_from_env)
+            .field("client_secret_from_env", &self.client_secret_from_env)
+            .field("redirect_uri", &self.config.redirect_uri)
+            .field(
+                "bearer_token_override",
+                &self.bearer_token_override.as_ref().map(|_| REDACTED),
+            )
+            .finish_non_exhaustive()
+    }
+}
 
 impl Auth {
     /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
