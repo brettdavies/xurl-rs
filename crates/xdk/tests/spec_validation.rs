@@ -10,7 +10,7 @@ use serde_json::Value;
 use xdk::api::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
     FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post, RepostedResult,
-    UsageData, User,
+    UsageCreditsData, UsageData, User,
 };
 
 /// Loads the cached example responses fixture.
@@ -180,6 +180,17 @@ fn spec_usage() {
     assert_eq!(resp.data.cap_reset_day, Some(19));
     assert!(resp.data.daily_project_usage.is_some());
     assert!(resp.data.daily_client_app_usage.is_some());
+}
+
+#[test]
+fn spec_usage_credits() {
+    let examples = load_examples();
+    let resp: ApiResponse<UsageCreditsData> =
+        serde_json::from_value(examples["usage_credits"].clone()).unwrap();
+    assert_eq!(resp.data.total_balance, Some(12.5));
+    assert_eq!(resp.data.prepaid_balance, Some(10.0));
+    assert_eq!(resp.data.free_balance, Some(2.5));
+    assert!(resp.data.free_grants.is_some());
 }
 
 #[test]

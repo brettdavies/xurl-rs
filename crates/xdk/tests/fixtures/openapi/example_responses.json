@@ -221,5 +221,18 @@
         "2244994945"
       ]
     }
+  },
+  "usage_credits": {
+    "data": {
+      "total_balance": 12.5,
+      "prepaid_balance": 10.0,
+      "free_balance": 2.5,
+      "free_grants": [
+        {
+          "amount": 2.5,
+          "expires_at": "2026-12-31T00:00:00.000Z"
+        }
+      ]
+    }
   }
 }

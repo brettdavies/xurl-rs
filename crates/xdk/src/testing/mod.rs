@@ -1,10 +1,11 @@
 //! An in-process X API for tests that must not spend credits.
 //!
-//! [`MockX::start`] binds a local server whose routes answer the crate's
-//! shortcuts with the fixture responses the response types are validated
-//! against, so a `read_post` or `search_posts` against it deserializes into
-//! the same `Post` a live call would. Every response carries a rate-limit
-//! window, so [`Client::last_rate_limit`] reads something too.
+//! [`MockX::start`] binds a local server that answers every endpoint the
+//! shortcut layer declares with the fixture responses the response types are
+//! validated against, so a `read_post` or `search_posts` against it
+//! deserializes into the same `Post` a live call would. Every response
+//! carries a rate-limit window, so [`Client::last_rate_limit`] reads
+//! something too.
 //!
 //! Enable the feature in a test profile only, so a release build pulls none
 //! of the mock's dependencies:
@@ -41,6 +42,7 @@ use serde_json::Value;
 use wiremock::matchers::{method, path_regex};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use crate::api::auth_matrix::{Endpoint, endpoints};
 use crate::api::{Client, ClientBuilder};
 use crate::auth::OAuth2Credential;
 
@@ -54,151 +56,222 @@ const RATE_LIMIT: u32 = 450;
 const RATE_LIMIT_REMAINING: u32 = 449;
 const RATE_LIMIT_WINDOW_SECS: u64 = 900;
 
-/// A seeded route: the shortcut's method and path, and which fixture answers.
+/// A seeded route: the declared endpoint, the fixture that answers it (or
+/// none for an empty reply), and the status it answers with. The method and
+/// the path pattern come from the declaration, so no route spells a path.
 struct Route {
-    method: &'static str,
-    path: &'static str,
-    fixture: &'static str,
+    endpoint: Endpoint,
+    fixture: Option<&'static str>,
     status: u16,
 }
 
-/// One entry per shortcut whose response the fixture file carries; the
-/// patterns are the shortcuts' own path templates with their `{id}` segments
-/// widened.
+/// One entry per declared endpoint, in declaration order.
 const ROUTES: &[Route] = &[
     Route {
-        method: "GET",
-        path: r"^/2/tweets/[0-9]+$",
-        fixture: "post_single",
-        status: 200,
-    },
-    Route {
-        method: "GET",
-        path: r"^/2/tweets/search/recent$",
-        fixture: "post_list",
-        status: 200,
-    },
-    Route {
-        method: "POST",
-        path: r"^/2/tweets$",
-        fixture: "post_single",
+        endpoint: endpoints::CREATE_POST,
+        fixture: Some("post_single"),
         status: 201,
     },
     Route {
-        method: "DELETE",
-        path: r"^/2/tweets/[0-9]+$",
-        fixture: "action_deleted",
+        endpoint: endpoints::READ_POST,
+        fixture: Some("post_single"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/me$",
-        fixture: "user_single",
+        endpoint: endpoints::DELETE_POST,
+        fixture: Some("action_deleted"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/by/username/[^/]+$",
-        fixture: "user_single",
+        endpoint: endpoints::SEARCH_POSTS,
+        fixture: Some("post_list"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/[0-9]+/timelines/reverse_chronological$",
-        fixture: "post_list",
+        endpoint: endpoints::GET_ME,
+        fixture: Some("user_single"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/[0-9]+/mentions$",
-        fixture: "post_list",
+        endpoint: endpoints::LOOKUP_USER,
+        fixture: Some("user_single"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/[0-9]+/bookmarks$",
-        fixture: "post_list",
+        endpoint: endpoints::GET_TIMELINE,
+        fixture: Some("post_list"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/users/[0-9]+/liked_tweets$",
-        fixture: "post_list",
+        endpoint: endpoints::GET_MENTIONS,
+        fixture: Some("post_list"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/likes$",
-        fixture: "action_liked",
+        endpoint: endpoints::GET_FOLLOWERS,
+        fixture: Some("user_list"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/retweets$",
-        fixture: "action_retweeted",
+        endpoint: endpoints::GET_LIKED_POSTS,
+        fixture: Some("post_list"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/bookmarks$",
-        fixture: "action_bookmarked",
+        endpoint: endpoints::LIKE_POST,
+        fixture: Some("action_liked"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/following$",
-        fixture: "action_following",
+        endpoint: endpoints::UNLIKE_POST,
+        fixture: Some("action_liked"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/blocking$",
-        fixture: "action_blocking",
+        endpoint: endpoints::REPOST,
+        fixture: Some("action_retweeted"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/users/[0-9]+/muting$",
-        fixture: "action_muting",
+        endpoint: endpoints::UNREPOST,
+        fixture: Some("action_retweeted"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/dm_conversations/with/[0-9]+/messages$",
-        fixture: "dm_event",
+        endpoint: endpoints::GET_BOOKMARKS,
+        fixture: Some("post_list"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::BOOKMARK,
+        fixture: Some("action_bookmarked"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNBOOKMARK,
+        fixture: Some("action_bookmarked"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_FOLLOWING,
+        fixture: Some("user_list"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::FOLLOW_USER,
+        fixture: Some("action_following"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNFOLLOW_USER,
+        fixture: Some("action_following"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MUTED,
+        fixture: Some("user_list"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::MUTE_USER,
+        fixture: Some("action_muting"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNMUTE_USER,
+        fixture: Some("action_muting"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BLOCKED,
+        fixture: Some("user_list"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::BLOCK_USER,
+        fixture: Some("action_blocking"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNBLOCK_USER,
+        fixture: Some("action_blocking"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEND_DM,
+        fixture: Some("dm_event"),
         status: 201,
     },
     Route {
-        method: "GET",
-        path: r"^/2/dm_events$",
-        fixture: "dm_event_list",
+        endpoint: endpoints::GET_DM_EVENTS,
+        fixture: Some("dm_event_list"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/usage/tweets$",
-        fixture: "usage",
+        endpoint: endpoints::GET_USAGE,
+        fixture: Some("usage"),
         status: 200,
     },
     Route {
-        method: "GET",
-        path: r"^/2/broadcasts/chat/moderators$",
-        fixture: "user_list",
+        endpoint: endpoints::GET_USAGE_CREDITS,
+        fixture: Some("usage_credits"),
         status: 200,
     },
     Route {
-        method: "POST",
-        path: r"^/2/broadcasts/chat/moderators$",
-        fixture: "chat_moderators",
+        endpoint: endpoints::MEDIA_UPLOAD,
+        fixture: Some("media_upload_init"),
         status: 200,
     },
     Route {
-        method: "DELETE",
-        path: r"^/2/broadcasts/chat/moderators/[0-9]+$",
-        fixture: "chat_moderators",
+        endpoint: endpoints::MEDIA_UPLOAD_STATUS,
+        fixture: Some("media_upload_status"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::MEDIA_UPLOAD_INITIALIZE,
+        fixture: Some("media_upload_init"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::MEDIA_UPLOAD_APPEND,
+        fixture: None,
+        status: 204,
+    },
+    Route {
+        endpoint: endpoints::MEDIA_UPLOAD_FINALIZE,
+        fixture: Some("media_upload_status"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_CHAT_MODERATORS,
+        fixture: Some("user_list"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::ADD_CHAT_MODERATOR,
+        fixture: Some("chat_moderators"),
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_CHAT_MODERATOR,
+        fixture: Some("chat_moderators"),
         status: 200,
     },
 ];
+
+/// The regex that matches the paths `path` renders to: a `{username}`
+/// segment widens to anything but a slash, every other parameter to digits.
+fn pattern(path: &str) -> String {
+    let widened: Vec<String> = path
+        .split('/')
+        .map(|segment| match segment {
+            "{username}" => "[^/]+".to_string(),
+            s if s.starts_with('{') && s.ends_with('}') => "[0-9]+".to_string(),
+            s => s.to_string(),
+        })
+        .collect();
+    format!("^{}$", widened.join("/"))
+}
 
 fn fixtures() -> &'static Value {
     static PARSED: OnceLock<Value> = OnceLock::new();
@@ -246,19 +319,19 @@ impl MockX {
             .map(|d| d.as_secs() + RATE_LIMIT_WINDOW_SECS)
             .unwrap_or(RATE_LIMIT_WINDOW_SECS);
         for route in ROUTES {
-            let body = fixtures()[route.fixture].clone();
-            Mock::given(method(route.method))
-                .and(path_regex(route.path))
-                .respond_with(
-                    ResponseTemplate::new(route.status)
-                        .set_body_json(body)
-                        .insert_header("x-rate-limit-limit", RATE_LIMIT.to_string().as_str())
-                        .insert_header(
-                            "x-rate-limit-remaining",
-                            RATE_LIMIT_REMAINING.to_string().as_str(),
-                        )
-                        .insert_header("x-rate-limit-reset", reset_at.to_string().as_str()),
+            let mut template = ResponseTemplate::new(route.status)
+                .insert_header("x-rate-limit-limit", RATE_LIMIT.to_string().as_str())
+                .insert_header(
+                    "x-rate-limit-remaining",
+                    RATE_LIMIT_REMAINING.to_string().as_str(),
                 )
+                .insert_header("x-rate-limit-reset", reset_at.to_string().as_str());
+            if let Some(fixture) = route.fixture {
+                template = template.set_body_json(fixtures()[fixture].clone());
+            }
+            Mock::given(method(route.endpoint.method))
+                .and(path_regex(pattern(route.endpoint.path)))
+                .respond_with(template)
                 .mount(&server)
                 .await;
         }
