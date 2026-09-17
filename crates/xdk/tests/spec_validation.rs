@@ -1,11 +1,21 @@
 //! Spec-as-test validation — verifies typed response structs can deserialize
-//! example API responses derived from the X API v2 documentation.
+//! example API responses derived from the X API v2 documentation, and that
+//! every such fixture is the shape the vendored spec gives the endpoint it
+//! answers.
 //!
 //! When the X API adds fields, unknown fields land silently in `extra` (R8).
 //! When the X API changes a field type or removes a required field, these
-//! tests fail with a clear message naming the type and field.
+//! tests fail with a clear message naming the type and field. When the spec
+//! changes a field's type inside a schema that still exists, the fixture
+//! walk at the bottom fails naming the fixture, the endpoint, and the field.
 
+mod common;
+
+use std::collections::BTreeMap;
+
+use common::{load_spec, resolve};
 use serde_json::Value;
+use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
@@ -229,5 +239,271 @@ fn every_fixture_is_exercised_by_a_validation_test() {
          Cause: a fixture was added to the file without a `spec_*` test that deserializes \
          `examples[\"<key>\"]` into its response type.\n\
          Fix: add the test to crates/xdk/tests/spec_validation.rs, or remove the fixture."
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Every fixture is the shape the spec gives the endpoint it answers
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Which declared endpoint each fixture answers, by the fixture's key.
+const FIXTURE_ENDPOINTS: &[(&str, Endpoint)] = &[
+    ("post_single", endpoints::READ_POST),
+    ("post_list", endpoints::SEARCH_POSTS),
+    ("user_single", endpoints::GET_ME),
+    ("user_single_wire", endpoints::GET_ME),
+    ("action_liked", endpoints::LIKE_POST),
+    ("action_following", endpoints::FOLLOW_USER),
+    ("action_deleted", endpoints::DELETE_POST),
+    ("action_retweeted", endpoints::REPOST),
+    ("action_bookmarked", endpoints::BOOKMARK),
+    ("action_blocking", endpoints::BLOCK_USER),
+    ("action_muting", endpoints::MUTE_USER),
+    ("dm_event", endpoints::SEND_DM),
+    ("dm_event_list", endpoints::GET_DM_EVENTS),
+    ("media_upload_init", endpoints::MEDIA_UPLOAD_INITIALIZE),
+    ("media_upload_status", endpoints::MEDIA_UPLOAD_STATUS),
+    ("usage", endpoints::GET_USAGE),
+    ("usage_credits", endpoints::GET_USAGE_CREDITS),
+    ("user_list", endpoints::GET_FOLLOWERS),
+    ("chat_moderators", endpoints::ADD_CHAT_MODERATOR),
+];
+
+/// Fixtures that carry what X really sends where the vendored spec says
+/// otherwise, each with the reason. The walk requires every entry to keep
+/// failing validation, so an exemption cannot outlive the drift it names.
+const SPEC_EXEMPT_FIXTURES: &[(&str, &str)] = &[
+    (
+        "user_single_wire",
+        "X sends `tweet_count` where spec 2.168 names `post_count`; the fixture carries the wire \
+         shape and `UserPublicMetrics` reads either \
+         (https://github.com/brettdavies/xurl-rs/pull/118)",
+    ),
+    (
+        "dm_event",
+        "the fixture is the `DmEvent` object `GET /2/dm_events` lists, while the spec says the \
+         send response carries only `dm_conversation_id` and `dm_event_id`; `send_dm` returns \
+         `ApiResponse<DmEvent>`, whose required `id` that response has no value for, so the \
+         fixture waits on that return type",
+    ),
+];
+
+/// The JSON schema of `endpoint`'s first 2xx response.
+fn success_schema<'a>(spec: &'a Value, endpoint: &Endpoint) -> &'a Value {
+    let operation = spec
+        .pointer(&format!(
+            "/paths/{}/{}",
+            endpoint.path.replace('/', "~1"),
+            endpoint.method.to_lowercase()
+        ))
+        .unwrap_or_else(|| {
+            panic!(
+                "{} {} is not in the vendored spec",
+                endpoint.method, endpoint.path
+            )
+        });
+    let responses = operation["responses"]
+        .as_object()
+        .expect("an operation declares responses");
+    let (status, response) = responses
+        .iter()
+        .find(|(status, _)| status.starts_with('2'))
+        .unwrap_or_else(|| {
+            panic!(
+                "{} {} declares no 2xx response",
+                endpoint.method, endpoint.path
+            )
+        });
+    response
+        .pointer("/content/application~1json/schema")
+        .unwrap_or_else(|| {
+            panic!(
+                "{} {} {status} declares no application/json schema",
+                endpoint.method, endpoint.path
+            )
+        })
+}
+
+fn kind(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "a boolean",
+        Value::Number(_) => "a number",
+        Value::String(_) => "a string",
+        Value::Array(_) => "an array",
+        Value::Object(_) => "an object",
+    }
+}
+
+/// Checks `value` against the OpenAPI `schema`, appending one line per
+/// mismatch to `errors`, each starting with the dotted path of the field.
+fn check(value: &Value, schema: &Value, root: &Value, path: &str, errors: &mut Vec<String>) {
+    let schema = resolve(schema, root);
+    if let Some(all) = schema.get("allOf").and_then(Value::as_array) {
+        for member in all {
+            check(value, member, root, path, errors);
+        }
+    }
+    for key in ["anyOf", "oneOf"] {
+        if let Some(options) = schema.get(key).and_then(Value::as_array) {
+            let matches_one = options.iter().any(|option| {
+                let mut sub = Vec::new();
+                check(value, option, root, path, &mut sub);
+                sub.is_empty()
+            });
+            if !matches_one {
+                errors.push(format!(
+                    "{path}: matches none of the schema's {key} alternatives"
+                ));
+            }
+        }
+    }
+    if value.is_null() {
+        if schema.get("nullable") != Some(&Value::Bool(true)) && schema.get("type").is_some() {
+            errors.push(format!(
+                "{path}: null where the spec wants {}",
+                schema["type"]
+            ));
+        }
+        return;
+    }
+    if let Some(ty) = schema.get("type").and_then(Value::as_str) {
+        let ok = match ty {
+            "string" => value.is_string(),
+            "number" => value.is_number(),
+            "integer" => value.is_i64() || value.is_u64(),
+            "boolean" => value.is_boolean(),
+            "array" => value.is_array(),
+            "object" => value.is_object(),
+            _ => true,
+        };
+        if !ok {
+            errors.push(format!("{path}: is {} but the spec says {ty}", kind(value)));
+            return;
+        }
+    }
+    if let Some(allowed) = schema.get("enum").and_then(Value::as_array)
+        && !allowed.contains(value)
+    {
+        errors.push(format!(
+            "{path}: {value} is not one of the spec's enum values {allowed:?}"
+        ));
+    }
+    if let Some(object) = value.as_object() {
+        let properties = schema.get("properties").and_then(Value::as_object);
+        if let Some(required) = schema.get("required").and_then(Value::as_array) {
+            for name in required.iter().filter_map(Value::as_str) {
+                if !object.contains_key(name) {
+                    errors.push(format!("{path}: missing the required field `{name}`"));
+                }
+            }
+        }
+        for (name, field) in object {
+            let field_path = format!("{path}.{name}");
+            match properties.and_then(|props| props.get(name)) {
+                Some(field_schema) => check(field, field_schema, root, &field_path, errors),
+                None => match schema.get("additionalProperties") {
+                    Some(Value::Bool(false)) => errors.push(format!(
+                        "{field_path}: not in the spec's schema, which allows no other properties"
+                    )),
+                    Some(extra) if extra.is_object() => {
+                        check(field, extra, root, &field_path, errors);
+                    }
+                    _ => {}
+                },
+            }
+        }
+    }
+    if let (Some(items), Some(item_schema)) = (value.as_array(), schema.get("items")) {
+        for (i, item) in items.iter().enumerate() {
+            check(item, item_schema, root, &format!("{path}[{i}]"), errors);
+        }
+    }
+}
+
+#[test]
+fn every_fixture_validates_against_its_endpoint_schema() {
+    let spec = load_spec();
+    let examples = load_examples();
+    let endpoints_by_fixture: BTreeMap<&str, &Endpoint> = FIXTURE_ENDPOINTS
+        .iter()
+        .map(|(key, ep)| (*key, ep))
+        .collect();
+    let exempt: BTreeMap<&str, &str> = SPEC_EXEMPT_FIXTURES.iter().copied().collect();
+
+    let mut unmapped = Vec::new();
+    let mut failures = Vec::new();
+    let mut stale_exemptions = Vec::new();
+    for (key, fixture) in examples
+        .as_object()
+        .expect("the fixture file is a JSON object")
+    {
+        if key == "description" {
+            continue;
+        }
+        let Some(endpoint) = endpoints_by_fixture.get(key.as_str()) else {
+            unmapped.push(key.clone());
+            continue;
+        };
+        let mut errors = Vec::new();
+        check(
+            fixture,
+            success_schema(&spec, endpoint),
+            &spec,
+            key,
+            &mut errors,
+        );
+        match (exempt.get(key.as_str()), errors.is_empty()) {
+            (Some(_), true) => stale_exemptions.push(key.clone()),
+            (Some(_), false) | (None, true) => {}
+            (None, false) => failures.push(format!(
+                "{key} ({} {}):\n    {}",
+                endpoint.method,
+                endpoint.path,
+                errors.join("\n    ")
+            )),
+        }
+    }
+
+    assert!(
+        unmapped.is_empty(),
+        "these fixtures name no endpoint, so nothing checks them against the spec: {unmapped:?}\n\
+         Cause: a fixture was added to tests/fixtures/openapi/example_responses.json without a \
+         FIXTURE_ENDPOINTS row.\n\
+         Fix: in crates/xdk/tests/spec_validation.rs, map the fixture to the endpoint constant \
+         whose response it represents."
+    );
+    assert!(
+        failures.is_empty(),
+        "these fixtures are not the shape the vendored spec gives their endpoint:\n{}\n\
+         Cause: the fixture was written by hand and disagrees with the spec, or the spec was \
+         refreshed and the shape changed.\n\
+         Fix: correct the fixture in tests/fixtures/openapi/example_responses.json; if X really \
+         sends this shape, add the fixture to SPEC_EXEMPT_FIXTURES in \
+         crates/xdk/tests/spec_validation.rs with the reason and a link. The spec refreshes \
+         with scripts/refresh-x-openapi.sh.",
+        failures.join("\n")
+    );
+    assert!(
+        stale_exemptions.is_empty(),
+        "these fixtures are exempt from spec validation but now pass it: {stale_exemptions:?}\n\
+         Cause: the drift the exemption named is gone from the spec or the fixture.\n\
+         Fix: drop each from SPEC_EXEMPT_FIXTURES in crates/xdk/tests/spec_validation.rs."
+    );
+}
+
+#[test]
+fn fixture_endpoint_map_names_only_fixtures_that_exist() {
+    let examples = load_examples();
+    let stale: Vec<&str> = FIXTURE_ENDPOINTS
+        .iter()
+        .map(|(key, _)| *key)
+        .filter(|key| examples.get(key).is_none())
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "FIXTURE_ENDPOINTS maps fixtures the file no longer carries: {stale:?}\n\
+         Cause: the fixture was removed or renamed while its mapping stayed.\n\
+         Fix: drop each stale row from FIXTURE_ENDPOINTS in crates/xdk/tests/spec_validation.rs."
     );
 }

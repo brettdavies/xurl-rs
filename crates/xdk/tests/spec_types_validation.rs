@@ -19,8 +19,11 @@
 //! `MediaUploadResponse` validate against inline response schemas rather
 //! than components and stay out of this gate.
 
+mod common;
+
 use std::collections::{BTreeMap, BTreeSet};
 
+use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{DmEvent, Post, UsageData, User};
 
@@ -29,36 +32,10 @@ use xdk::api::response::types::{DmEvent, Post, UsageData, User};
 /// reason: an upstream spec bug or lag, never local convenience.
 const ALLOWED_DIVERGENCES: &[(&str, &str)] = &[];
 
-const SPEC_PATH: &str = "vendor/x-api-openapi.json";
-
 struct Failure {
     location: String,
     field: String,
     detail: String,
-}
-
-fn load_spec() -> Value {
-    let raw = std::fs::read_to_string(SPEC_PATH)
-        .unwrap_or_else(|e| panic!("read {SPEC_PATH}: {e} (run scripts/refresh-x-openapi.sh)"));
-    serde_json::from_str(&raw).unwrap_or_else(|e| panic!("parse {SPEC_PATH}: {e}"))
-}
-
-/// Follows a `$ref` on either side. schemars roots refs at `#/$defs/`;
-/// the spec roots them at `#/components/schemas/`.
-fn resolve<'a>(node: &'a Value, root: &'a Value) -> &'a Value {
-    let Some(reference) = node.get("$ref").and_then(Value::as_str) else {
-        return node;
-    };
-    let target = reference
-        .strip_prefix("#/$defs/")
-        .map(|name| root.pointer(&format!("/$defs/{name}")))
-        .or_else(|| {
-            reference
-                .strip_prefix("#/components/schemas/")
-                .map(|name| root.pointer(&format!("/components/schemas/{name}")))
-        })
-        .flatten();
-    target.unwrap_or_else(|| panic!("unresolvable $ref {reference}"))
 }
 
 /// Collects the property map of a spec schema, merging `allOf` members so

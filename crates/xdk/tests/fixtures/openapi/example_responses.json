@@ -111,7 +111,8 @@
   },
   "action_retweeted": {
     "data": {
-      "retweeted": true
+      "retweeted": true,
+      "rest_id": "1585341984679469056"
     }
   },
   "action_bookmarked": {
