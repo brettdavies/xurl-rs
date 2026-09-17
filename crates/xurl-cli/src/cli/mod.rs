@@ -1420,10 +1420,9 @@ pub enum Commands {
         #[arg(value_name = "FILE")]
         file: Option<String>,
 
-        /// Schema name to validate against (`post`, `posts`, `user`,
-        /// `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for
-        /// auto-detection.
-        #[arg(long = "schema", value_name = "NAME")]
+        /// Schema name to validate against; the list comes from the alias
+        /// table in `commands::validate`.
+        #[arg(long = "schema", value_name = "NAME", help = commands::validate::schema_arg_help())]
         schema: Option<String>,
     },
 }
