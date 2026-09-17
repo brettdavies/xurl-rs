@@ -12,7 +12,9 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 rust-version.workspace = true
-exclude = ["tests/"]
+# The mock server behind `testing` embeds the fixture file, so it ships with
+# the crate even though the rest of tests/ does not.
+exclude = ["tests/", "!tests/fixtures/openapi/example_responses.json"]
 
 [lib]
 name = "xdk"
@@ -29,9 +31,9 @@ default = ["rustls"]
 # so src/lib.rs turns that configuration into a build error.
 rustls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
-# Placeholder for the in-process mock server and fixtures embedders test
-# against; off by default so an ordinary build pulls no test-only crate.
-testing = []
+# The in-process mock server and fixtures embedders test against; off by
+# default so an ordinary build pulls no test-only crate.
+testing = ["dep:wiremock"]
 
 [dependencies]
 # HTTP
@@ -60,6 +62,9 @@ tracing.workspace = true
 # Schema generation
 schemars.workspace = true
 
+# Testing (behind the `testing` feature only)
+wiremock = { workspace = true, optional = true }
+
 # Utilities
 thiserror = "2"
 dirs = "7"
@@ -70,6 +75,12 @@ phf = "0.14"
 # One safe `getuid` for the pending-state ownership check; the crate
 # forbids `unsafe`, which rules out the libc call.
 rustix = { version = "1", features = ["process"] }
+
+# The one example that needs no credential runs against the mock, so it
+# exists only when the mock does; `cargo build --examples` skips it otherwise.
+[[example]]
+name = "offline_search"
+required-features = ["testing"]
 
 [build-dependencies]
 serde.workspace = true

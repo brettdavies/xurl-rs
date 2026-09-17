@@ -28,6 +28,9 @@ pub mod auth;
 pub mod config;
 pub mod error;
 pub mod store;
+#[cfg(feature = "testing")]
+#[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
+pub mod testing;
 
 pub use error::{Error, Result};
 

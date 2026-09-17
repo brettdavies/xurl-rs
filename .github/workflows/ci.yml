@@ -197,6 +197,7 @@ jobs:
           - name: testing
             flags: --features testing
             test: true
+            example: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
@@ -219,6 +220,11 @@ jobs:
         run: |
           read -ra flags <<< "$FLAGS"
           cargo test -p xdk-rs --locked "${flags[@]}"
+      # Compilation proves nothing about whether the example works; the run
+      # asserts on what the mock served and what it received.
+      - name: Run the credential-free example against the testing mock
+        if: ${{ matrix.example }}
+        run: cargo run -p xdk-rs --example offline_search --features testing --locked
       - name: cargo check must fail on the TLS guard
         if: ${{ matrix.must_fail }}
         env:

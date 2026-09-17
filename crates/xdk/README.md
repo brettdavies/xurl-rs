@@ -124,6 +124,44 @@ async fn main() {
 }
 ```
 
+## Testing
+
+Two ways to exercise code built on this crate without spending credits.
+
+**The `testing` feature** ships `xdk::testing::MockX`, an in-process mock of the API. `MockX::start().await` binds a
+local server seeded with the fixture responses the crate's own response types are validated against, so a read
+against it deserializes into the same types a live call would, and every response carries a rate-limit window.
+`app_client()` and `user_client()` return clients pointed at it, `stub` overrides a route or rehearses a failure,
+and `requests()` lists what arrived. Enable it in a test profile only, so a release build pulls none of its
+dependencies:
+
+```toml
+[dev-dependencies]
+xdk-rs = { version = "0.1", features = ["testing"] }
+```
+
+The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no
+X app, no credential, and no network:
+
+```bash
+cargo run -p xdk-rs --example offline_search --features testing
+```
+
+**X's playground** is X's own local server that simulates the API v2 with seeded users and posts, for proving the
+wire protocol end to end rather than for unit tests. Two limits: it needs a Go toolchain, and its parameter
+vocabulary predates X's post-vocabulary rename (spec 2.168), so a call that sends the current expansion names comes
+back as an invalid-request error.
+
+```bash
+go install github.com/xdevplatform/playground/cmd/playground@latest
+export PATH="$PATH:$(go env GOPATH)/bin"
+playground start --port 8089
+```
+
+Point a client at it with `Client::builder().bearer("test_token").base_url("http://localhost:8089")`; a bearer
+reaches its app-only endpoints, and user-context calls stop at the auth matrix before a request leaves the machine,
+the same refusal they get without credentials against the real API.
+
 ## What the crate publishes
 
 Every published module is one an embedder has a reason to call:
@@ -149,7 +187,8 @@ not part of this surface.
   Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off:
   `xdk-rs = { version = "0.1", default-features = false, features = ["native-tls"] }`. With both backends enabled,
   reqwest picks `native-tls`.
-- `testing`: reserved for an in-process mock server and fixtures; it enables nothing yet.
+- `testing`: an in-process mock of the API seeded from the crate's fixtures, for tests that must not spend credits;
+  see [Testing](#testing).
 
 A build with neither TLS feature fails at compile time with a message naming both, rather than at the first `https`
 request.
