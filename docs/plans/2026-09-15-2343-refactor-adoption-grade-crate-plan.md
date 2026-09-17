@@ -6,7 +6,7 @@ artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
 status: implemented
-implementation: stacked PRs #167-#177 on dev (S01-S11), each green at its head; merge pending
+implementation: merged into dev 2026-09-17 as #167, #180, #181, #170-#178 (S01-S12) and #182 (broadcast chat moderators)
 open_tasks: T3 (waiver deletion at the xdk-rs-v0.1.0 tag), T12 (release-plz, out of scope), T30, T31
 ---
 
