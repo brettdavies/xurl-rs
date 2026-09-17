@@ -18,6 +18,17 @@ exclude = ["tests/"]
 name = "xdk"
 path = "src/lib.rs"
 
+[features]
+default = ["rustls"]
+# Each backend feature forwards to the reqwest feature of the same name. With
+# neither, reqwest still compiles and only fails at the first https request,
+# so src/lib.rs turns that configuration into a build error.
+rustls = ["reqwest/rustls"]
+native-tls = ["reqwest/native-tls"]
+# Placeholder for the in-process mock server and fixtures embedders test
+# against; off by default so an ordinary build pulls no test-only crate.
+testing = []
+
 [dependencies]
 # HTTP
 reqwest.workspace = true
