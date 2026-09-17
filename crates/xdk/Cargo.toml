@@ -88,7 +88,10 @@ enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }
 enum_no_repr_variant_discriminant_changed = { lint-level = "deny", required-update = "minor" }
 # The eleven entries below cover the presentation move: the library no longer
 # renders, prints, or opens a browser, and the modules that did live under
-# `xurl::cli`, the tree the binary owns. They clear with the 4.0.0 tag.
+# `xurl::cli`, the tree the binary owns. Every entry names a `xurl-rs` 3.x
+# item; this package's first baseline, the `xdk-rs-v0.1.0` tag, never had any
+# of them, so the whole table is deleted at that tag rather than drained one
+# entry at a time.
 #
 # Covers `xurl::output`, `xurl::envelope`, and `xurl::skill_install`, which are
 # reachable only under `xurl::cli`.

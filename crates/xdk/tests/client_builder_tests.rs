@@ -676,3 +676,29 @@ async fn the_pagination_token_reaches_every_list_call_and_no_other() {
         "single-item calls that sent a cursor: {leaked:?}"
     );
 }
+
+#[tokio::test]
+async fn builder_user_agent_replaces_the_library_default() {
+    let server = wiremock::MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .and(wiremock::matchers::path("/2/tweets/search/recent"))
+        .and(wiremock::matchers::header("User-Agent", "embedder/1.2.3"))
+        .respond_with(
+            wiremock::ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": []})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = xdk::api::Client::builder()
+        .bearer("app-only-token")
+        .base_url(server.uri())
+        .user_agent("embedder/1.2.3")
+        .build()
+        .expect("client builds");
+    client
+        .search_posts("rust", 10)
+        .send()
+        .await
+        .expect("the mock matched the embedder's User-Agent");
+}

@@ -20,10 +20,6 @@ use super::{Client, MultipartOptions, RequestOptions};
 /// note (`kind = "note"`, message), in the order a subscriber prints them.
 pub const WIRE_TARGET: &str = "xdk::wire";
 
-/// The `User-Agent` the three send paths append when the caller supplied
-/// none. One definition so the paths cannot advertise different clients.
-const USER_AGENT: &str = concat!("xdk-rs/", env!("CARGO_PKG_VERSION"));
-
 impl Client {
     /// Sends a regular API request and returns the JSON response.
     ///
@@ -96,7 +92,7 @@ impl Client {
 
         // Add common headers (skip when the caller already supplied them).
         if !user_supplied_header(&options.headers, "User-Agent") {
-            builder = builder.header("User-Agent", USER_AGENT);
+            builder = builder.header("User-Agent", self.inner.user_agent.as_str());
         }
 
         if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
@@ -198,7 +194,7 @@ impl Client {
         }
 
         if !user_supplied_header(&options.request.headers, "User-Agent") {
-            builder = builder.header("User-Agent", USER_AGENT);
+            builder = builder.header("User-Agent", self.inner.user_agent.as_str());
         }
 
         if options.request.trace && !user_supplied_header(&options.request.headers, "X-B3-Flags") {
@@ -282,7 +278,7 @@ impl Client {
         }
 
         if !user_supplied_header(&options.headers, "User-Agent") {
-            builder = builder.header("User-Agent", USER_AGENT);
+            builder = builder.header("User-Agent", self.inner.user_agent.as_str());
         }
 
         if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {

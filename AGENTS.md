@@ -84,7 +84,7 @@ YAML at `~/.xurl`. Schema is documented in `crates/xdk/src/store/types.rs`. Migr
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
 
-`xr auth status` is the operator-facing surface. Programmatic access uses `xurl::store::TokenStore`.
+`xr auth status` is the operator-facing surface. Programmatic access uses `xdk::store::TokenStore`.
 
 ## Output formats
 

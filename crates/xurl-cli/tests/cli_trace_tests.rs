@@ -84,3 +84,23 @@ async fn without_the_trace_flag_no_x_b3_flags_header_is_sent() {
     let (code, stderr) = run(&store, &server.uri(), &["xr", "whoami"]).await;
     assert_eq!(code, 0, "whoami failed: {stderr}");
 }
+
+#[tokio::test]
+async fn the_cli_sends_its_own_user_agent() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .and(header(
+            "User-Agent",
+            concat!("xurl/", env!("CARGO_PKG_VERSION")),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(me_body()))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(&tmp);
+
+    let (code, stderr) = run(&store, &server.uri(), &["xr", "whoami"]).await;
+    assert_eq!(code, 0, "whoami with the CLI's User-Agent failed: {stderr}");
+}

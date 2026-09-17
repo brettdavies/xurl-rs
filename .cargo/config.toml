@@ -3,4 +3,4 @@
 # member directory CARGO_MANIFEST_DIR names. `relative = true` resolves the
 # empty value against this file's parent directory.
 [env]
-CARGO_WORKSPACE_DIR = { value = "", relative = true }
+CARGO_WORKSPACE_DIR = { value = "", relative = true, force = true }

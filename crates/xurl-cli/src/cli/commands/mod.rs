@@ -172,8 +172,13 @@ fn print_typed<T: Serialize>(
     Ok(())
 }
 
-fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
-    Client::new(cfg, auth)
+/// The `User-Agent` `xr` sends: the binary's own name and version, not the
+/// library's, so X sees the same client identity the CLI has always sent.
+const USER_AGENT: &str = concat!("xurl/", env!("CARGO_PKG_VERSION"));
+
+/// The one place the binary builds its API client.
+pub(crate) fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
+    Client::new_with_user_agent(cfg, auth, USER_AGENT)
 }
 
 /// Runs the CLI — dispatches to the appropriate handler.

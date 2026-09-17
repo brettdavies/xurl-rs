@@ -172,11 +172,16 @@ pub struct Client {
 /// What every clone of a [`Client`] shares: the one HTTP client, the base
 /// URL and timeout, and the credential state behind the lock a refresh
 /// holds while it rotates a token.
+/// The `User-Agent` a client sends when the caller sets none: the library's
+/// own name, so an embedder that never thinks about it is still identifiable.
+pub const DEFAULT_USER_AGENT: &str = concat!("xdk-rs/", env!("CARGO_PKG_VERSION"));
+
 struct Inner {
     base_url: String,
     http: reqwest::Client,
     credentials: Mutex<CredentialSource>,
     timeout: Duration,
+    user_agent: String,
 }
 
 crate::assert_send_sync!(Client);
@@ -186,6 +191,7 @@ impl std::fmt::Debug for Client {
         f.debug_struct("Client")
             .field("base_url", &self.inner.base_url)
             .field("timeout", &self.inner.timeout)
+            .field("user_agent", &self.inner.user_agent)
             .finish_non_exhaustive()
     }
 }
@@ -210,6 +216,25 @@ impl Client {
         Self::with_timeout(config, auth, config.http_timeout_secs)
     }
 
+    /// Creates a client over a token store that identifies itself as
+    /// `user_agent` on every request, with the timeout from `config`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Http`] when the HTTP client cannot be built.
+    pub fn new_with_user_agent(
+        config: &Config,
+        auth: Auth,
+        user_agent: impl Into<String>,
+    ) -> Result<Self> {
+        Self::from_source(
+            config.api_base_url.clone(),
+            CredentialSource::Store(auth),
+            Duration::from_secs(config.http_timeout_secs),
+            user_agent.into(),
+        )
+    }
+
     /// Creates a client over a token store with an explicit request timeout.
     ///
     /// The timeout bounds every non-streaming HTTP call dispatched by this
@@ -227,6 +252,7 @@ impl Client {
             config.api_base_url.clone(),
             CredentialSource::Store(auth),
             Duration::from_secs(timeout_secs),
+            DEFAULT_USER_AGENT.to_string(),
         )
     }
 
@@ -236,6 +262,7 @@ impl Client {
         base_url: String,
         credentials: CredentialSource,
         timeout: Duration,
+        user_agent: String,
     ) -> Result<Self> {
         let http = reqwest::Client::builder()
             .build()
@@ -247,6 +274,7 @@ impl Client {
                 http,
                 credentials: Mutex::new(credentials),
                 timeout,
+                user_agent,
             }),
         })
     }

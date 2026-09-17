@@ -191,18 +191,31 @@ jobs:
           fi
       - name: anc audit
         run: |
-          # anc exits 2 on any MUST-tier fail, including the exempt id, so the
-          # verdict is taken from the scorecard rather than the exit code.
-          anc audit --command target/release/xr --output json > anc-scorecard.json || true
+          set -euo pipefail
+          # anc exits 2 when any MUST-tier row fails, the exempt id included,
+          # so exit 2 is read from the scorecard; any other non-zero exit means
+          # the audit never ran (unreachable binary, crash) and fails outright.
+          status=0
+          anc audit --command target/release/xr --output json > anc-scorecard.json || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+            echo "::error title=anc audit::anc audit exited ${status} without a verdict"
+            exit 1
+          fi
+          # A scorecard without a numeric score or a results array is not a
+          # verdict either; jq -e turns a missing or retyped key into a failure.
+          jq -e '(.badge.score_pct | type == "number") and (.results | type == "array" and length > 0)' anc-scorecard.json > /dev/null
           jq -r '.results[] | "\(.tier)\t\(.status)\t\(.id)"' anc-scorecard.json | sort > anc-rows.tsv
           score="$(jq -r '.badge.score_pct' anc-scorecard.json)"
-          echo "anc score: ${score}% (floor ${ANC_SCORE_FLOOR}%)"
-          must_fails="$(jq -r --arg exempt "$ANC_EXEMPT_ID" '[.results[] | select(.tier == "must" and .status == "fail" and .id != $exempt) | .id] | join(", ")' anc-scorecard.json)"
+          skips="$(jq -r '[.results[] | select(.status == "skip")] | length' anc-scorecard.json)"
+          echo "anc score: ${score}% (floor ${ANC_SCORE_FLOOR}%), ${skips} row(s) skipped"
+          # `error` rows are excluded from the score denominator, so a harness
+          # that cannot execute the binary would otherwise pass at score 100.
+          must_fails="$(jq -r --arg exempt "$ANC_EXEMPT_ID" '[.results[] | select(.tier == "must" and (.status == "fail" or .status == "error") and .id != $exempt) | .id] | join(", ")' anc-scorecard.json)"
           if [ -n "$must_fails" ]; then
             echo "::error title=anc audit::MUST-tier failures: ${must_fails}"
             exit 1
           fi
-          if [ "$score" -lt "$ANC_SCORE_FLOOR" ]; then
+          if ! jq -e --argjson floor "$ANC_SCORE_FLOOR" '.badge.score_pct >= $floor' anc-scorecard.json > /dev/null; then
             echo "::error title=anc audit::score ${score}% is below the ${ANC_SCORE_FLOOR}% floor"
             exit 1
           fi

@@ -20,7 +20,7 @@
 mod common;
 
 use common::{
-    Allowed, enclosing_test, member_dirs, stale_allowlist_entries, workspace_root,
+    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_root,
     workspace_sources,
 };
 
@@ -132,13 +132,11 @@ fn scanned_files() -> Vec<(String, std::path::PathBuf)> {
     };
     let mut files = Vec::new();
     for member in member_dirs() {
-        let tests = member.join("tests");
-        for entry in std::fs::read_dir(&tests).expect("tests/ must be readable") {
-            let path = entry.expect("dir entry").path();
+        for path in rust_files(&member.join("tests")) {
             let is_guard = path
                 .file_name()
                 .is_some_and(|n| n.to_string_lossy().ends_with("_guard.rs"));
-            if path.extension().is_some_and(|e| e == "rs") && !is_guard {
+            if !is_guard {
                 files.push((name_of(&path), path));
             }
         }

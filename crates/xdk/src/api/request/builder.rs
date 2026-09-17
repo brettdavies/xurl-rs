@@ -32,6 +32,7 @@ pub struct ClientBuilder {
     base_url: String,
     token_url: String,
     timeout: Duration,
+    user_agent: Option<String>,
 }
 
 impl ClientBuilder {
@@ -44,6 +45,7 @@ impl ClientBuilder {
             base_url: DEFAULT_API_BASE_URL.to_string(),
             token_url: DEFAULT_TOKEN_URL.to_string(),
             timeout: Duration::from_secs(DEFAULT_TIMEOUT_SECS),
+            user_agent: None,
         }
     }
 
@@ -85,6 +87,13 @@ impl ClientBuilder {
         self
     }
 
+    /// Sets the `User-Agent` every request carries; the default is
+    /// [`DEFAULT_USER_AGENT`](crate::api::DEFAULT_USER_AGENT).
+    pub fn user_agent(mut self, user_agent: impl Into<String>) -> Self {
+        self.user_agent = Some(user_agent.into());
+        self
+    }
+
     /// Bounds every non-streaming request from connect to body end; a
     /// refresh uses the same bound. [`super::Call::timeout`] overrides it
     /// for one call.
@@ -117,6 +126,8 @@ impl ClientBuilder {
             self.base_url,
             CredentialSource::Direct(credentials),
             self.timeout,
+            self.user_agent
+                .unwrap_or_else(|| super::DEFAULT_USER_AGENT.to_string()),
         )
     }
 }

@@ -14,6 +14,7 @@ pub use media::{
     extract_media_id, extract_segment_index, handle_media_append_request, is_media_append_request,
 };
 #[allow(unused_imports)]
+pub use request::DEFAULT_USER_AGENT;
 pub use request::{
     Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions,
     RequestTarget, StreamLines, WIRE_TARGET,

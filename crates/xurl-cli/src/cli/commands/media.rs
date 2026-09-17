@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::cli::MediaCommands;
 use crate::cli::output::OutputConfig;
-use xdk::api::{self, Client};
+use xdk::api;
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::Result;
@@ -41,7 +41,7 @@ pub(super) async fn run_media_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            let client = Client::new(cfg, auth)?;
+            let client = crate::cli::commands::make_client(cfg, auth)?;
             let outcome = api::execute_media_upload(
                 &file,
                 &media_type,
@@ -71,7 +71,7 @@ pub(super) async fn run_media_command(
             trace,
             headers,
         } => {
-            let client = Client::new(cfg, auth)?;
+            let client = crate::cli::commands::make_client(cfg, auth)?;
             let response = api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),

@@ -10,7 +10,6 @@ use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
-use xdk::api::Client;
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
@@ -57,7 +56,7 @@ pub(super) async fn oauth2(
         return Ok(());
     }
     let username_arg = username.as_deref().unwrap_or("");
-    let client = Client::new(cfg, auth)?;
+    let client = crate::cli::commands::make_client(cfg, auth)?;
     // Refuse before any URL is built or pending file written when the
     // target app has no client id to sign in with.
     let refusal = {
