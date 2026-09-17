@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use clap::CommandFactory;
 
 /// Store path for spawns that never touch credentials. Its parent directory
 /// does not exist, so a read loads an empty store and a write fails loudly
@@ -211,4 +212,30 @@ pub fn enclosing_test(source: &str, offset: usize) -> String {
             (!name.is_empty()).then_some(name)
         })
         .unwrap_or_else(|| "<unknown>".to_string())
+}
+
+/// Every command clap parses, as its path from the root (`["auth", "apps",
+/// "list"]`), depth-first in declaration order with a parent before its
+/// children. Read from `Cli::command()` so a family added to clap reaches
+/// every walk without anyone editing a test.
+pub fn command_paths() -> Vec<Vec<String>> {
+    fn walk(cmd: &clap::Command, prefix: &[String], out: &mut Vec<Vec<String>>) {
+        for sub in cmd.get_subcommands() {
+            let mut path = prefix.to_vec();
+            path.push(sub.get_name().to_string());
+            out.push(path.clone());
+            walk(sub, &path, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(&xurl::cli::Cli::command(), &[], &mut out);
+    out
+}
+
+/// The top-level command families, in declaration order.
+pub fn top_level_families() -> Vec<String> {
+    xurl::cli::Cli::command()
+        .get_subcommands()
+        .map(|cmd| cmd.get_name().to_string())
+        .collect()
 }
