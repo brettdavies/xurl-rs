@@ -3,8 +3,13 @@
 //! Tests the token persistence layer: YAML read/write, multi-app management,
 //! legacy JSON migration, .twurlrc import, and credential backfill.
 
+mod common;
+
 use std::collections::BTreeMap;
 use std::fs;
+use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use tempfile::TempDir;
 
@@ -912,7 +917,7 @@ fn test_unicode_username_in_oauth2_token() {
 }
 
 #[test]
-fn test_concurrent_app_operations() {
+fn test_many_apps_stay_isolated() {
     let (mut store, _tmp) = create_temp_token_store();
 
     // Add many apps and verify isolation
@@ -1522,4 +1527,283 @@ fn a_whitespace_only_store_file_is_fresh() {
     store
         .add_app("myapp", "id", "secret")
         .expect("a blank file is not a damaged store");
+}
+
+// ── Durability under concurrent writers ────────────────────────────────────
+
+fn store_at(path: &Path) -> TokenStore {
+    TokenStore::new_with_path(path.to_str().expect("utf-8 path"))
+}
+
+/// Two loaded views of one file each write once; neither write may erase
+/// the other's.
+#[test]
+fn two_loaded_stores_writing_the_same_file_keep_both_apps() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut first = store_at(&path);
+    let mut second = store_at(&path);
+
+    first.add_app("alpha", "id-a", "secret-a").unwrap();
+    second.add_app("beta", "id-b", "secret-b").unwrap();
+
+    let reloaded = store_at(&path);
+    assert_eq!(
+        reloaded.list_apps(),
+        vec!["alpha".to_string(), "beta".to_string()],
+        "a write from one loaded view erased the other's"
+    );
+}
+
+/// A refresh rotating a token and a registration in another loaded view
+/// both land; the rotated refresh token is the one every later refresh needs.
+#[test]
+fn a_rotated_refresh_token_survives_a_concurrent_registration() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut seed = store_at(&path);
+    seed.add_app("myapp", "id", "secret").unwrap();
+    seed.save_oauth2_token_for_app("myapp", "alice", "access-1", "refresh-1", 4_000_000_000)
+        .unwrap();
+
+    let mut refresher = store_at(&path);
+    let mut registrar = store_at(&path);
+    refresher
+        .save_oauth2_token_for_app("myapp", "alice", "access-2", "refresh-2", 4_000_000_000)
+        .unwrap();
+    registrar.add_app("other", "id-o", "secret-o").unwrap();
+
+    let reloaded = store_at(&path);
+    let alice = reloaded
+        .get_oauth2_token_for_app("myapp", "alice")
+        .and_then(|t| t.oauth2.as_ref())
+        .expect("alice's token");
+    assert_eq!(
+        alice.refresh_token, "refresh-2",
+        "the rotated refresh token was lost"
+    );
+    assert!(
+        reloaded.get_app("other").is_some(),
+        "the registration was lost"
+    );
+}
+
+/// Two `xr` processes register different apps at the same time; both
+/// registrations are in the file afterwards, on every round.
+#[test]
+fn two_xr_processes_registering_apps_concurrently_keep_both() {
+    for round in 0..10 {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join(".xurl");
+        let children: Vec<_> = ["alpha", "beta"]
+            .into_iter()
+            .map(|name| {
+                common::xr_std_with_store_at(common::xr_bin(), &path)
+                    .args([
+                        "--output",
+                        "json",
+                        "auth",
+                        "apps",
+                        "add",
+                        name,
+                        "--client-id",
+                        "id",
+                        "--client-secret",
+                        "secret",
+                    ])
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .spawn()
+                    .expect("spawn xr")
+            })
+            .collect();
+        for child in children {
+            let out = child.wait_with_output().expect("wait");
+            assert!(
+                out.status.success(),
+                "round {round}: xr failed: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
+        let reloaded = store_at(&path);
+        assert_eq!(
+            reloaded.list_apps(),
+            vec!["alpha".to_string(), "beta".to_string()],
+            "round {round}: a concurrent registration was lost"
+        );
+    }
+}
+
+/// While one thread saves repeatedly, a reader loading the file never sees
+/// a truncated or partial store: what a crash mid-write would otherwise
+/// leave behind.
+#[test]
+fn readers_never_observe_a_partial_store() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = store_at(&path);
+    for i in 0..300 {
+        store.apps.insert(
+            format!("app{i:03}"),
+            App {
+                client_id: "i".repeat(200),
+                client_secret: "s".repeat(200),
+                default_user: String::new(),
+                redirect_uri: String::new(),
+                oauth2_tokens: BTreeMap::new(),
+                oauth1_token: None,
+                bearer_token: None,
+                unnamed_oauth2_token: None,
+            },
+        );
+    }
+    store.save_bearer_token_for_app("app000", "b0").unwrap();
+    let total = store.list_apps().len();
+
+    let stop = Arc::new(AtomicBool::new(false));
+    let reader = {
+        let stop = Arc::clone(&stop);
+        let path = path.clone();
+        std::thread::spawn(move || {
+            let (mut reads, mut partial) = (0u32, 0u32);
+            while !stop.load(Ordering::Relaxed) {
+                let seen = store_at(&path);
+                reads += 1;
+                if seen.load_failed() || seen.list_apps().len() != total {
+                    partial += 1;
+                }
+            }
+            (reads, partial)
+        })
+    };
+    for i in 1..=400 {
+        store
+            .save_bearer_token_for_app("app000", &format!("b{i}"))
+            .unwrap();
+    }
+    stop.store(true, Ordering::Relaxed);
+    let (reads, partial) = reader.join().unwrap();
+    assert!(reads > 0, "the reader never ran");
+    assert_eq!(partial, 0, "{partial} of {reads} reads saw a partial store");
+}
+
+/// A temp file an interrupted save left behind neither blocks the next save
+/// nor survives it.
+#[test]
+fn a_temp_file_from_an_interrupted_save_is_replaced() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut tmp_os = path.as_os_str().to_os_string();
+    tmp_os.push(".tmp");
+    let stale = std::path::PathBuf::from(tmp_os);
+    fs::write(&stale, b"apps: {\n").unwrap();
+
+    let mut store = store_at(&path);
+    store.add_app("alpha", "id", "secret").unwrap();
+
+    assert!(!stale.exists(), "the stale temp file is still there");
+    assert!(store_at(&path).get_app("alpha").is_some());
+}
+
+/// The store and its lock sidecar are `0600` from the moment they exist,
+/// and stay so across saves.
+#[cfg(unix)]
+#[test]
+fn store_and_lock_are_0600_from_first_creation_and_after_every_save() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mode_of = |p: &Path| fs::metadata(p).unwrap().permissions().mode() & 0o777;
+    let mut lock_os = path.as_os_str().to_os_string();
+    lock_os.push(".lock");
+    let lock = std::path::PathBuf::from(lock_os);
+
+    let mut store = store_at(&path);
+    store.add_app("alpha", "id", "secret").unwrap();
+    assert_eq!(mode_of(&path), 0o600, "store mode after first creation");
+    assert_eq!(
+        mode_of(&lock),
+        0o600,
+        "lock sidecar mode after first creation"
+    );
+
+    store.save_bearer_token_for_app("alpha", "b").unwrap();
+    assert_eq!(mode_of(&path), 0o600, "store mode after a later save");
+    assert_eq!(
+        mode_of(&lock),
+        0o600,
+        "lock sidecar mode after a later save"
+    );
+}
+
+/// Two tasks on one runtime each land their write through a locked update.
+#[allow(clippy::result_large_err)]
+#[tokio::test]
+async fn two_tasks_updating_one_store_both_land() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let (first, second) = tokio::join!(
+        TokenStore::update_at(path.clone(), |store| store.add_app("alpha", "id", "secret")),
+        TokenStore::update_at(path.clone(), |store| store.add_app("beta", "id", "secret")),
+    );
+    first.unwrap();
+    second.unwrap();
+    assert_eq!(
+        store_at(&path).list_apps(),
+        vec!["alpha".to_string(), "beta".to_string()]
+    );
+}
+
+/// While another holder keeps the sidecar locked, a `current_thread`
+/// runtime keeps running other tasks; the write lands once the holder lets
+/// go.
+#[allow(clippy::result_large_err)]
+#[tokio::test(flavor = "current_thread")]
+async fn a_held_lock_does_not_park_the_runtime() {
+    use std::sync::atomic::AtomicU32;
+
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut lock_os = path.as_os_str().to_os_string();
+    lock_os.push(".lock");
+    let holder = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(std::path::PathBuf::from(lock_os))
+        .unwrap();
+    holder.lock().unwrap();
+
+    let ticks = Arc::new(AtomicU32::new(0));
+    let ticker = {
+        let ticks = Arc::clone(&ticks);
+        tokio::spawn(async move {
+            loop {
+                ticks.fetch_add(1, Ordering::Relaxed);
+                tokio::task::yield_now().await;
+            }
+        })
+    };
+    let update = tokio::spawn(TokenStore::update_at(path.clone(), |store| {
+        store.add_app("beta", "id", "secret")
+    }));
+
+    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    assert!(
+        !update.is_finished(),
+        "the update completed while the lock was held"
+    );
+    assert!(
+        ticks.load(Ordering::Relaxed) > 0,
+        "the runtime made no progress"
+    );
+
+    holder.unlock().unwrap();
+    drop(holder);
+    update.await.unwrap().unwrap();
+    ticker.abort();
+    assert!(store_at(&path).get_app("beta").is_some());
 }

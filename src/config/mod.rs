@@ -55,6 +55,13 @@ pub struct Config {
     pub http_timeout_secs: u64,
 }
 
+// Compile-time guarantee: `Config` stays shareable across tasks and threads,
+// so the failure surfaces here rather than at a distant call site.
+const _: fn() = || {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    _assert_send_sync::<Config>();
+};
+
 /// Built-in default `OAuth2` redirect URI used when neither the
 /// `REDIRECT_URI` env var nor a stored per-app value is set.
 pub const DEFAULT_REDIRECT_URI: &str = "http://localhost:8080/callback";

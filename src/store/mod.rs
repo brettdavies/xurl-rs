@@ -7,10 +7,14 @@
 //! - `.twurlrc` import (legacy Twitter CLI compatibility)
 //! - Credential backfill from environment variables
 
+mod atomic;
+mod lock;
 mod migration;
 pub mod snapshot;
 mod tokens;
 pub mod types;
+
+pub(crate) use atomic::write_atomically;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -223,24 +227,43 @@ impl TokenStore {
     /// Returns an error if the app name already exists, carries a character
     /// outside `[A-Za-z0-9_.-]`, or the store cannot be saved.
     pub fn add_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
-        // Refuse before mutating, so a rejected registration leaves the
-        // in-memory store exactly as the file described it.
-        self.refuse_if_load_failed()?;
-        if self.apps.contains_key(name) {
-            return Err(XurlError::token_store(format!(
-                "app {name:?} already exists"
-            )));
-        }
+        self.refuse_if_app_present(name)?;
         validate_app_name(name)?;
-        let promote = self.apps.is_empty() || self.default_lacks_credentials();
-        self.apps.insert(
-            name.to_string(),
-            App::with_credentials(client_id, client_secret),
-        );
-        if promote {
-            self.default_app = name.to_string();
+        self.update(|store| {
+            store.refuse_if_app_present(name)?;
+            let promote = store.apps.is_empty() || store.default_lacks_credentials();
+            store.apps.insert(
+                name.to_string(),
+                App::with_credentials(client_id, client_secret),
+            );
+            if promote {
+                store.default_app = name.to_string();
+            }
+            Ok(())
+        })
+    }
+
+    /// The not-found error for `name`, checked on this view before the lock
+    /// is taken and again on disk truth inside it, so a store whose
+    /// directory cannot hold a lock still answers with the app's absence.
+    fn require_app(&self, name: &str) -> Result<()> {
+        if self.apps.contains_key(name) {
+            Ok(())
+        } else {
+            Err(XurlError::token_store(format!("app {name:?} not found")))
         }
-        self.save_to_file()
+    }
+
+    /// The already-exists error for `name`, the registration counterpart of
+    /// [`Self::require_app`].
+    fn refuse_if_app_present(&self, name: &str) -> Result<()> {
+        if self.apps.contains_key(name) {
+            Err(XurlError::token_store(format!(
+                "app {name:?} already exists"
+            )))
+        } else {
+            Ok(())
+        }
     }
 
     /// Whether the current default is a name the new registration should
@@ -261,17 +284,20 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn update_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
-        let app = self
-            .apps
-            .get_mut(name)
-            .ok_or_else(|| XurlError::token_store(format!("app {name:?} not found")))?;
-        if !client_id.is_empty() {
-            app.client_id = client_id.to_string();
-        }
-        if !client_secret.is_empty() {
-            app.client_secret = client_secret.to_string();
-        }
-        self.save_to_file()
+        self.require_app(name)?;
+        self.update(|store| {
+            let app = store
+                .apps
+                .get_mut(name)
+                .ok_or_else(|| XurlError::token_store(format!("app {name:?} not found")))?;
+            if !client_id.is_empty() {
+                app.client_id = client_id.to_string();
+            }
+            if !client_secret.is_empty() {
+                app.client_secret = client_secret.to_string();
+            }
+            Ok(())
+        })
     }
 
     /// Removes a registered application and its tokens.
@@ -280,14 +306,15 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn remove_app(&mut self, name: &str) -> Result<()> {
-        if !self.apps.contains_key(name) {
-            return Err(XurlError::token_store(format!("app {name:?} not found")));
-        }
-        self.apps.remove(name);
-        if self.default_app == name {
-            self.default_app = self.apps.keys().next().cloned().unwrap_or_default();
-        }
-        self.save_to_file()
+        self.require_app(name)?;
+        self.update(|store| {
+            store.require_app(name)?;
+            store.apps.remove(name);
+            if store.default_app == name {
+                store.default_app = store.apps.keys().next().cloned().unwrap_or_default();
+            }
+            Ok(())
+        })
     }
 
     /// Sets the default application by name.
@@ -296,11 +323,12 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn set_default_app(&mut self, name: &str) -> Result<()> {
-        if !self.apps.contains_key(name) {
-            return Err(XurlError::token_store(format!("app {name:?} not found")));
-        }
-        self.default_app = name.to_string();
-        self.save_to_file()
+        self.require_app(name)?;
+        self.update(|store| {
+            store.require_app(name)?;
+            store.default_app = name.to_string();
+            Ok(())
+        })
     }
 
     /// Returns `true` when the currently-resolved default app holds no
@@ -351,8 +379,13 @@ impl TokenStore {
         if !self.default_app_is_uninitialized() {
             return Ok(None);
         }
-        self.set_default_app(candidate_app)?;
-        Ok(Some(candidate_app.to_string()))
+        self.update(|store| {
+            if !store.apps.contains_key(candidate_app) || !store.default_app_is_uninitialized() {
+                return Ok(None);
+            }
+            store.default_app = candidate_app.to_string();
+            Ok(Some(candidate_app.to_string()))
+        })
     }
 
     /// Returns sorted app names.
@@ -373,14 +406,25 @@ impl TokenStore {
     ///
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
-        let app = self.resolve_app_mut(app_name);
-        if !app.oauth2_tokens.contains_key(username) {
+        if !self
+            .resolve_app(app_name)
+            .oauth2_tokens
+            .contains_key(username)
+        {
             return Err(XurlError::token_store(format!(
                 "user {username:?} not found in app"
             )));
         }
-        app.default_user = username.to_string();
-        self.save_to_file()
+        self.update(|store| {
+            let app = store.resolve_app_mut(app_name);
+            if !app.oauth2_tokens.contains_key(username) {
+                return Err(XurlError::token_store(format!(
+                    "user {username:?} not found in app"
+                )));
+            }
+            app.default_user = username.to_string();
+            Ok(())
+        })
     }
 
     /// Returns the default `OAuth2` user for the named (or default) app.
@@ -401,21 +445,20 @@ impl TokenStore {
     ///
     /// Returns an error if the URI fails validation or the store cannot be saved.
     pub fn set_app_redirect_uri(&mut self, name: &str, uri: &str) -> Result<()> {
-        if !name.is_empty() && !self.apps.contains_key(name) {
-            return Err(XurlError::token_store(format!("app {name:?} not found")));
+        if !name.is_empty() {
+            self.require_app(name)?;
         }
-
-        if uri.is_empty() {
-            let app = self.resolve_app_mut(name);
-            app.redirect_uri.clear();
-            return self.save_to_file();
+        if !uri.is_empty() {
+            let _ = crate::config::Config::validate_redirect_uri(uri)?;
         }
-
-        let _ = crate::config::Config::validate_redirect_uri(uri)?;
-
-        let app = self.resolve_app_mut(name);
-        app.redirect_uri = uri.to_string();
-        self.save_to_file()
+        self.update(|store| {
+            if !name.is_empty() {
+                store.require_app(name)?;
+            }
+            let app = store.resolve_app_mut(name);
+            app.redirect_uri = uri.to_string();
+            Ok(())
+        })
     }
 
     /// Returns the stored `OAuth2` redirect URI for the named (or default) app.
@@ -499,7 +542,81 @@ impl TokenStore {
 
     // ── Persistence ──────────────────────────────────────────────────
 
-    /// Saves the token store to `~/.xurl` in YAML format.
+    /// Applies `f` to the on-disk state and persists the result, holding the
+    /// sidecar lock across the whole read-modify-write.
+    ///
+    /// The file is re-read once the lock is held, so `f` sees every write
+    /// another process or another loaded view of this store has made. A
+    /// backfilled client id or secret is the one piece of in-memory state a
+    /// reload keeps: an app whose on-disk credential is empty keeps the value
+    /// this store holds for it, as [`Self::new_with_credentials_and_path`]
+    /// promises. Mutators called from inside `f` run under the same lock.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the lock cannot be taken, the file exists but
+    /// cannot be loaded, `f` fails, or the save fails. When `f` fails, the
+    /// file is left as it was.
+    pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
+        let lock = lock::StoreLock::acquire(&self.file_path)?;
+        if lock.is_reentrant() {
+            return f(self);
+        }
+        self.reload_locked();
+        self.refuse_if_load_failed()?;
+        let out = f(self)?;
+        self.save_to_file()?;
+        Ok(out)
+    }
+
+    /// Runs [`Self::update`] for the store at `path` on tokio's blocking
+    /// pool, so a lock another process holds never parks the runtime thread.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Self::update`] returns, plus an internal error when the
+    /// blocking task cannot be joined.
+    pub async fn update_at<R, F>(path: PathBuf, f: F) -> Result<R>
+    where
+        F: FnOnce(&mut Self) -> Result<R> + Send + 'static,
+        R: Send + 'static,
+    {
+        tokio::task::spawn_blocking(move || {
+            let mut store = Self::new_with_path(&path.to_string_lossy());
+            store.update(f)
+        })
+        .await
+        .map_err(|e| XurlError::Internal(format!("store update task failed: {e}")))?
+    }
+
+    /// Re-reads the backing file, keeping a backfilled credential where the
+    /// file carries none.
+    fn reload_locked(&mut self) {
+        let held: Vec<(String, String, String)> = self
+            .apps
+            .iter()
+            .map(|(name, app)| {
+                (
+                    name.clone(),
+                    app.client_id.clone(),
+                    app.client_secret.clone(),
+                )
+            })
+            .collect();
+        self.load_backing_file();
+        for (name, client_id, client_secret) in held {
+            if let Some(app) = self.apps.get_mut(&name) {
+                if app.client_id.is_empty() {
+                    app.client_id = client_id;
+                }
+                if app.client_secret.is_empty() {
+                    app.client_secret = client_secret;
+                }
+            }
+        }
+    }
+
+    /// Writes the store to its file as YAML, atomically and `0600`.
     pub(crate) fn save_to_file(&self) -> Result<()> {
         self.refuse_if_load_failed()?;
         let sf = types::StoreFile {
@@ -507,16 +624,7 @@ impl TokenStore {
             default_app: self.default_app.clone(),
         };
         let data = serde_yaml::to_string(&sf).map_err(|e| XurlError::Json(e.to_string()))?;
-        fs::write(&self.file_path, data)?;
-
-        // Match Go's 0600 permissions
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o600);
-            fs::set_permissions(&self.file_path, perms)?;
-        }
-
+        write_atomically(&self.file_path, data.as_bytes())?;
         Ok(())
     }
 }

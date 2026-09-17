@@ -164,6 +164,13 @@ pub enum XurlError {
     },
 }
 
+// Compile-time guarantee: `XurlError` stays shareable across tasks and threads,
+// so the failure surfaces here rather than at a distant call site.
+const _: fn() = || {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    _assert_send_sync::<XurlError>();
+};
+
 /// Builds the user-facing message that fills both the `Display` output and
 /// the JSON envelope's `message` field for `AuthMethodMismatch`.
 ///
