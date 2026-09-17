@@ -340,7 +340,6 @@ async fn run_raw_mode(
         username: cli.username.clone().unwrap_or_default(),
         no_auth: false,
         trace: cli.trace,
-        pagination_token: cli.cursor.clone().unwrap_or_default(),
     };
 
     // Check for media append request

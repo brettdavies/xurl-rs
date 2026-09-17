@@ -94,12 +94,6 @@ pub struct RequestOptions {
     pub no_auth: bool,
     /// Emit the `X-B3-Flags: 1` header to flag the request for upstream tracing.
     pub trace: bool,
-    /// Cursor / `pagination_token` query parameter for list endpoints.
-    ///
-    /// Threaded in from the global `--cursor` / `--after` flag (or
-    /// `XURL_CURSOR` / `XURL_AFTER` env vars). List shortcuts append it to
-    /// the URL when non-empty; non-paginated endpoints ignore it.
-    pub pagination_token: String,
 }
 
 /// Default request timeout in seconds when none is supplied.
