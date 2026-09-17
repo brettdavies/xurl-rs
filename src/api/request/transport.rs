@@ -11,7 +11,7 @@ use reqwest::multipart;
 
 use crate::error::{Error, Result};
 
-use super::{ApiClient, MultipartOptions, RequestOptions};
+use super::{Client, MultipartOptions, RequestOptions};
 
 /// Target of the wire diagnostics: one `DEBUG` event per request line
 /// (`kind = "request"`, `method`, `url`), response status (`kind =
@@ -20,7 +20,7 @@ use super::{ApiClient, MultipartOptions, RequestOptions};
 /// note (`kind = "note"`, message), in the order a subscriber prints them.
 pub const WIRE_TARGET: &str = "xurl::wire";
 
-impl ApiClient {
+impl Client {
     /// Sends a regular API request and returns the JSON response.
     ///
     /// # Errors
@@ -28,6 +28,17 @@ impl ApiClient {
     /// Returns an error if the HTTP method is invalid, the request fails,
     /// or the API returns an error status (>= 400).
     pub async fn send_request(&self, options: &RequestOptions) -> Result<serde_json::Value> {
+        self.send_request_with(options, self.request_timeout())
+            .await
+    }
+
+    /// [`Self::send_request`] with `timeout` bounding this one request in
+    /// place of the client-level bound.
+    pub(crate) async fn send_request_with(
+        &self,
+        options: &RequestOptions,
+        timeout: std::time::Duration,
+    ) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header` (called
@@ -41,10 +52,7 @@ impl ApiClient {
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
-        let mut builder = self
-            .http()
-            .request(req_method.clone(), &url)
-            .timeout(self.request_timeout());
+        let mut builder = self.http().request(req_method, &url).timeout(timeout);
 
         // Add body for POST/PUT/PATCH. Content-Type is xurl's auto-detect
         // unless the caller already supplied one; the body itself is always
@@ -76,8 +84,7 @@ impl ApiClient {
         // resolution fails (e.g., TokenNotFound for the resolved app),
         // propagate the error so the user sees the real problem instead of
         // letting the request go out unauthenticated and surfacing as a
-        // confusing 401 from upstream. The older "silently skip on Err" form
-        // let auth bugs masquerade as upstream auth rejections.
+        // confusing 401 from upstream.
         if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
             let auth_header = self.get_auth_header(options).await?;
             builder = builder.header("Authorization", auth_header);
@@ -363,7 +370,7 @@ impl Stream for StreamLines {
             }
             if self.done {
                 let rest = std::mem::take(&mut self.buf);
-                let line = String::from_utf8_lossy(&rest).into_owned();
+                let line = String::from_utf8_lossy(&rest);
                 let line = line.trim_end_matches('\r').to_string();
                 return Poll::Ready((!line.is_empty()).then_some(Ok(line)));
             }

@@ -15,9 +15,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use std::collections::HashMap;
 
+use xurl::api::auth_matrix::WireScheme;
 use xurl::api::{
-    self, ApiClient, CallOptions, RequestOptions, RequestTarget, extract_media_id,
-    extract_segment_index, is_media_append_request, is_streaming_endpoint,
+    self, Client, RequestOptions, RequestTarget, extract_media_id, extract_segment_index,
+    is_media_append_request, is_streaming_endpoint,
 };
 use xurl::auth::Auth;
 use xurl::config::Config;
@@ -292,10 +293,6 @@ fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-fn base_call_opts() -> CallOptions {
-    CallOptions::default()
-}
-
 /// Builds a `RequestTarget::Template` from a path with no params or query.
 ///
 /// Keeps the test-side ergonomics close to the pre-U4 `endpoint:
@@ -373,7 +370,7 @@ async fn test_new_api_client() {
     let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let _client = ApiClient::new(&cfg, auth).expect("client builds");
+    let _client = Client::new(&cfg, auth).expect("client builds");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -396,7 +393,7 @@ async fn test_build_request_get() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -424,7 +421,7 @@ async fn test_build_request_post() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "POST".to_string(),
@@ -458,7 +455,7 @@ async fn test_build_request_with_auth_bearer() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -485,7 +482,7 @@ async fn test_build_request_with_auth_oauth1() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -512,7 +509,7 @@ async fn test_build_request_with_auth_oauth2() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth2(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -544,7 +541,7 @@ async fn test_send_request_success() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -573,7 +570,7 @@ async fn test_send_request_http_error() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -599,7 +596,7 @@ async fn test_send_request_json_parse_error() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // Non-JSON 200 response returns empty JSON object
     let resp = client
@@ -633,7 +630,7 @@ async fn slow_endpoint_trips_explicit_timeout() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::with_timeout(&cfg, auth, 1).expect("client builds");
+    let client = Client::with_timeout(&cfg, auth, 1).expect("client builds");
     assert_eq!(client.timeout_secs(), 1);
 
     let started = std::time::Instant::now();
@@ -659,12 +656,12 @@ async fn slow_endpoint_trips_explicit_timeout() {
 
 #[test]
 fn config_default_timeout_carries_through_apiclient_new() {
-    // Regression guard for the runner-to-ApiClient timeout plumbing: the value
-    // on `Config::http_timeout_secs` must drive `ApiClient::timeout_secs()`.
+    // Regression guard for the runner-to-Client timeout plumbing: the value
+    // on `Config::http_timeout_secs` must drive `Client::timeout_secs()`.
     let mut cfg = create_test_config("http://127.0.0.1:9");
     cfg.http_timeout_secs = 7;
     let (auth, _tmp) = create_mock_auth_with_all_methods("http://127.0.0.1:9");
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
     assert_eq!(client.timeout_secs(), 7);
 }
 
@@ -729,10 +726,11 @@ async fn test_env_bearer_counts_as_app_scheme_on_empty_store() {
         ..xurl::config::EnvOverrides::default()
     };
     let auth = Auth::new_with_store_path_and_overrides(&cfg, &store_path, &overrides);
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
-        .search_posts("hello", 10, &base_call_opts())
+        .search_posts("hello", 10)
+        .send()
         .await
         .expect("env bearer must satisfy auto-detect on an empty store");
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
@@ -756,12 +754,9 @@ async fn test_create_post() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .create_post("Hello!", &[], &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.create_post("Hello!", &[]).send().await.unwrap();
     assert_eq!(resp.data.id, "99999");
     assert_eq!(resp.data.text, "Hello!");
 }
@@ -780,10 +775,11 @@ async fn test_reply_to_post() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
-        .reply_to_post("123", "nice!", &[], &base_call_opts())
+        .reply_to_post("123", "nice!", &[])
+        .send()
         .await
         .unwrap();
     assert_eq!(resp.data.id, "88888");
@@ -804,15 +800,11 @@ async fn test_reply_to_post_with_url() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
-        .reply_to_post(
-            "https://x.com/u/status/123",
-            "reply via URL",
-            &[],
-            &base_call_opts(),
-        )
+        .reply_to_post("https://x.com/u/status/123", "reply via URL", &[])
+        .send()
         .await
         .unwrap();
     assert_eq!(resp.data.id, "77777");
@@ -832,12 +824,9 @@ async fn test_quote_post() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .quote_post("123", "my take", &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.quote_post("123", "my take").send().await.unwrap();
     assert_eq!(resp.data.id, "66666");
 }
 
@@ -855,9 +844,9 @@ async fn test_delete_post() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.delete_post("123", &base_call_opts()).await.unwrap();
+    let resp = client.delete_post("123").send().await.unwrap();
     assert!(resp.data.deleted);
 }
 
@@ -871,9 +860,9 @@ async fn test_read_post() {
     ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.read_post("123", &base_call_opts()).await.unwrap();
+    let resp = client.read_post("123").send().await.unwrap();
     assert_eq!(resp.data.id, "123");
     assert_eq!(resp.data.text, "existing post");
 }
@@ -888,16 +877,13 @@ async fn test_search_posts() {
     ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .search_posts("golang", 10, &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.search_posts("golang", 10).send().await.unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
 }
 
-/// Threads `CallOptions::pagination_token` through to the
+/// Threads `Call::pagination_token` through to the
 /// `pagination_token` query parameter on the search URL — wiremock asserts
 /// the parameter is present and carries the URL-decoded token.
 #[tokio::test]
@@ -914,13 +900,14 @@ async fn test_search_posts_threads_pagination_token() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let opts = CallOptions {
-        pagination_token: "next_abc_token".into(),
-        ..base_call_opts()
-    };
-    let resp = client.search_posts("golang", 10, &opts).await.unwrap();
+    let resp = client
+        .search_posts("golang", 10)
+        .pagination_token("next_abc_token")
+        .send()
+        .await
+        .unwrap();
     assert_eq!(resp.data.first().unwrap().id, "2");
 }
 
@@ -940,13 +927,14 @@ async fn test_search_posts_url_encodes_pagination_token() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let opts = CallOptions {
-        pagination_token: "page 2".into(),
-        ..base_call_opts()
-    };
-    let resp = client.search_posts("golang", 10, &opts).await.unwrap();
+    let resp = client
+        .search_posts("golang", 10)
+        .pagination_token("page 2")
+        .send()
+        .await
+        .unwrap();
     assert_eq!(resp.data.first().unwrap().id, "3");
 }
 
@@ -963,9 +951,9 @@ async fn test_get_me() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_me(&base_call_opts()).await.unwrap();
+    let resp = client.get_me().send().await.unwrap();
     assert_eq!(resp.data.id, "42");
     assert_eq!(resp.data.username, "testbot");
 }
@@ -983,12 +971,9 @@ async fn test_lookup_user() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .lookup_user("@someuser", &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.lookup_user("@someuser").send().await.unwrap();
     assert_eq!(resp.data.id, "100");
     assert_eq!(resp.data.username, "lookedup");
 }
@@ -1007,11 +992,12 @@ async fn test_create_post_with_media() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let media_ids = vec!["m1".to_string(), "m2".to_string()];
     let resp = client
-        .create_post("With media", &media_ids, &base_call_opts())
+        .create_post("With media", &media_ids)
+        .send()
         .await
         .unwrap();
     assert_eq!(resp.data.id, "55555");
@@ -1068,7 +1054,7 @@ async fn test_media_upload_init() {
     ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client.send_request(&RequestOptions {
         method: "POST".to_string(),
@@ -1092,7 +1078,7 @@ async fn test_media_upload_finalize() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -1119,7 +1105,7 @@ async fn test_media_upload_check_status() {
     ).await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -1152,7 +1138,7 @@ async fn test_stream_request_error() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .stream_request(&RequestOptions {
@@ -1242,9 +1228,9 @@ async fn test_get_usage_happy_path() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await.unwrap();
+    let resp = client.get_usage().send().await.unwrap();
     assert_eq!(resp.data.project_cap.as_deref(), Some("2000000"));
     assert_eq!(resp.data.project_usage.as_deref(), Some("399"));
     assert_eq!(resp.data.cap_reset_day, Some(19));
@@ -1281,9 +1267,9 @@ async fn test_get_usage_requires_usage_fields_query_param() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await.unwrap();
+    let resp = client.get_usage().send().await.unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("42"));
 }
 
@@ -1302,9 +1288,9 @@ async fn test_get_usage_uses_get_method() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await;
+    let resp = client.get_usage().send().await;
     assert!(resp.is_ok());
 }
 
@@ -1325,9 +1311,9 @@ async fn test_get_usage_api_error_401() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await;
+    let resp = client.get_usage().send().await;
     assert!(resp.is_err());
 }
 
@@ -1348,9 +1334,9 @@ async fn test_get_usage_api_error_429() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await;
+    let resp = client.get_usage().send().await;
     assert!(resp.is_err());
 }
 
@@ -1372,9 +1358,9 @@ async fn test_get_usage_with_bearer() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await.unwrap();
+    let resp = client.get_usage().send().await.unwrap();
     assert_eq!(resp.data.project_usage.as_deref(), Some("10"));
 }
 
@@ -1393,9 +1379,9 @@ async fn test_get_usage_rejects_oauth_only_app() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_usage(&base_call_opts()).await.unwrap_err();
+    let err = client.get_usage().send().await.unwrap_err();
     match err {
         xurl::Error::AuthMethodMismatch {
             endpoint,
@@ -1434,9 +1420,9 @@ async fn test_get_usage_daily_project_usage_structure() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await.unwrap();
+    let resp = client.get_usage().send().await.unwrap();
     let daily_val = resp.data.daily_project_usage.as_ref().unwrap();
     let usage = &daily_val["usage"];
     assert!(usage.is_array());
@@ -1472,9 +1458,9 @@ async fn test_get_usage_daily_client_app_usage_structure() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client.get_usage(&base_call_opts()).await.unwrap();
+    let resp = client.get_usage().send().await.unwrap();
     let apps = resp
         .data
         .daily_client_app_usage
@@ -1502,10 +1488,10 @@ async fn test_get_usage_clears_request_data() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    // CallOptions has no data field, so stale data can't leak — verify the call succeeds
-    let resp = client.get_usage(&base_call_opts()).await;
+    // A GET call carries no body, so stale data can't leak — verify the call succeeds
+    let resp = client.get_usage().send().await;
     assert!(resp.is_ok());
 }
 
@@ -1528,9 +1514,9 @@ async fn redteam_create_post_array_where_object_expected() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.create_post("test", &[], &base_call_opts()).await;
+    let result = client.create_post("test", &[]).send().await;
     assert!(
         result.is_err(),
         "Should fail: array where single Post expected"
@@ -1552,9 +1538,9 @@ async fn redteam_get_me_no_data_field() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts()).await;
+    let result = client.get_me().send().await;
     let err = result.unwrap_err();
     assert!(
         err.is_validation(),
@@ -1577,9 +1563,9 @@ async fn redteam_delete_post_wrong_type_in_data() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.delete_post("123", &base_call_opts()).await;
+    let result = client.delete_post("123").send().await;
     assert!(
         result.is_err(),
         "Should fail: string where DeletedResult expected"
@@ -1600,9 +1586,9 @@ async fn redteam_search_posts_null_data() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.search_posts("test", 10, &base_call_opts()).await;
+    let result = client.search_posts("test", 10).send().await;
     assert!(result.is_err(), "Should fail: null data for Vec<Post>");
 }
 
@@ -1618,9 +1604,9 @@ async fn redteam_empty_body_returns_descriptive_error() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts()).await;
+    let result = client.get_me().send().await;
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(
@@ -1648,12 +1634,9 @@ async fn redteam_unknown_fields_survive_shortcut_round_trip() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .create_post("Hello!", &[], &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.create_post("Hello!", &[]).send().await.unwrap();
     assert_eq!(resp.data.id, "99999");
     // Unknown fields preserved in extra
     assert_eq!(resp.data.extra["brand_new_field"], "surprise_value");
@@ -1679,12 +1662,9 @@ async fn redteam_like_post_extra_fields_on_action() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let resp = client
-        .like_post("42", "123", &base_call_opts())
-        .await
-        .unwrap();
+    let resp = client.like_post("42", "123").send().await.unwrap();
     assert!(resp.data.liked);
     // Unknown fields captured, not lost
     assert_eq!(resp.data.extra["pending_follow"], false);
@@ -1705,10 +1685,10 @@ async fn redteam_lookup_user_wrong_bool_type() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // verified is Option<bool> — "true" (string) should fail deserialization
-    let result = client.lookup_user("bad", &base_call_opts()).await;
+    let result = client.lookup_user("bad").send().await;
     assert!(
         result.is_err(),
         "Should fail: string 'true' where bool expected"
@@ -1726,7 +1706,7 @@ fn test_from_env_missing_client_id_returns_validation_error() {
     let original = std::env::var("CLIENT_ID").ok();
     unsafe { std::env::remove_var("CLIENT_ID") };
 
-    let result = ApiClient::from_env();
+    let result = Client::from_env();
     let err = match result {
         Err(e) => e,
         Ok(_) => panic!("Expected error when CLIENT_ID is missing"),
@@ -1752,7 +1732,7 @@ fn test_from_env_empty_client_id_returns_validation_error() {
     let original = std::env::var("CLIENT_ID").ok();
     unsafe { std::env::set_var("CLIENT_ID", "") };
 
-    let result = ApiClient::from_env();
+    let result = Client::from_env();
     let err = match result {
         Err(e) => e,
         Ok(_) => panic!("Expected error when CLIENT_ID is empty"),
@@ -1777,7 +1757,7 @@ fn test_from_env_with_client_id_set_returns_ok() {
         std::env::set_var("CLIENT_SECRET", "test-secret");
     }
 
-    let result = ApiClient::from_env();
+    let result = Client::from_env();
     assert!(
         result.is_ok(),
         "from_env() should succeed with CLIENT_ID set"
@@ -1805,7 +1785,7 @@ fn test_from_env_with_client_id_but_no_secret_returns_ok() {
         std::env::remove_var("CLIENT_SECRET");
     }
 
-    let result = ApiClient::from_env();
+    let result = Client::from_env();
     assert!(
         result.is_ok(),
         "from_env() should succeed without CLIENT_SECRET (best-effort)"
@@ -1826,36 +1806,9 @@ fn test_from_env_with_client_id_but_no_secret_returns_ok() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn test_no_auth_skips_authorization_header() {
-    // With no_auth=true, the request should NOT include an Authorization header.
-    // The mock only succeeds if NO Authorization header is present.
-    let ts = TestServer::new().await;
-    ts.mount(
-        Mock::given(method("GET"))
-            .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data": {"id": "123", "name": "Test", "username": "test"}}),
-            )),
-    )
-    .await;
-
-    let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
-
-    let opts = CallOptions {
-        no_auth: true,
-        ..CallOptions::default()
-    };
-    // Should succeed — no_auth skips get_auth_header entirely
-    let result = client.get_me(&opts).await;
-    assert!(result.is_ok(), "no_auth=true should not fail: {result:?}");
-}
-
-#[tokio::test]
-async fn test_no_auth_false_includes_authorization_header() {
-    // With no_auth=false (default), the Authorization header should be present.
-    // The mock requires an Authorization header via header_exists matcher.
+async fn test_shortcut_calls_include_authorization_header() {
+    // Every shortcut call attaches the Authorization header; the mock
+    // requires it via the header_exists matcher.
     use wiremock::matchers::header_exists;
 
     let ts = TestServer::new().await;
@@ -1871,13 +1824,12 @@ async fn test_no_auth_false_includes_authorization_header() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let opts = CallOptions::default();
-    let result = client.get_me(&opts).await;
+    let result = client.get_me().send().await;
     assert!(
         result.is_ok(),
-        "Default (no_auth=false) should include auth header: {result:?}"
+        "a shortcut call carries the auth header: {result:?}"
     );
 }
 
@@ -1901,7 +1853,7 @@ async fn test_no_auth_with_raw_send_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -1929,7 +1881,7 @@ async fn test_no_auth_with_raw_send_request() {
 
     let cfg2 = create_test_config(ts2.uri());
     let (auth2, _tmp2) = create_mock_auth_with_all_methods(ts2.uri());
-    let client2 = ApiClient::new(&cfg2, auth2).expect("client builds");
+    let client2 = Client::new(&cfg2, auth2).expect("client builds");
 
     let opts2 = RequestOptions {
         method: "GET".to_string(),
@@ -1971,7 +1923,7 @@ async fn user_supplied_authorization_replaces_xurl_auth_on_send_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2011,7 +1963,7 @@ async fn user_supplied_authorization_detection_is_case_insensitive() {
 
         let cfg = create_test_config(ts.uri());
         let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-        let client = ApiClient::new(&cfg, auth).expect("client builds");
+        let client = Client::new(&cfg, auth).expect("client builds");
 
         let opts = RequestOptions {
             method: "GET".to_string(),
@@ -2048,7 +2000,7 @@ async fn no_auth_with_user_supplied_authorization_sends_users_value() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2085,7 +2037,7 @@ async fn user_supplied_authorization_does_not_affect_other_custom_headers() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // Non-Authorization custom headers must NOT suppress xurl's auth append.
     let opts = RequestOptions {
@@ -2136,7 +2088,7 @@ async fn user_supplied_authorization_replaces_xurl_auth_on_multipart_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2179,7 +2131,7 @@ async fn user_supplied_authorization_replaces_xurl_auth_on_stream_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2217,7 +2169,7 @@ async fn user_supplied_user_agent_replaces_xurl_user_agent_on_send_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2253,7 +2205,7 @@ async fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // Payload looks like JSON, so xurl would normally set application/json.
     // The user-supplied Content-Type must win.
@@ -2279,43 +2231,6 @@ async fn user_supplied_content_type_replaces_xurl_content_type_on_post() {
 }
 
 #[tokio::test]
-async fn user_supplied_x_b3_flags_replaces_xurl_value_with_trace_on() {
-    let ts = TestServer::new().await;
-    ts.mount(
-        Mock::given(method("GET"))
-            .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                serde_json::json!({"data": {"id": "1", "name": "Test", "username": "test"}}),
-            )),
-    )
-    .await;
-
-    let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
-
-    let opts = RequestOptions {
-        method: "GET".to_string(),
-        target: target_path("/2/users/me"),
-        trace: true,
-        headers: vec!["X-B3-Flags: 0".to_string()],
-        ..Default::default()
-    };
-    client
-        .send_request(&opts)
-        .await
-        .expect("request must succeed with user-supplied X-B3-Flags + trace");
-
-    let flags = ts.received_header_values("X-B3-Flags").await;
-    assert_eq!(
-        flags[0],
-        vec!["0".to_string()],
-        "user-supplied X-B3-Flags must win over trace=true append — got {:?}",
-        flags[0]
-    );
-}
-
-#[tokio::test]
 async fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
     use xurl::api::MultipartOptions;
 
@@ -2332,7 +2247,7 @@ async fn user_supplied_user_agent_replaces_xurl_value_on_multipart_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2373,7 +2288,7 @@ async fn user_supplied_user_agent_replaces_xurl_value_on_stream_request() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2412,7 +2327,7 @@ async fn xurl_default_user_agent_is_sent_when_not_overridden() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let opts = RequestOptions {
         method: "GET".to_string(),
@@ -2452,15 +2367,17 @@ async fn redteam_no_auth_with_auth_type_set_silently_skips_auth() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let opts = CallOptions {
+    let opts = RequestOptions {
+        method: "GET".to_string(),
+        target: target_path("/2/users/me"),
         auth_type: "oauth2".to_string(),
         no_auth: true,
-        ..CallOptions::default()
+        ..Default::default()
     };
     // Should succeed — no_auth takes precedence over auth_type
-    let result = client.get_me(&opts).await;
+    let result = client.send_request(&opts).await;
     assert!(
         result.is_ok(),
         "no_auth=true should take precedence over auth_type: {result:?}"
@@ -2492,20 +2409,18 @@ async fn redteam_sequential_calls_on_same_client() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
-
-    let opts = base_call_opts();
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // First call
-    let me = client.get_me(&opts).await.unwrap();
+    let me = client.get_me().send().await.unwrap();
     assert_eq!(me.data.id, "42");
 
     // Second call on same client — auth should still work
-    let post = client.create_post("hi", &[], &opts).await.unwrap();
+    let post = client.create_post("hi", &[]).send().await.unwrap();
     assert_eq!(post.data.id, "99");
 
     // Third call — still works
-    let me2 = client.get_me(&opts).await.unwrap();
+    let me2 = client.get_me().send().await.unwrap();
     assert_eq!(me2.data.id, "42");
 }
 
@@ -2526,9 +2441,9 @@ async fn redteam_api_error_preserves_status_and_body() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me(&base_call_opts()).await;
+    let result = client.get_me().send().await;
     let err = result.unwrap_err();
     assert!(err.is_api());
     // Verify structured error carries status
@@ -2559,9 +2474,9 @@ async fn redteam_api_error_401_gives_auth_exit_code() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_me(&base_call_opts()).await.unwrap_err();
+    let err = client.get_me().send().await.unwrap_err();
     assert_eq!(
         exit_code_for_error(&err),
         xurl::error::EXIT_AUTH_REQUIRED,
@@ -2586,9 +2501,9 @@ async fn redteam_api_error_429_gives_rate_limit_exit_code() {
 
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let err = client.get_me(&base_call_opts()).await.unwrap_err();
+    let err = client.get_me().send().await.unwrap_err();
     assert_eq!(
         exit_code_for_error(&err),
         xurl::error::EXIT_RATE_LIMITED,
@@ -2598,7 +2513,7 @@ async fn redteam_api_error_429_gives_rate_limit_exit_code() {
 
 // ── TestAuthErrorPropagation (Bug B) ──────────────────────────────────────
 //
-// `ApiClient::send_request` (and its sibling paths) must propagate the
+// `Client::send_request` (and its sibling paths) must propagate the
 // `get_auth_header` error rather than silently sending the request
 // unauthenticated. The older `if let Ok(...)` form let auth bugs masquerade
 // as upstream 401s; the new path returns the real `Error::Auth` so the
@@ -2647,7 +2562,7 @@ async fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     // is the one that surfaces the missing-credential error.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -2670,16 +2585,18 @@ async fn auth_error_propagates_for_oauth2_path_with_no_token() {
     let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let mut opts = base_call_opts();
-    opts.auth_type = "oauth2".to_string();
     // get_me with --auth oauth2 and an explicit username triggers the
-    // named-caller branch; with no stored token the flow attempts to start
-    // an interactive OAuth2 PKCE flow which fails (no DISPLAY in tests).
-    // The end state is `Error::Auth`, not a request to wiremock.
-    opts.username = "ghost-user".to_string();
-    let err = client.get_me(&opts).await.unwrap_err();
+    // named-caller branch; with no stored token the end state is
+    // `Error::Auth`, not a request to wiremock.
+    let err = client
+        .get_me()
+        .auth(WireScheme::OAuth2)
+        .username("ghost-user")
+        .send()
+        .await
+        .unwrap_err();
     // Accept either the TokenNotFound from refresh_oauth2_token or any
     // browser-open / network error from the implicit PKCE flow that fires
     // when no token is cached. The point of this test is that the call
@@ -2716,7 +2633,7 @@ async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
     // request count would tick to 1, breaking the assertion.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -2779,7 +2696,7 @@ async fn u6_ae2_passthrough_oauth1_against_media_upload() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -2814,7 +2731,7 @@ async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let mp_opts = MultipartOptions {
         request: RequestOptions {
@@ -2864,7 +2781,7 @@ async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
 
 /// AE1 mirror for the streaming send path.
 ///
-/// `ApiClient::stream_request` wires the same fail-fast validator as
+/// `Client::stream_request` wires the same fail-fast validator as
 /// `send_request`. Bearer-only app + `--auth app` against a streaming
 /// endpoint that only accepts OAuth1/OAuth2 must surface
 /// `AuthMethodMismatch` before any socket is opened. The CLI streaming
@@ -2876,7 +2793,7 @@ async fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
     let ts = TestServer::new().await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // /2/media/upload accepts OAuth2 + OAuth1 but rejects Bearer. Even
     // though it isn't a "real" streaming endpoint, stream_request applies
@@ -2924,7 +2841,7 @@ async fn u6_ae1_explicit_mismatch_app_against_streaming_endpoint() {
 ///
 /// The CLI streaming wrapper switched from `if let Ok(auth_header) = ...`
 /// (silently swallowing every auth error) to `?` propagation. The library
-/// `ApiClient::stream_request` shares the contract: when auth resolution
+/// `Client::stream_request` shares the contract: when auth resolution
 /// fails (e.g. token-not-found on the active app), the error must surface
 /// rather than the request going out unauthenticated.
 #[tokio::test]
@@ -2944,7 +2861,7 @@ async fn u7_streaming_propagates_auth_resolution_errors() {
             load_state: xurl::store::LoadState::Loaded,
         },
     );
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .stream_request(&RequestOptions {
@@ -2985,7 +2902,7 @@ async fn u6_ae5_raw_url_skips_validation() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let raw_url = format!("{}/2/media/upload", ts.uri());
     let resp = client
@@ -3022,7 +2939,7 @@ async fn u7_ae3_auto_detect_oauth1_only_app() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_oauth1(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -3056,7 +2973,7 @@ async fn u7_ae4_auto_detect_empty_intersection_envelope() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_bearer(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {
@@ -3121,7 +3038,7 @@ async fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let resp = client
         .send_request(&RequestOptions {
@@ -3157,7 +3074,7 @@ async fn u7_no_stored_credentials_returns_auth_required() {
             load_state: xurl::store::LoadState::Loaded,
         },
     );
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
         .send_request(&RequestOptions {

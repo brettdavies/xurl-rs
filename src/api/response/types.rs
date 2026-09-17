@@ -427,6 +427,12 @@ pub struct UsageCreditsData {
 pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     value: Value,
 ) -> crate::error::Result<ApiResponse<T>> {
+    decode(value)
+}
+
+/// Decodes a response body into `T` with the empty-body and errors-only
+/// checks of [`deserialize_response`].
+pub(crate) fn decode<T: serde::de::DeserializeOwned>(value: Value) -> crate::error::Result<T> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
         return Err(crate::error::Error::Json(
             "empty response body — expected JSON with a \"data\" field".to_string(),

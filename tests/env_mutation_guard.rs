@@ -48,22 +48,22 @@ const ALLOWLIST: &[Allowed] = &[
     Allowed {
         file: "api_tests.rs",
         test: "test_from_env_missing_client_id_returns_validation_error",
-        reason: "ApiClient::from_env's contract is reading the environment",
+        reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
         file: "api_tests.rs",
         test: "test_from_env_empty_client_id_returns_validation_error",
-        reason: "ApiClient::from_env's contract is reading the environment",
+        reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
         file: "api_tests.rs",
         test: "test_from_env_with_client_id_set_returns_ok",
-        reason: "ApiClient::from_env's contract is reading the environment",
+        reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
         file: "api_tests.rs",
         test: "test_from_env_with_client_id_but_no_secret_returns_ok",
-        reason: "ApiClient::from_env's contract is reading the environment",
+        reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
         file: "config_tests.rs",

@@ -6,7 +6,7 @@ use std::io::{IsTerminal, Write};
 use serde_json::json;
 
 use super::{AuthCtx, AuthGlobalFlags};
-use crate::api::ApiClient;
+use crate::api::Client;
 use crate::auth::Auth;
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::{CommandResult, Failure};
@@ -57,11 +57,11 @@ pub(super) async fn oauth2(
         return Ok(());
     }
     let username_arg = username.as_deref().unwrap_or("");
-    let client = ApiClient::new(cfg, auth)?;
+    let client = Client::new(cfg, auth)?;
     // Refuse before any URL is built or pending file written when the
     // target app has no client id to sign in with.
     let refusal = {
-        let auth = client.auth().await;
+        let auth = client.auth().await?;
         client_credentials_missing(&auth, app_explicit, out.format.is_structured())
     };
     if let Some(body) = refusal {
@@ -107,7 +107,7 @@ pub(super) async fn oauth2(
         out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
     } else {
         let pending_path = crate::auth::pending::pending_path_for_store(
-            &client.auth().await.token_store.file_path,
+            &client.auth().await?.token_store.file_path,
         );
         // When the user opted into `--no-browser` without an explicit
         // `--step`, or when auto-engage promoted us here, run step 1
@@ -124,7 +124,7 @@ pub(super) async fn oauth2(
                         Error::auth("--auth-url is only used with --step 2, not --step 1").into(),
                     );
                 }
-                let url = client.auth().await.remote_oauth2_step1(&pending_path)?;
+                let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 if out.format.is_structured() {
                     // U9: explicit `--no-browser` (no `--step`) and
                     // the auto-engaged path both emit the canonical

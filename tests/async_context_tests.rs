@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use tempfile::TempDir;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
-use xurl::api::{ApiClient, CallOptions};
+use xurl::api::Client;
 use xurl::auth::Auth;
 use xurl::config::Config;
 use xurl::store::{App, LoadState, OAuth2Token, Token, TokenStore, TokenType};
@@ -85,12 +85,9 @@ async fn a_shortcut_completes_inside_a_caller_runtime() {
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
         .with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
-    let me = client
-        .get_me(&CallOptions::default())
-        .await
-        .expect("the read completes");
+    let me = client.get_me().send().await.expect("the read completes");
     assert_eq!(me.data.username, "alice");
 }
 
@@ -111,10 +108,11 @@ async fn a_refresh_completes_inside_a_caller_runtime() {
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
         .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let me = client
-        .get_me(&CallOptions::default())
+        .get_me()
+        .send()
         .await
         .expect("the refresh and the read complete");
     assert_eq!(me.data.username, "alice");
@@ -147,10 +145,11 @@ async fn a_refresh_the_server_rejects_is_an_auth_error_with_exit_77() {
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
         .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
-        .get_me(&CallOptions::default())
+        .get_me()
+        .send()
         .await
         .expect_err("a rejected refresh fails the request");
     assert!(matches!(err, xurl::Error::Auth(_)), "got {err:?}");
@@ -178,11 +177,12 @@ async fn a_refresh_against_a_silent_server_gives_up_at_the_configured_timeout() 
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
         .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let started = std::time::Instant::now();
     let err = client
-        .get_me(&CallOptions::default())
+        .get_me()
+        .send()
         .await
         .expect_err("the refresh gives up");
     let elapsed = started.elapsed();
@@ -216,7 +216,7 @@ async fn a_media_processing_poll_sleeps_without_blocking_other_tasks() {
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
         .with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     // A sibling task keeps ticking while the poll sleeps; a blocking sleep
     // would park the only runtime thread and freeze it.
@@ -297,7 +297,7 @@ async fn dropping_a_stream_mid_response_releases_its_connection() {
     cfg.api_base_url = base_url;
     let tmp = TempDir::new().unwrap();
     let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"));
-    let client = ApiClient::new(&cfg, auth).expect("client builds");
+    let client = Client::new(&cfg, auth).expect("client builds");
 
     let options = xurl::api::RequestOptions {
         method: "GET".to_string(),

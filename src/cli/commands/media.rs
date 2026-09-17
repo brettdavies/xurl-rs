@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde_json::json;
 
-use crate::api::{self, ApiClient};
+use crate::api::{self, Client};
 use crate::auth::Auth;
 use crate::cli::MediaCommands;
 use crate::cli::output::OutputConfig;
@@ -41,7 +41,7 @@ pub(super) async fn run_media_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            let client = ApiClient::new(cfg, auth)?;
+            let client = Client::new(cfg, auth)?;
             let outcome = api::execute_media_upload(
                 &file,
                 &media_type,
@@ -71,7 +71,7 @@ pub(super) async fn run_media_command(
             trace,
             headers,
         } => {
-            let client = ApiClient::new(cfg, auth)?;
+            let client = Client::new(cfg, auth)?;
             let response = api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),

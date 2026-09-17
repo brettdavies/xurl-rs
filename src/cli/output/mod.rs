@@ -61,8 +61,8 @@ impl OutputFormat {
 /// Output configuration threaded through command handlers.
 ///
 /// `OutputConfig` is intentionally a pure data carrier — no I/O handles, no
-/// interior mutability. This keeps it `Send + Sync + Clone`, which is required
-/// for the planned async/concurrent `ApiClient` (see `project_async_requirement`).
+/// interior mutability. This keeps it `Send + Sync + Clone`, which the
+/// async `Client` requires.
 ///
 /// `use_color` is the resolved color decision after combining `--color`, the
 /// `NO_COLOR` env var, and stderr's TTY-ness. `no_color` is preserved as the
@@ -623,7 +623,7 @@ impl OutputConfig {
 impl Default for OutputConfig {
     /// Library-friendly default: text format, color-auto, no verbose, no quiet,
     /// no raw. Matches what an interactive operator gets without flags. Used
-    /// when an `ApiClient` is constructed before the runner has resolved the
+    /// when a `Client` is constructed before the runner has resolved the
     /// real `OutputConfig`.
     fn default() -> Self {
         Self {

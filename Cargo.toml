@@ -143,7 +143,9 @@ enum_no_repr_variant_discriminant_changed = { lint-level = "deny", required-upda
 # reachable only under `xurl::cli`.
 module_missing = { lint-level = "deny", required-update = "minor" }
 # Covers `OutputConfig`, `ErrorBody`, `InstallEnvelope`, and
-# `InstallMultiEnvelope`, which moved with their modules.
+# `InstallMultiEnvelope`, which moved with their modules. Also `ApiClient`,
+# which is `Client`, and `CallOptions`, which is the call builder's private
+# carrier: every shortcut returns a `Call` in place of taking options.
 struct_missing = { lint-level = "deny", required-update = "minor" }
 # Covers the enums those modules declared, `OutputFormat` and `InstallError`
 # among them, and `XurlError`, which is `Error` at the crate root.
@@ -163,11 +165,12 @@ function_parameter_count_changed = { lint-level = "deny", required-update = "min
 function_requires_different_generic_type_params = { lint-level = "deny", required-update = "minor" }
 # Covers `ApiClient::set_output`: the client carries no output config, and its
 # diagnostics are `tracing` events. Also `ApiClient::auth_app_name`: the
-# credential state sits behind the client's lock.
+# credential state sits behind the client's lock. Also
+# `CommonFlags::to_call_options{,_with_cursor}`: the binary applies its flags
+# to a `Call` instead of building an options struct.
 inherent_method_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `ApiClient::stream_request`, `Auth::oauth2_flow`, and
-# `CommonFlags::to_call_options{,_with_cursor}`: the writers and the verbose
-# flag left their signatures. Also `Auth::{get_oauth2_header,
+# Covers `ApiClient::stream_request` and `Auth::oauth2_flow`: the writers and
+# the verbose flag left their signatures. Also `Auth::{get_oauth2_header,
 # refresh_oauth2_token, oauth2_flow, remote_oauth2_step2}`: the HTTP client is
 # passed in, and the sign-in flow takes the caller's cancellation token.
 method_parameter_count_changed = { lint-level = "deny", required-update = "minor" }

@@ -102,7 +102,8 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// # Errors
 ///
 /// Returns an error if the token-exchange request fails or the response is
-/// missing an access token. `fetch_username` failures no longer propagate.
+/// missing an access token. A `fetch_username` failure is warned, not
+/// returned.
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -151,11 +152,7 @@ pub(crate) async fn exchange_code_for_token(
 
     let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let expiration_time = now + expires_in;
+    let expiration_time = epoch_secs(SystemTime::now()) + expires_in;
 
     let app_name = auth.app_name().to_string();
 
@@ -413,11 +410,76 @@ pub(crate) fn stored_oauth2_token(auth: &Auth, username: &str) -> Option<OAuth2T
 
 /// Whether the stored expiry has passed.
 pub(crate) fn is_expired(token: &OAuth2Token) -> bool {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::ZERO)
-        .as_secs();
-    now >= token.expiration_time
+    epoch_secs(SystemTime::now()) >= token.expiration_time
+}
+
+/// Seconds since the Unix epoch, the store's expiry representation.
+pub(crate) fn epoch_secs(at: SystemTime) -> u64 {
+    at.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+}
+
+/// What a refresh grant returned.
+pub(crate) struct RefreshedToken {
+    pub(crate) access_token: String,
+    /// Empty when X returned no refresh token.
+    pub(crate) refresh_token: String,
+    pub(crate) expires_at: SystemTime,
+}
+
+impl RefreshedToken {
+    pub(crate) fn expiration_time(&self) -> u64 {
+        epoch_secs(self.expires_at)
+    }
+}
+
+/// POSTs the refresh grant and parses the new pair. The one refresh request
+/// both the store-backed and the in-code credential paths send.
+///
+/// # Errors
+///
+/// Returns an error when the request fails or the response carries no
+/// access token.
+pub(crate) async fn refresh_grant(
+    http: &reqwest::Client,
+    token_url: &str,
+    timeout: Duration,
+    client_id: &str,
+    client_secret: &str,
+    refresh_token: &str,
+) -> Result<RefreshedToken> {
+    let token_resp = http
+        .post(token_url)
+        .timeout(timeout)
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("refresh_token", refresh_token),
+            ("client_id", client_id),
+        ])
+        .basic_auth(client_id, Some(client_secret))
+        .send()
+        .await
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+
+    let token_data: serde_json::Value = token_resp
+        .json()
+        .await
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+
+    let access_token = token_data["access_token"]
+        .as_str()
+        .ok_or_else(|| Error::auth("RefreshTokenError: no access_token in response"))?
+        .to_string();
+    let refresh_token = token_data["refresh_token"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+    let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
+
+    Ok(RefreshedToken {
+        access_token,
+        refresh_token,
+        expires_at: SystemTime::now() + Duration::from_secs(expires_in),
+    })
 }
 
 /// Refreshes an `OAuth2` token if expired.
@@ -439,7 +501,7 @@ pub(crate) fn is_expired(token: &OAuth2Token) -> bool {
 /// # Errors
 ///
 /// Returns an error when no cached token is found or the refresh-token POST
-/// itself fails. `fetch_username` failures no longer propagate.
+/// itself fails. A `fetch_username` failure is warned, not returned.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -453,42 +515,18 @@ pub async fn refresh_oauth2_token(
         return Ok(oauth2.access_token.clone());
     }
 
-    // Token is expired, refresh it
-    let token_resp = http
-        .post(auth.token_url())
-        .timeout(Duration::from_secs(auth.http_timeout_secs()))
-        .form(&[
-            ("grant_type", "refresh_token"),
-            ("refresh_token", &oauth2.refresh_token),
-            ("client_id", auth.client_id()),
-        ])
-        .basic_auth(auth.client_id(), Some(auth.client_secret()))
-        .send()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
-
-    let token_data: serde_json::Value = token_resp
-        .json()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
-
-    let new_access_token = token_data["access_token"]
-        .as_str()
-        .ok_or_else(|| Error::auth("RefreshTokenError: no access_token in response"))?
-        .to_string();
-
-    let new_refresh_token = token_data["refresh_token"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
-
-    let expires_in = token_data["expires_in"].as_u64().unwrap_or(7200);
-
-    let new_now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let expiration_time = new_now + expires_in;
+    let refreshed = refresh_grant(
+        http,
+        auth.token_url(),
+        Duration::from_secs(auth.http_timeout_secs()),
+        auth.client_id(),
+        auth.client_secret(),
+        &oauth2.refresh_token,
+    )
+    .await?;
+    let expiration_time = refreshed.expiration_time();
+    let new_access_token = refreshed.access_token;
+    let new_refresh_token = refreshed.refresh_token;
 
     let app_name = auth.app_name().to_string();
 
