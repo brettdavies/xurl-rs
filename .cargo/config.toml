@@ -1,0 +1,6 @@
+# Tests anchor repo-root assets (schema/, scripts/) and the source-scanning
+# guards walk both members, so they need the workspace root rather than the
+# member directory CARGO_MANIFEST_DIR names. `relative = true` resolves the
+# empty value against this file's parent directory.
+[env]
+CARGO_WORKSPACE_DIR = { value = "", relative = true }

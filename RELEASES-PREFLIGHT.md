@@ -27,7 +27,7 @@ Driven by `scripts/release/preflight.sh surface`.
 LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
 git log "$LAST_TAG..dev" --oneline                              # commits going out
 git diff "$LAST_TAG..dev" --stat                                # file-level scope
-git diff "$LAST_TAG..dev" -- src/api/ src/auth/ src/cli/        # surface area: HTTP, auth, CLI
+git diff "$LAST_TAG..dev" -- crates/xdk/src/ crates/xurl-cli/src/  # surface area: library, CLI
 git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
@@ -124,7 +124,8 @@ the cut.
 Driven by `scripts/release/preflight.sh api-contract`.
 
 xurl-rs is a thin client over the live X API. The contract that ships is the union of the 27 shortcut commands (plus
-`usage credits`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the library re-exports in `src/lib.rs`.
+`usage credits`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the library re-exports in
+`crates/xdk/src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
@@ -246,11 +247,11 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
   other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme on
   the `bird_dev` app.
-- [ ] **Media upload** (automatable): `xrs media upload tests/fixtures/media/smoke-test.jpg --media-type image/jpeg
-  --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`. **Gotcha:**
-  defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg --category
-  tweet_image` or the API returns `invalid-args`. Small images return no `processing_info` (set immediately) — `state`
-  is `n/a`, presence of `media_id` is the success signal.
+- [ ] **Media upload** (automatable): `xrs media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg --media-type
+  image/jpeg --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`.
+  **Gotcha:** defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg
+  --category tweet_image` or the API returns `invalid-args`. Small images return no `processing_info` (set immediately)
+  — `state` is `n/a`, presence of `media_id` is the success signal.
 - [ ] **Output formats** (partially automatable): `--output text`, `--output json`, `--output jsonl` for one
   non-streaming endpoint (e.g. `xr search`). **Known behavior:** for non-streaming endpoints, `text` and `jsonl` both
   produce the same pretty-printed JSON as `json`. The jsonl-per-line semantic is only meaningful on streaming endpoints

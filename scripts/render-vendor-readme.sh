@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Render vendor/README.md from the vendored spec and its metadata sidecar.
+# Render crates/xdk/vendor/README.md from the vendored spec and its metadata sidecar.
 #
 # Usage:
-#   scripts/render-vendor-readme.sh > vendor/README.md
+#   scripts/render-vendor-readme.sh > crates/xdk/vendor/README.md
 #
-# Reads vendor/spec-metadata.json (info.version, content SHA256, refresh
-# date, upstream URL) and vendor/x-api-openapi.json (path count, byte size)
+# Reads crates/xdk/vendor/spec-metadata.json (info.version, content SHA256, refresh
+# date, upstream URL) and crates/xdk/vendor/x-api-openapi.json (path count, byte size)
 # and prints the README to stdout. Every value comes from the vendored
 # artifacts, so the output is reproducible offline and tests/spec_scripts.rs
 # holds the committed README to it.
@@ -20,8 +20,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-VENDOR_PATH="${REPO_ROOT}/vendor/x-api-openapi.json"
-METADATA_PATH="${REPO_ROOT}/vendor/spec-metadata.json"
+VENDOR_PATH="${REPO_ROOT}/crates/xdk/vendor/x-api-openapi.json"
+METADATA_PATH="${REPO_ROOT}/crates/xdk/vendor/spec-metadata.json"
 
 for tool in jq sha256sum stat; do
     if ! command -v "${tool}" >/dev/null 2>&1; then
@@ -46,7 +46,7 @@ size_bytes="$(stat -c %s "${VENDOR_PATH}" 2>/dev/null || stat -f %z "${VENDOR_PA
 
 actual_sha256="$(sha256sum "${VENDOR_PATH}" | awk '{print $1}')"
 if [ "${actual_sha256}" != "${spec_sha256}" ]; then
-    echo "error: vendor/spec-metadata.json content_sha256 does not match vendor/x-api-openapi.json; run scripts/refresh-x-openapi.sh" >&2
+    echo "error: crates/xdk/vendor/spec-metadata.json content_sha256 does not match crates/xdk/vendor/x-api-openapi.json; run scripts/refresh-x-openapi.sh" >&2
     exit 1
 fi
 
@@ -60,7 +60,7 @@ cat <<EOF
 # Vendored X API OpenAPI Spec
 
 This directory contains a checked-in copy of X's public OpenAPI spec, used at build time to generate the auth-method
-matrix in \`src/api/auth_matrix.rs\` (see \`build.rs\`).
+matrix in \`crates/xdk/src/api/auth_matrix.rs\` (see \`crates/xdk/build.rs\`).
 
 ## Provenance
 

@@ -249,7 +249,7 @@ gate_smoke() {
   fi
 
   # Media upload
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload tests/fixtures/media/smoke-test.jpg \
+  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg \
     --media-type image/jpeg --category tweet_image --wait \
     --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
   if [[ -n "$out" ]]; then

@@ -75,20 +75,20 @@ Branch on `next_step.action`: `register-app` means nothing is registered, so run
 `sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
 names it in the message.
 
-`src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base string,
-sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
+`crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
+string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
 
 ## Token store
 
-YAML at `~/.xurl`. Schema is documented in `src/store/types.rs`. Migration logic lives in `src/store/migration.rs` and
-runs on every load: older formats upgrade transparently and the upgraded file is written back. Multiple apps are stored
-under the same file with a per-app block.
+YAML at `~/.xurl`. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
+`crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
+written back. Multiple apps are stored under the same file with a per-app block.
 
 `xr auth status` is the operator-facing surface. Programmatic access uses `xurl::store::TokenStore`.
 
 ## Output formats
 
-`OutputConfig` (`src/cli/output/mod.rs`) drives seven formats, selected with `--output`:
+`OutputConfig` (`crates/xurl-cli/src/cli/output/mod.rs`) drives seven formats, selected with `--output`:
 
 - `text` (default): human-readable tables / formatted responses
 - `json`: pretty-printed JSON envelope
@@ -107,18 +107,18 @@ changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
 
-`src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in `vendor/x-api-openapi.json`
-(`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`, `mute_user`, `block_user`, `send_dm`,
-`lookup_user`, `get_timeline`, `get_mentions`, `search_posts`, `read_post`, `get_me`, `get_followers`, `get_following`,
-`get_liked_posts`, `get_bookmarks`, `get_muted`, `get_blocked`, `get_dm_events`, `get_usage`, `get_usage_credits`, and
-their `un*` inverses where the spec documents them). Each maps to one CLI command via `src/cli/` and returns a typed
-response via `src/api/response/types.rs`. `build.rs` generates the auth matrix from the vendored spec and fails the
-build if a shortcut targets an endpoint absent from it; `src/api/auth_matrix.rs` wraps the generated table for runtime
-lookup.
+`crates/xdk/src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in
+`crates/xdk/vendor/x-api-openapi.json` (`create_post`, `delete_post`, `like_post`, `repost`, `bookmark`, `follow_user`,
+`mute_user`, `block_user`, `send_dm`, `lookup_user`, `get_timeline`, `get_mentions`, `search_posts`, `read_post`,
+`get_me`, `get_followers`, `get_following`, `get_liked_posts`, `get_bookmarks`, `get_muted`, `get_blocked`,
+`get_dm_events`, `get_usage`, `get_usage_credits`, and their `un*` inverses where the spec documents them). Each maps to
+one CLI command via `crates/xurl-cli/src/cli/` and returns a typed response via `crates/xdk/src/api/response/types.rs`.
+The library's `build.rs` generates the auth matrix from the vendored spec and fails the build if a shortcut targets an
+endpoint absent from it; `crates/xdk/src/api/auth_matrix.rs` wraps the generated table for runtime lookup.
 
 Adding a shortcut means: implement the function in `shortcuts.rs`, add a typed response in `response/types.rs` (or
-reuse), register in `src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response type derives
-`schemars::JsonSchema`.
+reuse), register in `crates/xurl-cli/src/cli/commands/mod.rs`, and update `xr schema` coverage by ensuring the response
+type derives `schemars::JsonSchema`.
 
 ### Command grammar: flags vs subcommands
 
@@ -134,20 +134,26 @@ stands alone in the core domain, add a top-level command; never add an endpoint-
 
 ## Architecture
 
-- `src/api/`: HTTP client (`request/`: client and option types in `mod.rs`, URL rendering in `url.rs`, auth-scheme
-  selection in `auth_header.rs`, transport in `transport.rs`), endpoints (`endpoints.rs`), shortcuts (`shortcuts.rs`),
-  media upload (`media.rs`), and typed responses (`response/`).
-- `src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler), Bearer token.
-  PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
-- `src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema, streaming, and
-  `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
-  `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
-- `src/config/`: env-var-based configuration.
-- `src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
-- `src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv serializer.
-- `src/error.rs`: `Error` (re-exported as `xurl::Error`) via `thiserror`.
-- `src/lib.rs`: public library surface. The `xurl` library is consumable from downstream Rust crates; the binary `xr` is
-  one consumer among potentially several.
+The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk-rs`, library target `xdk`) and
+`crates/xurl-cli` (package `xurl-rs`, binary `xr`). Paths below are relative to the member's `src/`.
+
+- `crates/xdk/src/api/`: HTTP client (`request/`: client and option types in `mod.rs`, URL rendering in `url.rs`,
+  auth-scheme selection in `auth_header.rs`, transport in `transport.rs`), endpoints (`endpoints.rs`), shortcuts
+  (`shortcuts.rs`), media upload (`media.rs`), and typed responses (`response/`).
+- `crates/xdk/src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler),
+  Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
+- `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema,
+  streaming, and `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns
+  `AppStatusEntry`, while `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes
+  the exit-code contract.
+- `crates/xdk/src/config/`: env-var-based configuration.
+- `crates/xdk/src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
+- `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
+  serializer.
+- `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`.
+- `crates/xdk/src/lib.rs`: public library surface. The `xdk` library is consumable from downstream Rust crates; the
+  binary `xr` is one consumer among potentially several. `crates/xurl-cli/src/lib.rs` exposes the CLI module only so the
+  binary's own tests can drive it in-process; it is not an embedder API.
 
 ## Quality bar
 
@@ -172,13 +178,14 @@ scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, deny, shellc
 ```
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
-(`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`). `tests/store_isolation_guard.rs`
-fails the suite when a test file names `Auth::new(`, `TokenStore::new()`, `TokenStore::with_credentials(`,
-`default_store_path()`, `default_pending_path()`, `dirs::home_dir()`, sets `HOME` on a child process, or spawns the `xr`
-binary outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path
-or the test's own temp store); a test that must touch the real path goes on its allowlist with the reason. A companion
-guard in `tests/agentic_tests.rs` derives every environment variable `src/` reads and fails when `xr --help` does not
-advertise one.
+(`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
+`crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
+`TokenStore::new()`, `TokenStore::with_credentials(`, `default_store_path()`, `default_pending_path()`,
+`dirs::home_dir()`, sets `HOME` on a child process, or spawns the `xr` binary outside `common::xr()` and
+`common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path or the test's own temp store); a
+test that must touch the real path goes on its allowlist with the reason. A companion guard in
+`crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either crate reads and fails when `xr
+--help` does not advertise one.
 
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
 format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run

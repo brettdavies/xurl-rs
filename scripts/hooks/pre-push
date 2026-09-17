@@ -104,9 +104,9 @@ fi
 
 # Paths that cannot change what cargo builds, tests, documents, or audits.
 # Deliberately narrow, because the cost of being wrong is asymmetric.
-# `vendor/**` is absent on purpose: `tests/spec_scripts.rs` asserts
-# `vendor/README.md` is current and validates the vendored spec. `scripts/**`
-# is absent because that same suite runs those scripts.
+# `crates/xdk/vendor/**` is absent on purpose: `spec_scripts.rs` asserts the
+# vendored README is current and validates the vendored spec. `scripts/**` is
+# absent because that same suite runs those scripts.
 INERT_RE='^(docs/|\.github/|\.context/|LICENSE-|[^/]+\.md$)'
 
 # touched <extended-regex> — true when the push carries a matching path.
@@ -139,21 +139,21 @@ if code_touched; then
     pass "fmt"
 
     # 2. Clippy with warnings-as-errors (matches CI's RUSTFLAGS=-Dwarnings)
-    RUSTFLAGS="-Dwarnings" cargo clippy --quiet 2>&1 || fail "cargo clippy -Dwarnings"
+    RUSTFLAGS="-Dwarnings" cargo clippy --workspace --quiet 2>&1 || fail "cargo clippy -Dwarnings"
     pass "clippy"
 
     # 3. Tests
-    cargo test --quiet 2>&1 || fail "cargo test"
+    cargo test --workspace --quiet 2>&1 || fail "cargo test --workspace"
     pass "test"
 
     # 4. MSRV check — verify the codebase still compiles against the rust-version
-    # declared in Cargo.toml. xurl-rs declares a lower MSRV than the pinned
+    # declared in the workspace manifest. The crates declare a lower MSRV than the pinned
     # rust-toolchain.toml; this step validates the declared promise so library
     # consumers on the MSRV still see a working crate. Requires the MSRV toolchain
     # installed (`rustup toolchain install <msrv>`); skips with a hint otherwise.
     msrv=$(awk -F\" '/^rust-version *= *"/ {print $2; exit}' Cargo.toml 2>/dev/null || echo "")
     if [ -n "$msrv" ] && rustup toolchain list 2>/dev/null | grep -q "^${msrv}"; then
-        cargo "+${msrv}" check --quiet 2>&1 || fail "cargo +${msrv} check"
+        cargo "+${msrv}" check --workspace --quiet 2>&1 || fail "cargo +${msrv} check --workspace"
         pass "msrv (${msrv})"
     elif [ -n "$msrv" ]; then
         echo "  - msrv (skipped: install via \`rustup toolchain install ${msrv}\` to enable)"
@@ -164,7 +164,7 @@ if code_touched; then
     # 5. Doc build — catch doc-comment breakage (broken intra-doc links, missing
     # code-fence markers) that would render badly on docs.rs. RUSTDOCFLAGS=-D
     # warnings treats every doc warning as an error.
-    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --quiet 2>&1 || fail "cargo doc --no-deps (RUSTDOCFLAGS=-D warnings)"
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet 2>&1 || fail "cargo doc --workspace --no-deps (RUSTDOCFLAGS=-D warnings)"
     pass "doc"
 
     # 6. Security audit (licenses + advisories) — skip if cargo-deny not installed
@@ -197,8 +197,8 @@ if code_touched; then
     # 9. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
     # Catches the libc::SIGPIPE class of issue without invoking a Windows toolchain
     # — runs in milliseconds. Step 9 is the comprehensive backstop.
-    if rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust src/ | rg -v '#\[cfg(unix)\]' | rg -v '// *#\[cfg' | rg -qv '^$'; then
-        violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust src/ 2>/dev/null || true)
+    if rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ | rg -v '#\[cfg(unix)\]' | rg -v '// *#\[cfg' | rg -qv '^$'; then
+        violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ 2>/dev/null || true)
         if [ -n "$violations" ]; then
             while IFS= read -r line; do
                 file=$(echo "$line" | cut -d: -f1)
@@ -230,7 +230,7 @@ if code_touched; then
     # becomes the only backstop. Install both to close that gap.
     if command -v x86_64-w64-mingw32-gcc &>/dev/null \
         && rustup target list --installed 2>/dev/null | grep -q '^x86_64-pc-windows-gnu$'; then
-        RUSTFLAGS="-Dwarnings" cargo clippy --target x86_64-pc-windows-gnu --all-targets --quiet 2>&1 \
+        RUSTFLAGS="-Dwarnings" cargo clippy --workspace --target x86_64-pc-windows-gnu --all-targets --quiet 2>&1 \
             || fail "cargo clippy --target x86_64-pc-windows-gnu -Dwarnings"
         pass "windows clippy (cross-target)"
     else

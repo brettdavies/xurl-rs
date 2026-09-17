@@ -5,8 +5,9 @@
 #   ./generate-completions.sh [repo-path]         # generate (default: .)
 #   ./generate-completions.sh --check [repo-path]  # verify freshness, exit 1 if stale
 #
-# Detects the binary name from Cargo.toml, builds in release mode, and generates
-# completions for bash, zsh, fish, elvish, and powershell into completions/.
+# Detects the binary name from the CLI package's metadata, builds it in release
+# mode, and generates completions for bash, zsh, fish, elvish, and powershell
+# into completions/.
 #
 # Supports two completion interfaces:
 #   Standard:     <binary> completions <shell>        (subcommand)
@@ -28,14 +29,16 @@ done
 
 cd "$REPO_PATH"
 
-# Detect binary name from Cargo.toml
+# Detect the binary name from the one workspace member that declares a bin
+# target; `.packages[0]` is whichever member cargo lists first.
+BIN_FILTER='[.packages[].targets[] | select(.kind[] == "bin") | .name] | first // empty'
 BIN=$(cargo metadata --no-deps --format-version 1 2>/dev/null \
-  | jaq -r '.packages[0].targets[] | select(.kind[] == "bin") | .name' 2>/dev/null \
+  | jaq -r "$BIN_FILTER" 2>/dev/null \
   || cargo metadata --no-deps --format-version 1 \
-  | jq -r '.packages[0].targets[] | select(.kind[] == "bin") | .name')
+  | jq -r "$BIN_FILTER")
 
 if [[ -z "$BIN" ]]; then
-  echo "error: no binary target found in Cargo.toml" >&2
+  echo "error: no binary target found in the workspace" >&2
   exit 1
 fi
 
@@ -43,9 +46,9 @@ SHELLS=(bash zsh fish elvish powershell)
 BINARY="./target/release/$BIN"
 
 # Build if binary is missing or older than any source file
-if [[ ! -x "$BINARY" ]] || [[ -n "$(find src/ Cargo.toml -newer "$BINARY" 2>/dev/null | head -1)" ]]; then
+if [[ ! -x "$BINARY" ]] || [[ -n "$(find crates/ Cargo.toml -newer "$BINARY" 2>/dev/null | head -1)" ]]; then
   echo "Building $BIN (release)..."
-  cargo build --release --locked 2>&1
+  cargo build --release --locked --bin "$BIN" 2>&1
 fi
 
 # Detect completion interface

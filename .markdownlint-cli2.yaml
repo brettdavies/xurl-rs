@@ -76,7 +76,7 @@ config:
 ignores:
   - "node_modules/**"
   - "**/node_modules/**"
-  - "vendor/**"
+  - "crates/xdk/vendor/**"
   - "target/**"  # Rust build artifacts; harmless for non-Rust projects
   - ".git/**"
   - "*.min.md"

@@ -27,6 +27,7 @@ on:
   pull_request:
     paths:
       - Cargo.toml
+      - crates/*/Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
       - .github/workflows/release-matrix-check.yml
