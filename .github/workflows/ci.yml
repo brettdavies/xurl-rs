@@ -80,18 +80,25 @@ jobs:
       - name: cargo doc
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc --no-deps --locked
+        run: cargo doc --workspace --no-deps --locked
 
-  # A textual diff of src/ cannot answer whether the public API broke: it misses
-  # pub fields, consts, type aliases, and traits. This reads rustdoc JSON and
-  # applies Rust's own semver rules against the last released tag, which is what
-  # consumers actually have. Comparing against `dev` instead would flag churn on
-  # unreleased code that no consumer ever saw.
+  # A textual diff of the library sources cannot answer whether the public API
+  # broke: it misses pub fields, consts, type aliases, and traits. This reads
+  # rustdoc JSON and applies Rust's own semver rules against the library's last
+  # released tag, which is what consumers actually have. Comparing against `dev`
+  # instead would flag churn on unreleased code that no consumer ever saw.
+  #
+  # Only `xdk-rs` is checked: the `xr` crate's library target exists for its own
+  # tests and is not consumed. The baseline is the newest `xdk-rs-v*` tag; the
+  # CLI's `v*` tags sort into the same list and would baseline the wrong crate.
+  # Before the first library release no such tag exists, so the check reports
+  # that it skipped rather than failing every PR on a missing baseline.
   #
   # `release-type: minor` asks the question worth blocking on: does this need a
   # major? A break the project accepts into a minor carries a required-update
-  # entry in Cargo.toml under [package.metadata.cargo-semver-checks.lints],
-  # reviewed alongside the diff that takes it.
+  # entry in crates/xdk/Cargo.toml under
+  # [package.metadata.cargo-semver-checks.lints], reviewed alongside the diff
+  # that takes it.
   semver:
     name: Public API semver
     runs-on: ubuntu-latest
@@ -101,12 +108,19 @@ jobs:
         with:
           # The baseline is a tag, which the default shallow fetch omits.
           fetch-depth: 0
-      - name: Resolve the last release tag
+      - name: Resolve the library's last release tag
         id: baseline
-        run: echo "tag=$(git tag --sort=-version:refname | head -n 1)" >> "$GITHUB_OUTPUT"
+        run: |
+          tag="$(git tag -l 'xdk-rs-v*' --sort=-version:refname | head -n 1)"
+          if [ -z "$tag" ]; then
+            echo "::notice title=Public API semver::skipped: no xdk-rs-v* tag exists yet, so there is no released baseline to compare against"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: cargo semver-checks
+        if: steps.baseline.outputs.tag != ''
         uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
         with:
+          package: xdk-rs
           baseline-rev: ${{ steps.baseline.outputs.tag }}
           release-type: minor
 
@@ -124,3 +138,92 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Verify completions match the CLI definition
         run: ./scripts/generate-completions.sh --check
+
+  # `anc audit` runs against the release binary because the behavioral rows
+  # execute the CLI. The gate has two halves. First, any MUST-tier `fail` other
+  # than `p2-must-json-errors` fails the job; that one id is exempt because its
+  # fix (top-level `error`/`kind` keys on the JSON envelope) belongs to the
+  # 3.3.0 output-shape release, and a MUST-only gate would otherwise be red from
+  # its first run. Second, the credit-weighted score must stay at or above the
+  # committed floor: vocabulary drift (`p6`) reports as `warn`, which a
+  # MUST-only gate never sees, so the floor is what catches it. Raise the floor
+  # deliberately when the score improves.
+  #
+  # The same job checks the release binary's size against a standing ceiling.
+  # Cargo honors [profile.release] only in the workspace root, and a profile
+  # that silently stops applying inflates `xr` several times over while every
+  # test stays green; the ceiling turns that into a red job. The release `xr`
+  # measures 7,727,512 bytes and a dropped `strip` alone roughly doubles it,
+  # so the ceiling leaves room for ordinary growth and none for a lost profile.
+  anc:
+    name: Agent-native audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANC_SCORE_FLOOR: "94"
+      ANC_EXEMPT_ID: p2-must-json-errors
+      XR_SIZE_CEILING_BYTES: "9600000"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@b874e25ea559687bec77e281e9b271aa1367b624 # v1.23.0
+      - name: Install anc
+        # A second binstall attempt covers a transient release-asset fetch
+        # failure; a source build is the fallback after that.
+        run: |
+          cargo binstall agentnative --force --no-confirm \
+            || cargo binstall agentnative --force --no-confirm \
+            || cargo install agentnative --locked
+          anc --version
+      - name: Build the release binary
+        run: cargo build --release --locked --bin xr
+      - name: Release binary size ceiling
+        run: |
+          size="$(stat -c %s target/release/xr)"
+          echo "target/release/xr is ${size} bytes (ceiling ${XR_SIZE_CEILING_BYTES})"
+          if [ "$size" -gt "$XR_SIZE_CEILING_BYTES" ]; then
+            echo "::error title=Release binary size::xr is ${size} bytes, over the ${XR_SIZE_CEILING_BYTES}-byte ceiling; check that [profile.release] still applies from the workspace root"
+            exit 1
+          fi
+      - name: anc audit
+        run: |
+          set -euo pipefail
+          # anc exits 2 when any MUST-tier row fails, the exempt id included,
+          # so exit 2 is read from the scorecard; any other non-zero exit means
+          # the audit never ran (unreachable binary, crash) and fails outright.
+          status=0
+          anc audit --command target/release/xr --output json > anc-scorecard.json || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+            echo "::error title=anc audit::anc audit exited ${status} without a verdict"
+            exit 1
+          fi
+          # A scorecard without a numeric score or a results array is not a
+          # verdict either; jq -e turns a missing or retyped key into a failure.
+          jq -e '(.badge.score_pct | type == "number") and (.results | type == "array" and length > 0)' anc-scorecard.json > /dev/null
+          jq -r '.results[] | "\(.tier)\t\(.status)\t\(.id)"' anc-scorecard.json | sort > anc-rows.tsv
+          score="$(jq -r '.badge.score_pct' anc-scorecard.json)"
+          skips="$(jq -r '[.results[] | select(.status == "skip")] | length' anc-scorecard.json)"
+          echo "anc score: ${score}% (floor ${ANC_SCORE_FLOOR}%), ${skips} row(s) skipped"
+          # `error` rows are excluded from the score denominator, so a harness
+          # that cannot execute the binary would otherwise pass at score 100.
+          must_fails="$(jq -r --arg exempt "$ANC_EXEMPT_ID" '[.results[] | select(.tier == "must" and (.status == "fail" or .status == "error") and .id != $exempt) | .id] | join(", ")' anc-scorecard.json)"
+          if [ -n "$must_fails" ]; then
+            echo "::error title=anc audit::MUST-tier failures: ${must_fails}"
+            exit 1
+          fi
+          if ! jq -e --argjson floor "$ANC_SCORE_FLOOR" '.badge.score_pct >= $floor' anc-scorecard.json > /dev/null; then
+            echo "::error title=anc audit::score ${score}% is below the ${ANC_SCORE_FLOOR}% floor"
+            exit 1
+          fi
+      - name: Upload the scorecard
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: anc-scorecard
+          path: |
+            anc-scorecard.json
+            anc-rows.tsv

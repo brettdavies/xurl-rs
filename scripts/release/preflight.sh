@@ -249,7 +249,7 @@ gate_smoke() {
   fi
 
   # Media upload
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload tests/fixtures/media/smoke-test.jpg \
+  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg \
     --media-type image/jpeg --category tweet_image --wait \
     --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
   if [[ -n "$out" ]]; then
@@ -358,7 +358,7 @@ gate_multi_app() {
   #
   # `add_app` promotes when the store holds no apps or the standing default
   # carries neither a client id nor a token, and registration never
-  # materializes a `default` app (src/store/mod.rs). So a fresh store names
+  # materializes a `default` app (crates/xdk/src/store/mod.rs). So a fresh store names
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
   local fresh dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec

@@ -1,180 +1,39 @@
-[package]
-name = "xurl-rs"
-version = "3.2.0"
+[workspace]
+resolver = "3"
+members = ["crates/xdk", "crates/xurl-cli"]
+
+[workspace.package]
 edition = "2024"
-description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brettdavies/xurl-rs"
 homepage = "https://github.com/brettdavies/xurl-rs"
-documentation = "https://docs.rs/xurl-rs"
-keywords = ["twitter", "x", "api", "cli", "oauth"]
-categories = ["command-line-utilities", "web-programming", "api-bindings"]
 authors = ["Brett Davies <pm8fp22mbg@privaterelay.appleid.com>"]
-readme = "README.md"
 rust-version = "1.94"
-exclude = [
-    ".claude/",
-    ".context/",
-    ".github/",
-    ".markdownlint-cli2.yaml",
-    "benches/",
-    "cliff.toml",
-    "CONCEPTS.md",
-    "deny.toml",
-    "docs/",
-    "RELEASES*.md",
-    "rustfmt.toml",
-    "scripts/",
-    "tests/",
-]
 
-[dependencies]
-# CLI
-clap = { version = "4", features = ["derive", "string", "env"] }
-clap_complete = "4"
-# Held at the version clap resolves, so a clap bump that moves it surfaces as
-# a `multiple-versions` audit warning instead of a second silent copy.
-strsim = "0.11.1"
-
-# HTTP
+# Versions shared by both members live here so the two manifests cannot drift
+# apart on a dependency they both compile.
+[workspace.dependencies]
+xdk-rs = { version = "0.1.0", path = "crates/xdk" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "stream", "form", "rustls"] }
-futures-core = "0.3"
-bytes = "1"
-tokio = { version = "1", features = ["rt", "net", "macros", "sync", "time", "signal"] }
+url = "2"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
-
-# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-
-# Auth
-hmac = "0.13"
-sha1 = "0.11"
-sha2 = "0.11"
-base64 = "0.23"
-rand = "0.10"
-url = "2"
-
-# Terminal
-colored = "3"
-
-# Diagnostics
 tracing = "0.1"
-
-# Schema generation
 schemars = "1"
-
-# Utilities
-open = "5"
-thiserror = "2"
-anyhow = "1"
-dirs = "7"
-percent-encoding = "2"
-phf = "0.14"
-
-[target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-[build-dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-phf_codegen = "0.14"
-
-[[bin]]
-name = "xr"
-path = "src/main.rs"
-
-[lib]
-name = "xurl"
-path = "src/lib.rs"
-
-[dev-dependencies]
 tempfile = "3"
-pretty_assertions = "1"
-assert_cmd = "2"
-predicates = "3"
-rstest = "0.27"
 wiremock = "0.6"
-toml = "1.0"
-regex = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+rstest = "0.27"
 serial_test = "4"
+regex = "1"
 
+# Cargo honors profiles only in the workspace root; a member-level profile is
+# ignored with a warning, and the release binary silently loses lto and strip.
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
 panic = "abort"
-
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.tar.gz"
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
-pkg-fmt = "zip"
-
-# Breaking library-API changes shipping in a minor by decision. `required-update`
-# reclassifies the break rather than silencing it: the gate CI runs
-# (`release-type: minor`) passes silently, while a patch-level probe
-# (`cargo semver-checks --release-type patch`) still names every break, which
-# is how the entries below were verified. Each entry is scoped to one release
-# and is self-clearing: once the tag moves the baseline past the change, the
-# lint stops firing and the entry must be deleted. A standing entry understates
-# the next break of the same kind.
-[package.metadata.cargo-semver-checks.lints]
-# Covers TokenStore.load_state: the store records how its file resolved, which
-# is what the refusal-to-overwrite guard reads.
-constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
-# Covers Envelope and Commands: each already breaks exhaustive matching this
-# release, so the attribute costs downstream nothing it does not already spend.
-enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }
-# Covers Commands: four variants land mid-enum, shifting the discriminants after
-# them. The lint guards `as isize`, which never compiled against this enum —
-# every variant carries fields, and Rust rejects the cast unless all are
-# field-less. Ordering follows the command grouping instead.
-enum_no_repr_variant_discriminant_changed = { lint-level = "deny", required-update = "minor" }
-# The eleven entries below cover the presentation move: the library no longer
-# renders, prints, or opens a browser, and the modules that did live under
-# `xurl::cli`, the tree the binary owns. They clear with the 4.0.0 tag.
-#
-# Covers `xurl::output`, `xurl::envelope`, and `xurl::skill_install`, which are
-# reachable only under `xurl::cli`.
-module_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `OutputConfig`, `ErrorBody`, `InstallEnvelope`, and
-# `InstallMultiEnvelope`, which moved with their modules. Also `ApiClient`,
-# which is `Client`, and `CallOptions`, which is the call builder's private
-# carrier: every shortcut returns a `Call` in place of taking options.
-struct_missing = { lint-level = "deny", required-update = "minor" }
-# Covers the enums those modules declared, `OutputFormat` and `InstallError`
-# among them, and `XurlError`, which is `Error` at the crate root.
-enum_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `KNOWN_HOSTS` and the `GIT_HARDEN_*` constants, which moved with the
-# installer.
-pub_module_level_const_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `format_response`, `warn_stderr`, and the installer's free functions:
-# the library neither colours JSON nor writes to stderr. Also `cli::commands::run`,
-# whose result type is the binary's own.
-function_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `run_oauth2_flow`, which takes the browser opener as a closure in
-# place of an output config, a writer, and a function pointer, plus
-# `refresh_oauth2_token`, `run_remote_step2`, and the media entrypoints,
-# which take the shared client or lost their output parameters.
-function_parameter_count_changed = { lint-level = "deny", required-update = "minor" }
-function_requires_different_generic_type_params = { lint-level = "deny", required-update = "minor" }
-# Covers `ApiClient::set_output`: the client carries no output config, and its
-# diagnostics are `tracing` events. Also `ApiClient::auth_app_name`: the
-# credential state sits behind the client's lock. Also
-# `CommonFlags::to_call_options{,_with_cursor}`: the binary applies its flags
-# to a `Call` instead of building an options struct.
-inherent_method_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `ApiClient::stream_request` and `Auth::oauth2_flow`: the writers and
-# the verbose flag left their signatures. Also `Auth::{get_oauth2_header,
-# refresh_oauth2_token, oauth2_flow, remote_oauth2_step2}`: the HTTP client is
-# passed in, and the sign-in flow takes the caller's cancellation token.
-method_parameter_count_changed = { lint-level = "deny", required-update = "minor" }
-method_requires_different_generic_type_params = { lint-level = "deny", required-update = "minor" }
-# Covers `RequestOptions.verbose` and `CallOptions.verbose`: verbosity is the
-# subscriber's decision, not a per-call field.
-struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }

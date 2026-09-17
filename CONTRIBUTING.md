@@ -40,8 +40,8 @@ code only through a release PR. [`RELEASES.md`](RELEASES.md) is the full runbook
 - **Engineering docs** (`docs/plans/`, `docs/research/`, `docs/reviews/`, `CONCEPTS.md`) commit straight to `dev` and
   are blocked from `main`. Everything a consumer reads, markdown included, goes through the branch and PR flow.
 - **Quality bar, testing, and architecture** live in [`AGENTS.md`](AGENTS.md). Tests never touch the real home
-  directory; build stores on an explicit path under a `tempfile::TempDir`, which `tests/store_isolation_guard.rs`
-  enforces.
+  directory; build stores on an explicit path under a `tempfile::TempDir`, which
+  `crates/xurl-cli/tests/store_isolation_guard.rs` enforces.
 
 ## Error contract
 

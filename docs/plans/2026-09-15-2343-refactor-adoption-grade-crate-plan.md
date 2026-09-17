@@ -1732,6 +1732,14 @@ exists until U13 publishes the first one, so the check skips with a visible noti
 `--release-type minor` passes or fails a breaking change on a 0.x crate is recorded from U6's planted-break probe, and
 the flag is set from that observation. Record accepted breaks with `required-update`, never `lint-level = "allow"`.
 
+**Probe result (U6, cargo-semver-checks 0.50.0).** Removing `pub const CRATE_VERSION` from the 0.1.0 library and
+checking against an unmodified copy fails under `--release-type minor` with `semver requires new major version: 1 major
+and 0 minor checks failed` (exit 100), and fails identically under `--release-type patch` and with the release type
+derived from the unchanged version. The tool does not treat a 0.x minor as break-tolerant; only a `required-update =
+"minor"` entry for the firing lint turns the same run green. The job therefore keeps `release-type: minor`, and every
+0.x break is recorded per lint in `crates/xdk/Cargo.toml`, which is what makes each accepted break a reviewed entry
+rather than a silent pass on a version bump.
+
 **Cross-crate proof.** `cargo tree -p xdk-rs -i clap` must return nothing after U6. A package-scoped green test run does
 not prove an out-of-package consumer still compiles, so compile the scratch consumer crate against the library before
 declaring U7 or U11 done.

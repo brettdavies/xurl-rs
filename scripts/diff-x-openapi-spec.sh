@@ -18,7 +18,7 @@
 # Callers:
 #   - .github/workflows/spec-drift.yml (PR comment + issue body)
 #   - scripts/hooks/pre-push (optional drift warning)
-#   - manual: scripts/diff-x-openapi-spec.sh vendor/x-api-openapi.json /tmp/upstream.json
+#   - manual: scripts/diff-x-openapi-spec.sh crates/xdk/vendor/x-api-openapi.json /tmp/upstream.json
 #
 # Diff shape (in order):
 #   - info.version line (silent-bump vs. real bump distinguished).
@@ -181,7 +181,7 @@ auth_diff_tsv="$(jq -n -r \
 # allowlisted operation changes what `xr` enforces; every other operation is
 # permissive at runtime. Parsed from build.rs so the list has one home; when
 # build.rs is not beside this script the report says so instead of guessing.
-BUILD_RS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build.rs"
+BUILD_RS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/crates/xdk/build.rs"
 allowlist=""
 if [ -f "${BUILD_RS}" ]; then
     allowlist="$(sed -n '/^const SHORTCUT_TEMPLATES/,/^\];/p' "${BUILD_RS}" \
@@ -319,6 +319,6 @@ if [ "${total_structural}" = "0" ]; then
     echo ""
     echo '```bash'
     echo 'scripts/refresh-x-openapi.sh'
-    echo 'git diff vendor/x-api-openapi.json'
+    echo 'git diff crates/xdk/vendor/x-api-openapi.json'
     echo '```'
 fi

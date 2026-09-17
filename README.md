@@ -399,17 +399,17 @@ Pre-generated scripts are also available in `completions/`.
 
 ## Library Usage
 
-xurl-rs is also a Rust library. Add it to your `Cargo.toml`:
+The X API client behind `xr` ships as its own crate, `xdk-rs`. Add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xurl-rs = "3"
+xdk-rs = "0.1"
 ```
 
 All 27 shortcut commands (plus `usage credits`) return typed responses via `ApiResponse<T>`:
 
 ```rust
-use xurl::api::{ApiResponse, Post, User, LikedResult, deserialize_response};
+use xdk::api::{ApiResponse, Post, User, LikedResult, deserialize_response};
 
 // Typed response from deserialization
 let resp: ApiResponse<Post> = deserialize_response(json_value)?;

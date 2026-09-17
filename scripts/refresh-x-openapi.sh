@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Refresh the vendored X API OpenAPI spec at vendor/x-api-openapi.json.
+# Refresh the vendored X API OpenAPI spec at crates/xdk/vendor/x-api-openapi.json.
 #
 # Usage:
 #   scripts/refresh-x-openapi.sh
 #
 # Downloads the current spec from https://api.x.com/2/openapi.json, replaces
-# vendor/x-api-openapi.json, writes the vendor/spec-metadata.json sidecar, and
-# renders vendor/README.md from both through scripts/render-vendor-readme.sh.
+# crates/xdk/vendor/x-api-openapi.json, writes the crates/xdk/vendor/spec-metadata.json sidecar, and
+# renders crates/xdk/vendor/README.md from both through scripts/render-vendor-readme.sh.
 #
 # Run before each release cycle. CI drift-check (.github/workflows/spec-drift.yml)
 # flags divergence between runs.
@@ -20,9 +20,9 @@
 set -euo pipefail
 
 UPSTREAM_URL="https://api.x.com/2/openapi.json"
-VENDOR_PATH="vendor/x-api-openapi.json"
-README_PATH="vendor/README.md"
-METADATA_PATH="vendor/spec-metadata.json"
+VENDOR_PATH="crates/xdk/vendor/x-api-openapi.json"
+README_PATH="crates/xdk/vendor/README.md"
+METADATA_PATH="crates/xdk/vendor/spec-metadata.json"
 
 # Resolve repo root from this script's location, so the script works from any cwd.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
