@@ -1,16 +1,14 @@
-//! Build-time coverage check for the auth matrix (plan U8 / brainstorm R25).
+//! Coverage check for the auth matrix.
 //!
 //! Iterates `xdk::api::auth_matrix::SHORTCUT_TEMPLATES` and asserts each
-//! `(method, path)` tuple resolves to a non-empty matrix entry. Catches three
+//! `(method, path)` tuple resolves to a non-empty matrix entry. Catches two
 //! failure modes early:
 //!
-//! 1. A shortcut typo in the runtime `SHORTCUT_TEMPLATES` const that drifted
-//!    from the build-time allowlist in `build.rs`.
-//! 2. Spec drift: X removed an endpoint a shortcut targets. The codegen
+//! 1. Spec drift: X removed an endpoint a shortcut targets. The codegen
 //!    silently drops it; this test surfaces the gap before release.
-//! 3. A shortcut whose spec template never carried a `security:` field.
-//!    R19 covers this at runtime as permissive, but the coverage check
-//!    treats it as a release-time anomaly.
+//! 2. A shortcut whose spec template never carried a `security:` field.
+//!    The runtime treats that as permissive, but the coverage check treats
+//!    it as a release-time anomaly.
 //!
 //! Failure messages name the offending `(method, path)` so the implementer
 //! sees the mismatch without grepping the spec.
@@ -36,10 +34,12 @@ fn every_shortcut_template_resolves_in_the_matrix() {
     assert!(
         missing.is_empty(),
         "Shortcut templates missing from the auth matrix:\n{}\n\
-         The runtime SHORTCUT_TEMPLATES const drifted from the build-time \
-         allowlist in build.rs, OR the spec was updated and a previously-\
-         documented endpoint was dropped. Re-run scripts/refresh-x-openapi.sh \
-         and reconcile.",
+         Cause: the vendored spec no longer lists a `security:` block for the \
+         endpoint, either because a refresh dropped the operation or because the \
+         spec declares it without one.\n\
+         Fix: re-run scripts/refresh-x-openapi.sh and compare the endpoint's entry \
+         in crates/xdk/vendor/x-api-openapi.json against its SHORTCUT_TEMPLATES row \
+         in crates/xdk/build.rs.",
         missing
             .iter()
             .map(|(m, p)| format!("  - {m} {p}"))

@@ -23,79 +23,115 @@ fn main() {
 
 // ── Auth matrix codegen ─────────────────────────────────────────────────
 //
-// Walks `vendor/x-api-openapi.json`, filters to the shortcut-layer allowlist
-// (the (method, path) pairs reachable from `src/api/shortcuts.rs` and
-// `src/api/media.rs` after normalizing local param names to the spec), and
-// emits a `phf::Map<&'static str, &'static [AuthScheme]>` keyed on
+// Walks `vendor/x-api-openapi.json`, filters to `SHORTCUT_TEMPLATES` (every
+// endpoint `src/api/shortcuts.rs` and `src/api/media.rs` call, which they
+// name through the generated `endpoints` module), and emits a
+// `phf::Map<&'static str, &'static [AuthScheme]>` keyed on
 // `"METHOD\0/path/template"`. Wrapped at runtime by `src/api/auth_matrix.rs`.
 //
 // Missing or empty `security:` arrays are treated as "no entry" — the
 // runtime treats those as permissive. Unknown spec security-scheme keys
 // panic the build so silent matrix corruption is impossible.
 
-/// (METHOD, spec path) tuples the shortcut + media layer actually calls.
-/// Param names match the spec verbatim — code that uses different local
-/// names normalizes at the shortcut site.
-const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[
+/// Every endpoint the shortcut and media layer calls: the constant name the
+/// generated `endpoints` module gives it, its method, and its spec path.
+/// Param names match the spec verbatim; a call site that uses different
+/// local names normalizes them when it binds the parameters.
+const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // tweets
-    ("POST", "/2/tweets"),
-    ("GET", "/2/tweets/{id}"),
-    ("DELETE", "/2/tweets/{id}"),
-    ("GET", "/2/tweets/search/recent"),
+    ("CREATE_POST", "POST", "/2/tweets"),
+    ("READ_POST", "GET", "/2/tweets/{id}"),
+    ("DELETE_POST", "DELETE", "/2/tweets/{id}"),
+    ("SEARCH_POSTS", "GET", "/2/tweets/search/recent"),
     // users (reads)
-    ("GET", "/2/users/me"),
-    ("GET", "/2/users/by/username/{username}"),
-    ("GET", "/2/users/{id}/timelines/reverse_chronological"),
-    ("GET", "/2/users/{id}/mentions"),
-    ("GET", "/2/users/{id}/followers"),
-    ("GET", "/2/users/{id}/liked_tweets"),
-    // likes
-    ("POST", "/2/users/{id}/likes"),
-    ("DELETE", "/2/users/{id}/likes/{tweet_id}"),
-    // retweets
-    ("POST", "/2/users/{id}/retweets"),
-    ("DELETE", "/2/users/{id}/retweets/{source_tweet_id}"),
-    // bookmarks
-    ("GET", "/2/users/{id}/bookmarks"),
-    ("POST", "/2/users/{id}/bookmarks"),
-    ("DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
-    // following
-    ("GET", "/2/users/{id}/following"),
-    ("POST", "/2/users/{id}/following"),
+    ("GET_ME", "GET", "/2/users/me"),
+    ("LOOKUP_USER", "GET", "/2/users/by/username/{username}"),
     (
+        "GET_TIMELINE",
+        "GET",
+        "/2/users/{id}/timelines/reverse_chronological",
+    ),
+    ("GET_MENTIONS", "GET", "/2/users/{id}/mentions"),
+    ("GET_FOLLOWERS", "GET", "/2/users/{id}/followers"),
+    ("GET_LIKED_POSTS", "GET", "/2/users/{id}/liked_tweets"),
+    // likes
+    ("LIKE_POST", "POST", "/2/users/{id}/likes"),
+    ("UNLIKE_POST", "DELETE", "/2/users/{id}/likes/{tweet_id}"),
+    // retweets
+    ("REPOST", "POST", "/2/users/{id}/retweets"),
+    (
+        "UNREPOST",
+        "DELETE",
+        "/2/users/{id}/retweets/{source_tweet_id}",
+    ),
+    // bookmarks
+    ("GET_BOOKMARKS", "GET", "/2/users/{id}/bookmarks"),
+    ("BOOKMARK", "POST", "/2/users/{id}/bookmarks"),
+    ("UNBOOKMARK", "DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
+    // following
+    ("GET_FOLLOWING", "GET", "/2/users/{id}/following"),
+    ("FOLLOW_USER", "POST", "/2/users/{id}/following"),
+    (
+        "UNFOLLOW_USER",
         "DELETE",
         "/2/users/{source_user_id}/following/{target_user_id}",
     ),
     // muting
-    ("GET", "/2/users/{id}/muting"),
-    ("POST", "/2/users/{id}/muting"),
+    ("GET_MUTED", "GET", "/2/users/{id}/muting"),
+    ("MUTE_USER", "POST", "/2/users/{id}/muting"),
     (
+        "UNMUTE_USER",
         "DELETE",
         "/2/users/{source_user_id}/muting/{target_user_id}",
     ),
     // blocking
-    ("GET", "/2/users/{id}/blocking"),
-    ("POST", "/2/users/{id}/blocking"),
+    ("GET_BLOCKED", "GET", "/2/users/{id}/blocking"),
+    ("BLOCK_USER", "POST", "/2/users/{id}/blocking"),
     (
+        "UNBLOCK_USER",
         "DELETE",
         "/2/users/{source_user_id}/blocking/{target_user_id}",
     ),
     // DMs
-    ("POST", "/2/dm_conversations/with/{participant_id}/messages"),
-    ("GET", "/2/dm_events"),
+    (
+        "SEND_DM",
+        "POST",
+        "/2/dm_conversations/with/{participant_id}/messages",
+    ),
+    ("GET_DM_EVENTS", "GET", "/2/dm_events"),
     // usage
-    ("GET", "/2/usage/tweets"),
-    ("GET", "/2/usage/credits"),
+    ("GET_USAGE", "GET", "/2/usage/tweets"),
+    ("GET_USAGE_CREDITS", "GET", "/2/usage/credits"),
     // media
-    ("POST", "/2/media/upload"),
-    ("GET", "/2/media/upload"),
-    ("POST", "/2/media/upload/initialize"),
-    ("POST", "/2/media/upload/{id}/append"),
-    ("POST", "/2/media/upload/{id}/finalize"),
+    ("MEDIA_UPLOAD", "POST", "/2/media/upload"),
+    ("MEDIA_UPLOAD_STATUS", "GET", "/2/media/upload"),
+    (
+        "MEDIA_UPLOAD_INITIALIZE",
+        "POST",
+        "/2/media/upload/initialize",
+    ),
+    ("MEDIA_UPLOAD_APPEND", "POST", "/2/media/upload/{id}/append"),
+    (
+        "MEDIA_UPLOAD_FINALIZE",
+        "POST",
+        "/2/media/upload/{id}/finalize",
+    ),
     // broadcasts
-    ("GET", "/2/broadcasts/chat/moderators"),
-    ("POST", "/2/broadcasts/chat/moderators"),
-    ("DELETE", "/2/broadcasts/chat/moderators/{user_id}"),
+    (
+        "GET_CHAT_MODERATORS",
+        "GET",
+        "/2/broadcasts/chat/moderators",
+    ),
+    (
+        "ADD_CHAT_MODERATOR",
+        "POST",
+        "/2/broadcasts/chat/moderators",
+    ),
+    (
+        "REMOVE_CHAT_MODERATOR",
+        "DELETE",
+        "/2/broadcasts/chat/moderators/{user_id}",
+    ),
 ];
 
 #[derive(Deserialize)]
@@ -164,7 +200,7 @@ fn emit_auth_matrix(manifest_dir: &Path) -> Option<String> {
         .unwrap_or_else(|e| panic!("parse {}: {e}", spec_path.display()));
 
     let mut entries: Vec<Entry> = Vec::with_capacity(SHORTCUT_TEMPLATES.len());
-    for (method, path) in SHORTCUT_TEMPLATES {
+    for (_, method, path) in SHORTCUT_TEMPLATES {
         let item = spec.paths.get(*path).unwrap_or_else(|| {
             panic!(
                 "{}: SHORTCUT_TEMPLATES references {path:?} but spec has no such path; \
@@ -253,15 +289,23 @@ fn emit_auth_matrix(manifest_dir: &Path) -> Option<String> {
     )
     .expect("write to String never fails");
 
-    // Emit SHORTCUT_TEMPLATES alongside AUTH_MATRIX so the runtime mirror
-    // is regenerated from this same source list every build. Removes the
-    // manual hand-copy at src/api/auth_matrix.rs and the test that existed
-    // solely to catch drift between the two.
+    // The named endpoint constants and the `(method, path)` list come from
+    // the same rows as the matrix, so a call site, the matrix, and the
+    // testing mock cannot name an endpoint the others do not know.
     src.push('\n');
+    src.push_str("pub mod endpoints {\n");
+    src.push_str("    use crate::api::auth_matrix::Endpoint;\n\n");
+    for (name, method, path) in SHORTCUT_TEMPLATES {
+        writeln!(
+            &mut src,
+            "    /// `{method} {path}`\n    pub const {name}: Endpoint = Endpoint {{ method: {method:?}, path: {path:?} }};"
+        )
+        .expect("write to String never fails");
+    }
+    src.push_str("}\n\n");
     src.push_str("pub const SHORTCUT_TEMPLATES: &[(&str, &str)] = &[\n");
-    for entry in SHORTCUT_TEMPLATES {
-        writeln!(&mut src, "    ({:?}, {:?}),", entry.0, entry.1)
-            .expect("write to String never fails");
+    for (_, method, path) in SHORTCUT_TEMPLATES {
+        writeln!(&mut src, "    ({method:?}, {path:?}),").expect("write to String never fails");
     }
     src.push_str("];\n");
 
