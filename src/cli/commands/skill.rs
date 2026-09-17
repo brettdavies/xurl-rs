@@ -4,8 +4,8 @@
 use std::io::Write;
 
 use crate::cli::SkillCmd;
-use crate::output::OutputConfig;
-use crate::skill_install;
+use crate::cli::output::OutputConfig;
+use crate::cli::skill_install;
 
 /// Run the `skill` subcommand. Returns the process exit code.
 ///

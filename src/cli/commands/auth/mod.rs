@@ -6,9 +6,9 @@ use serde::Serialize;
 use super::{Gate, gate_destructive};
 use crate::auth::Auth;
 use crate::cli::AuthCommands;
+use crate::cli::output::OutputConfig;
 use crate::config::{self, ResolveSource};
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 mod apps;

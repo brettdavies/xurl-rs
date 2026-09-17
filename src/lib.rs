@@ -5,7 +5,7 @@
 //! - The `xr` binary, a high-level CLI for the X API.
 //! - The `xurl` library exposed via the modules below. Downstream Rust
 //!   consumers build requests via [`api::ApiClient`], drive output through
-//!   [`output::OutputConfig`], pattern-match on [`error::XurlError`], and
+//!   [`cli::output::OutputConfig`], pattern-match on [`error::XurlError`], and
 //!   persist auth state in [`store::TokenStore`].
 //!
 //! Four authentication paths are supported, selected per request from the
@@ -28,10 +28,7 @@ pub mod api;
 pub mod auth;
 pub mod cli;
 pub mod config;
-pub mod envelope;
 pub mod error;
-pub mod output;
-pub mod skill_install;
 pub mod store;
 
 // ── Compile-time build and provenance metadata ──────────────────────────

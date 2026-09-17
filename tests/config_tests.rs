@@ -171,6 +171,7 @@ fn test_from_overrides_carries_every_supplied_value() {
         output: None,
         home: None,
         token_store: None,
+        no_color: false,
     });
 
     assert_eq!(cfg.client_id, "CID");

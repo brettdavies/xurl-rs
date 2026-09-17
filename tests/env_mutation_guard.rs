@@ -103,7 +103,7 @@ const ALLOWLIST: &[Allowed] = &[
     Allowed {
         file: "output_writer_tests.rs",
         test: "no_color_env_reaches_the_resolved_color_decision",
-        reason: "the only proof that OutputConfig::new_with_raw reads NO_COLOR from the process",
+        reason: "the only proof that the binary reads NO_COLOR from the process",
     },
     Allowed {
         file: "src/config/mod.rs",
@@ -135,7 +135,7 @@ const SCANNED: &[&str] = &[
 /// Library sources with inline `#[cfg(test)]` modules, relative to the repo
 /// root. Unit tests share the library test binary, so a mutation here races
 /// every other test in that binary exactly as it did in the integration ones.
-const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/output/mod.rs"];
+const SCANNED_SRC: &[&str] = &["src/config/mod.rs", "src/cli/output/mod.rs"];
 
 #[test]
 fn integration_tests_do_not_mutate_the_process_environment() {

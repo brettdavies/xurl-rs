@@ -152,7 +152,7 @@ fn schema_unknown_command_exits_general_error() {
 #[test]
 fn entrypoint_types_are_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<xurl::output::OutputConfig>();
+    assert_send_sync::<xurl::cli::output::OutputConfig>();
     assert_send_sync::<xurl::config::Config>();
     // Auth is Send + Sync per src/auth/mod.rs compile-time check.
     assert_send_sync::<xurl::auth::Auth>();

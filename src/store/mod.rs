@@ -118,7 +118,7 @@ impl TokenStore {
             if twurlrc_path.exists()
                 && let Err(e) = store.import_from_twurlrc(&twurlrc_path)
             {
-                crate::output::warn_stderr(&format!("error importing from .twurlrc: {e}"));
+                tracing::warn!(target: "xurl::store", "error importing from .twurlrc: {e}");
             }
         }
 

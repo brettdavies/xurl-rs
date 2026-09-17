@@ -14,9 +14,16 @@ pub use runner::{run, run_argv, run_with_store_path};
 use clap::builder::FalseyValueParser;
 use clap::{Parser, Subcommand, ValueEnum};
 
-pub use crate::output::OutputFormat;
-use crate::skill_install::KNOWN_HOSTS;
-pub use crate::skill_install::SkillHost;
+pub mod env;
+pub mod envelope;
+pub mod output;
+#[cfg(test)]
+mod parse_tests;
+pub mod skill_install;
+
+pub use output::OutputFormat;
+use skill_install::KNOWN_HOSTS;
+pub use skill_install::SkillHost;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -1543,8 +1550,8 @@ impl CommonFlags {
     /// `verbose` and `timeout_secs` are sourced from the root [`Cli`] global
     /// flags rather than per-subcommand, so the caller threads them through
     /// here.
-    pub fn to_call_options(&self, verbose: bool, timeout_secs: u64) -> crate::api::CallOptions {
-        self.to_call_options_with_cursor(verbose, timeout_secs, None)
+    pub fn to_call_options(&self, timeout_secs: u64) -> crate::api::CallOptions {
+        self.to_call_options_with_cursor(timeout_secs, None)
     }
 
     /// Like [`to_call_options`] but with an explicit cursor / pagination
@@ -1555,7 +1562,6 @@ impl CommonFlags {
     /// [`to_call_options`]: Self::to_call_options
     pub fn to_call_options_with_cursor(
         &self,
-        verbose: bool,
         timeout_secs: u64,
         cursor: Option<&str>,
     ) -> crate::api::CallOptions {
@@ -1563,7 +1569,6 @@ impl CommonFlags {
             auth_type: self.auth_type.clone().unwrap_or_default(),
             username: self.username.clone().unwrap_or_default(),
             no_auth: false,
-            verbose,
             trace: self.trace,
             timeout_secs,
             pagination_token: cursor.unwrap_or_default().to_string(),

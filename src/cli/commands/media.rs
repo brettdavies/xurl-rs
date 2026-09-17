@@ -6,15 +6,9 @@ use serde_json::json;
 use crate::api::{self, ApiClient};
 use crate::auth::Auth;
 use crate::cli::MediaCommands;
+use crate::cli::output::OutputConfig;
 use crate::config::Config;
 use crate::error::Result;
-use crate::output::OutputConfig;
-
-fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
-    let mut client = ApiClient::new(cfg, auth);
-    client.set_output(out.clone());
-    client
-}
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn run_media_command(
@@ -25,7 +19,6 @@ pub(super) fn run_media_command(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
 ) -> Result<()> {
     match cmd {
         MediaCommands::Upload {
@@ -48,22 +41,26 @@ pub(super) fn run_media_command(
                 out.print_dry_run(stdout, true, 0, &ctx);
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            api::execute_media_upload(
+            let mut client = ApiClient::new(cfg, auth);
+            let outcome = api::execute_media_upload(
                 &file,
                 &media_type,
                 &category,
                 &auth_type.unwrap_or_default(),
                 &username.unwrap_or_default(),
-                verbose,
                 trace,
                 wait,
                 &headers,
                 &mut client,
-                out,
-                stdout,
-                stderr,
-            )
+            )?;
+            if verbose {
+                out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
+            }
+            out.print_response(stdout, &serde_json::to_value(&outcome.finalize)?);
+            if let Some(processing) = &outcome.processing {
+                out.print_response(stdout, &serde_json::to_value(processing)?);
+            }
+            Ok(())
         }
         MediaCommands::Status {
             media_id,
@@ -73,20 +70,18 @@ pub(super) fn run_media_command(
             trace,
             headers,
         } => {
-            let mut client = make_client(cfg, auth, out);
-            api::execute_media_status(
+            let mut client = ApiClient::new(cfg, auth);
+            let response = api::execute_media_status(
                 &media_id,
                 &auth_type.unwrap_or_default(),
                 &username.unwrap_or_default(),
-                verbose,
                 wait,
                 trace,
                 &headers,
                 &mut client,
-                out,
-                stdout,
-                stderr,
-            )
+            )?;
+            out.print_response(stdout, &serde_json::to_value(&response)?);
+            Ok(())
         }
     }
 }

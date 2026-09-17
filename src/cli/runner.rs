@@ -32,11 +32,11 @@ use crate::cli::classify::{
     Classified, classify, context_string, nearest_command, structured_intent,
     suggestion_for_rejected,
 };
+use crate::cli::envelope::ErrorBody;
+use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::{Cli, ColorChoice, Commands};
 use crate::config::Config;
-use crate::envelope::ErrorBody;
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
-use crate::output::{OutputConfig, OutputFormat};
 
 /// What the structured rendering says when there is nothing to run.
 ///
@@ -68,7 +68,7 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
-    let overrides = crate::config::EnvOverrides::from_env();
+    let overrides = crate::cli::env::from_process();
     let store_path = overrides
         .token_store
         .as_deref()
@@ -109,7 +109,7 @@ where
         stdout,
         stderr,
         store_path,
-        &crate::config::EnvOverrides::from_env(),
+        &crate::cli::env::from_process(),
     )
 }
 
@@ -139,16 +139,17 @@ where
     let cli = match Cli::try_parse_from(args_vec.iter()) {
         Ok(cli) => cli,
         Err(e) => {
-            return render_parse_error(&e, &args_vec, overrides.output.as_deref(), stdout, stderr);
+            return render_parse_error(&e, &args_vec, overrides, stdout, stderr);
         }
     };
 
-    let out = OutputConfig::new_with_raw(
+    let out = OutputConfig::new_with_no_color(
         cli.effective_output(),
         cli.quiet,
         cli.verbose,
         cli.color,
         cli.raw,
+        overrides.no_color,
     )
     .with_no_interactive(cli.no_interactive);
 
@@ -269,7 +270,14 @@ where
         .collect();
     let structured = out.format.is_structured();
 
-    match crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides) {
+    // The library reports its diagnostics as `tracing` events; this renderer
+    // turns them into the stderr lines the flags call for, for this dispatch
+    // and this thread only.
+    let diagnostics = Diagnostics::new(out.clone());
+    let dispatched = tracing::subscriber::with_default(diagnostics, || {
+        crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
+    });
+    match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(e) => {
             let code = e.exit_code();
@@ -299,7 +307,11 @@ where
 /// public error enum is exhaustively matched downstream and cannot grow one
 /// in a 3.x release.
 fn carries_no_auth_method(error: &crate::error::XurlError) -> bool {
-    matches!(error, crate::error::XurlError::Auth(msg) if msg == crate::error::NO_AUTH_METHOD)
+    matches!(
+        error,
+        crate::error::XurlError::Auth(msg)
+            if msg == crate::error::NO_AUTH_METHOD || msg == "TokenNotFound: oauth2 token not found"
+    )
 }
 
 /// The enrollment hint for an API refusal, when this error is one.
@@ -321,7 +333,7 @@ fn enrollment_hint_for(error: &crate::error::XurlError) -> Option<crate::cli::hi
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
-    output_env: Option<&str>,
+    overrides: &crate::config::EnvOverrides,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
@@ -336,15 +348,16 @@ fn render_parse_error(
         return EXIT_SUCCESS;
     }
 
-    let intent = structured_intent(args, output_env);
+    let intent = structured_intent(args, overrides.output.as_deref());
     // Quiet and verbose are unparsed here, and neither changes an error
     // envelope, so the provisional config leaves both off.
-    let out = OutputConfig::new_with_raw(
+    let out = OutputConfig::new_with_no_color(
         intent.clone().unwrap_or(OutputFormat::Text),
         false,
         false,
         ColorChoice::Auto,
         false,
+        overrides.no_color,
     );
 
     if error.kind() == ErrorKind::InvalidSubcommand

@@ -1,8 +1,8 @@
 //! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`
 //! (U1 of the library-CLI-entrypoint plan).
 
+use xurl::cli::output::{OutputConfig, OutputFormat};
 use xurl::error::XurlError;
-use xurl::output::{OutputConfig, OutputFormat};
 
 /// Compile-time assertion: `OutputConfig` must remain a `Send + Sync` config
 /// object so it can be shared across threads / tasks in the planned async
@@ -704,21 +704,24 @@ fn info_suppressed_under_every_structured_format() {
 
 // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
 //
-// `OutputConfig::new_with_raw` reads `NO_COLOR` from the process and hands the
-// result to `new_with_no_color`, which every other color test drives directly.
-// This is the only test covering that read, so it exports the variable. It is
-// the sole mutation in this binary, so nothing races it.
+// The binary reads `NO_COLOR` once, in `xurl::cli::env::from_process`, and
+// hands the flag to `new_with_no_color`, which every other color test drives
+// directly. This is the only test covering that read, so it exports the
+// variable. It is the sole mutation in this binary, so nothing races it.
 #[test]
 fn no_color_env_reaches_the_resolved_color_decision() {
     let prior = std::env::var_os("NO_COLOR");
     unsafe {
         std::env::set_var("NO_COLOR", "1");
     }
-    let cfg = OutputConfig::new(
+    let overrides = xurl::cli::env::from_process();
+    let cfg = OutputConfig::new_with_no_color(
         OutputFormat::Text,
         false,
         false,
         xurl::cli::ColorChoice::Always,
+        false,
+        overrides.no_color,
     );
     unsafe {
         match prior {
@@ -735,7 +738,7 @@ fn no_color_env_reaches_the_resolved_color_decision() {
 
 // ── Typed-envelope round trip ──────────────────────────────────────────────
 
-/// Deserializes one emitted envelope back into [`xurl::envelope::ErrorBody`],
+/// Deserializes one emitted envelope back into [`xurl::cli::envelope::ErrorBody`],
 /// which denies unknown fields, so a key no field declares fails the test.
 fn assert_round_trips(emitted: &str, expected_reason: &str) {
     let mut value: serde_json::Value = serde_json::from_str(emitted.trim())
@@ -746,7 +749,7 @@ fn assert_round_trips(emitted: &str, expected_reason: &str) {
         Some(serde_json::Value::String("error".to_string())),
         "every error envelope carries status=error: {emitted}"
     );
-    let body: xurl::envelope::ErrorBody = serde_json::from_value(value)
+    let body: xurl::cli::envelope::ErrorBody = serde_json::from_value(value)
         .unwrap_or_else(|e| panic!("undeclared key in the envelope ({e}): {emitted}"));
     assert_eq!(body.reason, expected_reason);
 }
@@ -801,7 +804,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
 
     // 5. A hint-bearing envelope: `next_step` must round-trip too. The CLI
     // builds this shape for the sign-in refusal.
-    let mut body = xurl::envelope::ErrorBody::default();
+    let mut body = xurl::cli::envelope::ErrorBody::default();
     body.reason = "client-credentials-missing".to_string();
     body.exit_code = 2;
     body.message = Some("no app carries client credentials.".to_string());
@@ -830,7 +833,7 @@ fn an_undeclared_key_fails_the_round_trip() {
     let mut value: serde_json::Value = serde_json::from_str(emitted).unwrap();
     value.as_object_mut().unwrap().remove("status");
     assert!(
-        serde_json::from_value::<xurl::envelope::ErrorBody>(value).is_err(),
+        serde_json::from_value::<xurl::cli::envelope::ErrorBody>(value).is_err(),
         "deny_unknown_fields must reject an undeclared key"
     );
 }

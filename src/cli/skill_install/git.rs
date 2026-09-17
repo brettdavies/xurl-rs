@@ -87,7 +87,7 @@ pub(super) fn spawn_git_clone(cmd: &mut Command) -> Result<(), InstallError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skill_install::{SkillHost, resolve_host};
+    use crate::cli::skill_install::{SkillHost, resolve_host};
 
     fn skill_repo_url() -> &'static str {
         resolve_host(SkillHost::ClaudeCode).0

@@ -16,8 +16,8 @@ use crate::api::{
     ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, FollowingResult,
     LikedResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
+use crate::cli::output::OutputConfig;
 use crate::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
-use crate::output::OutputConfig;
 
 /// Canonical exit code for an input-validation failure (matches the
 /// envelope-already-emitted dispatch path used elsewhere in the CLI).
@@ -265,7 +265,7 @@ fn try_into<T: DeserializeOwned>(value: &serde_json::Value) -> Result<(), String
 mod tests {
     use super::*;
     use crate::cli::ColorChoice;
-    use crate::output::OutputFormat;
+    use crate::cli::output::OutputFormat;
 
     fn cfg(format: OutputFormat) -> OutputConfig {
         OutputConfig::new(format, false, false, ColorChoice::Never)

@@ -13,7 +13,7 @@ use colored::Colorize;
 /// Returns any I/O error from writing to `out`. The typical caller
 /// (`OutputConfig::print_response`) treats this best-effort and ignores
 /// the error so a closed pipe doesn't abort the program.
-pub fn format_response(out: &mut dyn Write, value: &serde_json::Value) -> io::Result<()> {
+pub(super) fn format_response(out: &mut dyn Write, value: &serde_json::Value) -> io::Result<()> {
     let pretty = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
     colorize_json(out, &pretty)
 }

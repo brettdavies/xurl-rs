@@ -46,7 +46,7 @@
 
 use std::io::Write;
 
-use crate::output::OutputConfig;
+use crate::cli::output::OutputConfig;
 
 mod destination;
 mod git;
@@ -64,7 +64,7 @@ use git::spawn_git_clone;
 use render::{emit_envelope, render_envelope, render_multi, render_structured};
 
 // `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, and `host_envelope_str` are
-// auto-generated at build time from `src/skill_install/skill.json`. Edit the
+// auto-generated at build time from `src/cli/skill_install/skill.json`. Edit the
 // JSON file to add or remove hosts; `cargo build` regenerates this file.
 #[allow(missing_docs)]
 mod generated_hosts {

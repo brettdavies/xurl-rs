@@ -7,8 +7,8 @@ use serde_json::json;
 
 use super::{AuthCtx, AuthGlobalFlags};
 use crate::auth::Auth;
+use crate::cli::envelope::ErrorBody;
 use crate::cli::hints::NextStep;
-use crate::envelope::ErrorBody;
 use crate::error::{EXIT_USAGE_ERROR, Result, XurlError};
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
@@ -68,8 +68,31 @@ pub(super) fn oauth2(args: Oauth2Args, ctx: AuthCtx<'_>) -> Result<()> {
     let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
     let effective_no_browser = no_browser || auto_engage_no_browser;
     if !effective_no_browser {
-        // Standard interactive flow
-        auth.oauth2_flow(username_arg, out, stdout)?;
+        // Standard interactive flow. The opener records the URL it could not
+        // open, so the paste-the-URL advice can name it once the flow returns.
+        let unopened = std::sync::Arc::new(std::sync::Mutex::new(None::<String>));
+        let opener = {
+            let unopened = std::sync::Arc::clone(&unopened);
+            move |url: &str| {
+                let result = open::that(url);
+                if result.is_err()
+                    && let Ok(mut slot) = unopened.lock()
+                {
+                    *slot = Some(url.to_string());
+                }
+                result
+            }
+        };
+        if let Err(e) = auth.oauth2_flow(username_arg, opener) {
+            if let Some(url) = unopened.lock().ok().and_then(|mut slot| slot.take()) {
+                out.print_message(
+                    stdout,
+                    "Failed to open browser automatically. Re-run with --no-browser to use the paste-the-URL flow:",
+                );
+                out.print_message(stdout, &url);
+            }
+            return Err(e);
+        }
         out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
     } else {
         let pending_path =

@@ -16,10 +16,10 @@ use serde_json::json;
 use crate::api::shortcuts;
 use crate::api::{self, ApiClient, CallOptions, RequestOptions, RequestTarget};
 use crate::auth::Auth;
+use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, UsageCommands};
 use crate::config::Config;
 use crate::error::{EXIT_GENERAL_ERROR, Result, XurlError};
-use crate::output::OutputConfig;
 
 /// Default page size when neither `--max-results` nor `--limit` is supplied.
 const DEFAULT_PAGE_SIZE: i32 = 10;
@@ -170,13 +170,8 @@ fn print_typed<T: Serialize>(
     Ok(())
 }
 
-/// Constructs an `ApiClient` with the runner's `OutputConfig` already
-/// installed so verbose request/response diagnostics flow through the
-/// single owner of stdio (`src/output/`).
-fn make_client(cfg: &Config, auth: Auth, out: &OutputConfig) -> ApiClient {
-    let mut client = ApiClient::new(cfg, auth);
-    client.set_output(out.clone());
-    client
+fn make_client(cfg: &Config, auth: Auth) -> ApiClient {
+    ApiClient::new(cfg, auth)
 }
 
 /// Runs the CLI — dispatches to the appropriate handler.
@@ -304,7 +299,7 @@ fn run_raw_mode(
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
     let media_file = cli.file.clone().unwrap_or_default();
 
-    let mut client = make_client(cfg, auth, out);
+    let mut client = make_client(cfg, auth);
     // Raw mode accepts either an absolute http(s) URL OR an absolute path
     // (e.g. `xr POST /2/users/me`). Pre-v2.0.0 `build_url` prepended
     // `api_base_url` whenever the input did not start with `http`; with the
@@ -332,7 +327,6 @@ fn run_raw_mode(
         auth_type: cli.auth_type.clone().unwrap_or_default(),
         username: cli.username.clone().unwrap_or_default(),
         no_auth: false,
-        verbose: cli.verbose,
         trace: cli.trace,
         pagination_token: cli.cursor.clone().unwrap_or_default(),
     };
@@ -401,8 +395,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.create_post(&text, &media_ids, &opts)?;
             // NOTE: All match arms below follow this same pattern — auth is moved
             // into ApiClient::new(). The compiler ensures only one arm executes.
@@ -431,8 +425,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.reply_to_post(&post_id, &text, &media_ids, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -455,8 +449,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.quote_post(&post_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -491,16 +485,16 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.delete_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
         // ── Reading ──────────────────────────────────────────────────
         Commands::Read { post_id, common } => {
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.read_post(&post_id, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -510,17 +504,16 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let response = client.search_posts(&query, n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
 
         // ── User Info ────────────────────────────────────────────────
         Commands::Whoami { common } => {
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.get_me(&opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -528,8 +521,8 @@ fn run_subcommand(
             target_username,
             common,
         } => {
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let response = client.lookup_user(&target_username, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -540,9 +533,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_timeline(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -552,9 +544,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_mentions(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -570,8 +561,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.like_post(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -585,8 +576,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unlike_post(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -600,8 +591,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.repost(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -615,8 +606,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unrepost(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -630,8 +621,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.bookmark(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -645,8 +636,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.unbookmark(&user_id, &post_id, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -656,9 +647,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_bookmarks(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -668,9 +658,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_liked_posts(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -689,8 +678,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.follow_user(&my_id, &target_id, &opts)?;
@@ -708,8 +697,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unfollow_user(&my_id, &target_id, &opts)?;
@@ -721,9 +710,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -738,9 +726,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = if let Some(ref target) = of {
                 resolve_user_id(&mut client, target, &opts)?
             } else {
@@ -761,8 +748,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.mute_user(&my_id, &target_id, &opts)?;
@@ -780,8 +767,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unmute_user(&my_id, &target_id, &opts)?;
@@ -792,9 +779,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_muted(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -811,8 +797,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.block_user(&my_id, &target_id, &opts)?;
@@ -830,8 +816,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let my_id = resolve_my_user_id(&mut client, &opts)?;
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.unblock_user(&my_id, &target_id, &opts)?;
@@ -842,9 +828,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let user_id = resolve_my_user_id(&mut client, &opts)?;
             let response = client.get_blocked(&user_id, n, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -853,14 +838,14 @@ fn run_subcommand(
         // ── Usage ─────────────────────────────────────────────────────
         Commands::Usage { target, common } => match target {
             Some(UsageCommands::Credits { common }) => {
-                let mut client = make_client(cfg, auth, out);
-                let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+                let mut client = make_client(cfg, auth);
+                let opts = common.to_call_options(cfg.http_timeout_secs);
                 let response = client.get_usage_credits(&opts)?;
                 print_typed(out, stdout, &response)?;
             }
             None => {
-                let mut client = make_client(cfg, auth, out);
-                let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+                let mut client = make_client(cfg, auth);
+                let opts = common.to_call_options(cfg.http_timeout_secs);
                 let response = client.get_usage(&opts)?;
                 print_typed(out, stdout, &response)?;
             }
@@ -886,8 +871,8 @@ fn run_subcommand(
             if !proceed {
                 return Ok(());
             }
-            let mut client = make_client(cfg, auth, out);
-            let opts = common.to_call_options(verbose, cfg.http_timeout_secs);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options(cfg.http_timeout_secs);
             let target_id = resolve_user_id(&mut client, &target_username, &opts)?;
             let response = client.send_dm(&target_id, &text, &opts)?;
             print_typed(out, stdout, &response)?;
@@ -897,9 +882,8 @@ fn run_subcommand(
             common,
         } => {
             let n = effective_limit(max_results, global_limit);
-            let mut client = make_client(cfg, auth, out);
-            let opts =
-                common.to_call_options_with_cursor(verbose, cfg.http_timeout_secs, cursor_opt);
+            let mut client = make_client(cfg, auth);
+            let opts = common.to_call_options_with_cursor(cfg.http_timeout_secs, cursor_opt);
             let response = client.get_dm_events(n, &opts)?;
             print_typed(out, stdout, &response)?;
         }
@@ -924,9 +908,7 @@ fn run_subcommand(
 
         // ── Media ────────────────────────────────────────────────────
         Commands::Media { command } => {
-            return media::run_media_command(
-                command, cfg, auth, verbose, dry_run, out, stdout, stderr,
-            );
+            return media::run_media_command(command, cfg, auth, verbose, dry_run, out, stdout);
         }
 
         // ── Meta (handled before config init in main) ───────────────

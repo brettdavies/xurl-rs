@@ -3,7 +3,7 @@
 
 use std::io::Write;
 
-use crate::output::OutputFormat;
+use crate::cli::output::OutputFormat;
 
 use super::{InstallEnvelope, InstallMultiEnvelope, STATUS_DRY_RUN, STATUS_OK};
 

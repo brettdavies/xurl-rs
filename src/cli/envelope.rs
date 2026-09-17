@@ -56,7 +56,7 @@ pub enum Envelope {
 
 /// Every field an error envelope can carry, beside the `status` tag.
 ///
-/// The emitter in [`crate::output`] constructs this value and serializes it,
+/// The emitter in [`crate::cli::output`] constructs this value and serializes it,
 /// which is what lets the generated schema describe exactly what agents see.
 /// Optional fields are skipped when absent, so a consumer feature-detects by
 /// key presence. `reason` is a typed kebab-case identifier from the closed

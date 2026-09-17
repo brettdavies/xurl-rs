@@ -57,6 +57,9 @@ url = "2"
 # Terminal
 colored = "3"
 
+# Diagnostics
+tracing = "0.1"
+
 # Schema generation
 schemars = "1"
 
@@ -132,3 +135,37 @@ enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }
 # every variant carries fields, and Rust rejects the cast unless all are
 # field-less. Ordering follows the command grouping instead.
 enum_no_repr_variant_discriminant_changed = { lint-level = "deny", required-update = "minor" }
+# The eleven entries below cover the presentation move: the library no longer
+# renders, prints, or opens a browser, and the modules that did live under
+# `xurl::cli`, the tree the binary owns. They clear with the 4.0.0 tag.
+#
+# Covers `xurl::output`, `xurl::envelope`, and `xurl::skill_install`, which are
+# reachable only under `xurl::cli`.
+module_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `OutputConfig`, `ErrorBody`, `InstallEnvelope`, and
+# `InstallMultiEnvelope`, which moved with their modules.
+struct_missing = { lint-level = "deny", required-update = "minor" }
+# Covers the enums those modules declared, `OutputFormat` and `InstallError`
+# among them.
+enum_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `KNOWN_HOSTS` and the `GIT_HARDEN_*` constants, which moved with the
+# installer.
+pub_module_level_const_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `format_response`, `warn_stderr`, and the installer's free functions:
+# the library neither colours JSON nor writes to stderr.
+function_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `run_oauth2_flow`, which takes the browser opener as a closure in
+# place of an output config, a writer, and a function pointer.
+function_parameter_count_changed = { lint-level = "deny", required-update = "minor" }
+function_requires_different_generic_type_params = { lint-level = "deny", required-update = "minor" }
+# Covers `ApiClient::set_output`: the client carries no output config, and its
+# diagnostics are `tracing` events.
+inherent_method_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `ApiClient::stream_request`, `Auth::oauth2_flow`, and
+# `CommonFlags::to_call_options{,_with_cursor}`: the writers and the verbose
+# flag left their signatures.
+method_parameter_count_changed = { lint-level = "deny", required-update = "minor" }
+method_requires_different_generic_type_params = { lint-level = "deny", required-update = "minor" }
+# Covers `RequestOptions.verbose` and `CallOptions.verbose`: verbosity is the
+# subscriber's decision, not a per-call field.
+struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }

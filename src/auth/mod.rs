@@ -10,7 +10,6 @@ pub mod pending;
 
 use crate::config::Config;
 use crate::error::{Result, XurlError};
-use crate::output::OutputConfig;
 use crate::store::TokenStore;
 
 /// Manages authentication for X API requests.
@@ -293,49 +292,28 @@ impl Auth {
             }
         }
 
-        // Deferred per U4 / KTD6: this site is the mid-request token-refresh
-        // path inside `ApiClient::send_request`. Plumbing writers from the
-        // runner all the way through `ApiClient::send_request` →
-        // `get_auth_header` → `get_oauth2_header` would expand 6 method
-        // signatures (send_request, send_multipart_request, stream_request,
-        // get_auth_header, get_auth_header_public, get_oauth2_header) and
-        // every call site in `cli/commands/` and `api/media.rs` for a path
-        // that runs only on the first request when no token is cached.
-        //
-        // The vast majority of OAuth2 flows run at explicit `xr auth oauth2`
-        // time (which U4 wires correctly via the runner's writers). This
-        // stub is the only remaining direct-stdio site after U4.
-        let out = OutputConfig::new(
-            crate::output::OutputFormat::Text,
-            false,
-            false,
-            crate::cli::ColorChoice::Auto,
-        );
-        let mut stdout = std::io::stdout();
-        let access_token = self.oauth2_flow(username, &out, &mut stdout)?;
-        Ok(format!("Bearer {access_token}"))
+        // No stored token means no header: the library never starts an
+        // interactive sign-in inside a request. The binary decides whether to
+        // sign in and retry.
+        Err(XurlError::auth("TokenNotFound: oauth2 token not found"))
     }
 
-    /// Starts the `OAuth2` PKCE flow with the default `open::that` browser opener.
+    /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
+    /// `browser_opener` once the callback listener is bound.
     ///
-    /// Browser-failure prompts are written to `stdout` via `out`'s
-    /// `print_message`, so callers can capture them in tests. Library
-    /// consumers needing a custom opener (recording / headless / tests for
-    /// the listener-before-browser ordering) call
-    /// [`oauth2::run_oauth2_flow`] directly with their own `fn(&str) ->
-    /// io::Result<()>` opener.
+    /// The library never opens a browser itself: the binary passes
+    /// `open::that`, a test passes a recording closure, and a headless caller
+    /// passes whatever delivers the URL to a person.
     ///
     /// # Errors
     ///
-    /// Returns an error if the authorization flow, token exchange, or username
-    /// resolution fails.
-    pub fn oauth2_flow(
-        &mut self,
-        username: &str,
-        out: &OutputConfig,
-        stdout: &mut dyn std::io::Write,
-    ) -> Result<String> {
-        oauth2::run_oauth2_flow(self, username, out, stdout, |url| open::that(url))
+    /// Returns an error if the authorization flow, the opener, the token
+    /// exchange, or username resolution fails.
+    pub fn oauth2_flow<F>(&mut self, username: &str, browser_opener: F) -> Result<String>
+    where
+        F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
+    {
+        oauth2::run_oauth2_flow(self, username, browser_opener)
     }
 
     /// Validates and refreshes an `OAuth2` token if needed.

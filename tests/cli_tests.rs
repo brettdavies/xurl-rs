@@ -1752,52 +1752,6 @@ fn test_like_with_at_prefix_username_strips_at() {
     assert_eq!(code, 0, "like failed; stderr: {stderr}; stdout: {stdout}");
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// `auth oauth2 [USERNAME]` positional (U4)
-// ═══════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn test_oauth2_positional_username_threads_through() {
-    // Parse-level assertion: `xr auth oauth2 alice --no-browser --step 1`
-    // must succeed at the clap layer with the positional bound to `alice`.
-    // Driving the full OAuth2 flow end-to-end lives in `auth_remote_tests.rs`
-    // (`exchange_code_for_token_nonempty_username_skips_me_and_saves_named`).
-    use clap::Parser;
-
-    let parsed = xurl::cli::Cli::try_parse_from([
-        "xr",
-        "auth",
-        "oauth2",
-        "alice",
-        "--no-browser",
-        "--step",
-        "1",
-    ])
-    .expect("positional + --no-browser --step 1 must parse");
-
-    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
-        panic!("expected Auth subcommand");
-    };
-    match command {
-        xurl::cli::AuthCommands::Oauth2 {
-            no_browser,
-            step,
-            auth_url,
-            username,
-        } => {
-            assert!(no_browser, "--no-browser should be set");
-            assert_eq!(step, Some(1));
-            assert!(auth_url.is_none());
-            assert_eq!(
-                username.as_deref(),
-                Some("alice"),
-                "positional username must bind to `alice`",
-            );
-        }
-        other => panic!("expected AuthCommands::Oauth2, got {other:?}"),
-    }
-}
-
 #[test]
 fn test_oauth2_positional_invalid_extra_args() {
     // Two positionals on `auth oauth2` must fail with a clap usage error
@@ -2043,7 +1997,7 @@ fn skill_install_all_dry_run_lists_every_host() {
         .iter()
         .map(|e| e["host"].as_str().expect("host string"))
         .collect();
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(
             host_names.contains(expected),
             "host {expected} missing from --all envelope; got {host_names:?}"
@@ -2073,7 +2027,7 @@ fn skill_install_no_args_lists_supported_hosts() {
         code, 2,
         "expected 2 (usage error) for missing host; stderr: {stderr}"
     );
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(
             stdout.contains(expected),
             "host {expected} missing from text listing: {stdout}"
@@ -2096,7 +2050,7 @@ fn skill_install_no_args_json_lists_supported_hosts_in_envelope() {
         .as_array()
         .expect("known_hosts is an array");
     let names: Vec<&str> = hosts.iter().map(|h| h.as_str().expect("str")).collect();
-    for expected in xurl::skill_install::KNOWN_HOSTS {
+    for expected in xurl::cli::skill_install::KNOWN_HOSTS {
         assert!(names.contains(expected), "missing {expected}: {names:?}");
     }
 }
@@ -2733,29 +2687,24 @@ fn test_root_help_lists_env_vars_and_exit_codes() {
 /// regressing the P3 audit.
 #[test]
 fn test_every_subcommand_help_has_examples_block() {
-    use clap::CommandFactory;
-
-    fn collect_paths(cmd: &clap::Command, prefix: &[String], out: &mut Vec<Vec<String>>) {
-        for sub in cmd.get_subcommands() {
-            let name = sub.get_name().to_string();
-            // Skip clap's auto-generated `help` subcommand and aliases.
-            if name == "help" {
-                continue;
-            }
-            let mut path = prefix.to_vec();
-            path.push(name);
-            out.push(path.clone());
-            collect_paths(sub, &path, out);
-        }
+    /// The first token of each entry in a help page's `Commands:` block, so
+    /// the walk needs no access to the parser definition.
+    fn commands_in(help: &str) -> Vec<String> {
+        let mut lines = help.lines().skip_while(|l| *l != "Commands:");
+        lines.next();
+        lines
+            .take_while(|l| !l.trim().is_empty())
+            .filter_map(|l| l.strip_prefix("  ").filter(|rest| !rest.starts_with(' ')))
+            .filter_map(|entry| entry.split_whitespace().next())
+            .filter(|name| *name != "help")
+            .map(str::to_string)
+            .collect()
     }
 
-    let cli = xurl::cli::Cli::command();
     let mut paths: Vec<Vec<String>> = Vec::new();
-    collect_paths(&cli, &[], &mut paths);
-    assert!(!paths.is_empty(), "Cli must expose at least one subcommand");
-
     let mut missing: Vec<String> = Vec::new();
-    for path in &paths {
+    let mut pending: Vec<Vec<String>> = vec![Vec::new()];
+    while let Some(path) = pending.pop() {
         let mut args: Vec<String> = vec!["xr".to_string()];
         args.extend(path.iter().cloned());
         args.push("--help".to_string());
@@ -2767,10 +2716,20 @@ fn test_every_subcommand_help_has_examples_block() {
             "expected 0 for `{}` --help; stderr: {stderr}",
             path.join(" ")
         );
+        for sub in commands_in(&stdout) {
+            let mut next = path.clone();
+            next.push(sub);
+            pending.push(next);
+        }
+        if path.is_empty() {
+            continue;
+        }
         if !stdout.contains("Examples:") {
             missing.push(path.join(" "));
         }
+        paths.push(path);
     }
+    assert!(!paths.is_empty(), "Cli must expose at least one subcommand");
     assert!(
         missing.is_empty(),
         "the following subcommands' --help lacks an Examples: block:\n  {}",
@@ -4050,77 +4009,14 @@ fn test_verb_local_error_envelopes_match_the_declared_body(
     let obj = value.as_object_mut().expect("an object");
     assert_eq!(obj["reason"], expected_reason, "got: {emitted}");
     obj.remove("status");
-    serde_json::from_value::<xurl::envelope::ErrorBody>(value)
+    serde_json::from_value::<xurl::cli::envelope::ErrorBody>(value)
         .unwrap_or_else(|e| panic!("undeclared key in a verb-local envelope ({e}): {emitted}"));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Boolean flags with an optional value require `=` for that value
+// Boolean flags with an optional value require `=` for that value; the
+// parse-level cases live in `src/cli/parse_tests.rs`
 // ═══════════════════════════════════════════════════════════════════════════
-
-/// Which global boolean flags the parse landed on, plus the command word.
-#[derive(Debug, PartialEq, Eq)]
-struct ParsedFlags {
-    quiet: bool,
-    verbose: bool,
-    no_interactive: bool,
-    dry_run: bool,
-    raw: bool,
-    url: Option<String>,
-    command: &'static str,
-}
-
-fn parse_flags(argv: &[&str]) -> ParsedFlags {
-    use clap::Parser;
-    let cli =
-        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
-    let command = match cli.command {
-        Some(xurl::cli::Commands::Whoami { .. }) => "whoami",
-        Some(xurl::cli::Commands::Search { ref query, .. }) => {
-            assert_eq!(
-                query, "topic",
-                "search query must be the word after the flag"
-            );
-            "search"
-        }
-        Some(_) => "other",
-        None => "none",
-    };
-    ParsedFlags {
-        quiet: cli.quiet,
-        verbose: cli.verbose,
-        no_interactive: cli.no_interactive,
-        dry_run: cli.dry_run,
-        raw: cli.raw,
-        url: cli.url,
-        command,
-    }
-}
-
-/// A boolean flag followed by a command word leaves the word to the
-/// command; an explicit value needs `=`. These parse in-process and read the
-/// clap env bindings, so they are marked parallel to stay outside the serial
-/// window of the one test that mutates `XURL_DRY_RUN`.
-#[rstest::rstest]
-#[case::quiet_long(&["xr", "--quiet", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::quiet_short(&["xr", "-q", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::verbose(&["xr", "--verbose", "whoami"], ParsedFlags { quiet: false, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::no_interactive(&["xr", "--no-interactive", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: true, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::raw(&["xr", "--raw", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: true, url: None, command: "whoami" })]
-#[case::dry_run(&["xr", "--dry-run", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: true, raw: false, url: None, command: "whoami" })]
-#[case::quiet_equals_false(&["xr", "--quiet=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::quiet_then_false_word(&["xr", "--quiet", "false", "whoami"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: Some("false".to_string()), command: "whoami" })]
-#[case::quiet_search(&["xr", "-q", "search", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
-#[case::flag_after_subcommand(&["xr", "search", "--quiet", "topic"], ParsedFlags { quiet: true, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "search" })]
-#[case::short_equals_false(&["xr", "-q=false", "whoami"], ParsedFlags { quiet: false, verbose: false, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[case::short_cluster(&["xr", "-qv", "whoami"], ParsedFlags { quiet: true, verbose: true, no_interactive: false, dry_run: false, raw: false, url: None, command: "whoami" })]
-#[serial_test::parallel]
-fn test_boolean_flag_does_not_swallow_command_word(
-    #[case] argv: &[&str],
-    #[case] expected: ParsedFlags,
-) {
-    assert_eq!(parse_flags(argv), expected, "argv: {argv:?}");
-}
 
 /// `xr --quiet whoami` on an empty store reaches `whoami` and its auth
 /// error, not the raw-mode "No URL provided" path.
@@ -4136,40 +4032,6 @@ fn test_quiet_whoami_reaches_whoami() {
         !stderr.contains("No URL provided"),
         "the command word must not be consumed as the flag value; stderr: {stderr}"
     );
-}
-
-/// `--no-browser` on `auth oauth2` keeps the username positional after it.
-#[rstest::rstest]
-#[case::flag_then_username(&["xr", "auth", "oauth2", "--no-browser", "alice"], true)]
-#[case::equals_false_then_username(&["xr", "auth", "oauth2", "--no-browser=false", "alice"], false)]
-#[serial_test::parallel]
-fn test_no_browser_keeps_username_positional(#[case] argv: &[&str], #[case] expected: bool) {
-    use clap::Parser;
-    let parsed =
-        xurl::cli::Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{argv:?} must parse: {e}"));
-    let Some(xurl::cli::Commands::Auth { command }) = parsed.command else {
-        panic!("expected Auth subcommand");
-    };
-    let xurl::cli::AuthCommands::Oauth2 {
-        no_browser,
-        username,
-        ..
-    } = command
-    else {
-        panic!("expected auth oauth2");
-    };
-    assert_eq!(no_browser, expected, "argv: {argv:?}");
-    assert_eq!(username.as_deref(), Some("alice"), "argv: {argv:?}");
-}
-
-/// The space-separated value form no longer parses as a value: the word
-/// after the flag is a positional or a command, never the flag's value.
-#[test]
-#[serial_test::parallel]
-fn test_quiet_space_true_is_not_a_flag_value() {
-    let parsed = parse_flags(&["xr", "--quiet", "true"]);
-    assert!(parsed.quiet);
-    assert_eq!(parsed.url.as_deref(), Some("true"));
 }
 
 /// Spawns the built binary against `store` and the mocked API, with one env

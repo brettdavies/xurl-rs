@@ -365,7 +365,7 @@ fn test_raw_without_flag_pretty_prints() {
 #[test]
 fn test_lint_stdio_script_passes_on_clean_tree() {
     // The U8 CI guard at scripts/lint-stdio.sh must succeed against the
-    // working tree (every site routes through src/output/).
+    // working tree (every site routes through src/cli/output/).
     let root = env!("CARGO_MANIFEST_DIR");
     let script = format!("{root}/scripts/lint-stdio.sh");
     if !std::path::Path::new(&script).exists() {
