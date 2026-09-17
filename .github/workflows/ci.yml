@@ -88,6 +88,10 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo +stable doc --workspace --no-deps --locked
+      # The README is the crate doc, so its programs are doctests; this is the
+      # gate that fails when the landing example stops compiling.
+      - name: README doctests
+        run: cargo +stable test --doc -p xdk-rs --locked
       - name: cargo doc as docs.rs builds it
         env:
           RUSTDOCFLAGS: --cfg docsrs -D warnings
@@ -213,6 +217,13 @@ jobs:
         run: |
           read -ra flags <<< "$FLAGS"
           cargo check -p xdk-rs --all-targets --locked "${flags[@]}"
+      - name: cargo build --examples
+        if: ${{ !matrix.must_fail }}
+        env:
+          FLAGS: ${{ matrix.flags }}
+        run: |
+          read -ra flags <<< "$FLAGS"
+          cargo build --examples -p xdk-rs --locked "${flags[@]}"
       - name: cargo test
         if: ${{ matrix.test }}
         env:
