@@ -352,6 +352,16 @@ gh run watch "$(gh run list --workflow release-lib.yml --limit 1 --json database
 A rehearsal runs the same pipeline without a tag: `gh workflow run release-lib.yml --ref <branch>` skips the tag check,
 runs `cargo publish -p xdk-rs --dry-run`, and creates no release. A rehearsal can never publish.
 
+**The dispatch works only once `release-lib.yml` is on `main`.** GitHub exposes `workflow_dispatch` for workflows
+present on the default branch, so a caller that lives only on `dev` answers with `HTTP 404: workflow release-lib.yml not
+found on the default branch` no matter which `--ref` is passed. The file reaches `main` with the release PR that carries
+it, which is the same merge that precedes the first library tag, so the tag-triggered path is unaffected: `on: push:
+tags:` reads the workflow from the tagged commit, and that commit is on `main`.
+
+Until then, rehearse locally. `cargo publish -p xdk-rs --dry-run` runs the same packaging and verification step the
+pipeline's publish job runs, and `cargo package -p xdk-rs --list` confirms the file set, which is what the `exclude`
+negation in `crates/xdk/Cargo.toml` exists to control.
+
 `scripts/release/*` and `scripts/sync-dev-after-release.sh` read the CLI's version and tag line (`RELEASE_MANIFEST`,
 `crates/xurl-cli/Cargo.toml`; `v[0-9]*` tags); the library's bookkeeping is the two files above.
 
