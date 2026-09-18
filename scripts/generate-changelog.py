@@ -828,8 +828,9 @@ def from_dev_prs_mode(
             answered: set[int] = set()
             entries = collect_entries(owner, repo_name, pr_nums, heading, answered)
             print(
-                f"{len(answered)} of {len(pr_nums)} carry a '## {label}' block; "
-                "the rest fall back to their title",
+                f"{len(answered)} of {len(pr_nums)} carry a '## {label}' block "
+                "with content; a PR that leaves it empty says the crate is "
+                "unaffected, and one that omits it falls back to its title",
                 file=sys.stderr,
             )
         else:

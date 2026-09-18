@@ -16,10 +16,9 @@ exclude = ["tests/"]
 
 # How this member's changelog is cut; see crates/xdk/Cargo.toml for the shape.
 [package.metadata.changelog]
-# A PR body's plain `## Changelog` block describes the binary, which is the
-# convention every PR has followed; a member with a narrower audience declares
-# its own qualified heading.
-heading = "Changelog"
+# Every crate is named in the heading that addresses it, so a PR body says
+# which crate each bullet is about and a bare `## Changelog` reaches neither.
+heading = "Changelog (xurl-rs)"
 tag_prefix = "v"
 changelog = "crates/xurl-cli/CHANGELOG.md"
 include_paths = ["crates/xurl-cli/**", "src/**", "tests/**", "schema/**", "completions/**", "Cargo.lock"]
