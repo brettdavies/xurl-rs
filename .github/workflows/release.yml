@@ -20,6 +20,9 @@ jobs:
     with:
       crate: xurl-rs
       bin: xr
+      # Each crate keeps its changelog beside its own manifest, so the release
+      # notes are not at the repository root the reusable defaults to.
+      changelog: crates/xurl-cli/CHANGELOG.md
       # Both musl rows build clean (verified by release-matrix-check), so a
       # musl failure now blocks the release instead of silently omitting two
       # artifacts from it.
