@@ -2,6 +2,63 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2026-09-18
+
+### Added
+
+- Add `xr block` and `xr unblock` for blocking and unblocking a user by username, with the same flags, dry-run envelope, and output modes as `xr mute` and `xr unmute`. by @brettdavies in [#165](https://github.com/brettdavies/xurl-rs/pull/165)
+- Add `xr blocked` and `xr muted`, which list the users you have blocked or muted with `-n` paging, matching `xr following` and `xr followers`.
+- Add the `xdk-rs` crate: the X API client library, published on its own, with `use xdk::` as its import path. by @brettdavies in [#174](https://github.com/brettdavies/xurl-rs/pull/174)
+- Add `xr version --verbose` and the structured forms of `xr version`, which report the `xdk-rs` library version beside the CLI version; plain `xr --version` is unchanged. by @brettdavies in [#177](https://github.com/brettdavies/xurl-rs/pull/177)
+- Add `docs/migrating/v4.0.0.md`, the migration guide for library users moving from `xurl` 3.x to `xdk-rs` 0.1.
+- Add `xr broadcasts moderators list`, `add <username>`, and `remove <username>` for managing who moderates your broadcast chats, with `--dry-run` on the write verbs and typed JSON output. by @brettdavies in [#182](https://github.com/brettdavies/xurl-rs/pull/182)
+- Add `moderators` to `xr validate --schema`, validating a broadcast chat moderators response. by @brettdavies in [#186](https://github.com/brettdavies/xurl-rs/pull/186)
+- Add the nine command families `xr examples` did not show (`delete`, `unrepost`, `unbookmark`, `following`, `followers`, `validate`, `skill`, `completions`, `version`), with a TOOLING section for the skill installer, shell completions, and version. by @brettdavies in [#190](https://github.com/brettdavies/xurl-rs/pull/190)
+- Add `dm-event` to `xr validate --schema` for a single direct-message event; `dm` now validates the confirmation `xr dm` prints. by @brettdavies in [#194](https://github.com/brettdavies/xurl-rs/pull/194)
+
+### Changed
+
+- Change the vendored X API spec to the 2026-09-15 upstream revision of 2.168, in which X adds the block and unblock write endpoints and two activity-subscription event types; the library constants `API_SPEC_SHA256` and `API_SPEC_DATE` follow, and shortcut behavior is unchanged. by @brettdavies in [#127](https://github.com/brettdavies/xurl-rs/pull/127)
+- Change `xr auth status` and `xr auth apps list` under `--output json` and the other structured formats to emit `{"status": "ok", "apps": [...]}` instead of a bare array, so one `status` field covers every auth verb. Scripts reading the top-level array need `.apps[]`; an empty store now emits `"apps": []` rather than `[]`. Text output is unchanged. by @brettdavies in [#157](https://github.com/brettdavies/xurl-rs/pull/157)
+- Change `xr skill update --all` to refresh only the hosts that already have an installation, reporting the rest with `status: "skipped"` and `reason: "not-installed"` at exit code 0. It previously ran the remove-and-reinstall pipeline against every known host, creating installations for hosts never installed to, which is what `xr skill install --all` is for. by @brettdavies in [#162](https://github.com/brettdavies/xurl-rs/pull/162)
+- Change `xr skill update --all` to answer with one aggregated envelope carrying an `installations` array, matching `xr skill install --all`, instead of emitting a separate envelope per host. Scripts reading a stream of per-host objects need `.installations[]`.
+- Add `command_preview` to the `xr skill update` envelope, so update and install report the same per-host fields.
+- Change a failed destination removal during `xr skill update` to report `reason: "remove-failed"` from the closed reason set rather than appending the operating system error text.
+- Mark the public `Commands` enum `#[non_exhaustive]`. Library consumers that match it exhaustively need a wildcard arm; in exchange, adding a command stops being a major break. by @brettdavies in [#165](https://github.com/brettdavies/xurl-rs/pull/165)
+- Change the vendored X API spec to the 2026-09-17 upstream content of 2.168, which adds the broadcast chat moderator endpoints under `/2/broadcasts/chat/moderators`; the library constants `API_SPEC_SHA256` and `API_SPEC_DATE` follow, and shortcut behavior is unchanged. by @brettdavies in [#166](https://github.com/brettdavies/xurl-rs/pull/166)
+- Change `xr --auth oauth2 <command>` with client credentials but no stored token to fail with `TokenNotFound` and a `Sign in first. Run: xr auth oauth2` hint instead of opening a browser mid-request. by @brettdavies in [#170](https://github.com/brettdavies/xurl-rs/pull/170)
+- Change `xurl-rs` to a CLI-only package at 4.0.0; the `xr` binary, its commands, output, exit codes, and User-Agent are unchanged, and the `xurl` library target is gone. Rust programs depend on `xdk-rs` instead. by @brettdavies in [#174](https://github.com/brettdavies/xurl-rs/pull/174)
+- Change the repository README into a router between the library and the CLI; the CLI reference now lives at `crates/xurl-cli/README.md`. by @brettdavies in [#176](https://github.com/brettdavies/xurl-rs/pull/176)
+- Change `xr version --output json` to print one JSON object instead of the plain text line. by @brettdavies in [#177](https://github.com/brettdavies/xurl-rs/pull/177)
+- Change the OAuth2 scopes requested at enrollment to include `broadcast.read` and `broadcast.write`; tokens issued before this release must be re-enrolled before the broadcasts commands work. by @brettdavies in [#182](https://github.com/brettdavies/xurl-rs/pull/182)
+- Change the `testing` mock's media append reply to `200` with the `expires_at` body the spec documents, instead of an empty `204`. by @brettdavies in [#195](https://github.com/brettdavies/xurl-rs/pull/195)
+- Change the error envelope's `reason` for API refusals: 403 reports `forbidden`, 400 and 422 report `invalid-request`, 5xx reports `server-error`, and any other status reports `api-error`; `network-error` now means only that the request never got an answer. by @brettdavies in [#198](https://github.com/brettdavies/xurl-rs/pull/198)
+- Change `CHANGELOG.md` to `crates/xurl-cli/CHANGELOG.md`, beside the crate it describes. by @brettdavies in [#202](https://github.com/brettdavies/xurl-rs/pull/202)
+- Change the PR template to carry a `## Changelog (xurl-rs)` and a `## Changelog (xdk-rs)` section. A bare `## Changelog` heading now reaches neither crate.
+
+### Fixed
+
+- Fix the `xr examples` gallery, which labelled `mute` irreversible and listed it without `unmute`, unlike every other pair in the gallery. by @brettdavies in [#165](https://github.com/brettdavies/xurl-rs/pull/165)
+- Fix the `-n` help text on `xr following` and `xr followers`, which advertised a 1-1000 range while the runtime clamps every list command to 100.
+- Fix credential writes made during a legacy-store migration or a twurlrc import bypassing the store lock, and make every store write durable across a crash, unique per writer, and safe on a symlinked `~/.xurl`. by @brettdavies in [#171](https://github.com/brettdavies/xurl-rs/pull/171)
+- Fix `xr media upload --wait` to print the FINALIZE response before reporting a processing failure. by @brettdavies in [#177](https://github.com/brettdavies/xurl-rs/pull/177)
+- Fix credential-store writes so a crash or a concurrent `xr` process can no longer leave `~/.xurl` truncated or drop a rotated refresh token: saves are atomic, `0600` from creation, and serialized by an OS file lock on `~/.xurl.lock`. by @brettdavies in [#180](https://github.com/brettdavies/xurl-rs/pull/180)
+- Fix `xr schema <command>` reporting `validate`, `skill`, `examples`, and every `auth`, `media`, and `skill` subcommand as an unknown command; each now answers `schema not available`, as `xr schema auth` already did. by @brettdavies in [#184](https://github.com/brettdavies/xurl-rs/pull/184)
+- Fix `xr validate --help` omitting seven of the schema names `--schema` accepts (`like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`); the help text and the `unknown-schema` envelope now list the same set. by @brettdavies in [#186](https://github.com/brettdavies/xurl-rs/pull/186)
+- Fix `xr dm` failing with `missing field id` after the message was sent. by @brettdavies in [#194](https://github.com/brettdavies/xurl-rs/pull/194)
+- Fix a transport failure exiting 3, 4, or 77 when the request URL happened to contain `429`, `404`, or `401`; a connection or TLS failure now exits 5 (`EXIT_NETWORK_ERROR`) with reason `network-error`. by @brettdavies in [#198](https://github.com/brettdavies/xurl-rs/pull/198)
+- Verify the correct pipeline when a library tag is pushed. A `xdk-rs-vX.Y.Z` tag now checks `release-lib.yml` and skips the Homebrew and finalize gates, instead of checking the binary's `release.yml` and reporting on a run that never happened. by @brettdavies in [#200](https://github.com/brettdavies/xurl-rs/pull/200)
+- Fix the release changelog silently omitting every stacked pull request. The PR list came from `gh pr list --base dev`, which never returns a PR targeting the branch below it in a stack; it is now read from the integration branch's own history. For this release that is the difference between 14 pull requests and 39. by @brettdavies in [#202](https://github.com/brettdavies/xurl-rs/pull/202)
+
+### Documentation
+
+- Document the library's release path, its rehearsal, the tag order, and the breaking-change and MSRV policies. by @brettdavies in [#177](https://github.com/brettdavies/xurl-rs/pull/177)
+- Document where a change goes between `xdk-rs` and `xurl-rs` in AGENTS.md, with the rules the split holds and a decision test for new features. by @brettdavies in [#178](https://github.com/brettdavies/xurl-rs/pull/178)
+- Add an `Adding a command family` recipe to `AGENTS.md` naming every surface and the test that guards it, and an `Adding a command` pointer in `CONTRIBUTING.md`. by @brettdavies in [#193](https://github.com/brettdavies/xurl-rs/pull/193)
+- Correct the `xdk-rs` first-time publish steps so the crate name is claimed with a `0.0.0` placeholder. Publishing the crate at the version its first tag will release leaves that release with nothing to publish. by @brettdavies in [#199](https://github.com/brettdavies/xurl-rs/pull/199)
+
+**Full Changelog**: [v3.2.0...v4.0.0](https://github.com/brettdavies/xurl-rs/compare/v3.2.0...v4.0.0)
+
 ## [3.2.0] - 2026-09-14
 
 ### Added
