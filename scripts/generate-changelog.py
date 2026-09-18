@@ -216,17 +216,23 @@ def pr_touches_member(
     A PR GitHub cannot answer for counts as touching it, so a lookup failure
     never silently drops a change from the changelog.
     """
-    proc = run(
-        [
-            "gh", "api", "--paginate",
-            f"repos/{owner}/{repo}/pulls/{num}/files",
-            "--jq", ".[].filename",
-        ],
-        timeout=30,
-    )
-    if proc.returncode != 0:
-        return True
-    for filename in proc.stdout.split():
+    cached = _PR_CACHE.get((owner, repo, num)) or {}
+    paths: list[str] | None = None
+    if cached.get("paths_complete"):
+        paths = cached.get("paths")
+    if paths is None:
+        proc = run(
+            [
+                "gh", "api", "--paginate",
+                f"repos/{owner}/{repo}/pulls/{num}/files",
+                "--jq", ".[].filename",
+            ],
+            timeout=60,
+        )
+        if proc.returncode != 0:
+            return True
+        paths = proc.stdout.split()
+    for filename in paths:
         if path_matches(filename, include) and not path_matches(filename, exclude):
             return True
     return False
@@ -291,6 +297,47 @@ def pr_numbers_from_section(section: str) -> list[int]:
 
 
 _PR_CACHE: dict[tuple[str, str, int], dict | None] = {}
+
+
+def prefetch_prs(owner: str, repo: str, numbers: list[int]) -> None:
+    """Fill the PR cache for NUMBERS in as few requests as possible.
+
+    One REST call per PR is what made a workspace release take minutes: the
+    body, the title and the changed paths are all needed for every candidate.
+    GraphQL aliases fetch them together, 50 PRs per request. A failure here is
+    not fatal, because the per-PR REST path stays as the fallback.
+    """
+    pending = [n for n in numbers if (owner, repo, n) not in _PR_CACHE]
+    for start in range(0, len(pending), 50):
+        chunk = pending[start : start + 50]
+        aliases = "\n".join(
+            f'  p{n}: pullRequest(number: {n}) {{ number title body '
+            f'author {{ login }} '
+            f'files(first: 100) {{ nodes {{ path }} pageInfo {{ hasNextPage }} }} }}'
+            for n in chunk
+        )
+        query = (
+            f'query {{ repository(owner: "{owner}", name: "{repo}") {{\n'
+            f'{aliases}\n}} }}'
+        )
+        proc = run(["gh", "api", "graphql", "-f", f"query={query}"], timeout=120)
+        if proc.returncode != 0:
+            continue
+        try:
+            data = json.loads(proc.stdout)["data"]["repository"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            continue
+        for node in (data or {}).values():
+            if not node:
+                continue
+            files = node.get("files") or {}
+            _PR_CACHE[(owner, repo, node["number"])] = {
+                "body": node.get("body"),
+                "author": (node.get("author") or {}).get("login"),
+                "title": node.get("title"),
+                "paths": [f["path"] for f in (files.get("nodes") or [])],
+                "paths_complete": not (files.get("pageInfo") or {}).get("hasNextPage"),
+            }
 
 
 def fetch_pr(owner: str, repo: str, num: int) -> dict | None:
@@ -576,6 +623,12 @@ def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
     targeted, so the history is the complete list.
     """
     anchor = dev_release_anchor(base, prev_tag)
+    if not anchor:
+        # A member releasing for the first time has no tag of its own, and the
+        # whole history of the integration branch is not its window: it ships
+        # inside the current release train, so the repository's own anchor
+        # bounds it. Without this the candidate list is every PR ever merged.
+        anchor = dev_release_anchor(base, previous_tag("", ""))
     span = f"{anchor}..origin/{base}" if anchor else f"origin/{base}"
     proc = run(["git", "log", span, "--format=%s"])
     if proc.returncode != 0:
@@ -735,6 +788,7 @@ def from_dev_prs_mode(
             n for n in merged_pr_numbers(args.dev_branch, prev)
             if n not in already_listed
         ]
+        prefetch_prs(owner, repo_name, pr_nums)
         if crate_config and pr_nums:
             # The release branch carries no member history, so membership comes
             # from the files each PR changed rather than from git-cliff. A body
@@ -925,6 +979,7 @@ def main() -> int:
         if has_gh_integration:
             section = extract_version_section(changelog.read_text(), version)
             pr_nums = pr_numbers_from_section(section)
+            prefetch_prs(owner, repo_name, pr_nums)
             if pr_nums and crate_config:
                 # A member takes its membership and grouping from git-cliff and
                 # its wording from any PR that wrote a block addressed to it.
