@@ -38,11 +38,37 @@ ZERO="0000000000000000000000000000000000000000"
 scope_all=false
 changed=""
 
+# How long to wait for stdin before deciding nobody is going to close it.
+# git writes its ref lines and closes immediately, so a real push never waits.
+readonly STDIN_WAIT_SECONDS=10
+
 if [ -t 0 ]; then
     scope_all=true
 else
-    push_refs=$(cat)
-    if [ -z "$push_refs" ]; then
+    # A plain `$(cat)` here waits for EOF, and an interactive terminal is not
+    # the only stdin that never sends one: a background job or any wrapper
+    # that holds the pipe open leaves the hook parked on the read forever,
+    # reporting nothing at all. `-t 0` catches the terminal and misses those.
+    # Bound the wait and sweep on timeout, which is what the rest of the
+    # scoping does whenever it cannot identify the range.
+    push_refs=""
+    stdin_timed_out=false
+    while true; do
+        if IFS= read -r -t "$STDIN_WAIT_SECONDS" _line; then
+            push_refs+="$_line"$'\n'
+        else
+            [ $? -gt 128 ] && stdin_timed_out=true
+            break
+        fi
+    done
+
+    if [ "$stdin_timed_out" = true ]; then
+        echo "pre-push: stdin stayed open for ${STDIN_WAIT_SECONDS}s with no ref lines; sweeping" >&2
+        scope_all=true
+        push_refs=""
+    fi
+
+    if [ "$scope_all" != true ] && [ -z "$push_refs" ]; then
         # git invokes this hook with the remote name and URL as arguments and
         # one line per pushed ref on stdin. No lines while those arguments are
         # present means the remote already has every ref, so there is nothing
@@ -52,7 +78,7 @@ else
             exit 0
         fi
         scope_all=true
-    else
+    elif [ -n "$push_refs" ]; then
         while read -r _local_ref local_sha _remote_ref remote_sha; do
             [ -z "${local_sha:-}" ] && continue
             # A deletion pushes an all-zero local sha and carries no content.
@@ -78,9 +104,9 @@ fi
 
 # Paths that cannot change what cargo builds, tests, documents, or audits.
 # Deliberately narrow, because the cost of being wrong is asymmetric.
-# `vendor/**` is absent on purpose: `tests/spec_scripts.rs` asserts
-# `vendor/README.md` is current and validates the vendored spec. `scripts/**`
-# is absent because that same suite runs those scripts.
+# `crates/xdk/vendor/**` is absent on purpose: `spec_scripts.rs` asserts the
+# vendored README is current and validates the vendored spec. `scripts/**` is
+# absent because that same suite runs those scripts.
 INERT_RE='^(docs/|\.github/|\.context/|LICENSE-|[^/]+\.md$)'
 
 # touched <extended-regex> — true when the push carries a matching path.
@@ -93,6 +119,16 @@ touched() {
 code_touched() {
     $scope_all && return 0
     printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "$INERT_RE"
+}
+
+# library_touched — false only when every changed path provably cannot move a
+# `-p xdk-rs` build: the binary crate's own tree, plus the inert set. The
+# library gates it guards are the slowest in the hook and nothing in
+# crates/xurl-cli can break them, but the test is shaped like code_touched so
+# it fails open — an unrecognized path runs them. CI runs them regardless.
+library_touched() {
+    $scope_all && return 0
+    printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "^crates/xurl-cli/|$INERT_RE"
 }
 
 banner "Running local CI checks..."
@@ -113,21 +149,21 @@ if code_touched; then
     pass "fmt"
 
     # 2. Clippy with warnings-as-errors (matches CI's RUSTFLAGS=-Dwarnings)
-    RUSTFLAGS="-Dwarnings" cargo clippy --quiet 2>&1 || fail "cargo clippy -Dwarnings"
+    RUSTFLAGS="-Dwarnings" cargo clippy --workspace --quiet 2>&1 || fail "cargo clippy -Dwarnings"
     pass "clippy"
 
     # 3. Tests
-    cargo test --quiet 2>&1 || fail "cargo test"
+    cargo test --workspace --quiet 2>&1 || fail "cargo test --workspace"
     pass "test"
 
     # 4. MSRV check — verify the codebase still compiles against the rust-version
-    # declared in Cargo.toml. xurl-rs declares a lower MSRV than the pinned
+    # declared in the workspace manifest. The crates declare a lower MSRV than the pinned
     # rust-toolchain.toml; this step validates the declared promise so library
     # consumers on the MSRV still see a working crate. Requires the MSRV toolchain
     # installed (`rustup toolchain install <msrv>`); skips with a hint otherwise.
     msrv=$(awk -F\" '/^rust-version *= *"/ {print $2; exit}' Cargo.toml 2>/dev/null || echo "")
     if [ -n "$msrv" ] && rustup toolchain list 2>/dev/null | grep -q "^${msrv}"; then
-        cargo "+${msrv}" check --quiet 2>&1 || fail "cargo +${msrv} check"
+        cargo "+${msrv}" check --workspace --quiet 2>&1 || fail "cargo +${msrv} check --workspace"
         pass "msrv (${msrv})"
     elif [ -n "$msrv" ]; then
         echo "  - msrv (skipped: install via \`rustup toolchain install ${msrv}\` to enable)"
@@ -138,10 +174,58 @@ if code_touched; then
     # 5. Doc build — catch doc-comment breakage (broken intra-doc links, missing
     # code-fence markers) that would render badly on docs.rs. RUSTDOCFLAGS=-D
     # warnings treats every doc warning as an error.
-    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --quiet 2>&1 || fail "cargo doc --no-deps (RUSTDOCFLAGS=-D warnings)"
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet 2>&1 || fail "cargo doc --workspace --no-deps (RUSTDOCFLAGS=-D warnings)"
     pass "doc"
 
-    # 6. Security audit (licenses + advisories) — skip if cargo-deny not installed
+    # ── Library battery (steps 6-10), only when the push reaches crates/xdk ──
+    if library_touched; then
+        # 6. Examples compile under the default features; the one that needs the
+        # mock is skipped here by its required-features and run in step 7.
+        cargo build --examples -p xdk-rs --quiet 2>&1 || fail "cargo build --examples -p xdk-rs"
+        pass "examples"
+
+        # 7. The credential-free example runs against the in-process mock; its
+        # assertions are what turn a broken runtime path into a failure.
+        cargo run -p xdk-rs --example offline_search --features testing --quiet >/dev/null 2>&1 \
+            || fail "cargo run -p xdk-rs --example offline_search --features testing"
+        pass "example run (offline_search)"
+
+        # 8. TLS backends: native-tls by itself must compile, and no backend at all
+        # must fail on the guard rather than compile silently.
+        cargo check -p xdk-rs --no-default-features --features native-tls --quiet 2>&1 \
+            || fail "cargo check -p xdk-rs --no-default-features --features native-tls"
+        if no_tls_log=$(cargo check -p xdk-rs --no-default-features --quiet 2>&1); then
+            fail "cargo check -p xdk-rs --no-default-features compiled; the TLS guard in crates/xdk/src/lib.rs is gone"
+        elif ! grep -q "needs a TLS backend" <<< "$no_tls_log"; then
+            fail "cargo check -p xdk-rs --no-default-features failed, but not on the TLS guard"
+        fi
+        pass "tls features (native-tls alone; no backend refused)"
+
+        # 9. The docs.rs build: nightly with --cfg docsrs and every feature, which
+        # is the only build that exercises the doc_cfg feature gate. Skips with a
+        # hint when no nightly toolchain is installed; CI always runs it.
+        if rustup toolchain list 2>/dev/null | grep -q "^nightly"; then
+            RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc -p xdk-rs --no-deps --all-features --quiet 2>&1 \
+                || fail "cargo +nightly doc -p xdk-rs --no-deps --all-features (RUSTDOCFLAGS=--cfg docsrs -D warnings)"
+            pass "docs.rs build (nightly)"
+        else
+            echo "  - docs.rs build (skipped: install via \`rustup toolchain install nightly\` to enable)"
+        fi
+
+        # 10. Every feature subset that carries a backend, as CI's powerset job
+        # runs it. Skips with a hint when cargo-hack is not installed.
+        if cargo hack --version >/dev/null 2>&1; then
+            cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --quiet 2>&1 \
+                || fail "cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features"
+            pass "feature powerset (cargo hack)"
+        else
+            echo "  - feature powerset (skipped: install via \`cargo binstall cargo-hack\` to enable)"
+        fi
+    else
+        note "library battery (nothing in this push reaches crates/xdk)"
+    fi
+
+    # 11. Security audit (licenses + advisories) — skip if cargo-deny not installed
     if cargo deny --version &>/dev/null; then
         cargo deny check 2>&1 || fail "cargo deny check"
         pass "deny"
@@ -149,7 +233,13 @@ if code_touched; then
         echo "  - deny (skipped, cargo-deny not installed)"
     fi
 
-    # 7. Shellcheck — lint shell scripts (and the pre-push hook itself). Severity
+    # 12. Output discipline — the same guard CI's `lint-stdio` job runs: no
+    # naked stdio macro outside the output module, no terminal handle in
+    # library code.
+    bash scripts/lint-stdio.sh >/dev/null 2>&1 || fail "scripts/lint-stdio.sh"
+    pass "lint-stdio"
+
+    # 13. Shellcheck — lint shell scripts (and the pre-push hook itself). Severity
     # threshold "warning" catches real bugs (unused vars, quoting issues, missing
     # exits) while ignoring info/style noise like SC2016 for intentional jaq
     # filters with single quotes. Skip silently if shellcheck isn't installed —
@@ -162,27 +252,25 @@ if code_touched; then
             check_shellcheck "${shell_files[@]}" || exit 1
     fi
 
-    # 8. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
+    # 14. Windows cross-check (fast): verify no unconditional use of unix-only APIs.
     # Catches the libc::SIGPIPE class of issue without invoking a Windows toolchain
-    # — runs in milliseconds. Step 9 is the comprehensive backstop.
-    if rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust src/ | rg -v '#\[cfg(unix)\]' | rg -v '// *#\[cfg' | rg -qv '^$'; then
-        violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust src/ 2>/dev/null || true)
-        if [ -n "$violations" ]; then
-            while IFS= read -r line; do
-                file=$(echo "$line" | cut -d: -f1)
-                lineno=$(echo "$line" | cut -d: -f2)
-                before=$(sed -n "$((lineno > 3 ? lineno - 3 : 1)),${lineno}p" "$file")
-                if ! echo "$before" | rg -q 'cfg\(unix\)'; then
-                    fail "libc unix-only API used without #[cfg(unix)] at $file:$lineno"
-                fi
-            done <<< "$violations"
-        fi
-        pass "windows compat (libc grep)"
-    else
-        pass "windows compat (libc grep)"
+    # — runs in milliseconds. Step 15 is the comprehensive backstop.
+    # Each hit is judged by the `cfg(unix)` lookback below, so the search runs
+    # once and every hit goes through that one check.
+    violations=$(rg -n 'libc::(SIGPIPE|SIG_DFL|signal)' --type rust crates/ 2>/dev/null || true)
+    if [ -n "$violations" ]; then
+        while IFS= read -r line; do
+            file=$(echo "$line" | cut -d: -f1)
+            lineno=$(echo "$line" | cut -d: -f2)
+            before=$(sed -n "$((lineno > 3 ? lineno - 3 : 1)),${lineno}p" "$file")
+            if ! echo "$before" | rg -q 'cfg\(unix\)'; then
+                fail "libc unix-only API used without #[cfg(unix)] at $file:$lineno"
+            fi
+        done <<< "$violations"
     fi
+    pass "windows compat (libc grep)"
 
-    # 9. Windows cross-clippy: full type-check of the codebase as if compiling for
+    # 15. Windows cross-clippy: full type-check of the codebase as if compiling for
     # x86_64-pc-windows-gnu. Catches cfg-gated unused imports, conditional dead
     # code, and any other warning class that only surfaces on Windows. Linux
     # clippy alone misses these because `#[cfg(unix)]` filters out their usage
@@ -198,7 +286,7 @@ if code_touched; then
     # becomes the only backstop. Install both to close that gap.
     if command -v x86_64-w64-mingw32-gcc &>/dev/null \
         && rustup target list --installed 2>/dev/null | grep -q '^x86_64-pc-windows-gnu$'; then
-        RUSTFLAGS="-Dwarnings" cargo clippy --target x86_64-pc-windows-gnu --all-targets --quiet 2>&1 \
+        RUSTFLAGS="-Dwarnings" cargo clippy --workspace --target x86_64-pc-windows-gnu --all-targets --quiet 2>&1 \
             || fail "cargo clippy --target x86_64-pc-windows-gnu -Dwarnings"
         pass "windows clippy (cross-target)"
     else
@@ -208,7 +296,7 @@ else
     note "rust battery (nothing in this push reaches cargo)"
 fi
 
-# 10. Markdown lint, over tracked files. This checks the same set as the
+# 16. Markdown lint, over tracked files. This checks the same set as the
 # `lint / markdownlint` CI job: that job globs a clean checkout, which holds
 # exactly the tracked files, minus the generated `CHANGELOG.md`.
 #
@@ -223,12 +311,12 @@ else
     step "markdownlint" "markdownlint-cli2 <file>" check_markdownlint "${md_files[@]}" || exit 1
 fi
 
-# 11. Workflow lint. Mirrors the `lint / actionlint` CI job.
+# 17. Workflow lint. Mirrors the `lint / actionlint` CI job.
 if ! touched '^\.github/workflows/.*\.ya?ml$'; then
     note "actionlint (no workflow in this push)"
 else
     step "actionlint" "actionlint" check_actionlint .github/workflows || exit 1
-    step "concurrency namespacing" "bash scripts/lint-workflow-concurrency.sh" \
+    step "concurrency namespacing" "bash scripts/check-workflow-concurrency.sh" \
         check_workflow_concurrency .github/workflows || exit 1
 fi
 

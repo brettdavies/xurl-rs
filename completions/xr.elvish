@@ -79,9 +79,14 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand followers 'List your followers'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand muted 'List users you have muted'
+            cand block 'Block a user'
+            cand unblock 'Unblock a user'
+            cand blocked 'List users you have blocked'
             cand usage 'Show API usage (post caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
+            cand broadcasts 'Broadcast chat moderation'
             cand auth 'Authentication management'
             cand media 'Media upload operations'
             cand skill 'Install or manage the xurl-rs skill bundle'
@@ -646,8 +651,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;following'= {
-            cand -n 'Number of results (1-1000). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (1-1000). Overrides global `--limit` when set'
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --of 'Username to list following for (default: you)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
@@ -676,8 +681,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;followers'= {
-            cand -n 'Number of results (1-1000). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (1-1000). Overrides global `--limit` when set'
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --of 'Username to list followers for (default: you)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
@@ -733,6 +738,118 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;unmute'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;muted'= {
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;block'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;unblock'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;blocked'= {
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
             cand --username '`OAuth2` username to act as'
@@ -878,6 +995,168 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts'= {
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand moderators 'Manage who moderates your broadcast chats'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;moderators'= {
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand list 'List your broadcast chat moderators'
+            cand add 'Add a broadcast chat moderator'
+            cand remove 'Remove a broadcast chat moderator'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;moderators;list'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;moderators;add'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;moderators;remove'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print verbose information'
+            cand --verbose 'Print verbose information'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;moderators;help'= {
+            cand list 'List your broadcast chat moderators'
+            cand add 'Add a broadcast chat moderator'
+            cand remove 'Remove a broadcast chat moderator'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;moderators;help;list'= {
+        }
+        &'xr;broadcasts;moderators;help;add'= {
+        }
+        &'xr;broadcasts;moderators;help;remove'= {
+        }
+        &'xr;broadcasts;moderators;help;help'= {
+        }
+        &'xr;broadcasts;help'= {
+            cand moderators 'Manage who moderates your broadcast chats'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;help;moderators'= {
+            cand list 'List your broadcast chat moderators'
+            cand add 'Add a broadcast chat moderator'
+            cand remove 'Remove a broadcast chat moderator'
+        }
+        &'xr;broadcasts;help;moderators;list'= {
+        }
+        &'xr;broadcasts;help;moderators;add'= {
+        }
+        &'xr;broadcasts;help;moderators;remove'= {
+        }
+        &'xr;broadcasts;help;help'= {
         }
         &'xr;auth'= {
             cand -v 'Print verbose information'
@@ -1603,7 +1882,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection'
             cand -v 'Print verbose information'
             cand --verbose 'Print verbose information'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1650,9 +1929,14 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand followers 'List your followers'
             cand mute 'Mute a user'
             cand unmute 'Unmute a user'
+            cand muted 'List users you have muted'
+            cand block 'Block a user'
+            cand unblock 'Unblock a user'
+            cand blocked 'List users you have blocked'
             cand usage 'Show API usage (post caps, daily breakdown)'
             cand dm 'Send a direct message'
             cand dms 'List recent direct messages'
+            cand broadcasts 'Broadcast chat moderation'
             cand auth 'Authentication management'
             cand media 'Media upload operations'
             cand skill 'Install or manage the xurl-rs skill bundle'
@@ -1711,6 +1995,14 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;help;unmute'= {
         }
+        &'xr;help;muted'= {
+        }
+        &'xr;help;block'= {
+        }
+        &'xr;help;unblock'= {
+        }
+        &'xr;help;blocked'= {
+        }
         &'xr;help;usage'= {
             cand credits 'Show credits-based usage for the project'
         }
@@ -1719,6 +2011,20 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;dm'= {
         }
         &'xr;help;dms'= {
+        }
+        &'xr;help;broadcasts'= {
+            cand moderators 'Manage who moderates your broadcast chats'
+        }
+        &'xr;help;broadcasts;moderators'= {
+            cand list 'List your broadcast chat moderators'
+            cand add 'Add a broadcast chat moderator'
+            cand remove 'Remove a broadcast chat moderator'
+        }
+        &'xr;help;broadcasts;moderators;list'= {
+        }
+        &'xr;help;broadcasts;moderators;add'= {
+        }
+        &'xr;help;broadcasts;moderators;remove'= {
         }
         &'xr;help;auth'= {
             cand oauth2 'Configure `OAuth2` authentication'

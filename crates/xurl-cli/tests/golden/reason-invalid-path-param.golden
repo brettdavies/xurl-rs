@@ -1,0 +1,15 @@
+args: ["--output", "json", "read", "1/2"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 167
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "Invalid path parameter \"id\": value \"1/2\" contains a reserved character",
+  "reason": "invalid-path-param",
+  "status": "error"
+}
+

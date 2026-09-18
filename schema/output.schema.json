@@ -263,7 +263,7 @@
           ]
         },
         "reason": {
-          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`,\n`network-error`, `invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\nand `remove-failed`.",
+          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\n`destination-not-empty`, `destination-is-file`, `git-not-found`,\n`git-clone-failed`, `not-installed`, and `remove-failed`.",
           "type": "string"
         },
         "rendered_url": {

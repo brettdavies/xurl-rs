@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Generate per-command response schemas to schema/responses/<cmd>.schema.json.
 #
-# Source of truth is SCHEMA_ENTRIES in src/cli/commands/schema.rs. This script
+# Source of truth is SCHEMA_ENTRIES in crates/xurl-cli/src/cli/commands/schema.rs. This script
 # enumerates commands via `xr schema --list`, dumps each one, and skips the
 # envelope (which lives separately at schema/output.schema.json).
 #
-# Drift guard: tests/schema_tests.rs asserts byte-equality between the
+# Drift guard: crates/xurl-cli/tests/schema_tests.rs asserts byte-equality between the
 # committed files and the runtime emitter; regenerate via this script after
 # any change to SCHEMA_ENTRIES or any JsonSchema-deriving response type.
 set -euo pipefail

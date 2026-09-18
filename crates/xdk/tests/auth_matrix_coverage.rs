@@ -1,0 +1,100 @@
+//! Coverage check for the auth matrix.
+//!
+//! Iterates `xdk::api::auth_matrix::SHORTCUT_TEMPLATES` and asserts each
+//! `(method, path)` tuple resolves to a non-empty matrix entry. Catches two
+//! failure modes early:
+//!
+//! 1. Spec drift: X removed an endpoint a shortcut targets. The codegen
+//!    silently drops it; this test surfaces the gap before release.
+//! 2. A shortcut whose spec template never carried a `security:` field.
+//!    The runtime treats that as permissive, but the coverage check treats
+//!    it as a release-time anomaly.
+//!
+//! Failure messages name the offending `(method, path)` so the implementer
+//! sees the mismatch without grepping the spec.
+
+use xdk::api::auth_matrix::{SHORTCUT_TEMPLATES, supported_auth};
+
+#[test]
+fn every_shortcut_template_resolves_in_the_matrix() {
+    let mut missing: Vec<(&'static str, &'static str)> = Vec::new();
+
+    for (method, path) in SHORTCUT_TEMPLATES {
+        match supported_auth(method, path) {
+            Some(schemes) if !schemes.is_empty() => {}
+            Some(_) => {
+                missing.push((method, path));
+            }
+            None => {
+                missing.push((method, path));
+            }
+        }
+    }
+
+    assert!(
+        missing.is_empty(),
+        "Shortcut templates missing from the auth matrix:\n{}\n\
+         Cause: the vendored spec no longer lists a `security:` block for the \
+         endpoint, either because a refresh dropped the operation or because the \
+         spec declares it without one.\n\
+         Fix: re-run scripts/refresh-x-openapi.sh and compare the endpoint's entry \
+         in crates/xdk/vendor/x-api-openapi.json against its SHORTCUT_TEMPLATES row \
+         in crates/xdk/build.rs.",
+        missing
+            .iter()
+            .map(|(m, p)| format!("  - {m} {p}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
+
+#[test]
+fn shortcut_templates_is_non_empty() {
+    // Defensive anchor: prevents a future refactor from silently emptying
+    // the allowlist and the coverage check then passing vacuously.
+    assert!(
+        !SHORTCUT_TEMPLATES.is_empty(),
+        "SHORTCUT_TEMPLATES is empty — the coverage check would pass vacuously"
+    );
+}
+
+#[test]
+fn methods_are_uppercase_and_standard() {
+    // Lookup uppercases internally, but a SHORTCUT_TEMPLATES entry with a
+    // non-standard method would silently lookup-fail in production. Lock
+    // the surface to the five methods the matrix codegen translates.
+    const STANDARD: &[&str] = &["GET", "POST", "PUT", "DELETE", "PATCH"];
+    for (method, path) in SHORTCUT_TEMPLATES {
+        assert!(
+            STANDARD.contains(method),
+            "SHORTCUT_TEMPLATES has a non-standard method {method:?} for {path}"
+        );
+    }
+}
+
+#[test]
+fn supported_auth_returns_none_for_unknown_shortcut() {
+    // Negative-path proof for the coverage check: an unknown (method, path)
+    // pair returns None, which the coverage check above would flag if any
+    // SHORTCUT_TEMPLATES entry resolved this way. Locks the assertion's
+    // protective intent — if `supported_auth` ever began returning Some(_)
+    // for unknown paths, the coverage check would pass vacuously and the
+    // build-time guarantee would be silently broken.
+    assert!(supported_auth("GET", "/2/never/heard/of").is_none());
+    // A real spec path with no shortcut mapping: `xr` exposes no Lists API
+    // surface, so this stays a genuine negative.
+    assert!(supported_auth("DELETE", "/2/users/{id}/followed_lists/{list_id}").is_none());
+}
+
+#[test]
+fn paths_start_with_slash() {
+    // The matrix key is `format!("{method}\0{path}")`. A bare path without
+    // leading slash would silently miss every lookup at runtime because the
+    // codegen does emit the leading slash from the spec.
+    for (_, path) in SHORTCUT_TEMPLATES {
+        assert!(
+            path.starts_with('/'),
+            "SHORTCUT_TEMPLATES path {path:?} must start with `/` to match the matrix key shape"
+        );
+    }
+}

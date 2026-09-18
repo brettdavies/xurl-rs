@@ -87,9 +87,14 @@ complete -c xr -n "__fish_xr_needs_command" -a "following" -d 'List users you fo
 complete -c xr -n "__fish_xr_needs_command" -a "followers" -d 'List your followers'
 complete -c xr -n "__fish_xr_needs_command" -a "mute" -d 'Mute a user'
 complete -c xr -n "__fish_xr_needs_command" -a "unmute" -d 'Unmute a user'
+complete -c xr -n "__fish_xr_needs_command" -a "muted" -d 'List users you have muted'
+complete -c xr -n "__fish_xr_needs_command" -a "block" -d 'Block a user'
+complete -c xr -n "__fish_xr_needs_command" -a "unblock" -d 'Unblock a user'
+complete -c xr -n "__fish_xr_needs_command" -a "blocked" -d 'List users you have blocked'
 complete -c xr -n "__fish_xr_needs_command" -a "usage" -d 'Show API usage (post caps, daily breakdown)'
 complete -c xr -n "__fish_xr_needs_command" -a "dm" -d 'Send a direct message'
 complete -c xr -n "__fish_xr_needs_command" -a "dms" -d 'List recent direct messages'
+complete -c xr -n "__fish_xr_needs_command" -a "broadcasts" -d 'Broadcast chat moderation'
 complete -c xr -n "__fish_xr_needs_command" -a "auth" -d 'Authentication management'
 complete -c xr -n "__fish_xr_needs_command" -a "media" -d 'Media upload operations'
 complete -c xr -n "__fish_xr_needs_command" -a "skill" -d 'Install or manage the xurl-rs skill bundle'
@@ -767,7 +772,7 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand following" -s n -l max-results -d 'Number of results (1-1000). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l of -d 'Username to list following for (default: you)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`OAuth2` username to act as' -r
@@ -802,7 +807,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -l json -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand following" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand following" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand following" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand followers" -s n -l max-results -d 'Number of results (1-1000). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l of -d 'Username to list followers for (default: you)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`OAuth2` username to act as' -r
@@ -903,6 +908,140 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand muted" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand muted" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand block" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand block" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand block" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand block" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand block" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAuth2` username to act as' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
@@ -1040,6 +1179,74 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l json -d 'Shorthand for `--
 complete -c xr -n "__fish_xr_using_subcommand dms" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand dms" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "list" -d 'List your broadcast chat moderators'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "add" -d 'Add a broadcast chat moderator'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "remove" -d 'Remove a broadcast chat moderator'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -1643,7 +1850,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `usage`, `credits`, `envelope`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -1674,43 +1881,49 @@ complete -c xr -n "__fish_xr_using_subcommand validate" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand validate" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand validate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand validate" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "post" -d 'Post to X'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "reply" -d 'Reply to a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "quote" -d 'Quote a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "delete" -d 'Delete a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "read" -d 'Read a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "search" -d 'Search recent posts'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "whoami" -d 'Show the authenticated user\'s profile'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "user" -d 'Look up a user by username'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "timeline" -d 'Show your home timeline'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "mentions" -d 'Show your recent mentions'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "like" -d 'Like a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unlike" -d 'Unlike a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "repost" -d 'Repost a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unrepost" -d 'Undo a repost'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "bookmark" -d 'Bookmark a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unbookmark" -d 'Remove a bookmark'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "bookmarks" -d 'List your bookmarks'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "likes" -d 'List your liked posts'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "follow" -d 'Follow a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unfollow" -d 'Unfollow a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "following" -d 'List users you follow'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "followers" -d 'List your followers'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "mute" -d 'Mute a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "unmute" -d 'Unmute a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (post caps, daily breakdown)'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "dm" -d 'Send a direct message'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "dms" -d 'List recent direct messages'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "auth" -d 'Authentication management'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "media" -d 'Media upload operations'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "skill" -d 'Install or manage the xurl-rs skill bundle'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "schema" -d 'Show JSON Schema for a command\'s response type'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "completions" -d 'Generate shell completion script'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "version" -d 'Show xurl version information'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "examples" -d 'Print a curated gallery of invocation examples grouped by use case'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "validate" -d 'Validate a JSON document against a bundled response schema'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute usage dm dms auth media skill schema completions version examples validate help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "post" -d 'Post to X'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "reply" -d 'Reply to a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "quote" -d 'Quote a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "delete" -d 'Delete a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "read" -d 'Read a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "search" -d 'Search recent posts'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "whoami" -d 'Show the authenticated user\'s profile'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "user" -d 'Look up a user by username'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "timeline" -d 'Show your home timeline'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "mentions" -d 'Show your recent mentions'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "like" -d 'Like a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unlike" -d 'Unlike a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "repost" -d 'Repost a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unrepost" -d 'Undo a repost'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "bookmark" -d 'Bookmark a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unbookmark" -d 'Remove a bookmark'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "bookmarks" -d 'List your bookmarks'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "likes" -d 'List your liked posts'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "follow" -d 'Follow a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unfollow" -d 'Unfollow a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "following" -d 'List users you follow'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "followers" -d 'List your followers'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "mute" -d 'Mute a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unmute" -d 'Unmute a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "muted" -d 'List users you have muted'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "block" -d 'Block a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "unblock" -d 'Unblock a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "blocked" -d 'List users you have blocked'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (post caps, daily breakdown)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "dm" -d 'Send a direct message'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "dms" -d 'List recent direct messages'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "broadcasts" -d 'Broadcast chat moderation'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "auth" -d 'Authentication management'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "media" -d 'Media upload operations'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "skill" -d 'Install or manage the xurl-rs skill bundle'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "schema" -d 'Show JSON Schema for a command\'s response type'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "completions" -d 'Generate shell completion script'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "version" -d 'Show xurl version information'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "examples" -d 'Print a curated gallery of invocation examples grouped by use case'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "validate" -d 'Validate a JSON document against a bundled response schema'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read search whoami user timeline mentions like unlike repost unrepost bookmark unbookmark bookmarks likes follow unfollow following followers mute unmute muted block unblock blocked usage dm dms broadcasts auth media skill schema completions version examples validate help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from usage" -f -a "credits" -d 'Show credits-based usage for the project'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth2" -d 'Configure `OAuth2` authentication'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth1" -d 'Configure `OAuth1` authentication'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "app" -d 'Configure app-auth (bearer token)'

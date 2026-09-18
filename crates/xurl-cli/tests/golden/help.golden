@@ -1,0 +1,306 @@
+args: ["--help"]
+store: empty
+exit_code: 0
+stdout_len: 12021
+stderr_len: 0
+--- stdout ---
+A command-line tool for making authenticated requests to the X API.
+
+Shortcut commands (agent-friendly):
+  xr post "Hello world!"                        Post to X
+  xr reply 1585341984679469056 "Nice!"                   Reply to a post
+  xr read 1585341984679469056                             Read a post
+  xr search "golang" -n 20                       Search posts
+  xr whoami                                      Show your profile
+  xr like 1585341984679469056                             Like a post
+  xr repost 1585341984679469056                           Repost
+  xr follow @user                                Follow a user
+  xr dm @user "Hey!"                             Send a DM
+  xr timeline                                    Home timeline
+  xr mentions                                    Your mentions
+
+Raw API access (curl-style):
+  basic requests        xr /2/users/me
+                        xr -X POST /2/tweets -d '{"text":"Hello world!"}'
+                        xr -H "Content-Type: application/json" /2/tweets
+  authentication        xr --auth oauth2 /2/users/me
+                        xr --auth oauth1 /2/users/me
+                        xr --auth app /2/users/me
+  media and streaming   xr media upload path/to/video.mp4
+                        xr /2/tweets/search/stream --auth app
+                        xr -s /2/users/me
+
+Multi-app management:
+  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps list
+  xr auth default                                # interactive picker
+  xr auth default my-app                         # set by name
+  xr --app my-app /2/users/me                    # per-request override
+
+Shell completions:
+  xr completions bash > ~/.bash_completion.d/xr
+  xr completions zsh > ~/.zfunc/_xr
+  xr completions fish > ~/.config/fish/completions/xr.fish
+
+Run 'xr --help' to see all available commands.
+
+Usage: xr [OPTIONS] [URL] [COMMAND]
+
+Commands:
+  post         Post to X
+  reply        Reply to a post
+  quote        Quote a post
+  delete       Delete a post
+  read         Read a post
+  search       Search recent posts
+  whoami       Show the authenticated user's profile
+  user         Look up a user by username
+  timeline     Show your home timeline
+  mentions     Show your recent mentions
+  like         Like a post
+  unlike       Unlike a post
+  repost       Repost a post
+  unrepost     Undo a repost
+  bookmark     Bookmark a post
+  unbookmark   Remove a bookmark
+  bookmarks    List your bookmarks
+  likes        List your liked posts
+  follow       Follow a user
+  unfollow     Unfollow a user
+  following    List users you follow
+  followers    List your followers
+  mute         Mute a user
+  unmute       Unmute a user
+  muted        List users you have muted
+  block        Block a user
+  unblock      Unblock a user
+  blocked      List users you have blocked
+  usage        Show API usage (post caps, daily breakdown)
+  dm           Send a direct message
+  dms          List recent direct messages
+  broadcasts   Broadcast chat moderation
+  auth         Authentication management
+  media        Media upload operations
+  skill        Install or manage the xurl-rs skill bundle
+  schema       Show JSON Schema for a command's response type
+  completions  Generate shell completion script
+  version      Show xurl version information
+  examples     Print a curated gallery of invocation examples grouped by use case
+  validate     Validate a JSON document against a bundled response schema
+  help         Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [URL]
+          URL for raw mode (positional, only when no subcommand)
+
+Options:
+  -X, --method <METHOD>
+          HTTP method (GET by default)
+
+  -H, --header <HEADERS>
+          Request headers
+
+  -d, --data <DATA>
+          Request body data
+
+      --auth <AUTH_TYPE>
+          Authentication type (oauth1, oauth2, app)
+
+  -u, --username <USERNAME>
+          Username for `OAuth2` authentication
+
+  -v, --verbose[=<VERBOSE>]
+          Print verbose information
+          
+          [env: XURL_VERBOSE=]
+          [default: false]
+          [possible values: true, false]
+
+  -t, --trace
+          Add trace header to request
+
+  -s, --stream
+          Force streaming mode
+
+  -F, --file <FILE>
+          File to upload (for multipart requests)
+
+      --app <APP>
+          Use a specific registered app (overrides default)
+          
+          [env: XURL_APP=]
+
+      --output <OUTPUT>
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+
+          Possible values:
+          - text:   Default: colored, human-readable
+          - json:   Machine-readable JSON, no color
+          - jsonl:  JSON Lines (useful for streaming)
+          - ndjson: Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name
+          - yaml:   YAML document (best-effort serialization of the JSON shape)
+          - csv:    Comma-separated values (best-effort flattening of the top-level shape)
+          - tsv:    Tab-separated values (best-effort flattening of the top-level shape)
+          
+          [env: XURL_OUTPUT=]
+          [default: text]
+
+      --json
+          Shorthand for `--output json` (P2 alias)
+          
+          [env: XURL_JSON=]
+
+      --jsonl
+          Shorthand for `--output jsonl` (P2 alias)
+          
+          [env: XURL_JSONL=]
+
+      --raw[=<RAW>]
+          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          
+          [env: XURL_RAW=]
+          [default: false]
+          [possible values: true, false]
+
+      --no-pager
+          Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it
+          
+          [env: XURL_NO_PAGER=]
+
+  -q, --quiet[=<QUIET>]
+          Suppress all non-essential output (errors still go to stderr)
+          
+          [env: XURL_QUIET=]
+          [default: false]
+          [possible values: true, false]
+
+      --no-interactive[=<NO_INTERACTIVE>]
+          Disable interactive prompts; fail with error instead
+          
+          [env: XURL_NO_INTERACTIVE=]
+          [default: false]
+          [possible values: true, false]
+
+      --timeout <TIMEOUT>
+          Request timeout in seconds
+          
+          [env: XURL_TIMEOUT=]
+          [default: 30]
+
+      --color <COLOR>
+          Colorize output: auto (TTY-aware), always, or never
+
+          Possible values:
+          - auto:   Enable color when stderr is a TTY and `NO_COLOR` is unset
+          - always: Always emit ANSI color escapes (still suppressed by `NO_COLOR`)
+          - never:  Never emit ANSI color escapes
+          
+          [env: XURL_COLOR=]
+          [default: auto]
+
+      --dry-run[=<DRY_RUN>]
+          Validate inputs and skip the API call (U7).
+          
+          Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
+          
+          [env: XURL_DRY_RUN=]
+          [default: false]
+          [possible values: true, false]
+
+      --limit <LIMIT>
+          Global result-set limit, clamped to 1..=100 (U7).
+          
+          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          
+          [env: XURL_LIMIT=]
+
+      --cursor <TOKEN>
+          Pagination cursor / `pagination_token` for list endpoints.
+          
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          
+          [env: XURL_CURSOR=]
+
+      --page <N>
+          Documented alias for `--cursor`.
+          
+          X's API does not offer offset-style pagination (`--page 2` is not addressable). Passing `--page` returns a canonical `unsupported-pagination` envelope on stderr suggesting `--cursor` instead. Exposed so agents trained on offset-pagination conventions get a structured error rather than a silent no-op.
+          
+          [env: XURL_PAGE=]
+
+      --after <TOKEN>
+          Documented alias for `--cursor` (`--after <token>`).
+          
+          Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
+          
+          [env: XURL_AFTER=]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+Examples:
+  Authenticate (browser):
+    xr auth oauth2
+  Authenticate (headless / SSH / container):
+    xr auth oauth2 --no-browser --step 1
+  Post a status update (text vs JSON):
+    xr post "Hello world"
+    xr post "Hello world" --output json
+  Search recent posts with env-var precedence:
+    XURL_OUTPUT=json xr search "rustlang" -n 25
+  Browse the full curated gallery:
+    xr examples
+
+ENVIRONMENT VARIABLES:
+  XURL_OUTPUT            Output format: text, json, jsonl, ndjson, yaml, csv, tsv (same as --output)
+  XURL_CURSOR            Pagination cursor / page token (same as --cursor)
+  XURL_QUIET             Suppress non-essential output (same as --quiet)
+  XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
+  XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
+  XURL_COLOR             Color control: auto, always, never (same as --color)
+  XURL_VERBOSE           Verbose request/response logging (same as -v/--verbose)
+  XURL_APP               Override default app (same as --app)
+  XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
+  XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
+  XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
+  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
+  CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
+  CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value
+  REDIRECT_URI           OAuth2 redirect URI override for the active app
+  AUTH_URL               OAuth2 authorization endpoint override
+  TOKEN_URL              OAuth2 token exchange endpoint override
+  API_BASE_URL           API origin every request is built against
+  INFO_URL               User-info endpoint override; derived from API_BASE_URL when unset
+
+Flags override env vars when both are set. NO_COLOR=1 always wins over
+--color/XURL_COLOR (https://no-color.org). --no-pager is a documented
+no-op so agents can pass it unconditionally; xr never invokes $PAGER.
+
+INPUT FROM STDIN:
+  Subcommands that accept JSON input (currently `xr validate`) read from
+  stdin when no file argument is given or when `-` is passed as the path.
+  This matches the standard CLI convention for piping data:
+    cat post.json | xr validate --schema post --output json
+    cat post.json | xr validate - --schema post --output json
+
+EXIT CODES:
+  0    success
+  1    general error
+  2    invalid arguments or auth-method mismatch
+  3    rate-limited (HTTP 429)
+  4    not found (HTTP 404)
+  5    network error
+  77   authentication required
+
+TTY behavior:
+  When stdout is not a TTY, color output is auto-stripped (unless
+  --color always is set) and human-only banners are suppressed, so piping
+  to jaq or redirecting to a file produces clean machine-readable output
+  without any extra flags.
+
+--- stderr ---
+

@@ -1,0 +1,92 @@
+[package]
+name = "xurl-rs"
+version = "4.0.0"
+description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
+documentation = "https://docs.rs/xurl-rs"
+keywords = ["twitter", "x", "api", "cli", "oauth"]
+categories = ["command-line-utilities", "web-programming", "api-bindings"]
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+exclude = ["tests/"]
+
+# How this member's changelog is cut; see crates/xdk/Cargo.toml for the shape.
+[package.metadata.changelog]
+# Every crate is named in the heading that addresses it, so a PR body says
+# which crate each bullet is about and a bare `## Changelog` reaches neither.
+heading = "Changelog (xurl-rs)"
+tag_prefix = "v"
+changelog = "crates/xurl-cli/CHANGELOG.md"
+include_paths = ["crates/xurl-cli/**", "src/**", "tests/**", "schema/**", "completions/**", "Cargo.lock"]
+exclude_paths = ["crates/xurl-cli/CHANGELOG.md"]
+
+[[bin]]
+name = "xr"
+path = "src/main.rs"
+
+# The library target exists so the binary's own integration tests can drive
+# the dispatcher in-process; it is not an embedder API. Programs use `xdk-rs`.
+[lib]
+name = "xurl"
+path = "src/lib.rs"
+
+[dependencies]
+xdk-rs.workspace = true
+
+# CLI
+clap = { version = "4", features = ["derive", "string", "env"] }
+clap_complete = "4"
+# Held at the version clap resolves, so a clap bump that moves it surfaces as
+# a `multiple-versions` audit warning instead of a second silent copy.
+strsim = "0.11.1"
+
+# Runtime
+tokio = { workspace = true, features = ["signal"] }
+tokio-util.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+
+# Terminal
+colored = "3"
+open = "5"
+
+# Diagnostics
+tracing.workspace = true
+
+# Schema generation
+schemars.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+url.workspace = true
+tempfile.workspace = true
+pretty_assertions = "1"
+assert_cmd = "2"
+predicates = "3"
+rstest.workspace = true
+wiremock.workspace = true
+toml = "1.0"
+regex.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+serial_test.workspace = true
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.tar.gz"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
+pkg-fmt = "zip"

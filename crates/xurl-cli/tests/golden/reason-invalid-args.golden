@@ -1,0 +1,15 @@
+args: ["--output", "json", "--bogus-flag"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 277
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 2,
+  "message": "error: unexpected argument '--bogus-flag' found\n\n  tip: to pass '--bogus-flag' as a value, use '-- --bogus-flag'\n\nUsage: xr --output <OUTPUT> [URL]\n\nFor more information, try '--help'.",
+  "reason": "invalid-args",
+  "status": "error"
+}
+

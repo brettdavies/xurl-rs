@@ -1,0 +1,27 @@
+args: ["--output", "json", "--auth", "app", "whoami"]
+store: bearer-env
+exit_code: 2
+stdout_len: 0
+stderr_len: 454
+--- stdout ---
+
+--- stderr ---
+{
+  "app": "",
+  "available_in_app": [
+    "app"
+  ],
+  "endpoint": "/2/users/me",
+  "exit_code": 2,
+  "message": "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2 --app .",
+  "method": "GET",
+  "reason": "auth-method-mismatch",
+  "rendered_url": "/2/users/me",
+  "requested": null,
+  "status": "error",
+  "supported": [
+    "oauth2",
+    "oauth1"
+  ]
+}
+

@@ -1,11 +1,11 @@
 # Detects drift between the vendored X OpenAPI spec at
-# vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
+# crates/xdk/vendor/x-api-openapi.json and the live upstream at api.x.com/2/openapi.json.
 #
 # Triggers:
 #   - schedule: daily 09:00 UTC — opens (or updates) a refresh PR to dev
 #     carrying the new vendored spec on divergence; never merges it
 #   - workflow_dispatch: manual re-run
-#   - pull_request: only when the vendor/build/matrix surface changes —
+#   - pull_request: only when the crates/xdk/vendor/build/matrix surface changes —
 #     surface drift in the PR before the matrix takes a stale snapshot
 #
 # The schedule/dispatch path pushes the refresh branch and opens the PR with
@@ -21,9 +21,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'vendor/x-api-openapi.json'
-      - 'build.rs'
-      - 'src/api/auth_matrix.rs'
+      - 'crates/xdk/vendor/x-api-openapi.json'
+      - 'crates/xdk/build.rs'
+      - 'crates/xdk/src/api/auth_matrix.rs'
 
 permissions:
   contents: read
@@ -45,7 +45,7 @@ jobs:
       pull-requests: write
     env:
       UPSTREAM_URL: https://api.x.com/2/openapi.json
-      VENDOR_PATH: vendor/x-api-openapi.json
+      VENDOR_PATH: crates/xdk/vendor/x-api-openapi.json
       REFRESH_BRANCH: spec-refresh
     steps:
       - name: Checkout
@@ -160,7 +160,7 @@ jobs:
           # The drift check runs for every trigger path, but the comment is
           # only about the PR when the PR itself changes the vendored spec;
           # on a build.rs or auth-matrix PR it reads as off-topic noise.
-          touches_vendor="$(gh pr view "${PR_NUMBER}" --json files --jq '[.files[].path] | any(. == "vendor/x-api-openapi.json")')"
+          touches_vendor="$(gh pr view "${PR_NUMBER}" --json files --jq '[.files[].path] | any(. == "crates/xdk/vendor/x-api-openapi.json")')"
           if [ "${touches_vendor}" != "true" ]; then
             echo "Drift exists but this PR does not change the vendored spec; no comment posted." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -239,7 +239,7 @@ jobs:
           # build, which fails there if a shortcut template no longer
           # resolves, and schema/responses/ derives from crate types a
           # spec-only change cannot move.
-          git add vendor/
+          git add crates/xdk/vendor/
 
           if git diff --cached --quiet; then
             echo "Refresh produced no change against dev; nothing to open." >> "$GITHUB_STEP_SUMMARY"
@@ -260,7 +260,7 @@ jobs:
             # and GitHub auto-closes a PR whose head reaches its base.
             git fetch --depth 1 origin "${REFRESH_BRANCH}:refs/remotes/origin/${REFRESH_BRANCH}"
             head_sha="$(git rev-parse "refs/remotes/origin/${REFRESH_BRANCH}")"
-            if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- vendor/; then
+            if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- crates/xdk/vendor/; then
               result="current"
               echo "Open refresh PR #${existing_num} already carries this upstream revision; branch content untouched." >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -330,13 +330,13 @@ jobs:
             echo ""
             echo "### Automated gates (this PR's CI)"
             echo ""
-            echo "- \`cargo build\` regenerates the auth-method matrix from the new spec; a build panic names a shortcut template that no longer resolves. Update the endpoint in \`src/api/shortcuts.rs\` and the \`SHORTCUT_TEMPLATES\` allowlist in \`build.rs\`."
-            echo "- \`tests/spec_types_validation.rs\` fails when a typed response still declares a field, or maps a component schema, that the spec renamed or removed. \`ALLOWED_DIVERGENCES\` applies only to field-level divergences with a documented upstream reason; it cannot suppress a missing component schema. For a renamed schema, repoint the test's mapping table and rework the affected struct in \`src/api/response/types.rs\`."
+            echo "- \`cargo build\` regenerates the auth-method matrix from the new spec; a build panic names a shortcut template that no longer resolves. Update the endpoint in \`crates/xdk/src/api/shortcuts.rs\` and the \`SHORTCUT_TEMPLATES\` allowlist in \`crates/xdk/build.rs\`."
+            echo "- \`crates/xdk/tests/spec_types_validation.rs\` fails when a typed response still declares a field, or maps a component schema, that the spec renamed or removed. \`ALLOWED_DIVERGENCES\` applies only to field-level divergences with a documented upstream reason; it cannot suppress a missing component schema. For a renamed schema, repoint the test's mapping table and rework the affected struct in \`crates/xdk/src/api/response/types.rs\`."
             echo ""
             echo "### Execute, in order"
             echo ""
             echo "1. Run the gates locally (\`cargo build\`, \`cargo test\`) and fix everything they force."
-            echo "2. Apply every rename the spec mandates: wire params and expansions in \`src/api/shortcuts.rs\`, field and schema names in \`src/api/response/types.rs\`. Grep for old names across \`src/\` so no call site survives. Record each under Breaking changes below."
+            echo "2. Apply every rename the spec mandates: wire params and expansions in \`crates/xdk/src/api/shortcuts.rs\`, field and schema names in \`crates/xdk/src/api/response/types.rs\`. Grep for old names across \`crates/\` so no call site survives. Record each under Breaking changes below."
             echo "3. Retire shortcuts whose endpoints the spec removed, including their typed responses and help examples. Record under Breaking changes."
             echo "4. Do not create shortcuts for added endpoints; list worthwhile candidates under Open decisions instead."
             echo "5. You may verify a renamed wire param with read-only calls against the live API using stored credentials (\`xr whoami\`, \`xr search\` with the renamed param); never mutating calls."

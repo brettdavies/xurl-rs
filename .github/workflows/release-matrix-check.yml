@@ -15,9 +15,9 @@
 # Windows and the cross rows, so tightening the trigger further would buy
 # little.
 #
-# Every row is hard-fail here. The release workflow soft-fails its two musl
-# rows and omits their artifacts, so a red musl row in this check means
-# "investigate before tagging", not "the release will fail".
+# Every row is hard-fail here, and the release workflow runs with
+# `linux_musl_required: true`, so its musl rows are hard-fail too. A red musl
+# row in this check means the release would fail on the same row.
 name: Release matrix check
 
 on:
@@ -27,6 +27,7 @@ on:
   pull_request:
     paths:
       - Cargo.toml
+      - crates/*/Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
       - .github/workflows/release-matrix-check.yml

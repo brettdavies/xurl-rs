@@ -1,0 +1,15 @@
+args: ["--output", "json", "auth", "apps", "remove", "nosuchapp", "--force"]
+store: empty
+exit_code: 77
+stdout_len: 0
+stderr_len: 133
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 77,
+  "message": "Token Store Error: app \"nosuchapp\" not found",
+  "reason": "token-store",
+  "status": "error"
+}
+

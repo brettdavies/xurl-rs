@@ -1,129 +1,42 @@
-[package]
-name = "xurl-rs"
-version = "3.2.0"
+[workspace]
+resolver = "3"
+members = ["crates/xdk", "crates/xurl-cli", "crates/xdk-consumer-check"]
+
+[workspace.package]
 edition = "2024"
-description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brettdavies/xurl-rs"
 homepage = "https://github.com/brettdavies/xurl-rs"
-documentation = "https://docs.rs/xurl-rs"
-keywords = ["twitter", "x", "api", "cli", "oauth"]
-categories = ["command-line-utilities", "web-programming", "api-bindings"]
 authors = ["Brett Davies <pm8fp22mbg@privaterelay.appleid.com>"]
-readme = "README.md"
 rust-version = "1.94"
-exclude = [
-    ".claude/",
-    ".context/",
-    ".github/",
-    ".markdownlint-cli2.yaml",
-    "benches/",
-    "cliff.toml",
-    "CONCEPTS.md",
-    "deny.toml",
-    "docs/",
-    "RELEASES*.md",
-    "rustfmt.toml",
-    "scripts/",
-    "tests/",
-]
 
-[dependencies]
-# CLI
-clap = { version = "4", features = ["derive", "string", "env"] }
-clap_complete = "4"
-# Held at the version clap resolves, so a clap bump that moves it surfaces as
-# a `multiple-versions` audit warning instead of a second silent copy.
-strsim = "0.11.1"
-
-# HTTP
-reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "blocking", "stream", "form", "rustls"] }
-tokio = { version = "1", features = ["rt", "net", "macros", "sync", "time", "signal"] }
+# Versions shared by both members live here so the two manifests cannot drift
+# apart on a dependency they both compile.
+[workspace.dependencies]
+xdk-rs = { version = "0.1.0", path = "crates/xdk" }
+# No TLS backend on this entry: `xdk-rs` selects one through its own
+# `rustls` / `native-tls` features, and a backend named here would be on in
+# every configuration, including the ones meant to prove it absent.
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "stream", "form"] }
+url = "2"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
-
-# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-
-# Auth
-hmac = "0.13"
-sha1 = "0.11"
-sha2 = "0.11"
-base64 = "0.23"
-rand = "0.10"
-url = "2"
-
-# Terminal
-colored = "3"
-
-# Schema generation
+tracing = "0.1"
 schemars = "1"
-
-# Utilities
-open = "5"
-thiserror = "2"
-anyhow = "1"
-dirs = "7"
-percent-encoding = "2"
-phf = "0.14"
-
-[target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-[build-dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-phf_codegen = "0.14"
-
-[[bin]]
-name = "xr"
-path = "src/main.rs"
-
-[lib]
-name = "xurl"
-path = "src/lib.rs"
-
-[dev-dependencies]
 tempfile = "3"
-pretty_assertions = "1"
-assert_cmd = "2"
-predicates = "3"
-rstest = "0.27"
 wiremock = "0.6"
-toml = "1.0"
-regex = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+rstest = "0.27"
 serial_test = "4"
+regex = "1"
 
+# Cargo honors profiles only in the workspace root; a member-level profile is
+# ignored with a warning, and the release binary silently loses lto and strip.
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
 panic = "abort"
-
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.tar.gz"
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.zip"
-pkg-fmt = "zip"
-
-# Breaking library-API changes shipping in a minor by decision. `required-update`
-# reclassifies the break rather than silencing it: `cargo semver-checks` still
-# reports each one by name and still fails a patch release, so the floor is
-# enforced and the break stays visible in the gate output. Each entry is scoped
-# to one release and is self-clearing: once the tag moves the baseline past the
-# change, the lint stops firing and the entry must be deleted. A standing entry
-# understates the next break of the same kind.
-[package.metadata.cargo-semver-checks.lints]
-# Covers TokenStore.load_state: the store records how its file resolved, which
-# is what the refusal-to-overwrite guard reads.
-constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
-# Covers Envelope::Error: one declared body is the whole error surface, so the
-# generated schema can close the object.
-enum_struct_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
-# Covers Envelope: the variant shape above already breaks exhaustive matching,
-# so the attribute costs downstream nothing this release does not already spend.
-enum_marked_non_exhaustive = { lint-level = "deny", required-update = "minor" }

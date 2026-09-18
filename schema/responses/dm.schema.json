@@ -35,52 +35,22 @@
       },
       "type": "object"
     },
-    "DmEvent": {
+    "DmSentResult": {
       "additionalProperties": true,
-      "description": "A direct message event from the X API v2.",
+      "description": "Confirmation that a direct message was sent: the conversation it landed\nin and the event it created, which is all the send endpoint returns.",
       "properties": {
-        "created_at": {
-          "description": "ISO-8601 timestamp the event occurred.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "dm_conversation_id": {
-          "description": "Conversation the event belongs to.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "event_type": {
-          "description": "Event kind (e.g. `\"MessageCreate\"`, `\"ParticipantsJoin\"`).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "id": {
-          "description": "Event identifier.",
+          "description": "The conversation the message was sent to.",
           "type": "string"
         },
-        "sender_id": {
-          "description": "Sender's user ID.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "text": {
-          "description": "Message body, for text events.",
-          "type": [
-            "string",
-            "null"
-          ]
+        "dm_event_id": {
+          "description": "The id of the created DM event.",
+          "type": "string"
         }
       },
       "required": [
-        "id"
+        "dm_conversation_id",
+        "dm_event_id"
       ],
       "type": "object"
     },
@@ -387,7 +357,7 @@
   "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/DmEvent",
+      "$ref": "#/$defs/DmSentResult",
       "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
     },
     "errors": {

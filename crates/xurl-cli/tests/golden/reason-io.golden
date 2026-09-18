@@ -1,0 +1,15 @@
+args: ["--output", "json", "validate", "/nonexistent/xr-golden.json"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 152
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "reading /nonexistent/xr-golden.json: No such file or directory (os error 2)",
+  "reason": "io",
+  "status": "error"
+}
+

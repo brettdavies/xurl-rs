@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "search", "q403"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 306
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "{\"detail\":\"Your client app is not configured with the appropriate oauth1 app permissions for this endpoint.\",\"status\":403,\"title\":\"Forbidden\",\"type\":\"https://api.x.com/2/problems/not-authorized-for-resource\"}",
+  "reason": "forbidden",
+  "status": "error"
+}
+

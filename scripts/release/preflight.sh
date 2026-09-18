@@ -20,7 +20,7 @@
 # Flags:
 #   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
 #   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
-#   --tag TAG           Override LAST_TAG resolution (default: git tag --sort=-version:refname | head -n 1)
+#   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -119,7 +119,7 @@ ensure_smoke_home() {
 gate_surface() {
   header "Establish surface"
   local last_tag commits files breaking
-  last_tag="${LAST_TAG:-$(git tag --sort=-version:refname | head -n 1)}"
+  last_tag="${LAST_TAG:-$(last_release_tag)}"
   [[ -n "$last_tag" ]] || {
     gate_skip "LAST_TAG" "no tags in repo yet (first release); surface is everything on the branch"
     return
@@ -137,7 +137,7 @@ gate_api_contract() {
   header "API contract surface"
   require_built_binary
   local last_tag tmpdir
-  last_tag="${LAST_TAG:-$(git tag --sort=-version:refname | head -n 1)}"
+  last_tag="${LAST_TAG:-$(last_release_tag)}"
   tmpdir=$(mktemp -d -t xr-api-XXXXXX)
 
   # Command surface diff
@@ -163,22 +163,27 @@ gate_api_contract() {
     gate_skip "xr help diff" "could not check out $last_tag"
   fi
 
-  # Public library surface. A textual diff cannot answer this: it reads two of
-  # the nine public modules and its pattern matches neither `pub` fields, nor
-  # `pub const`, `pub type`, or `pub trait`. cargo-semver-checks compares
-  # rustdoc JSON against the baseline tag and knows Rust's own semver rules.
-  # Breaks deliberately taken into a minor are recorded in Cargo.toml under
-  # [package.metadata.cargo-semver-checks.lints].
+  # Public library surface. A textual diff cannot answer this: it misses `pub`
+  # fields, `pub const`, `pub type`, and `pub trait`. cargo-semver-checks
+  # compares rustdoc JSON against the baseline tag and knows Rust's own semver
+  # rules. The library is the only published API, and it baselines on its own
+  # `xdk-rs-v*` tag line, as CI does; the CLI's `v*` tags would name the wrong
+  # crate. Breaks deliberately taken into a minor are recorded in
+  # crates/xdk/Cargo.toml under [package.metadata.cargo-semver-checks.lints].
   if command -v cargo-semver-checks >/dev/null 2>&1; then
-    local release_type semver_out semver_rc
-    release_type=$(semver_release_type "$last_tag")
-    semver_out=$(cargo semver-checks check-release \
-      --baseline-rev "$last_tag" --release-type "$release_type" 2>&1) && semver_rc=0 || semver_rc=$?
-    if [[ $semver_rc -eq 0 ]]; then
-      gate_pass "cargo-semver-checks: $release_type bump sufficient vs $last_tag"
+    local lib_tag semver_out semver_rc
+    lib_tag=$(git tag --list 'xdk-rs-v[0-9]*' --sort=-version:refname | head -n 1)
+    if [[ -z "$lib_tag" ]]; then
+      gate_skip "cargo-semver-checks" "no xdk-rs-v* tag yet; the first library release has no baseline"
     else
-      printf '%s\n' "$semver_out" | grep -E '^--- failure|^  (field|variant|struct|enum|fn|method) ' || true
-      gate_fail "cargo-semver-checks: $release_type bump insufficient vs $last_tag (bump the version, or record the break in Cargo.toml lints)"
+      semver_out=$(cargo semver-checks check-release --package xdk-rs \
+        --baseline-rev "$lib_tag" --release-type minor 2>&1) && semver_rc=0 || semver_rc=$?
+      if [[ $semver_rc -eq 0 ]]; then
+        gate_pass "cargo-semver-checks: xdk-rs minor bump sufficient vs $lib_tag"
+      else
+        printf '%s\n' "$semver_out" | grep -E '^--- failure|^  (field|variant|struct|enum|fn|method) ' || true
+        gate_fail "cargo-semver-checks: xdk-rs breaks vs $lib_tag (record the break in crates/xdk/Cargo.toml lints)"
+      fi
     fi
   else
     gate_skip "cargo-semver-checks" "not installed (cargo binstall cargo-semver-checks)"
@@ -249,7 +254,7 @@ gate_smoke() {
   fi
 
   # Media upload
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload tests/fixtures/media/smoke-test.jpg \
+  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg \
     --media-type image/jpeg --category tweet_image --wait \
     --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
   if [[ -n "$out" ]]; then
@@ -358,7 +363,7 @@ gate_multi_app() {
   #
   # `add_app` promotes when the store holds no apps or the standing default
   # carries neither a client id nor a token, and registration never
-  # materializes a `default` app (src/store/mod.rs). So a fresh store names
+  # materializes a `default` app (crates/xdk/src/store/mod.rs). So a fresh store names
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
   local fresh dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
@@ -461,8 +466,8 @@ gate_mechanics() {
   local project_version changelog_version
 
   if [[ -f Cargo.toml ]]; then
-    project_version=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
-    gate_pass "Cargo.toml version = $project_version"
+    project_version=$(project_version)
+    gate_pass "$(release_manifest) version = $project_version"
     if [[ -f Cargo.lock ]]; then
       gate_pass "Cargo.lock present"
     else
@@ -472,7 +477,7 @@ gate_mechanics() {
     project_version=$(jaq -r .version package.json)
     gate_pass "package.json version = $project_version"
   elif [[ -f pyproject.toml ]]; then
-    project_version=$(grep -m1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/')
+    project_version=$(grep -m1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/' || true)
     gate_pass "pyproject.toml version = $project_version"
   elif [[ -f VERSION ]]; then
     project_version=$(<VERSION)
@@ -494,26 +499,54 @@ gate_mechanics() {
     gate_skip "binary --version" "build the release binary first ($BIN_PATH)"
   fi
 
-  if [[ -f CHANGELOG.md ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]## ')
+  local release_changelog
+  release_changelog=$(release_changelog)
+  if [[ -f "$release_changelog" ]]; then
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$release_changelog" | tr -d '[]## ' || true)
     if [[ -n "$project_version" ]]; then
       if [[ "$changelog_version" == "$project_version" ]]; then
-        gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)"
+        gate_pass "$release_changelog top section = [$changelog_version] (matches project version)"
       else
-        gate_fail "CHANGELOG mismatch" "changelog=$changelog_version project=$project_version"
+        gate_fail "$release_changelog mismatch" "changelog=$changelog_version project=$project_version"
       fi
     fi
-    if grep -q '\[Unreleased\]' CHANGELOG.md; then
-      gate_fail "CHANGELOG" "has [Unreleased] placeholder"
+    if grep -q '\[Unreleased\]' "$release_changelog"; then
+      gate_fail "$release_changelog" "has [Unreleased] placeholder"
     else
-      gate_pass "CHANGELOG has no [Unreleased] placeholder"
+      gate_pass "$release_changelog has no [Unreleased] placeholder"
+    fi
+  else
+    gate_fail "$release_changelog" "missing"
+  fi
+
+  # The library's own changelog, checked only when a library release is
+  # pending: its manifest version is not the newest xdk-rs-v* tag (or no such
+  # tag exists yet), so the reusable's release step would look for that section.
+  if [[ -f crates/xdk/Cargo.toml ]]; then
+    local lib_version lib_tag lib_changelog_version
+    lib_version=$(grep -m1 '^version = ' crates/xdk/Cargo.toml | sed -E 's/^version = "(.*)"/\1/' || true)
+    lib_tag=$(git tag --list 'xdk-rs-v[0-9]*' --sort=-version:refname | head -n 1)
+    if [[ "xdk-rs-v$lib_version" == "$lib_tag" ]]; then
+      gate_pass "crates/xdk/CHANGELOG.md not checked (xdk-rs $lib_version is released as $lib_tag)"
+    elif [[ -f crates/xdk/CHANGELOG.md ]]; then
+      lib_changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' crates/xdk/CHANGELOG.md | tr -d '[]## ' || true)
+      if [[ "$lib_changelog_version" == "$lib_version" ]]; then
+        gate_pass "crates/xdk/CHANGELOG.md top section = [$lib_changelog_version] (matches xdk-rs version)"
+      else
+        gate_fail "crates/xdk/CHANGELOG.md" "top section=${lib_changelog_version:-none} xdk-rs=$lib_version (a library release is pending; regenerate with git cliff -c crates/xdk/cliff.toml)"
+      fi
+      if grep -q '\[Unreleased\]' crates/xdk/CHANGELOG.md; then
+        gate_fail "crates/xdk/CHANGELOG.md" "has [Unreleased] placeholder"
+      fi
+    else
+      gate_fail "crates/xdk/CHANGELOG.md" "missing"
     fi
   fi
 
   # Rust: toolchain quarantine.
   if [[ -f rust-toolchain.toml ]]; then
     local toolchain_channel release_date_match
-    toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/')
+    toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/' || true)
     release_date_match=$(grep -m1 'released' rust-toolchain.toml | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
     if [[ -n "$release_date_match" ]]; then
       local age_days

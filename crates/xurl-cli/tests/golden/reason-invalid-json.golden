@@ -1,0 +1,16 @@
+args: ["--output", "json", "validate"]
+store: empty
+stdin: "nope"
+exit_code: 1
+stdout_len: 0
+stderr_len: 145
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "input is not valid JSON: expected ident at line 1 column 2",
+  "reason": "invalid-json",
+  "status": "error"
+}
+

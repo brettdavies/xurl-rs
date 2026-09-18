@@ -49,8 +49,8 @@ PR. The `guard-main-docs` workflow blocks them from `main` PRs regardless. The e
 
 `scripts/release/guarded-paths.sh` prints the authoritative set, resolved from the workflow. Run it rather than trusting
 this list, which is a reading aid. A path that stays off `main` but is not in the reusable workflow's base list is
-registered through the caller's `extra_paths` input in `.github/workflows/guard-main-docs.yml`; entries are globs
-(`**/` any depth, `*` and `?` within a segment, a trailing `/` guards the subtree).
+registered through the caller's `extra_paths` input in `.github/workflows/guard-main-docs.yml`; entries are globs (`**/`
+any depth, `*` and `?` within a segment, a trailing `/` guards the subtree).
 
 The standard feature → PR → squash-merge flow remains required for everything else, including consumer-facing markdown
 (README, AGENTS, CONTRIBUTING, CHANGELOG, in-repo runbooks). `docs/migrating/` ships to `main`.
@@ -121,25 +121,27 @@ GUARDED="$(scripts/release/guarded-paths.sh)"
 git ls-files | grep -E "$GUARDED" | xargs -r trash
 git add -A                                                      # stages adds, mods, AND deletions
 
-# 4. Bump the version in Cargo.toml, refresh Cargo.lock, and regenerate the completions
-#    (catches any subcommand or flag change missed during dev).
-sed -i 's/^version = ".*"/version = "1.3.0"/' Cargo.toml
+# 4. Bump the CLI crate's version, refresh Cargo.lock, and regenerate the completions
+#    (catches any subcommand or flag change missed during dev). The workspace root is a
+#    virtual manifest; the version the `vX.Y.Z` tag names lives in the binary crate.
+sed -i 's/^version = ".*"/version = "1.3.0"/' crates/xurl-cli/Cargo.toml
 cargo update -p xurl-rs
 ./scripts/generate-completions.sh
 
-# 5. Generate CHANGELOG.md from the PRs merged into dev since the previous release. The
-#    overlay commit carries no per-PR history, so the section is built from dev's PRs,
-#    not from this branch's commits. Scrub the result via Vale + LanguageTool + unslop
-#    (see § Prose scrubbing); fix findings on the upstream PR bodies and regenerate,
-#    never by hand-editing CHANGELOG.md.
-scripts/generate-changelog.py --from-dev-prs
+# 5. Generate each crate's changelog from the PRs merged into dev since the previous
+#    release. The overlay commit carries no per-PR history, so a section is built from
+#    dev's PRs, not from this branch's commits, and each crate takes the bullets its
+#    own `## Changelog (<crate>)` block carries. Scrub the result via Vale +
+#    LanguageTool + unslop (see § Prose scrubbing); fix findings on the upstream PR
+#    bodies and regenerate, never by hand-editing a changelog.
+scripts/generate-changelog.py --crate xurl-rs --from-dev-prs
 git add -A
 
 # 6. Verify before committing.
 #    A: staged tree equals dev's minus the version files, the completions, and the
 #       stripped guarded paths. Anything else printed here is a mistake.
 git diff --cached --name-only origin/dev | grep -Ev "$GUARDED" \
-  | grep -Ev '^(Cargo\.toml|Cargo\.lock|CHANGELOG\.md|completions/.*)$' \
+  | grep -Ev '^(crates/xurl-cli/(Cargo\.toml|CHANGELOG\.md)|Cargo\.lock|completions/.*)$' \
   && echo "unexpected delta above; investigate" || echo "(clean: only intended deltas)"
 #    B: no guarded path in the release tree.
 git diff --cached --name-only origin/main | grep -E "$GUARDED" \
@@ -171,10 +173,10 @@ remote on merge. `dev` is untouched.
 
 ### Exception: cherry-pick
 
-The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main`
-base is the exception, kept for a repo that has a stated reason it cannot overlay (record it under Project specifics);
-the per-PR changelog is not such a reason, since `--from-dev-prs` builds it from `dev` either way. When cherry-picking,
-run the triple-diff verification:
+The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main` base
+is the exception, kept for a repo that has a stated reason it cannot overlay (record it under Project specifics); the
+per-PR changelog is not such a reason, since `--from-dev-prs` builds it from `dev` either way. When cherry-picking, run
+the triple-diff verification:
 
 ```bash
 # 2. List the dev commits not yet on main.
@@ -251,10 +253,10 @@ Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/re
 
 | Step            | What                                                                                                                                                                                                                                                                                                                                                                                        |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-version` | Verify the tag matches `Cargo.toml` version (gate).                                                                                                                                                                                                                                                                                                                                         |
+| `check-version` | Verify the tag matches the `xurl-rs` version in `crates/xurl-cli/Cargo.toml`, and that every workspace dependency (`xdk-rs`) is on crates.io at the bound the CLI declares; a missing bound fails here by name, before any target builds (gate).                                                                                                                                            |
 | `audit`         | `cargo deny check` (license + advisory + ban).                                                                                                                                                                                                                                                                                                                                              |
 | `build`         | Cross-compile binaries for 7 targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. The musl rows are required (`linux_musl_required: true`), so a musl failure blocks the release. Each archive includes binary, completions, and licenses. |
-| `publish-crate` | `cargo publish` to crates.io via Trusted Publishing (OIDC, no static token after first publish).                                                                                                                                                                                                                                                                                            |
+| `publish-crate` | `cargo publish -p xurl-rs` to crates.io via Trusted Publishing (OIDC, no static token after first publish). Resolves `xdk-rs` from the registry, which is why the library tag goes first.                                                                                                                                                                                                   |
 | `release`       | Create a **non-draft** GitHub Release with `make_latest: false`. Includes all 7 archives + `sha256sum.txt`.                                                                                                                                                                                                                                                                                 |
 | `homebrew`      | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                                                                                                                                                                           |
 
@@ -266,36 +268,132 @@ this repo, which idempotently flips `make_latest: true`.
 
 ### After publish: sync `dev` with the release
 
-Once `finalize-release.yml` has flipped the GitHub Release to `published`, bring the release bookkeeping (`Cargo.toml`,
-`Cargo.lock`, `CHANGELOG.md`, and whatever else the release branch edited that never round-tripped to `dev`) back to
-`dev` so the integration branch starts from the released baseline:
+Once `finalize-release.yml` has flipped the GitHub Release to `published`, bring the release bookkeeping
+(`crates/xurl-cli/Cargo.toml`, `Cargo.lock`, `crates/xurl-cli/CHANGELOG.md`, and whatever else the release branch
+edited that never
+round-tripped to `dev`) back to `dev` so the integration branch starts from the released baseline:
 
 ```bash
 scripts/sync-dev-after-release.sh v3.0.0
 ```
 
-The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `Cargo.toml` and the crate's
-`Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens a PR against `dev` with the version in its title; merge
-it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge `main` into `dev` or
-push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge conflicts on every file both
-sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content (`CONCEPTS.md`, the engineering
-docs) is never part of the copy, so the sync cannot remove it.
+The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `crates/xurl-cli/Cargo.toml`
+and the crate's `Cargo.lock` entry, copies the crate's `CHANGELOG.md` from `main`, and opens a PR against `dev` with
+the version in
+its title; merge it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge
+`main` into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge
+conflicts on every file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content
+(`CONCEPTS.md`, the engineering docs) is never part of the copy, so the sync cannot remove it.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 
 ### First-time publish (one-time)
 
-The initial crate publish requires a regular crates.io API token (Trusted Publishing needs the crate to exist first).
-xurl-rs completed this step with `v1.0.3`. For future crate splits (e.g. a separately published `xurl` library crate):
+The initial publish of a crate requires a regular crates.io API token, because Trusted Publishing is configured on a
+crate's own settings page and that page does not exist until the name is claimed. `xurl-rs` completed this step with
+`v1.0.3`; `xdk-rs` needs it once, before its first `xdk-rs-v0.1.0` tag.
+
+**Claim the name with a placeholder version, not the version you intend to release.** `rust-lib-release.yml` runs `cargo
+publish -p xdk-rs` against whatever the manifest says, and crates.io refuses a version it already holds. A bootstrap
+that publishes `0.1.0` therefore leaves the `xdk-rs-v0.1.0` tag with nothing to publish and fails its run. `0.0.0`
+reserves the name, keeps every real version on the OIDC path, and can be yanked once `0.1.0` is up.
 
 1. Verify your email on crates.io (`https://crates.io/settings/profile`).
-2. `cargo publish` locally with `CARGO_REGISTRY_TOKEN` set.
+2. Publish the placeholder with `CARGO_REGISTRY_TOKEN` set, then put the tree back. The CLI's declared bound moves with
+   the member version or the workspace stops resolving, and `--allow-dirty` is required because both manifests are
+   modified:
+
+   ```bash
+   sed -i 's/^version = "0.1.0"/version = "0.0.0"/' crates/xdk/Cargo.toml
+   sed -i 's|^xdk-rs = { version = "0.1.0"|xdk-rs = { version = "0.0.0"|' Cargo.toml
+   cargo publish -p xdk-rs --allow-dirty
+   git checkout crates/xdk/Cargo.toml Cargo.toml Cargo.lock
+   ```
+
 3. Configure Trusted Publishing on crates.io: `https://crates.io/settings/tokens/trusted-publishing` → add
-   `brettdavies/xurl-rs`, workflow `release.yml`.
+   `brettdavies/xurl-rs`, workflow `release-lib.yml` (the CLI's entry names `release.yml`).
 4. Enable "Enforce Trusted Publishing" to block token-based publishes.
 5. Remove the `CARGO_REGISTRY_TOKEN` repository secret.
+6. Release `0.1.0` through the pipeline as in § Releasing the library, then yank the placeholder: `cargo yank --version
+   0.0.0 xdk-rs`.
 
-Subsequent releases use the OIDC flow built into `release.yml`: no static token in CI.
+Subsequent releases use the OIDC flow built into `release.yml` and `release-lib.yml`: no static token in CI.
+
+## Releasing the library
+
+`xdk-rs` versions and tags independently of the CLI: its tags are `xdk-rs-vX.Y.Z`, its changelog is
+`crates/xdk/CHANGELOG.md`, and `.github/workflows/release-lib.yml` runs the reusable
+`brettdavies/.github/.github/workflows/rust-lib-release.yml`, which publishes `cargo publish -p xdk-rs` and creates a
+GitHub Release (`make_latest: false`, so the binary's release stays the repository's latest) from that changelog. No
+binaries, no Homebrew.
+
+**Order is a rule.** `cargo publish -p xurl-rs` resolves `xdk-rs` from the registry, so the library tag is pushed and
+its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check-version` job fails by name when the
+bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
+
+Both changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev` since the
+previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on top of
+`main`, so it carries no per-PR history for git-cliff to read.
+
+```bash
+# 1. On the release branch, bump the library and regenerate its changelog. The
+#    member's [package.metadata.changelog] table names its tag line and its paths.
+sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
+#    The CLI's declared bound lives in the workspace manifest and must move with it,
+#    or the workspace stops resolving; this bound is what the tag order below protects.
+sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
+cargo update -p xdk-rs
+#    Each PR contributes what its `## Changelog (xdk-rs)` block says. A PR that
+#    touched both crates contributes only what it addressed to the library.
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0
+#    The binary's, from the same PRs' `## Changelog (xurl-rs)` blocks.
+scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v1.3.0
+#    Idempotent, so this answers whether a committed file still matches its inputs.
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 --dry-run
+
+# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md).
+#    The snippet lives in the PR body, inside the `## Changelog (xdk-rs)` block, as a
+#    fenced block indented under its bullet:
+#
+#      ## Changelog (xdk-rs)
+#
+#      ### Breaking changes
+#
+#      - Change `Client::send_dm` to return ...
+#
+#        ```rust
+#        // Before
+#        ...
+#        // After
+#        ...
+#        ```
+#
+#    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
+#    block keeps its commit subject as its bullet.
+
+# 3. After the release PR merges, tag the library first, then the CLI.
+git checkout main && git pull
+git tag -a -m "Release xdk-rs-v0.2.0" xdk-rs-v0.2.0
+git push origin xdk-rs-v0.2.0
+gh run watch "$(gh run list --workflow release-lib.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
+# ...then the CLI's `vX.Y.Z` tag as in § Tagging and publishing.
+```
+
+A rehearsal runs the same pipeline without a tag: `gh workflow run release-lib.yml --ref <branch>` skips the tag check,
+runs `cargo publish -p xdk-rs --dry-run`, and creates no release. A rehearsal can never publish.
+
+**The dispatch works only once `release-lib.yml` is on `main`.** GitHub exposes `workflow_dispatch` for workflows
+present on the default branch, so a caller that lives only on `dev` answers with `HTTP 404: workflow release-lib.yml not
+found on the default branch` no matter which `--ref` is passed. The file reaches `main` with the release PR that carries
+it, which is the same merge that precedes the first library tag, so the tag-triggered path is unaffected: `on: push:
+tags:` reads the workflow from the tagged commit, and that commit is on `main`.
+
+Until then, rehearse locally. `cargo publish -p xdk-rs --dry-run` runs the same packaging and verification step the
+pipeline's publish job runs, and `cargo package -p xdk-rs --list` confirms the file set, which is what the `exclude`
+negation in `crates/xdk/Cargo.toml` exists to control.
+
+`scripts/release/*` and `scripts/sync-dev-after-release.sh` read the CLI's version and tag line (`RELEASE_MANIFEST`,
+`crates/xurl-cli/Cargo.toml`; `v[0-9]*` tags); the library's bookkeeping is the two files above.
 
 ## Rollback
 
@@ -402,7 +500,7 @@ gh api -X PUT repos/brettdavies/xurl-rs/rulesets/<id> --input .github/rulesets/p
 | ---------------- | -------------------------------------------------------------------------------- |
 | Homebrew         | `brew install brettdavies/tap/xurl-rs`                                           |
 | Pre-built binary | Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) |
-| Rust crate       | `cargo install xurl-rs` (binary) or `xurl_rs = "..."` in `Cargo.toml` (library)  |
+| Rust crate       | `cargo install xurl-rs` (binary) or `xdk-rs = "..."` in `Cargo.toml` (library)   |
 | Fast binary      | `cargo binstall xurl-rs`                                                         |
 | From source      | `git clone && cargo build --release`                                             |
 
@@ -412,4 +510,4 @@ gh api -X PUT repos/brettdavies/xurl-rs/rulesets/<id> --input .github/rulesets/p
 - [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md) (release-flow rationale: branching, PR body, pipeline, prose-check)
 - [`.github/pull_request_template.md`](.github/pull_request_template.md) (PR body structure with changelog sections)
 - [`AGENTS.md`](AGENTS.md) (project structure, daily development)
-- [`README.md`](README.md) (install channels, library usage, CLI reference)
+- [`README.md`](README.md) (the router between the library and the CLI)
