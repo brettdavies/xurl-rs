@@ -63,7 +63,7 @@ jobs:
       - name: Run scripts/lint-stdio.sh
         run: bash scripts/lint-stdio.sh
       - name: Check concurrency group namespacing
-        run: bash scripts/lint-workflow-concurrency.sh
+        run: bash scripts/check-workflow-concurrency.sh
 
   # Docs build with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish. Two builds: the

@@ -150,7 +150,7 @@ check_workflow_concurrency() {
   [ "$#" -gt 0 ] || return "$HOOK_SKIPPED"
   # Its success line goes to stdout and its findings to stderr, so dropping
   # stdout keeps a pass quiet like every other check and leaves a failure loud.
-  ./scripts/lint-workflow-concurrency.sh >/dev/null
+  ./scripts/check-workflow-concurrency.sh >/dev/null
 }
 
 # Shell correctness — severity=warning catches real bugs (quoting, unused vars,
