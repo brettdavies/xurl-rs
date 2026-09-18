@@ -477,7 +477,7 @@ gate_mechanics() {
     project_version=$(jaq -r .version package.json)
     gate_pass "package.json version = $project_version"
   elif [[ -f pyproject.toml ]]; then
-    project_version=$(grep -m1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/')
+    project_version=$(grep -m1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/' || true)
     gate_pass "pyproject.toml version = $project_version"
   elif [[ -f VERSION ]]; then
     project_version=$(<VERSION)
@@ -500,7 +500,7 @@ gate_mechanics() {
   fi
 
   if [[ -f CHANGELOG.md ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]## ')
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]## ' || true)
     if [[ -n "$project_version" ]]; then
       if [[ "$changelog_version" == "$project_version" ]]; then
         gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)"
@@ -520,12 +520,12 @@ gate_mechanics() {
   # tag exists yet), so the reusable's release step would look for that section.
   if [[ -f crates/xdk/Cargo.toml ]]; then
     local lib_version lib_tag lib_changelog_version
-    lib_version=$(grep -m1 '^version = ' crates/xdk/Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
+    lib_version=$(grep -m1 '^version = ' crates/xdk/Cargo.toml | sed -E 's/^version = "(.*)"/\1/' || true)
     lib_tag=$(git tag --list 'xdk-rs-v[0-9]*' --sort=-version:refname | head -n 1)
     if [[ "xdk-rs-v$lib_version" == "$lib_tag" ]]; then
       gate_pass "crates/xdk/CHANGELOG.md not checked (xdk-rs $lib_version is released as $lib_tag)"
     elif [[ -f crates/xdk/CHANGELOG.md ]]; then
-      lib_changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' crates/xdk/CHANGELOG.md | tr -d '[]## ')
+      lib_changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' crates/xdk/CHANGELOG.md | tr -d '[]## ' || true)
       if [[ "$lib_changelog_version" == "$lib_version" ]]; then
         gate_pass "crates/xdk/CHANGELOG.md top section = [$lib_changelog_version] (matches xdk-rs version)"
       else
@@ -542,7 +542,7 @@ gate_mechanics() {
   # Rust: toolchain quarantine.
   if [[ -f rust-toolchain.toml ]]; then
     local toolchain_channel release_date_match
-    toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/')
+    toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/' || true)
     release_date_match=$(grep -m1 'released' rust-toolchain.toml | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
     if [[ -n "$release_date_match" ]]; then
       local age_days

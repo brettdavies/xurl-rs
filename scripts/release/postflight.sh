@@ -156,11 +156,14 @@ resolve_tag() {
   # detects it: Cargo.toml, package.json, pyproject.toml, VERSION.
   local version=""
   if [[ -f "$REPO_ROOT/Cargo.toml" ]]; then
-    version=$(grep -m1 '^version = ' "$REPO_ROOT/Cargo.toml" | sed -E 's/^version = "(.*)"/\1/')
+    # Via the shared helper, so a workspace whose root is a virtual manifest
+    # reads the version from RELEASE_MANIFEST rather than from a root that
+    # carries no `version` key.
+    version=$(project_version)
   elif [[ -f "$REPO_ROOT/package.json" ]] && have_bin jaq; then
     version=$(jaq -r '.version // empty' "$REPO_ROOT/package.json")
   elif [[ -f "$REPO_ROOT/pyproject.toml" ]]; then
-    version=$(grep -m1 '^version = ' "$REPO_ROOT/pyproject.toml" | sed -E 's/^version = "(.*)"/\1/')
+    version=$(grep -m1 '^version = ' "$REPO_ROOT/pyproject.toml" | sed -E 's/^version = "(.*)"/\1/' || true)
   elif [[ -f "$REPO_ROOT/VERSION" ]]; then
     version=$(tr -d '[:space:]' <"$REPO_ROOT/VERSION")
   fi
