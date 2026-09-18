@@ -1,0 +1,16 @@
+[package]
+name = "xdk-consumer-check"
+version = "0.0.0"
+description = "Compiles and exercises the documented xdk surface the way an embedder would; never published."
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+xdk-rs.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+
+[dev-dependencies]
+wiremock.workspace = true
+serde_json.workspace = true

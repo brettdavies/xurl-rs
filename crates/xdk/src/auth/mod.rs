@@ -1,0 +1,575 @@
+//! Authentication orchestration — `OAuth2` PKCE, `OAuth1` HMAC-SHA1, Bearer.
+//!
+//! Mirrors the Go `auth.Auth` struct. Credentials are resolved in order:
+//! env-var config -> active app in `.xurl` store.
+
+// The listener, the signing primitives, and the two-step pending state are
+// driven by `oauth2::run_oauth2_flow`, the client's headers, and `xr auth`;
+// an embedder reaches them through those, not directly.
+#[doc(hidden)]
+pub mod callback;
+pub mod credentials;
+#[doc(hidden)]
+pub mod oauth1;
+pub mod oauth2;
+#[doc(hidden)]
+pub mod pending;
+
+pub(crate) use credentials::DirectCredentials;
+use credentials::REDACTED;
+pub use credentials::{BoxError, OAuth1Credential, OAuth2Credential, OnTokenRefreshed};
+
+use crate::config::Config;
+use crate::error::{Error, Result};
+use crate::store::TokenStore;
+
+/// Manages authentication for X API requests.
+///
+/// Holds the credential matrix (env-supplied vs store-derived `client_id` /
+/// `client_secret`), the active app name, and the [`TokenStore`] that
+/// persists tokens to disk. Constructed via [`Auth::new`] (legacy
+/// `~/.xurl` path) or [`Auth::new_with_store_path`] (test-friendly explicit
+/// path).
+#[allow(clippy::struct_field_names)]
+pub struct Auth {
+    /// Token store backing this `Auth` instance.
+    pub token_store: TokenStore,
+    /// Owned application configuration. The redirect URI here is the
+    /// resolver output (env > app-stored > built-in default), written by
+    /// [`Auth::new_with_store_path`] and re-resolved by
+    /// [`Auth::with_app_name`]. This is the single source of truth: no
+    /// parallel `redirect_uri` field lives on `Auth`.
+    config: Config,
+    client_id: String,
+    client_secret: String,
+    /// `true` iff [`Self::client_id`] was supplied via the `CLIENT_ID` env
+    /// var at construction. Preserved across [`Self::with_app_name`] switches
+    /// so env precedence holds even after the active app changes. Without
+    /// this flag, the older "preserve if non-empty" check could not
+    /// distinguish env-supplied values from values copied off the previous
+    /// app's store entry, so subsequent `--app NAME` switches silently
+    /// re-used the previous app's stored client_id.
+    client_id_from_env: bool,
+    /// Counterpart to [`Self::client_id_from_env`] for client_secret.
+    client_secret_from_env: bool,
+    app_name: String,
+    /// The `REDIRECT_URI` value supplied at construction, retained raw.
+    ///
+    /// [`Self::with_app_name`] re-runs the three-level resolution against the
+    /// new app, so it needs the original top-of-precedence input rather than
+    /// the previous resolution's output. A value that failed validation is
+    /// retained too, so the re-resolution reports it the same way the first
+    /// one did.
+    redirect_uri_override: Option<String>,
+    /// The `XURL_BEARER_TOKEN` value supplied at construction.
+    bearer_token_override: Option<String>,
+}
+
+crate::assert_send_sync!(Auth);
+
+impl std::fmt::Debug for Auth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auth")
+            .field("app_name", &self.app_name)
+            .field("store", &self.token_store.file_path)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &REDACTED)
+            .field("client_id_from_env", &self.client_id_from_env)
+            .field("client_secret_from_env", &self.client_secret_from_env)
+            .field("redirect_uri", &self.config.redirect_uri)
+            .field(
+                "bearer_token_override",
+                &self.bearer_token_override.as_ref().map(|_| REDACTED),
+            )
+            .finish_non_exhaustive()
+    }
+}
+
+impl Auth {
+    /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
+    ///
+    /// Shim over [`Auth::new_with_store_path`] resolving to
+    /// [`Config::default_store_path`]. Credentials are resolved: env vars -> active app.
+    #[must_use]
+    pub fn new(cfg: &Config) -> Self {
+        Self::new_with_store_path(cfg, &Config::default_store_path())
+    }
+
+    /// Creates a new `Auth` object backed by an explicit token-store path.
+    ///
+    /// The canonical constructor. Tests pass a `TempDir`-rooted path to avoid
+    /// touching the real `~/.xurl`; the binary calls [`Auth::new`] which
+    /// resolves to [`Config::default_store_path`]. Credentials are resolved:
+    /// env vars -> active app at `store_path`.
+    ///
+    /// Runs the three-level redirect URI resolver (env > app-stored >
+    /// built-in default) against the constructed token store and writes the
+    /// result back into the owned `Config`, keeping that one field the
+    /// single source of truth.
+    #[must_use]
+    pub fn new_with_store_path(cfg: &Config, store_path: &std::path::Path) -> Self {
+        Self::new_with_store_path_and_overrides(
+            cfg,
+            store_path,
+            &crate::config::EnvOverrides::from_env(),
+        )
+    }
+
+    /// Same as [`Auth::new_with_store_path`], with the environment supplied
+    /// explicitly instead of read from the process.
+    ///
+    /// The redirect URI and bearer token keep their documented precedence;
+    /// `overrides` only decides what the top level of each precedence chain
+    /// sees, so an absent value behaves exactly as an unset variable does.
+    #[must_use]
+    pub fn new_with_store_path_and_overrides(
+        cfg: &Config,
+        store_path: &std::path::Path,
+        overrides: &crate::config::EnvOverrides,
+    ) -> Self {
+        let path_str = store_path.to_str().unwrap_or(".");
+        let ts =
+            TokenStore::new_with_credentials_and_path(&cfg.client_id, &cfg.client_secret, path_str);
+
+        // Env-origin is recorded BEFORE falling back to the store so a later
+        // `with_app_name` switch can correctly preserve env-supplied values
+        // and re-resolve store-derived ones from the new app's entry.
+        let client_id_from_env = !cfg.client_id.is_empty();
+        let client_secret_from_env = !cfg.client_secret.is_empty();
+
+        let mut client_id = cfg.client_id.clone();
+        let mut client_secret = cfg.client_secret.clone();
+        let app_name = cfg.app_name.clone();
+
+        let app = ts.resolve_app(&app_name);
+        if !client_id_from_env {
+            client_id.clone_from(&app.client_id);
+        }
+        if !client_secret_from_env {
+            client_secret.clone_from(&app.client_secret);
+        }
+
+        let mut config = cfg.clone();
+        let resolved = crate::config::resolve_redirect_uri_from(
+            overrides.redirect_uri.clone(),
+            ts.get_app_redirect_uri(&app_name),
+        );
+        config.redirect_uri = resolved.uri;
+        config.redirect_uri_source = resolved.source;
+        config.redirect_uri_from_env = resolved.source.is_env_var();
+
+        Self {
+            token_store: ts,
+            config,
+            client_id,
+            client_secret,
+            client_id_from_env,
+            client_secret_from_env,
+            app_name,
+            redirect_uri_override: overrides.redirect_uri.clone(),
+            bearer_token_override: overrides.bearer_token.clone(),
+        }
+    }
+
+    /// Whether a non-empty `XURL_BEARER_TOKEN` was supplied at construction.
+    ///
+    /// The env bearer sits at the top of the bearer precedence chain for
+    /// every app, so shortcut auth resolution and `auth status` count it as
+    /// an available `app` credential without reading the store.
+    #[must_use]
+    pub fn env_bearer_token_present(&self) -> bool {
+        self.bearer_token_override
+            .as_deref()
+            .is_some_and(|token| !token.is_empty())
+    }
+
+    /// Returns the `REDIRECT_URI` value this `Auth` was constructed with.
+    ///
+    /// Command handlers that run their own redirect-URI resolution — the
+    /// status listing and `auth apps redirect-uri get` — take the top of the
+    /// precedence chain from here instead of reading the process, so every
+    /// resolution in a run sees the same input.
+    #[must_use]
+    pub fn redirect_uri_override(&self) -> Option<&str> {
+        self.redirect_uri_override.as_deref()
+    }
+
+    /// Sets the explicit app name override and re-resolves the redirect URI.
+    ///
+    /// Credentials honor env precedence per the internal
+    /// `client_id_from_env` / `client_secret_from_env` flags:
+    /// env-supplied values survive the switch; store-derived values
+    /// get re-resolved from the new app's
+    /// entry, even when the previous app's stored value was non-empty.
+    /// The redirect URI is always re-resolved (env-precedence is enforced
+    /// inside the resolver itself, so re-running unconditionally produces
+    /// the right value).
+    pub fn with_app_name(&mut self, app_name: &str) {
+        self.app_name = app_name.to_string();
+        let app = self.token_store.resolve_app(app_name);
+        if !self.client_id_from_env {
+            self.client_id = app.client_id.clone();
+        }
+        if !self.client_secret_from_env {
+            self.client_secret = app.client_secret.clone();
+        }
+
+        let resolved = crate::config::resolve_redirect_uri_from(
+            self.redirect_uri_override.clone(),
+            self.token_store.get_app_redirect_uri(app_name),
+        );
+        self.config.redirect_uri = resolved.uri;
+        self.config.redirect_uri_source = resolved.source;
+        self.config.redirect_uri_from_env = resolved.source.is_env_var();
+    }
+
+    /// Gets the `OAuth1` Authorization header for a request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no `OAuth1` token is found or signature generation fails.
+    pub fn get_oauth1_header(
+        &self,
+        method: &str,
+        url_str: &str,
+        additional_params: Option<&std::collections::BTreeMap<String, String>>,
+    ) -> Result<String> {
+        // Multi-app resolution: read the OAuth1 token from the active app
+        // (set by `with_app_name` from the `--app NAME` CLI flag) rather
+        // than from the legacy no-arg `get_oauth1_tokens()` which falls
+        // back to the default app. Without this scoping, a token saved
+        // under NAME via `xr auth oauth1 --app NAME` would be invisible
+        // to subsequent `--app NAME --auth oauth1` invocations.
+        let token = self
+            .token_store
+            .get_oauth1_tokens_for_app(&self.app_name)
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
+
+        let oauth1_token = token
+            .oauth1
+            .as_ref()
+            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
+
+        oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
+    }
+
+    /// Gets or refreshes an `OAuth2` token and returns the Authorization header.
+    ///
+    /// Lookup precedence is split by intent:
+    ///
+    /// - non-empty `username` (named caller): try the username's own token
+    ///   first; on miss, fall through to
+    ///   [`TokenStore::get_first_oauth2_token_for_app`] (which itself prefers
+    ///   `default_user`, then arbitrary-first); on total miss, trigger the
+    ///   full OAuth2 flow. The unnamed (`/me`-failed salvage) slot is
+    ///   **never** consulted on this branch — a caller who supplies a
+    ///   username has explicit identity intent and must not silently receive
+    ///   a salvage-state token under their name.
+    /// - empty `username`: try `get_first_oauth2_token_for_app` (which
+    ///   prefers `default_user`, then arbitrary-first); on miss, fall through
+    ///   to the unnamed slot via
+    ///   [`TokenStore::get_oauth2_token_unnamed_for_app`]; on total miss,
+    ///   trigger the OAuth2 flow.
+    ///
+    /// In both branches the cached-token path delegates to
+    /// [`Auth::refresh_oauth2_token`], which is a no-op if the token is still
+    /// valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no token is stored or the refresh fails.
+    pub async fn get_oauth2_header(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+    ) -> Result<String> {
+        if !self.has_oauth2_token(username) {
+            // No stored token means no header: the library never starts an
+            // interactive sign-in inside a request. The binary decides
+            // whether to sign in and retry.
+            return Err(Error::auth(crate::error::NO_OAUTH2_TOKEN));
+        }
+        let access_token = self.refresh_oauth2_token(http, username).await?;
+        Ok(format!("Bearer {access_token}"))
+    }
+
+    /// Whether a stored `OAuth2` token would serve a request for `username`.
+    ///
+    /// Empty-caller precedence: `default_user` (via the first named token),
+    /// then the unnamed slot. Named-caller precedence: the caller's own
+    /// token, then the first named token; the unnamed slot is never
+    /// consulted for a named caller, who has explicit identity intent and
+    /// must not silently receive a salvage-state token under their name.
+    #[must_use]
+    pub fn has_oauth2_token(&self, username: &str) -> bool {
+        let app_name = self.app_name.as_str();
+        let first = self
+            .token_store
+            .get_first_oauth2_token_for_app(app_name)
+            .is_some();
+        if username.is_empty() {
+            first
+                || self
+                    .token_store
+                    .get_oauth2_token_unnamed_for_app(app_name)
+                    .is_some()
+        } else {
+            self.token_store.get_oauth2_token(username).is_some() || first
+        }
+    }
+
+    /// The stored `OAuth2` access token for `username` when it has not
+    /// expired, so a caller can skip the refresh entirely.
+    #[must_use]
+    pub fn unexpired_oauth2_access_token(&self, username: &str) -> Option<String> {
+        oauth2::stored_oauth2_token(self, username)
+            .filter(|token| !oauth2::is_expired(token))
+            .map(|token| token.access_token)
+    }
+
+    /// Starts the `OAuth2` PKCE flow, handing the authorize URL to
+    /// `browser_opener` once the callback listener is bound.
+    ///
+    /// The library never opens a browser itself: the binary passes
+    /// `open::that`, a test passes a recording closure, and a headless caller
+    /// passes whatever delivers the URL to a person. `cancel` is the
+    /// caller's stop; the flow registers no signal handler.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization flow, the opener, the token
+    /// exchange, or username resolution fails.
+    pub async fn oauth2_flow<F>(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+        cancel: tokio_util::sync::CancellationToken,
+        browser_opener: F,
+    ) -> Result<String>
+    where
+        F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
+    {
+        oauth2::run_oauth2_flow(self, http, username, cancel, browser_opener).await
+    }
+
+    /// Validates and refreshes an `OAuth2` token if needed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no token is found or the refresh request fails.
+    pub async fn refresh_oauth2_token(
+        &mut self,
+        http: &reqwest::Client,
+        username: &str,
+    ) -> Result<String> {
+        oauth2::refresh_oauth2_token(self, http, username).await
+    }
+
+    /// Runs step 1 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Returns the authorization URL that the user should open in a browser
+    /// on another machine.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization URL is invalid or the pending
+    /// state file cannot be written.
+    pub fn remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<String> {
+        oauth2::run_remote_step1(self, pending_path)
+    }
+
+    /// Runs step 2 of the remote `OAuth2` PKCE flow.
+    ///
+    /// Takes the redirect URL from the browser, extracts the authorization
+    /// code, exchanges it for an access token, and saves the token.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pending state is missing/expired/invalid,
+    /// the token exchange fails, or the username cannot be resolved.
+    pub async fn remote_oauth2_step2(
+        &mut self,
+        http: &reqwest::Client,
+        redirect_url: &str,
+        username: &str,
+        pending_path: &std::path::Path,
+    ) -> Result<String> {
+        oauth2::run_remote_step2(self, http, redirect_url, username, pending_path).await
+    }
+
+    /// Gets the bearer token Authorization header.
+    ///
+    /// Resolution order: `XURL_BEARER_TOKEN` env var first (one-shot agent
+    /// flows that pipe a secret without persisting it to disk), then the
+    /// token store entry on the resolved app. Empty env values fall through
+    /// to the store. The env var matches the precedence shape used by every
+    /// other agentic flag (`XURL_VERBOSE`, `XURL_OUTPUT`, `XURL_NO_BROWSER`,
+    /// etc.) and pairs with `XURL_OUTPUT=json xr ... --auth app` for stateless
+    /// container invocations.
+    ///
+    /// Production code reads `XURL_BEARER_TOKEN` from the process environment.
+    /// The resolution logic is factored into [`resolve_bearer_token`] so unit
+    /// tests can exercise every precedence path without mutating the global
+    /// environment (the project policy in MEMORY: no env mutation in tests,
+    /// no `#[serial]`).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `XURL_BEARER_TOKEN` is unset (or empty) AND no
+    /// bearer token is stored for the resolved app.
+    pub fn get_bearer_token_header(&self) -> Result<String> {
+        resolve_bearer_token(
+            self.bearer_token_override.clone(),
+            &self.token_store,
+            &self.app_name,
+        )
+    }
+
+    /// Fetches the username for an access token from the /2/users/me endpoint.
+    pub(crate) async fn fetch_username(
+        &self,
+        http: &reqwest::Client,
+        access_token: &str,
+    ) -> Result<String> {
+        let resp = http
+            .get(&self.config.info_url)
+            .timeout(std::time::Duration::from_secs(
+                self.config.http_timeout_secs,
+            ))
+            .header("Authorization", format!("Bearer {access_token}"))
+            .send()
+            .await
+            .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
+
+        let body: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
+
+        body.get("data")
+            .and_then(|d| d.get("username"))
+            .and_then(|u| u.as_str())
+            .map(std::string::ToString::to_string)
+            .ok_or_else(|| {
+                Error::auth("UsernameNotFound: username not found when fetching username")
+            })
+    }
+
+    /// Replaces the token store (used in integration tests).
+    ///
+    /// Honors the internal env-precedence flags
+    /// (`client_id_from_env` / `client_secret_from_env`):
+    /// env-supplied values survive the swap; store-derived values get
+    /// re-resolved from the new store's
+    /// active app. Replaces the older equality-based heuristic
+    /// (`self.client_id == old_app.client_id`) which produced false
+    /// negatives when the old and new stores happened to share a value.
+    #[allow(dead_code)] // Public library API — used by consumers and integration tests
+    #[must_use]
+    pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
+        let new_app = token_store.resolve_app(&self.app_name);
+        if !self.client_id_from_env {
+            self.client_id = new_app.client_id.clone();
+        }
+        if !self.client_secret_from_env {
+            self.client_secret = new_app.client_secret.clone();
+        }
+        self.token_store = token_store;
+        self
+    }
+
+    /// Returns a reference to the token store.
+    #[allow(dead_code)] // Public library API — used by consumers and integration tests
+    #[must_use]
+    pub fn token_store(&self) -> &TokenStore {
+        &self.token_store
+    }
+
+    // Accessors
+
+    /// Returns the active app name resolved against `--app` / `XURL_APP`.
+    #[must_use]
+    pub fn app_name(&self) -> &str {
+        &self.app_name
+    }
+    /// Returns the active `OAuth2` client ID (env-supplied or store-derived).
+    #[must_use]
+    pub fn client_id(&self) -> &str {
+        &self.client_id
+    }
+    /// Returns the active `OAuth2` client secret (env-supplied or store-derived).
+    #[must_use]
+    pub fn client_secret(&self) -> &str {
+        &self.client_secret
+    }
+    /// Returns the `OAuth2` authorization URL.
+    #[must_use]
+    pub fn auth_url(&self) -> &str {
+        &self.config.auth_url
+    }
+    /// Returns the `OAuth2` token-exchange URL.
+    #[must_use]
+    pub fn token_url(&self) -> &str {
+        &self.config.token_url
+    }
+    /// Returns the resolved `OAuth2` redirect URI.
+    ///
+    /// The value already reflects the three-level precedence (env >
+    /// app-stored > built-in default) applied at construction by
+    /// [`Auth::new_with_store_path`].
+    #[must_use]
+    pub fn redirect_uri(&self) -> &str {
+        &self.config.redirect_uri
+    }
+    /// Per-request HTTP timeout in seconds for OAuth2 token exchange,
+    /// refresh, and `/2/users/me` lookups. Mirrors the `--timeout` flag.
+    #[must_use]
+    pub fn http_timeout_secs(&self) -> u64 {
+        self.config.http_timeout_secs
+    }
+}
+
+/// Pure resolver for the bearer Authorization header.
+///
+/// Encapsulates the precedence between an env-supplied bearer (typically
+/// `XURL_BEARER_TOKEN`) and the active app's stored bearer in the token
+/// store. Factored out of [`Auth::get_bearer_token_header`] so unit tests
+/// can exercise every branch (env-only, store-only, env-overrides-store,
+/// env-empty-falls-through, neither-set) without touching the process
+/// environment, per the test-isolation policy.
+///
+/// `env_token` is `None` when the env var is unset, `Some("")` when it is set
+/// to the empty string (which falls through to the store), and `Some(value)`
+/// when it carries a non-empty token that wins.
+///
+/// `app_name` scopes the store lookup so multi-app callers reading a bearer
+/// via `xr <cmd> --app NAME --auth app` correctly target NAME's stored
+/// bearer rather than the default app's. Pass an empty string to fall back
+/// to the default app (the legacy no-arg behavior).
+///
+/// # Errors
+///
+/// Returns an error if `env_token` is `None` or `Some("")` AND no bearer
+/// token is stored for the resolved app.
+pub fn resolve_bearer_token(
+    env_token: Option<String>,
+    store: &TokenStore,
+    app_name: &str,
+) -> Result<String> {
+    if let Some(token) = env_token
+        && !token.is_empty()
+    {
+        return Ok(format!("Bearer {token}"));
+    }
+
+    let token = store
+        .get_bearer_token_for_app(app_name)
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
+
+    let bearer = token
+        .bearer
+        .as_ref()
+        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
+
+    Ok(format!("Bearer {bearer}"))
+}

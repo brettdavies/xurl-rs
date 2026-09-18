@@ -1,0 +1,15 @@
+args: ["--output", "json", "relative/path"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 177
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "URL \"relative/path\" must be an absolute http(s) URL or an absolute path starting with `/`.",
+  "reason": "validation",
+  "status": "error"
+}
+

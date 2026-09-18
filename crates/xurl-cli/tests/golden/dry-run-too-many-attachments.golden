@@ -1,0 +1,24 @@
+args: ["--output", "json", "--dry-run", "post", "hi", "--media-id=1", "--media-id=2", "--media-id=3", "--media-id=4", "--media-id=5"]
+store: empty
+exit_code: 0
+stdout_len: 209
+stderr_len: 0
+--- stdout ---
+{
+  "body": "hi",
+  "command": "post",
+  "exit_code": 1,
+  "media_ids": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "reason": "too-many-attachments",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

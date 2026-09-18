@@ -1,0 +1,16 @@
+args: ["--output", "json", "bogus"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 153
+--- stdout ---
+
+--- stderr ---
+{
+  "command": "bogus",
+  "exit_code": 2,
+  "message": "unknown command 'bogus'. Try 'xr --help'.",
+  "reason": "unknown-command",
+  "status": "error"
+}
+

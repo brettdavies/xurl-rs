@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "-X", "BAD METHOD", "/2/tweets/search/recent"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 136
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "Invalid Method: Invalid HTTP method: BAD METHOD",
+  "reason": "invalid-method",
+  "status": "error"
+}
+

@@ -4,11 +4,33 @@
 # Writes the released version into every version carrier the repo has and
 # copies CHANGELOG.md from main, then lands them via a PR against dev (per
 # this repo's PR-only convention: direct commits to dev are not permitted).
-#   - Version carriers, each updated in place when present: Cargo.toml (and
-#     the crate's own entry in Cargo.lock), package.json, pyproject.toml,
+#   - Version carriers, each updated in place when present: the release
+#     package's Cargo.toml (the workspace member that builds the binary when
+#     the root manifest is virtual, `RELEASE_MANIFEST`; the root otherwise)
+#     and the crate's own entry in Cargo.lock, package.json, pyproject.toml,
 #     VERSION (plain text, no leading "v").
 #   - CHANGELOG.md, copied verbatim from origin/main when main carries one.
 #     Main is fully authoritative for CHANGELOG; dev never edits it directly.
+#   - Every other path main and dev disagree about, discovered rather than
+#     listed. A release branch is edited for reasons nobody predicts (a doc
+#     fix, a reverted payload, a deleted config), and each such edit is made
+#     against main's base and never round-trips. A fixed list misses all of
+#     them silently, and the next release's overlay or cherry-pick then
+#     restores dev's copy over main's, undoing the edit.
+#
+# Discovery is bounded by the PREVIOUS release tag, the last point the two
+# branches agreed, so widening the copy cannot revert dev's unreleased work:
+#
+#   release-prep  dev's copy is byte-identical to the previous tag's, so dev
+#                 never touched it and main's version is purely release-prep.
+#                 Adopted automatically.
+#   contested     both sides moved since the previous tag. Reported, never
+#                 adopted silently; --include-contested takes them all and
+#                 --only PATH takes the ones you name.
+#
+# Guarded paths are excluded: they live on dev by design, so "syncing" them
+# would delete them. The set resolves from scripts/release/guarded-paths.sh
+# when the repo vendors it, never a second hand-kept copy.
 #
 # Run AFTER:
 #   1. The release/v* -> main PR has merged.
@@ -17,18 +39,55 @@
 #
 # Usage:
 #   ./scripts/sync-dev-after-release.sh v0.2.0
+#   ./scripts/sync-dev-after-release.sh v0.2.0 --dry-run
+#   ./scripts/sync-dev-after-release.sh v0.2.0 --only README.md
+#   ./scripts/sync-dev-after-release.sh v0.2.0 --include-contested
 #
 # Idempotent: safe to re-run. If dev already matches main on every synced
 # file, the script exits 0 without creating a branch or PR.
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "usage: $0 vX.Y.Z" >&2
+VERSION=""
+INCLUDE_CONTESTED=false
+DRY_RUN=false
+ONLY=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --include-contested) INCLUDE_CONTESTED=true ;;
+    --dry-run) DRY_RUN=true ;;
+    --only)
+      [[ $# -ge 2 ]] || {
+        echo "error: --only needs a path" >&2
+        exit 64
+      }
+      ONLY+=("$2")
+      shift
+      ;;
+    -h | --help)
+      echo "usage: $0 vX.Y.Z [--include-contested] [--only PATH]... [--dry-run]"
+      exit 0
+      ;;
+    -*)
+      echo "error: unknown flag $1" >&2
+      exit 64
+      ;;
+    *)
+      if [[ -n "$VERSION" ]]; then
+        echo "error: unexpected argument $1" >&2
+        exit 64
+      fi
+      VERSION="$1"
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$VERSION" ]]; then
+  echo "usage: $0 vX.Y.Z [--include-contested] [--only PATH]... [--dry-run]" >&2
   exit 64
 fi
-
-VERSION="$1"
 if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "error: version must match vMAJOR.MINOR.PATCH (got: $VERSION)" >&2
   exit 64
@@ -37,6 +96,13 @@ VERSION_NO_V="${VERSION#v}"
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
+
+# `RELEASE_MANIFEST`, `release_manifest`, and `project_crate` answer which
+# manifest a `vX.Y.Z` tag names. Preflight and postflight read them from here,
+# so this script reads the same definitions rather than keeping a second copy
+# that can drift when the binary crate moves.
+# shellcheck disable=SC1091  # sibling release lib, always vendored alongside
+. scripts/release/_lib.sh
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "error: working tree not clean -- commit or stash first" >&2
@@ -116,10 +182,10 @@ set_version_line() {
 }
 
 # Cargo.lock carries the crate's own version too; a stale entry fails
-# `cargo build --locked`. Update it for the crate named in Cargo.toml.
+# `cargo build --locked`. Update it for the crate the release manifest names.
 set_cargo_lock_version() {
   local crate tmp
-  crate="$(grep -m1 '^name = ' Cargo.toml | sed -E 's/^name = "(.*)"/\1/')"
+  crate="$(project_crate)"
   [[ -n "$crate" && -f Cargo.lock ]] || return 0
   tmp="$(mktemp)"
   awk -v crate="$crate" -v v="$VERSION_NO_V" '
@@ -134,8 +200,8 @@ set_cargo_lock_version() {
 # on main bumped each of them.
 SYNC_PATHS=()
 if [[ -f Cargo.toml ]]; then
-  set_version_line Cargo.toml
-  SYNC_PATHS+=(Cargo.toml)
+  set_version_line "$(release_manifest)"
+  SYNC_PATHS+=("$(release_manifest)")
   if [[ -f Cargo.lock ]]; then
     set_cargo_lock_version
     SYNC_PATHS+=(Cargo.lock)
@@ -157,24 +223,138 @@ fi
 # CHANGELOG.md from main (authoritative), once the changelog machinery has
 # produced one there; until then the version carriers are the only synced
 # artifacts.
-if git cat-file -e origin/main:CHANGELOG.md 2>/dev/null; then
-  git checkout origin/main -- CHANGELOG.md
-  SYNC_PATHS+=(CHANGELOG.md)
+CHANGELOG_PATH="$(release_changelog)"
+if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
+  git checkout origin/main -- "$CHANGELOG_PATH"
+  SYNC_PATHS+=("$CHANGELOG_PATH")
 fi
+
+# --- Everything else the two branches disagree about ------------------------
+
+# The guarded set lives on dev by design, so it must never enter the candidate
+# list. Resolve it from the vendored script when the repo has one; a repo with
+# no guarded paths simply matches nothing.
+GUARDED='^$'
+if [[ -x scripts/release/guarded-paths.sh ]]; then
+  GUARDED="$(scripts/release/guarded-paths.sh)"
+fi
+
+# The previous release tag is the last commit where the branches agreed, which
+# is what makes it the reference for "did dev move this file too?".
+PREV_TAG="$(git tag --list 'v[0-9]*' --sort=-version:refname \
+  | awk -v cur="$VERSION" '$0 != cur { print; exit }')"
+
+blob_at() {
+  git rev-parse --quiet --verify "$1:$2" 2>/dev/null || true
+}
+
+_already_synced() {
+  local p
+  for p in ${SYNC_PATHS[@]+"${SYNC_PATHS[@]}"}; do
+    [[ "$p" == "$1" ]] && return 0
+  done
+  return 1
+}
+
+RELEASE_PREP=()
+CONTESTED=()
+if [[ -n "$PREV_TAG" ]]; then
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    # Version carriers are written from $VERSION above, not copied from main.
+    _already_synced "$path" && continue
+    if [[ "$(blob_at origin/dev "$path")" == "$(blob_at "$PREV_TAG" "$path")" ]]; then
+      RELEASE_PREP+=("$path")
+    else
+      CONTESTED+=("$path")
+    fi
+  done < <(git diff --no-renames --name-only origin/dev origin/main | grep -Ev "$GUARDED" || true)
+fi
+
+DISCOVERED=(${RELEASE_PREP[@]+"${RELEASE_PREP[@]}"})
+if [[ "$INCLUDE_CONTESTED" == true ]]; then
+  DISCOVERED+=(${CONTESTED[@]+"${CONTESTED[@]}"})
+fi
+
+# --only narrows the discovered set to named paths, contested included. The
+# all-or-nothing flag is too blunt alone: a release routinely leaves some
+# contested paths that should be adopted beside others where dev is
+# deliberately ahead (a dependency bump that landed after the release makes
+# main's copy the stale one). Intersecting rather than assigning is what keeps
+# this safe, so a guarded, undiverged, or misspelled path cannot be forced in.
+if [[ ${#ONLY[@]} -gt 0 ]]; then
+  ALL_CANDIDATES=(${RELEASE_PREP[@]+"${RELEASE_PREP[@]}"} ${CONTESTED[@]+"${CONTESTED[@]}"})
+  DISCOVERED=()
+  for want in "${ONLY[@]}"; do
+    matched=false
+    for cand in ${ALL_CANDIDATES[@]+"${ALL_CANDIDATES[@]}"}; do
+      if [[ "$cand" == "$want" ]]; then
+        DISCOVERED+=("$cand")
+        matched=true
+        break
+      fi
+    done
+    if [[ "$matched" != true ]]; then
+      echo "error: --only $want is not a diverged, unguarded path" >&2
+      exit 64
+    fi
+  done
+fi
+
+if [[ ${#CONTESTED[@]} -gt 0 ]]; then
+  if [[ "$INCLUDE_CONTESTED" == true ]]; then
+    echo "contested (both sides moved; adopting main's copy per --include-contested):"
+  else
+    echo "contested (both sides moved since ${PREV_TAG:-the previous tag}; NOT adopted):" >&2
+  fi
+  printf '  %s\n' "${CONTESTED[@]}"
+  if [[ "$INCLUDE_CONTESTED" != true && ${#ONLY[@]} -eq 0 ]]; then
+    echo "  re-run with --include-contested to take main's version of these," >&2
+    echo "  name the ones you want with --only PATH, or resolve them by hand." >&2
+  fi
+fi
+
+# Adopt each discovered path. A path main deleted is removed rather than
+# checked out, because `git checkout main -- <deleted>` fails on a pathspec
+# that does not exist at that ref.
+for path in ${DISCOVERED[@]+"${DISCOVERED[@]}"}; do
+  if [[ -n "$(blob_at origin/main "$path")" ]]; then
+    git checkout origin/main -- "$path"
+  else
+    git rm --quiet --ignore-unmatch -- "$path"
+  fi
+  SYNC_PATHS+=("$path")
+done
 
 # `git checkout origin/main -- FILE` stages the file, so `git diff --quiet`
 # (worktree against index) never sees that change and would report "no
 # changes" with a differing CHANGELOG. `status --porcelain` sees staged,
 # unstaged, and untracked alike, including a VERSION created on the first
-# sync.
-if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]]; then
+# sync. Compare the index against HEAD too, since a discovered deletion is
+# already staged and leaves the worktree clean.
+if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]] && git diff --cached --quiet; then
   echo "no changes -- dev already in sync with $VERSION"
   git switch dev
   git branch -D "$SYNC_BRANCH"
   exit 0
 fi
 
-git add -- "${SYNC_PATHS[@]}"
+echo "syncing (${#SYNC_PATHS[@]} path(s)):"
+printf '  %s\n' "${SYNC_PATHS[@]}"
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo "dry run -- no branch, commit, or PR created"
+  git switch dev
+  git branch -D "$SYNC_BRANCH"
+  exit 0
+fi
+
+# Only the carrier paths need an explicit add: checkout and rm already stage
+# their result, and re-adding a path just deleted fails on "pathspec did not
+# match any files" because it is gone from the worktree.
+for path in "${SYNC_PATHS[@]}"; do
+  [[ -e "$path" ]] && git add -- "$path"
+done
 
 COMMIT_MSG_FILE="$(mktemp -t "sync-dev-after-${VERSION}-commit.XXXXXX")"
 cat >"$COMMIT_MSG_FILE" <<EOF

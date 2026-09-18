@@ -33,7 +33,7 @@ step "shellcheck" "shellcheck --severity=warning <file>" check_shellcheck "${sh_
 # Workflows: lint, and check group namespacing, when one is staged.
 mapfile -t yml_files < <(staged '.github/workflows/*.yml' '.github/workflows/*.yaml')
 step "actionlint" "actionlint" check_actionlint "${yml_files[@]}" || fail=1
-step "concurrency namespacing" "bash scripts/lint-workflow-concurrency.sh" \
+step "concurrency namespacing" "bash scripts/check-workflow-concurrency.sh" \
     check_workflow_concurrency "${yml_files[@]}" || fail=1
 
 # Markdown: lint the staged docs, minus the generated changelog, which is the

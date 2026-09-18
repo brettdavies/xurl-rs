@@ -1,0 +1,283 @@
+//! Helpers shared across the integration suite: the `xr` spawn seam and the
+//! guard tests' source scanner. Each test crate uses a subset.
+#![allow(dead_code)]
+
+use std::path::{Path, PathBuf};
+
+use assert_cmd::Command;
+use clap::CommandFactory;
+
+/// Store path for spawns that never touch credentials. Its parent directory
+/// does not exist, so a read loads an empty store and a write fails loudly
+/// instead of landing in a file another test could see.
+fn unwritable_store() -> PathBuf {
+    Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join(concat!(env!("CARGO_CRATE_NAME"), "-no-store"))
+        .join(".xurl")
+}
+
+/// The built `xr` binary with `XURL_TOKEN_STORE` pointed at an unwritable
+/// scratch path. Use [`xr_with_store`] when the test reads or writes a store.
+pub fn xr() -> Command {
+    xr_with_store(&unwritable_store())
+}
+
+/// The built `xr` binary with `XURL_TOKEN_STORE` set to `store`.
+pub fn xr_with_store(store: &Path) -> Command {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_xr"));
+    hermetic(&mut cmd, store);
+    cmd
+}
+
+/// [`xr`] as a `std::process::Command`, for a test that needs the child
+/// handle itself (piped stdio, signals).
+pub fn xr_std() -> std::process::Command {
+    xr_std_at(xr_bin())
+}
+
+/// [`xr_std`] for the binary at `program`, so a harness that compares builds
+/// keeps the same isolation for whichever `xr` it runs.
+pub fn xr_std_at(program: &str) -> std::process::Command {
+    xr_std_with_store_at(program, &unwritable_store())
+}
+
+/// [`xr_std_at`] with `XURL_TOKEN_STORE` set to `store`, for a harness that
+/// seeds a store and still chooses which `xr` build it runs.
+pub fn xr_std_with_store_at(program: &str, store: &Path) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    hermetic(&mut cmd, store);
+    cmd
+}
+
+/// Path of the built `xr` binary, for a harness that spawns it by path
+/// through [`xr_std_at`].
+pub fn xr_bin() -> &'static str {
+    env!("CARGO_BIN_EXE_xr")
+}
+
+/// Strips every variable `xr` reads from the inherited environment, then
+/// points the child at `store`, so a test sees only what it sets itself.
+fn hermetic<C: EnvBuilder>(cmd: &mut C, store: &Path) {
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("XURL_") {
+            cmd.remove(&key);
+        }
+    }
+    for key in [
+        "CLIENT_ID",
+        "CLIENT_SECRET",
+        "REDIRECT_URI",
+        "AUTH_URL",
+        "TOKEN_URL",
+        "API_BASE_URL",
+        "INFO_URL",
+        "NO_COLOR",
+    ] {
+        cmd.remove(std::ffi::OsStr::new(key));
+    }
+    cmd.set("XURL_TOKEN_STORE", store);
+}
+
+/// The two command types share the environment-editing surface the seam needs.
+trait EnvBuilder {
+    fn remove(&mut self, key: &std::ffi::OsStr);
+    fn set(&mut self, key: &str, value: &Path);
+}
+
+impl EnvBuilder for Command {
+    fn remove(&mut self, key: &std::ffi::OsStr) {
+        self.env_remove(key);
+    }
+    fn set(&mut self, key: &str, value: &Path) {
+        self.env(key, value);
+    }
+}
+
+impl EnvBuilder for std::process::Command {
+    fn remove(&mut self, key: &std::ffi::OsStr) {
+        self.env_remove(key);
+    }
+    fn set(&mut self, key: &str, value: &Path) {
+        self.env(key, value);
+    }
+}
+
+/// The workspace root, from the `[env]` entry in `.cargo/config.toml`.
+/// Repo-root assets (`schema/`, `scripts/`) and the other member's tree are
+/// reached from here, never from `CARGO_MANIFEST_DIR`.
+pub fn workspace_root() -> &'static Path {
+    Path::new(env!("CARGO_WORKSPACE_DIR"))
+}
+
+/// Every member crate directory under `crates/`, sorted.
+pub fn member_dirs() -> Vec<PathBuf> {
+    let crates = workspace_root().join("crates");
+    let mut dirs: Vec<PathBuf> = std::fs::read_dir(&crates)
+        .expect("crates/ must be readable")
+        .map(|entry| entry.expect("dir entry").path())
+        .filter(|path| path.is_dir())
+        .collect();
+    dirs.sort();
+    dirs
+}
+
+/// Every `.rs` file under `dir`, recursively, sorted.
+pub fn rust_files(dir: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{} must be readable: {e}", dir.display()))
+        {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    files.sort();
+    files
+}
+
+/// Every `.rs` file under each member's `src/`: the whole production tree
+/// a source-scanning guard must cover, so neither crate escapes it.
+pub fn workspace_sources() -> Vec<PathBuf> {
+    member_dirs()
+        .iter()
+        .flat_map(|member| rust_files(&member.join("src")))
+        .collect()
+}
+
+/// The members that ship: every member whose manifest does not opt out with
+/// `publish = false`. The unpublished consumer-check crate is an embedder,
+/// not part of the product's own contracts.
+pub fn shipped_member_dirs() -> Vec<PathBuf> {
+    member_dirs()
+        .into_iter()
+        .filter(|member| {
+            let manifest = std::fs::read_to_string(member.join("Cargo.toml"))
+                .expect("member manifest must be readable");
+            !manifest
+                .lines()
+                .any(|line| line.trim_start().starts_with("publish = false"))
+        })
+        .collect()
+}
+
+/// Every `.rs` file under the shipped members' `src/` trees: the sources
+/// whose environment reads and error reasons are the product's contract.
+pub fn shipped_sources() -> Vec<PathBuf> {
+    shipped_member_dirs()
+        .iter()
+        .flat_map(|member| rust_files(&member.join("src")))
+        .collect()
+}
+
+/// A test a source-scanning guard exempts, with the reason it is exempt.
+/// `file` is workspace-relative.
+pub struct Allowed {
+    pub file: &'static str,
+    pub test: &'static str,
+    pub reason: &'static str,
+}
+
+/// The entries of `allowlist` naming a test that no longer exists, rendered
+/// for the assertion message. A stale exemption silently widens what a guard
+/// permits, so every guard checks its own allowlist through here.
+pub fn stale_allowlist_entries(allowlist: &[Allowed]) -> Vec<String> {
+    allowlist
+        .iter()
+        .filter(|entry| {
+            let path = workspace_root().join(entry.file);
+            let source = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+            !source.contains(&format!("fn {}(", entry.test))
+        })
+        .map(|entry| format!("{}::{} ({})", entry.file, entry.test, entry.reason))
+        .collect()
+}
+
+/// Returns the name of the `fn` a given byte offset falls inside.
+pub fn enclosing_test(source: &str, offset: usize) -> String {
+    source[..offset]
+        .rmatch_indices("fn ")
+        .find_map(|(i, _)| {
+            let rest = &source[i + 3..];
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            (!name.is_empty()).then_some(name)
+        })
+        .unwrap_or_else(|| "<unknown>".to_string())
+}
+
+/// Every command clap parses, as its path from the root (`["auth", "apps",
+/// "list"]`), depth-first in declaration order with a parent before its
+/// children. Read from `Cli::command()` so a family added to clap reaches
+/// every walk without anyone editing a test.
+pub fn command_paths() -> Vec<Vec<String>> {
+    fn walk(cmd: &clap::Command, prefix: &[String], out: &mut Vec<Vec<String>>) {
+        for sub in cmd.get_subcommands() {
+            let mut path = prefix.to_vec();
+            path.push(sub.get_name().to_string());
+            out.push(path.clone());
+            walk(sub, &path, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(&xurl::cli::Cli::command(), &[], &mut out);
+    out
+}
+
+/// The top-level command families, in declaration order.
+pub fn top_level_families() -> Vec<String> {
+    xurl::cli::Cli::command()
+        .get_subcommands()
+        .map(|cmd| cmd.get_name().to_string())
+        .collect()
+}
+
+/// A store at `dir/.xurl` whose default app carries an `OAuth1` token, a
+/// scheme every user-context endpoint accepts, so an in-process run can
+/// reach a mock server without a browser flow.
+pub fn oauth1_store(dir: &Path) -> PathBuf {
+    let store = dir.join(".xurl");
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_oauth1_tokens_for_app(
+        "myapp",
+        "OA1-ACCESS-TOKEN",
+        "TOKEN-SECRET",
+        "OA1-CONSUMER-KEY",
+        "CONSUMER-SECRET",
+    )
+    .expect("save_oauth1");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+    store
+}
+
+/// Runs `xr <args>` in-process against `base_url` with the store at `store`,
+/// returning the exit code, stdout, and stderr.
+pub async fn run_in_process(store: &Path, base_url: &str, args: &[&str]) -> (i32, String, String) {
+    let overrides = xdk::config::EnvOverrides {
+        api_base_url: Some(base_url.to_string()),
+        ..xdk::config::EnvOverrides::default()
+    };
+    let mut argv = vec!["xr"];
+    argv.extend_from_slice(args);
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code =
+        xurl::cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides)
+            .await;
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}

@@ -1,0 +1,193 @@
+//! Persistence layer for in-flight OAuth2 PKCE state.
+//!
+//! During the remote OAuth2 flow the authorization URL is opened on one device
+//! while the callback is received on another. [`PendingOAuth2State`] captures
+//! the PKCE code verifier, state nonce, and associated metadata so the callback
+//! handler can resume the exchange even if the originating process has exited.
+//!
+//! The pending file lives at `~/.xurl.pending` by default and is created with
+//! `0o600` permissions on Unix. A 15-minute TTL guards against stale state.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
+use crate::error::{Error, Result};
+
+/// Maximum age of a pending state file before it is considered expired.
+const PENDING_TTL_SECS: u64 = 900; // 15 minutes
+
+/// Serialisable snapshot of an in-flight OAuth2 PKCE authorization.
+///
+/// Persisted to disk between `xr auth oauth2 --step 1` (which writes it)
+/// and `xr auth oauth2 --step 2` (which reads + deletes it on success).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PendingOAuth2State {
+    /// PKCE code verifier; presented to the token endpoint in step 2.
+    pub code_verifier: String,
+    /// CSRF state nonce; the step-2 redirect URL must echo this value.
+    pub state: String,
+    /// `OAuth2` client ID active when step 1 ran. Step 2 rejects the
+    /// exchange if the runtime client ID has changed.
+    pub client_id: String,
+    /// Active app name when step 1 ran; surfaced in error messages when
+    /// step 2 mismatches the runtime context.
+    pub app_name: String,
+    /// Unix epoch seconds when the authorization was initiated. Used by
+    /// [`load`] to enforce the 15-minute freshness window.
+    pub created_at: u64,
+}
+
+/// Returns the pending-state path that sits beside a token store: `<store>.pending`.
+///
+/// Deriving it from the store path keeps every file the auth flow writes under
+/// the one location the caller chose, so an injected store path isolates the
+/// pending state too.
+#[must_use]
+pub fn pending_path_for_store(store_path: &Path) -> PathBuf {
+    let mut os = store_path.as_os_str().to_os_string();
+    os.push(".pending");
+    PathBuf::from(os)
+}
+
+/// Returns the default path for the pending-state file (`~/.xurl.pending`).
+///
+/// # Errors
+///
+/// Returns an error if the home directory cannot be determined (e.g.,
+/// containers or CI environments without `HOME` set).
+pub fn default_pending_path() -> Result<PathBuf> {
+    dirs::home_dir()
+        .map(|h| pending_path_for_store(&h.join(".xurl")))
+        .ok_or_else(|| {
+            Error::auth(
+                "could not determine home directory for pending state file. \
+                 Set the HOME environment variable",
+            )
+        })
+}
+
+/// Persists `state` to `path` atomically with restricted permissions.
+///
+/// # Errors
+///
+/// Returns an error if serialisation or filesystem operations fail.
+pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
+    // The loader rejects a symlinked pending file; the writer must not follow
+    // one either, or a planted link turns the save into a write of the PKCE
+    // verifier to a path the user did not choose.
+    if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+        return Err(Error::auth(
+            "PendingStatePermissions: pending state path is a symlink (refusing to write through it)",
+        ));
+    }
+    let data = serde_yaml::to_string(state).map_err(|e| Error::Auth(e.to_string()))?;
+    crate::store::write_atomically(path, data.as_bytes())?;
+    Ok(())
+}
+
+/// Loads and validates a `PendingOAuth2State` from `path`.
+///
+/// # Validation
+///
+/// 1. The file must exist and not be a symlink.
+/// 2. On Unix the file must be owned by the current user with mode `0o600`.
+/// 3. The `created_at` timestamp must be within 15 minutes of now.
+///
+/// If the file is expired it is deleted before the error is returned.
+///
+/// # Errors
+///
+/// Returns an error if the file is missing, is a symlink, has incorrect
+/// permissions/owner, is expired, or cannot be deserialised.
+pub fn load(path: &Path) -> Result<PendingOAuth2State> {
+    // Reject symlinks to prevent an attacker from pointing to a crafted file.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        use std::os::unix::fs::PermissionsExt;
+
+        let meta = match fs::symlink_metadata(path) {
+            Ok(m) => m,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(Error::auth(
+                    "PendingStateNotFound: no pending OAuth2 state file found",
+                ));
+            }
+            Err(e) => return Err(e.into()),
+        };
+
+        if meta.file_type().is_symlink() {
+            return Err(Error::auth(
+                "PendingStatePermissions: pending state file is a symlink (rejected for security)",
+            ));
+        }
+
+        let mode = meta.permissions().mode() & 0o777;
+        if mode != 0o600 {
+            return Err(Error::auth(format!(
+                "PendingStatePermissions: expected mode 0600, got {mode:04o}"
+            )));
+        }
+
+        let file_uid = meta.uid();
+        let current_uid = rustix::process::getuid().as_raw();
+        if file_uid != current_uid {
+            return Err(Error::auth(format!(
+                "PendingStatePermissions: file owned by uid {file_uid}, expected {current_uid}"
+            )));
+        }
+    }
+
+    // On non-Unix, do a simple existence check.
+    #[cfg(not(unix))]
+    if !path.exists() {
+        return Err(Error::auth(
+            "PendingStateNotFound: no pending OAuth2 state file found",
+        ));
+    }
+
+    let data = match fs::read_to_string(path) {
+        Ok(d) => d,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(Error::auth(
+                "PendingStateNotFound: no pending OAuth2 state file found",
+            ));
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let state: PendingOAuth2State =
+        serde_yaml::from_str(&data).map_err(|e| Error::Auth(e.to_string()))?;
+
+    // TTL check.
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    if now.saturating_sub(state.created_at) > PENDING_TTL_SECS {
+        let _ = fs::remove_file(path);
+        return Err(Error::auth(
+            "PendingStateExpired: pending OAuth2 state is older than 15 minutes",
+        ));
+    }
+
+    Ok(state)
+}
+
+/// Deletes the pending-state file at `path`.
+///
+/// Silently succeeds if the file does not exist.
+///
+/// # Errors
+///
+/// Returns an error for filesystem failures other than `NotFound`.
+pub fn delete(path: &Path) -> Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}

@@ -1,0 +1,10 @@
+args: ["--auth", "app", "search", "q429"]
+store: bearer-env
+exit_code: 3
+stdout_len: 0
+stderr_len: 100
+--- stdout ---
+
+--- stderr ---
+Error: {"detail":"Too Many Requests","status":429,"title":"Too Many Requests","type":"about:blank"}
+

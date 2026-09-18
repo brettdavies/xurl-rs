@@ -1,0 +1,11 @@
+args: ["/2/users/me"]
+store: empty
+exit_code: 77
+stdout_len: 0
+stderr_len: 176
+--- stdout ---
+
+--- stderr ---
+Error: Auth Error: NoAuthMethod: no authentication method available
+Register an app first. Run: xr auth apps add <name> --client-id <client-id> --client-secret <client-secret>
+

@@ -2,7 +2,7 @@
 
 <!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce?
 
-     SCOPE: Describe the net diff only — what the merged result looks
+     SCOPE: Describe the net diff only, meaning what the merged result looks
      like compared to the base branch. NOT commit history, intermediate
      state, or how the cherry-picks were assembled.
 
@@ -16,11 +16,17 @@
      Anomalies get fixed before push, not audit-trailed in the body.
 -->
 
-## Changelog
+## Changelog (xurl-rs)
 
-<!-- CRITICAL: This section is the source of truth for CHANGELOG.md.
-     generate-changelog.py extracts these categorized bullets verbatim
-     into the release changelog. Write carefully — this IS the changelog.
+<!-- CRITICAL: This section and the one below it are the source of truth for each
+     crate's CHANGELOG.md. generate-changelog.py extracts these categorized
+     bullets verbatim into that crate's release changelog. Write carefully; this
+     IS the changelog.
+
+     EVERY CRATE IS NAMED. A bare `## Changelog` heading reaches neither crate.
+     Put a bullet under the crate whose users can observe it: `xr` behavior,
+     output, flags and exit codes here; library API under the xdk-rs section.
+     A change both audiences see goes in both, worded for each.
 
      AUDIENCE: Users and operators. Write from their perspective.
 
@@ -30,15 +36,55 @@
      EXCLUDE: internal refactors, test additions, code cleanup, CI changes,
      regenerated files, implementation details (unreachable!() arms, import
      reordering, cargo_bin migration, cfg gates, etc.). Document those in
-     the PR body text or Files Modified section — NOT here.
+     the PR body text or Files Modified section, NOT here.
 
      RULES:
-- 1-5 bullets per PR. Fewer is better. One-line fixes get one bullet.
-- Delete empty ### sections entirely — don't leave blank categories.
+- 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
+- Delete empty ### sections entirely; don't leave blank categories.
 - Each bullet starts with a verb: Add, Fix, Change, Remove, Deprecate.
-- Don't duplicate the PR title — expand on it or provide context.
-- If the PR has NO user-facing changes (pure refactor, test-only, CI), leave this section empty or omit it. The PR still
-  appears in git history; it just won't clutter the changelog. -->
+- Don't duplicate the PR title; expand on it or provide context.
+- If a crate has NO user-facing change in this PR, leave its section heading
+  standing with nothing under it. That says "nothing here" and keeps the PR
+  title out of that crate's changelog. -->
+
+### Added
+
+-
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+### Documentation
+
+-
+
+## Changelog (xdk-rs)
+
+<!-- The library's changelog. Same rules as above, for `xdk-rs` API consumers.
+
+     BREAKING ENTRIES CARRY A BEFORE/AFTER SNIPPET. crates/xdk/README.md makes
+     this a release gate: a release that breaks something and ships no snippet
+     does not go out. Indent the fence two spaces so it stays with its bullet:
+
+### Breaking changes
+
+- Change `Client::send_dm` to return ...
+
+  ```rust
+  // Before
+  let sent = client.send_dm(id, "hi").send().await?;
+  println!("{}", sent.data.id);
+
+  // After
+  let sent = client.send_dm(id, "hi").send().await?;
+  println!("{}", sent.data.dm_event_id);
+  ```
+-->
 
 ### Added
 
