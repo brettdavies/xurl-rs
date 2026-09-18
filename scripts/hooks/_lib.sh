@@ -96,7 +96,7 @@ tracked() {
 # directories, and the shared markdownlint config sets `fix: true`, so a glob
 # that descends one edits files outside the repo. In a clean checkout this set
 # is exactly what the `lint / markdownlint` CI job globs.
-tracked_markdown() { tracked '*.md' ':!:CHANGELOG.md'; }
+tracked_markdown() { tracked '*.md' ':!:CHANGELOG.md' ':!:*/CHANGELOG.md'; }
 
 # Every tracked shell artifact that still exists, the hooks included.
 tracked_shell() { tracked '*.sh' 'scripts/hooks/pre-commit' 'scripts/hooks/pre-push' 'scripts/hooks/_lib.sh'; }
