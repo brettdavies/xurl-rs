@@ -22,11 +22,11 @@ Options:
                    overlay-built release branch, whose single commit carries no
                    per-PR history. No git-cliff run.
     --dev-branch   Integration branch --from-dev-prs reads (default: dev).
-    --crate NAME   Generate a workspace member's own changelog: its cliff.toml
-                   and CHANGELOG.md, on its NAME-vX.Y.Z tag line. Needs --tag.
-                   A member's changelog is generated on a branch off the
-                   integration branch, where its commits are, so it takes the
-                   git-cliff path rather than --from-dev-prs.
+    --crate NAME   Generate a workspace member's own changelog. The member's
+                   [package.metadata.changelog] table in its Cargo.toml names
+                   the PR-body heading that addresses it, its tag prefix, its
+                   changelog path and the paths it counts as its own; the
+                   workspace keeps one cliff.toml. Needs --tag.
     --check        Verify CHANGELOG.md has a versioned section
                    (exit 1 if only [Unreleased]).
     --dry-run      Run the regen flow against the current CHANGELOG.md and
@@ -58,6 +58,7 @@ from __future__ import annotations
 import argparse
 import difflib
 from datetime import date
+from fnmatch import fnmatch
 import json
 import os
 import re
@@ -148,10 +149,22 @@ def ensure_github_token() -> None:
         os.environ["GITHUB_TOKEN"] = token
 
 
-def run_git_cliff(tag: str, changelog: Path, config: Path | None = None) -> None:
-    args = ["git", "cliff", "--unreleased", "--tag", tag]
-    if config is not None:
-        args += ["-c", str(config)]
+def run_git_cliff(
+    tag: str, changelog: Path, config: Path, scope: dict | None = None
+) -> None:
+    """Render the skeleton for TAG, scoped to SCOPE's paths and tag line.
+
+    `--include-path`, `--exclude-path` and `--tag-pattern` carry a member's
+    scope, so one config serves every member of the workspace.
+    """
+    args = ["git", "cliff", "--unreleased", "--tag", tag, "-c", str(config)]
+    if scope:
+        for pattern in scope["include_paths"]:
+            args += ["--include-path", pattern]
+        for pattern in scope["exclude_paths"]:
+            args += ["--exclude-path", pattern]
+        escaped = re.escape(scope["tag_prefix"])
+        args += ["--tag-pattern", rf"^{escaped}[0-9]+\.[0-9]+\.[0-9]+$"]
     if changelog.exists():
         args += ["--prepend", str(changelog)]
     else:
@@ -160,12 +173,14 @@ def run_git_cliff(tag: str, changelog: Path, config: Path | None = None) -> None
         sys.exit(1)
 
 
-def crate_manifest_dir(repo: Path, crate: str) -> Path:
-    """The directory holding a workspace member's Cargo.toml.
+def read_crate_changelog_config(repo: Path, crate: str) -> dict:
+    """A member's `[package.metadata.changelog]` table, with defaults filled in.
 
-    Read from cargo rather than guessed from the crate name: a member's
-    directory need not be named after its package (`xdk-rs` lives in
-    `crates/xdk`).
+    Read from cargo rather than from a per-member cliff.toml, so the workspace
+    keeps one git-cliff config and each member states its own tag line, paths
+    and changelog location beside its own manifest. `tag_prefix` defaults to
+    `<crate>-v` and `changelog` to the file beside the manifest, which is what
+    a member added later needs no table to get.
     """
     proc = run(
         ["cargo", "metadata", "--format-version", "1", "--no-deps"], cwd=str(repo)
@@ -173,9 +188,71 @@ def crate_manifest_dir(repo: Path, crate: str) -> Path:
     if proc.returncode != 0:
         fail(f"cargo metadata failed: {proc.stderr.strip()}")
     for package in json.loads(proc.stdout).get("packages", []):
-        if package.get("name") == crate:
-            return Path(package["manifest_path"]).parent
+        if package.get("name") != crate:
+            continue
+        manifest_dir = Path(package["manifest_path"]).parent
+        table = (package.get("metadata") or {}).get("changelog") or {}
+        rel = manifest_dir.relative_to(repo).as_posix()
+        return {
+            "heading": table.get("heading", f"Changelog ({crate})"),
+            "tag_prefix": table.get("tag_prefix", f"{crate}-v"),
+            "changelog": repo / table.get("changelog", f"{rel}/CHANGELOG.md"),
+            "include_paths": table.get("include_paths", [f"{rel}/**"]),
+            "exclude_paths": table.get("exclude_paths", []),
+        }
     fail(f"{crate} is not a workspace member of {repo}")
+
+
+def path_matches(path: str, patterns: list[str]) -> bool:
+    """Whether PATH matches any of git-cliff's glob PATTERNS."""
+    return any(fnmatch(path, pattern) for pattern in patterns)
+
+
+def pr_touches_member(
+    owner: str, repo: str, num: int, include: list[str], exclude: list[str]
+) -> bool:
+    """Whether a PR changed a file the member counts as its own.
+
+    A PR GitHub cannot answer for counts as touching it, so a lookup failure
+    never silently drops a change from the changelog.
+    """
+    proc = run(
+        [
+            "gh", "api", "--paginate",
+            f"repos/{owner}/{repo}/pulls/{num}/files",
+            "--jq", ".[].filename",
+        ],
+        timeout=30,
+    )
+    if proc.returncode != 0:
+        return True
+    for filename in proc.stdout.split():
+        if path_matches(filename, include) and not path_matches(filename, exclude):
+            return True
+    return False
+
+
+# The groups crates/*/cliff.toml route conventional-commit types to, for a PR
+# that supplied no changelog block and falls back to its title.
+TITLE_GROUPS: list[tuple[re.Pattern[str], str | None]] = [
+    (re.compile(r"^release"), None),
+    (re.compile(r"^[a-z]+(\([^)]*\))?!:"), "Breaking changes"),
+    (re.compile(r"^feat"), "Added"),
+    (re.compile(r"^fix"), "Fixed"),
+    (re.compile(r"^refactor"), "Changed"),
+    (re.compile(r"^perf"), "Changed"),
+    (re.compile(r"^docs"), "Documentation"),
+]
+
+
+def group_for_title(title: str) -> str | None:
+    """The changelog group a conventional-commit subject belongs to, or None to skip."""
+    if SKIPPED_TITLE_RE.match(title):
+        return None
+    for pattern, group in TITLE_GROUPS:
+        if pattern.match(title):
+            return group
+    return "Changed"
 
 
 def read_remote_github(cliff_toml: Path) -> tuple[str | None, str | None]:
@@ -213,7 +290,18 @@ def pr_numbers_from_section(section: str) -> list[int]:
     return sorted(seen)
 
 
+_PR_CACHE: dict[tuple[str, str, int], dict | None] = {}
+
+
 def fetch_pr(owner: str, repo: str, num: int) -> dict | None:
+    key = (owner, repo, num)
+    if key in _PR_CACHE:
+        return _PR_CACHE[key]
+    _PR_CACHE[key] = _fetch_pr_uncached(owner, repo, num)
+    return _PR_CACHE[key]
+
+
+def _fetch_pr_uncached(owner: str, repo: str, num: int) -> dict | None:
     proc = run(
         [
             "gh",
@@ -303,15 +391,18 @@ def with_attribution(entry: str, attrib: str) -> str:
     return head + attrib + sep + rest
 
 
-def declares_empty_changelog(body: str) -> bool:
-    """Whether the body offers a changelog section and leaves it empty.
+def declares_empty_changelog(body: str, heading: str = r"^## Changelog\s*$") -> bool:
+    """Whether the body offers the changelog section and leaves it empty.
 
     The PR template tells an author whose change is not user-facing to delete
-    the `###` subsections, which leaves the `## Changelog` heading standing
-    over nothing. That is a decision, so it reads differently from a body that
-    never offered the section at all.
+    the `###` subsections, which leaves the heading standing over nothing. That
+    is a decision, so it reads differently from a body that never offered the
+    section at all, where the title is the best answer available.
+
+    Scoped to the heading being read, so a PR that described the binary and
+    said nothing about a member has not declared the member unaffected.
     """
-    for header in (r"^## Changelog\s*$", r"^## Changes\s*$"):
+    for header in (heading, r"^## Changes\s*$"):
         if slice_below(body, header) is not None:
             return True
     return False
@@ -342,6 +433,10 @@ def collect_entries(
     ANSWERED, when given, collects the PRs whose body actually carried the
     heading, so a caller merging against a git-cliff skeleton knows which
     skeleton bullets an authored entry replaces and which stand on their own.
+
+    A PR that carries the heading and leaves it empty is skipped; one that never
+    carries it falls back to its title, grouped by its conventional-commit type
+    the way the git-cliff parsers group a commit.
     """
     aggregated: dict[str, list[str]] = {}
     for num in pr_numbers:
@@ -385,7 +480,7 @@ def collect_entries(
         # the type prefix, and internal work also ships as fix(ci), fix(hooks)
         # and fix(release), whose titles read as raw conventional commits
         # beside authored bullets.
-        if declares_empty_changelog(body):
+        if declares_empty_changelog(body, heading):
             continue
 
         # No changelog content in the body: the PR title is the bullet, so a
@@ -393,9 +488,12 @@ def collect_entries(
         # cliff.toml policy skips (chore, ci, build, style, test) stay out here
         # too; a PR of those types that matters carries its own ## Changelog.
         title = (pr.get("title") or "").strip()
-        if title and not SKIPPED_TITLE_RE.match(title):
-            aggregated.setdefault("Changed", [])
-            aggregated["Changed"].append(f"- {title}{attrib}")
+        if not title:
+            continue
+        group = group_for_title(title)
+        if group:
+            aggregated.setdefault(group, [])
+            aggregated[group].append(f"- {title}{attrib}")
     return aggregated
 
 
@@ -445,47 +543,51 @@ def previous_tag(current_tag: str, prefix: str = "") -> str | None:
     return None
 
 
-def release_window_start(owner: str, repo: str, prev_tag: str | None) -> str | None:
-    """ISO timestamp from which PRs merged into the integration branch belong
-    to the release being cut, or None when there is no previous release.
+BOOKKEEPING_RE = re.compile(r"^chore\(release\): (backport|sync dev)")
 
-    The previous release branch was cut from the integration branch before
-    its tag was pushed, so PRs merged in between belong to this release even
-    though they predate the tag. Anchor on the earlier of the previous
-    release PR's creation and the tag; PR numbers the changelog already
-    lists are dropped afterwards, which covers the overlap.
+
+def dev_release_anchor(base: str, prev_tag: str | None) -> str | None:
+    """The commit on BASE that ends the previous release, or None for the start.
+
+    The backport commit is the boundary: everything after it on the integration
+    branch belongs to this release. Falling back to the tag covers a repo whose
+    previous release was never synced back.
     """
     if not prev_tag:
         return None
-    tag_time = run(["git", "log", "-1", "--format=%cI", prev_tag]).stdout.strip()
     proc = run(
         [
-            "gh", "pr", "list", "--repo", f"{owner}/{repo}", "--base", "main",
-            "--state", "merged", "--search", f"head:release/{prev_tag}",
-            "--limit", "1", "--json", "createdAt", "--jq", ".[0].createdAt // empty",
-        ],
-        timeout=30,
+            "git", "log", f"origin/{base}", "--format=%H",
+            "--grep", f"sync dev after {prev_tag}",
+        ]
     )
-    pr_time = proc.stdout.strip() if proc.returncode == 0 else ""
-    candidates = [t for t in (tag_time, pr_time) if t]
-    return min(candidates) if candidates else None
+    for line in proc.stdout.split():
+        return line
+    found = run(["git", "rev-parse", "--verify", "--quiet", prev_tag]).stdout.strip()
+    return prev_tag if found else None
 
 
-def merged_pr_numbers(owner: str, repo: str, base: str, since: str | None) -> list[int]:
-    """PR numbers merged into BASE since SINCE, release bookkeeping excluded."""
-    args = [
-        "gh", "pr", "list", "--repo", f"{owner}/{repo}", "--base", base,
-        "--state", "merged", "--limit", "200", "--json", "number,title",
-    ]
-    if since:
-        args += ["--search", f"merged:>={since}"]
-    proc = run(args, timeout=30)
+def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
+    """PR numbers this release carries, read from the integration branch's history.
+
+    Read from git rather than `gh pr list --base <branch>`, because a stacked PR
+    targets the branch below it rather than the integration branch and that query
+    never returns one. The squash-merge subject carries `(#N)` whatever the PR
+    targeted, so the history is the complete list.
+    """
+    anchor = dev_release_anchor(base, prev_tag)
+    span = f"{anchor}..origin/{base}" if anchor else f"origin/{base}"
+    proc = run(["git", "log", span, "--format=%s"])
     if proc.returncode != 0:
-        fail(f"gh pr list failed: {proc.stderr.strip()}")
-    bookkeeping = re.compile(r"^chore\(release\): (backport|sync dev)")
-    return sorted(
-        pr["number"] for pr in json.loads(proc.stdout) if not bookkeeping.match(pr["title"])
-    )
+        fail(f"git log {span} failed: {proc.stderr.strip()}")
+    numbers: dict[int, None] = {}
+    for subject in proc.stdout.splitlines():
+        if BOOKKEEPING_RE.match(subject):
+            continue
+        found = re.search(r"\(#(\d+)\)", subject)
+        if found:
+            numbers[int(found.group(1))] = None
+    return sorted(numbers)
 
 
 def seed_version_section(changelog: Path, version: str) -> None:
@@ -598,10 +700,16 @@ def rewrite_version_section(
     changelog.write_text(new_content)
 
 
-def from_dev_prs_mode(args, cliff_toml: Path, changelog: Path) -> int:
+def from_dev_prs_mode(
+    args,
+    cliff_toml: Path,
+    changelog: Path,
+    prefix: str = "",
+    crate_config: dict | None = None,
+) -> int:
     """Fill the version section from PRs merged into the integration branch."""
     tag = args.tag or detect_tag_from_branch()
-    version = version_from_tag(tag)
+    version = version_from_tag(tag, prefix)
     owner, repo_name = read_remote_github(cliff_toml)
     if not (owner and repo_name):
         fail("--from-dev-prs needs [remote.github] owner/repo in cliff.toml")
@@ -616,8 +724,7 @@ def from_dev_prs_mode(args, cliff_toml: Path, changelog: Path) -> int:
         dry_run_original = changelog.read_text()
 
     try:
-        prev = previous_tag(tag)
-        since = release_window_start(owner, repo_name, prev)
+        prev = previous_tag(tag, prefix)
         seed_version_section(changelog, version)
         content = changelog.read_text()
         this_section = extract_version_section(content, version)
@@ -625,18 +732,58 @@ def from_dev_prs_mode(args, cliff_toml: Path, changelog: Path) -> int:
             pr_numbers_from_section(this_section)
         )
         pr_nums = [
-            n for n in merged_pr_numbers(owner, repo_name, args.dev_branch, since)
+            n for n in merged_pr_numbers(args.dev_branch, prev)
             if n not in already_listed
         ]
+        if crate_config and pr_nums:
+            # The release branch carries no member history, so membership comes
+            # from the files each PR changed rather than from git-cliff. A body
+            # that addresses the member directly counts whatever it touched:
+            # before this workspace existed the library's code sat elsewhere,
+            # and the author's own block is the better answer than the paths.
+            include = crate_config["include_paths"]
+            exclude = crate_config["exclude_paths"]
+            heading_re = rf"^## {re.escape(crate_config['heading'])}\s*$"
+            if include:
+                total = len(pr_nums)
+                kept: list[int] = []
+                by_block = 0
+                for n in pr_nums:
+                    pr = fetch_pr(owner, repo_name, n)
+                    body = (pr or {}).get("body") or ""
+                    if slice_below(body, heading_re) is not None:
+                        kept.append(n)
+                        by_block += 1
+                    elif pr_touches_member(owner, repo_name, n, include, exclude):
+                        kept.append(n)
+                pr_nums = kept
+                print(
+                    f"{len(pr_nums)} of {total} PRs belong to {args.crate} "
+                    f"({by_block} by their own changelog block)",
+                    file=sys.stderr,
+                )
         if not pr_nums:
             print(
                 f"no PRs merged into {args.dev_branch} since {prev or 'the start'} "
                 "that the changelog does not already list",
                 file=sys.stderr,
             )
-        entries = collect_entries(owner, repo_name, pr_nums) if pr_nums else {}
+        if pr_nums and crate_config:
+            label = crate_config["heading"]
+            heading = rf"^## {re.escape(label)}\s*$"
+            answered: set[int] = set()
+            entries = collect_entries(owner, repo_name, pr_nums, heading, answered)
+            print(
+                f"{len(answered)} of {len(pr_nums)} carry a '## {label}' block; "
+                "the rest fall back to their title",
+                file=sys.stderr,
+            )
+        else:
+            entries = collect_entries(owner, repo_name, pr_nums) if pr_nums else {}
         if entries:
-            rewrite_version_section(changelog, version, tag, owner, repo_name, entries)
+            rewrite_version_section(
+                changelog, version, tag, owner, repo_name, entries, prefix
+            )
 
         if dry_run_original is not None:
             new_content = changelog.read_text()
@@ -703,25 +850,21 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = Path(args.repo_path).resolve()
+    # One git-cliff config for the workspace. Its `[git]` defaults describe the
+    # binary's line; a member overrides the scope through CLI flags below.
+    cliff_toml = repo / "cliff.toml"
+    changelog = repo / "CHANGELOG.md"
     prefix = ""
+    crate_config: dict | None = None
     if args.crate:
-        member = crate_manifest_dir(repo, args.crate)
-        cliff_toml = member / "cliff.toml"
-        changelog = member / "CHANGELOG.md"
-        prefix = f"{args.crate}-v"
+        crate_config = read_crate_changelog_config(repo, args.crate)
+        changelog = crate_config["changelog"]
+        prefix = crate_config["tag_prefix"]
         if not args.tag and not args.check:
             fail(f"--crate needs --tag {prefix}X.Y.Z")
-        if args.from_dev_prs:
-            fail(
-                "--crate does not take --from-dev-prs: a member's changelog is "
-                "generated where its history is, so git-cliff has commits to read"
-            )
-    else:
-        cliff_toml = repo / "cliff.toml"
-        changelog = repo / "CHANGELOG.md"
 
     if not cliff_toml.exists():
-        fail(f"cliff.toml not found beside {changelog}")
+        fail(f"cliff.toml not found in {repo}")
 
     if args.check:
         return check_mode(changelog)
@@ -731,7 +874,7 @@ def main() -> int:
         return 0
 
     if args.from_dev_prs:
-        return from_dev_prs_mode(args, cliff_toml, changelog)
+        return from_dev_prs_mode(args, cliff_toml, changelog, prefix, crate_config)
 
     if not have("git-cliff"):
         print("error: git-cliff is not installed", file=sys.stderr)
@@ -772,7 +915,7 @@ def main() -> int:
             cwd = os.getcwd()
             try:
                 os.chdir(repo)
-                run_git_cliff(tag, changelog, cliff_toml if args.crate else None)
+                run_git_cliff(tag, changelog, cliff_toml, crate_config)
             finally:
                 os.chdir(cwd)
 
@@ -782,10 +925,11 @@ def main() -> int:
         if has_gh_integration:
             section = extract_version_section(changelog.read_text(), version)
             pr_nums = pr_numbers_from_section(section)
-            if pr_nums and args.crate:
+            if pr_nums and crate_config:
                 # A member takes its membership and grouping from git-cliff and
                 # its wording from any PR that wrote a block addressed to it.
-                heading = rf"^## Changelog \({re.escape(args.crate)}\)\s*$"
+                label = crate_config["heading"]
+                heading = rf"^## {re.escape(label)}\s*$"
                 answered: set[int] = set()
                 authored = collect_entries(
                     owner, repo_name, pr_nums, heading, answered
@@ -799,7 +943,7 @@ def main() -> int:
                     )
                 print(
                     f"{len(answered)} of {len(pr_nums)} PRs carry a "
-                    f"'## Changelog ({args.crate})' block",
+                    f"'## {label}' block",
                     file=sys.stderr,
                 )
             elif pr_nums:

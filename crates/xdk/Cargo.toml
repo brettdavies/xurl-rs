@@ -16,6 +16,19 @@ rust-version.workspace = true
 # the crate even though the rest of tests/ does not.
 exclude = ["tests/", "!tests/fixtures/openapi/example_responses.json"]
 
+
+# How this member's changelog is cut. `scripts/generate-changelog.py --crate
+# xdk-rs` reads these and passes them to git-cliff, so the workspace keeps one
+# cliff.toml and each member states its own scope here.
+[package.metadata.changelog]
+# The heading in a PR body that addresses this member. A PR touching both crates
+# describes the binary under `## Changelog` and the library under this one.
+heading = "Changelog (xdk-rs)"
+tag_prefix = "xdk-rs-v"
+changelog = "crates/xdk/CHANGELOG.md"
+include_paths = ["crates/xdk/**"]
+# This config's own inputs and the file it renders are not library changes.
+exclude_paths = ["crates/xdk/CHANGELOG.md"]
 [lib]
 name = "xdk"
 path = "src/lib.rs"

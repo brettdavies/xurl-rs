@@ -256,7 +256,11 @@ fi
 
 # A: the staged tree equals the head branch's, minus the version carriers this
 # release edits and the guarded paths just stripped. Anything else is a mistake.
-VERSION_CARRIERS='^(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md)$'
+# A manifest or changelog beside a workspace member counts as a version carrier
+# the same as the repository root's, so a workspace release is not read as a
+# mistake. This is the set the release branch legitimately edits, which is wider
+# than release.env's VERSION_CARRIERS (that one answers what drift.sh may ignore).
+VERSION_CARRIERS='^((.*/)?(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md))$'
 unexpected=$(git diff --cached --name-only "origin/$HEAD_BRANCH" \
   | grep -Ev "$GUARDED" | grep -Ev "$VERSION_CARRIERS" || true)
 if [[ -n "$unexpected" ]]; then
