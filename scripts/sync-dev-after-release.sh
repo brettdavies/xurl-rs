@@ -156,16 +156,20 @@ git pull --ff-only origin dev
 # Cut a branch -- the repo's RELEASES.md and AGENTS.md ban direct commits to dev.
 SYNC_BRANCH="chore/sync-dev-after-${VERSION}"
 
-if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
-  echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
-  exit 68
+# A dry run creates no branch, so an existing one is no reason to refuse: the
+# question it answers, what this release would carry back, is exactly the one
+# asked while a prior attempt is still open.
+if [[ "$DRY_RUN" == false ]]; then
+  if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
+    echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
+    exit 68
+  fi
+  if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
+    echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
+    exit 68
+  fi
+  git checkout -b "$SYNC_BRANCH"
 fi
-if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
-  echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
-  exit 68
-fi
-
-git checkout -b "$SYNC_BRANCH"
 
 # Writes VERSION_NO_V into the first `version = "..."` line of a TOML file,
 # or the first `"version": "..."` entry of a JSON file, in place and without
