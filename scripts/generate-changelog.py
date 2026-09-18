@@ -915,7 +915,9 @@ def main() -> int:
         crate_config = read_crate_changelog_config(repo, args.crate)
         changelog = crate_config["changelog"]
         prefix = crate_config["tag_prefix"]
-        if not args.tag and not args.check:
+        # A release branch names the binary's tag, so only a member on some
+        # other tag line has to be told which one is being cut.
+        if not args.tag and not args.check and prefix != "v":
             fail(f"--crate needs --tag {prefix}X.Y.Z")
 
     if not cliff_toml.exists():
