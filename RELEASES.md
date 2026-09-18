@@ -342,17 +342,33 @@ sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
 #    or the workspace stops resolving; this bound is what the tag order below protects.
 sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
 cargo update -p xdk-rs
-#    git-cliff reads the GitHub API to attach each commit's PR, and panics on a 401
-#    without a token. The first release generates the whole file (`-o`), since there is
-#    no released section to prepend onto; later ones prepend.
-GITHUB_TOKEN="$(gh auth token)" git cliff -c crates/xdk/cliff.toml --unreleased \
-  --tag xdk-rs-v0.2.0 --prepend crates/xdk/CHANGELOG.md
-#    The root `CHANGELOG.md` is excluded from markdownlint; this one is not, so the
-#    generated file goes through the formatter before it is committed.
-markdownlint-cli2 crates/xdk/CHANGELOG.md
+#    `--crate` runs git-cliff for the skeleton, then rewrites each PR's bullets from
+#    the `## Changelog (xdk-rs)` block in its body. Membership and grouping stay with
+#    git-cliff, so a PR that touched both crates contributes only what it addressed
+#    to the library.
+scripts/generate-changelog.py --crate xdk-rs --tag xdk-rs-v0.2.0
+#    Idempotent, so this answers whether the committed file still matches its inputs.
+scripts/generate-changelog.py --crate xdk-rs --tag xdk-rs-v0.2.0 --dry-run
 
-# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md);
-#    edit the PR bodies and regenerate rather than hand-editing the changelog.
+# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md).
+#    The snippet lives in the PR body, inside the `## Changelog (xdk-rs)` block, as a
+#    fenced block indented under its bullet:
+#
+#      ## Changelog (xdk-rs)
+#
+#      ### Breaking changes
+#
+#      - Change `Client::send_dm` to return ...
+#
+#        ```rust
+#        // Before
+#        ...
+#        // After
+#        ...
+#        ```
+#
+#    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
+#    block keeps its commit subject as its bullet.
 
 # 3. After the release PR merges, tag the library first, then the CLI.
 git checkout main && git pull
