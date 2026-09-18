@@ -232,7 +232,13 @@ act git add -A
 if [[ "$RUN_CHANGELOG" -eq 1 ]]; then
   header "Changelog"
   if [[ -x scripts/generate-changelog.py ]]; then
-    if act scripts/generate-changelog.py --from-dev-prs; then
+    # `--crate` so a workspace updates the member's changelog beside its
+    # manifest rather than creating one at the repository root.
+    changelog_args=(--from-dev-prs)
+    if [[ -n "$(project_crate)" && "$(release_manifest)" != "Cargo.toml" ]]; then
+      changelog_args+=(--crate "$(project_crate)")
+    fi
+    if act scripts/generate-changelog.py "${changelog_args[@]}"; then
       act git add -A
       gate_pass "changelog regenerated from origin/$HEAD_BRANCH PRs"
     else
