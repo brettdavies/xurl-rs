@@ -95,7 +95,7 @@ release_manifest() {
 
 # The `[package] version` the tag must match.
 project_version() {
-  grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/'
+  grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/' || true
 }
 
 # The `[package] name` of the release package.
