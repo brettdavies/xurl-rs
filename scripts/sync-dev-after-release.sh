@@ -220,14 +220,35 @@ if [[ -f VERSION || ${#SYNC_PATHS[@]} -eq 0 ]]; then
   SYNC_PATHS+=(VERSION)
 fi
 
-# CHANGELOG.md from main (authoritative), once the changelog machinery has
+# Every changelog from main (authoritative), once the changelog machinery has
 # produced one there; until then the version carriers are the only synced
 # artifacts.
-CHANGELOG_PATH="$(release_changelog)"
-if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
-  git checkout origin/main -- "$CHANGELOG_PATH"
-  SYNC_PATHS+=("$CHANGELOG_PATH")
-fi
+#
+# Every one, not just the released crate's: a workspace member releases on its
+# own tag line, so a release of one leaves the other's changelog on main ahead
+# of dev. The next release branch overlays dev's tree onto main, which would
+# carry that staler copy back and drop the section main already published.
+changelog_paths() {
+  local path
+  path="$(release_changelog)"
+  [[ -n "$path" ]] && printf '%s\n' "$path"
+  # Each member names its own under [package.metadata.changelog]; the same
+  # table generate-changelog.py reads, so the two cannot disagree.
+  if have_bin cargo && have_bin jaq && [[ -f Cargo.toml ]]; then
+    cargo metadata --format-version 1 --no-deps 2>/dev/null \
+      | jaq -r '.packages[] | .metadata.changelog.changelog // empty' 2>/dev/null
+  fi
+}
+
+while IFS= read -r CHANGELOG_PATH; do
+  [[ -n "$CHANGELOG_PATH" ]] || continue
+  # shellcheck disable=SC2076  # literal match against the accumulated list
+  [[ " ${SYNC_PATHS[*]} " == *" $CHANGELOG_PATH "* ]] && continue
+  if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
+    git checkout origin/main -- "$CHANGELOG_PATH"
+    SYNC_PATHS+=("$CHANGELOG_PATH")
+  fi
+done < <(changelog_paths | sort -u)
 
 # --- Everything else the two branches disagree about ------------------------
 
