@@ -223,9 +223,10 @@ fi
 # CHANGELOG.md from main (authoritative), once the changelog machinery has
 # produced one there; until then the version carriers are the only synced
 # artifacts.
-if git cat-file -e origin/main:CHANGELOG.md 2>/dev/null; then
-  git checkout origin/main -- CHANGELOG.md
-  SYNC_PATHS+=(CHANGELOG.md)
+CHANGELOG_PATH="$(release_changelog)"
+if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
+  git checkout origin/main -- "$CHANGELOG_PATH"
+  SYNC_PATHS+=("$CHANGELOG_PATH")
 fi
 
 # --- Everything else the two branches disagree about ------------------------

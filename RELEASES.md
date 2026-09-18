@@ -128,19 +128,20 @@ sed -i 's/^version = ".*"/version = "1.3.0"/' crates/xurl-cli/Cargo.toml
 cargo update -p xurl-rs
 ./scripts/generate-completions.sh
 
-# 5. Generate CHANGELOG.md from the PRs merged into dev since the previous release. The
-#    overlay commit carries no per-PR history, so the section is built from dev's PRs,
-#    not from this branch's commits. Scrub the result via Vale + LanguageTool + unslop
-#    (see § Prose scrubbing); fix findings on the upstream PR bodies and regenerate,
-#    never by hand-editing CHANGELOG.md.
-scripts/generate-changelog.py --from-dev-prs
+# 5. Generate each crate's changelog from the PRs merged into dev since the previous
+#    release. The overlay commit carries no per-PR history, so a section is built from
+#    dev's PRs, not from this branch's commits, and each crate takes the bullets its
+#    own `## Changelog (<crate>)` block carries. Scrub the result via Vale +
+#    LanguageTool + unslop (see § Prose scrubbing); fix findings on the upstream PR
+#    bodies and regenerate, never by hand-editing a changelog.
+scripts/generate-changelog.py --crate xurl-rs --from-dev-prs
 git add -A
 
 # 6. Verify before committing.
 #    A: staged tree equals dev's minus the version files, the completions, and the
 #       stripped guarded paths. Anything else printed here is a mistake.
 git diff --cached --name-only origin/dev | grep -Ev "$GUARDED" \
-  | grep -Ev '^(crates/xurl-cli/Cargo\.toml|Cargo\.lock|CHANGELOG\.md|completions/.*)$' \
+  | grep -Ev '^(crates/xurl-cli/(Cargo\.toml|CHANGELOG\.md)|Cargo\.lock|completions/.*)$' \
   && echo "unexpected delta above; investigate" || echo "(clean: only intended deltas)"
 #    B: no guarded path in the release tree.
 git diff --cached --name-only origin/main | grep -E "$GUARDED" \
@@ -268,7 +269,8 @@ this repo, which idempotently flips `make_latest: true`.
 ### After publish: sync `dev` with the release
 
 Once `finalize-release.yml` has flipped the GitHub Release to `published`, bring the release bookkeeping
-(`crates/xurl-cli/Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, and whatever else the release branch edited that never
+(`crates/xurl-cli/Cargo.toml`, `Cargo.lock`, `crates/xurl-cli/CHANGELOG.md`, and whatever else the release branch
+edited that never
 round-tripped to `dev`) back to `dev` so the integration branch starts from the released baseline:
 
 ```bash
@@ -276,7 +278,8 @@ scripts/sync-dev-after-release.sh v3.0.0
 ```
 
 The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `crates/xurl-cli/Cargo.toml`
-and the crate's `Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens a PR against `dev` with the version in
+and the crate's `Cargo.lock` entry, copies the crate's `CHANGELOG.md` from `main`, and opens a PR against `dev` with
+the version in
 its title; merge it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge
 `main` into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge
 conflicts on every file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content
@@ -328,31 +331,45 @@ binaries, no Homebrew.
 its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check-version` job fails by name when the
 bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
 
-The bump and the changelog regeneration happen on a branch off `dev`, PR'd to `dev`, not on the release branch. The
-release branch is one overlay commit on top of `main`, and `main` carries no commit that touches `crates/xdk/**`, so
-`git cliff` run there sees only the overlay commit and renders a changelog with one meaningless entry. The root
-changelog's `--from-dev-prs` mode exists for the same reason. The release-branch overlay then carries the regenerated
-file to `main` along with the rest of `dev`'s tree.
+Both changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev` since the
+previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on top of
+`main`, so it carries no per-PR history for git-cliff to read.
 
 ```bash
-# 1. On a branch off `dev`, bump the library and regenerate its changelog. The library
-#    config scopes to `crates/xdk/**` and to the `xdk-rs-v*` tag line.
+# 1. On the release branch, bump the library and regenerate its changelog. The
+#    member's [package.metadata.changelog] table names its tag line and its paths.
 sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
 #    The CLI's declared bound lives in the workspace manifest and must move with it,
 #    or the workspace stops resolving; this bound is what the tag order below protects.
 sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
 cargo update -p xdk-rs
-#    git-cliff reads the GitHub API to attach each commit's PR, and panics on a 401
-#    without a token. The first release generates the whole file (`-o`), since there is
-#    no released section to prepend onto; later ones prepend.
-GITHUB_TOKEN="$(gh auth token)" git cliff -c crates/xdk/cliff.toml --unreleased \
-  --tag xdk-rs-v0.2.0 --prepend crates/xdk/CHANGELOG.md
-#    The root `CHANGELOG.md` is excluded from markdownlint; this one is not, so the
-#    generated file goes through the formatter before it is committed.
-markdownlint-cli2 crates/xdk/CHANGELOG.md
+#    Each PR contributes what its `## Changelog (xdk-rs)` block says. A PR that
+#    touched both crates contributes only what it addressed to the library.
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0
+#    The binary's, from the same PRs' `## Changelog (xurl-rs)` blocks.
+scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v1.3.0
+#    Idempotent, so this answers whether a committed file still matches its inputs.
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 --dry-run
 
-# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md);
-#    edit the PR bodies and regenerate rather than hand-editing the changelog.
+# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md).
+#    The snippet lives in the PR body, inside the `## Changelog (xdk-rs)` block, as a
+#    fenced block indented under its bullet:
+#
+#      ## Changelog (xdk-rs)
+#
+#      ### Breaking changes
+#
+#      - Change `Client::send_dm` to return ...
+#
+#        ```rust
+#        // Before
+#        ...
+#        // After
+#        ...
+#        ```
+#
+#    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
+#    block keeps its commit subject as its bullet.
 
 # 3. After the release PR merges, tag the library first, then the CLI.
 git checkout main && git pull

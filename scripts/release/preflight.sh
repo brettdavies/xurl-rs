@@ -499,20 +499,24 @@ gate_mechanics() {
     gate_skip "binary --version" "build the release binary first ($BIN_PATH)"
   fi
 
-  if [[ -f CHANGELOG.md ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]## ' || true)
+  local release_changelog
+  release_changelog=$(release_changelog)
+  if [[ -f "$release_changelog" ]]; then
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$release_changelog" | tr -d '[]## ' || true)
     if [[ -n "$project_version" ]]; then
       if [[ "$changelog_version" == "$project_version" ]]; then
-        gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)"
+        gate_pass "$release_changelog top section = [$changelog_version] (matches project version)"
       else
-        gate_fail "CHANGELOG mismatch" "changelog=$changelog_version project=$project_version"
+        gate_fail "$release_changelog mismatch" "changelog=$changelog_version project=$project_version"
       fi
     fi
-    if grep -q '\[Unreleased\]' CHANGELOG.md; then
-      gate_fail "CHANGELOG" "has [Unreleased] placeholder"
+    if grep -q '\[Unreleased\]' "$release_changelog"; then
+      gate_fail "$release_changelog" "has [Unreleased] placeholder"
     else
-      gate_pass "CHANGELOG has no [Unreleased] placeholder"
+      gate_pass "$release_changelog has no [Unreleased] placeholder"
     fi
+  else
+    gate_fail "$release_changelog" "missing"
   fi
 
   # The library's own changelog, checked only when a library release is

@@ -14,6 +14,16 @@ authors.workspace = true
 rust-version.workspace = true
 exclude = ["tests/"]
 
+# How this member's changelog is cut; see crates/xdk/Cargo.toml for the shape.
+[package.metadata.changelog]
+# Every crate is named in the heading that addresses it, so a PR body says
+# which crate each bullet is about and a bare `## Changelog` reaches neither.
+heading = "Changelog (xurl-rs)"
+tag_prefix = "v"
+changelog = "crates/xurl-cli/CHANGELOG.md"
+include_paths = ["crates/xurl-cli/**", "src/**", "tests/**", "schema/**", "completions/**", "Cargo.lock"]
+exclude_paths = ["crates/xurl-cli/CHANGELOG.md"]
+
 [[bin]]
 name = "xr"
 path = "src/main.rs"

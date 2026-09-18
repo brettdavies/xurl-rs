@@ -1,30 +1,58 @@
-# git-cliff configuration.
+# git-cliff configuration
+
 #
-# Two-stage pipeline driven by `scripts/generate-changelog.py`:
-#   1. git-cliff renders a skeleton `## [version]` entry from each commit's
-#      subject line, linking `(#N)` squash-merge references to the PR via
-#      the `[remote.github]` owner/repo below.
-#   2. The script's Python post-processor fetches each PR body from the
-#      GitHub API, extracts its `## Changelog` -> `### Added / Changed /
-#      Fixed / Documentation` subsections, and rewrites the skeleton
-#      bullets with the richer PR-body content. Author + PR links remain.
+
+# Two-stage pipeline driven by `scripts/generate-changelog.py`
+
+# 1. git-cliff renders a skeleton `## [version]` entry from each commit's
+
+# subject line, linking `(#N)` squash-merge references to the PR via
+
+# the `[remote.github]` owner/repo below
+
+# 2. The script's Python post-processor fetches each PR body from the
+
+# GitHub API, extracts its `## Changelog` -> `### Added / Changed /
+
+# Fixed / Documentation` subsections, and rewrites the skeleton
+
+# bullets with the richer PR-body content. Author + PR links remain
+
 #
+
 # The PR body is the source of truth. If a bullet is wrong, edit the PR
+
 # body on GitHub (PR bodies stay editable after merge) and re-run
-# `scripts/generate-changelog.py` on the release branch; it re-fetches.
-# Never hand-write `CHANGELOG.md`.
+
+# `scripts/generate-changelog.py` on the release branch; it re-fetches
+
+# Never hand-write a CHANGELOG.md
+
 #
-# This is the binary's changelog; the library keeps its own under
-# `crates/xdk/cliff.toml` with its own tag line and `include_paths`, and this
-# file scopes to the binary's paths the same way, so a library-only change
-# lands there and not here.
+
+# This is the workspace's only git-cliff config. Each member keeps its own
+
+# changelog beside its manifest and declares its tag line, its paths and that
+
+# file's location under `[package.metadata.changelog]`
+
+# `generate-changelog.py --crate NAME` reads them and passes them here as
+
+# `--tag-pattern`, `--include-path` and `--exclude-path`. The `[git]` defaults
+
+# below describe the binary's line, so a bare run still cuts its changelog
+
 #
+
 # No commit-body parsing, no preprocessors: cherry-picks and squash-merges
-# can't mangle what we never read.
+
+# can't mangle what we never read
 
 [changelog]
 header = """
+
 # Changelog\n
+
 All notable changes to this project will be documented in this file.\n
 """
 body = """
@@ -50,22 +78,35 @@ footer = ""
 conventional_commits = true
 filter_unconventional = true
 split_commits = false
+
 # Only unprefixed `vX.Y.Z` tags mark releases; anchored so a tag such as
-# `sdk-v1.0.0` or `v1.0.0-rc1` is not a release boundary.
+
+# `sdk-v1.0.0` or `v1.0.0-rc1` is not a release boundary
+
 tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+
 # Only commits that touch the binary count: its crate, the schemas and
-# completions it ships, and the lockfile (dependency fixes).
+
+# completions it ships, and the lockfile (dependency fixes)
+
 include_paths = ["crates/xurl-cli/**", "src/**", "tests/**", "schema/**", "completions/**", "Cargo.lock"]
 sort_commits = "oldest"
 
 commit_parsers = [
-  # The release squash commit itself (`release: vX.Y.Z (...)`) is bookkeeping,
-  # not a change.
+
+# The release squash commit itself (`release: vX.Y.Z (...)`) is bookkeeping
+
+# not a change
+
   { message = "^release", skip = true },
   { message = "^docs: update CHANGELOG", skip = true },
-  # Breaking changes route first: `feat!`, `fix(api)!`, `refactor!`, etc.
-  # would otherwise match the patterns below and land under Added/Fixed/
-  # Changed, silently dropping the SemVer-major signal from the changelog.
+
+# Breaking changes route first: `feat!`, `fix(api)!`, `refactor!`, etc
+
+# would otherwise match the patterns below and land under Added/Fixed/
+
+# Changed, silently dropping the SemVer-major signal from the changelog
+
   { message = "^[a-z]+(\\(.*\\))?!:", group = "Breaking changes" },
   { body = ".*BREAKING CHANGE:.*", group = "Breaking changes" },
   { message = "^feat", group = "Added" },

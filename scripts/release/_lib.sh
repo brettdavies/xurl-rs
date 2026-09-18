@@ -93,6 +93,12 @@ release_manifest() {
   fi
 }
 
+# The changelog the release notes are cut from. A workspace member keeps its
+# own beside its manifest, so this is not always the repository root's.
+release_changelog() {
+  echo "${RELEASE_CHANGELOG:-CHANGELOG.md}"
+}
+
 # The `[package] version` the tag must match.
 project_version() {
   grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/' || true

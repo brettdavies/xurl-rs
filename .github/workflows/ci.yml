@@ -50,6 +50,7 @@ jobs:
       markdownlint-globs: |
         **/*.md
         !CHANGELOG.md
+        !**/CHANGELOG.md
         !.claude/**
 
   lint-stdio:
