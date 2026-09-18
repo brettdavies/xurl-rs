@@ -234,7 +234,9 @@ if [[ "$RUN_CHANGELOG" -eq 1 ]]; then
   if [[ -x scripts/generate-changelog.py ]]; then
     # `--crate` so a workspace updates the member's changelog beside its
     # manifest rather than creating one at the repository root.
-    changelog_args=(--from-dev-prs)
+    # `--tag` explicitly rather than leaving it to the branch name: a caller
+    # that passed --branch is free to name it anything.
+    changelog_args=(--from-dev-prs --tag "v${VERSION}")
     if [[ -n "$(project_crate)" && "$(release_manifest)" != "Cargo.toml" ]]; then
       changelog_args+=(--crate "$(project_crate)")
     fi
