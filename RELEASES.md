@@ -328,15 +328,28 @@ binaries, no Homebrew.
 its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check-version` job fails by name when the
 bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
 
+The bump and the changelog regeneration happen on a branch off `dev`, PR'd to `dev`, not on the release branch. The
+release branch is one overlay commit on top of `main`, and `main` carries no commit that touches `crates/xdk/**`, so
+`git cliff` run there sees only the overlay commit and renders a changelog with one meaningless entry. The root
+changelog's `--from-dev-prs` mode exists for the same reason. The release-branch overlay then carries the regenerated
+file to `main` along with the rest of `dev`'s tree.
+
 ```bash
-# 1. On the release branch, bump the library and regenerate its changelog. The library
+# 1. On a branch off `dev`, bump the library and regenerate its changelog. The library
 #    config scopes to `crates/xdk/**` and to the `xdk-rs-v*` tag line.
 sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
 #    The CLI's declared bound lives in the workspace manifest and must move with it,
 #    or the workspace stops resolving; this bound is what the tag order below protects.
 sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
 cargo update -p xdk-rs
-git cliff -c crates/xdk/cliff.toml --unreleased --tag xdk-rs-v0.2.0 --prepend crates/xdk/CHANGELOG.md
+#    git-cliff reads the GitHub API to attach each commit's PR, and panics on a 401
+#    without a token. The first release generates the whole file (`-o`), since there is
+#    no released section to prepend onto; later ones prepend.
+GITHUB_TOKEN="$(gh auth token)" git cliff -c crates/xdk/cliff.toml --unreleased \
+  --tag xdk-rs-v0.2.0 --prepend crates/xdk/CHANGELOG.md
+#    The root `CHANGELOG.md` is excluded from markdownlint; this one is not, so the
+#    generated file goes through the formatter before it is committed.
+markdownlint-cli2 crates/xdk/CHANGELOG.md
 
 # 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md);
 #    edit the PR bodies and regenerate rather than hand-editing the changelog.
