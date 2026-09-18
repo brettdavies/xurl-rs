@@ -1,12 +1,20 @@
-# Get xurl-rs listed on X's Tools and Libraries page
+---
+title: Get xurl-rs and xdk-rs listed on X's Tools and Libraries page
+type: docs
+status: active
+date: 2026-09-04
+---
 
-Created: 2026-09-04
+# Get xurl-rs and xdk-rs listed on X's Tools and Libraries page
 
 ## Outcome
 
-`https://docs.x.com/tools-and-libraries` carries a `Rust` tab under Community libraries that lists xurl-rs, and the X
-developer platform team knows the project exists. Success is the merged docs PR; a documented, reviewed decline is the
-acceptable failure.
+`https://docs.x.com/tools-and-libraries` carries a `Rust` tab under Community libraries that lists both crates this
+repository publishes — `xdk-rs`, the client library, and `xurl-rs`, the `xr` CLI — and the X developer platform team
+knows the project exists. Success is the merged docs PR; a documented, reviewed decline is the acceptable failure.
+
+This plan owns the submission. The adoption-grade crate plan's U13 owns the publish, which is done, and the
+post-submission checkpoint.
 
 ## What the evidence says
 
@@ -28,66 +36,80 @@ acceptable failure.
 - **`twitter-v2` is stale but still used.** `jpopesculian/twitter-v2-rs`: last release 0.1.8 on 2022-10-25, last commit
   2022-11-29, six open issues with no maintainer reply since 2022, about 2,300 downloads in the last 90 days, not
   archived.
-- **xurl-rs presentation gaps.** The README never states that the project is not affiliated with X. GitHub reports the
-  license as Apache-2.0 only, while `Cargo.toml` declares `MIT OR Apache-2.0`: GitHub's detector names the first
-  license file it recognizes and cannot express an OR, so the sidebar stays that way by decision and the README's
-  dual-license badge carries the truth. crates.io (3.1.0), docs.rs, the Homebrew tap, and GitHub Releases all resolve.
+- **The repository publishes two crates.** `xdk-rs` 0.1.0 is the async client library, imported as `xdk`; `xurl-rs`
+  4.0.0 is the `xr` CLI built on it. Both are on crates.io as of 2026-09-18, and each has its own README, changelog, and
+  tag line. A listing that names only one of them misses either the thing a library reader wants or the thing that
+  carries the `xurl` lineage.
+- **Presentation is ready.** Every README states that the project is independent and not affiliated with X, and
+  `docs.rs/xdk-rs`, the Homebrew tap, and GitHub Releases all resolve. GitHub reports the license as Apache-2.0 only,
+  while the manifests declare `MIT OR Apache-2.0`: GitHub's detector names the first license file it recognizes and
+  cannot express an OR, so the sidebar stays that way by decision and the README's dual-license badge carries the truth.
 
 ## Decisions
 
-| Decision             | Choice                                                                                           | Reasoning and alternative                                                                                                                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Section              | New `Rust` tab under Community libraries, placed after `Ruby` and before `Other`                 | Chosen over the requested "Other tools" table once its rows proved first-party; a reviewer would move or close a third-party row there. A tab gives Rust a Description column the "Other" tab lacks.                             |
-| `twitter-v2` row     | Propose removal in the same PR, with the dates stated neutrally and an explicit offer to keep it | Removing an incumbent in the PR that adds your own tool reads as self-serving, and the crate still has users. The evidence supports retirement; the offer keeps the PR mergeable either way. Fallback: both rows in the new tab. |
-| Link target          | The GitHub repository                                                                            | Every row on the page links a repository (one links ReadTheDocs); the README is the one page with every install channel. crates.io is the alternative and is named in the description instead.                                   |
-| Name and description | `xurl-rs`, described as a Rust port of xurl                                                      | The name is the crate and formula name, and the port relationship is the fastest way for a reader to place it. Never "official" or "X's".                                                                                        |
-| Channels             | The docs PR plus outreach on X, no forum post                                                    | Chosen over the forum after the unanswered precedent. The forum stays as a last-resort contingency because it is the channel X names.                                                                                            |
+| Decision         | Choice                                                                                 | Reasoning and alternative                                                                                                                                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Section          | New `Rust` tab under Community libraries, placed after `Ruby` and before `Other`       | Chosen over the "Other tools" table once its rows proved first-party; a reviewer would move or close a third-party row there. A tab gives Rust a Description column the "Other" tab lacks, which two entries need more than one. |
+| Entries          | Two rows: `xdk-rs` first, then `xurl-rs`                                               | The section is Community *libraries*, so the library leads; the CLI follows because it is what a reader coming from X's own `xurl` page is looking for. Listing one crate would leave the other undiscoverable from this page.   |
+| `twitter-v2` row | Relocate it into the new `Rust` tab and delete the `**Rust**` row from the `Other` tab | Removing an incumbent in the PR that adds your own tool reads as self-serving, and the crate still has users. Relocating keeps every existing link working, retires the bare-link row, and makes the PR purely additive.         |
+| Link target      | The GitHub repository, deep-linked to the crate directory where one exists             | Every row on the page links a repository (one links ReadTheDocs). `xdk-rs` points at `crates/xdk`, `xurl-rs` at the repository root. crates.io and docs.rs are the alternatives and are named in the descriptions instead.       |
+| Names            | `xdk-rs` and `xurl-rs`, the crates.io names                                            | Each is the package name a reader installs, and `xr` alone would not be findable. Never "official" or "X's"; the descriptions say port and independent.                                                                          |
+| Channels         | The docs PR plus outreach on X, no forum post                                          | Chosen over the forum after the unanswered precedent. The forum stays as a last-resort contingency because it is the channel X names.                                                                                            |
 
 ## Phase 1: Make the repo listing-ready
 
-The repository changes a reviewer clicks through to are owned by U1 through U4 of
-`docs/plans/2026-09-09-1528-fix-pre-attention-cleanup-plan.md`: the README non-affiliation line and "Relationship to xurl"
-section, the security policy, the contributing guide, and the issue forms. Land those before Phase 2, and tag 3.2.0
-carrying that plan's Phase B (U10, U6, U7, U12a, U5, and U11 unless it slips) before Phase 2 opens, with the first
-skill-bundle pass beside the tag, so the binary a reader installs on listing day carries the first-run fixes. The
-description sentence for the listing is final once the README section is merged; Phase 2 copies it.
+**Complete.** The repository changes a reviewer clicks through to were owned by U1 through U4 of
+`docs/plans/2026-09-09-1528-fix-pre-attention-cleanup-plan.md` — the non-affiliation line and the relationship section,
+the security policy, the contributing guide, and the issue forms — and all four are merged. Two releases went out behind
+them rather than the single 3.2.0 this phase asked for: 3.2.0 on 2026-09-14 carrying the first-run fixes, and 4.0.0 on
+2026-09-18 carrying the workspace split, alongside `xdk-rs` 0.1.0. The skill-bundle pass landed as `xurl-rs-skill` #13
+and was re-verified against the binary by #17.
+
+The description sentences for the listing are final: each crate's README first paragraph is the source.
 
 ## Phase 2: The docs PR
 
 Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-libraries-rust`, base `main`.
 
 - **Edit** `tools-and-libraries.mdx` only. Insert a `Rust` tab after the `Ruby` tab and delete the `**Rust**` row from
-  the `Other` tab. The tab mirrors the existing ones exactly (two-column table, left-aligned, terse descriptions).
-  Directional shape:
+  the `Other` tab, whose single entry moves into the new tab. The tab mirrors the existing ones exactly (two-column
+  table, left-aligned, terse descriptions). "Other tools" is not touched. Directional shape:
 
 ```mdx
   <Tab title="Rust">
 | Library | Description |
 |:--------|:------------|
-| [xurl-rs](https://github.com/brettdavies/xurl-rs) | Rust port of xurl: CLI and library with JSON output and schema discovery |
+| [xdk-rs](https://github.com/brettdavies/xurl-rs/tree/main/crates/xdk) | Async v2 client: OAuth 1.0a, OAuth 2.0 PKCE with refresh, typed responses, chunked media upload, streaming |
+| [xurl-rs](https://github.com/brettdavies/xurl-rs) | Rust port of xurl (`xr`): the same raw requests and shortcuts, with machine-readable output and structured exit codes |
+| [twitter-v2](https://github.com/jpopesculian/twitter-v2-rs) | Async client library |
   </Tab>
 ```
 
 - **Verify locally** with the Mintlify CLI (`npx mint dev` from the fork root) that the tab renders, since a fork gets
   no preview deployment. Confirm the `Other` tab still renders with the Rust row gone.
 - **PR body.** Short, no template exists. Four parts: what changed; why a tab (Rust had no description column and now
-  has a maintained entry); the `twitter-v2` dates, stated as dates with a one-line offer to restore the row if X prefers
-  to keep it; and an acknowledgement that xurl-rs is community-maintained, matching the page's note. Author it in
-  `/tmp/`, scrub with `/unslop`, submit with `--body-file`.
-- **Title.** `docs: add a Rust tab to Community libraries` or the repo's plain-English style (`Add Rust tab with xurl-rs
-  to Community libraries`); the repo uses both.
+  has two maintained entries that need one); what moved, naming the relocation of `twitter-v2` as a relocation so no
+  reviewer reads it as a removal; and an acknowledgement that both crates are community-maintained and unaffiliated,
+  matching the page's note. Author it in `/tmp/`, scrub with `/unslop`, submit with `--body-file`. There is a drafted
+  body at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md`; it proposes a different placement and is a source of
+  wording only, not a body to send.
+- **Title.** `docs: add a Rust tab to Community libraries` or the repo's plain-English style (`Add Rust tab with xdk-rs
+  and xurl-rs to Community libraries`); the repo uses both.
 - **CLA.** Sign Twitter's Contributor License Agreement when the cla-assistant check asks, as an individual unless an
   employer holds rights to your open-source work, in which case get that permission first. The grant is a non-exclusive,
   irrevocable copyright and patent license over text you submit to X's repositories and issue trackers; it does not
-  reach xurl-rs, which is linked, not submitted.
+  reach either crate, which are linked, not submitted.
+- **Re-verify before opening.** The `twitter-v2` staleness figures below were read on 2026-09-04 and the page was
+  re-read on 2026-09-18 unchanged. Re-read both on the day the PR opens; the PR body states dates, so a stale date is
+  the one error a reviewer will catch.
 - **Deliverable.** Open PR URL, recorded here.
 
 ## Phase 3: X outreach
 
-- **Day 0 (same day as the PR).** One public post from your account: a one-line pitch for xurl-rs, the PR link, tagging
-  `@XDevelopers`. Post it with `xr post` under OAuth 2.0 user context: the outreach doubles as a demonstration. It is a
-  live, billed call: the posting app must be registered, on the pay-per-use package, and in the Production environment,
-  the same portal prerequisites the README's before-you-start block names. Keep it to one post; no thread.
+- **Day 0 (same day as the PR).** One public post from your account: a one-line pitch naming both crates, the PR link,
+  tagging `@XDevelopers`. Post it with `xr post` under OAuth 2.0 user context: the outreach doubles as a demonstration.
+  It is a live, billed call: the posting app must be registered, on the pay-per-use package, and in the Production
+  environment, the same portal prerequisites the README's before-you-start block names. Keep it to one post; no thread.
 - **Day 10.** If the PR and the post are both silent, one nudge: a PR comment mentioning `@tcaldwell-x` (page owner) and
   `@santiagomed` (merges docs PRs), asking whether placement or wording needs to change. Stay on GitHub for the nudge; a
   second public post reads as pressure.
@@ -99,21 +121,22 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 
 ## Contingencies
 
-| If                                                  | Then                                                                                                                 |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Reviewer wants `twitter-v2` kept                    | Amend: both rows in the `Rust` tab, xurl-rs first.                                                                   |
-| Reviewer prefers a link-only row in the `Other` tab | Accept; a bare link beats no listing. Keep the description in the repo.                                              |
-| Reviewer asks for a dedicated page                  | Decline politely; `/tools/*` pages are first-party. The tab row is the ask.                                          |
-| PR closed without comment                           | Ask once in a comment what would make it acceptable; then Day 20 forum post; then stop.                              |
-| A docs maintainer asks about the port relationship  | Point at the README section from Phase 1 and `KNOWN_DIFFERENCES.md`; do not argue feature comparisons in the thread. |
+| If                                                  | Then                                                                                                             |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Reviewer objects to moving `twitter-v2`             | Amend: leave the `Other` tab's Rust row as it is and list only the two new crates in the `Rust` tab.             |
+| Reviewer prefers a link-only row in the `Other` tab | Accept; a bare link beats no listing, and both crates fit one row. Keep the descriptions in the repo.            |
+| Reviewer asks for a dedicated page                  | Decline politely; `/tools/*` pages are first-party. The tab row is the ask.                                      |
+| PR closed without comment                           | Ask once in a comment what would make it acceptable; then Day 20 forum post; then stop.                          |
+| A docs maintainer asks about the port relationship  | Point at `crates/xurl-cli/README.md` and `KNOWN_DIFFERENCES.md`; do not argue feature comparisons in the thread. |
 
 ## Out of scope
 
 - A dedicated `/tools/xurl-rs` page, or edits to the official `/tools/xurl` page.
-- Renaming the project or the binary.
+- A row in the "Other tools" table, which holds only X-owned entries.
+- Renaming either crate or the binary.
 - Listing in the X Ads API tools page.
-- Any change to what xurl-rs does beyond the pre-attention cleanup plan; the listing describes 3.2.0, the release
-  tagged before Phase 2.
+- Any further change to what either crate does. The listing describes `xdk-rs` 0.1.0 and `xurl-rs` 4.0.0, both released
+  2026-09-18.
 
 ## Sources
 
@@ -122,4 +145,23 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 - Forum category: `https://devcommunity.x.com/t/about-the-libraries-sdks-and-sample-code-category/139317`.
 - Unanswered precedent: `https://devcommunity.x.com/t/listing-official-ballerina-connector-for-x/229669`.
 - Incumbent crate: `https://github.com/jpopesculian/twitter-v2-rs`, `https://crates.io/crates/twitter-v2`.
-- This project: `https://github.com/brettdavies/xurl-rs`, `https://crates.io/crates/xurl-rs`, `KNOWN_DIFFERENCES.md`.
+- This project: `https://github.com/brettdavies/xurl-rs`, `https://crates.io/crates/xdk-rs`,
+  `https://crates.io/crates/xurl-rs`, `https://docs.rs/xdk-rs`, `KNOWN_DIFFERENCES.md`.
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `054d939334b8c93f14ff484668e91a9b58ef419d`, 2026-09-18)
+
+| Phase   | State     | Note                                                                                                 |
+| ------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17. |
+| Phase 2 | not-built | No fork of `xdevplatform/docs`, no pull request. This is the plan's only open work.                  |
+| Phase 3 | not-built | Gated on Phase 2; Day 0 is the same day the PR opens.                                                |
+
+The evidence this plan rests on was re-read on 2026-09-18 and still holds: `tools-and-libraries.mdx` is unchanged,
+"Other tools" still carries only its three X-owned rows, and Rust is still one bare-link `twitter-v2` row in the `Other`
+tab.
+
+What changed since the plan was written is on this side, not X's. The repository now publishes two crates instead of
+one, so the listing names both; the release the listing describes is 4.0.0 rather than the 3.2.0 this plan expected to
+be the last one before the PR; and the `twitter-v2` row is relocated into the new tab rather than proposed for removal.

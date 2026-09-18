@@ -2,6 +2,9 @@
 title: Pre-Attention Cleanup - Plan
 type: fix
 date: 2026-09-09
+status: implemented
+implementation: U1-U12b merged to dev; U1-U11 released in 3.2.0 (2026-09-14), U12b in 4.0.0 (2026-09-18)
+open_tasks: the three docs/solutions entries in Definition of Done
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -380,12 +383,12 @@ files exceed 800 lines.
   emitted through the one emitter (KTD17). The client-credentials-missing guard sits inside `commands::auth` and returns
   the existing `EnvelopeAlreadyEmitted { exit_code: 2 }` so the runner exits without printing again; the unknown-command
   renderer sits inside the runner itself, below the boundary that sentinel exists to cross, so it returns the usage exit
-  code directly; the sentinel's `kind()` returns `confirmation-required` as a placeholder and its
-  doc states that the runner is its only consumer and the envelope already on stderr carries the real reason.
-  `Envelope::Error` gains optional `next_step`, `command`, `suggestion`, and the eight auth-mismatch fields (`endpoint`,
-  `rendered_url`, `method`, `requested`, `supported`, `available_in_app`, `app`, `other_apps_with_creds`), each skipped
-  when absent; `print_error` and the emitter construct `Envelope::Error` and serialize it, so an undeclared key cannot
-  be emitted and the regenerated schema describes everything agents see. Typed variants move to the deferred list.
+  code directly; the sentinel's `kind()` returns `confirmation-required` as a placeholder and its doc states that the
+  runner is its only consumer and the envelope already on stderr carries the real reason. `Envelope::Error` gains
+  optional `next_step`, `command`, `suggestion`, and the eight auth-mismatch fields (`endpoint`, `rendered_url`,
+  `method`, `requested`, `supported`, `available_in_app`, `app`, `other_apps_with_creds`), each skipped when absent;
+  `print_error` and the emitter construct `Envelope::Error` and serialize it, so an undeclared key cannot be emitted and
+  the regenerated schema describes everything agents see. Typed variants move to the deferred list.
 - KTD3. **`EXIT_USAGE_ERROR` becomes a public constant in `src/error.rs`.** The runner's private copy is replaced by an
   import; the constant's doc keeps the note that clap parse failures share it. Rejected: reusing `EXIT_AUTH_MISMATCH`,
   which has the same value but a different meaning.
@@ -561,6 +564,9 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U1. README: non-affiliation, relationship section, badges, install name, before-you-start, agent surface
 
+**Landed:** landed — #145 (`02bdb1b`). The README this unit wrote is now the CLI reference at
+`crates/xurl-cli/README.md`; the repository root README is a router between the two crates (#176).
+
 - **Goal:** The first screen of the README answers "is this official?", names the binary, names the portal prerequisites
   and the cost, and carries the three badges; the agent section names the skill installer. Every line this unit writes
   is true against the binary on `main` the day it lands.
@@ -591,6 +597,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U2. Security policy and private vulnerability reporting
 
+**Landed:** landed — #130 (`84fc693`).
+
 - **Goal:** A reporter has a private route and knows what to expect.
 - **Requirements:** R2.
 - **Dependencies:** None. The repository setting must be enabled before the file links to it.
@@ -607,6 +615,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 - **Verification:** The repository's Security tab shows the policy and the "Report a vulnerability" button.
 
 ### U3. Contributing guide with the error-contract principle and the playground developer note
+
+**Landed:** landed — #144 (`795f9ec`).
 
 - **Goal:** A human contributor finds the standard file, is routed to the existing rules, learns the error contract, and
   can exercise `xr` without an X account.
@@ -630,6 +640,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U4. Issue forms, routing config, and Discussions
 
+**Landed:** landed — #132 (`9e39adf`).
+
 - **Goal:** Issues arrive structured and misrouted questions have somewhere to go.
 - **Requirements:** R4.
 - **Dependencies:** None.
@@ -652,6 +664,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   Discussions tab exists.
 
 ### U5. Next-step hint on the no-credentials error, in both modes
+
+**Landed:** landed — #140 (`5b76ae6`), released in 3.2.0.
 
 - **Goal:** Text mode tells the user how to authenticate; structured modes give the agent a `next_step` it can run;
   every existing envelope key is unchanged.
@@ -713,6 +727,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U6. Boolean flags stop swallowing the next word
 
+**Landed:** landed — #133 (`1b1da09`), released in 3.2.0.
+
 - **Goal:** `xr --quiet whoami` runs `whoami`.
 - **Requirements:** R10. Implements KTD6.
 - **Dependencies:** None. U7 depends on this unit.
@@ -741,6 +757,9 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   unchanged).
 
 ### U7. Unknown-command error with a suggestion, one renderer, classification before any load, and bare-`xr` help
+
+**Landed:** landed — #143 (`61a3cf1`), released in 3.2.0. The `reason` vocabulary it set was narrowed later: 403 reports
+`forbidden`, 400 and 422 `invalid-request`, 5xx `server-error` (#198, released in 4.0.0).
 
 - **Goal:** A mistyped command names the nearest real one and exits as a usage error, with the same wording and the same
   envelope whether clap or the classifier caught it, before any config or store is loaded; a bare `xr` prints help.
@@ -773,8 +792,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
      it from the runner after the Tier 1 meta-commands and before `Config` and `Auth` are built: `Help` prints the root
      help to stdout at exit 0 in text mode or the `invalid-args` envelope at exit 2 under structured intent;
      `UnknownCommand` renders with the real `OutputConfig`; `Raw` proceeds. `run_raw_mode` is unchanged: it keeps the
-     URL and path branches and the raw-only-flag "No URL provided" case, and the classifier is what stops a command
-     word from reaching it.
+     URL and path branches and the raw-only-flag "No URL provided" case, and the classifier is what stops a command word
+     from reaching it.
   7. Update the two pinned contract tests for bare `xr`, one in `tests/cli_run_tests.rs` and one in
      `tests/binary_contract_tests.rs`, and point the three color tests in `tests/agentic_tests.rs` at a mistyped
      command, since a bare invocation no longer writes to stderr. All in this unit.
@@ -822,6 +841,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U8. Package exclusions, audit config, and migration links
 
+**Landed:** landed — #131 (`139db46`).
+
 - **Goal:** The published tarball carries no runbooks and no dangling links, and the audit prints no warnings.
 - **Requirements:** R11, R12. Implements KTD7.
 - **Dependencies:** None.
@@ -843,6 +864,9 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U9. SRP review of the oversized files
 
+**Landed:** landed — the follow-up plan is `docs/plans/2026-09-14-1200-refactor-srp-module-boundaries-plan.md`, whose
+four splits shipped as #158, #159, #160, and #161.
+
 - **Goal:** The split debt is recorded as boundaries in a follow-up plan, with nothing moved.
 - **Requirements:** R13. Implements KTD10.
 - **Dependencies:** U5 (so the recorded homes are the ones that exist).
@@ -860,6 +884,9 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   for all eight files.
 
 ### U10. An empty store is empty; loads that fail are never overwritten; registration promotes past nothing; sign-in refuses an empty client id; one emitter and a typed envelope
+
+**Landed:** landed — #137 (`09b1d09`), released in 3.2.0. Store durability was hardened again afterwards: atomic,
+`0600`-at-open, lock-serialized writes (#180, released in 4.0.0).
 
 - **Goal:** The README Quick Start succeeds in order on a fresh install, `auth status` shows no phantom app, a damaged
   store is reported rather than destroyed, a named app registered beside an empty default becomes the default, a sign-in
@@ -942,6 +969,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 
 ### U11. Enrollment hint on the post-sign-in 403
 
+**Landed:** landed — #141 (`982e51d`), released in 3.2.0.
+
 - **Goal:** The first real call after a successful sign-in names the enrollment fix when X refuses the app.
 - **Requirements:** R16. Implements KTD12.
 - **Dependencies:** U5 (the `Hint` type and `print_error_with_hint`). The only unit permitted to slip to 3.3.0.
@@ -963,6 +992,8 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 - **Verification:** The scenarios pass; the README anchor in `docs` resolves.
 
 ### U12a. Status-ok envelopes for the message-shaped auth verbs (3.2.0)
+
+**Landed:** landed — #139 (`50787aa`), released in 3.2.0 as planned.
 
 - **Goal:** Every auth verb whose success is a message object today emits a status-ok envelope, additively.
 - **Requirements:** R17a. Implements KTD14.
@@ -988,6 +1019,9 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 - **Verification:** The scenarios pass; the schema drift test passes; the changelog entry names the additive change.
 
 ### U12b. Arrays under `apps` for `auth status` and `apps list` (3.3.0)
+
+**Landed:** drifted — #157 (`2c63ccf`). The change is exactly as specified; only its release is not. 3.3.0 was never
+cut, so it shipped in 4.0.0 (2026-09-18) instead.
 
 - **Goal:** One success contract across the whole auth surface.
 - **Requirements:** R17b, R14 (recipe update). Implements KTD14.
@@ -1015,7 +1049,10 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
 - **Skill bundles, T15a beside 3.2.0:** `xurl-rs-skill` (`SKILL.md`, `references/auth-modes.md`,
   `references/self-introspection.md`) gains the `next_step` object, the `unknown-command` and
   `client-credentials-missing` reasons, the status-ok message verbs, and the exit-77 recipe reading today's array.
-- **Skill bundles, T15b beside 3.3.0:** the same files move to the `apps` wrapper.
+  Landed as `xurl-rs-skill` #13 (`628f9f4`).
+- **Skill bundles, T15b beside 3.3.0:** the same files move to the `apps` wrapper. Landed in the same #13, which named
+  both task ids; #17 (`af4ef36`) then re-verified every claim against the binary through `tests/contract.sh`. The bundle
+  labels this the "3.3.0 contract"; that version was never tagged, and the tree it describes released as 4.0.0.
 
 ---
 
@@ -1048,14 +1085,56 @@ file exists, neither parser accepts it ──► Unparseable ──► apps empt
   the baselines captured in U5 and U11, with `next_step` the only addition; every emitted error envelope parses back
   into `Envelope::Error` with unknown fields denied.
 - The listing plan's Phase 1 points at U1 through U4 of this plan, and 3.2.0 is tagged before the listing PR opens with
-  the T15a bundle pass beside it.
+  the T15a bundle pass beside it. U1 through U4 and the bundle pass are done; the ordering claim is moot, because two
+  releases went out before the listing PR was drafted and it is still unopened.
 - No experimental or abandoned code remains in the diff; the `strsim` dependency is the only addition to `Cargo.toml`.
 - Each PR body's `### Changed` section names the visible changes its unit introduces, per the Execution profile.
 - Three `docs/solutions/` entries are written after landing: the unified unknown-command renderer and where each
   suggestion comes from, the snapshot-fed hint pattern that keeps existing envelope keys byte-identical while adding
-  `next_step`, and the placeholder-default-app trap with the load-state guard that replaced it.
+  `next_step`, and the placeholder-default-app trap with the load-state guard that replaced it. **Open:** none of the
+  three exists in the corpus. This is the only outstanding work in the plan.
 
 ---
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `054d939334b8c93f14ff484668e91a9b58ef419d`, 2026-09-18)
+
+| Unit | State   | PR   | Commit    | Note                                                                     |
+| ---- | ------- | ---- | --------- | ------------------------------------------------------------------------ |
+| U1   | landed  | #145 | `02bdb1b` | Content now lives at `crates/xurl-cli/README.md` after the split (#176). |
+| U2   | landed  | #130 | `84fc693` | `SECURITY.md` plus private vulnerability reporting.                      |
+| U3   | landed  | #144 | `795f9ec` | —                                                                        |
+| U4   | landed  | #132 | `9e39adf` | Issue forms, routing config, Discussions.                                |
+| U5   | landed  | #140 | `5b76ae6` | Released in 3.2.0.                                                       |
+| U6   | landed  | #133 | `1b1da09` | Released in 3.2.0.                                                       |
+| U7   | landed  | #143 | `61a3cf1` | Reason vocabulary narrowed later by #198.                                |
+| U8   | landed  | #131 | `139db46` | —                                                                        |
+| U9   | landed  | n/a  | n/a       | Follow-up plan written; its splits shipped as #158-#161.                 |
+| U10  | landed  | #137 | `09b1d09` | Store durability hardened again by #180.                                 |
+| U11  | landed  | #141 | `982e51d` | Released in 3.2.0, not deferred to 3.3.0.                                |
+| U12a | landed  | #139 | `50787aa` | Released in 3.2.0 as specified.                                          |
+| U12b | drifted | #157 | `2c63ccf` | As specified, but released in 4.0.0; 3.3.0 was never cut.                |
+
+Phase 0 (the env bearer fix, T1) landed as #129 (`6ea5547`). T14, the Homebrew tap symlink and caveats, landed in
+`brettdavies/homebrew-tap`.
+
+| Task | State      | Evidence                                                              |
+| ---- | ---------- | --------------------------------------------------------------------- |
+| T15a | landed     | `xurl-rs-skill` #13 (`628f9f4`), re-verified by #17 (`af4ef36`).      |
+| T15b | landed     | Same #13; it names both task ids.                                     |
+| T16  | superseded | 3.2.0 shipped U1-U11; 3.3.0 was never cut, so U12b released in 4.0.0. |
+
+### Remaining work
+
+- The three `docs/solutions/` entries named in Definition of Done. None exists in the corpus.
+
+Everything else in this plan is merged and released. Two notes for whoever picks the remainder up:
+
+- The file paths throughout this plan predate the workspace split (#174). `src/**` now resolves under
+  `crates/xdk/src/**` or `crates/xurl-cli/src/**`, and the README this plan edited is `crates/xurl-cli/README.md`. The
+  paths are left as written, because they name the tree each unit actually landed against.
+- `xurl-rs-skill` describes its contract as "3.3.0". That tag does not exist; the tree it documents released as 4.0.0.
 
 ## DX Review Outputs
 
@@ -1439,17 +1518,21 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   - Surfaced by: Install trace; D12; outside voice 18
   - Files: `~/dev/homebrew-tap/Formula/xurl-rs.rb`
   - Verify: `brew install` from the tap; both names run; caveats print
-- [ ] **T15a (P1, human: ~2 hours / CC: ~20 min)** — skill bundles — `next_step`, the new reasons, the status-ok message
-  verbs, and the exit-77 recipe, beside 3.2.0
+- [x] **T15a (P1, human: ~2 hours / CC: ~20 min)** — skill bundles — `next_step`, the new reasons, the status-ok message
+  verbs, and the exit-77 recipe, beside 3.2.0 — landed as `xurl-rs-skill` #13 (`628f9f4`), re-verified against the
+  binary by #17 (`af4ef36`)
   - Surfaced by: outside voice 4, 10, 19 across both reviews
   - Files: `~/dev/xurl-rs-skill/SKILL.md`, `references/auth-modes.md`, `references/self-introspection.md`
   - Verify: the bundle's examples run against 3.2.0 as written
-- [ ] **T15b (P2, human: ~1 hour / CC: ~10 min)** — skill bundles — The `apps` wrapper, beside 3.3.0
+- [x] **T15b (P2, human: ~1 hour / CC: ~10 min)** — skill bundles — The `apps` wrapper — landed in the same
+  `xurl-rs-skill` #13 (`628f9f4`) as T15a, ahead of the release carrying U12b
   - Surfaced by: eng review 15A
   - Files: the same bundle files
   - Verify: the bundle's examples run against 3.3.0 as written
-- [ ] **T16 (P1, human: ~1 hour / CC: ~10 min)** — release — Tag 3.3.0 with U12b and the T15b bundle pass. 3.2.0
-  carried U1 through U11, U11 included, and was tagged before the listing PR opened
+- [x] **T16 (P1, human: ~1 hour / CC: ~10 min)** — release — **Superseded on its version, satisfied on its content.**
+  3.2.0 (2026-09-14) carried U1 through U11, U11 included. No 3.3.0 was ever cut: the workspace split landed first, so
+  U12b and everything stacked behind it shipped in 4.0.0 (2026-09-18) instead. The listing PR had not opened when either
+  tag went out, which inverts this row's ordering claim — see the listing plan's own reconciliation
   - Surfaced by: outside voice 16 (DX review); eng review 16B
   - Files: release branch per `RELEASES.md`
   - Verify: `brew install xurl-rs` and `cargo install xurl-rs` yield a binary whose `xr whoami` on an empty store prints
@@ -1463,8 +1546,8 @@ checkbox as you ship. T-tasks come from the DX review, E-tasks from the engineer
   token endpoint, including a 5xx case (9A)
   - Surfaced by: Tests 9 — no test drives the headless flow at the CLI level
   - Files: `tests/cli_tests.rs`, `tests/oauth2_flow_tests.rs`
-  - Verify: token lands on the app the runtime context names, with a sibling app present to land on wrongly; outputs
-    in both modes; a 5xx token endpoint exits 77 (`EXIT_AUTH_REQUIRED`, the code the flow raises whatever the upstream
+  - Verify: token lands on the app the runtime context names, with a sibling app present to land on wrongly; outputs in
+    both modes; a 5xx token endpoint exits 77 (`EXIT_AUTH_REQUIRED`, the code the flow raises whatever the upstream
     status was) with the pending file kept
 - [x] **E10 (P2, human: ~2 hours / CC: ~10 min)** — tests — Table-driven cross-mode test per error over eight formats
   and both sources (11A)

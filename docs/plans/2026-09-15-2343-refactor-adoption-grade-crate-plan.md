@@ -6,8 +6,8 @@ artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
 status: implemented
-implementation: merged into dev 2026-09-17 as #167, #180, #181, #170-#178 (S01-S12) and #182 (broadcast chat moderators)
-open_tasks: T3 (waiver deletion at the xdk-rs-v0.1.0 tag), T12 (release-plz, out of scope), T30, T31
+implementation: merged into dev 2026-09-17 as #167, #180, #181, #170-#178 (S01-S12) and #182 (broadcast chat moderators); released 2026-09-18 as xdk-rs 0.1.0 and xurl-rs 4.0.0
+open_tasks: U13 listing submission, U14 waiver deletion (unblocked by the xdk-rs-v0.1.0 tag), T12 (release-plz, out of scope), T30, T31
 ---
 
 # Adoption-Grade Crate and CLI - Plan
@@ -687,6 +687,9 @@ list, and deletion of the accepted-break entries once the tag moves past them.
 
 ### U17. The listing route, established
 
+**Landed:** landed — recon only, no code. Its conclusion still holds: the page is unchanged as of 2026-09-18 and the
+pull request route is open. See the listing plan for the placement decision U13 does not settle.
+
 **Status.** Answered 2026-09-16. Recorded here because it changes U13 and clears the Phase C stop condition.
 
 **Finding: the route is a pull request, not a forum post.** X's documentation is the public `xdevplatform/docs`
@@ -705,6 +708,8 @@ So the route is open and concrete, not guaranteed.
 secondary signal rather than the primary channel.
 
 ### U18. Settle the async API shape
+
+**Landed:** landed — S01, #167 (`8130244`), with the golden-output baseline (T27, T40).
 
 **Goal.** Decide the library's async surface before any of it is written, because `0.1.0` is where these choices start
 setting.
@@ -761,6 +766,8 @@ wrong about them; that is the failure mode to avoid.
 **Verification.** The KTDs exist, name their rejected alternatives, and each downstream async unit references one.
 
 ### U0. Durable, lockable credential store
+
+**Landed:** landed — S02, #180 (`a5860dd`).
 
 **Goal.** Credential writes survive a crash, a concurrent writer, and a restrictive umask. This is a present-day bug
 with no async dependency; it is sequenced before U4 because R3 makes concurrent use the headline capability and the
@@ -826,6 +833,8 @@ fix lands.
 
 ### U1. Lock Send + Sync as compile-time invariants
 
+**Landed:** landed — S02, #180 (`a5860dd`), beside U0.
+
 **Goal.** Turn "async is reachable" from a claim into a compile error if it ever stops being true.
 
 **Requirements.** R3.
@@ -856,6 +865,8 @@ form. `src/output/mod.rs:60-61` already states the intent in a doc comment.
 **Verification.** `cargo build` and `cargo clippy --all-targets -- -D warnings`.
 
 ### U2. Move presentation and side effects out of the library
+
+**Landed:** landed — S04, #170 (`e7aa160`).
 
 **Goal.** Remove every dependency that points from library code into `src/cli/`, remove clap from the library types that
 already carry it, and remove the library's terminal I/O and browser launching.
@@ -951,6 +962,8 @@ library-only build above.
 
 ### U3. Remove clap from the generated skill-host enum
 
+**Landed:** landed — S03, #181 (`539d8cd`).
+
 **Goal.** Stop `build.rs` from deriving a clap trait into library code, and remove the library's production use of that
 trait.
 
@@ -975,6 +988,8 @@ values.
 **Verification.** `cargo test --test cli_tests`, plus running the five commands above against the built binary.
 
 ### U4. Async transport core, and the CLI goes async
+
+**Landed:** landed — S06, #172 (`e7577c4`), with U15.
 
 **Goal.** The request layer sends over an async client with the runtime owned by the caller, and the binary owns exactly
 one runtime, privately.
@@ -1056,6 +1071,8 @@ last tag before U4 and record the result — the async runtime is now the CLI's,
 conversion's direct cost. The standing CI ceiling U6 adds is what keeps it honest afterward.
 
 ### U15. Async auth paths, one shared HTTP client
+
+**Landed:** landed — S06, #172 (`e7577c4`), with U4.
 
 **Goal.** Token exchange, refresh, and the OAuth2 callback listener stop creating their own runtimes — and stop creating
 their own clients.
@@ -1142,6 +1159,8 @@ unit).
 
 ### U19. Credentials in code, and every shortcut is a `Call<T>`
 
+**Landed:** landed — S07, #173 (`fdaa636`).
+
 **Goal.** An embedder builds a client from a credential they already hold and calls every shortcut as a builder, so R12
 holds with no CLI, no store file, and no environment mutation. The CLI is the first consumer of the same surface.
 
@@ -1178,6 +1197,8 @@ returning nothing.
 
 ### U5. Migrate parser-introspection tests
 
+**Landed:** landed — S04, #170 (`e7aa160`), inside the same branch as U2.
+
 **Goal.** Remove the test-suite dependency on parser types being public, which is a confirmed compile break under U6.
 
 **Requirements.** R2.
@@ -1207,6 +1228,8 @@ survive.
 **Verification.** `cargo test`, and a count comparison of passing tests before and after.
 
 ### U6. Split into a workspace
+
+**Landed:** landed — S08, #174 (`62e4c1a`), the `refactor(workspace)!` break that made the CLI 4.0.0.
 
 **Goal.** A library crate with no CLI dependencies, and a binary crate that owns clap.
 
@@ -1379,6 +1402,8 @@ recorded in the Verification Contract, `cargo publish --dry-run --workspace` gre
 
 ### U7. Audit and close the published surface
 
+**Landed:** landed — S09, #175 (`1a6928f`), with U8.
+
 **Goal.** Every published module is something an embedder has reason to call, and every item promoted to reach across
 the split is reviewed rather than merely hidden.
 
@@ -1418,6 +1443,8 @@ the plain command cannot show the surface being audited — plus a review of the
 
 ### U8. TLS feature design and the CI matrix
 
+**Landed:** landed — S09, #175 (`1a6928f`), with U7.
+
 **Goal.** Selectable TLS, and a matrix that actually compiles each configuration.
 
 **Requirements.** R5.
@@ -1443,6 +1470,8 @@ feature — KTD3 settled that; the library ships one posture. Every matrix cell 
 **Verification.** The CI matrix, plus `cargo hack check --feature-powerset` if available.
 
 ### U9. docs.rs metadata, lints, rustdoc posture
+
+**Landed:** landed — S10, #176 (`7f4791f`), with U10.
 
 **Goal.** The crate's crates.io and docs.rs pages read like a maintained, professional library.
 
@@ -1488,6 +1517,8 @@ a crate-level doc comment that opens with a working example, since that is the f
 followed by a read of the generated metadata.
 
 ### U10. Runnable examples
+
+**Landed:** landed — S10, #176 (`7f4791f`), with U9 and the `testing` feature.
 
 **Goal.** A prospective adopter can copy something that works.
 
@@ -1536,6 +1567,9 @@ so the capability exists — what is missing is that anyone is told.
 xdk-rs`.
 
 ### U11. The error type becomes `xdk::Error`: renamed, non-exhaustive, exhaustively coded
+
+**Landed:** landed — S05, #171 (`c8a22ea`). The reason mapping behind `kind()` was revised afterwards by #198
+(`c35c0c6`), which also moved `Http` to exit 5.
 
 **Goal.** The public error type reads like a Rust library's, new variants stop forcing a version bump the crate cannot
 afford, and no variant silently inherits a generic exit code.
@@ -1592,6 +1626,9 @@ own arms.
 **Verification.** `cargo test`, and `cargo build` against a planted throwaway variant.
 
 ### U12. Rewire release and distribution for the split
+
+**Landed:** landed — S11, #177 (`e680abb`), then corrected in flight by #199 through #209 as the first two-crate release
+ran.
 
 **Goal.** Every existing distribution channel keeps working after the split.
 
@@ -1653,18 +1690,25 @@ into the library README where a reviewer can check them in seconds:
 
 ### U13. Publish and submit for listing
 
+**Landed:** partial — the publish half is done: `xdk-rs` 0.1.0 and `xurl-rs` 4.0.0 are on crates.io (2026-09-18), tagged
+`xdk-rs-v0.1.0` and `v4.0.0`, and the `0.0.0` placeholder is yanked. **The listing submission is open**, and it is the
+only item left in any of these three plans that depends on someone outside the project. No fork of `xdevplatform/docs`
+exists and no pull request has been opened. A drafted body sits at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md`;
+it predates the placement decision recorded in the listing plan and needs rewriting against it.
+
 **Goal.** The crate is on crates.io in its adoption-grade form and submitted for X's community libraries list.
 
 **Requirements.** R9, R11.
 
 **Approach.** Publish the library and the CLI.
 
-For the submission, open a pull request against `tools-and-libraries.mdx` in the public `xdevplatform/docs` repository,
-adding the crate to the Rust entry. U17 established that this is the live route and that the developer forum is not.
-Lead with the lineage that already exists — X's own `xurl` is listed there under Developer tools and this project is its
-Rust port — and state the `xdk-rs` name and the absence of any affiliation plainly in the PR body rather than leaving
-either to be discovered. Post in the Libraries, SDKs, Samples forum category as a secondary signal, not as the primary
-channel.
+For the submission, open a pull request against `tools-and-libraries.mdx` in the public `xdevplatform/docs` repository.
+U17 established that this is the live route and that the developer forum is not. The placement, the two entries, and the
+handling of the stale incumbent are settled in `docs/plans/2026-09-04-1836-docs-x-docs-listing-plan.md`, which governs
+the submission; this unit owns the publish and the post-submission checkpoint. Lead with the lineage that already exists
+— X's own `xurl` is listed there under Developer tools and this project is its Rust port — and state the `xdk-rs` name
+and the absence of any affiliation plainly in the PR body rather than leaving either to be discovered. Post in the
+Libraries, SDKs, Samples forum category as a secondary signal, not as the primary channel.
 
 **Post-submission checkpoint.** Record the result. If the submission is rejected or goes unanswered by the window the
 recon unit established, state what the plan does next rather than treating the roadmap as complete.
@@ -1678,6 +1722,10 @@ recon unit established, state what the plan does next rather than treating the r
 **Verification.** `cargo publish --dry-run -p xdk-rs`, then the real publish.
 
 ### U14. Delete the accepted-break entries
+
+**Landed:** not-built — unblocked, not done. The `xdk-rs-v0.1.0` tag exists, which is the baseline the table's own
+comment names as the point the whole block is deleted at, and all seventeen entries are still in
+`crates/xdk/Cargo.toml`.
 
 **Goal.** The waiver table does not outlive the release it describes.
 
@@ -1808,6 +1856,57 @@ clean tree.
 
 **Per unit.** Each unit's Verification section has an observed result, not an assumed one. Units whose test scenarios
 call for observing a failure first record the actual failure output.
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `054d939334b8c93f14ff484668e91a9b58ef419d`, 2026-09-18)
+
+Phase A and Phase B are complete. Phase C is complete except for the listing submission and the waiver deletion.
+
+| Unit | State     | Stack | PR   | Commit    | Note                                                       |
+| ---- | --------- | ----- | ---- | --------- | ---------------------------------------------------------- |
+| U17  | landed    | —     | n/a  | n/a       | Recon only; conclusion re-checked 2026-09-18 and holds.    |
+| U18  | landed    | S01   | #167 | `8130244` | With the golden baseline (T27, T40).                       |
+| U0   | landed    | S02   | #180 | `a5860dd` | —                                                          |
+| U1   | landed    | S02   | #180 | `a5860dd` | —                                                          |
+| U3   | landed    | S03   | #181 | `539d8cd` | —                                                          |
+| U2   | landed    | S04   | #170 | `e7aa160` | —                                                          |
+| U5   | landed    | S04   | #170 | `e7aa160` | Same branch as U2.                                         |
+| U11  | landed    | S05   | #171 | `c8a22ea` | Reason mapping revised later by #198.                      |
+| U4   | landed    | S06   | #172 | `e7577c4` | —                                                          |
+| U15  | landed    | S06   | #172 | `e7577c4` | —                                                          |
+| U19  | landed    | S07   | #173 | `fdaa636` | —                                                          |
+| U6   | landed    | S08   | #174 | `62e4c1a` | The break that made the CLI 4.0.0.                         |
+| U7   | landed    | S09   | #175 | `1a6928f` | —                                                          |
+| U8   | landed    | S09   | #175 | `1a6928f` | —                                                          |
+| U9   | landed    | S10   | #176 | `7f4791f` | —                                                          |
+| U10  | landed    | S10   | #176 | `7f4791f` | —                                                          |
+| U12  | landed    | S11   | #177 | `e680abb` | Corrected in flight by #199-#209 during the first release. |
+| U13  | partial   | —     | n/a  | n/a       | Published; the listing submission is open.                 |
+| U14  | not-built | —     | n/a  | n/a       | Unblocked by `xdk-rs-v0.1.0`; 17 entries remain.           |
+
+Two units landed that this plan never specified, both from the devex pass on #176: S12 (#178, `b513877`) moved media
+upload behind a builder and stated the line between the crates, and S13 (#182, `f3cf95c`) added the broadcast chat
+moderator commands.
+
+| Task | State     | Evidence                                                                  |
+| ---- | --------- | ------------------------------------------------------------------------- |
+| T3   | landed    | `v4.0.0` tagged and published 2026-09-18 with `docs/migrating/v4.0.0.md`. |
+| T12  | not-built | `release-plz` evaluation; the plan already scopes it out.                 |
+| T30  | not-built | `.anc.toml` still committed and still inert, and now also stale.          |
+| T31  | not-built | No issue filed against `brettdavies/agentnative-cli`.                     |
+
+Every other T-task in this plan's three task lists is checked.
+
+### Remaining work
+
+- **U13, the listing submission.** The shape is settled in `docs/plans/2026-09-04-1836-docs-x-docs-listing-plan.md`; the
+  drafted body at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md` predates that decision and needs rewriting.
+- **U14, the waiver deletion.** Delete the whole `[package.metadata.cargo-semver-checks.lints]` block from
+  `crates/xdk/Cargo.toml` and confirm `cargo semver-checks --baseline-rev xdk-rs-v0.1.0 --release-type minor` passes.
+  The block's own comment states that `xdk-rs-v0.1.0` never carried any of the items it waives, so it comes out whole
+  rather than one entry at a time.
+- **T30 and T31**, both P3.
 
 ## Appendix
 
@@ -1997,7 +2096,8 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Surfaced by: Issue 9 reopened (9E) — 4 entrypoints, 40 `.await` sites, 17 test refs
   - Files: `src/main.rs`, `src/cli/runner.rs`, `src/cli/commands/*`
   - Verify: `cargo test` at the same count, plus `xr <cmd> | head -1` exits clean
-- [ ] **T3 (P1, human: ~20min / CC: ~5min)** — release — Ship the CLI as `xurl-rs` 4.0.0 with `docs/migrating/v4.0.0.md`
+- [x] **T3 (P1, human: ~20min / CC: ~5min)** — release — Ship the CLI as `xurl-rs` 4.0.0 with `docs/migrating/v4.0.0.md`
+  — shipped 2026-09-18; the verify line's second half is U14 and is still open
   - Surfaced by: Issue 1 — `Cargo.toml:73-75` declares `[lib] name = "xurl"` on a published crate
   - Files: `Cargo.toml`, `docs/migrating/v4.0.0.md`, `.github/workflows/release.yml`
   - Verify: `cargo semver-checks --release-type major` passes with no waiver entries
@@ -2530,11 +2630,14 @@ before any of it lands.
     audit --help` exposes no config flag, so the committed file has no effect
   - Files: `.anc.toml`
   - Verify: either the `p6` evidence reflects the allowlist, or the file is gone
+  - Still open at `054d939`. The file has also drifted: `block`, `unblock`, `blocked`, `muted`, and `broadcasts` shipped
+    after it was written and are absent from `domain_verbs`
 - [ ] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
   - Surfaced by: D8 — all 13 reported `.unwrap()` calls sit inside `#[cfg(test)]` blocks; the source scan does not
     exclude test modules
   - Files: none here; an issue against `brettdavies/agentnative-cli`
   - Verify: `code-unwrap` stops reporting test-only hits
+  - Still open at `054d939`. `brettdavies/agentnative-cli` has no issues filed
 
 ## Final Engineering Pass Outcomes
 
