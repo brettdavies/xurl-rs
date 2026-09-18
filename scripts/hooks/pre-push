@@ -316,7 +316,7 @@ if ! touched '^\.github/workflows/.*\.ya?ml$'; then
     note "actionlint (no workflow in this push)"
 else
     step "actionlint" "actionlint" check_actionlint .github/workflows || exit 1
-    step "concurrency namespacing" "bash scripts/lint-workflow-concurrency.sh" \
+    step "concurrency namespacing" "bash scripts/check-workflow-concurrency.sh" \
         check_workflow_concurrency .github/workflows || exit 1
 fi
 

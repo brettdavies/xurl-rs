@@ -650,7 +650,7 @@ def main() -> int:
             print("Updated CHANGELOG.md")
         else:
             print(
-                "Updated CHANGELOG.md (skipping PR expansion — missing [remote.github] or gh CLI)"
+                "Updated CHANGELOG.md (skipping PR expansion; missing [remote.github] or gh CLI)"
             )
         print("\nNext steps:")
         print("  git add CHANGELOG.md")
