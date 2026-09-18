@@ -155,17 +155,31 @@ git pull --ff-only origin dev
 
 # Cut a branch -- the repo's RELEASES.md and AGENTS.md ban direct commits to dev.
 SYNC_BRANCH="chore/sync-dev-after-${VERSION}"
+# Only a branch this run created may be cleaned up. A dry run creates none, so
+# deleting the branch of a sync already in flight would discard its work.
+BRANCH_IS_OURS=false
 
-if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
-  echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
-  exit 68
-fi
-if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
-  echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
-  exit 68
-fi
+restore_dev() {
+  git switch dev
+  [[ "$BRANCH_IS_OURS" == true ]] && git branch -D "$SYNC_BRANCH"
+  return 0
+}
 
-git checkout -b "$SYNC_BRANCH"
+# A dry run creates no branch, so an existing one is no reason to refuse: the
+# question it answers, what this release would carry back, is exactly the one
+# asked while a prior attempt is still open.
+if [[ "$DRY_RUN" == false ]]; then
+  if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
+    echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
+    exit 68
+  fi
+  if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
+    echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
+    exit 68
+  fi
+  git checkout -b "$SYNC_BRANCH"
+  BRANCH_IS_OURS=true
+fi
 
 # Writes VERSION_NO_V into the first `version = "..."` line of a TOML file,
 # or the first `"version": "..."` entry of a JSON file, in place and without
@@ -355,8 +369,7 @@ done
 # already staged and leaves the worktree clean.
 if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]] && git diff --cached --quiet; then
   echo "no changes -- dev already in sync with $VERSION"
-  git switch dev
-  git branch -D "$SYNC_BRANCH"
+  restore_dev
   exit 0
 fi
 
@@ -365,8 +378,10 @@ printf '  %s\n' "${SYNC_PATHS[@]}"
 
 if [[ "$DRY_RUN" == true ]]; then
   echo "dry run -- no branch, commit, or PR created"
-  git switch dev
-  git branch -D "$SYNC_BRANCH"
+  # Discovery copied main's versions in to compare them, which stages as well
+  # as writes, so both have to come back for a dry run to leave no trace.
+  git restore --staged --worktree -- "${SYNC_PATHS[@]}" 2>/dev/null || true
+  restore_dev
   exit 0
 fi
 
