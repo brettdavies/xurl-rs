@@ -331,7 +331,13 @@ binaries, no Homebrew.
 its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check-version` job fails by name when the
 bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
 
-Both changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev` since the
+The repository root's `CHANGELOG.md` is prose routing to the two crate changelogs and carries no release history.
+`generate-changelog.py` refuses to write a file carrying its `changelog-router` marker and names `--crate` instead,
+so a run that forgets the flag stops rather than burying the router under a version section. It is the one changelog
+that is hand-written, and the only one markdownlint checks.
+
+Both crate changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev`
+since the
 previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on top of
 `main`, so it carries no per-PR history for git-cliff to read.
 

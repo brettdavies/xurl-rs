@@ -86,8 +86,7 @@ ignores:
   # contradict "never hand-edit CHANGELOG.md" and make the generator's
   # --dry-run drift gate fail on its own output. A workspace member keeps its
   # own changelog beside its manifest, generated the same way.
-  - "CHANGELOG.md"
-  - "**/CHANGELOG.md"
+  - "crates/*/CHANGELOG.md"
 
 # Fix automatically when --fix is used
 fix: true

@@ -115,6 +115,34 @@ def detect_tag_from_branch() -> str:
     return tag
 
 
+# A changelog that only points at other changelogs carries this marker. The
+# generator refuses to write one, because a workspace's root file routes to the
+# per-crate histories and holds no version sections to regenerate.
+ROUTER_MARKER = "changelog-router"
+
+
+def is_router(changelog: Path) -> bool:
+    if not changelog.exists():
+        return False
+    head = changelog.read_text()[:2000]
+    return ROUTER_MARKER in head
+
+
+def refuse_router(changelog: Path, crate: str | None) -> None:
+    """Stop before writing a routing changelog, naming the way to the real one."""
+    if not is_router(changelog):
+        return
+    hint = (
+        "pass --crate NAME to generate that crate's changelog instead"
+        if not crate
+        else f"{crate}'s [package.metadata.changelog] points at this file; point it at the crate's own"
+    )
+    fail(
+        f"{changelog} routes to the per-crate changelogs and holds no release "
+        f"history; {hint}"
+    )
+
+
 def check_mode(changelog: Path) -> int:
     if not changelog.exists():
         print("FAIL: CHANGELOG.md does not exist", file=sys.stderr)
@@ -922,6 +950,10 @@ def main() -> int:
 
     if not cliff_toml.exists():
         fail(f"cliff.toml not found in {repo}")
+
+    # Before anything reads or writes it. A routing changelog has no version
+    # section to check and must never be regenerated over.
+    refuse_router(changelog, args.crate)
 
     if args.check:
         return check_mode(changelog)
