@@ -11,6 +11,7 @@ Usage:
     generate-changelog.py --dry-run [--tag vX.Y.Z] [repo-path]
     generate-changelog.py --print-tag [--tag TAG] [repo-path]
     generate-changelog.py --from-dev-prs [--dev-branch dev] [--tag vX.Y.Z] [repo-path]
+    generate-changelog.py --crate NAME --tag NAME-vX.Y.Z [repo-path]
 
 Options:
     --tag vX.Y.Z   Override version tag (default: extracted from branch name).
@@ -21,6 +22,11 @@ Options:
                    overlay-built release branch, whose single commit carries no
                    per-PR history. No git-cliff run.
     --dev-branch   Integration branch --from-dev-prs reads (default: dev).
+    --crate NAME   Generate a workspace member's own changelog: its cliff.toml
+                   and CHANGELOG.md, on its NAME-vX.Y.Z tag line. Needs --tag.
+                   A member's changelog is generated on a branch off the
+                   integration branch, where its commits are, so it takes the
+                   git-cliff path rather than --from-dev-prs.
     --check        Verify CHANGELOG.md has a versioned section
                    (exit 1 if only [Unreleased]).
     --dry-run      Run the regen flow against the current CHANGELOG.md and
@@ -142,14 +148,34 @@ def ensure_github_token() -> None:
         os.environ["GITHUB_TOKEN"] = token
 
 
-def run_git_cliff(tag: str, changelog: Path) -> None:
+def run_git_cliff(tag: str, changelog: Path, config: Path | None = None) -> None:
     args = ["git", "cliff", "--unreleased", "--tag", tag]
+    if config is not None:
+        args += ["-c", str(config)]
     if changelog.exists():
         args += ["--prepend", str(changelog)]
     else:
         args += ["-o", str(changelog)]
     if subprocess.run(args).returncode != 0:
         sys.exit(1)
+
+
+def crate_manifest_dir(repo: Path, crate: str) -> Path:
+    """The directory holding a workspace member's Cargo.toml.
+
+    Read from cargo rather than guessed from the crate name: a member's
+    directory need not be named after its package (`xdk-rs` lives in
+    `crates/xdk`).
+    """
+    proc = run(
+        ["cargo", "metadata", "--format-version", "1", "--no-deps"], cwd=str(repo)
+    )
+    if proc.returncode != 0:
+        fail(f"cargo metadata failed: {proc.stderr.strip()}")
+    for package in json.loads(proc.stdout).get("packages", []):
+        if package.get("name") == crate:
+            return Path(package["manifest_path"]).parent
+    fail(f"{crate} is not a workspace member of {repo}")
 
 
 def read_remote_github(cliff_toml: Path) -> tuple[str | None, str | None]:
@@ -215,22 +241,66 @@ def slice_below(body: str, header_pattern: str) -> str | None:
     return rest[: next_h2.start()] if next_h2 else rest
 
 
-def extract_changelog_sections(body: str) -> dict[str, list[str]]:
+# A fenced block indented under a bullet. Column-zero fences are not part of
+# the bullet, so they do not open one.
+FENCE_OPEN_RE = re.compile(r"^\s+(`{3,}|~{3,})")
+
+
+def extract_changelog_sections(
+    body: str, heading: str = r"^## Changelog\s*$"
+) -> dict[str, list[str]]:
+    """Map each `### <heading>` under HEADING to its bullets.
+
+    A bullet's continuation lines fold into it as one line, because a changelog
+    bullet is one logical line. An indented fenced code block is the exception:
+    it is kept verbatim, newlines and indentation intact, so a breaking entry
+    can carry the before/after snippet `crates/xdk/README.md` requires. Folding
+    a fence would paste its lines into running prose and destroy the block.
+    """
     sections: dict[str, list[str]] = {}
-    content = slice_below(body, r"^## Changelog\s*$")
+    content = slice_below(body, heading)
     if content is None:
         return sections
     current: str | None = None
+    fence: str | None = None
     for line in content.split("\n"):
+        if fence is not None:
+            sections[current][-1] += "\n" + line
+            if line.strip().startswith(fence):
+                fence = None
+            continue
         h3 = re.match(r"^### (.+)", line)
         if h3:
             current = h3.group(1).strip()
             sections.setdefault(current, [])
-        elif current and re.match(r"^- ", line):
+            continue
+        if current is None:
+            continue
+        opener = FENCE_OPEN_RE.match(line)
+        if opener and sections.get(current):
+            fence = opener.group(1)
+            # The blank line the body had before the fence was dropped as
+            # neither bullet nor continuation; a fence abutting the bullet
+            # text renders as part of it.
+            sections[current][-1] += "\n\n" + line
+            continue
+        if re.match(r"^- ", line):
             sections[current].append(line)
-        elif current and sections.get(current) and re.match(r"^  \S", line):
+        elif sections.get(current) and re.match(r"^  \S", line):
             sections[current][-1] = sections[current][-1].rstrip() + " " + line.strip()
     return sections
+
+
+def with_attribution(entry: str, attrib: str) -> str:
+    """Attach the author and PR link to an entry's first line.
+
+    An entry that carries a fenced snippet runs to several lines, and appending
+    to the whole string would put the attribution after the closing fence.
+    """
+    if not attrib or " by @" in entry:
+        return entry
+    head, sep, rest = entry.partition("\n")
+    return head + attrib + sep + rest
 
 
 def declares_empty_changelog(body: str) -> bool:
@@ -261,8 +331,18 @@ def extract_flat_changes(body: str) -> list[str]:
 
 
 def collect_entries(
-    owner: str, repo: str, pr_numbers: list[int]
+    owner: str,
+    repo: str,
+    pr_numbers: list[int],
+    heading: str = r"^## Changelog\s*$",
+    answered: set[int] | None = None,
 ) -> dict[str, list[str]]:
+    """Aggregate the PR bodies' changelog bullets by category.
+
+    ANSWERED, when given, collects the PRs whose body actually carried the
+    heading, so a caller merging against a git-cliff skeleton knows which
+    skeleton bullets an authored entry replaces and which stand on their own.
+    """
     aggregated: dict[str, list[str]] = {}
     for num in pr_numbers:
         pr = fetch_pr(owner, repo, num)
@@ -276,31 +356,27 @@ def collect_entries(
             else ""
         )
 
-        sections = extract_changelog_sections(body)
-        if sections:
+        sections = extract_changelog_sections(body, heading)
+        if sections and any(bullets for bullets in sections.values()):
+            if answered is not None:
+                answered.add(num)
             for category, bullets in sections.items():
                 if not bullets:
                     continue
                 aggregated.setdefault(category, [])
-                first = True
-                for bullet in bullets:
-                    if first and " by @" not in bullet:
-                        aggregated[category].append(bullet + attrib)
-                    else:
-                        aggregated[category].append(bullet)
-                    first = False
+                for index, bullet in enumerate(bullets):
+                    aggregated[category].append(
+                        with_attribution(bullet, attrib) if index == 0 else bullet
+                    )
             continue
 
         flat = extract_flat_changes(body)
         if flat:
             aggregated.setdefault("Changed", [])
-            first = True
-            for bullet in flat:
-                if first and " by @" not in bullet:
-                    aggregated["Changed"].append(bullet + attrib)
-                else:
-                    aggregated["Changed"].append(bullet)
-                first = False
+            for index, bullet in enumerate(flat):
+                aggregated["Changed"].append(
+                    with_attribution(bullet, attrib) if index == 0 else bullet
+                )
             continue
 
         # An author who filled in the template and left the section empty has
@@ -323,27 +399,49 @@ def collect_entries(
     return aggregated
 
 
-def resolve_version_tag(version: str) -> str | None:
+def version_from_tag(tag: str, prefix: str = "") -> str:
+    """The bare `X.Y.Z` a tag names.
+
+    A workspace member tags as `<crate>-vX.Y.Z`, so the prefix is supplied by
+    the caller that knows which line is being released; the binary's own tags
+    are `vX.Y.Z` and fall through to the `v` strip.
+    """
+    if prefix and tag.startswith(prefix):
+        return tag[len(prefix) :]
+    return tag[1:] if tag.startswith("v") else tag
+
+
+def resolve_version_tag(version: str, prefix: str = "") -> str | None:
     """Return the git tag for a released version, or None.
 
-    Tries the `v`-prefixed spelling first, then the bare one (CalVer repos
-    tag without a prefix). The existence check keeps the compare link from
-    referencing a tag that does not exist (e.g. the first release, with no
-    prior tag); the caller omits the link instead of emitting a dead ref.
-    Repos with historical tags under another naming scheme should rename
-    those tags rather than widen this lookup further.
+    Tries the caller's own tag line first, then the `v`-prefixed spelling and
+    the bare one (CalVer repos tag without a prefix). The existence check keeps
+    the compare link from referencing a tag that does not exist (e.g. the first
+    release, with no prior tag); the caller omits the link instead of emitting
+    a dead ref. Repos with historical tags under another naming scheme should
+    rename those tags rather than widen this lookup further.
     """
-    for candidate in (f"v{version}", version):
+    candidates = ([f"{prefix}{version}"] if prefix else []) + [f"v{version}", version]
+    for candidate in candidates:
         if run(["git", "tag", "-l", candidate]).stdout.strip():
             return candidate
     return None
 
 
-def previous_tag(current_tag: str) -> str | None:
-    """Newest release tag other than the one being cut, or None."""
+def previous_tag(current_tag: str, prefix: str = "") -> str | None:
+    """Newest release tag on the same line as the one being cut, or None.
+
+    A member's line is selected by its prefix. Without one the binary's bare
+    `vX.Y.Z` tags are matched and a member's prefixed tags are rejected, so the
+    two lines never baseline against each other.
+    """
+    pattern = re.compile(rf"^{re.escape(prefix)}\d") if prefix else re.compile(r"^v?\d")
     for candidate in run(["git", "tag", "--sort=-version:refname"]).stdout.split():
-        if candidate != current_tag and re.match(r"^v?\d", candidate):
-            return candidate
+        if candidate == current_tag or not pattern.match(candidate):
+            continue
+        if not prefix and "-v" in candidate:
+            continue
+        return candidate
     return None
 
 
@@ -409,6 +507,46 @@ def seed_version_section(changelog: Path, version: str) -> None:
     changelog.write_text(content)
 
 
+def parse_skeleton_section(section: str) -> list[tuple[str, str, int | None]]:
+    """The git-cliff skeleton as (group, bullet, pr number) in file order."""
+    rows: list[tuple[str, str, int | None]] = []
+    group = ""
+    for line in section.splitlines():
+        h3 = re.match(r"^### (.+)", line)
+        if h3:
+            group = h3.group(1).strip()
+            continue
+        if not line.startswith("- "):
+            continue
+        found = re.search(r"\(#(\d+)\)|\[#(\d+)\]", line)
+        num = int(found.group(1) or found.group(2)) if found else None
+        rows.append((group, line, num))
+    return rows
+
+
+def merge_crate_entries(
+    skeleton: list[tuple[str, str, int | None]],
+    authored: dict[str, list[str]],
+    answered: set[int],
+) -> dict[str, list[str]]:
+    """Authored bullets where a PR supplied them, skeleton bullets elsewhere.
+
+    A member's changelog takes its membership and its grouping from git-cliff,
+    which scopes commits by the member's `include_paths`. Replacing the whole
+    section with the PR bodies' bullets would instead pull in every bullet a
+    shared PR wrote, including the ones describing the other crate. So an
+    authored block only displaces the bullets of the PR that wrote it.
+    """
+    merged: dict[str, list[str]] = {}
+    for group, bullet, num in skeleton:
+        if num is not None and num in answered:
+            continue
+        merged.setdefault(group, []).append(bullet)
+    for group, bullets in authored.items():
+        merged.setdefault(group, []).extend(bullets)
+    return merged
+
+
 def rewrite_version_section(
     changelog: Path,
     version: str,
@@ -416,6 +554,7 @@ def rewrite_version_section(
     owner: str,
     repo: str,
     entries: dict[str, list[str]],
+    prefix: str = "",
 ) -> None:
     content = changelog.read_text()
     header_re = re.compile(rf"^## \[{re.escape(version)}\].*$", re.MULTILINE)
@@ -443,7 +582,7 @@ def rewrite_version_section(
         rf"## \[{re.escape(version)}\].*?\n## \[([^\]]+)\]", content, re.DOTALL
     )
     if prev_match:
-        prev_tag = resolve_version_tag(prev_match.group(1))
+        prev_tag = resolve_version_tag(prev_match.group(1), prefix)
         if prev_tag:
             new_section += (
                 f"\n**Full Changelog**: "
@@ -462,7 +601,7 @@ def rewrite_version_section(
 def from_dev_prs_mode(args, cliff_toml: Path, changelog: Path) -> int:
     """Fill the version section from PRs merged into the integration branch."""
     tag = args.tag or detect_tag_from_branch()
-    version = tag[1:] if tag.startswith("v") else tag
+    version = version_from_tag(tag)
     owner, repo_name = read_remote_github(cliff_toml)
     if not (owner and repo_name):
         fail("--from-dev-prs needs [remote.github] owner/repo in cliff.toml")
@@ -515,9 +654,9 @@ def from_dev_prs_mode(args, cliff_toml: Path, changelog: Path) -> int:
             )
             return 1
 
-        print(f"Updated CHANGELOG.md from {len(pr_nums)} PRs merged into {args.dev_branch}")
+        print(f"Updated {changelog} from {len(pr_nums)} PRs merged into {args.dev_branch}")
         print("\nNext steps:")
-        print("  git add CHANGELOG.md")
+        print(f"  git add {changelog}")
         print("  git commit -m 'docs: update CHANGELOG.md'")
         return 0
     finally:
@@ -551,15 +690,38 @@ def main() -> int:
     )
     parser.add_argument("--dev-branch", default="dev")
     parser.add_argument("--tag")
+    parser.add_argument(
+        "--crate",
+        help=(
+            "Generate a workspace member's own changelog instead of the root one: "
+            "its cliff.toml and CHANGELOG.md, on its <crate>-vX.Y.Z tag line. "
+            "Requires --tag, since a member is released from a branch off the "
+            "integration branch rather than from a release/vX.Y.Z branch."
+        ),
+    )
     parser.add_argument("repo_path", nargs="?", default=".")
     args = parser.parse_args()
 
     repo = Path(args.repo_path).resolve()
-    cliff_toml = repo / "cliff.toml"
-    changelog = repo / "CHANGELOG.md"
+    prefix = ""
+    if args.crate:
+        member = crate_manifest_dir(repo, args.crate)
+        cliff_toml = member / "cliff.toml"
+        changelog = member / "CHANGELOG.md"
+        prefix = f"{args.crate}-v"
+        if not args.tag and not args.check:
+            fail(f"--crate needs --tag {prefix}X.Y.Z")
+        if args.from_dev_prs:
+            fail(
+                "--crate does not take --from-dev-prs: a member's changelog is "
+                "generated where its history is, so git-cliff has commits to read"
+            )
+    else:
+        cliff_toml = repo / "cliff.toml"
+        changelog = repo / "CHANGELOG.md"
 
     if not cliff_toml.exists():
-        fail(f"cliff.toml not found in {repo}")
+        fail(f"cliff.toml not found beside {changelog}")
 
     if args.check:
         return check_mode(changelog)
@@ -578,7 +740,7 @@ def main() -> int:
         return 1
 
     tag = args.tag or detect_tag_from_branch()
-    version = tag[1:] if tag.startswith("v") else tag
+    version = version_from_tag(tag, prefix)
 
     ensure_github_token()
 
@@ -610,7 +772,7 @@ def main() -> int:
             cwd = os.getcwd()
             try:
                 os.chdir(repo)
-                run_git_cliff(tag, changelog)
+                run_git_cliff(tag, changelog, cliff_toml if args.crate else None)
             finally:
                 os.chdir(cwd)
 
@@ -620,11 +782,31 @@ def main() -> int:
         if has_gh_integration:
             section = extract_version_section(changelog.read_text(), version)
             pr_nums = pr_numbers_from_section(section)
-            if pr_nums:
+            if pr_nums and args.crate:
+                # A member takes its membership and grouping from git-cliff and
+                # its wording from any PR that wrote a block addressed to it.
+                heading = rf"^## Changelog \({re.escape(args.crate)}\)\s*$"
+                answered: set[int] = set()
+                authored = collect_entries(
+                    owner, repo_name, pr_nums, heading, answered
+                )
+                entries = merge_crate_entries(
+                    parse_skeleton_section(section), authored, answered
+                )
+                if entries:
+                    rewrite_version_section(
+                        changelog, version, tag, owner, repo_name, entries, prefix
+                    )
+                print(
+                    f"{len(answered)} of {len(pr_nums)} PRs carry a "
+                    f"'## Changelog ({args.crate})' block",
+                    file=sys.stderr,
+                )
+            elif pr_nums:
                 entries = collect_entries(owner, repo_name, pr_nums)
                 if entries:
                     rewrite_version_section(
-                        changelog, version, tag, owner, repo_name, entries
+                        changelog, version, tag, owner, repo_name, entries, prefix
                     )
 
         if dry_run_original is not None:
@@ -647,13 +829,13 @@ def main() -> int:
             return 1
 
         if has_gh_integration:
-            print("Updated CHANGELOG.md")
+            print(f"Updated {changelog}")
         else:
             print(
-                "Updated CHANGELOG.md (skipping PR expansion; missing [remote.github] or gh CLI)"
+                f"Updated {changelog} (skipping PR expansion; missing [remote.github] or gh CLI)"
             )
         print("\nNext steps:")
-        print("  git add CHANGELOG.md")
+        print(f"  git add {changelog}")
         print("  git commit -m 'docs: update CHANGELOG.md'")
         return 0
     finally:

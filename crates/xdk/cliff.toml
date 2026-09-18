@@ -60,7 +60,9 @@ tag_pattern = "^xdk-rs-v[0-9]+\\.[0-9]+\\.[0-9]+$"
 # Only commits that touch the library count; a binary-only change is not a
 # library change even when it lands in the same release window.
 include_paths = ["crates/xdk/**"]
-exclude_paths = ["crates/xdk/cliff.toml"]
+# This config and the changelog it renders both sit inside the crate directory,
+# so `include_paths` matches them. Neither can alter the published API.
+exclude_paths = ["crates/xdk/cliff.toml", "crates/xdk/CHANGELOG.md"]
 sort_commits = "oldest"
 
 commit_parsers = [
