@@ -65,7 +65,7 @@ DO_FETCH=1
 RESULT_FILE=""
 
 usage() {
-  sed -n '2,42p' "$0" | sed 's/^# \?//'
+  print_usage_header
   exit 2
 }
 
@@ -110,7 +110,11 @@ fi
 readonly JQ_BIN
 
 readonly LOCKFILE_PATTERN='(^|/)(package-lock\.json|bun\.lock|Cargo\.lock)$'
-readonly VERSION_CARRIERS='Cargo.toml crates/xurl-cli/Cargo.toml crates/xdk/Cargo.toml package.json pyproject.toml VERSION CHANGELOG.md crates/xdk/CHANGELOG.md'
+# Overridable from release.env, which _lib.sh sourced above. A workspace names
+# each member manifest and each member changelog here: the root list covers a
+# single-package repo, and a carrier this list omits is a file whose
+# release-time edit the gate silently treats as ordinary drift.
+readonly VERSION_CARRIERS="${VERSION_CARRIERS:-Cargo.toml package.json pyproject.toml VERSION CHANGELOG.md}"
 
 # Setup ----------------------------------------------------------------------
 
@@ -207,7 +211,8 @@ blob_at() {
 }
 
 # Classifies PATH as "contained", "differs", or "missing": whether base
-# already holds everything head changed in it since the anchor. First a
+# already holds everything head changed in it since the anchor. A path base
+# deleted counts as contained when head's copy is still the anchor's. First a
 # three-way merge of head's change onto base's copy; a clean merge that leaves
 # base's copy untouched is contained. When base has also edited nearby lines
 # the merge cannot answer, so the fallback checks head's change line by line:
@@ -227,7 +232,15 @@ classify_file_at() {
   anchor_blob=""
   [[ -n "$anchor_ref" ]] && anchor_blob=$(blob_at "$anchor_ref" "$path")
   if [[ -z "$base_blob" ]]; then
-    echo missing
+    # Base deleted a path head has not touched since the anchor: head carries
+    # nothing base never received, and the deletion is base's own change for
+    # the release to deliver. Only a head-side change since the anchor is
+    # missing from base.
+    if [[ -n "$anchor_blob" && "$head_blob" == "$anchor_blob" ]]; then
+      echo contained
+    else
+      echo missing
+    fi
     return
   fi
   if [[ "$head_blob" == "$base_blob" ]]; then
@@ -256,6 +269,23 @@ classify_file_at() {
   rm -rf "$tmp"
 }
 
+# Lines on one side of a diff between two files, marker stripped. `+` gives the
+# lines added going from the first file to the second, `-` the lines removed.
+#
+# `git diff --no-index` rather than diff's --unchanged-line-format family:
+# those belong to GNU diffutils, and BSD diff rejects them outright. The
+# rejection printed a usage message and produced no lines, so every line-level
+# containment check silently answered "nothing changed" on a BSD host, which
+# passed gates that should have failed. git is already a hard dependency here.
+diff_side() {
+  local marker="$1" left="$2" right="$3"
+  git diff --no-index --no-color -U0 -- "$left" "$right" 2>/dev/null \
+    | grep -E "^\\${marker}" \
+    | grep -vE "^\\${marker}{3}" \
+    | cut -c2-
+  return 0
+}
+
 # Returns 0 when every content line ADDED between ANCHOR_FILE and HEAD_FILE
 # is present in BASE_FILE and every content line REMOVED is absent from it.
 lines_contained() {
@@ -263,11 +293,11 @@ lines_contained() {
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
     grep -qxF -- "$line" "$base_file" || return 1
-  done < <(diff --unchanged-line-format= --old-line-format= --new-line-format='%L' "$anchor_file" "$head_file" || true)
+  done < <(diff_side + "$anchor_file" "$head_file")
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
     grep -qxF -- "$line" "$base_file" && return 1
-  done < <(diff --unchanged-line-format= --old-line-format='%L' --new-line-format= "$anchor_file" "$head_file" || true)
+  done < <(diff_side - "$anchor_file" "$head_file")
   return 0
 }
 
