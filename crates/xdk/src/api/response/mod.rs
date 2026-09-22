@@ -4,7 +4,7 @@
 //! - `vocabulary` — Reads X's legacy post vocabulary under the spec's current names
 
 pub mod types;
-mod vocabulary;
+pub(crate) mod vocabulary;
 
 #[allow(unused_imports)] // Re-exported for library consumers
 pub use types::{
