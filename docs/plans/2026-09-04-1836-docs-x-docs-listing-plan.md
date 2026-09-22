@@ -34,7 +34,7 @@ post-submission checkpoint.
   included in or linked from" the docs, but the one such request found (a Ballerina connector, November 2024) drew zero
   replies in 22 months and was never listed.
 - **`twitter-v2` is stale but still used.** `jpopesculian/twitter-v2-rs`: last release 0.1.8 on 2022-10-25, last commit
-  2022-11-29, six open issues with no maintainer reply since 2022, about 2,300 downloads in the last 90 days, not
+  2022-11-29, seven open issues with no maintainer reply since 2022, about 2,200 downloads in the last 90 days, not
   archived.
 - **The repository publishes two crates.** `xdk-rs` 0.1.0 is the async client library, imported as `xdk`; `xurl-rs`
   4.0.0 is the `xr` CLI built on it. Both are on crates.io as of 2026-09-18, and each has its own README, changelog, and
@@ -102,7 +102,8 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 - **Re-verify before opening.** The `twitter-v2` staleness figures below were read on 2026-09-04 and the page was
   re-read on 2026-09-18 unchanged. Re-read both on the day the PR opens; the PR body states dates, so a stale date is
   the one error a reviewer will catch.
-- **Deliverable.** Open PR URL, recorded here.
+- **Deliverable.** Open PR URL, recorded here: https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 from
+  `brettdavies/docs:community-libraries-rust` at `b2b2d39`.
 
 ## Phase 3: X outreach
 
@@ -150,17 +151,17 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `054d939334b8c93f14ff484668e91a9b58ef419d`, 2026-09-18)
+(against `xurl-rs` `origin/dev` @ `5cff0ee`, 2026-09-22)
 
 | Phase   | State     | Note                                                                                                 |
 | ------- | --------- | ---------------------------------------------------------------------------------------------------- |
 | Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17. |
-| Phase 2 | not-built | No fork of `xdevplatform/docs`, no pull request. This is the plan's only open work.                  |
-| Phase 3 | not-built | Gated on Phase 2; Day 0 is the same day the PR opens.                                                |
+| Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22; the `license/cla` check awaits the signature.           |
+| Phase 3 | not-built | Day 0 is 2026-09-22, the day #447 opened; the post is not made.                                      |
 
-The evidence this plan rests on was re-read on 2026-09-18 and still holds: `tools-and-libraries.mdx` is unchanged,
-"Other tools" still carries only its three X-owned rows, and Rust is still one bare-link `twitter-v2` row in the `Other`
-tab.
+The evidence this plan rests on was re-read on 2026-09-22, the day the PR opened, and still holds:
+`tools-and-libraries.mdx` last changed on 2026-07-25, "Other tools" still carries only its three X-owned rows, and Rust
+is still one bare-link `twitter-v2` row in the `Other` tab. The PR body states no `twitter-v2` figures.
 
 What changed since the plan was written is on this side, not X's. The repository now publishes two crates instead of
 one, so the listing names both; the release the listing describes is 4.0.0 rather than the 3.2.0 this plan expected to
