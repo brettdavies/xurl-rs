@@ -279,16 +279,17 @@ metrics stays silent.
 
 ## Verification Contract
 
-| Gate             | Command                                                                 | Done signal                            |
-| ---------------- | ----------------------------------------------------------------------- | -------------------------------------- |
-| Format           | `cargo fmt -- --check`                                                  | No diff                                |
-| Lint             | `cargo clippy --all-targets -- -D warnings`                             | Clean                                  |
-| Tests            | `cargo test`                                                            | All pass, both-spelling cases included |
-| Golden           | `cargo test --test golden_tests`                                        | No golden changes                      |
-| Schema freshness | `cargo test --test schema_tests`                                        | Drift test passes                      |
-| Public API       | `cargo semver-checks --baseline-rev xdk-rs-v0.1.0 --release-type patch` | Passes                                 |
-| Raw passthrough  | A raw request against a legacy-spelling fixture                         | Original spelling preserved            |
-| Markdown         | `markdownlint-cli2 RELEASES-PREFLIGHT.md`                               | Zero issues                            |
+| Gate             | Command                                                                   | Done signal                            |
+| ---------------- | ------------------------------------------------------------------------- | -------------------------------------- |
+| Format           | `cargo fmt -- --check`                                                    | No diff                                |
+| Lint             | `cargo clippy --all-targets -- -D warnings`                               | Clean                                  |
+| Tests            | `cargo test`                                                              | All pass, both-spelling cases included |
+| Golden           | `cargo test --test golden_tests`                                          | No golden changes                      |
+| Schema freshness | `cargo test --test schema_tests`                                          | Drift test passes                      |
+| Public API       | `cargo semver-checks --baseline-rev xdk-rs-v0.1.0 --release-type patch`   | Passes                                 |
+| Raw passthrough  | A raw request against a legacy-spelling fixture                           | Original spelling preserved            |
+| Live smoke       | `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored` (preflight) | No normalization event on either read  |
+| Markdown         | `markdownlint-cli2 RELEASES-PREFLIGHT.md`                                 | Zero issues                            |
 
 ## Definition of Done
 
@@ -317,7 +318,7 @@ Review target: `docs/plans/2026-09-20-1142-fix-wire-vocabulary-drift-plan.md` (/
   (`crates/xdk/src/api/response/types.rs:458`) over the JSON tree before `serde_json::from_value`, renaming table keys
   at any depth. No per-struct `deserialize_with` attributes. R1-R8, the build.rs-derived table, the three aliases, and
   the telemetry are unchanged.
-- **Pending remedies:** R2, R3, plus any raised in later sections.
+- **Pending remedies:** none; R1-R4 are approved.
 
 ### R1: Legacy spellings that are also current spec names
 
