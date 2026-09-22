@@ -447,6 +447,12 @@ pub struct UsageCreditsData {
 /// non-JSON 2xx bodies) with a descriptive error instead of a cryptic
 /// serde deserialization failure.
 ///
+/// Keys X still sends in its legacy post vocabulary are read under the
+/// names the spec uses now, at any depth: `edit_history_tweet_ids` arrives
+/// as `edit_history_post_ids` with its value unchanged. When one object
+/// carries both spellings, the current one is kept and the legacy one
+/// dropped.
+///
 /// # Errors
 ///
 /// Returns `Error::Json` if the Value is an empty object or cannot
@@ -458,8 +464,9 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
 }
 
 /// Decodes a response body into `T` with the empty-body and errors-only
-/// checks of [`deserialize_response`].
-pub(crate) fn decode<T: serde::de::DeserializeOwned>(value: Value) -> crate::error::Result<T> {
+/// checks of [`deserialize_response`], reading X's legacy post vocabulary
+/// under the names the spec uses now.
+pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate::error::Result<T> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
         return Err(crate::error::Error::Json(
             "empty response body — expected JSON with a \"data\" field".to_string(),
@@ -475,6 +482,7 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(value: Value) -> crate::err
     {
         return Err(crate::error::Error::validation(value.to_string()));
     }
+    super::vocabulary::normalize(&mut value);
     Ok(serde_json::from_value(value)?)
 }
 
