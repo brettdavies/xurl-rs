@@ -156,7 +156,7 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 | Phase   | State     | Note                                                                                                 |
 | ------- | --------- | ---------------------------------------------------------------------------------------------------- |
 | Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17. |
-| Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22; the `license/cla` check awaits the signature.           |
+| Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22; CLA signed and `license/cla` green; awaiting X review.  |
 | Phase 3 | not-built | Day 0 is 2026-09-22, the day #447 opened; the post is not made.                                      |
 
 The evidence this plan rests on was re-read on 2026-09-22, the day the PR opened, and still holds:
