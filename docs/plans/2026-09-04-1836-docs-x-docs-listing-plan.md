@@ -72,8 +72,9 @@ The description sentences for the listing are final: each crate's README first p
 Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-libraries-rust`, base `main`.
 
 - **Edit** `tools-and-libraries.mdx` only. Insert a `Rust` tab after the `Ruby` tab and delete the `**Rust**` row from
-  the `Other` tab, whose single entry moves into the new tab. The tab mirrors the existing ones exactly (two-column
-  table, left-aligned, terse descriptions). "Other tools" is not touched. Directional shape:
+  the `Other` tab, whose single entry moves into the new tab. The tab mirrors the existing ones (two-column table,
+  left-aligned). "Other tools" is not touched. The two new descriptions run to two lines where every other row fits
+  one; they stay at full length by decision on 2026-09-22. As submitted in `b2b2d39`:
 
 ```mdx
   <Tab title="Rust">
@@ -85,23 +86,22 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
   </Tab>
 ```
 
-- **Verify locally** with the Mintlify CLI (`npx mint dev` from the fork root) that the tab renders, since a fork gets
-  no preview deployment. Confirm the `Other` tab still renders with the Rust row gone.
+- **Verify locally** with the Mintlify CLI (`npx mint dev` from the fork root), since a fork gets no preview
+  deployment. Verified 2026-09-22 in headless Chromium: the `Rust` tab shows the three rows with their links, and the
+  `Other` tab keeps its four remaining rows. The page's `require is not defined` error also occurs on unmodified
+  upstream. npm's 7-day release-age cooldown on this machine rejects a pinned fresh `mint` version; run it unpinned.
 - **PR body.** Short, no template exists. Four parts: what changed; why a tab (Rust had no description column and now
   has two maintained entries that need one); what moved, naming the relocation of `twitter-v2` as a relocation so no
   reviewer reads it as a removal; and an acknowledgement that both crates are community-maintained and unaffiliated,
-  matching the page's note. Author it in `/tmp/`, scrub with `/unslop`, submit with `--body-file`. There is a drafted
-  body at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md`; it proposes a different placement and is a source of
-  wording only, not a body to send.
-- **Title.** `docs: add a Rust tab to Community libraries` or the repo's plain-English style (`Add Rust tab with xdk-rs
-  and xurl-rs to Community libraries`); the repo uses both.
-- **CLA.** Sign Twitter's Contributor License Agreement when the cla-assistant check asks, as an individual unless an
-  employer holds rights to your open-source work, in which case get that permission first. The grant is a non-exclusive,
+  matching the page's note, plus an offer to fall back to the first contingency below. It states no `twitter-v2`
+  figures. The body as sent is on #447.
+- **Title.** `docs: add a Rust tab to Community libraries`, the `docs:` form the page owner uses.
+- **CLA.** Signed 2026-09-22; the `license/cla` check on #447 passes. It is Twitter's Contributor License Agreement,
+  and one signature covers every future contribution to X's repositories. The grant is a non-exclusive,
   irrevocable copyright and patent license over text you submit to X's repositories and issue trackers; it does not
   reach either crate, which are linked, not submitted.
-- **Re-verify before opening.** The `twitter-v2` staleness figures below were read on 2026-09-04 and the page was
-  re-read on 2026-09-18 unchanged. Re-read both on the day the PR opens; the PR body states dates, so a stale date is
-  the one error a reviewer will catch.
+- **Re-verify before opening.** Done on 2026-09-22, the day the PR opened: the page source and the `twitter-v2`
+  repository and crate were re-read, and the `twitter-v2` figures in "What the evidence says" are from that read.
 - **Deliverable.** Open PR URL, recorded here: https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 from
   `brettdavies/docs:community-libraries-rust` at `b2b2d39`.
 
@@ -157,7 +157,7 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 | ------- | --------- | ---------------------------------------------------------------------------------------------------- |
 | Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17. |
 | Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22; CLA signed and `license/cla` green; awaiting X review.  |
-| Phase 3 | not-built | Day 0 is 2026-09-22, the day #447 opened; the post is not made.                                      |
+| Phase 3 | not-built | Day 0 post undecided; nudge 2026-10-02, forum 2026-10-12, stop 2026-11-01 if #447 stays silent.      |
 
 The evidence this plan rests on was re-read on 2026-09-22, the day the PR opened, and still holds:
 `tools-and-libraries.mdx` last changed on 2026-07-25, "Other tools" still carries only its three X-owned rows, and Rust
