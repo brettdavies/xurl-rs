@@ -42,7 +42,11 @@ pub struct Includes {
     /// User objects referenced by `author_id`, `sender_id`, etc.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
-    /// Post objects referenced by `referenced_posts`.
+    /// Post objects referenced by `referenced_posts`. Deserializing this type
+    /// directly with serde also reads the legacy key `tweets`, and fails with
+    /// serde's `duplicate field` error on an object carrying both spellings;
+    /// responses read through this crate never hit that, because the legacy
+    /// key is dropped first.
     #[serde(default, alias = "tweets", skip_serializing_if = "Option::is_none")]
     pub posts: Option<Vec<Post>>,
     /// Forward-compatibility bucket — captures unknown include keys.
@@ -115,7 +119,11 @@ pub struct Post {
     /// Engagement counts (likes, replies, reposts, etc).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<PostPublicMetrics>,
-    /// Posts this one references (reply, quote, repost).
+    /// Posts this one references (reply, quote, repost). Deserializing this
+    /// type directly with serde also reads the legacy key `referenced_tweets`,
+    /// and fails with serde's `duplicate field` error on an object carrying
+    /// both spellings; responses read through this crate never hit that,
+    /// because the legacy key is dropped first.
     #[serde(
         default,
         alias = "referenced_tweets",
@@ -136,7 +144,11 @@ pub struct Post {
 /// Public engagement metrics for a post.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct PostPublicMetrics {
-    /// Repost count.
+    /// Repost count. Deserializing this type directly with serde also reads
+    /// the legacy key `retweet_count`, and fails with serde's `duplicate
+    /// field` error on an object carrying both spellings; responses read
+    /// through this crate never hit that, because the legacy key is dropped
+    /// first.
     #[serde(default, alias = "retweet_count")]
     pub repost_count: u64,
     /// Reply count.
@@ -215,7 +227,10 @@ pub struct UserPublicMetrics {
     #[serde(default)]
     pub following_count: u64,
     /// Post count for the user. X sends this key as `tweet_count`; the
-    /// 2.168 spec names it `post_count`, so either key fills this field.
+    /// 2.168 spec names it `post_count`. Deserializing this type directly
+    /// with serde reads either key, and fails with serde's `duplicate field`
+    /// error on an object carrying both; responses read through this crate
+    /// never hit that, because `tweet_count` is dropped first.
     #[serde(default, alias = "tweet_count")]
     pub post_count: u64,
     /// Number of public lists the user is on.
