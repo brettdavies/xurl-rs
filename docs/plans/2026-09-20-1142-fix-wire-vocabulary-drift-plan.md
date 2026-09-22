@@ -368,20 +368,20 @@ Two embedder-facing notes land with it:
 U1-U5 and a developer-experience follow-up are open as GitHub stack #217, six PRs with every required check green; none
 is merged. T1-T6 are done apart from the release cut.
 
-| Unit | State          | Branch                                | PR   | Commit    | Note                                                                                                            |
-| ---- | -------------- | ------------------------------------- | ---- | --------- | --------------------------------------------------------------------------------------------------------------- |
-| U1   | open, CI green | `feat/wire-vocab-01-derive-table`     | #212 | `3a66a88` | The derivation lives in `crates/xdk/codegen/vocabulary.rs`; a `build/` directory matches a common ignore rule.  |
-| U2   | open, CI green | `feat/wire-vocab-02-aliases`          | #213 | `f87b8ca` | Field rustdoc lands with U5, so the committed schemas regenerate once.                                          |
-| U3   | open, CI green | `feat/wire-vocab-03-normalize-decode` | #214 | `ed97941` | Carries the `## Changelog (xdk-rs)` before/after snippet.                                                       |
-| U4   | open, CI green | `feat/wire-vocab-04-report-firing`    | #215 | `bbf46a6` | `value_type` and `value_len` describe the value sent under the legacy key, collisions included.                 |
-| U5   | open, CI green | `feat/wire-vocab-05-live-smoke-docs`  | #216 | `b791bf5` | Also drops the live smoke's `tweet_count`-in-`extra` check, which `post_count > 0` covers.                      |
-| DX   | open, CI green | `feat/wire-vocab-06-dx-polish`        | #218 | `5ab07fb` | The six `/devex-review` findings: subscriber doctest, search aliases, wire-first schema text, help, next steps. |
+| Unit | State          | Branch                                | PR   | Commit    | Note                                                                                                           |
+| ---- | -------------- | ------------------------------------- | ---- | --------- | -------------------------------------------------------------------------------------------------------------- |
+| U1   | open, CI green | `feat/wire-vocab-01-derive-table`     | #212 | `3a66a88` | The derivation lives in `crates/xdk/codegen/vocabulary.rs`; a `build/` directory matches a common ignore rule. |
+| U2   | open, CI green | `feat/wire-vocab-02-aliases`          | #213 | `f87b8ca` | Field rustdoc lands with U5, so the committed schemas regenerate once.                                         |
+| U3   | open, CI green | `feat/wire-vocab-03-normalize-decode` | #214 | `ed97941` | Carries the `## Changelog (xdk-rs)` before/after snippet.                                                      |
+| U4   | open, CI green | `feat/wire-vocab-04-report-firing`    | #215 | `bbf46a6` | `value_type` and `value_len` describe the value sent under the legacy key, collisions included.                |
+| U5   | open, CI green | `feat/wire-vocab-05-live-smoke-docs`  | #216 | `b791bf5` | Also drops the live smoke's `tweet_count`-in-`extra` check, which `post_count > 0` covers.                     |
+| DX   | open, CI green | `feat/wire-vocab-06-dx-polish`        | #218 | `601b6e6` | The six `/devex-review` findings and the review's P3 finding on the fixture tests' pinned counts.              |
 
 Code review ran as the `ce-code-review` lite path (receipt `20260922-181023-60842ef1`, Ready to merge); its helper's
-`hard_block_full` floor was not honored, because the full spine dispatches subagents. One P3 finding is unapplied:
-`crates/xdk/tests/vocabulary_table.rs:59` and `:75` pin absolute admitted counts, so a spec refresh that adds a pair
-fails three tests where one pin was intended. Vale and unslop (score 0) ran on every PR body; LanguageTool was
-unreachable and skipped, as `RELEASES.md` allows.
+`hard_block_full` floor was not honored, because the full spine dispatches subagents. Its one P3 finding, the absolute
+admitted counts in `crates/xdk/tests/vocabulary_table.rs`, is fixed in #218: the fixture tests measure against a
+baseline derived from the vendored spec, and a simulated refresh fails only the pinned-table test. Vale and unslop
+(score 0) ran on every PR body; LanguageTool was unreachable and skipped, as `RELEASES.md` allows.
 
 ## Decision ledger
 
