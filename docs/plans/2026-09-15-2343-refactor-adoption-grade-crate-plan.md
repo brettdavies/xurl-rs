@@ -7,7 +7,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 status: implemented
 implementation: merged into dev 2026-09-17 as #167, #180, #181, #170-#178 (S01-S12) and #182 (broadcast chat moderators); released 2026-09-18 as xdk-rs 0.1.0 and xurl-rs 4.0.0
-open_tasks: U13 listing submission, U14 waiver deletion (unblocked by the xdk-rs-v0.1.0 tag), T12 (release-plz, out of scope), T30, T31
+open_tasks: U13 post-submission checkpoint (xdevplatform/docs#447 awaiting review), T12 (release-plz, out of scope), T30, T31
 ---
 
 # Adoption-Grade Crate and CLI - Plan
@@ -1691,10 +1691,10 @@ into the library README where a reviewer can check them in seconds:
 ### U13. Publish and submit for listing
 
 **Landed:** partial — the publish half is done: `xdk-rs` 0.1.0 and `xurl-rs` 4.0.0 are on crates.io (2026-09-18), tagged
-`xdk-rs-v0.1.0` and `v4.0.0`, and the `0.0.0` placeholder is yanked. **The listing submission is open**, and it is the
-only item left in any of these three plans that depends on someone outside the project. No fork of `xdevplatform/docs`
-exists and no pull request has been opened. A drafted body sits at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md`;
-it predates the placement decision recorded in the listing plan and needs rewriting against it.
+`xdk-rs-v0.1.0` and `v4.0.0`, and the `0.0.0` placeholder is yanked. The listing submission is
+https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 in the placement the listing plan settles, with the
+CLA signed and the PR awaiting X's review. The post-submission checkpoint is what remains, and it is the only item left
+in any of these three plans that depends on someone outside the project; the listing plan's Phase 3 carries its dates.
 
 **Goal.** The crate is on crates.io in its adoption-grade form and submitted for X's community libraries list.
 
@@ -1723,9 +1723,8 @@ recon unit established, state what the plan does next rather than treating the r
 
 ### U14. Delete the accepted-break entries
 
-**Landed:** not-built — unblocked, not done. The `xdk-rs-v0.1.0` tag exists, which is the baseline the table's own
-comment names as the point the whole block is deleted at, and all seventeen entries are still in
-`crates/xdk/Cargo.toml`.
+**Landed:** landed as #210 (`e9d1bda`, 2026-09-20). The whole block came out of `crates/xdk/Cargo.toml` at the
+`xdk-rs-v0.1.0` baseline its comment named, and the `Public API semver` check passed on the PR.
 
 **Goal.** The waiver table does not outlive the release it describes.
 
@@ -1859,9 +1858,10 @@ call for observing a failure first record the actual failure output.
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `054d939334b8c93f14ff484668e91a9b58ef419d`, 2026-09-18)
+(against `xurl-rs` `origin/dev` @ `d7a4496`, 2026-09-22)
 
-Phase A and Phase B are complete. Phase C is complete except for the listing submission and the waiver deletion.
+Phase A and Phase B are complete. Phase C is complete except for U13's post-submission checkpoint on
+xdevplatform/docs#447.
 
 | Unit | State     | Stack | PR   | Commit    | Note                                                       |
 | ---- | --------- | ----- | ---- | --------- | ---------------------------------------------------------- |
@@ -1882,8 +1882,8 @@ Phase A and Phase B are complete. Phase C is complete except for the listing sub
 | U9   | landed    | S10   | #176 | `7f4791f` | —                                                          |
 | U10  | landed    | S10   | #176 | `7f4791f` | —                                                          |
 | U12  | landed    | S11   | #177 | `e680abb` | Corrected in flight by #199-#209 during the first release. |
-| U13  | partial   | —     | n/a  | n/a       | Published; the listing submission is open.                 |
-| U14  | not-built | —     | n/a  | n/a       | Unblocked by `xdk-rs-v0.1.0`; 17 entries remain.           |
+| U13  | partial   | —     | n/a  | n/a       | Published; xdevplatform/docs#447 open, awaiting review.    |
+| U14  | landed    | —     | #210 | `e9d1bda` | Waiver block deleted whole; semver check passed.           |
 
 Two units landed that this plan never specified, both from the devex pass on #176: S12 (#178, `b513877`) moved media
 upload behind a builder and stated the line between the crates, and S13 (#182, `f3cf95c`) added the broadcast chat
@@ -1893,20 +1893,16 @@ moderator commands.
 | ---- | --------- | ------------------------------------------------------------------------- |
 | T3   | landed    | `v4.0.0` tagged and published 2026-09-18 with `docs/migrating/v4.0.0.md`. |
 | T12  | not-built | `release-plz` evaluation; the plan already scopes it out.                 |
-| T30  | not-built | `.anc.toml` still committed and still inert, and now also stale.          |
+| T30  | partial   | `50a5f13` declares all 33 reported verbs; the file is still inert.        |
 | T31  | not-built | No issue filed against `brettdavies/agentnative-cli`.                     |
 
 Every other T-task in this plan's three task lists is checked.
 
 ### Remaining work
 
-- **U13, the listing submission.** The shape is settled in `docs/plans/2026-09-04-1836-docs-x-docs-listing-plan.md`; the
-  drafted body at `.context/handoffs/reports/xdk-U13-xdocs-pr-body.md` predates that decision and needs rewriting.
-- **U14, the waiver deletion.** Delete the whole `[package.metadata.cargo-semver-checks.lints]` block from
-  `crates/xdk/Cargo.toml` and confirm `cargo semver-checks --baseline-rev xdk-rs-v0.1.0 --release-type minor` passes.
-  The block's own comment states that `xdk-rs-v0.1.0` never carried any of the items it waives, so it comes out whole
-  rather than one entry at a time.
-- **T30 and T31**, both P3.
+- **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review; the listing plan's
+  Phase 3 sets the nudge, forum, and stop dates.
+- **T30 and T31**, both P3. T30's drift is fixed, but the file still has no effect on an audit.
 
 ## Appendix
 
@@ -2097,7 +2093,7 @@ Synthesized from this review's findings. Each derives from a specific finding ab
   - Files: `src/main.rs`, `src/cli/runner.rs`, `src/cli/commands/*`
   - Verify: `cargo test` at the same count, plus `xr <cmd> | head -1` exits clean
 - [x] **T3 (P1, human: ~20min / CC: ~5min)** — release — Ship the CLI as `xurl-rs` 4.0.0 with `docs/migrating/v4.0.0.md`
-  — shipped 2026-09-18; the verify line's second half is U14 and is still open
+  — shipped 2026-09-18; the verify line's second half landed with U14 (#210)
   - Surfaced by: Issue 1 — `Cargo.toml:73-75` declares `[lib] name = "xurl"` on a published crate
   - Files: `Cargo.toml`, `docs/migrating/v4.0.0.md`, `.github/workflows/release.yml`
   - Verify: `cargo semver-checks --release-type major` passes with no waiver entries
@@ -2630,14 +2626,15 @@ before any of it lands.
     audit --help` exposes no config flag, so the committed file has no effect
   - Files: `.anc.toml`
   - Verify: either the `p6` evidence reflects the allowlist, or the file is gone
-  - Still open at `054d939`. The file has also drifted: `block`, `unblock`, `blocked`, `muted`, and `broadcasts` shipped
-    after it was written and are absent from `domain_verbs`
+  - Still open at `d7a4496`. `50a5f13` added `block`, `unblock`, `blocked`, `muted`, and `broadcasts`, so every verb
+    `p6-may-standard-names` reports against `xr` 4.0.0 is declared, but no `anc` invocation reaches both the workspace
+    root and a binary, so the verify condition is unmet
 - [ ] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
   - Surfaced by: D8 — all 13 reported `.unwrap()` calls sit inside `#[cfg(test)]` blocks; the source scan does not
     exclude test modules
   - Files: none here; an issue against `brettdavies/agentnative-cli`
   - Verify: `code-unwrap` stops reporting test-only hits
-  - Still open at `054d939`. `brettdavies/agentnative-cli` has no issues filed
+  - Still open at `d7a4496`. `brettdavies/agentnative-cli` has no issue filed for it
 
 ## Final Engineering Pass Outcomes
 
