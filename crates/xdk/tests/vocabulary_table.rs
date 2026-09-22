@@ -84,7 +84,7 @@ fn an_added_property_whose_legacy_spelling_the_spec_declares_is_excluded() {
 }
 
 #[test]
-fn one_object_declaring_both_spellings_fails_naming_the_pair_and_the_object() {
+fn one_object_declaring_both_spellings_fails_naming_the_pair_the_object_and_the_rule() {
     let mut spec = common::load_spec();
     declare(&mut spec, "Trend", "post_count");
 
@@ -94,6 +94,7 @@ fn one_object_declaring_both_spellings_fails_naming_the_pair_and_the_object() {
         "/components/schemas/Trend/properties",
         "tweet_count",
         "post_count",
+        "crates/xdk/codegen/vocabulary.rs",
     ] {
         assert!(err.contains(part), "the message names {part}: {err}");
     }

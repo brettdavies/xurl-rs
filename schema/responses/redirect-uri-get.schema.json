@@ -1,7 +1,7 @@
 {
   "$defs": {
     "ResolveSource": {
-      "description": "Origin of a resolved redirect URI.\n\nMirrors the upstream Go xurl labels at `config/config.go:62-72`.\nThe `#[serde(rename_all = \"kebab-case\")]` directive produces\n`\"env-var\"`, `\"app-config\"`, and `\"built-in-default\"` in JSON output\n(the machine-readable shape consumed by `--output json`); the\nhuman-readable text rendering uses [`ResolveSource::as_text_label`].",
+      "description": "Where a resolved redirect URI came from: `env-var`, `app-config`, or `built-in-default`.",
       "oneOf": [
         {
           "const": "env-var",

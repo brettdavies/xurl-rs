@@ -1,7 +1,7 @@
 args: ["auth", "oauth2", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6582
+stdout_len: 6651
 stderr_len: 0
 --- stdout ---
 Configure `OAuth2` authentication
@@ -29,7 +29,7 @@ Options:
           Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

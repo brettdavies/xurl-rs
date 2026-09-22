@@ -112,6 +112,31 @@ async fn test_help_flag() {
     );
 }
 
+/// `--verbose` and `XURL_VERBOSE` say they add the legacy-vocabulary note,
+/// the one line the flag prints that is not request or response traffic.
+#[tokio::test]
+async fn test_verbose_help_names_the_legacy_vocabulary_note() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let verbose = stdout
+        .split("--verbose")
+        .nth(1)
+        .and_then(|rest| rest.split("\n\n").next())
+        .unwrap_or_default();
+    assert!(
+        verbose.contains("legacy post vocabulary"),
+        "the --verbose help names the note: {verbose:?}"
+    );
+    let env = stdout
+        .lines()
+        .find(|line| line.trim_start().starts_with("XURL_VERBOSE"))
+        .unwrap_or_default();
+    assert!(
+        env.contains("legacy"),
+        "the XURL_VERBOSE line names the note: {env:?}"
+    );
+}
+
 #[tokio::test]
 async fn test_version_flag() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--version"]).await;

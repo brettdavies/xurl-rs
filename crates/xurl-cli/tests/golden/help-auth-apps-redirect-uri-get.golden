@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5364
+stdout_len: 5433
 stderr_len: 0
 --- stdout ---
 Show the effective redirect URI, its source, and the stored value
@@ -14,7 +14,7 @@ Arguments:
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

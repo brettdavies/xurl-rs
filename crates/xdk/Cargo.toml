@@ -111,3 +111,6 @@ rstest.workspace = true
 serial_test.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
+# The README's subscriber example for `api::VOCABULARY_TARGET` compiles as a
+# doctest against it.
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }

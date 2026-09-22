@@ -26,8 +26,12 @@ use xdk::api::response::types::{
     RepostedResult, UsageCreditsData, UsageData, User,
 };
 
-/// The response types, read as source by the alias guard below.
+/// The response types, read as source by the alias guards below.
 const TYPES_PATH: &str = "src/api/response/types.rs";
+
+/// The module that declares `VOCABULARY_TARGET`, read as source by the
+/// docs-alias guard below.
+const VOCABULARY_PATH: &str = "src/api/response/vocabulary.rs";
 
 /// Loads the cached example responses fixture.
 fn load_examples() -> Value {
@@ -91,6 +95,31 @@ fn spec_user_single_wire_reads_tweet_count_into_post_count() {
     assert!(out_metrics.get("tweet_count").is_none());
 }
 
+/// Every item declaration in `source`: its name, and the doc comments and
+/// attributes above it.
+fn declarations(source: &str) -> Vec<(String, String)> {
+    regex::Regex::new(r"((?:[ \t]*(?:///[^\n]*|#\[[^\]]*\])\n)*)[ \t]*pub (?:const )?(\w+):")
+        .expect("the declaration pattern compiles")
+        .captures_iter(source)
+        .map(|found| (found[2].to_string(), found[1].to_string()))
+        .collect()
+}
+
+/// The rustdoc search aliases an attribute block declares.
+fn doc_aliases(attributes: &str) -> Vec<String> {
+    let quoted = regex::Regex::new(r#""([^"]+)""#).expect("the quote pattern compiles");
+    regex::Regex::new(r"#\[doc\(alias[^\]]*\]")
+        .expect("the alias pattern compiles")
+        .find_iter(attributes)
+        .flat_map(|attribute| {
+            quoted
+                .captures_iter(attribute.as_str())
+                .map(|found| found[1].to_string())
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
 /// Every response field declared under a current name from the derived
 /// table carries a serde alias for its legacy spelling, so an embedder that
 /// deserializes the types directly reads either spelling. The table comes
@@ -100,14 +129,10 @@ fn every_declared_post_vocabulary_field_aliases_its_legacy_spelling() {
     let table = vocabulary::derive(&load_spec()).expect("the vendored spec derives");
     let source =
         std::fs::read_to_string(TYPES_PATH).unwrap_or_else(|e| panic!("read {TYPES_PATH}: {e}"));
-    // A field's doc comments and attributes, then `pub <name>:`.
-    let field = regex::Regex::new(r"((?:[ \t]*(?:///[^\n]*|#\[[^\]]*\])\n)*)[ \t]*pub (\w+):")
-        .expect("the field pattern compiles");
 
     let mut checked = Vec::new();
     let mut missing = Vec::new();
-    for declaration in field.captures_iter(&source) {
-        let name = &declaration[2];
+    for (name, attributes) in declarations(&source) {
         let Some(pair) = table
             .admitted
             .iter()
@@ -116,10 +141,15 @@ fn every_declared_post_vocabulary_field_aliases_its_legacy_spelling() {
         else {
             continue;
         };
-        checked.push(name.to_string());
-        if !declaration[1].contains(&format!("alias = \"{}\"", pair.legacy)) {
+        let serde_alias = regex::Regex::new(&format!(
+            r#"#\[serde\([^\]]*alias = "{}""#,
+            regex::escape(&pair.legacy)
+        ))
+        .expect("the serde alias pattern compiles");
+        if !serde_alias.is_match(&attributes) {
             missing.push(format!("{name} (legacy {})", pair.legacy));
         }
+        checked.push(name);
     }
 
     assert!(
@@ -131,6 +161,57 @@ fn every_declared_post_vocabulary_field_aliases_its_legacy_spelling() {
         "response fields declared under a current post-vocabulary name without an alias for the legacy spelling: {missing:?}\n\
          Cause: a direct serde caller reading the legacy spelling leaves the field empty.\n\
          Fix: add `alias = \"<legacy>\"` to the field's #[serde(...)] attribute in {TYPES_PATH}."
+    );
+}
+
+/// Every legacy spelling in the derived table is a rustdoc search alias, so
+/// a developer searching the docs for a name X's older documentation uses
+/// lands on the item that reads it: a declared field carries its own legacy
+/// spelling, and an admitted key no type declares is an alias of
+/// `VOCABULARY_TARGET`, whose docs explain the rename.
+#[test]
+fn every_legacy_spelling_is_a_docs_search_alias() {
+    let table = vocabulary::derive(&load_spec()).expect("the vendored spec derives");
+    let types =
+        std::fs::read_to_string(TYPES_PATH).unwrap_or_else(|e| panic!("read {TYPES_PATH}: {e}"));
+    let emitter = std::fs::read_to_string(VOCABULARY_PATH)
+        .unwrap_or_else(|e| panic!("read {VOCABULARY_PATH}: {e}"));
+    let fields = declarations(&types);
+    let target_aliases = declarations(&emitter)
+        .into_iter()
+        .find(|(name, _)| name == "VOCABULARY_TARGET")
+        .map(|(_, attributes)| doc_aliases(&attributes))
+        .expect("VOCABULARY_TARGET is declared");
+
+    let mut missing = Vec::new();
+    for pair in table.admitted.iter().chain(&table.excluded) {
+        let declared: Vec<&String> = fields
+            .iter()
+            .filter(|(name, _)| *name == pair.current)
+            .map(|(_, attributes)| attributes)
+            .collect();
+        if !declared.is_empty() {
+            for attributes in declared {
+                if !doc_aliases(attributes).contains(&pair.legacy) {
+                    missing.push(format!(
+                        "{TYPES_PATH}: field {} (alias {})",
+                        pair.current, pair.legacy
+                    ));
+                }
+            }
+        } else if table.admitted.contains(pair) && !target_aliases.contains(&pair.legacy) {
+            missing.push(format!(
+                "{VOCABULARY_PATH}: VOCABULARY_TARGET (alias {})",
+                pair.legacy
+            ));
+        }
+    }
+
+    assert!(
+        missing.is_empty(),
+        "legacy post-vocabulary spellings a docs search cannot find: {missing:?}\n\
+         Cause: a developer searching for the name X's older docs use gets no result.\n\
+         Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
 }
 

@@ -17,8 +17,12 @@ use serde_json::Value;
 /// Single-item endpoints use `ApiResponse<Post>`, list endpoints use
 /// `ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+#[schemars(
+    description = "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints."
+)]
 pub struct ApiResponse<T: Default> {
     /// Primary payload — a single object or a `Vec<T>` for list endpoints.
+    #[schemars(description = "Primary payload: one object, or an array for list endpoints.")]
     pub data: T,
     /// Expanded objects referenced by `data` when the caller requested
     /// `expansions=...`.
@@ -48,6 +52,10 @@ pub struct Includes {
     /// responses read through this crate never hit that, because the legacy
     /// key is dropped first.
     #[serde(default, alias = "tweets", skip_serializing_if = "Option::is_none")]
+    #[doc(alias = "tweets")]
+    #[schemars(
+        description = "Post objects referenced by `referenced_posts`. X may send this under its legacy name `tweets`; either name fills this field."
+    )]
     pub posts: Option<Vec<Post>>,
     /// Forward-compatibility bucket — captures unknown include keys.
     #[serde(flatten)]
@@ -129,6 +137,10 @@ pub struct Post {
         alias = "referenced_tweets",
         skip_serializing_if = "Option::is_none"
     )]
+    #[doc(alias = "referenced_tweets")]
+    #[schemars(
+        description = "Posts this one references (reply, quote, repost). X may send this under its legacy name `referenced_tweets`; either name fills this field."
+    )]
     pub referenced_posts: Option<Vec<ReferencedPost>>,
     /// Parsed entities (URLs, mentions, hashtags) — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -150,6 +162,10 @@ pub struct PostPublicMetrics {
     /// through this crate never hit that, because the legacy key is dropped
     /// first.
     #[serde(default, alias = "retweet_count")]
+    #[doc(alias = "retweet_count")]
+    #[schemars(
+        description = "Repost count. X may send this under its legacy name `retweet_count`; either name fills this field."
+    )]
     pub repost_count: u64,
     /// Reply count.
     #[serde(default)]
@@ -232,6 +248,10 @@ pub struct UserPublicMetrics {
     /// error on an object carrying both; responses read through this crate
     /// never hit that, because `tweet_count` is dropped first.
     #[serde(default, alias = "tweet_count")]
+    #[doc(alias = "tweet_count")]
+    #[schemars(
+        description = "Post count for the user. X sends this under its legacy name `tweet_count`; either name fills this field."
+    )]
     pub post_count: u64,
     /// Number of public lists the user is on.
     #[serde(default)]

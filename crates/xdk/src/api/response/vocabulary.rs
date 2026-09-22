@@ -37,6 +37,15 @@ use serde_json::{Map, Value};
 /// A subscriber on this target learns which keys X still sends in its
 /// legacy post vocabulary, the drift the typed responses otherwise hide; see
 /// [what the crate publishes](crate#what-the-crate-publishes).
+#[doc(alias(
+    "cluster_tweets_results",
+    "edit_history_tweet_ids",
+    "most_recent_tweet_id",
+    "note_tweet",
+    "pinned_tweet_id",
+    "previous_tweet_id",
+    "total_tweet_count"
+))]
 pub const VOCABULARY_TARGET: &str = "xdk::vocabulary";
 
 mod generated {

@@ -226,6 +226,8 @@ async fn live_wire_vocabulary_matches_typed_structs() {
     let reported = normalizations.reported();
     assert!(
         reported.is_empty(),
-        "X answered the typed reads in legacy vocabulary; the library normalized: {reported:?}"
+        "X answered the typed reads in legacy vocabulary: {reported:?}. Typed output already reads \
+         each pair under its current name; record the endpoint and pair as RELEASES-PREFLIGHT.md \
+         § Typed wire vocabulary describes before checking the item"
     );
 }

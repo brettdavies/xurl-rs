@@ -40,7 +40,7 @@
       "description": "Expanded objects included alongside the primary data.",
       "properties": {
         "posts": {
-          "description": "Post objects referenced by `referenced_posts`. Deserializing this type\ndirectly with serde also reads the legacy key `tweets`, and fails with\nserde's `duplicate field` error on an object carrying both spellings;\nresponses read through this crate never hit that, because the legacy\nkey is dropped first.",
+          "description": "Post objects referenced by `referenced_posts`. X may send this under its legacy name `tweets`; either name fills this field.",
           "items": {
             "$ref": "#/$defs/Post"
           },
@@ -130,7 +130,7 @@
           "description": "Engagement counts (likes, replies, reposts, etc)."
         },
         "referenced_posts": {
-          "description": "Posts this one references (reply, quote, repost). Deserializing this\ntype directly with serde also reads the legacy key `referenced_tweets`,\nand fails with serde's `duplicate field` error on an object carrying\nboth spellings; responses read through this crate never hit that,\nbecause the legacy key is dropped first.",
+          "description": "Posts this one references (reply, quote, repost). X may send this under its legacy name `referenced_tweets`; either name fills this field.",
           "items": {
             "$ref": "#/$defs/ReferencedPost"
           },
@@ -191,7 +191,7 @@
         },
         "repost_count": {
           "default": 0,
-          "description": "Repost count. Deserializing this type directly with serde also reads\nthe legacy key `retweet_count`, and fails with serde's `duplicate\nfield` error on an object carrying both spellings; responses read\nthrough this crate never hit that, because the legacy key is dropped\nfirst.",
+          "description": "Repost count. X may send this under its legacy name `retweet_count`; either name fills this field.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -338,7 +338,7 @@
         },
         "post_count": {
           "default": 0,
-          "description": "Post count for the user. X sends this key as `tweet_count`; the\n2.168 spec names it `post_count`. Deserializing this type directly\nwith serde reads either key, and fails with serde's `duplicate field`\nerror on an object carrying both; responses read through this crate\nnever hit that, because `tweet_count` is dropped first.",
+          "description": "Post count for the user. X sends this under its legacy name `tweet_count`; either name fills this field.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -349,11 +349,11 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
+  "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
       "$ref": "#/$defs/MutingResult",
-      "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
+      "description": "Primary payload: one object, or an array for list endpoints."
     },
     "errors": {
       "description": "Partial errors returned alongside a 200 response.",

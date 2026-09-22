@@ -585,3 +585,71 @@ fn every_registry_response_type_has_a_validator_or_a_declared_exemption() {
          Fix: in {VALIDATE_SOURCE}, drop each entry from UNVALIDATED_TYPES."
     );
 }
+
+/// Wording that only a caller of the Rust library can act on.
+const RUST_LIBRARY_WORDING: &[&str] = &["serde", "Serde", "this crate", "ApiResponse<", "Vec<"];
+
+/// Every `description` string anywhere under `value`.
+fn descriptions(value: &serde_json::Value, found: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, child) in map {
+                match (key.as_str(), child) {
+                    ("description", serde_json::Value::String(text)) => found.push(text.clone()),
+                    _ => descriptions(child, found),
+                }
+            }
+        }
+        serde_json::Value::Array(items) => items.iter().for_each(|item| descriptions(item, found)),
+        _ => {}
+    }
+}
+
+/// The committed schemas describe the wire, not the Rust library behind it:
+/// `xr schema` output and the schemas an embedder hands an MCP tool
+/// definition are read by agents that never see serde or this crate's types.
+#[test]
+fn committed_schema_descriptions_carry_no_rust_library_wording() {
+    let root = concat!(env!("CARGO_WORKSPACE_DIR"), "/schema");
+    let mut files = vec![format!("{root}/output.schema.json")];
+    for entry in
+        std::fs::read_dir(format!("{root}/responses")).expect("schema/responses is readable")
+    {
+        files.push(
+            entry
+                .expect("a directory entry")
+                .path()
+                .display()
+                .to_string(),
+        );
+    }
+    files.sort();
+
+    let mut hits = Vec::new();
+    for file in &files {
+        let raw = std::fs::read_to_string(file).unwrap_or_else(|e| panic!("read {file}: {e}"));
+        let schema: serde_json::Value =
+            serde_json::from_str(&raw).unwrap_or_else(|e| panic!("parse {file}: {e}"));
+        let mut found = Vec::new();
+        descriptions(&schema, &mut found);
+        for text in found {
+            for word in RUST_LIBRARY_WORDING
+                .iter()
+                .filter(|word| text.contains(**word))
+            {
+                let name = file.rsplit('/').next().unwrap_or(file);
+                hits.push(format!("{name}: {word:?} in {text:?}"));
+            }
+        }
+    }
+    hits.sort();
+    hits.dedup();
+    assert!(
+        hits.is_empty(),
+        "schema descriptions written for the Rust library rather than the wire ({} hits):\n{}\n\
+         Give the type or field a `#[schemars(description = \"...\")]` that describes what X \
+         sends, keep the Rust detail in its rustdoc, then run ./scripts/generate-response-schemas.sh.",
+        hits.len(),
+        hits.iter().take(12).cloned().collect::<Vec<_>>().join("\n")
+    );
+}

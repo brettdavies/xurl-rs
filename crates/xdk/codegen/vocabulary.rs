@@ -71,7 +71,9 @@ pub fn derive(spec: &Value) -> Result<Vocabulary, String> {
     if !conflicts.is_empty() {
         return Err(format!(
             "the spec declares both spellings of a legacy post-vocabulary pair in one object, \
-             where the decoder would drop the legacy one as a rename: {}",
+             where the decoder would drop the legacy one as a rename: {}. Decide whether each \
+             object holds one renamed field or two distinct fields, and adjust the admission \
+             rule in crates/xdk/codegen/vocabulary.rs before vendoring this spec",
             conflicts.join("; ")
         ));
     }

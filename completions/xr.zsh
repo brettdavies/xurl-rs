@@ -24,8 +24,8 @@ _xr() {
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[Username for \`OAuth2\` authentication]:USERNAME:_default' \
 '--username=[Username for \`OAuth2\` authentication]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -76,8 +76,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -115,8 +115,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -154,8 +154,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -193,8 +193,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -232,8 +232,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -272,8 +272,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -310,8 +310,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -347,8 +347,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -387,8 +387,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -426,8 +426,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -463,8 +463,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -501,8 +501,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -539,8 +539,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -577,8 +577,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -615,8 +615,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -653,8 +653,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -693,8 +693,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -732,8 +732,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -769,8 +769,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -807,8 +807,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -848,8 +848,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -888,8 +888,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -925,8 +925,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -963,8 +963,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1003,8 +1003,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1040,8 +1040,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1078,8 +1078,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1118,8 +1118,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1155,8 +1155,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1200,8 +1200,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1265,8 +1265,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1306,8 +1306,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1340,8 +1340,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (broadcasts)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1380,8 +1380,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (moderators)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1423,8 +1423,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1460,8 +1460,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1498,8 +1498,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1621,8 +1621,8 @@ esac
 ;;
 (auth)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1664,8 +1664,8 @@ _arguments "${_arguments_options[@]}" : \
 '--no-browser=[Enable manual two-step flow for headless machines (SSH, containers)]::NO_BROWSER:(true false)' \
 '--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
 '--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1701,8 +1701,8 @@ _arguments "${_arguments_options[@]}" : \
 '--consumer-secret=[Consumer secret]:CONSUMER_SECRET:_default' \
 '--access-token=[Access token]:ACCESS_TOKEN:_default' \
 '--token-secret=[Token secret]:TOKEN_SECRET:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1734,8 +1734,8 @@ never\:"Never emit ANSI color escapes"))' \
 (app)
 _arguments "${_arguments_options[@]}" : \
 '--bearer-token=[Bearer token]:BEARER_TOKEN:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1766,8 +1766,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (status)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1799,8 +1799,8 @@ never\:"Never emit ANSI color escapes"))' \
 (clear)
 _arguments "${_arguments_options[@]}" : \
 '--oauth2-username=[Clear \`OAuth2\` token for username]:OAUTH2_USERNAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1835,8 +1835,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (apps)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1878,8 +1878,8 @@ _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1914,8 +1914,8 @@ _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1947,8 +1947,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -1981,8 +1981,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (list)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2013,8 +2013,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (redirect-uri)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2053,8 +2053,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (get)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2086,8 +2086,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (set)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2216,8 +2216,8 @@ esac
 ;;
 (default)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2354,8 +2354,8 @@ esac
 ;;
 (media)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2401,8 +2401,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[Username]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2442,8 +2442,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[Username]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2511,8 +2511,8 @@ esac
 ;;
 (skill)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2551,8 +2551,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (install)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2585,8 +2585,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (update)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2651,8 +2651,8 @@ esac
 ;;
 (schema)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2687,8 +2687,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2720,8 +2720,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (version)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2752,8 +2752,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (examples)
 _arguments "${_arguments_options[@]}" : \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
@@ -2785,8 +2785,8 @@ never\:"Never emit ANSI color escapes"))' \
 (validate)
 _arguments "${_arguments_options[@]}" : \
 '--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`mute\`, \`block\`, \`moderators\`). Omit for auto-detection]:NAME:_default' \
-'-v+[Print verbose information]::VERBOSE:(true false)' \
-'--verbose=[Print verbose information]::VERBOSE:(true false)' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"

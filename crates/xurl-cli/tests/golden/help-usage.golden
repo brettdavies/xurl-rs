@@ -1,7 +1,7 @@
 args: ["usage", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5457
+stdout_len: 5526
 stderr_len: 0
 --- stdout ---
 Show API usage (post caps, daily breakdown)
@@ -23,7 +23,7 @@ Options:
           Add X-B3-Flags trace header
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]
