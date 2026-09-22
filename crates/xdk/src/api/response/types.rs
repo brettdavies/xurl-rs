@@ -43,7 +43,7 @@ pub struct Includes {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
     /// Post objects referenced by `referenced_posts`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, alias = "tweets", skip_serializing_if = "Option::is_none")]
     pub posts: Option<Vec<Post>>,
     /// Forward-compatibility bucket — captures unknown include keys.
     #[serde(flatten)]
@@ -116,7 +116,11 @@ pub struct Post {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<PostPublicMetrics>,
     /// Posts this one references (reply, quote, repost).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        alias = "referenced_tweets",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub referenced_posts: Option<Vec<ReferencedPost>>,
     /// Parsed entities (URLs, mentions, hashtags) — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -133,7 +137,7 @@ pub struct Post {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct PostPublicMetrics {
     /// Repost count.
-    #[serde(default)]
+    #[serde(default, alias = "retweet_count")]
     pub repost_count: u64,
     /// Reply count.
     #[serde(default)]
@@ -899,6 +903,69 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("empty response body"), "Got: {err}");
+    }
+
+    // ── Legacy post vocabulary ──────────────────────────────────────
+
+    /// Deserializes both bodies directly through serde, asserts they read
+    /// back identically, and returns the one spelled the legacy way.
+    fn read_alike(legacy: Value, current: Value) -> ApiResponse<Post> {
+        let from_legacy: ApiResponse<Post> =
+            serde_json::from_value(legacy).expect("the legacy spelling deserializes");
+        let from_current: ApiResponse<Post> =
+            serde_json::from_value(current).expect("the current spelling deserializes");
+        assert_eq!(
+            serde_json::to_value(&from_legacy).expect("serializes"),
+            serde_json::to_value(&from_current).expect("serializes"),
+            "both spellings must read identically"
+        );
+        from_legacy
+    }
+
+    #[test]
+    fn retweet_count_fills_repost_count() {
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t", "public_metrics": {"retweet_count": 4}}}),
+            json!({"data": {"id": "1", "text": "t", "public_metrics": {"repost_count": 4}}}),
+        );
+        let metrics = post.data.public_metrics.expect("public_metrics present");
+        assert_eq!(metrics.repost_count, 4);
+        assert!(
+            metrics.extra.is_empty(),
+            "left in extra: {:?}",
+            metrics.extra
+        );
+    }
+
+    #[test]
+    fn referenced_tweets_fills_referenced_posts() {
+        let refs = json!([{"id": "2", "type": "quoted"}]);
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t", "referenced_tweets": refs}}),
+            json!({"data": {"id": "1", "text": "t", "referenced_posts": refs}}),
+        );
+        assert_eq!(post.data.referenced_posts.map(|r| r.len()), Some(1));
+        assert!(
+            post.data.extra.is_empty(),
+            "left in extra: {:?}",
+            post.data.extra
+        );
+    }
+
+    #[test]
+    fn tweets_under_includes_fills_posts() {
+        let included = json!([{"id": "2", "text": "q"}]);
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t"}, "includes": {"tweets": included}}),
+            json!({"data": {"id": "1", "text": "t"}, "includes": {"posts": included}}),
+        );
+        let includes = post.includes.expect("includes present");
+        assert_eq!(includes.posts.map(|p| p.len()), Some(1));
+        assert!(
+            includes.extra.is_empty(),
+            "left in extra: {:?}",
+            includes.extra
+        );
     }
 
     // ── Red team / adversarial ──────────────────────────────────────
