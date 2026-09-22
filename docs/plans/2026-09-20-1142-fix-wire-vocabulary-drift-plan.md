@@ -325,22 +325,62 @@ Two embedder-facing notes land with it:
 
 ## Definition of Done
 
-- The 10 admitted pairs are normalized in `decode()`, `tweet_count` and `tweet_id` sit in the excluded table,
+- [x] The 10 admitted pairs are normalized in `decode()`, `tweet_count` and `tweet_id` sit in the excluded table,
   `tweet_count` on user metrics stays covered by its alias, and a thirteenth property injected into a spec fixture is
-  admitted with no source edit.
-- An object carrying both spellings parses, keeps the current value, and reports `collision = true`, for the excluded
-  pairs as well as the admitted ones; a lone `tweet_count` or `tweet_id` is never renamed.
-- The live smoke fails on any normalization event during its two reads, with no hand-written key list.
-- `xr post --output json` reports `edit_history_post_ids` carrying the empty array X sent, unrepaired.
-- A raw request still prints X's own spelling.
-- `cargo semver-checks --release-type patch` passes, and the release is cut as a patch.
-- The telemetry emit site carries only the five fields KTD4 names, asserted by a guard rather than by review.
-- The `docs/solutions/` entry is written and pushed with `sd-commit-doc`.
-- The PR body's `## Changelog (xdk-rs)` names the normalization with a before and after snippet, which
-  `crates/xdk/README.md` makes a release gate, and states the direct-serde collision caveat.
-- `xr --verbose` prints the normalization line in exactly the two U4 forms, pinned by a render test.
-- `crates/xdk/README.md` and the target constant's rustdoc tell an embedder how to subscribe to the event; the four
-  aliased fields' rustdoc states the direct-serde collision caveat.
+  admitted with no source edit. Evidence: `crates/xdk/tests/vocabulary_table.rs` pins the 10 admitted and 2 excluded
+  pairs against the vendored spec and admits an injected `quote_post_count` (#212);
+  `legacy_keys_are_renamed_at_every_depth` and `a_lone_tweet_count_still_fills_post_count_through_its_alias` (#214).
+- [x] An object carrying both spellings parses, keeps the current value, and reports `collision = true`, for the
+  excluded pairs as well as the admitted ones; a lone `tweet_count` or `tweet_id` is never renamed. Evidence: the three
+  `both_spellings_of_*` tests and `a_lone_tweet_id_is_never_renamed` (#214), observed failing first with serde's
+  `duplicate field` on `repost_count` and `post_count`; `a_collision_reports_one_event_marked_as_one` and
+  `an_excluded_pair_reports_its_collision_and_never_a_lone_legacy_key` (#215).
+- [x] The live smoke fails on any normalization event during its two reads, with no hand-written key list. Evidence:
+  `crates/xdk/tests/live_smoke.rs` collects `VOCABULARY_TARGET` events around both reads and asserts none (#216);
+  `the_collector_reports_legacy_keys_the_typed_structs_no_longer_show` runs the collector offline. The live run is the
+  release preflight gate and made no X API call here.
+- [x] `xr post --output json` reports `edit_history_post_ids` carrying the empty array X sent, unrepaired. Evidence:
+  `test_post_json_reports_edit_history_post_ids_for_the_legacy_key` (#214), observed failing first on
+  `"edit_history_tweet_ids": [""]`; the built-binary test
+  `verbose_reports_a_legacy_key_x_sent_and_stdout_reads_the_current_name` (#215).
+- [x] A raw request still prints X's own spelling. Evidence: `test_raw_request_keeps_the_legacy_spelling_x_sent` (#214).
+- [ ] `cargo semver-checks --release-type patch` passes, and the release is cut as a patch. Evidence: `cargo
+  semver-checks check-release --package xdk-rs --baseline-rev xdk-rs-v0.1.0 --release-type patch` reports 223 pass and
+  no semver update required on every unit and on the stack top `b791bf5`. The patch cut is the maintainer's release
+  step.
+- [x] The telemetry emit site carries only the five fields KTD4 names, asserted by a guard rather than by review.
+  Evidence: `crates/xdk/tests/vocabulary_event_guard.rs` (#215), observed failing with no emit site.
+- [x] The `docs/solutions/` entry is written and pushed with `sd-commit-doc`. Evidence:
+  `integration-issues/accept-both-spellings-of-a-mid-migration-api-vocabulary.md`, solutions-docs `5500597`.
+- [x] The PR body's `## Changelog (xdk-rs)` names the normalization with a before and after snippet, which
+  `crates/xdk/README.md` makes a release gate, and states the direct-serde collision caveat. Evidence: #214.
+- [x] `xr --verbose` prints the normalization line in exactly the two U4 forms, pinned by a render test. Evidence:
+  `vocabulary_lines_match_the_verbose_format_without_colour` and
+  `vocabulary_lines_print_only_under_verbose_in_text_mode` (#215).
+- [x] `crates/xdk/README.md` and the target constant's rustdoc tell an embedder how to subscribe to the event; the four
+  aliased fields' rustdoc states the direct-serde collision caveat. Evidence: #216; `cargo doc -p xdk-rs --no-deps`
+  builds clean with `-D warnings`.
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `fbda284`, 2026-09-22)
+
+U1-U5 are open as GitHub stack #217, five PRs with every required check green; none is merged. T1-T6 are done apart from
+the release cut.
+
+| Unit | State          | Branch                                | PR   | Commit    | Note                                                                                                           |
+| ---- | -------------- | ------------------------------------- | ---- | --------- | -------------------------------------------------------------------------------------------------------------- |
+| U1   | open, CI green | `feat/wire-vocab-01-derive-table`     | #212 | `3a66a88` | The derivation lives in `crates/xdk/codegen/vocabulary.rs`; a `build/` directory matches a common ignore rule. |
+| U2   | open, CI green | `feat/wire-vocab-02-aliases`          | #213 | `f87b8ca` | Field rustdoc lands with U5, so the committed schemas regenerate once.                                         |
+| U3   | open, CI green | `feat/wire-vocab-03-normalize-decode` | #214 | `ed97941` | Carries the `## Changelog (xdk-rs)` before/after snippet.                                                      |
+| U4   | open, CI green | `feat/wire-vocab-04-report-firing`    | #215 | `bbf46a6` | `value_type` and `value_len` describe the value sent under the legacy key, collisions included.                |
+| U5   | open, CI green | `feat/wire-vocab-05-live-smoke-docs`  | #216 | `b791bf5` | Also drops the live smoke's `tweet_count`-in-`extra` check, which `post_count > 0` covers.                     |
+
+Code review ran as the `ce-code-review` lite path (receipt `20260922-181023-60842ef1`, Ready to merge); its helper's
+`hard_block_full` floor was not honored, because the full spine dispatches subagents. One P3 finding is unapplied:
+`crates/xdk/tests/vocabulary_table.rs:59` and `:75` pin absolute admitted counts, so a spec refresh that adds a pair
+fails three tests where one pin was intended. Vale and unslop (score 0) ran on every PR body; LanguageTool was
+unreachable and skipped, as `RELEASES.md` allows.
 
 ## Decision ledger
 
@@ -699,31 +739,31 @@ and U4 and U5 read U3's events.
 Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or Codex;
 checkbox as you ship.
 
-- [ ] **T1 (P1, human: ~1h / CC: ~10min)** — build.rs — derive admitted and excluded vocabulary tables
+- [x] **T1 (P1, human: ~1h / CC: ~10min)** — build.rs — derive admitted and excluded vocabulary tables
   - Surfaced by: Architecture — R1/D2 (`tweet_count`, `tweet_id` are current spec names)
   - Files: `crates/xdk/build.rs`, a derivation file shared with a unit test
   - Verify: `cargo test -p xdk-rs` (admitted 10, excluded 2, injected-fixture and both-names-fixture cases)
-- [ ] **T2 (P1, human: ~2h / CC: ~15min)** — xdk decode — normalize legacy keys in `decode()` with the collision rule
+- [x] **T2 (P1, human: ~2h / CC: ~15min)** — xdk decode — normalize legacy keys in `decode()` with the collision rule
   - Surfaced by: Scope — S0/D1; Architecture — R2/D3 (`duplicate field` on both spellings)
   - Files: `crates/xdk/src/api/response/types.rs`, new normalizer module
   - Verify: `cargo test -p xdk-rs` (nested, collision, excluded-collision, lone-excluded, pass-through, empty-body
     cases)
-- [ ] **T3 (P2, human: ~30min / CC: ~5min)** — xdk types — three aliases plus the table-tie guard test
+- [x] **T3 (P2, human: ~30min / CC: ~5min)** — xdk types — three aliases plus the table-tie guard test
   - Surfaced by: FC5 (aliases now serve direct-serde embedders)
   - Files: `crates/xdk/src/api/response/types.rs`, `crates/xdk/tests/spec_validation.rs`
   - Verify: `cargo test -p xdk-rs --test spec_validation`
-- [ ] **T4 (P1, human: ~2h / CC: ~15min)** — telemetry — target const, per-decode dedup, render arm, gating tests
+- [x] **T4 (P1, human: ~2h / CC: ~15min)** — telemetry — target const, per-decode dedup, render arm, gating tests
   - Surfaced by: Architecture — R3/D4; FC6 (lint-stdio.sh proves no runtime gating)
   - Files: `crates/xdk/src/api/mod.rs`, normalizer module, `crates/xurl-cli/src/cli/output/diagnostics.rs`,
     `crates/xurl-cli/tests/cli_diagnostics_tests.rs`
   - Verify: `cargo test` (render test pinning both `info:` line forms, e2e `xr --verbose post`, emit-site grep guard)
-- [ ] **T5 (P1, human: ~1h / CC: ~10min)** — live smoke — capture events instead of the hand list
+- [x] **T5 (P1, human: ~1h / CC: ~10min)** — live smoke — capture events instead of the hand list
   - Surfaced by: Tests — R4/D5 (regression: `live_smoke.rs:79` goes blind)
   - Files: `crates/xdk/tests/live_smoke.rs`, `RELEASES-PREFLIGHT.md`, `crates/xdk/README.md`, aliased-field rustdoc in
     `crates/xdk/src/api/response/types.rs`
   - Verify: `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored` at preflight; `cargo test` compiles it; `cargo
     doc -p xdk-rs --no-deps` renders the new rustdoc and README links
-- [ ] **T6 (P2, human: ~15min / CC: ~2min)** — release gates — run the corrected verification contract
+- [x] **T6 (P2, human: ~15min / CC: ~2min)** — release gates — run the corrected verification contract
   - Surfaced by: FC2, FC3
   - Files: none
   - Verify: `cargo semver-checks --baseline-rev xdk-rs-v0.1.0 --release-type patch`; golden suite shows no changes
