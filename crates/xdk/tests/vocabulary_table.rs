@@ -16,6 +16,15 @@ fn pairs(list: &[Pair]) -> Vec<(&str, &str)> {
         .collect()
 }
 
+/// The pairs `after` holds that `before` does not.
+fn added<'a>(after: &'a [Pair], before: &[Pair]) -> Vec<(&'a str, &'a str)> {
+    after
+        .iter()
+        .filter(|pair| !before.contains(pair))
+        .map(|pair| (pair.legacy.as_str(), pair.current.as_str()))
+        .collect()
+}
+
 /// Declares `name` on the spec schema `schema`.
 fn declare(spec: &mut Value, schema: &str, name: &str) {
     spec.pointer_mut(&format!("/components/schemas/{schema}/properties"))
@@ -51,36 +60,35 @@ fn the_vendored_spec_admits_ten_pairs_and_excludes_the_two_it_still_declares() {
 
 #[test]
 fn a_renamed_property_added_to_the_spec_is_admitted_with_no_source_edit() {
+    let baseline = derive(&common::load_spec()).expect("the vendored spec derives");
     let mut spec = common::load_spec();
     declare(&mut spec, "Post", "quote_post_count");
 
     let table = derive(&spec).expect("the extended spec derives");
 
-    assert_eq!(table.admitted.len(), 11);
-    assert!(
-        pairs(&table.admitted).contains(&("quote_tweet_count", "quote_post_count")),
-        "the added property is admitted: {:?}",
-        pairs(&table.admitted)
+    assert_eq!(
+        added(&table.admitted, &baseline.admitted),
+        [("quote_tweet_count", "quote_post_count")]
     );
+    assert_eq!(table.admitted.len(), baseline.admitted.len() + 1);
+    assert_eq!(pairs(&table.excluded), pairs(&baseline.excluded));
 }
 
 #[test]
 fn an_added_property_whose_legacy_spelling_the_spec_declares_is_excluded() {
+    let baseline = derive(&common::load_spec()).expect("the vendored spec derives");
     let mut spec = common::load_spec();
     declare(&mut spec, "Post", "quote_post_count");
     declare(&mut spec, "Trend", "quote_tweet_count");
 
     let table = derive(&spec).expect("the extended spec derives");
 
-    assert_eq!(table.admitted.len(), 10);
+    assert_eq!(pairs(&table.admitted), pairs(&baseline.admitted));
     assert_eq!(
-        pairs(&table.excluded),
-        [
-            ("tweet_count", "post_count"),
-            ("tweet_id", "post_id"),
-            ("quote_tweet_count", "quote_post_count"),
-        ]
+        added(&table.excluded, &baseline.excluded),
+        [("quote_tweet_count", "quote_post_count")]
     );
+    assert_eq!(table.excluded.len(), baseline.excluded.len() + 1);
 }
 
 #[test]
