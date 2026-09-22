@@ -76,7 +76,8 @@ all eight would add public API for names nobody calls.
 
 Two of the 12 are not safe to rename everywhere. `tweet_count` is the current spec name on `Trend`, and `tweet_id` is
 the current spec name on `Broadcast`, `CreateUsersBookmarkRequest`, `CreateUsersBookmarkResponse`, `LikePostRequest`,
-and `RepostPostRequest`. KTD1 excludes both from normalization; user metrics keep their `tweet_count` alias.
+and `RepostPostRequest`. KTD1 excludes both from renaming, keeps the collision rule for them, and user metrics keep
+their `tweet_count` alias.
 
 **Nothing catches this today.** `crates/xdk/tests/live_smoke.rs:79` asserts two hand-written names are absent from one
 `extra` bucket on one read. Those two were added by hand after #118 and the list has not grown across two further
@@ -136,6 +137,10 @@ A pair is admitted only when its legacy spelling is not itself a property name a
 excludes `tweet_count` and `tweet_id`, leaving 10 admitted pairs. The build script emits the excluded pairs as a second
 table so the exclusion is visible and testable, and a spec refresh re-evaluates the rule with no source edit.
 
+An excluded pair still gets the collision rule. No spec `properties` object declares both names of either excluded pair,
+so an object carrying both can only be the rename case; the build script fails the build if a spec refresh ever adds an
+object that declares both, which would make that inference wrong.
+
 **KTD2. Normalize in one place; alias for direct serde users.** Normalization in `decode()` covers all 10 admitted pairs
 on the library's own path, declared fields included, and every future rename without adding public API. Three one-line
 aliases on `posts`, `referenced_posts`, and `repost_count` serve embedders that deserialize the types with serde
@@ -150,7 +155,8 @@ one.
 
 On collision, when an object already carries the current spelling, the current key and value are kept and the legacy key
 is removed before serde sees it; serde would otherwise fail the whole response with `duplicate field` on an aliased
-field (observed with serde 1).
+field (observed with serde 1). The rule covers the admitted and the excluded pairs alike. For an excluded pair it is the
+only thing the walk does: a lone `tweet_count` or `tweet_id` is never renamed.
 
 **KTD4. Telemetry replaces the probe, and it stays local and schema-only.**
 
@@ -209,7 +215,8 @@ feed it a spec fixture.
 **Test scenarios.** The admitted table holds the 10 pairs, including `repost_count` → `retweet_count`. The excluded
 table holds `tweet_count` and `tweet_id`. A spec fixture with an added post-named property extends the admitted table
 with no source edit. A fixture where the added property's legacy spelling is also a spec property lands in the excluded
-table.
+table. A fixture where one `properties` object declares both names of a pair fails the derivation with a message naming
+the pair and the object.
 
 ### U2. Alias the three declared fields
 
@@ -232,14 +239,16 @@ Observed failing first. `spec_validation.rs:65` (`tweet_count` → `post_count`)
 **Files.** `crates/xdk/src/api/response/types.rs` (`decode()`), plus a small normalizer module beside it.
 
 **Approach.** `decode()` calls a walk over its owned `Value` before `serde_json::from_value`. The walk renames any key
-the admitted table lists, at any depth, and applies the KTD3 collision rule. Keys not in the table pass through. Values
-are inspected only for their JSON type and length.
+the admitted table lists, at any depth, and applies the KTD3 collision rule to admitted and excluded pairs. Keys not in
+either table pass through. Values are inspected only for their JSON type and length.
 
 **Test scenarios.** `edit_history_tweet_ids` decodes to `edit_history_post_ids` with its value byte-identical, `[""]`
 and `[]` included. Legacy keys nested under `data[*]`, `includes`, and `public_metrics` all normalize. An unrelated
 unknown key survives unchanged. `tweet_id` on a bookmark body is never renamed. An object carrying both `retweet_count`
-and `repost_count` parses, keeps the `repost_count` value, and drops `retweet_count`. The empty-body and errors-only
-paths (`types.rs:898`, `types.rs:1021`) stay green. A raw request still prints the original spelling.
+and `repost_count` parses, keeps the `repost_count` value, and drops `retweet_count`. A user object carrying both
+`tweet_count` and `post_count` parses with the `post_count` value and one `collision = true` event, and a lone
+`tweet_count` on a user still fills `post_count` through the alias with no event. The empty-body and errors-only paths
+(`types.rs:898`, `types.rs:1021`) stay green. A raw request still prints the original spelling.
 
 ### U4. Report a firing
 
@@ -250,21 +259,33 @@ paths (`types.rs:898`, `types.rs:1021`) stay green. A raw request still prints t
 
 **Approach.** Declare a `pub const` target beside `WIRE_TARGET` and `MEDIA_TARGET`, emit at `debug` carrying the five
 fields KTD4 tabulates, and add a `render` arm gated by `verbose_enabled()`. Deduplicate per legacy key per `decode()`
-call.
+call. `Fields` gains the five names; `value_len` and `collision` reach it through the visitor's existing `record_debug`,
+which `record_u64` and `record_bool` fall back to.
+
+The rendered line uses the `info:` prefix the wire `note` kind already prints, carries no colour, and reads exactly:
+
+```text
+info: X sent edit_history_tweet_ids; read as edit_history_post_ids (array, length 1)
+info: X sent both retweet_count and repost_count; kept repost_count (number)
+```
+
+The parenthetical is the JSON type, plus `, length N` for a string, array, or object. The second form is the collision
+case.
 
 **Test scenarios.** A planted legacy key produces exactly one event carrying the key pair, the JSON type, the length,
 and `collision`, and no other field. A key repeated across 3 posts in one response produces one event. A collision
 produces one event with `collision = true`. A `Diagnostics` render test in the style of `diagnostics.rs:239` shows the
 line under `--verbose` in text mode and nothing under `--quiet`, `--output json`, `--output jsonl`, or without
-`--verbose`. An end-to-end test on the `cli_diagnostics_tests.rs` harness runs `xr --verbose post` against a
-legacy-spelled wiremock and checks stdout and stderr. A grep guard asserts the emit site passes no value, no path, and
-no identifier.
+`--verbose`. The render test pins both line forms above byte for byte, including a number (no length) and a string. An
+end-to-end test on the `cli_diagnostics_tests.rs` harness runs `xr --verbose post` against a legacy-spelled wiremock and
+checks stdout and stderr. A grep guard asserts the emit site passes no value, no path, and no identifier.
 
 ### U5. Record what the wire does
 
 **Goal.** Keep instance four from being rediscovered.
 
-**Files.** `crates/xdk/tests/live_smoke.rs`, `docs/solutions/`, `RELEASES-PREFLIGHT.md`, the release notes.
+**Files.** `crates/xdk/tests/live_smoke.rs`, `crates/xdk/README.md`, `crates/xdk/src/api/response/types.rs` (doc
+comments only), `docs/solutions/`, `RELEASES-PREFLIGHT.md`, the release notes.
 
 **Approach.** One entry: the spec is mid-migration, the wire lags per-endpoint, a snapshot of the wire is worth less
 than accepting both spellings, and the detector is telemetry rather than a probe. Name the three instances. Note the
@@ -274,8 +295,19 @@ its counterexample. Commit with `sd-commit-doc`.
 The live smoke installs a test `tracing` subscriber for the U4 target around its two existing reads, one post and one
 user, and fails listing every `legacy → normalized` pair reported. The hand-written list at `live_smoke.rs:79` is
 removed; the typed-metrics-nonzero and media-key assertions stay. Paid reads stay at 2. `RELEASES-PREFLIGHT.md:242-249`
-describes this check and its blind spot: excluded pairs and alias-only fields never emit, so `tweet_count` drift on user
-metrics stays silent.
+describes this check and its blind spot: a lone legacy key of an excluded pair never emits, so X sending `tweet_count`
+alone on user metrics stays silent; X sending both spellings there does emit.
+
+Two embedder-facing notes land with it:
+
+- `crates/xdk/README.md` gains one sentence in the `api` bullet of `## What the crate publishes`, which names no
+  `tracing` target today, naming the new target constant and saying that a subscriber on it reports each legacy key the
+  library normalized, with the five fields and no values. The constant's own rustdoc says the same and links the README
+  section.
+- The rustdoc on `posts`, `referenced_posts`, `repost_count`, and `post_count` states that the alias accepts the legacy
+  spelling when the type is deserialized directly with serde, and that an object carrying both spellings fails there
+  with serde's `duplicate field` error; calls through the library's own path never hit it, because `decode()` resolves
+  the collision first (KTD3). The `## Changelog (xdk-rs)` entry states the same caveat in one sentence.
 
 ## Verification Contract
 
@@ -296,7 +328,8 @@ metrics stays silent.
 - The 10 admitted pairs are normalized in `decode()`, `tweet_count` and `tweet_id` sit in the excluded table,
   `tweet_count` on user metrics stays covered by its alias, and a thirteenth property injected into a spec fixture is
   admitted with no source edit.
-- An object carrying both spellings parses, keeps the current value, and reports `collision = true`.
+- An object carrying both spellings parses, keeps the current value, and reports `collision = true`, for the excluded
+  pairs as well as the admitted ones; a lone `tweet_count` or `tweet_id` is never renamed.
 - The live smoke fails on any normalization event during its two reads, with no hand-written key list.
 - `xr post --output json` reports `edit_history_post_ids` carrying the empty array X sent, unrepaired.
 - A raw request still prints X's own spelling.
@@ -304,7 +337,10 @@ metrics stays silent.
 - The telemetry emit site carries only the five fields KTD4 names, asserted by a guard rather than by review.
 - The `docs/solutions/` entry is written and pushed with `sd-commit-doc`.
 - The PR body's `## Changelog (xdk-rs)` names the normalization with a before and after snippet, which
-  `crates/xdk/README.md` makes a release gate.
+  `crates/xdk/README.md` makes a release gate, and states the direct-serde collision caveat.
+- `xr --verbose` prints the normalization line in exactly the two U4 forms, pinned by a render test.
+- `crates/xdk/README.md` and the target constant's rustdoc tell an embedder how to subscribe to the event; the four
+  aliased fields' rustdoc states the direct-serde collision caveat.
 
 ## Decision ledger
 
@@ -524,8 +560,64 @@ Review target: `docs/plans/2026-09-20-1142-fix-wire-vocabulary-drift-plan.md` (/
   `RELEASES-PREFLIGHT.md:242-249` describes the event-based check. Paid reads stay at 2.
 - **History:** none
 
-Approval readiness: PASS. Checked S0 (D1), R1 (D2), R2 (D3), R3 (D4), R4 (D5, regression contract); each cites its own
-answer from 2026-09-22. FC1-FC6 are factual corrections with no behavior change.
+### R5: Excluded pairs still fail on collision
+
+- **Finding:** 5, P1, confidence 9/10, U5 (the direct-serde caveat bullet) and R1/D2 accepted scope, reviewer:
+  plan-eng-review (second pass, 2026-09-22).
+- **Plan baseline:** D2 excludes `tweet_count` and `tweet_id` from the table; D3 resolves collisions in `decode()` for
+  admitted pairs only. U5 states that calls through the library's own path never hit serde's `duplicate field` error.
+- **Runtime evidence:** `decode()` never sees `tweet_count` (excluded), so a user object carrying both `tweet_count` and
+  `post_count` reaches serde, where the `post_count` alias fails the whole response (probe from R2). The U5 sentence is
+  false for `post_count`, and `xr user` keeps the failure D3 set out to remove. `jq` over the vendored spec finds 0
+  `properties` objects declaring both `post_count` and `tweet_count`, and 0 declaring both `post_id` and `tweet_id`.
+- **Comparison grid:**
+
+| Choice                           | Current                                                      | A                                                              | B                                                   |
+| -------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------- |
+| Excluded pair, both keys present | serde `duplicate field` on `post_count`; untouched elsewhere | `decode()` drops the legacy key, event with `collision = true` | unchanged; U5 caveat rewritten to name `post_count` |
+| Excluded pair, legacy key alone  | untouched                                                    | untouched (D2 holds)                                           | untouched                                           |
+| Safety check                     | none                                                         | build.rs fails if a spec object declares both names of a pair  | none                                                |
+| U5 rustdoc claim                 | false for `post_count`                                       | true for all four aliased fields                               | true once reworded                                  |
+
+- **Question D7:**
+  - D7 — Should `decode()` also resolve collisions for the two excluded pairs?
+  - Project/branch/task: dev, wire-vocabulary-drift plan, D2/D3 interplay, U3 and U5.
+  - ELI10: We kept `tweet_count` and `tweet_id` off the rename list because they are real names elsewhere in the spec.
+    But that also means the "both spellings arrived" rule never runs for them. So if X sends a user with both
+    `tweet_count` and `post_count`, `xr user` still crashes on it. That is the one field X has already been caught
+    drifting on. In the spec, no single object ever carries both names of either pair, so seeing both together can only
+    mean a rename.
+  - Stakes if we pick wrong: the most likely dual-send in the migration, user metrics, keeps hard-failing `xr user` and
+    every embedder's user read, while the plan's docs say it cannot happen.
+  - Recommendation: A because it closes the exact failure D3 targeted, with a build-time check that keeps it safe, and
+    it never touches a lone `tweet_count` or `tweet_id`.
+  - Completeness: A=10/10, B=6/10
+- **Header:** Excluded collisions
+- **Options:**
+  - A) Collision-only rule (recommended): for an excluded pair, `decode()` acts only when one object carries both
+    spellings: it keeps the current key, removes the legacy key, and emits the event with `collision = true`. A lone
+    legacy key is never renamed, so D2 holds. build.rs fails the build if any spec `properties` object declares both
+    names of an excluded pair (0 today). U5's rustdoc claim becomes true for all four aliased fields. Tests: a user
+    object with both `tweet_count` and `post_count` parses with the `post_count` value and one event; a lone
+    `tweet_count` on a user still fills `post_count` via the alias; a lone `tweet_id` in a bookmark body is untouched; a
+    spec fixture declaring both names in one object fails the derivation. Effort human ~1h / CC ~10min.
+  - B) Document it: leave the excluded pairs alone and rewrite U5's caveat to say that a user object carrying both
+    `tweet_count` and `post_count` fails with `duplicate field` on every path, including `xr user`. No code change.
+    Effort human ~10min / CC ~2min.
+- **State:** approved
+- **Actual answer:** A) Collision-only rule (D7, answered 2026-09-22)
+- **Accepted scope:** for an excluded pair, `decode()` acts only when one object carries both spellings: it keeps the
+  current key, removes the legacy key, and emits the event with `collision = true`; a lone legacy key is never renamed.
+  build.rs fails the build if any spec `properties` object declares both names of a pair (0 today). U5's rustdoc claim
+  holds for all four aliased fields. Tests: user object with both `tweet_count` and `post_count`; lone `tweet_count` via
+  the alias with no event; lone `tweet_id` untouched; both-names spec fixture fails the derivation. KTD1, KTD3, U1, U3,
+  U5's blind-spot text, the DoD, the data-flow diagram, the failure modes, and T1/T2 carry the change.
+- **History:** none
+
+Approval readiness: PASS. Checked S0 (D1), R1 (D2), R2 (D3), R3 (D4), R4 (D5, regression contract), and R5 (D7, second
+pass); each cites its own answer from 2026-09-22. FC1-FC6 are factual corrections with no behavior change. The second
+pass also checked the U4 `--verbose` line format and the U5 embedder notes, which it accepted as written apart from the
+claim R5 corrected.
 
 ## Engineering review notes
 
@@ -535,8 +627,9 @@ answer from 2026-09-22. FC1-FC6 are factual corrections with no behavior change.
   plan's Scope Boundaries already record it.
 - Drift that does not follow the `post`→`tweet` pattern: lands in `extra` unrenamed and emits nothing; KTD5 keeps the
   live write probe optional.
-- Telemetry for excluded pairs and alias-only fields: inherent to D2, since the walk cannot tell a user-metrics
-  `tweet_count` from a `Trend` one; documented in `RELEASES-PREFLIGHT.md` per U5.
+- Telemetry for a lone legacy key of an excluded pair: inherent to D2, since the walk cannot tell a user-metrics
+  `tweet_count` from a `Trend` one; documented in `RELEASES-PREFLIGHT.md` per U5. Collisions on excluded pairs do emit
+  (D7).
 - Distribution: no new artifact; both release lines ship through their existing pipelines.
 
 ### What already exists
@@ -561,10 +654,11 @@ send_request ──────────────────────�
       ▼
 decode(value)  types.rs:458
   ├─ empty-body / errors-only guards (unchanged)
-  ├─ normalize(&mut value, ADMITTED)  ── local seen-set (D4)
-  │     for each object, each key k in ADMITTED:
-  │        current present? ── yes ─► remove k, emit {collision=true}      (D3)
-  │                         └─ no ──► rename k → current, emit {collision=false}
+  ├─ normalize(&mut value, ADMITTED, EXCLUDED)  ── local seen-set (D4)
+  │     for each object, each legacy key k in ADMITTED or EXCLUDED:
+  │        current present? ── yes ─► remove k, emit {collision=true}      (D3, D7)
+  │                         └─ no ──► k in ADMITTED? ── yes ─► rename k → current, emit {collision=false}
+  │                                                  └─ no ──► leave k untouched (D2)
   │     events: target = new pub const, level = debug, fields = 5 (KTD4)
   └─ serde_json::from_value::<T>  (aliases also accept legacy for direct-serde embedders)
       │
@@ -572,6 +666,7 @@ decode(value)  types.rs:458
 typed struct ──► print_typed (commands/mod.rs:167) ──► stdout in post vocabulary
 
 build.rs: vendored spec ──► derive(spec) ──► ADMITTED (10) + EXCLUDED (tweet_count, tweet_id)   (D2)
+          fails the build if one properties object declares both names of a pair                (D7)
 Diagnostics subscriber: renders the event only when verbose_enabled()   (FC6)
 live_smoke: test subscriber on the same target; any event fails the preflight   (D5)
 ```
@@ -588,7 +683,9 @@ The normalizer module gets a short version of the `decode` part of this diagram 
 | decode walk | a data-keyed map uses a table name as a key                | none                   | table holds spec property names only | silent rename; judged unrealistic for X v2 bodies |
 | emit site   | a value or id leaks into the event                         | grep guard             | five-field payload                   | n/a                                               |
 | render arm  | line prints under `--quiet` or `--output json`             | render test + e2e      | `verbose_enabled()` gate             | nothing                                           |
-| live smoke  | wire drifts on an excluded or alias-only field             | none                   | documented blind spot                | silent; accepted                                  |
+| decode walk | X dual-sends `tweet_count` and `post_count` on a user      | U3 excluded-collision  | collision-only rule (D7)             | correct value; `--verbose` line                   |
+| derivation  | a spec refresh declares both names of a pair in one object | U1 both-names fixture  | build fails, naming pair and object  | build error for the maintainer                    |
+| live smoke  | X sends a lone `tweet_count` on a user                     | none                   | alias fills the field; blind spot    | silent; accepted                                  |
 
 Critical gaps: 0. No path lacks both a test and handling while failing silently in a realistic case.
 
@@ -605,11 +702,12 @@ checkbox as you ship.
 - [ ] **T1 (P1, human: ~1h / CC: ~10min)** — build.rs — derive admitted and excluded vocabulary tables
   - Surfaced by: Architecture — R1/D2 (`tweet_count`, `tweet_id` are current spec names)
   - Files: `crates/xdk/build.rs`, a derivation file shared with a unit test
-  - Verify: `cargo test -p xdk-rs` (admitted 10, excluded 2, injected-fixture cases)
+  - Verify: `cargo test -p xdk-rs` (admitted 10, excluded 2, injected-fixture and both-names-fixture cases)
 - [ ] **T2 (P1, human: ~2h / CC: ~15min)** — xdk decode — normalize legacy keys in `decode()` with the collision rule
   - Surfaced by: Scope — S0/D1; Architecture — R2/D3 (`duplicate field` on both spellings)
   - Files: `crates/xdk/src/api/response/types.rs`, new normalizer module
-  - Verify: `cargo test -p xdk-rs` (nested, collision, excluded, pass-through, empty-body cases)
+  - Verify: `cargo test -p xdk-rs` (nested, collision, excluded-collision, lone-excluded, pass-through, empty-body
+    cases)
 - [ ] **T3 (P2, human: ~30min / CC: ~5min)** — xdk types — three aliases plus the table-tie guard test
   - Surfaced by: FC5 (aliases now serve direct-serde embedders)
   - Files: `crates/xdk/src/api/response/types.rs`, `crates/xdk/tests/spec_validation.rs`
@@ -618,11 +716,13 @@ checkbox as you ship.
   - Surfaced by: Architecture — R3/D4; FC6 (lint-stdio.sh proves no runtime gating)
   - Files: `crates/xdk/src/api/mod.rs`, normalizer module, `crates/xurl-cli/src/cli/output/diagnostics.rs`,
     `crates/xurl-cli/tests/cli_diagnostics_tests.rs`
-  - Verify: `cargo test` (render test, e2e `xr --verbose post`, emit-site grep guard)
+  - Verify: `cargo test` (render test pinning both `info:` line forms, e2e `xr --verbose post`, emit-site grep guard)
 - [ ] **T5 (P1, human: ~1h / CC: ~10min)** — live smoke — capture events instead of the hand list
   - Surfaced by: Tests — R4/D5 (regression: `live_smoke.rs:79` goes blind)
-  - Files: `crates/xdk/tests/live_smoke.rs`, `RELEASES-PREFLIGHT.md`
-  - Verify: `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored` at preflight; `cargo test` compiles it
+  - Files: `crates/xdk/tests/live_smoke.rs`, `RELEASES-PREFLIGHT.md`, `crates/xdk/README.md`, aliased-field rustdoc in
+    `crates/xdk/src/api/response/types.rs`
+  - Verify: `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored` at preflight; `cargo test` compiles it; `cargo
+    doc -p xdk-rs --no-deps` renders the new rustdoc and README links
 - [ ] **T6 (P2, human: ~15min / CC: ~2min)** — release gates — run the corrected verification contract
   - Surfaced by: FC2, FC3
   - Files: none
@@ -630,20 +730,25 @@ checkbox as you ship.
 
 ## Review completion summary
 
-- Step 0: Scope Challenge — scope reduced per recommendation (structure only: normalization in `decode()`; no feature
-  cuts)
-- Architecture Review: 3 issues found (R1, R2, R3), all resolved
-- Code Quality Review: 6 issues found (FC1-FC6, factual corrections)
-- Test Review: diagram produced, 22 gaps identified (all folded as required proof), 1 regression resolved (R4)
+First pass (2026-09-22): scope reduced per recommendation (structure only); 3 architecture issues (R1-R3), 6 factual
+corrections (FC1-FC6), 1 regression (R4); all resolved.
+
+Second pass (2026-09-22), after U4 and U5 gained the `--verbose` line format and the embedder notes:
+
+- Step 0: Scope Challenge — structure answer S0/D1 carried forward; the pass adds doc lines and one render format, no
+  new modules
+- Architecture Review: 1 issue found (R5: excluded pairs still failed on collision), resolved by D7
+- Code Quality Review: 0 issues found
+- Test Review: diagram produced, 5 new paths, each with a required test in the plan; 0 unaddressed gaps
 - Performance Review: 0 issues found
-- NOT in scope: written
-- What already exists: written
+- NOT in scope: updated (the excluded-pair telemetry bullet narrows to a lone legacy key)
+- What already exists: unchanged
 - TODOS.md updates: 0 items proposed to user
-- Failure modes: 0 critical gaps flagged
+- Failure modes: 0 critical gaps flagged (two rows added for D7)
 - Unresolved decisions: 0 in this review
 - Outside voice: codex, disabled (`codex_reviews` disabled; no native fallback by design)
 - Parallelization: 1 lane, 0 parallel / 6 sequential
-- Lake Score: 4/4 (D2, D3, D4, D5 each chose the 10/10 option; D1 differs in kind)
+- Lake Score: 1/1 (D7 chose the 10/10 option)
 
 ### Suppressed findings
 
@@ -652,16 +757,16 @@ checkbox as you ship.
 
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger                                    | Why                             | Runs | Status                                  | Findings                                               |
-| -------------- | ------------------------------------------ | ------------------------------- | ---- | --------------------------------------- | ------------------------------------------------------ |
-| CEO Review     | `/plan-ceo-review`                         | Scope & strategy                | 0    | —                                       | —                                                      |
-| Outside Review | codex via `/plan-eng-review` outside voice | Independent 2nd opinion         | 10   | disabled                                | none (codex_reviews disabled)                          |
-| Eng Review     | `/plan-eng-review`                         | Architecture & tests (required) | 7    | ISSUES OPEN (PLAN)                      | 10 issues, 0 critical gaps; all resolved into the plan |
-| Design Review  | `/plan-design-review`                      | UI/UX gaps                      | 0    | —                                       | —                                                      |
-| DX Review      | `/plan-devex-review`                       | Developer experience gaps       | 4    | issues_found (2026-09-17, another plan) | not this plan                                          |
+| Review         | Trigger                                    | Why                             | Runs | Status                                  | Findings                                                   |
+| -------------- | ------------------------------------------ | ------------------------------- | ---- | --------------------------------------- | ---------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`                         | Scope & strategy                | 0    | —                                       | —                                                          |
+| Outside Review | codex via `/plan-eng-review` outside voice | Independent 2nd opinion         | 11   | disabled                                | none (codex_reviews disabled)                              |
+| Eng Review     | `/plan-eng-review`                         | Architecture & tests (required) | 8    | ISSUES OPEN (PLAN)                      | second pass: 1 issue (R5), 0 critical gaps; resolved by D7 |
+| Design Review  | `/plan-design-review`                      | UI/UX gaps                      | 0    | —                                       | —                                                          |
+| DX Review      | `/plan-devex-review`                       | Developer experience gaps       | 4    | issues_found (2026-09-17, another plan) | not this plan                                              |
 
 - **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config (`codex_reviews disabled`); no outside findings.
-- **VERDICT:** no review CLEAR. Eng Review logs `issues_open` because it found 10 issues, every one resolved in the
-  ledger with 0 unresolved; eng review required by the dashboard rule until a clean re-run is logged.
+- **VERDICT:** no review CLEAR. The second pass found and resolved R5, so it logs `issues_open`; a pass over the
+  D7-amended plan that finds nothing is what logs clean. eng review required.
 
 NO UNRESOLVED DECISIONS
