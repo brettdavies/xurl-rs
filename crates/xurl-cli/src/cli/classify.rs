@@ -17,6 +17,9 @@ use crate::cli::{Cli, ColorChoice};
 /// Jaro score a candidate must beat to be offered as the nearest command.
 const SUGGESTION_THRESHOLD: f64 = 0.7;
 
+/// The name every hint gives the binary, however it was invoked.
+pub(crate) const ROOT_COMMAND: &str = "xr";
+
 /// What an invocation is asking for, once clap has parsed it.
 pub(crate) enum Classified {
     /// Nothing to run: the root help answers it.
@@ -141,6 +144,28 @@ fn clap_suggestion(error: &clap::Error) -> Option<String> {
         ContextValue::Strings(values) => values.first().cloned(),
         _ => None,
     }
+}
+
+/// The command a clap failure belongs to, read from the usage line clap
+/// attached: its words up to the first placeholder or flag, so `Usage: xr
+/// auth [OPTIONS] <COMMAND>` gives `xr auth`. clap names the binary as it was
+/// invoked (`xurl-rs` under the Homebrew alias, `xr.exe` on Windows), so the
+/// first word gives way to [`ROOT_COMMAND`]. `None` when clap attached no
+/// usage, as it does for an invalid value.
+pub(crate) fn usage_command(error: &clap::Error) -> Option<String> {
+    let usage = error.get(ContextKind::Usage)?.to_string();
+    let mut words = usage
+        .trim_start()
+        .strip_prefix("Usage:")?
+        .split_whitespace()
+        .take_while(|word| !word.starts_with(['[', '<', '-']));
+    words.next()?;
+    Some(
+        std::iter::once(ROOT_COMMAND)
+            .chain(words)
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
 }
 
 /// One string of clap error context.

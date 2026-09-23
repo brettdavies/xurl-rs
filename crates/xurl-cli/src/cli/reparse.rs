@@ -10,7 +10,7 @@ use std::ffi::OsString;
 
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
-use crate::cli::classify::color_intent;
+use crate::cli::classify::{ROOT_COMMAND, color_intent, usage_command};
 use crate::cli::{Cli, ColorChoice};
 
 /// `Cli::command()` with the root help flag inert.
@@ -59,4 +59,21 @@ pub(crate) fn color_choice(args: &[OsString]) -> ColorChoice {
                 .copied()
         })
         .unwrap_or_default()
+}
+
+/// The command whose help a parse failure points at: the one clap's usage
+/// line names, or, when clap attached no usage, the subcommands it resolved
+/// before it stopped.
+pub(crate) fn failing_command(error: &clap::Error, args: &[OsString]) -> String {
+    usage_command(error).unwrap_or_else(|| {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        if let Some(matches) = lenient_matches(args) {
+            let mut current = &matches;
+            while let Some((name, sub)) = current.subcommand() {
+                words.push(name.to_string());
+                current = sub;
+            }
+        }
+        words.join(" ")
+    })
 }

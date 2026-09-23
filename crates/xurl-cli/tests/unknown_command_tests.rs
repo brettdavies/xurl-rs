@@ -107,7 +107,9 @@ fn assert_unknown_command(stderr: &str, format: &str, word: &str, suggestion: Op
 
 fn text_line(word: &str, suggestion: Option<&str>) -> String {
     match suggestion {
-        Some(s) => format!("Error: unknown command '{word}'. Did you mean '{s}'? Try 'xr --help'."),
+        Some(s) => {
+            format!("Error: unknown command '{word}'. Did you mean '{s}'? Try 'xr {s} --help'.")
+        }
         None => format!("Error: unknown command '{word}'. Try 'xr --help'."),
     }
 }
@@ -123,7 +125,7 @@ async fn mistyped_command_names_the_nearest_one() {
     assert!(stdout.is_empty(), "stdout stays empty: {stdout}");
     assert_eq!(
         plain(&stderr).trim_end(),
-        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr --help'."
+        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr whoami --help'."
     );
 }
 
@@ -197,7 +199,7 @@ async fn classification_precedes_the_store_load() {
     assert_eq!(code, 2, "stderr: {rendered}");
     assert_eq!(
         plain(&rendered).trim_end(),
-        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr --help'.",
+        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr whoami --help'.",
         "nothing from the store loader precedes the line"
     );
 }
@@ -212,7 +214,7 @@ async fn help_for_a_mistyped_command_scores_it_against_the_root() {
     assert_eq!(code, 2, "stderr: {stderr}");
     assert_eq!(
         plain(&stderr).trim_end(),
-        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr --help'."
+        "Error: unknown command 'whoam'. Did you mean 'whoami'? Try 'xr whoami --help'."
     );
 }
 
@@ -420,6 +422,7 @@ const RED: &str = "\u{1b}[31mError: ";
 #[case::help_flag_path_flag_last(&["xr", "webhooks", "-h", "--color=always"])]
 #[case::clap_rejection(&["xr", "--color", "always", "auth", "statsu"])]
 #[case::clap_rejection_flag_after_the_word(&["xr", "auth", "statsu", "--color", "always"])]
+#[case::clap_text(&["xr", "--color", "always", "--bogus-flag"])]
 #[tokio::test]
 async fn an_explicit_color_flag_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
     let (code, _stdout, stderr) = run_isolated(args).await;
@@ -559,20 +562,100 @@ async fn the_json_alias_picks_the_json_rendering() {
     assert_invalid_args(&stderr, "json");
 }
 
+/// Asserts the `invalid-args` rendering of a root-level `--frobnicate`: clap's
+/// words in `xr`'s dialect, with no `error:` prefix inside the message.
 fn assert_invalid_args(stderr: &str, format: &str) {
+    let opening = "unexpected argument '--frobnicate' found";
+    let closing = "Try 'xr --help'.";
     if format == "text" {
+        let text = plain(stderr);
         assert!(
-            stderr.contains("unexpected argument"),
-            "text mode keeps clap's own rendering; got: {stderr}"
+            text.starts_with(&format!("Error: {opening}")),
+            "text: {stderr}"
         );
+        assert!(text.trim_end().ends_with(closing), "text: {stderr}");
         return;
     }
     let v = envelope(stderr, format);
     assert_eq!(v["status"], "error", "{format}: {stderr}");
     assert_eq!(v["reason"], "invalid-args", "{format}: {stderr}");
     assert_eq!(v["exit_code"], 2, "{format}: {stderr}");
+    let message = v["message"].as_str().expect("the message is a string");
+    assert!(message.starts_with(opening), "{format}: {stderr}");
+    assert!(message.ends_with(closing), "{format}: {stderr}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// One dialect, whoever raised the error
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Every text error opens with `Error:` and closes by pointing at the help of
+/// the command it belongs to, whether clap or `xr` raised it.
+#[rstest::rstest]
+#[case::root_flag(&["xr", "--bogus-flag"], "unexpected argument '--bogus-flag' found", "Try 'xr --help'.")]
+#[case::command_argument(&["xr", "whoami", "extra"], "unexpected argument 'extra' found", "Try 'xr whoami --help'.")]
+#[case::family_flag(&["xr", "auth", "--frob"], "unexpected argument '--frob' found", "Try 'xr auth --help'.")]
+#[case::invalid_value(&["xr", "skill", "install", "bogus_host"], "invalid value 'bogus_host' for '[HOST]'", "Try 'xr skill install --help'.")]
+#[case::unknown_verb(&["xr", "auth", "statsu"], "unknown command 'statsu'. Did you mean 'status'?", "Try 'xr auth status --help'.")]
+#[case::unknown_verb_near_nothing(&["xr", "auth", "whoam"], "unknown command 'whoam'.", "Try 'xr auth --help'.")]
+#[case::unknown_nested_verb(&["xr", "auth", "apps", "ad"], "unknown command 'ad'. Did you mean 'add'?", "Try 'xr auth apps add --help'.")]
+#[case::unknown_root_word(&["xr", "whoam"], "unknown command 'whoam'. Did you mean 'whoami'?", "Try 'xr whoami --help'.")]
+#[case::no_url(&["xr", "-X", "POST"], "No URL provided.", "Try 'xr --help'.")]
+#[tokio::test]
+async fn every_text_error_speaks_one_dialect(
+    #[case] args: &[&str],
+    #[case] opening: &str,
+    #[case] closing: &str,
+) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_ne!(code, 0, "args {args:?}; stderr: {stderr}");
+    let text = plain(&stderr);
+    let text = text.trim_end();
     assert!(
-        v["message"].is_string(),
-        "{format} carries the message: {stderr}"
+        text.starts_with(&format!("Error: {opening}")),
+        "args {args:?}; stderr: {stderr}"
     );
+    assert!(text.ends_with(closing), "args {args:?}; stderr: {stderr}");
+    assert!(
+        !text.contains("For more information") && !text.contains("error: "),
+        "args {args:?} carries no second dialect; stderr: {stderr}"
+    );
+}
+
+/// The pointer names `xr` however the binary was invoked. clap takes the
+/// command in its usage line from `argv[0]`, which is `xurl-rs` under the
+/// Homebrew alias and can carry `.exe` on Windows.
+#[rstest::rstest]
+#[case::verb(&["auth", "statsu"], "Try 'xr auth status --help'.")]
+#[case::argument(&["whoami", "extra"], "Try 'xr whoami --help'.")]
+#[case::invalid_value(&["skill", "install", "bogus_host"], "Try 'xr skill install --help'.")]
+#[tokio::test]
+async fn the_pointer_names_xr_whatever_the_binary_is_called(
+    #[case] rest: &[&str],
+    #[case] closing: &str,
+    #[values("xurl-rs", "/usr/local/bin/xurl-rs", "xr.exe")] bin: &str,
+) {
+    let mut args = vec![bin];
+    args.extend(rest);
+    let (code, _stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(
+        plain(&stderr).trim_end().ends_with(closing),
+        "args {args:?}; stderr: {stderr}"
+    );
+}
+
+#[tokio::test]
+async fn a_structured_parse_error_names_the_command_it_belongs_to() {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", "whoami", "extra"]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v = envelope(&stderr, "json");
+    assert_eq!(v["reason"], "invalid-args", "got: {v}");
+    let message = v["message"].as_str().expect("the message is a string");
+    assert!(
+        message.starts_with("unexpected argument 'extra' found"),
+        "got: {v}"
+    );
+    assert!(message.ends_with("Try 'xr whoami --help'."), "got: {v}");
 }
