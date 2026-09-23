@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ErrorKind};
-use clap::{Arg, ArgAction, CommandFactory, FromArgMatches, Parser};
+use clap::{CommandFactory, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -35,7 +35,8 @@ use crate::cli::classify::{
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
-use crate::cli::{Cli, ColorChoice, Commands};
+use crate::cli::reparse::{color_choice, parse_without_help};
+use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
@@ -378,7 +379,7 @@ fn render_parse_error(
         intent.unwrap_or(OutputFormat::Text),
         false,
         false,
-        ColorChoice::Auto,
+        color_choice(args),
         false,
         overrides.no_color,
     );
@@ -437,26 +438,6 @@ fn help_command_page(args: &[OsString]) -> String {
         .err()
         .map(|e| e.to_string())
         .unwrap_or_default()
-}
-
-/// Parses `args` as if the root help flag were absent, so the invocation it
-/// interrupted can be classified like any other.
-///
-/// clap adds the help flag while building the command, so it cannot be edited
-/// in place: it is disabled, which clap applies to every subcommand, and an
-/// inert counting flag with the same spellings stands in at the root. The
-/// `help` subcommand stays, because without it the word `help` binds to the
-/// positional and reads as an unknown command. Any parse error returns `None`,
-/// which leaves clap's help display in place.
-fn parse_without_help(args: &[OsString]) -> Option<Cli> {
-    let command = Cli::command().disable_help_flag(true).arg(
-        Arg::new("help")
-            .short('h')
-            .long("help")
-            .action(ArgAction::Count),
-    );
-    let matches = command.try_get_matches_from(args).ok()?;
-    Cli::from_arg_matches(&matches).ok()
 }
 
 /// The one rendering both detection paths use.
