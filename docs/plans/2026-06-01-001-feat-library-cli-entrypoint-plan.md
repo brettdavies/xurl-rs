@@ -1,7 +1,7 @@
 ---
 title: "feat: Lift CLI module to library, inject writers, inject store paths"
 type: feat
-status: active
+status: completed
 date: 2026-06-01
 ---
 
