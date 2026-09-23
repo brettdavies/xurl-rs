@@ -21,6 +21,12 @@ pub enum NextAction {
     InspectStore,
     /// X refused the app; enroll it in the developer portal.
     EnrollApp,
+    /// The word named no command; read the help of the nearest one.
+    // `xr` reaches this alone: its unknown-command envelope carries it
+    // (`crates/xurl-cli/src/cli/runner.rs`, `render_unknown_command`), and no
+    // library error returns it.
+    #[doc(hidden)]
+    ShowHelp,
 }
 
 /// The enrollment recipe for an app X refuses.

@@ -81,8 +81,22 @@ fn envelope(stderr: &str, format: &str) -> serde_json::Value {
     serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope")
 }
 
-/// Asserts the unknown-command rendering for `format`.
+/// Asserts the unknown-command rendering of a root-level word for `format`.
 fn assert_unknown_command(stderr: &str, format: &str, word: &str, suggestion: Option<&str>) {
+    assert_unknown_command_under(stderr, format, word, suggestion, "xr");
+}
+
+/// Asserts the unknown-command rendering of a word typed under `parent`.
+///
+/// Structured formats carry a `next_step` an agent can run as given: the help
+/// of the nearest command, or of `parent` when nothing scored.
+fn assert_unknown_command_under(
+    stderr: &str,
+    format: &str,
+    word: &str,
+    suggestion: Option<&str>,
+    parent: &str,
+) {
     if format == "text" {
         assert_eq!(plain(stderr).trim_end(), text_line(word, suggestion));
         return;
@@ -103,6 +117,17 @@ fn assert_unknown_command(stderr: &str, format: &str, word: &str, suggestion: Op
             "{format} carries no suggestion; got: {stderr}"
         ),
     }
+    let step = &v["next_step"];
+    assert_eq!(step["action"], "show-help", "{format}: {stderr}");
+    let expected = match suggestion {
+        Some(nearest) => format!("{parent} {nearest} --help"),
+        None => format!("{parent} --help"),
+    };
+    assert_eq!(step["command"], expected.as_str(), "{format}: {stderr}");
+    assert!(
+        step.get("template").is_none(),
+        "{format} runs as given; got: {stderr}"
+    );
 }
 
 fn text_line(word: &str, suggestion: Option<&str>) -> String {
@@ -229,14 +254,58 @@ async fn the_output_flag_is_read_before_the_word_on_the_clap_path() {
 async fn a_mistyped_verb_takes_claps_own_suggestion() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "statsu"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
-    assert_unknown_command(&stderr, "json", "statsu", Some("status"));
+    assert_unknown_command_under(&stderr, "json", "statsu", Some("status"), "xr auth");
 }
 
 #[tokio::test]
 async fn a_verb_near_nothing_gets_no_suggestion() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", "whoam"]).await;
     assert_eq!(code, 2, "stderr: {stderr}");
-    assert_unknown_command(&stderr, "json", "whoam", None);
+    assert_unknown_command_under(&stderr, "json", "whoam", None, "xr auth");
+}
+
+#[tokio::test]
+async fn a_mistyped_nested_verb_steps_to_its_own_family() {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", "auth", "apps", "ad"]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", "ad", Some("add"), "xr auth apps");
+}
+
+#[tokio::test]
+async fn the_next_step_names_xr_whatever_the_binary_is_called() {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xurl-rs", "--output", "json", "auth", "statsu"]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", "statsu", Some("status"), "xr auth");
+}
+
+/// The `next_step` command runs as given, from any detection path, and prints
+/// a help page.
+#[rstest::rstest]
+#[case::root_word(&["xr", "--output", "json", "whoam"])]
+#[case::root_word_near_nothing(&["xr", "--output", "json", "zzzzzz"])]
+#[case::help_flag(&["xr", "--output", "json", "webhooks", "--help"])]
+#[case::help_command(&["xr", "--output", "json", "help", "whoam"])]
+#[case::verb(&["xr", "--output", "json", "auth", "statsu"])]
+#[case::nested_verb(&["xr", "--output", "json", "auth", "apps", "ad"])]
+#[tokio::test]
+async fn the_next_step_runs_as_given(#[case] args: &[&str]) {
+    let (_, _, stderr) = run_isolated(args).await;
+    let v = envelope(&stderr, "json");
+    let step = v["next_step"]["command"]
+        .as_str()
+        .unwrap_or_else(|| panic!("args {args:?} carry a runnable step; got: {v}"));
+    let argv: Vec<&str> = step.split_whitespace().collect();
+    let (code, stdout, stderr) = run_isolated(&argv).await;
+    assert_eq!(code, 0, "step {step:?}; stderr: {stderr}");
+    let target = step
+        .strip_suffix(" --help")
+        .unwrap_or_else(|| panic!("step {step:?} asks for help"));
+    assert!(
+        stdout.contains(&format!("Usage: {target}")),
+        "step {step:?} prints the page of {target}; stdout: {stdout}"
+    );
 }
 
 /// Asked for its own help, the `help` command prints its page, as

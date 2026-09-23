@@ -93,8 +93,8 @@ pub struct ErrorBody {
     /// What the caller should do next, when a recovery step exists.
     ///
     /// `action` is closed: `register-app`, `sign-in`, `select-app`,
-    /// `inspect-store`, `enroll-app`. A step carries either a `command`,
-    /// runnable verbatim by a non-TTY caller, or a `template` whose
+    /// `inspect-store`, `enroll-app`, `show-help`. A step carries either a
+    /// `command`, runnable verbatim by a non-TTY caller, or a `template` whose
     /// angle-bracket placeholders only the caller can fill, never both.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,

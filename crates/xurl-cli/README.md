@@ -237,9 +237,8 @@ xr auth apps update prod --redirect-uri http://localhost:8080/callback
 The `REDIRECT_URI` environment variable still overrides the stored app value at runtime, so `auth apps update
 --redirect-uri` is best for setting your default per-app callback while env vars stay the temporary override path.
 
-Inspect the effective redirect URI for an app (or the default app when `NAME` is omitted). The output shows the
-resolved URI, its source (`env-var` | `app-config` | `built-in-default`), and the stored URI when an env var is
-overriding it:
+Inspect the effective redirect URI for an app (or the default app when `NAME` is omitted). The output shows the resolved
+URI, its source (`env-var` | `app-config` | `built-in-default`), and the stored URI when an env var is overriding it:
 
 ```bash
 xr auth apps redirect-uri get               # Default app
@@ -260,8 +259,8 @@ instead of the credential-less default.
 ### Token Store Location
 
 Credentials live in `~/.xurl`. Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending
-state (`<path>.pending`) follows it. The variable applies to the binary only: a program using `xdk` passes the path
-to `Auth::new_with_store_path` and builds its client with `Client::new`.
+state (`<path>.pending`) follows it. The variable applies to the binary only: a program using `xdk` passes the path to
+`Auth::new_with_store_path` and builds its client with `Client::new`.
 
 ## Agent-Native Features
 
@@ -303,8 +302,8 @@ zero-app special case. Per-app fields:
 - `client_id_hint`: first eight characters of the `client_id`, for visual identification without leaking the full ID.
 - `redirect_uri`: the effective redirect URI for this app.
 - `redirect_uri_source`: kebab-case provenance: `env-var` | `app-config` | `built-in-default`.
-- `redirect_uri_stored`: only present when the `REDIRECT_URI` environment variable overrides a stored app value;
-  carries the stored value so precedence is auditable.
+- `redirect_uri_stored`: only present when the `REDIRECT_URI` environment variable overrides a stored app value; carries
+  the stored value so precedence is auditable.
 - `oauth2_users`: array of usernames with OAuth2 tokens stored under this app.
 - `oauth1`: boolean: OAuth1 credentials are stored for this app.
 - `bearer`: boolean: a bearer token is stored for this app.
@@ -360,9 +359,11 @@ on a machine with nothing registered:
 }
 ```
 
-`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`. A step carries
-either a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill. Text
-mode prints the same advice as prose instead; the two need not match word for word.
+`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, and
+`show-help`, which an `unknown-command` envelope carries with the help of the nearest command (`xr auth status --help`
+for `xr auth statsu`). A step carries either a `command`, runnable verbatim, or a `template` with angle-bracket
+placeholders only the caller can fill. Text mode prints the same advice as prose instead; the two need not match word
+for word.
 
 ### NO_COLOR Support
 
@@ -393,7 +394,8 @@ Pre-generated scripts are also available in `completions/`.
 
 ## Library
 
-Upgrading from a 3.x library dependency: [`docs/migrating/v4.0.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.0.0.md).
+Upgrading from a 3.x library dependency:
+[`docs/migrating/v4.0.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.0.0.md).
 
 The X API client behind `xr` is its own crate, `xdk-rs`: credentials in code, one typed call per endpoint, and the same
 `~/.xurl` token store this tool writes. See
@@ -419,8 +421,7 @@ Where it goes further is the machine-readable side: seven output formats, a type
 codes, and `xr schema` for response types. It does not port the webhook and `ngrok` surface.
 
 Where behavior diverges on purpose,
-[`KNOWN_DIFFERENCES.md`](https://github.com/brettdavies/xurl-rs/blob/main/KNOWN_DIFFERENCES.md) names each case and
-why.
+[`KNOWN_DIFFERENCES.md`](https://github.com/brettdavies/xurl-rs/blob/main/KNOWN_DIFFERENCES.md) names each case and why.
 
 | Feature                   | Go xurl          | xurl-rs                  |
 | ------------------------- | ---------------- | ------------------------ |
@@ -439,13 +440,11 @@ why.
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/brettdavies/xurl-rs/blob/main/CONTRIBUTING.md) for dev setup, the branch and
-PR flow, the error contract, and a recipe for
-exercising `xr` against X's API Playground without an account. Release procedures live in
-[RELEASES.md](https://github.com/brettdavies/xurl-rs/blob/main/RELEASES.md).
+See [CONTRIBUTING.md](https://github.com/brettdavies/xurl-rs/blob/main/CONTRIBUTING.md) for dev setup, the branch and PR
+flow, the error contract, and a recipe for exercising `xr` against X's API Playground without an account. Release
+procedures live in [RELEASES.md](https://github.com/brettdavies/xurl-rs/blob/main/RELEASES.md).
 
 ## License
 
-Licensed under either of
-[Apache License, Version 2.0](https://github.com/brettdavies/xurl-rs/blob/main/LICENSE-APACHE) or
-[MIT license](https://github.com/brettdavies/xurl-rs/blob/main/LICENSE-MIT) at your option.
+Licensed under either of [Apache License, Version 2.0](https://github.com/brettdavies/xurl-rs/blob/main/LICENSE-APACHE)
+or [MIT license](https://github.com/brettdavies/xurl-rs/blob/main/LICENSE-MIT) at your option.
