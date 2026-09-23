@@ -11,6 +11,9 @@
 
 mod common;
 
+#[path = "../codegen/vocabulary.rs"]
+mod vocabulary;
+
 use std::collections::BTreeMap;
 
 use common::{ReplyKind, check, fixture_schema, load_spec};
@@ -22,6 +25,9 @@ use xdk::api::response::types::{
     DmEvent, DmSentResult, FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post,
     RepostedResult, UsageCreditsData, UsageData, User,
 };
+
+/// The response types, read as source by the alias guard below.
+const TYPES_PATH: &str = "src/api/response/types.rs";
 
 /// Loads the cached example responses fixture.
 fn load_examples() -> Value {
@@ -83,6 +89,49 @@ fn spec_user_single_wire_reads_tweet_count_into_post_count() {
     let out_metrics = &out["data"]["public_metrics"];
     assert_eq!(out_metrics["post_count"], 30972);
     assert!(out_metrics.get("tweet_count").is_none());
+}
+
+/// Every response field declared under a current name from the derived
+/// table carries a serde alias for its legacy spelling, so an embedder that
+/// deserializes the types directly reads either spelling. The table comes
+/// from the same derivation `build.rs` runs over the vendored spec.
+#[test]
+fn every_declared_post_vocabulary_field_aliases_its_legacy_spelling() {
+    let table = vocabulary::derive(&load_spec()).expect("the vendored spec derives");
+    let source =
+        std::fs::read_to_string(TYPES_PATH).unwrap_or_else(|e| panic!("read {TYPES_PATH}: {e}"));
+    // A field's doc comments and attributes, then `pub <name>:`.
+    let field = regex::Regex::new(r"((?:[ \t]*(?:///[^\n]*|#\[[^\]]*\])\n)*)[ \t]*pub (\w+):")
+        .expect("the field pattern compiles");
+
+    let mut checked = Vec::new();
+    let mut missing = Vec::new();
+    for declaration in field.captures_iter(&source) {
+        let name = &declaration[2];
+        let Some(pair) = table
+            .admitted
+            .iter()
+            .chain(&table.excluded)
+            .find(|pair| pair.current == name)
+        else {
+            continue;
+        };
+        checked.push(name.to_string());
+        if !declaration[1].contains(&format!("alias = \"{}\"", pair.legacy)) {
+            missing.push(format!("{name} (legacy {})", pair.legacy));
+        }
+    }
+
+    assert!(
+        checked.iter().any(|name| name == "post_count"),
+        "the scan must see UserPublicMetrics.post_count; it saw {checked:?}"
+    );
+    assert!(
+        missing.is_empty(),
+        "response fields declared under a current post-vocabulary name without an alias for the legacy spelling: {missing:?}\n\
+         Cause: a direct serde caller reading the legacy spelling leaves the field empty.\n\
+         Fix: add `alias = \"<legacy>\"` to the field's #[serde(...)] attribute in {TYPES_PATH}."
+    );
 }
 
 #[test]
