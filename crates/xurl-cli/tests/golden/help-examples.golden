@@ -1,7 +1,7 @@
 args: ["examples", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5112
+stdout_len: 5181
 stderr_len: 0
 --- stdout ---
 Print a curated gallery of invocation examples grouped by use case
@@ -10,7 +10,7 @@ Usage: xr examples [OPTIONS]
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

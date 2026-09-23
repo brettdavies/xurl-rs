@@ -247,10 +247,13 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   catches the vendored spec naming a field the wire does not send; the mocked suite validates against that same spec and
   cannot. Blind spot: a lone legacy key of an excluded pair (`tweet_count`, `tweet_id`) is never renamed, so it never
   reports. X sending `tweet_count` alone on user metrics stays silent here while the `post_count` alias fills the field;
-  X sending `tweet_count` beside `post_count` does report. Costs one post read and one user read. `XURL_APP=<app>` picks
-  the store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in
-  any other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme
-  on the `bird_dev` app.
+  X sending `tweet_count` beside `post_count` does report. When it fails only on reported pairs, typed output already
+  reads each one under its current name: add the endpoint and pair to the instance table in
+  `docs/solutions/integration-issues/accept-both-spellings-of-a-mid-migration-api-vocabulary.md`, then check the item by
+  hand. A typed metric that reads back zero or a post with no media keys still holds the release. Costs one post read
+  and one user read. `XURL_APP=<app>` picks the store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and
+  `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any other post with media if the default was deleted. The script runs it
+  against `$SMOKE_HOME` with the `app` scheme on the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg --media-type
   image/jpeg --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`.
   **Gotcha:** defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg

@@ -1,7 +1,7 @@
 args: ["auth", "apps", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5098
+stdout_len: 5167
 stderr_len: 0
 --- stdout ---
 List registered apps
@@ -10,7 +10,7 @@ Usage: xr auth apps list [OPTIONS]
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

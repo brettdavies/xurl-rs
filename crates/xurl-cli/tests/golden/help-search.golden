@@ -1,7 +1,7 @@
 args: ["search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5580
+stdout_len: 5649
 stderr_len: 0
 --- stdout ---
 Search recent posts
@@ -26,7 +26,7 @@ Options:
           Add X-B3-Flags trace header
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

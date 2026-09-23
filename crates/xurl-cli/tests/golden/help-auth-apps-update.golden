@@ -1,7 +1,7 @@
 args: ["auth", "apps", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5588
+stdout_len: 5657
 stderr_len: 0
 --- stdout ---
 Update credentials for an existing app
@@ -23,7 +23,7 @@ Options:
           `OAuth2` redirect URI (https or http on loopback); empty string clears
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

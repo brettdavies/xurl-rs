@@ -1,7 +1,7 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5481
+stdout_len: 5550
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
@@ -24,7 +24,7 @@ Options:
           Print the resolved plan without removing or cloning
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

@@ -337,6 +337,9 @@ impl Config {
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
+#[schemars(
+    description = "Where a resolved redirect URI came from: `env-var`, `app-config`, or `built-in-default`."
+)]
 pub enum ResolveSource {
     /// Resolved from the `REDIRECT_URI` environment variable.
     EnvVar,

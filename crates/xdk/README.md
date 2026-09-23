@@ -184,6 +184,25 @@ Every published module is one an embedder has a reason to call:
 Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the crate boundary; they stay callable but are
 not part of this surface.
 
+To see which keys X still sends in its legacy post vocabulary, install any `tracing` subscriber filtered to the target,
+here with [`tracing-subscriber`](https://docs.rs/tracing-subscriber):
+
+```rust,no_run
+use tracing_subscriber::filter::Targets;
+use tracing_subscriber::prelude::*;
+
+tracing_subscriber::registry()
+    .with(tracing_subscriber::fmt::layer())
+    .with(Targets::new().with_target(xdk::api::VOCABULARY_TARGET, tracing::Level::DEBUG))
+    .init();
+```
+
+Each legacy key then prints once per response, while the typed value reads under its current name:
+
+```text
+DEBUG xdk::vocabulary: legacy="edit_history_tweet_ids" normalized="edit_history_post_ids" value_type="array" value_len=1 collision=false
+```
+
 ## Cargo features
 
 - `rustls` (default): TLS through [rustls](https://docs.rs/rustls) with the platform's certificate verifier; no system

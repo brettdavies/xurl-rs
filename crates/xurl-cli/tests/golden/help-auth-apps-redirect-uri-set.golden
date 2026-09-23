@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "set", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5357
+stdout_len: 5426
 stderr_len: 0
 --- stdout ---
 Set the stored redirect URI for an app (empty string clears)
@@ -17,7 +17,7 @@ Arguments:
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]
