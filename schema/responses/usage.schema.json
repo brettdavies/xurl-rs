@@ -40,7 +40,7 @@
       "description": "Expanded objects included alongside the primary data.",
       "properties": {
         "posts": {
-          "description": "Post objects referenced by `referenced_posts`.",
+          "description": "Post objects referenced by `referenced_posts`. Deserializing this type\ndirectly with serde also reads the legacy key `tweets`, and fails with\nserde's `duplicate field` error on an object carrying both spellings;\nresponses read through this crate never hit that, because the legacy\nkey is dropped first.",
           "items": {
             "$ref": "#/$defs/Post"
           },
@@ -116,7 +116,7 @@
           "description": "Engagement counts (likes, replies, reposts, etc)."
         },
         "referenced_posts": {
-          "description": "Posts this one references (reply, quote, repost).",
+          "description": "Posts this one references (reply, quote, repost). Deserializing this\ntype directly with serde also reads the legacy key `referenced_tweets`,\nand fails with serde's `duplicate field` error on an object carrying\nboth spellings; responses read through this crate never hit that,\nbecause the legacy key is dropped first.",
           "items": {
             "$ref": "#/$defs/ReferencedPost"
           },
@@ -177,7 +177,7 @@
         },
         "repost_count": {
           "default": 0,
-          "description": "Repost count.",
+          "description": "Repost count. Deserializing this type directly with serde also reads\nthe legacy key `retweet_count`, and fails with serde's `duplicate\nfield` error on an object carrying both spellings; responses read\nthrough this crate never hit that, because the legacy key is dropped\nfirst.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -367,7 +367,7 @@
         },
         "post_count": {
           "default": 0,
-          "description": "Post count for the user. X sends this key as `tweet_count`; the\n2.168 spec names it `post_count`, so either key fills this field.",
+          "description": "Post count for the user. X sends this key as `tweet_count`; the\n2.168 spec names it `post_count`. Deserializing this type directly\nwith serde reads either key, and fails with serde's `duplicate field`\nerror on an object carrying both; responses read through this crate\nnever hit that, because `tweet_count` is dropped first.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"

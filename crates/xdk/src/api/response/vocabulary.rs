@@ -33,6 +33,10 @@ use serde_json::{Map, Value};
 /// length, for a string, array, or object), and `collision` (whether the
 /// object also carried the current spelling, so the legacy key was dropped).
 /// No event carries a value, an id, or a request path.
+///
+/// A subscriber on this target learns which keys X still sends in its
+/// legacy post vocabulary, the drift the typed responses otherwise hide; see
+/// [what the crate publishes](crate#what-the-crate-publishes).
 pub const VOCABULARY_TARGET: &str = "xdk::vocabulary";
 
 mod generated {
