@@ -1,0 +1,10 @@
+args: ["webhooks", "--help"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 78
+--- stdout ---
+
+--- stderr ---
+Error: unknown command 'webhooks'. Did you mean 'bookmarks'? Try 'xr --help'.
+

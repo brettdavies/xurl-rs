@@ -1,7 +1,7 @@
 //! The unknown-command contract: a mistyped command names the nearest real
 //! one and exits as a usage error, in the same wording and the same envelope
-//! whether clap or the classifier caught it, before any config or store is
-//! read; a bare `xr` prints help.
+//! whether clap or the classifier caught it and whether or not a help flag
+//! follows it, before any config or store is read; a bare `xr` prints help.
 //!
 //! Parallel-safe by construction, like `tests/cli_tests.rs`: every case runs
 //! the library entrypoint against its own `TempDir`-rooted store and supplies
@@ -10,9 +10,11 @@
 
 mod common;
 
+use clap::Parser;
 use tempfile::TempDir;
 use xdk::config::EnvOverrides;
 use xurl::cli;
+use xurl::cli::Cli;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -293,6 +295,67 @@ async fn a_raw_only_flag_alone_still_asks_for_a_url() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// A help flag
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[rstest::rstest]
+#[case::near_bookmarks("webhooks", Some("bookmarks"))]
+#[case::near_whoami("whoam", Some("whoami"))]
+#[case::near_nothing("zzzzzz", None)]
+#[tokio::test]
+async fn a_help_flag_does_not_hide_a_mistyped_command(
+    #[case] word: &str,
+    #[case] suggestion: Option<&str>,
+    #[values("--help", "-h")] flag: &str,
+) {
+    let (code, stdout, stderr) = run_isolated(&["xr", word, flag]).await;
+    assert_eq!(code, 2, "{word} {flag}; stdout: {stdout}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "{word} {flag} prints no help: {stdout}");
+    assert_eq!(
+        plain(&stderr).trim_end(),
+        text_line(word, suggestion),
+        "{word} {flag}"
+    );
+    assert_eq!(
+        (code, stdout, stderr),
+        run_isolated(&["xr", word]).await,
+        "{word} {flag} renders exactly as {word} alone"
+    );
+
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", word, flag]).await;
+    assert_eq!(code, 2, "json, {word} {flag}; stderr: {stderr}");
+    assert_unknown_command(&stderr, "json", word, suggestion);
+}
+
+/// Every other help or version display is clap's own rendering at exit 0:
+/// no command at all, a real command, a nested family, a URL, a raw-only
+/// flag, and `--version`, which is read before any positional.
+#[rstest::rstest]
+#[case::root_long(&["xr", "--help"])]
+#[case::root_short(&["xr", "-h"])]
+#[case::root_under_structured_intent(&["xr", "--output", "json", "--help"])]
+#[case::help_subcommand(&["xr", "help"])]
+#[case::help_subcommand_with_a_command(&["xr", "help", "whoami"])]
+#[case::command_long(&["xr", "whoami", "--help"])]
+#[case::command_short(&["xr", "whoami", "-h"])]
+#[case::nested_family(&["xr", "auth", "apps", "--help"])]
+#[case::missing_subcommand(&["xr", "auth"])]
+#[case::url(&["xr", "/2/users/me", "--help"])]
+#[case::raw_only_flag(&["xr", "-X", "POST", "webhooks", "--help"])]
+#[case::version(&["xr", "--version"])]
+#[case::version_after_a_word(&["xr", "webhooks", "--version"])]
+#[tokio::test]
+async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str]) {
+    let display = Cli::try_parse_from(args)
+        .expect_err("clap displays help or the version")
+        .to_string();
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 0, "args {args:?}; stderr: {stderr}");
+    assert_eq!(stdout, display, "args {args:?}");
+    assert!(stderr.is_empty(), "args {args:?}; stderr: {stderr}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Every format, from either source
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -305,9 +368,15 @@ async fn a_raw_only_flag_alone_still_asks_for_a_url() {
 #[case::csv("csv")]
 #[case::tsv("tsv")]
 #[tokio::test]
-async fn unknown_command_renders_in_every_format(#[case] format: &str) {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", format, "whoam"]).await;
-    assert_eq!(code, 2, "flag source, {format}; stderr: {stderr}");
+async fn unknown_command_renders_in_every_format(
+    #[case] format: &str,
+    #[values(None, Some("--help"), Some("-h"))] help: Option<&str>,
+) {
+    let mut args = vec!["xr", "--output", format, "whoam"];
+    args.extend(help);
+    let (code, stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "flag source, {format}, {help:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "{format}, {help:?}; stdout: {stdout}");
     assert_unknown_command(&stderr, format, "whoam", Some("whoami"));
 }
 
@@ -322,13 +391,18 @@ async fn unknown_command_renders_in_every_format(#[case] format: &str) {
 #[case::yaml("yaml")]
 #[case::csv("csv")]
 #[case::tsv("tsv")]
-fn unknown_command_reads_the_output_env_var(#[case] format: &str) {
+fn unknown_command_reads_the_output_env_var(
+    #[case] format: &str,
+    #[values(None, Some("--help"), Some("-h"))] help: Option<&str>,
+) {
     let output = common::xr()
         .env("XURL_OUTPUT", format)
         .arg("whoam")
+        .args(help)
         .output()
         .expect("spawn xr");
-    assert_eq!(output.status.code(), Some(2), "{format}");
+    assert_eq!(output.status.code(), Some(2), "{format}, {help:?}");
+    assert!(output.stdout.is_empty(), "{format}, {help:?}");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert_unknown_command(&stderr, format, "whoam", Some("whoami"));
 }

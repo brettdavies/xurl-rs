@@ -567,7 +567,8 @@ fn dry_run_cases() -> Vec<Case> {
 }
 
 /// The text renderings of the errors that carry a recovery hint, plus the
-/// parser's rejection of an unknown skill host.
+/// parser's rejection of an unknown skill host and a mistyped command under
+/// the help flag.
 fn text_cases() -> Vec<Case> {
     let bearer = |c: Case| Case {
         store: Store::BearerEnv,
@@ -588,6 +589,7 @@ fn text_cases() -> Vec<Case> {
             "skill-install-unknown-host",
             &["skill", "install", "bogus_host"],
         ),
+        case("text-unknown-command-help-flag", &["webhooks", "--help"]),
     ]
 }
 
