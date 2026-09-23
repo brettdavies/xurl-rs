@@ -1,27 +1,14 @@
-/// Streaming endpoint detection.
-///
-/// Mirrors the Go `StreamingEndpoints` map for auto-detecting endpoints
-/// that should use long-lived streaming connections.
-use std::sync::LazyLock;
+//! Streaming endpoint detection.
+//!
+//! The streaming set is every path whose operation the vendored spec marks
+//! `x-twitter-streaming`, emitted by `build.rs`.
 
-/// Set of endpoint prefixes that should be streamed.
-static STREAMING_ENDPOINTS: LazyLock<std::collections::HashSet<&'static str>> =
-    LazyLock::new(|| {
-        [
-            "/2/tweets/search/stream",
-            "/2/tweets/sample/stream",
-            "/2/tweets/sample10/stream",
-            "/2/tweets/firehose/stream",
-            "/2/tweets/firehose/stream/lang/en",
-            "/2/tweets/firehose/stream/lang/ja",
-            "/2/tweets/firehose/stream/lang/ko",
-            "/2/tweets/firehose/stream/lang/pt",
-        ]
-        .into_iter()
-        .collect()
-    });
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/streaming.rs"));
+}
 
-/// Checks if an endpoint should be streamed.
+/// Whether `endpoint`, a path or an absolute URL, is one the vendored spec
+/// marks as streaming. A query string and a trailing slash are ignored.
 pub fn is_streaming_endpoint(endpoint: &str) -> bool {
     let path = if endpoint.to_lowercase().starts_with("http") {
         let parts: Vec<&str> = endpoint.splitn(4, '/').collect();
@@ -41,5 +28,5 @@ pub fn is_streaming_endpoint(endpoint: &str) -> bool {
     };
 
     let normalized = path.trim_end_matches('/');
-    STREAMING_ENDPOINTS.contains(normalized)
+    generated::STREAMING_PATHS.contains(&normalized)
 }
