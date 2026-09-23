@@ -70,6 +70,10 @@ Loading an up-to-date store never rewrites it: credentials supplied through the 
 reach disk only on the next explicit save. Only converting a legacy-format file writes during load. Every sibling file
 the auth flow needs, such as the headless OAuth2 pending state, derives its path from the store's path.
 
+A missing or blank file is a fresh store with no apps; no placeholder app stands in for them, and an app named `default`
+appears only when a sign-in or token save needs one. A file that exists but cannot be read or parsed also loads with no
+apps, and every write to it is refused, so a damaged store is reported rather than overwritten.
+
 ### Spawn seam
 
 The single door through which the test suite runs the built binary. It strips every configuration variable of its own
@@ -88,25 +92,26 @@ before it counts.
 ### Live smoke gate
 
 The release-preflight check that reads one post and one user from the live API with the operator's real login and fails
-when a typed field reads back empty, a legacy field name appears, or a value lands in the unknown-field bucket. It is
-the only check that can see the vendored spec naming a field the API does not send. It never runs under the default
-suite, refuses without an explicit opt-in because each run spends paid reads, and is the named exception the store
-isolation guard permits.
+when a typed metric reads back zero, a post metric lands in the unknown-field bucket, or the library reports having read
+a key the API sent in its legacy post vocabulary under its current name. It is the only check that can see the vendored
+spec naming a field the API does not send. It never runs under the default suite, refuses without an explicit opt-in
+because each run spends paid reads, and is the named exception the store isolation guard permits.
 
 ## Command surface
 
 ### Raw mode
 
-The curl-style path `xr [OPTIONS] <URL>`: the root command's positional is an absolute `http(s)://` URL or a `/`-prefixed
-path that is prefixed with the API base URL. Raw mode bypasses the auth-method matrix and sends the request as given.
-Any other bare positional is either a mistyped shortcut, reported as an unknown command, or a URL validation error.
+The curl-style path `xr [OPTIONS] <URL>`: the root command's positional is an absolute `http(s)://` URL or a
+`/`-prefixed path that is prefixed with the API base URL. Raw mode bypasses the auth-method matrix and sends the request
+as given. Any other bare positional is either a mistyped shortcut, reported as an unknown command, or a URL validation
+error.
 
 ### Error envelope
 
 The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
-from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`,
-`command`, and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may
-add hints that never appear in the envelope.
+from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`, `command`,
+and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
+that never appear in the envelope.
 
 ## Published surface
 
