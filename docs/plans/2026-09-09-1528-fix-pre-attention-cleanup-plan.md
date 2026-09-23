@@ -2,9 +2,8 @@
 title: Pre-Attention Cleanup - Plan
 type: fix
 date: 2026-09-09
-status: implemented
+status: completed
 implementation: U1-U12b merged to dev; U1-U11 released in 3.2.0 (2026-09-14), U12b in 4.0.0 (2026-09-18)
-open_tasks: the three docs/solutions entries in Definition of Done
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -1091,8 +1090,10 @@ cut, so it shipped in 4.0.0 (2026-09-18) instead.
 - Each PR body's `### Changed` section names the visible changes its unit introduces, per the Execution profile.
 - Three `docs/solutions/` entries are written after landing: the unified unknown-command renderer and where each
   suggestion comes from, the snapshot-fed hint pattern that keeps existing envelope keys byte-identical while adding
-  `next_step`, and the placeholder-default-app trap with the load-state guard that replaced it. **Open:** none of the
-  three exists in the corpus. This is the only outstanding work in the plan.
+  `next_step`, and the placeholder-default-app trap with the load-state guard that replaced it. All three are written:
+  `design-patterns/unknown-command-needs-two-detectors-one-renderer-and-the-scorer-that-saw-the-word.md`,
+  `design-patterns/add-a-recovery-step-to-an-existing-error-from-a-pre-dispatch-snapshot-as-the-only-new-envelope-key.md`,
+  and `logic-errors/a-placeholder-record-that-makes-an-empty-store-look-populated-hides-a-failed-load-until-a-save-destroys-it.md`.
 
 ---
 
@@ -1127,9 +1128,10 @@ Phase 0 (the env bearer fix, T1) landed as #129 (`6ea5547`). T14, the Homebrew t
 
 ### Remaining work
 
-- The three `docs/solutions/` entries named in Definition of Done. None exists in the corpus.
+- None. Every unit is merged and released, and the three `docs/solutions/` entries named in Definition of Done are
+  written.
 
-Everything else in this plan is merged and released. Two notes for whoever picks the remainder up:
+Two notes on reading this plan:
 
 - The file paths throughout this plan predate the workspace split (#174). `src/**` now resolves under
   `crates/xdk/src/**` or `crates/xurl-cli/src/**`, and the README this plan edited is `crates/xurl-cli/README.md`. The
