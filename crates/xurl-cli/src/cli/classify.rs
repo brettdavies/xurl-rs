@@ -120,12 +120,18 @@ pub(crate) fn suggestion_for_rejected(
     word: &str,
 ) -> Option<String> {
     clap_suggestion(error).or_else(|| {
-        args.iter()
-            .take_while(|a| a.to_string_lossy() != word)
-            .any(|a| a.to_string_lossy() == "help")
+        help_command_precedes(args, word)
             .then(|| nearest_command(word))
             .flatten()
     })
+}
+
+/// Whether an argv token `help` comes before `word`: the `xr help ...` form,
+/// where clap's `help` command rejected the word.
+pub(crate) fn help_command_precedes(args: &[OsString], word: &str) -> bool {
+    args.iter()
+        .take_while(|a| a.to_string_lossy() != word)
+        .any(|a| a.to_string_lossy() == "help")
 }
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.
