@@ -943,9 +943,9 @@ Synthesized from this review's findings. Each task derives from a specific findi
 - [x] **T7 (P2, human: ~1h / CC: ~8min)** — `xdk/src/api/` — Point the media URL classifiers at the endpoint constants
   - Surfaced by: Code Quality — U3's no-literal guard trips on four legitimate classification sites that duplicate `MEDIA_ENDPOINT`
   - Files: `crates/xdk/src/api/media.rs`
-  - Verify: `rg '"/2/' crates/xdk/src/api/` returns nothing; existing media coverage stays green
-  - Result: `media.rs` carries no path literal; the streaming-path list in `endpoints.rs`, outside this task's file,
-    still spells paths
+  - Verify: `rg '"/2/' crates/xdk/src/api/media.rs` returns nothing; existing media coverage stays green
+  - Result: `media.rs` carries no path literal. The streaming-path list in `endpoints.rs` sits outside this task's
+    file; #220 derives it from the spec's `x-twitter-streaming` marker and adds the file to `path_literal_guard`
 - [x] **T8 (P1, human: ~3h / CC: ~25min)** — `AGENTS.md`, `CONTRIBUTING.md` — Rewrite the add-a-command recipe
   - Surfaced by: DX — the recipe names 4 steps for 9 files and is already missing the 3 functions #182 shipped
   - Files: `AGENTS.md`, `CONTRIBUTING.md`
