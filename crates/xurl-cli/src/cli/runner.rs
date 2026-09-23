@@ -36,7 +36,7 @@ use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
-use crate::cli::reparse::{color_choice, failing_command, parse_without_help};
+use crate::cli::reparse::{color_choice, failing_command, parse_without_display_flags};
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
@@ -100,8 +100,8 @@ where
 /// rendered in that format. Otherwise it is the `Error:` line every error
 /// takes, closing on the failing command's help. An unrecognized subcommand,
 /// and a bare word that names no command, both render as `unknown-command` at
-/// the same exit code, with or without a help flag, and a bare invocation
-/// prints the root help at exit 0.
+/// the same exit code, with or without a help or version flag, and a bare
+/// invocation prints the root help at exit 0.
 pub async fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -346,11 +346,11 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
 
 /// Renders a clap parse failure.
 ///
-/// Help and version go to stdout at exit 0, except a help flag on a word that
-/// names no command, which renders as that word does without the flag. An
-/// unrecognized subcommand takes the unknown-command rendering, carrying
-/// clap's own suggestion where clap scored one. A flag spelling where clap
-/// wanted a command is an unexpected argument instead, except `-h` or
+/// Help and version go to stdout at exit 0, except a help or version flag on a
+/// word that names no command, which renders as that word does without the
+/// flag. An unrecognized subcommand takes the unknown-command rendering,
+/// carrying clap's own suggestion where clap scored one. A flag spelling where
+/// clap wanted a command is an unexpected argument instead, except `-h` or
 /// `--help` given to the `help` command, which prints that command's page.
 /// Every other kind carries clap's words in `xr`'s dialect, as the `Error:`
 /// line or the `invalid-args` envelope.
@@ -363,12 +363,13 @@ fn render_parse_error(
 ) -> i32 {
     let rendered = error.to_string();
     let hidden_word = match error.kind() {
-        ErrorKind::DisplayHelp | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
-            parse_without_help(args).and_then(|cli| match classify(&cli) {
+        ErrorKind::DisplayHelp
+        | ErrorKind::DisplayVersion
+        | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => parse_without_display_flags(args)
+            .and_then(|cli| match classify(&cli) {
                 Classified::UnknownCommand(word) => Some(word),
                 Classified::Help | Classified::Raw => None,
-            })
-        }
+            }),
         _ => None,
     };
     if hidden_word.is_none()

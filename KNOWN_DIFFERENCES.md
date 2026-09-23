@@ -49,8 +49,8 @@ offending word in `command` and the nearest real name in `suggestion` when one i
 | `xr example.com` | Request to `/example.com`       | Exit 1, `validation` — a URL, and not an absolute one |
 | `xr`             | Usage error                     | Exit 0, root help on stdout                           |
 
-A help flag does not change that outcome: `xr whoam --help` and `xr whoam -h` fail exactly as `xr whoam` does.
-`--version` is read before the positional is classified, so `xr whoam --version` prints the version at exit `0`.
+A help or version flag does not change that outcome: `xr whoam --help`, `xr whoam -h`, and `xr whoam --version` fail
+exactly as `xr whoam` does.
 
 A positional that starts with `http://`, `https://`, or `/` is still a raw request, and so is any invocation carrying a
 raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A raw request has no help
