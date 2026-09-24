@@ -79,6 +79,9 @@
             "context": "Features (testing)"
           },
           {
+            "context": "Output discipline"
+          },
+          {
             "context": "Public API semver"
           },
           {
@@ -99,6 +102,14 @@
           },
           {
             "context": "ci / Security audit (bans licenses sources)",
+            "integration_id": 15368
+          },
+          {
+            "context": "ci / Shellcheck",
+            "integration_id": 15368
+          },
+          {
+            "context": "ci / Windows check",
             "integration_id": 15368
           },
           {

@@ -560,9 +560,10 @@ drift the next regeneration overwrites.
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
 - `protect-main.json` (required signatures, linear history, squash-only merges via PR, creation/deletion blocked,
-  non-fast-forward blocked, and the required status checks the file lists: CI jobs from the reusable workflow and
-  from this repository, plus the three `guard-*` checks). `Surface growth needs a minor section` is not among them,
-  because the `Changelog bump` workflow does not run on release PRs.
+  non-fast-forward blocked, and the required status checks the file lists: every check `dev` requires but one, plus
+  `ci / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth needs a minor section`,
+  because the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a
+  whole, from a cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
 - `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
   the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth
   needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it.
