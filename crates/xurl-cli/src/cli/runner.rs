@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ErrorKind};
-use clap::{CommandFactory, Parser};
+use clap::{Arg, ArgAction, CommandFactory, FromArgMatches, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -94,8 +94,8 @@ where
 /// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`
 /// rendered in that format. Otherwise clap's default text rendering is
 /// preserved. An unrecognized subcommand, and a bare word that names no
-/// command, both render as `unknown-command` at the same exit code, and a
-/// bare invocation prints the root help at exit 0.
+/// command, both render as `unknown-command` at the same exit code, with or
+/// without a help flag, and a bare invocation prints the root help at exit 0.
 pub async fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -334,10 +334,11 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
 
 /// Renders a clap parse failure.
 ///
-/// Help and version go to stdout at exit 0. An unrecognized subcommand takes
-/// the unknown-command rendering, carrying clap's own suggestion where clap
-/// scored one. Every other kind keeps clap's text, or the `invalid-args`
-/// envelope under structured intent.
+/// Help and version go to stdout at exit 0, except a help flag on a word that
+/// names no command, which renders as that word does without the flag. An
+/// unrecognized subcommand takes the unknown-command rendering, carrying
+/// clap's own suggestion where clap scored one. Every other kind keeps clap's
+/// text, or the `invalid-args` envelope under structured intent.
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
@@ -346,12 +347,23 @@ fn render_parse_error(
     stderr: &mut dyn Write,
 ) -> i32 {
     let rendered = error.to_string();
-    if matches!(
-        error.kind(),
-        ErrorKind::DisplayHelp
-            | ErrorKind::DisplayVersion
-            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-    ) {
+    let hidden_word = match error.kind() {
+        ErrorKind::DisplayHelp | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
+            parse_without_help(args).and_then(|cli| match classify(&cli) {
+                Classified::UnknownCommand(word) => Some(word),
+                Classified::Help | Classified::Raw => None,
+            })
+        }
+        _ => None,
+    };
+    if hidden_word.is_none()
+        && matches!(
+            error.kind(),
+            ErrorKind::DisplayHelp
+                | ErrorKind::DisplayVersion
+                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        )
+    {
         let _ = write!(stdout, "{rendered}");
         return EXIT_SUCCESS;
     }
@@ -367,6 +379,11 @@ fn render_parse_error(
         false,
         overrides.no_color,
     );
+
+    if let Some(word) = hidden_word {
+        let suggestion = nearest_command(&word);
+        return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+    }
 
     if error.kind() == ErrorKind::InvalidSubcommand
         && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
@@ -386,6 +403,26 @@ fn render_parse_error(
         let _ = write!(stderr, "{rendered}");
     }
     EXIT_USAGE_ERROR
+}
+
+/// Parses `args` as if the root help flag were absent, so the invocation it
+/// interrupted can be classified like any other.
+///
+/// clap adds the help flag while building the command, so it cannot be edited
+/// in place: it is disabled, which clap applies to every subcommand, and an
+/// inert counting flag with the same spellings stands in at the root. The
+/// `help` subcommand stays, because without it the word `help` binds to the
+/// positional and reads as an unknown command. Any parse error returns `None`,
+/// which leaves clap's help display in place.
+fn parse_without_help(args: &[OsString]) -> Option<Cli> {
+    let command = Cli::command().disable_help_flag(true).arg(
+        Arg::new("help")
+            .short('h')
+            .long("help")
+            .action(ArgAction::Count),
+    );
+    let matches = command.try_get_matches_from(args).ok()?;
+    Cli::from_arg_matches(&matches).ok()
 }
 
 /// The one rendering both detection paths use.
