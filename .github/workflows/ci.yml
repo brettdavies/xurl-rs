@@ -28,13 +28,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Whether this PR can reach cargo at all. A PR whose every path is
+  # documentation no Rust source reads (scripts/cargo-inputs.sh, the filter
+  # the pre-push hook also applies) skips every Rust job below; `lint` still
+  # runs. A job skipped by its condition reports success, so the required
+  # checks pass. Each Rust job runs unless this job answered `false`, so a
+  # scope job that fails or never reports runs the full battery instead of
+  # skipping it.
+  scope:
+    name: Change scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rust: ${{ steps.scope.outputs.rust }}
+    steps:
+      # The checkout is GitHub's test merge of the PR into its base, so the
+      # diff against its first parent is exactly what the PR changes.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: Classify the changed paths
+        id: scope
+        run: |
+          set -euo pipefail
+          inputs="$(git diff --no-renames --name-only HEAD^1 HEAD | bash scripts/cargo-inputs.sh)"
+          if [ -n "$inputs" ]; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+            printf 'Paths that reach cargo:\n%s\n' "$inputs"
+          else
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Change scope::every changed path is documentation no Rust source reads, so the Rust jobs skip"
+          fi
+
   ci:
+    needs: scope
+    if: ${{ !cancelled() }}
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
     with:
       # An advisory turns this run red rather than leaving it green with one
       # failed job. The ruleset already blocks the merge; this is so the run's
       # colour matches what a human scanning the Actions tab should act on.
       advisories_blocking: true
+      docs_only: ${{ needs.scope.outputs.rust == 'false' }}
 
   # actionlint + markdownlint from the org reusable. The markdownlint glob set
   # matches scripts/hooks/pre-push step 10 verbatim, so the hook and this job
@@ -55,6 +90,8 @@ jobs:
 
   lint-stdio:
     name: Output discipline
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -73,6 +110,8 @@ jobs:
   # the library enables under that cfg to render feature badges.
   docs:
     name: Doc build
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -117,6 +156,8 @@ jobs:
   # that takes it.
   semver:
     name: Public API semver
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -144,6 +185,8 @@ jobs:
   # CLI surface or clap_complete change lands without regenerating.
   completions:
     name: Completions freshness
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -161,6 +204,8 @@ jobs:
   # before it fails a user's build.
   consumer:
     name: Consumer check
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -184,8 +229,14 @@ jobs:
   # `default` holds exactly one feature. `default` stays as the cell that
   # follows whatever `[features] default` lists, so a feature added there is
   # compiled under the name a reader looks for rather than silently untested.
+  #
+  # A matrix job skipped whole never expands, and its required `Features (...)`
+  # checks would wait forever; so on a documentation-only PR this job runs and
+  # every step skips.
   features:
     name: Features (${{ matrix.name }})
+    needs: scope
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -210,28 +261,31 @@ jobs:
             example: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.scope.outputs.rust != 'false'
       - name: Install Rust
+        if: needs.scope.outputs.rust != 'false'
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       - name: Cache dependencies
+        if: needs.scope.outputs.rust != 'false'
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: ${{ matrix.name }}
       - name: cargo check
-        if: ${{ !matrix.must_fail }}
+        if: ${{ needs.scope.outputs.rust != 'false' && !matrix.must_fail }}
         env:
           FLAGS: ${{ matrix.flags }}
         run: |
           read -ra flags <<< "$FLAGS"
           cargo check -p xdk-rs --all-targets --locked "${flags[@]}"
       - name: cargo build --examples
-        if: ${{ !matrix.must_fail }}
+        if: ${{ needs.scope.outputs.rust != 'false' && !matrix.must_fail }}
         env:
           FLAGS: ${{ matrix.flags }}
         run: |
           read -ra flags <<< "$FLAGS"
           cargo build --examples -p xdk-rs --locked "${flags[@]}"
       - name: cargo test
-        if: ${{ matrix.test }}
+        if: ${{ needs.scope.outputs.rust != 'false' && matrix.test }}
         env:
           FLAGS: ${{ matrix.flags }}
         run: |
@@ -240,10 +294,10 @@ jobs:
       # Compilation proves nothing about whether the example works; the run
       # asserts on what the mock served and what it received.
       - name: Run the credential-free example against the testing mock
-        if: ${{ matrix.example }}
+        if: ${{ needs.scope.outputs.rust != 'false' && matrix.example }}
         run: cargo run -p xdk-rs --example offline_search --features testing --locked
       - name: cargo check must fail on the TLS guard
-        if: ${{ matrix.must_fail }}
+        if: ${{ needs.scope.outputs.rust != 'false' && matrix.must_fail }}
         env:
           FLAGS: ${{ matrix.flags }}
         run: |
@@ -265,6 +319,8 @@ jobs:
   # left out: the matrix asserts that failure by name.
   feature-powerset:
     name: Feature powerset
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -304,6 +360,8 @@ jobs:
   # so the ceiling leaves room for ordinary growth and none for a lost profile.
   anc:
     name: Agent-native audit
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

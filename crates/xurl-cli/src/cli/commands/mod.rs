@@ -306,7 +306,7 @@ async fn run_raw_mode(
         u.clone()
     } else {
         return Err(Error::validation(
-            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.",
+            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.",
         ));
     };
 

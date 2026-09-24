@@ -69,8 +69,9 @@ Breaking Changes` on a major, delete the rest when they do not apply.
 - **Zero verification artifacts in the body.** No triple-diff stats, leak-check output ("`guard-main-docs` runs clean"),
   patch-id cherry-check counts, pre-push gate results, CI status, or prose-scrub findings. Anomalies get fixed before
   push, not audit-trailed.
-- **Changelog** subsections (`### Added` / `### Changed` / `### Fixed` / `### Documentation`): 1-5 bullets each, delete
-  empty subsections, each bullet starts with a verb.
+- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Fixed` /
+  `### Documentation`): 1-5 bullets each, delete empty subsections, each bullet starts with a verb. The subsection an
+  entry sits under sets the release's version (§ Versioning).
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -80,6 +81,93 @@ Breaking Changes` on a major, delete the rest when they do not apply.
 - **No hard line wraps**: one logical line per paragraph or bullet.
 
 → Rationale: [`RELEASES-RATIONALE.md` § PR body conventions](./RELEASES-RATIONALE.md#pr-body-conventions).
+
+## Versioning
+
+Both crates follow [SemVer 2.0.0](https://semver.org/). A release's version comes from its changelog: each merged PR's
+`## Changelog (<crate>)` sections classify its change, and the release takes the highest bump any of its PRs calls
+for.
+
+### What the contract is
+
+`xr`'s public API is its machine contract:
+
+- **Invocation:** command names and aliases, flags, positional forms, and every environment variable `xr --help` lists.
+- **Exit codes:** the table in `crates/xurl-cli/README.md`.
+- **Structured output:** every shape `--output json|jsonl|ndjson|yaml|csv|tsv` prints, meaning the success responses in
+  `schema/responses/` and `xr schema`, and the error envelope in `schema/output.schema.json`, including its `reason` and
+  `next_step.action` sets.
+- **Stored state:** the `~/.xurl` token store format.
+
+Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording, and raw-mode response bodies (X's
+bytes, passed through) are not contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which
+scripts parse. A script that needs any other stable output reads a structured format.
+
+`xdk-rs`'s contract is its public Rust API, which `cargo semver-checks` reads, and the behavior its rustdoc documents.
+
+### The three bumps
+
+- **Patch:** only fixes. Behavior brought back to the documented contract or to how the X API behaves, even when an exit
+  code or a JSON key changes as a result. Documentation, text-mode changes, and dependency or security updates that
+  leave the contract alone. Nothing new.
+- **Minor:** anything new that breaks nothing. A command, flag, environment variable, output field, output format,
+  `reason`, or `action`; endpoint coverage a spec refresh adds; a deprecation; an MSRV bump.
+- **Major:** anything in the contract removed, renamed, or retyped, or its documented meaning changed.
+
+A minor can carry fixes, and a major can carry both.
+
+### X API changes
+
+X ships additive API changes often and does not version them.
+
+- X adds an endpoint or a field: `xr` adds a command or a field, a minor.
+- X renames or drops something the contract names: read both spellings and keep emitting the contract's name, the way
+  typed responses read X's legacy post vocabulary. When the contract's own name has to change, add the new name in a
+  minor, deprecate the old one, and remove it in a major that batches removals.
+- X changes behavior in a way that makes `xr` wrong: the fix is a patch.
+
+### Closed sets
+
+`reason` and `next_step.action` are closed sets an agent branches on. A new member ships in a minor, and a consumer
+treats a value it does not recognize as its default branch. Removing or renaming a member is a major.
+
+### `xdk-rs` before 1.0
+
+Cargo reads a `0.y.z` version with `y` as the breaking position: `^0.1.0` accepts `0.1.1`, never `0.2.0`. So a break
+ships as `0.(y+1).0`, filed under `### Breaking changes` with its before/after snippet (the policy in
+`crates/xdk/README.md`), and so does an MSRV bump. Anything additive or a fix ships as `0.y.(z+1)`. From `1.0.0` the
+library follows the three bumps above.
+
+The two tag lines stay independent. A library release moves the CLI's version only through an MSRV bump, or when the
+CLI adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml` moves.
+
+### The changelog section decides
+
+- `### Breaking changes`: major. `xdk-rs` before 1.0: the middle number (`0.1.x` to `0.2.0`).
+- `### Added`, `### Deprecated`: minor. `xdk-rs` before 1.0: the last number (`0.1.0` to `0.1.1`).
+- `### Changed`, `### Fixed`, `### Documentation`: patch. `xdk-rs` before 1.0: the last number.
+
+`### Changed` holds a visible change outside the contract, or a change back to conformance with it. A change to the
+contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose bump
+its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before 1.0, wherever it is
+filed, because `rust-version` is shared by both crates. The section is checked when the PR is
+reviewed, and a maintainer-tooling PR carries no entry under either crate.
+
+The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
+`completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
+the `## Changelog (xurl-rs)` block has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`. It
+reads the block with the changelog generator's own parser, re-runs when the PR body is edited, and is a required check
+on `dev`. A removal only warns, because a change back to the documented contract is a patch. Env vars, exit codes, and
+the store format have no generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked:
+before 1.0, an addition and a change both move the library's last number, so filing one as the other cannot change its
+version.
+
+At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
+<tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
+template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `### Documentation`)
+and any other heading after them.
+
+→ Rationale: [`RELEASES-RATIONALE.md` § Versioning](./RELEASES-RATIONALE.md#versioning).
 
 ## Releasing dev to main
 
@@ -123,7 +211,8 @@ git add -A                                                      # stages adds, m
 
 # 4. Bump the CLI crate's version, refresh Cargo.lock, and regenerate the completions
 #    (catches any subcommand or flag change missed during dev). The workspace root is a
-#    virtual manifest; the version the `vX.Y.Z` tag names lives in the binary crate.
+#    virtual manifest; the version the `vX.Y.Z` tag names lives in the binary crate. The
+#    number comes from § Versioning: the highest bump the merged PRs' sections call for.
 sed -i 's/^version = ".*"/version = "1.3.0"/' crates/xurl-cli/Cargo.toml
 cargo update -p xurl-rs
 ./scripts/generate-completions.sh
@@ -344,6 +433,7 @@ previous release. `--from-dev-prs` is what makes that possible: the release bran
 ```bash
 # 1. On the release branch, bump the library and regenerate its changelog. The
 #    member's [package.metadata.changelog] table names its tag line and its paths.
+#    The number comes from § Versioning, read from the PRs' `## Changelog (xdk-rs)` blocks.
 sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
 #    The CLI's declared bound lives in the workspace manifest and must move with it,
 #    or the workspace stops resolving; this bound is what the tag order below protects.
@@ -469,14 +559,15 @@ drift the next regeneration overwrites.
 
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
-- `protect-main.json` (required signatures, linear history, squash-only merges via PR, required status checks (`ci /
-  Fmt, clippy, test`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security audit (bans licenses
-  sources)`, `ci / Changelog`, `guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`,
-  `guard-release / check-release-branch-name`), creation/deletion blocked, non-fast-forward blocked).
-- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, required status checks (`ci /
-  Fmt, clippy, test`, `ci / Windows check`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security
-  audit (bans licenses sources)`, `ci / Shellcheck`, `Output discipline`)). PR-only norm is convention +
-  `guard-release-branch` on the main side.
+- `protect-main.json` (required signatures, linear history, squash-only merges via PR, creation/deletion blocked,
+  non-fast-forward blocked, and the required status checks the file lists: every check `dev` requires but one, plus
+  `ci / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth needs a minor section`,
+  because the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a
+  whole, from a cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
+- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
+  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth
+  needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it.
+  PR-only norm is convention + `guard-release-branch` on the main side.
 
 ### Applying changes
 

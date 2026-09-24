@@ -1,6 +1,7 @@
 ---
 title: Single Command Registration - Plan
 type: refactor
+status: completed
 date: 2026-09-17
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
@@ -915,55 +916,57 @@ documentation once the recipe it describes has stopped moving.
 
 Synthesized from this review's findings. Each task derives from a specific finding above.
 
-- [ ] **T1 (P1, human: ~3h / CC: ~20min)** — `xdk/src/testing/` — Add the 16 unanswered routes and the usage-credits fixture
+- [x] **T1 (P1, human: ~3h / CC: ~20min)** — `xdk/src/testing/` — Add the 16 unanswered routes and the usage-credits fixture
   - Surfaced by: Architecture — the mock answers 22 of 38 declared endpoints, a 42% gap U4 described as a maybe
   - Files: `crates/xdk/src/testing/mod.rs`, `crates/xdk/tests/fixtures/openapi/example_responses.json`, `crates/xdk/tests/spec_validation.rs`
   - Verify: `cargo test -p xdk-rs --all-features`
-- [ ] **T2 (P1, human: ~2.5h / CC: ~18min)** — `xdk/tests/` — Write the HTTP probe walk and gate it on the testing feature
+- [x] **T2 (P1, human: ~2.5h / CC: ~18min)** — `xdk/tests/` — Write the HTTP probe walk and gate it on the testing feature
   - Surfaced by: Architecture — the mock route table is private, so U4's walk cannot be written where the plan puts it
   - Files: `crates/xdk/tests/mock_endpoint_coverage.rs`, `crates/xdk/Cargo.toml`
   - Verify: `cargo test --workspace` compiles without the feature; `cargo test -p xdk-rs --all-features` passes
-- [ ] **T3 (P1, human: ~2h / CC: ~15min)** — `xurl-cli/src/cli/commands/` — Write the nine missing examples-page sections
+- [x] **T3 (P1, human: ~2h / CC: ~15min)** — `xurl-cli/src/cli/commands/` — Write the nine missing examples-page sections
   - Surfaced by: Architecture — R9 collides with R10; nine of 40 families are absent and the page is golden-pinned
   - Files: `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xurl-cli/tests/golden/examples.golden`
   - Verify: `cargo test -p xurl-rs --test golden_tests`, with `examples.golden` the only fixture changed
-- [ ] **T4 (P1, human: ~3h / CC: ~20min)** — `xurl-cli/src/cli/commands/` — Collapse the validate alias table
+- [x] **T4 (P1, human: ~3h / CC: ~20min)** — `xurl-cli/src/cli/commands/` — Collapse the validate alias table
   - Surfaced by: Architecture — `--help` advertises 9 aliases, the error envelope lists 16, and they disagree today
   - Files: `crates/xurl-cli/src/cli/commands/validate.rs`, `crates/xurl-cli/src/cli/mod.rs`, two golden fixtures
   - Verify: `cargo test -p xurl-rs --test golden_tests`; the alias list appears once in the source
-- [ ] **T5 (P1, human: ~3h / CC: ~20min)** — `xurl-cli/tests/` — Add the clap command-tree helper every walk reads
+- [x] **T5 (P1, human: ~3h / CC: ~20min)** — `xurl-cli/tests/` — Add the clap command-tree helper every walk reads
   - Surfaced by: Architecture — a walk with a hand-written expected set detects deletions, never omissions
   - Files: `crates/xurl-cli/tests/common/`, `crates/xurl-cli/tests/agentic_tests.rs`, `crates/xurl-cli/tests/schema_tests.rs`
   - Verify: adding a clap subcommand with no examples section turns the walk red without editing the test
-- [ ] **T6 (P2, human: ~1.5h / CC: ~10min)** — `xurl-cli/src/cli/commands/` — Declare the schema-less set
+- [x] **T6 (P2, human: ~1.5h / CC: ~10min)** — `xurl-cli/src/cli/commands/` — Declare the schema-less set
   - Surfaced by: Code Quality — `xr schema skill`, `examples` and `validate` report real commands as unknown
   - Files: `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/tests/schema_tests.rs`
   - Verify: those three return `schema not available`; the exhaustiveness walk goes red against a command in neither set
-- [ ] **T7 (P2, human: ~1h / CC: ~8min)** — `xdk/src/api/` — Point the media URL classifiers at the endpoint constants
+- [x] **T7 (P2, human: ~1h / CC: ~8min)** — `xdk/src/api/` — Point the media URL classifiers at the endpoint constants
   - Surfaced by: Code Quality — U3's no-literal guard trips on four legitimate classification sites that duplicate `MEDIA_ENDPOINT`
   - Files: `crates/xdk/src/api/media.rs`
-  - Verify: `rg '"/2/' crates/xdk/src/api/` returns nothing; existing media coverage stays green
-- [ ] **T8 (P1, human: ~3h / CC: ~25min)** — `AGENTS.md`, `CONTRIBUTING.md` — Rewrite the add-a-command recipe
+  - Verify: `rg '"/2/' crates/xdk/src/api/media.rs` returns nothing; existing media coverage stays green
+  - Result: `media.rs` carries no path literal. The streaming-path list in `endpoints.rs` sits outside this task's
+    file; #220 derives it from the spec's `x-twitter-streaming` marker and adds the file to `path_literal_guard`
+- [x] **T8 (P1, human: ~3h / CC: ~25min)** — `AGENTS.md`, `CONTRIBUTING.md` — Rewrite the add-a-command recipe
   - Surfaced by: DX — the recipe names 4 steps for 9 files and is already missing the 3 functions #182 shipped
   - Files: `AGENTS.md`, `CONTRIBUTING.md`
   - Verify: every file the recipe names exists; no shortcut function name is restated in prose
-- [ ] **T9 (P1, human: ~3h / CC: ~20min)** — `xdk/src/testing/` — Derive mock route method and path from the declaration
+- [x] **T9 (P1, human: ~3h / CC: ~20min)** — `xdk/src/testing/` — Derive mock route method and path from the declaration
   - Surfaced by: DX reduction pass — U4b would write 38 paths the endpoint declaration already owns
   - Files: `crates/xdk/src/testing/mod.rs`
   - Verify: `rg '"/2/' crates/xdk/src/testing/` returns nothing; renaming a path in build.rs changes no mock line
-- [ ] **T10 (P1, human: ~2h / CC: ~15min)** — all walks — Give every failure message a problem, a cause and a fix
+- [x] **T10 (P1, human: ~2h / CC: ~15min)** — all walks — Give every failure message a problem, a cause and a fix
   - Surfaced by: DX — the walks are the contributor's whole safety net and currently promise only a name
   - Files: the six walk test files
   - Verify: each message names the entries, the likely cause, and the file or command to act on
-- [ ] **T11 (P1, human: ~1.5 days / CC: ~1h)** — `xdk/tests/` — Validate every fixture against the vendored spec
+- [x] **T11 (P1, human: ~1.5 days / CC: ~1h)** — `xdk/tests/` — Validate every fixture against the vendored spec
   - Surfaced by: DX reduction pass — fixtures and types can agree while both drift from the API
   - Files: `crates/xdk/tests/spec_validation.rs`, `crates/xdk/tests/fixtures/openapi/example_responses.json`
   - Verify: a mutated fixture fails naming the field path; exemptions are declared and checked
-- [ ] **T12 (P2, human: ~2h / CC: ~15min)** — `xurl-cli/src/cli/commands/` — Place the nine families by task
+- [x] **T12 (P2, human: ~2h / CC: ~15min)** — `xurl-cli/src/cli/commands/` — Place the nine families by task
   - Surfaced by: DX — a mechanical walk would turn a curated gallery into an index
   - Files: `crates/xurl-cli/src/cli/commands/examples.rs`
   - Verify: every family sits under a task-shaped section; the single-screen claim is gone
-- [ ] **T13 (P2, human: ~30min / CC: ~5min)** — plan — State the success metric as caught omissions, not file count
+- [x] **T13 (P2, human: ~30min / CC: ~5min)** — plan — State the success metric as caught omissions, not file count
   - Surfaced by: DX — the Problem Frame's file counts imply a reduction the plan does not deliver
   - Files: this plan's Product Contract
   - Verify: the Success Metric table is present and the pull request body quotes it

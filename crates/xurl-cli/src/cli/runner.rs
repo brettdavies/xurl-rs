@@ -29,13 +29,15 @@ use clap::{CommandFactory, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
-    Classified, classify, context_string, nearest_command, structured_intent,
-    suggestion_for_rejected,
+    Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
+    structured_intent, suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
+use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
-use crate::cli::{Cli, ColorChoice, Commands};
+use crate::cli::reparse::{color_choice, failing_command, parse_without_display_flags};
+use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
@@ -45,7 +47,10 @@ use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
 /// Help text answers a person; an agent that asked for a machine-readable
 /// format gets the usage error instead.
 const NO_COMMAND_MESSAGE: &str =
-    "No command given. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help' for more information.";
+    "No command given. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.";
+
+/// How clap closes a failure, naming no command.
+const CLAP_HELP_FOOTER: &str = "For more information, try '--help'.";
 
 /// Runs the `xr` CLI using `std::env::args_os()` and real stdio.
 ///
@@ -92,10 +97,11 @@ where
 /// When the un-parsed argv (or `XURL_OUTPUT`) names a structured format,
 /// parse-error stderr is the canonical envelope
 /// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`
-/// rendered in that format. Otherwise clap's default text rendering is
-/// preserved. An unrecognized subcommand, and a bare word that names no
-/// command, both render as `unknown-command` at the same exit code, and a
-/// bare invocation prints the root help at exit 0.
+/// rendered in that format. Otherwise it is the `Error:` line every error
+/// takes, closing on the failing command's help. An unrecognized subcommand,
+/// and a bare word that names no command, both render as `unknown-command` at
+/// the same exit code, with or without a help or version flag, and a bare
+/// invocation prints the root help at exit 0.
 pub async fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -258,7 +264,13 @@ where
         }
         Classified::UnknownCommand(word) => {
             let suggestion = nearest_command(&word);
-            return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+            return render_unknown_command(
+                &word,
+                suggestion.as_deref(),
+                ROOT_COMMAND,
+                &out,
+                stderr,
+            );
         }
         Classified::Raw => {}
     }
@@ -334,10 +346,14 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
 
 /// Renders a clap parse failure.
 ///
-/// Help and version go to stdout at exit 0. An unrecognized subcommand takes
-/// the unknown-command rendering, carrying clap's own suggestion where clap
-/// scored one. Every other kind keeps clap's text, or the `invalid-args`
-/// envelope under structured intent.
+/// Help and version go to stdout at exit 0, except a help or version flag on a
+/// word that names no command, which renders as that word does without the
+/// flag. An unrecognized subcommand takes the unknown-command rendering,
+/// carrying clap's own suggestion where clap scored one. A flag spelling where
+/// clap wanted a command is an unexpected argument instead, except `-h` or
+/// `--help` given to the `help` command, which prints that command's page.
+/// Every other kind carries clap's words in `xr`'s dialect, as the `Error:`
+/// line or the `invalid-args` envelope.
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
@@ -346,12 +362,24 @@ fn render_parse_error(
     stderr: &mut dyn Write,
 ) -> i32 {
     let rendered = error.to_string();
-    if matches!(
-        error.kind(),
+    let hidden_word = match error.kind() {
         ErrorKind::DisplayHelp
-            | ErrorKind::DisplayVersion
-            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-    ) {
+        | ErrorKind::DisplayVersion
+        | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => parse_without_display_flags(args)
+            .and_then(|cli| match classify(&cli) {
+                Classified::UnknownCommand(word) => Some(word),
+                Classified::Help | Classified::Raw => None,
+            }),
+        _ => None,
+    };
+    if hidden_word.is_none()
+        && matches!(
+            error.kind(),
+            ErrorKind::DisplayHelp
+                | ErrorKind::DisplayVersion
+                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        )
+    {
         let _ = write!(stdout, "{rendered}");
         return EXIT_SUCCESS;
     }
@@ -360,50 +388,113 @@ fn render_parse_error(
     // Quiet and verbose are unparsed here, and neither changes an error
     // envelope, so the provisional config leaves both off.
     let out = OutputConfig::new_with_no_color(
-        intent.clone().unwrap_or(OutputFormat::Text),
+        intent.unwrap_or(OutputFormat::Text),
         false,
         false,
-        ColorChoice::Auto,
+        color_choice(args),
         false,
         overrides.no_color,
     );
 
+    if let Some(word) = hidden_word {
+        let suggestion = nearest_command(&word);
+        return render_unknown_command(&word, suggestion.as_deref(), ROOT_COMMAND, &out, stderr);
+    }
+
     if error.kind() == ErrorKind::InvalidSubcommand
         && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
     {
-        let suggestion = suggestion_for_rejected(error, args, &word);
-        return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+        if !word.starts_with('-') {
+            let suggestion = suggestion_for_rejected(error, args, &word);
+            let command = failing_command(error, args);
+            return render_unknown_command(&word, suggestion.as_deref(), &command, &out, stderr);
+        }
+        if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
+            let _ = write!(stdout, "{}", help_command_page(args));
+            return EXIT_SUCCESS;
+        }
+        let unexpected = Cli::command().error(
+            ErrorKind::UnknownArgument,
+            format!("unexpected argument '{word}' found"),
+        );
+        return render_invalid_args(&unexpected, args, &out, stderr);
     }
 
-    if intent.is_some() {
-        out.print_error_envelope(
-            stderr,
-            "invalid-args",
-            EXIT_USAGE_ERROR,
-            rendered.trim_end(),
-        );
-    } else {
-        let _ = write!(stderr, "{rendered}");
-    }
+    render_invalid_args(error, args, &out, stderr)
+}
+
+/// A clap failure in `xr`'s dialect, as the `Error:` line or the
+/// `invalid-args` envelope.
+///
+/// The renderer supplies `Error:` in place of clap's `error: ` prefix, and a
+/// pointer at the command the failure belongs to replaces clap's closing
+/// line, which names none.
+fn render_invalid_args(
+    error: &clap::Error,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let rendered = error.to_string();
+    let body = rendered
+        .strip_prefix("error: ")
+        .unwrap_or(&rendered)
+        .trim_end();
+    let body = body
+        .strip_suffix(CLAP_HELP_FOOTER)
+        .unwrap_or(body)
+        .trim_end();
+    let command = failing_command(error, args);
+    out.print_error_envelope(
+        stderr,
+        "invalid-args",
+        EXIT_USAGE_ERROR,
+        &format!("{body}\n\nTry '{command} --help'."),
+    );
     EXIT_USAGE_ERROR
+}
+
+/// The `help` command's own page. clap renders it through `xr help help`, so
+/// the page matches that invocation byte for byte.
+fn help_command_page(args: &[OsString]) -> String {
+    let bin = args
+        .first()
+        .cloned()
+        .unwrap_or_else(|| OsString::from(ROOT_COMMAND));
+    Cli::try_parse_from([bin, "help".into(), "help".into()])
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_default()
 }
 
 /// The one rendering both detection paths use.
 ///
-/// Text mode gets the sentence; every structured mode gets the envelope with
-/// the offending word in `command` and the nearest real name in `suggestion`,
-/// which is absent when nothing scored close enough.
+/// Text mode gets the sentence, pointing at the help of the nearest command
+/// under `command`, the one the word was typed under, or at the help of
+/// `command` itself when nothing scored close enough. Every structured mode
+/// gets the envelope with the offending word in `command`, the nearest real
+/// name in `suggestion`, absent when nothing scored, and a `next_step` that
+/// runs the same help page.
+///
+/// The pointer names a help page rather than the corrected invocation: the
+/// suggestion is a guess, and the corrected invocation of a write command
+/// would act on it.
 fn render_unknown_command(
     word: &str,
     suggestion: Option<&str>,
+    command: &str,
     out: &OutputConfig,
     stderr: &mut dyn Write,
 ) -> i32 {
+    let target = match suggestion {
+        Some(nearest) => format!("{command} {nearest}"),
+        None => command.to_string(),
+    };
     let message = match suggestion {
         Some(nearest) => {
-            format!("unknown command '{word}'. Did you mean '{nearest}'? Try 'xr --help'.")
+            format!("unknown command '{word}'. Did you mean '{nearest}'? Try '{target} --help'.")
         }
-        None => format!("unknown command '{word}'. Try 'xr --help'."),
+        None => format!("unknown command '{word}'. Try '{target} --help'."),
     };
     out.emit_error_envelope(
         stderr,
@@ -413,6 +504,7 @@ fn render_unknown_command(
             message: Some(message),
             command: Some(word.to_string()),
             suggestion: suggestion.map(str::to_string),
+            next_step: Some(NextStep::show_help(format!("{target} --help"))),
             ..ErrorBody::default()
         },
     );

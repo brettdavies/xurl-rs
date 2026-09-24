@@ -1,7 +1,7 @@
 ---
 title: "feat: decouple xr from /2/users/me availability"
 type: feat
-status: active
+status: completed
 date: 2026-06-01
 ---
 

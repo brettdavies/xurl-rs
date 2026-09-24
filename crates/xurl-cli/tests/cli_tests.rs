@@ -152,8 +152,8 @@ async fn test_invalid_flag() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]).await;
     assert_ne!(code, 0, "expected non-zero exit for invalid flag");
     assert!(
-        stderr.contains("error"),
-        "stderr should contain 'error': {stderr}"
+        stderr.contains("Error: unexpected argument '--definitely-not-a-real-flag' found"),
+        "stderr should carry the Error: line: {stderr}"
     );
 }
 
@@ -198,15 +198,17 @@ async fn test_clap_error_emits_envelope_under_jsonl_alias() {
 
 #[tokio::test]
 async fn test_clap_error_falls_back_to_text_without_json_intent() {
-    // No --output json, no --json, no XURL_OUTPUT — clap's default text
-    // rendering is preserved.
+    // No --output json, no --json, no XURL_OUTPUT: the text rendering.
     let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag"]).await;
     assert_eq!(code, 2);
     assert!(
         serde_json::from_str::<serde_json::Value>(stderr.trim()).is_err(),
         "without JSON intent, stderr should not be JSON: {stderr}"
     );
-    assert!(stderr.contains("error"));
+    assert!(
+        stderr.contains("Error: unexpected argument '--bogus-flag' found"),
+        "stderr: {stderr}"
+    );
 }
 
 #[tokio::test]
@@ -1834,8 +1836,8 @@ async fn test_oauth2_positional_invalid_extra_args() {
         "expected clap usage exit code 2 for extra positional; stderr: {stderr}"
     );
     assert!(
-        stderr.contains("error"),
-        "stderr should contain clap error text: {stderr}"
+        stderr.contains("Error: unexpected argument 'bob' found"),
+        "stderr should name the extra positional: {stderr}"
     );
 }
 

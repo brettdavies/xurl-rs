@@ -1,7 +1,7 @@
 ---
 title: "feat: per-app redirect_uri + OAuth2 callback listener hardening"
 type: feat
-status: active
+status: completed
 date: 2026-06-01
 ---
 

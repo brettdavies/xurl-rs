@@ -21,6 +21,7 @@ pub mod family_help;
 pub mod output;
 #[cfg(test)]
 mod parse_tests;
+mod reparse;
 pub mod skill_install;
 
 pub use output::OutputFormat;

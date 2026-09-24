@@ -1,7 +1,7 @@
 ---
 title: "feat: Document public API and enforce missing_docs lint"
 type: feat
-status: active
+status: completed
 date: 2026-06-05
 origin: docs/brainstorms/2026-06-05-public-api-docs-coverage-requirements.md
 ---
