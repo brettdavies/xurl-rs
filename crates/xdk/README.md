@@ -218,15 +218,17 @@ request.
 
 ## Versioning
 
-The crate is `0.x`, so a breaking change ships in a minor. Two rules make that livable:
+The crate is `0.x`, so Cargo reads the middle number as the breaking position: a breaking change moves it (`0.1.x` to
+`0.2.0`), and an addition or a fix moves the last number (`0.1.0` to `0.1.1`), which a `^0.1` requirement picks up. Two
+rules make the breaking releases livable:
 
 - **Every breaking entry in the [changelog](https://github.com/brettdavies/xurl-rs/blob/main/crates/xdk/CHANGELOG.md)
-  carries a before/after snippet**, not only a description, so the developer who adopted at one minor and upgrades two
+  carries a before/after snippet**, not only a description, so the developer who adopted at one `0.y` and upgrades two
   later types the new form straight from the changelog. A release that breaks something and ships no snippet does not go
   out.
-- **An MSRV bump is a minor, never a patch.** `rust-version` is declared once, in the workspace's `[workspace.package]`,
-  and both crates inherit it, so a bump moves the floor of `xdk-rs` and `xurl-rs` together and is a minor for both,
-  independent version lines notwithstanding.
+- **An MSRV bump never ships in the last number.** `rust-version` is declared once, in the workspace's
+  `[workspace.package]`, and both crates inherit it, so a bump moves the floor of `xdk-rs` and `xurl-rs` together: the
+  middle number for `xdk-rs` and a minor for `xurl-rs`, independent version lines notwithstanding.
 
 The two crates version and tag independently: the library on `xdk-rs-vX.Y.Z`, the CLI on `vX.Y.Z`. Breaking changes the
 CLI takes across its majors are written up under

@@ -143,9 +143,9 @@ CLI adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml`
 
 ### The changelog section decides
 
-- `### Breaking changes`: major (`xdk-rs` before 1.0: minor).
-- `### Added`, `### Deprecated`: minor.
-- `### Changed`, `### Fixed`, `### Documentation`: patch.
+- `### Breaking changes`: major. `xdk-rs` before 1.0: the middle number (`0.1.x` to `0.2.0`).
+- `### Added`, `### Deprecated`: minor. `xdk-rs` before 1.0: the last number (`0.1.0` to `0.1.1`).
+- `### Changed`, `### Fixed`, `### Documentation`: patch. `xdk-rs` before 1.0: the last number.
 
 `### Changed` holds a visible change outside the contract, or a change back to conformance with it. A change to the
 contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose bump
@@ -159,7 +159,7 @@ the `## Changelog (xurl-rs)` block has no bullet under `### Added`, `### Depreca
 reads the block with the changelog generator's own parser and re-runs when the PR body is edited. A removal only
 warns, because a change back to the documented contract is a patch. Env vars, exit codes, and the store format have no
 generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked: before 1.0, an addition
-and a change are both patches there.
+and a change both move the library's last number, so filing one as the other cannot change its version.
 
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
 <tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
