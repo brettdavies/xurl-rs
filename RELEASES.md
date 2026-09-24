@@ -156,10 +156,11 @@ reviewed, and a maintainer-tooling PR carries no entry under either crate.
 The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
 `completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
 the `## Changelog (xurl-rs)` block has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`. It
-reads the block with the changelog generator's own parser and re-runs when the PR body is edited. A removal only
-warns, because a change back to the documented contract is a patch. Env vars, exit codes, and the store format have no
-generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked: before 1.0, an addition
-and a change both move the library's last number, so filing one as the other cannot change its version.
+reads the block with the changelog generator's own parser, re-runs when the PR body is edited, and is a required check
+on `dev`. A removal only warns, because a change back to the documented contract is a patch. Env vars, exit codes, and
+the store format have no generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked:
+before 1.0, an addition and a change both move the library's last number, so filing one as the other cannot change its
+version.
 
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
 <tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
@@ -562,10 +563,10 @@ Two rulesets are committed under `.github/rulesets/` and applied to the repo via
   Fmt, clippy, test`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security audit (bans licenses
   sources)`, `ci / Changelog`, `guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`,
   `guard-release / check-release-branch-name`), creation/deletion blocked, non-fast-forward blocked).
-- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, required status checks (`ci /
-  Fmt, clippy, test`, `ci / Windows check`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security
-  audit (bans licenses sources)`, `ci / Shellcheck`, `Output discipline`)). PR-only norm is convention +
-  `guard-release-branch` on the main side.
+- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
+  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth
+  needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it.
+  PR-only norm is convention + `guard-release-branch` on the main side.
 
 ### Applying changes
 
