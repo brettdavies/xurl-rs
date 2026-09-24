@@ -1,0 +1,25 @@
+# One changed path per line and the verdict scripts/cargo-inputs.sh must reach
+# for it: `input` (printed, so the Rust battery runs) or `inert` (dropped).
+# Read by cargo_inputs_tests.rs; kept out of Rust source because the script
+# collects document names from Rust string literals.
+AGENTS.md	input
+README.md	input
+CONTRIBUTING.md	input
+CONCEPTS.md	input
+.github/pull_request_template.md	input
+crates/xdk/README.md	input
+crates/xurl-cli/CHANGELOG.md	input
+crates/xurl-cli/tests/fixtures/media/README.md	input
+RELEASES.md	inert
+RELEASES-PREFLIGHT.md	inert
+KNOWN_DIFFERENCES.md	inert
+docs/plans/a-plan.md	inert
+docs/migrating/v3.0.0.md	inert
+Cargo.toml	input
+Cargo.lock	input
+crates/xdk/src/lib.rs	input
+scripts/generate-changelog.py	input
+.github/workflows/ci.yml	input
+completions/xr.bash	input
+LICENSE-MIT	input
+a-file-the-script-has-never-seen	input
