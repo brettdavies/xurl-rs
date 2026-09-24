@@ -1,7 +1,8 @@
 //! The unknown-command contract: a mistyped command names the nearest real
 //! one and exits as a usage error, in the same wording and the same envelope
-//! whether clap or the classifier caught it and whether or not a help flag
-//! follows it, before any config or store is read; a bare `xr` prints help.
+//! whether clap or the classifier caught it and whether or not a help or
+//! version flag follows it, before any config or store is read; a bare `xr`
+//! prints help.
 //!
 //! Parallel-safe by construction, like `tests/cli_tests.rs`: every case runs
 //! the library entrypoint against its own `TempDir`-rooted store and supplies
@@ -287,6 +288,7 @@ async fn the_next_step_names_xr_whatever_the_binary_is_called() {
 #[case::root_word_near_nothing(&["xr", "--output", "json", "zzzzzz"])]
 #[case::help_flag(&["xr", "--output", "json", "webhooks", "--help"])]
 #[case::help_command(&["xr", "--output", "json", "help", "whoam"])]
+#[case::version_flag(&["xr", "--output", "json", "webhooks", "--version"])]
 #[case::verb(&["xr", "--output", "json", "auth", "statsu"])]
 #[case::nested_verb(&["xr", "--output", "json", "auth", "apps", "ad"])]
 #[tokio::test]
@@ -418,7 +420,7 @@ async fn a_raw_only_flag_alone_still_asks_for_a_url() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A help flag
+// A help or version flag
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[rstest::rstest]
@@ -426,10 +428,10 @@ async fn a_raw_only_flag_alone_still_asks_for_a_url() {
 #[case::near_whoami("whoam", Some("whoami"))]
 #[case::near_nothing("zzzzzz", None)]
 #[tokio::test]
-async fn a_help_flag_does_not_hide_a_mistyped_command(
+async fn a_help_or_version_flag_does_not_hide_a_mistyped_command(
     #[case] word: &str,
     #[case] suggestion: Option<&str>,
-    #[values("--help", "-h")] flag: &str,
+    #[values("--help", "-h", "--version", "-V")] flag: &str,
 ) {
     let (code, stdout, stderr) = run_isolated(&["xr", word, flag]).await;
     assert_eq!(code, 2, "{word} {flag}; stdout: {stdout}; stderr: {stderr}");
@@ -450,9 +452,24 @@ async fn a_help_flag_does_not_hide_a_mistyped_command(
     assert_unknown_command(&stderr, "json", word, suggestion);
 }
 
+/// The flag's place in argv changes nothing: ahead of the word, it still
+/// renders as the word does alone.
+#[rstest::rstest]
+#[case::help("-h")]
+#[case::version("--version")]
+#[case::version_short("-V")]
+#[tokio::test]
+async fn a_display_flag_ahead_of_the_word_does_not_hide_it(#[case] flag: &str) {
+    assert_eq!(
+        run_isolated(&["xr", flag, "webhooks"]).await,
+        run_isolated(&["xr", "webhooks"]).await,
+        "{flag} webhooks"
+    );
+}
+
 /// Every other help or version display is clap's own rendering at exit 0:
-/// no command at all, a real command, a nested family, a URL, a raw-only
-/// flag, and `--version`, which is read before any positional.
+/// no command at all, a real command, a nested family, a URL, and a raw-only
+/// flag.
 #[rstest::rstest]
 #[case::root_long(&["xr", "--help"])]
 #[case::root_short(&["xr", "-h"])]
@@ -466,7 +483,9 @@ async fn a_help_flag_does_not_hide_a_mistyped_command(
 #[case::url(&["xr", "/2/users/me", "--help"])]
 #[case::raw_only_flag(&["xr", "-X", "POST", "webhooks", "--help"])]
 #[case::version(&["xr", "--version"])]
-#[case::version_after_a_word(&["xr", "webhooks", "--version"])]
+#[case::version_short(&["xr", "-V"])]
+#[case::version_under_structured_intent(&["xr", "--output", "json", "--version"])]
+#[case::version_after_a_url(&["xr", "/2/users/me", "--version"])]
 #[tokio::test]
 async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str]) {
     let display = Cli::try_parse_from(args)
@@ -492,6 +511,7 @@ const RED: &str = "\u{1b}[31mError: ";
 #[case::clap_rejection(&["xr", "--color", "always", "auth", "statsu"])]
 #[case::clap_rejection_flag_after_the_word(&["xr", "auth", "statsu", "--color", "always"])]
 #[case::clap_text(&["xr", "--color", "always", "--bogus-flag"])]
+#[case::version_flag_path(&["xr", "--color", "always", "webhooks", "--version"])]
 #[tokio::test]
 async fn an_explicit_color_flag_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
     let (code, _stdout, stderr) = run_isolated(args).await;
