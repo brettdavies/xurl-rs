@@ -408,6 +408,71 @@ async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str])
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Color on the parse-error path
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RED: &str = "\u{1b}[31mError: ";
+
+/// `--color` reaches a rendering clap's failure hands the runner, wherever
+/// the flag sits in argv, as it does for an error raised after the parse.
+#[rstest::rstest]
+#[case::help_flag_path(&["xr", "--color", "always", "webhooks", "--help"])]
+#[case::help_flag_path_flag_last(&["xr", "webhooks", "-h", "--color=always"])]
+#[case::clap_rejection(&["xr", "--color", "always", "auth", "statsu"])]
+#[case::clap_rejection_flag_after_the_word(&["xr", "auth", "statsu", "--color", "always"])]
+#[tokio::test]
+async fn an_explicit_color_flag_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stderr.starts_with(RED), "args {args:?}; stderr: {stderr:?}");
+
+    let never: Vec<&str> = args
+        .iter()
+        .map(|a| match *a {
+            "always" => "never",
+            "--color=always" => "--color=never",
+            other => other,
+        })
+        .collect();
+    let (code, _stdout, stderr) = run_isolated(&never).await;
+    assert_eq!(code, 2, "args {never:?}; stderr: {stderr}");
+    assert!(
+        !stderr.contains('\u{1b}'),
+        "args {never:?}; stderr: {stderr:?}"
+    );
+}
+
+#[tokio::test]
+async fn no_color_outranks_an_explicit_color_flag_on_the_parse_error_path() {
+    let (code, _stdout, stderr) = run_with_overrides(
+        &["xr", "--color", "always", "auth", "statsu"],
+        &EnvOverrides {
+            no_color: true,
+            ..EnvOverrides::default()
+        },
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(!stderr.contains('\u{1b}'), "stderr: {stderr:?}");
+}
+
+/// `XURL_COLOR` reaches the parse-error path through clap's `env` binding,
+/// which reads the process rather than the injected overrides.
+#[rstest::rstest]
+#[case::help_flag_path(&["webhooks", "--help"])]
+#[case::clap_rejection(&["auth", "statsu"])]
+fn the_color_env_var_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
+    let output = common::xr()
+        .env("XURL_COLOR", "always")
+        .args(args)
+        .output()
+        .expect("spawn xr");
+    assert_eq!(output.status.code(), Some(2), "args {args:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.starts_with(RED), "args {args:?}; stderr: {stderr:?}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Every format, from either source
 // ═══════════════════════════════════════════════════════════════════════════
 

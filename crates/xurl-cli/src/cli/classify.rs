@@ -8,11 +8,11 @@
 
 use std::ffi::OsString;
 
-use clap::CommandFactory;
 use clap::error::{ContextKind, ContextValue};
+use clap::{CommandFactory, ValueEnum};
 
-use crate::cli::Cli;
 use crate::cli::output::OutputFormat;
+use crate::cli::{Cli, ColorChoice};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
 const SUGGESTION_THRESHOLD: f64 = 0.7;
@@ -149,6 +149,30 @@ pub(crate) fn context_string(error: &clap::Error, kind: ContextKind) -> Option<S
         ContextValue::String(value) => Some(value.clone()),
         _ => None,
     }
+}
+
+/// The color choice the caller named before clap parsed anything.
+///
+/// Read from the unparsed argv for the reason [`structured_intent`] is: on
+/// the clap error path no `Cli` exists, and clap stops at the token it
+/// rejected, so a `--color` after that token reaches no parse. The last valid
+/// choice named wins.
+pub(crate) fn color_intent(args: &[OsString]) -> Option<ColorChoice> {
+    let mut found = None;
+    let mut iter = args.iter().peekable();
+    while let Some(a) = iter.next() {
+        let s = a.to_string_lossy();
+        let value = if s == "--color" {
+            iter.peek().map(|next| next.to_string_lossy())
+        } else {
+            s.strip_prefix("--color=")
+                .map(|rest| rest.to_string().into())
+        };
+        if let Some(choice) = value.and_then(|v| ColorChoice::from_str(&v, false).ok()) {
+            found = Some(choice);
+        }
+    }
+    found
 }
 
 /// The output format the caller named before clap parsed anything.
