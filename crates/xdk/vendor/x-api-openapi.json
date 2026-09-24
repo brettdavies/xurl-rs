@@ -2827,6 +2827,10 @@
             ],
             "type": "string"
           },
+          "expires_at": {
+            "description": "Optional RFC 3339 expiration time. Re-creating the same subscription refreshes this value; omitting it makes the subscription permanent.",
+            "type": "string"
+          },
           "filter": {
             "$ref": "#/components/schemas/CreateActivitySubscriptionFilter",
             "description": "Subscription filter."
@@ -2880,6 +2884,10 @@
           },
           "event_type": {
             "description": "Activity event type in dot notation.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Subscription expiration time.",
             "type": "string"
           },
           "filter": {
@@ -6212,6 +6220,10 @@
           },
           "event_type": {
             "description": "Activity event type in dot notation.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Subscription expiration time.",
             "type": "string"
           },
           "filter": {
@@ -13210,6 +13222,10 @@
           },
           "event_type": {
             "description": "Activity event type in dot notation.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Subscription expiration time.",
             "type": "string"
           },
           "filter": {
