@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-09-24
+
+### Added
+
+- Add `xdk::api::VOCABULARY_TARGET` (`"xdk::vocabulary"`), the `tracing` target of a `DEBUG` event for each legacy post-vocabulary key a typed response was read under its current name, once per key per response. The event carries `legacy`, `normalized`, `value_type`, `value_len`, and `collision`, and never a value, an id, or a request path. by @brettdavies in [#215](https://github.com/brettdavies/xurl-rs/pull/215)
+
+### Changed
+
+- Change typed responses to read X's legacy post vocabulary under the names the spec uses, at any depth: every `Call` and `deserialize_response` rename a key such as `edit_history_tweet_ids` to `edit_history_post_ids` before deserializing, with the value unchanged, and keep the current spelling when one object carries both. Deserializing the response types directly with serde still accepts the legacy spelling of an aliased field, but fails with serde's `duplicate field` error on an object carrying both spellings; calls through the library never hit it. by @brettdavies in [#214](https://github.com/brettdavies/xurl-rs/pull/214)
+
+  ```text
+  // Before: xr post "hi" --output json
+  {
+    "data": {
+      "edit_history_tweet_ids": [
+        ""
+      ],
+      "id": "2101712260468977783",
+      "text": "hi"
+    }
+  }
+
+  // After: xr post "hi" --output json
+  {
+    "data": {
+      "edit_history_post_ids": [
+        ""
+      ],
+      "id": "2101712260468977783",
+      "text": "hi"
+    }
+  }
+  ```
+
+### Fixed
+
+- Fix `Post.referenced_posts`, `PostPublicMetrics.repost_count`, and `Includes.posts` reading empty when a body spells them `referenced_tweets`, `retweet_count`, or `tweets`: each field accepts either spelling, as `UserPublicMetrics.post_count` does for `tweet_count`. by @brettdavies in [#213](https://github.com/brettdavies/xurl-rs/pull/213)
+- Fix `api::is_streaming_endpoint` returning `false` for seven streaming endpoints the X spec declares. It now answers from the vendored spec's `x-twitter-streaming` marker, so a stream X adds is recognized after the next spec refresh. by @brettdavies in [#220](https://github.com/brettdavies/xurl-rs/pull/220)
+
+### Documentation
+
+- Document `api::VOCABULARY_TARGET` in the crate README's `api` entry, and state on `Includes.posts`, `Post.referenced_posts`, `PostPublicMetrics.repost_count`, and `UserPublicMetrics.post_count` that direct serde deserialization reads the legacy spelling but fails with `duplicate field` on an object carrying both, which the crate's own calls never hit. by @brettdavies in [#216](https://github.com/brettdavies/xurl-rs/pull/216)
+- Add a subscriber example for `api::VOCABULARY_TARGET` to the crate docs, and rustdoc search aliases so a search for a legacy name such as `retweet_count` or `edit_history_tweet_ids` lands on the field or target that reads it. by @brettdavies in [#218](https://github.com/brettdavies/xurl-rs/pull/218)
+- Give `ApiResponse`, its `data` field, and the four renamed post fields JSON Schema descriptions written for the wire; the Rust-specific detail stays in their rustdoc.
+- Document how `xdk-rs` is versioned before 1.0: a breaking change or an MSRV bump moves the middle number, and additions and fixes move the last, so a `^0.y` requirement picks up every compatible release. by @brettdavies in [#228](https://github.com/brettdavies/xurl-rs/pull/228)
+- Document on `NextAction` that a newer release can add a member, so a caller treats one it does not recognize as its default branch. by @brettdavies in [#229](https://github.com/brettdavies/xurl-rs/pull/229)
+- Document the `0.x` version rule by the number that moves: a breaking change or an MSRV bump moves the middle number (`0.1.x` to `0.2.0`), and an addition or a fix moves the last (`0.1.0` to `0.1.1`), which a `^0.1` requirement picks up. by @brettdavies in [#234](https://github.com/brettdavies/xurl-rs/pull/234)
+
+**Full Changelog**: [xdk-rs-v0.1.0...xdk-rs-v0.1.1](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.1.0...xdk-rs-v0.1.1)
+
 ## [0.1.0] - 2026-09-18
 
 ### Breaking changes
