@@ -361,9 +361,10 @@ on a machine with nothing registered:
 
 `action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, and
 `show-help`, which an `unknown-command` envelope carries with the help of the nearest command (`xr auth status --help`
-for `xr auth statsu`). A step carries either a `command`, runnable verbatim, or a `template` with angle-bracket
-placeholders only the caller can fill. Text mode prints the same advice as prose instead; the two need not match word
-for word.
+for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat a value you do not
+recognize as your default branch. A step carries either a `command`, runnable verbatim, or a `template` with
+angle-bracket placeholders only the caller can fill. Text mode prints the same advice as prose instead; the two need not
+match word for word.
 
 ### NO_COLOR Support
 

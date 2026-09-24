@@ -1,7 +1,7 @@
 {
   "$defs": {
     "NextAction": {
-      "description": "What the caller should do next. Closed set; agents branch on it.",
+      "description": "What the caller should do next. Closed set; agents branch on it.\n\nA newer release can add a member, so a caller treats one it does not\nrecognize as its default branch.",
       "oneOf": [
         {
           "const": "register-app",
@@ -238,7 +238,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`. A newer release can add an\naction, so treat one you do not recognize as your default branch. A\nstep carries either a `command`, runnable verbatim by a non-TTY caller,\nor a `template` whose angle-bracket placeholders only the caller can\nfill, never both."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -268,7 +268,7 @@
           ]
         },
         "reason": {
-          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\n`destination-not-empty`, `destination-is-file`, `git-not-found`,\n`git-clone-failed`, `not-installed`, and `remove-failed`.",
+          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\n`destination-not-empty`, `destination-is-file`, `git-not-found`,\n`git-clone-failed`, `not-installed`, and `remove-failed`. The set is\nclosed, and a newer release can add to it: treat a value you do not\nrecognize as your default branch.",
           "type": "string"
         },
         "rendered_url": {
