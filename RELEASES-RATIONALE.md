@@ -108,6 +108,64 @@ commit, so the release-PR squash commit can't be double-counted in any future re
 Changelog`. They are not user-facing. They belong in commit history and in the Files Modified section of the PR body,
 not in the source-of-truth release notes.
 
+## Versioning
+
+### Why the contract is the machine surface, not the source
+
+SemVer's first rule is that software using it "MUST declare a public API". A CLI's public API is what a caller types and
+what a program reads back, not its source. [clig.dev](https://clig.dev/#future-proofing) lists "Subcommands, arguments,
+flags, configuration files, environment variables" as interfaces a CLI commits to, and says "Changing output for humans
+is usually OK" as long as scripts are steered to `--plain` or `--json`. That is this repository's split between
+text and structured output: text is for a person and may improve release to release, while the JSON envelope's
+`reason`, `exit_code`, and `next_step` are what an agent branches on.
+
+### Why a patch carries nothing new
+
+SemVer reserves a patch for "only backward compatible bug fixes", and states: "A bug fix is defined as an internal
+change that fixes incorrect behavior." It makes the minor mandatory for "new, backward compatible functionality" and
+for anything "marked as deprecated". A new command, field, or `reason` is new functionality whatever its size, so it
+cannot ride in a patch.
+
+### Why restoring the documented contract is a patch
+
+A fix can change an exit code or a JSON key and still be a patch, because the value it replaces was the incorrect
+behavior: exit `0` for a mistyped command, or a legacy key name the published schema does not declare. HashiCorp's
+[provider versioning guidance](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning), written for
+tools that wrap a remote API, lists "Fixing attributes to match behavior with the remote API" as a patch. SemVer's FAQ
+leaves the harder case to judgment: when a large audience depends on the incorrect behavior, a major can be the kinder
+release even though the fix is strictly a patch.
+
+### Why X's churn lands as minors
+
+X changes its API often, mostly additively, and without version numbers. HashiCorp draws the same line for providers:
+adding a new resource or data source, aliasing an existing one, and marking an attribute as deprecated are minors,
+while renaming or removing an attribute is a major. Reading both spellings of a renamed field keeps an upstream
+rename from becoming a break for `xr`'s callers, so majors stay reserved for this project's own deliberate breaks. As
+clig.dev puts it, "if you're putting out a major version bump every month, it's meaningless."
+
+### Why a closed set can grow in a minor
+
+`reason` and `next_step.action` are closed so an agent can branch on them without parsing prose. Growth stays
+backward compatible only when a consumer treats an unrecognized value as its default branch, which is the same contract
+`#[non_exhaustive]` gives a Rust enum. Removing or renaming a member breaks a consumer that matched on it, so that
+remains a major.
+
+### Why `xdk-rs` breaks in the middle position before 1.0
+
+Cargo's [SemVer guide](https://doc.rust-lang.org/cargo/reference/semver.html) treats `0.y.z` changes to `y` as major
+and changes to `z` as minor, and its default requirements treat versions as compatible when "their left-most non-zero
+major/minor/patch component is the same". A dependent on `^0.1.0` therefore takes `0.1.1` automatically and never
+`0.2.0`, so a break must move `y` and anything additive or a fix moves `z`.
+
+### Why the changelog section decides the version
+
+The person who wrote the change classifies it once, when the PR is reviewed, and the release reads that classification
+instead of re-deriving it from commit subjects. Two gates catch a mis-filed break: `cargo semver-checks` for the
+library's API, and the preflight's command-surface and `xr schema` diffs against the last tag for the CLI. An addition
+filed under a patch section is the mistake review misses most easily, because nothing in the diff reads as wrong. So
+the `Changelog bump` check compares each PR's generated surface against its base and fails the PR while the section
+is still cheap to fix, instead of leaving the question to whoever cuts the release.
+
 ## Triple-diff verification
 
 The overlay recipe screens the staged release tree twice before the commit (A: release→dev for paths outside the guarded

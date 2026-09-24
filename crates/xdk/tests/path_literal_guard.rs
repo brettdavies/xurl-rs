@@ -1,6 +1,6 @@
-//! The request layer and the testing mock name an endpoint through the
-//! declaration `build.rs` emits (`auth_matrix::endpoints`), never through a
-//! path literal of their own. A path spelled at a call site or in a route is
+//! The request layer, the streaming matcher, and the testing mock name an
+//! endpoint through a declaration `build.rs` emits (`auth_matrix::endpoints`,
+//! the streaming set), never through a path literal of their own. A path spelled at a call site or in a route is
 //! a second copy of the declaration, and nothing notices when the two
 //! disagree until X answers 404 or the mock does. Comment lines are not
 //! scanned, so a doc example may still show a path.
@@ -9,6 +9,7 @@ use std::path::Path;
 
 /// The files that name endpoints, relative to the crate root.
 const ENDPOINT_READERS: &[&str] = &[
+    "src/api/endpoints.rs",
     "src/api/shortcuts.rs",
     "src/api/media.rs",
     "src/testing/mod.rs",
@@ -36,7 +37,8 @@ fn no_endpoint_reader_spells_an_api_path() {
          Cause: a call site or a mock route carries its own copy of a path that build.rs \
          already declares, so the two can disagree without a test noticing.\n\
          Fix: declare the endpoint once in SHORTCUT_TEMPLATES in crates/xdk/build.rs, then name \
-         `endpoints::<NAME>` there instead of spelling the path.",
+         `endpoints::<NAME>` there instead of spelling the path. A streaming path needs no \
+         declaration: build.rs emits every path the spec marks `x-twitter-streaming`.",
         hits.join("\n")
     );
 }

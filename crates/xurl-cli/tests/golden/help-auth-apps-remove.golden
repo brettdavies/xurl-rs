@@ -1,7 +1,7 @@
 args: ["auth", "apps", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5269
+stdout_len: 5338
 stderr_len: 0
 --- stdout ---
 Remove a registered app
@@ -17,7 +17,7 @@ Options:
           Skip the confirmation prompt; required under `--no-interactive`
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

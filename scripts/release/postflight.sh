@@ -527,10 +527,34 @@ gate_backport() {
     pr_title=$(printf '%s' "$pr" | jaq -r .title)
     pr_head=$(printf '%s' "$pr" | jaq -r .headRefName)
     gate_pass "backport PR #$pr_num merged to dev from $pr_head: $pr_title"
-  else
-    gate_skip "main → dev backport" \
-      "no PR carrying $tag merged to dev; run scripts/sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
+    return
   fi
+
+  # No PR names this tag, which is not the same as the backport not happening.
+  # A workspace releases each member on its own tag line and syncs every
+  # member's changelog back in one PR, so a library tag's bookkeeping arrives
+  # inside the PR titled for the binary. The title is a proxy for the operation
+  # having run; what the operation is FOR is dev carrying what the release
+  # wrote, so ask that directly before reporting nothing happened.
+  local crate changelog on_main on_dev
+  crate=$(resolve_crate 2>/dev/null || true)
+  changelog=$(crate_changelog_path "$crate" 2>/dev/null || true)
+  if [[ -n "$changelog" ]]; then
+    on_main=$(git rev-parse --verify --quiet "origin/main:$changelog" || true)
+    on_dev=$(git rev-parse --verify --quiet "origin/dev:$changelog" || true)
+    if [[ -n "$on_main" && "$on_main" == "$on_dev" ]]; then
+      gate_pass "no PR names $tag, but dev carries main's $changelog (backported with another tag's sync)"
+      return
+    fi
+    if [[ -n "$on_main" && -n "$on_dev" ]]; then
+      gate_fail "main → dev backport" \
+        "dev's $changelog differs from main's; run scripts/release/../sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
+      return
+    fi
+  fi
+
+  gate_skip "main → dev backport" \
+    "no PR carrying $tag merged to dev; run scripts/sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
 }
 
 # Gate: crates.io ------------------------------------------------------------

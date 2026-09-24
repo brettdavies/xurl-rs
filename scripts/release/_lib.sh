@@ -104,6 +104,25 @@ project_version() {
   grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/' || true
 }
 
+# The changelog a workspace member keeps, from its
+# `[package.metadata.changelog]` table. Empty when the member declares none or
+# cargo cannot answer. One reader, so the script that writes a changelog and
+# the scripts that verify one cannot disagree about where it lives.
+crate_changelog_path() {
+  local crate="$1"
+  have_bin cargo && have_bin jaq || return 0
+  cargo metadata --format-version 1 --no-deps 2>/dev/null \
+    | jaq -r --arg c "$crate" \
+      '.packages[] | select(.name == $c) | .metadata.changelog.changelog // empty' 2>/dev/null
+}
+
+# Every member's changelog, one per line.
+crate_changelog_paths() {
+  have_bin cargo && have_bin jaq || return 0
+  cargo metadata --format-version 1 --no-deps 2>/dev/null \
+    | jaq -r '.packages[] | .metadata.changelog.changelog // empty' 2>/dev/null
+}
+
 # The `[package] name` of the release package.
 project_crate() {
   awk '

@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2026-09-24
+
+### Added
+
+- Add a `--verbose` note for each key X sent in its legacy post vocabulary, naming both spellings and the JSON type of the value: `info: X sent edit_history_tweet_ids; read as edit_history_post_ids (array, length 1)`. It prints in text mode only, never under `--quiet`, `--output json`, or `--output jsonl`. by @brettdavies in [#215](https://github.com/brettdavies/xurl-rs/pull/215)
+- Add a runnable `next_step` to the `unknown-command` envelope: action `show-help` with the help of the nearest command (`xr auth status --help` for `xr auth statsu`), or of the family the word was typed under when nothing is close. by @brettdavies in [#225](https://github.com/brettdavies/xurl-rs/pull/225)
+
+### Changed
+
+- Change typed output to report X's post vocabulary throughout: when X answers in a legacy spelling, `xr post --output json` and every other typed command print the name the spec uses, with X's value unchanged. Raw requests (`xr /2/...`) still print exactly what X sent. by @brettdavies in [#214](https://github.com/brettdavies/xurl-rs/pull/214)
+
+  ```text
+  // Before: xr post "hi" --output json
+  {
+    "data": {
+      "edit_history_tweet_ids": [
+        ""
+      ],
+      "id": "2101712260468977783",
+      "text": "hi"
+    }
+  }
+
+  // After: xr post "hi" --output json
+  {
+    "data": {
+      "edit_history_post_ids": [
+        ""
+      ],
+      "id": "2101712260468977783",
+      "text": "hi"
+    }
+  }
+  ```
+- Change every error clap raises to read like the rest of `xr`: it opens with `Error:` and closes with `Try '<command> --help'.` naming the command it belongs to, and it honors `--color` and `NO_COLOR`. The `invalid-args` envelope's `message` no longer carries clap's `error:` prefix; its `reason` and exit code are unchanged. by @brettdavies in [#224](https://github.com/brettdavies/xurl-rs/pull/224)
+- Change the unknown-command message to point at the help of the suggested command (`xr auth statsu` ends `Try 'xr auth status --help'.`, `xr whoam` ends `Try 'xr whoami --help'.`), or at the family's help when nothing is close.
+
+### Fixed
+
+- Fix raw requests to seven streaming endpoints the X spec declares (`/2/activity/stream`, `/2/likes/firehose/stream`, `/2/likes/sample10/stream`, `/2/tweets/label/stream`, and the post, like, and user compliance streams) being read as one buffered response unless `-s` was passed. `xr` now streams every endpoint the spec marks as streaming. by @brettdavies in [#220](https://github.com/brettdavies/xurl-rs/pull/220)
+- Fix `xr <word> --help` and `xr <word> -h` printing the root help at exit 0 when the word names no command. They now exit 2 with reason `unknown-command` and the nearest command in `suggestion`, exactly as `xr <word>` does. by @brettdavies in [#221](https://github.com/brettdavies/xurl-rs/pull/221)
+- Fix `xr help --help` and `xr help -h` reporting "unknown command '--help'": they print the help command's own page at exit 0, as `xr help help` does. A flag spelling where a command was expected (`xr -- webhooks --help`) is now an unexpected argument, never an unknown command with a suggestion to run `help`. by @brettdavies in [#222](https://github.com/brettdavies/xurl-rs/pull/222)
+- Fix `--color` and `XURL_COLOR` being ignored when a mistyped command is reported from a parse failure (`xr --color always auth statsu`, `xr --color always webhooks --help`). The flag counts wherever it sits in `argv`, and `NO_COLOR` still wins. by @brettdavies in [#223](https://github.com/brettdavies/xurl-rs/pull/223)
+- Fix `xr <word> --version` and `xr -V <word>` printing the version at exit 0 when the word names no command. They now exit 2 with reason `unknown-command`, exactly as `xr <word>` does; `xr --version` is unchanged. by @brettdavies in [#226](https://github.com/brettdavies/xurl-rs/pull/226)
+
+### Documentation
+
+- Document the `--verbose` legacy-vocabulary note in `xr --help` and on the `XURL_VERBOSE` line. by @brettdavies in [#218](https://github.com/brettdavies/xurl-rs/pull/218)
+- Describe the renamed post fields, the response envelope, and the redirect-URI source in `xr schema` output by what X sends, without Rust library wording.
+- Document how `xr` releases are versioned: a patch carries only fixes, a minor carries anything new that breaks nothing, and a major removes, renames, or retypes something in the command, exit-code, or structured-output contract. Text-mode output is not part of that contract; the plain `xr --version` line is. by @brettdavies in [#228](https://github.com/brettdavies/xurl-rs/pull/228)
+- Document that a newer release can add a `reason` or a `next_step.action`, so a consumer of the JSON error envelope treats a value it does not recognize as its default branch; the envelope schema and the README both say so. by @brettdavies in [#229](https://github.com/brettdavies/xurl-rs/pull/229)
+
+**Full Changelog**: [v4.0.0...v4.1.0](https://github.com/brettdavies/xurl-rs/compare/v4.0.0...v4.1.0)
+
 ## [4.0.0] - 2026-09-18
 
 ### Added

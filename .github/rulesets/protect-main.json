@@ -49,6 +49,46 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           {
+            "context": "Completions freshness"
+          },
+          {
+            "context": "Consumer check"
+          },
+          {
+            "context": "Doc build"
+          },
+          {
+            "context": "Feature powerset"
+          },
+          {
+            "context": "Features (all features)"
+          },
+          {
+            "context": "Features (default)"
+          },
+          {
+            "context": "Features (native-tls only)"
+          },
+          {
+            "context": "Features (no TLS backend)"
+          },
+          {
+            "context": "Features (rustls only)"
+          },
+          {
+            "context": "Features (testing)"
+          },
+          {
+            "context": "Output discipline"
+          },
+          {
+            "context": "Public API semver"
+          },
+          {
+            "context": "ci / Changelog",
+            "integration_id": 15368
+          },
+          {
             "context": "ci / Fmt, clippy, test",
             "integration_id": 15368
           },
@@ -57,11 +97,19 @@
             "integration_id": 15368
           },
           {
+            "context": "ci / Security audit (advisories)",
+            "integration_id": 15368
+          },
+          {
             "context": "ci / Security audit (bans licenses sources)",
             "integration_id": 15368
           },
           {
-            "context": "ci / Changelog",
+            "context": "ci / Shellcheck",
+            "integration_id": 15368
+          },
+          {
+            "context": "ci / Windows check",
             "integration_id": 15368
           },
           {
@@ -74,10 +122,6 @@
           },
           {
             "context": "guard-release / check-release-branch-name",
-            "integration_id": 15368
-          },
-          {
-            "context": "ci / Security audit (advisories)",
             "integration_id": 15368
           }
         ],

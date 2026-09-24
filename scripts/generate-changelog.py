@@ -43,8 +43,8 @@ Pipeline:
     1. git-cliff emits a versioned section from commits since the last tag
        (prepended onto CHANGELOG.md, or created if missing).
     2. PR numbers in that section are fetched from GitHub; each PR body's
-       ## Changelog section is parsed for ### Added / ### Changed / ### Fixed /
-       ### Documentation bullets.
+       ## Changelog section is parsed for ### Breaking changes / ### Added /
+       ### Changed / ### Deprecated / ### Fixed / ### Documentation bullets.
     3. The version section in CHANGELOG.md is rewritten with the aggregated,
        attributed bullets and a Full Changelog compare link.
 
@@ -70,7 +70,7 @@ from pathlib import Path
 # Emitted in this order; any other `###` heading a PR body uses follows them.
 # "Breaking changes" is also the git-cliff group for `type!:` commits in
 # cliff.toml, so the skeleton and the PR-body pass agree on the label.
-CATEGORIES = ["Breaking changes", "Added", "Changed", "Fixed", "Documentation"]
+CATEGORIES = ["Breaking changes", "Added", "Changed", "Deprecated", "Fixed", "Documentation"]
 SKIPPED_TITLE_RE = re.compile(r"^(chore|ci|build|style|test)(\([^)]*\))?!?:")
 
 
@@ -113,6 +113,34 @@ def detect_tag_from_branch() -> str:
         )
     print(f"Detected version {tag} from branch {branch}", file=sys.stderr)
     return tag
+
+
+# A changelog that only points at other changelogs carries this marker. The
+# generator refuses to write one, because a workspace's root file routes to the
+# per-crate histories and holds no version sections to regenerate.
+ROUTER_MARKER = "changelog-router"
+
+
+def is_router(changelog: Path) -> bool:
+    if not changelog.exists():
+        return False
+    head = changelog.read_text()[:2000]
+    return ROUTER_MARKER in head
+
+
+def refuse_router(changelog: Path, crate: str | None) -> None:
+    """Stop before writing a routing changelog, naming the way to the real one."""
+    if not is_router(changelog):
+        return
+    hint = (
+        "pass --crate NAME to generate that crate's changelog instead"
+        if not crate
+        else f"{crate}'s [package.metadata.changelog] points at this file; point it at the crate's own"
+    )
+    fail(
+        f"{changelog} routes to the per-crate changelogs and holds no release "
+        f"history; {hint}"
+    )
 
 
 def check_mode(changelog: Path) -> int:
@@ -922,6 +950,10 @@ def main() -> int:
 
     if not cliff_toml.exists():
         fail(f"cliff.toml not found in {repo}")
+
+    # Before anything reads or writes it. A routing changelog has no version
+    # section to check and must never be regenerated over.
+    refuse_router(changelog, args.crate)
 
     if args.check:
         return check_mode(changelog)

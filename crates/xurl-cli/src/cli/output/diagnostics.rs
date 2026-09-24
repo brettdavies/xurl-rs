@@ -1,5 +1,6 @@
 //! Renders the library's `tracing` events the way `xr` prints them: the
-//! `--verbose` wire lines, the media status lines, and warnings.
+//! `--verbose` wire lines and legacy-vocabulary notes, the media status
+//! lines, and warnings.
 //!
 //! The library emits structured events and never touches a terminal. This
 //! subscriber, installed by the runner around one dispatch, is where the
@@ -14,7 +15,7 @@ use tracing::field::{Field, Visit};
 use tracing::{Event, Level, Metadata, Subscriber, span};
 
 use super::OutputConfig;
-use xdk::api::{MEDIA_TARGET, WIRE_TARGET};
+use xdk::api::{MEDIA_TARGET, VOCABULARY_TARGET, WIRE_TARGET};
 
 /// One dispatch's diagnostics renderer.
 pub(crate) struct Diagnostics {
@@ -72,6 +73,12 @@ impl Diagnostics {
                 }
                 fields.message
             }
+            VOCABULARY_TARGET => {
+                if !self.verbose_enabled() {
+                    return None;
+                }
+                vocabulary_line(&fields)
+            }
             _ => None,
         }
     }
@@ -120,6 +127,24 @@ fn wire_line(fields: &Fields, colour: bool) -> Option<String> {
     }
 }
 
+/// One legacy key the library read under its current name, as `xr --verbose`
+/// prints it: the two spellings, then the JSON type of the value X sent and
+/// its length when it has one.
+fn vocabulary_line(fields: &Fields) -> Option<String> {
+    let legacy = fields.legacy.as_deref()?;
+    let normalized = fields.normalized.as_deref()?;
+    let mut shape = fields.value_type.clone()?;
+    if let Some(len) = &fields.value_len {
+        shape.push_str(", length ");
+        shape.push_str(len);
+    }
+    Some(if fields.collision.as_deref() == Some("true") {
+        format!("info: X sent both {legacy} and {normalized}; kept {normalized} ({shape})")
+    } else {
+        format!("info: X sent {legacy}; read as {normalized} ({shape})")
+    })
+}
+
 /// The fields the library's events carry, collected by name.
 #[derive(Default)]
 struct Fields {
@@ -131,6 +156,11 @@ struct Fields {
     value: Option<String>,
     header: Option<String>,
     message: Option<String>,
+    legacy: Option<String>,
+    normalized: Option<String>,
+    value_type: Option<String>,
+    value_len: Option<String>,
+    collision: Option<String>,
 }
 
 impl Fields {
@@ -144,6 +174,11 @@ impl Fields {
             "value" => &mut self.value,
             "header" => &mut self.header,
             "message" => &mut self.message,
+            "legacy" => &mut self.legacy,
+            "normalized" => &mut self.normalized,
+            "value_type" => &mut self.value_type,
+            "value_len" => &mut self.value_len,
+            "collision" => &mut self.collision,
             _ => return,
         };
         *slot = Some(text);
@@ -294,6 +329,66 @@ mod tests {
                 Some("error: the connection dropped".to_string())
             ]
         );
+    }
+
+    /// Decodes bodies spelled in X's legacy vocabulary through the library,
+    /// so the lines rendered below come from the events it really emits:
+    /// a renamed array, a collision on a number, and a renamed string.
+    fn decode_legacy_bodies() {
+        let post = serde_json::json!({"data": {
+            "id": "1",
+            "text": "t",
+            "edit_history_tweet_ids": [""],
+            "public_metrics": {"retweet_count": 1, "repost_count": 2}
+        }});
+        xdk::api::deserialize_response::<xdk::api::Post>(post).expect("the post decodes");
+        let user = serde_json::json!({"data": {
+            "id": "1",
+            "name": "n",
+            "username": "u",
+            "pinned_tweet_id": "2101712260468977783"
+        }});
+        xdk::api::deserialize_response::<xdk::api::User>(user).expect("the user decodes");
+    }
+
+    #[test]
+    fn vocabulary_lines_match_the_verbose_format_without_colour() {
+        for colour in [ColorChoice::Never, ColorChoice::Always] {
+            let lines = rendered(diagnostics(true, colour), decode_legacy_bodies);
+            assert_eq!(
+                lines,
+                vec![
+                    Some(
+                        "info: X sent edit_history_tweet_ids; read as edit_history_post_ids (array, length 1)"
+                            .to_string()
+                    ),
+                    Some(
+                        "info: X sent both retweet_count and repost_count; kept repost_count (number)"
+                            .to_string()
+                    ),
+                    Some(
+                        "info: X sent pinned_tweet_id; read as pinned_post_id (string, length 19)"
+                            .to_string()
+                    ),
+                ],
+                "colour {colour:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn vocabulary_lines_print_only_under_verbose_in_text_mode() {
+        let silent = [
+            ("no --verbose", OutputFormat::Text, false, false),
+            ("--quiet --verbose", OutputFormat::Text, true, true),
+            ("--output json --verbose", OutputFormat::Json, false, true),
+            ("--output jsonl --verbose", OutputFormat::Jsonl, false, true),
+        ];
+        for (flags, format, quiet, verbose) in silent {
+            let out = OutputConfig::new(format, quiet, verbose, ColorChoice::Never);
+            let lines = rendered(Diagnostics::new(out), decode_legacy_bodies);
+            assert_eq!(lines, vec![None, None, None], "{flags}");
+        }
     }
 
     #[test]

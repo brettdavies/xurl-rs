@@ -13,7 +13,7 @@ rust-version = "1.94"
 # Versions shared by both members live here so the two manifests cannot drift
 # apart on a dependency they both compile.
 [workspace.dependencies]
-xdk-rs = { version = "0.1.0", path = "crates/xdk" }
+xdk-rs = { version = "0.1.1", path = "crates/xdk" }
 # No TLS backend on this entry: `xdk-rs` selects one through its own
 # `rustls` / `native-tls` features, and a backend named here would be on in
 # every configuration, including the ones meant to prove it absent.

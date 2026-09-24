@@ -34,6 +34,17 @@ pub struct NextStep {
 }
 
 impl NextStep {
+    /// The help page that answers a mistyped command, run as given.
+    #[must_use]
+    pub fn show_help(command: String) -> Self {
+        Self {
+            action: NextAction::ShowHelp,
+            command: Some(command),
+            template: None,
+            docs: None,
+        }
+    }
+
     /// Registration, which needs values only the caller has.
     #[must_use]
     pub fn register_app() -> Self {

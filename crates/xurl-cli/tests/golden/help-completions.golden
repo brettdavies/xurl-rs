@@ -1,7 +1,7 @@
 args: ["completions", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5228
+stdout_len: 5297
 stderr_len: 0
 --- stdout ---
 Generate shell completion script
@@ -16,7 +16,7 @@ Arguments:
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

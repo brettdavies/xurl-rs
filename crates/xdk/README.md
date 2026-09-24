@@ -26,8 +26,8 @@ xdk-rs = "0.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-A complete program: the app-only bearer token from the
-[X developer portal](https://developer.x.com/en/portal/dashboard) in `XURL_BEARER_TOKEN`, one search, the text printed.
+A complete program: the app-only bearer token from the [X developer portal](https://developer.x.com/en/portal/dashboard)
+in `XURL_BEARER_TOKEN`, one search, the text printed.
 
 ```rust,no_run
 use xdk::api::Client;
@@ -101,9 +101,9 @@ async fn main() -> xdk::Result<()> {
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error
 answers four questions: `kind()` names its category as a stable string, `exit_code()` maps it to the process exit code
 the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (sign in,
-register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. A
-429 carries no next action; `Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent
-response that reported one, which is what a retry loop waits on.
+register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. A 429
+carries no next action; `Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent response
+that reported one, which is what a retry loop waits on.
 
 ```rust,no_run
 use xdk::api::Client;
@@ -132,28 +132,27 @@ async fn main() {
 Two ways to exercise code built on this crate without spending credits.
 
 **The `testing` feature** ships `xdk::testing::MockX`, an in-process mock of the API. `MockX::start().await` binds a
-local server seeded with the fixture responses the crate's own response types are validated against, so a read
-against it deserializes into the same types a live call would, and every response carries a rate-limit window.
-`app_client()` and `user_client()` return clients pointed at it, `stub` overrides a route or rehearses a failure,
-and `requests()` lists what arrived. Enable it in a test profile only, so a release build pulls none of its
-dependencies:
+local server seeded with the fixture responses the crate's own response types are validated against, so a read against
+it deserializes into the same types a live call would, and every response carries a rate-limit window. `app_client()`
+and `user_client()` return clients pointed at it, `stub` overrides a route or rehearses a failure, and `requests()`
+lists what arrived. Enable it in a test profile only, so a release build pulls none of its dependencies:
 
 ```toml
 [dev-dependencies]
 xdk-rs = { version = "0.1", features = ["testing"] }
 ```
 
-The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no
-X app, no credential, and no network, from a clone of the repository:
+The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no X
+app, no credential, and no network, from a clone of the repository:
 
 ```bash
 cargo run -p xdk-rs --example offline_search --features testing
 ```
 
-**X's playground** is X's own local server that simulates the API v2 with seeded users and posts, for proving the
-wire protocol end to end rather than for unit tests. Two limits: it needs a Go toolchain, and its parameter
-vocabulary predates X's post-vocabulary rename (spec 2.168), so a call that sends the current expansion names comes
-back as an invalid-request error.
+**X's playground** is X's own local server that simulates the API v2 with seeded users and posts, for proving the wire
+protocol end to end rather than for unit tests. Two limits: it needs a Go toolchain, and its parameter vocabulary
+predates X's post-vocabulary rename (spec 2.168), so a call that sends the current expansion names comes back as an
+invalid-request error.
 
 ```bash
 go install github.com/xdevplatform/playground/cmd/playground@latest
@@ -161,17 +160,19 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 playground start --port 8089
 ```
 
-Point a client at it with `Client::builder().bearer("test_token").base_url("http://localhost:8089")`; a bearer
-reaches its app-only endpoints, and user-context calls stop at the auth matrix before a request leaves the machine,
-the same refusal they get without credentials against the real API.
+Point a client at it with `Client::builder().bearer("test_token").base_url("http://localhost:8089")`; a bearer reaches
+its app-only endpoints, and user-context calls stop at the auth matrix before a request leaves the machine, the same
+refusal they get without credentials against the real API.
 
 ## What the crate publishes
 
 Every published module is one an embedder has a reason to call:
 
 - `api`: the client and its builder, one `Call` per shortcut, the `MediaUpload` builder behind `Client::upload_media`,
-  the typed responses, the raw-request path for endpoints without a shortcut, and the last rate-limit window a
-  response reported.
+  the typed responses, the raw-request path for endpoints without a shortcut, and the last rate-limit window a response
+  reported. A `tracing` subscriber on `api::VOCABULARY_TARGET` receives one `DEBUG` event for each key a typed response
+  carried in X's legacy post vocabulary and the library read under its current name, with the fields `legacy`,
+  `normalized`, `value_type`, `value_len`, and `collision`, and no values.
 - `auth`: credentials held in code, the refresh hook that receives a rotated token pair, the store-backed `Auth`, and
   the OAuth2 sign-in flows.
 - `config`: base URL, timeouts, and the environment overrides a client built from the environment reads.
@@ -183,34 +184,54 @@ Every published module is one an embedder has a reason to call:
 Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the crate boundary; they stay callable but are
 not part of this surface.
 
+To see which keys X still sends in its legacy post vocabulary, install any `tracing` subscriber filtered to the target,
+here with [`tracing-subscriber`](https://docs.rs/tracing-subscriber):
+
+```rust,no_run
+use tracing_subscriber::filter::Targets;
+use tracing_subscriber::prelude::*;
+
+tracing_subscriber::registry()
+    .with(tracing_subscriber::fmt::layer())
+    .with(Targets::new().with_target(xdk::api::VOCABULARY_TARGET, tracing::Level::DEBUG))
+    .init();
+```
+
+Each legacy key then prints once per response, while the typed value reads under its current name:
+
+```text
+DEBUG xdk::vocabulary: legacy="edit_history_tweet_ids" normalized="edit_history_post_ids" value_type="array" value_len=1 collision=false
+```
+
 ## Cargo features
 
 - `rustls` (default): TLS through [rustls](https://docs.rs/rustls) with the platform's certificate verifier; no system
   TLS library is linked.
 - `native-tls`: TLS through the operating system's library (OpenSSL on Linux, Secure Transport on macOS, SChannel on
-  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off:
-  `xdk-rs = { version = "0.1", default-features = false, features = ["native-tls"] }`. With both backends enabled,
-  reqwest picks `native-tls`.
-- `testing`: an in-process mock of the API seeded from the crate's fixtures, for tests that must not spend credits;
-  see [Testing](#testing).
+  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off: `xdk-rs = { version =
+  "0.1", default-features = false, features = ["native-tls"] }`. With both backends enabled, reqwest picks `native-tls`.
+- `testing`: an in-process mock of the API seeded from the crate's fixtures, for tests that must not spend credits; see
+  [Testing](#testing).
 
 A build with neither TLS feature fails at compile time with a message naming both, rather than at the first `https`
 request.
 
 ## Versioning
 
-The crate is `0.x`, so a breaking change ships in a minor. Two rules make that livable:
+The crate is `0.x`, so Cargo reads the middle number as the breaking position: a breaking change moves it (`0.1.x` to
+`0.2.0`), and an addition or a fix moves the last number (`0.1.0` to `0.1.1`), which a `^0.1` requirement picks up. Two
+rules make the breaking releases livable:
 
 - **Every breaking entry in the [changelog](https://github.com/brettdavies/xurl-rs/blob/main/crates/xdk/CHANGELOG.md)
-  carries a before/after snippet**, not only a description, so
-  the developer who adopted at one minor and upgrades two later types the new form straight from the changelog. A
-  release that breaks something and ships no snippet does not go out.
-- **An MSRV bump is a minor, never a patch.** `rust-version` is declared once, in the workspace's
-  `[workspace.package]`, and both crates inherit it, so a bump moves the floor of `xdk-rs` and `xurl-rs` together
-  and is a minor for both, independent version lines notwithstanding.
+  carries a before/after snippet**, not only a description, so the developer who adopted at one `0.y` and upgrades two
+  later types the new form straight from the changelog. A release that breaks something and ships no snippet does not go
+  out.
+- **An MSRV bump never ships in the last number.** `rust-version` is declared once, in the workspace's
+  `[workspace.package]`, and both crates inherit it, so a bump moves the floor of `xdk-rs` and `xurl-rs` together: the
+  middle number for `xdk-rs` and a minor for `xurl-rs`, independent version lines notwithstanding.
 
-The two crates version and tag independently: the library on `xdk-rs-vX.Y.Z`, the CLI on `vX.Y.Z`. Breaking
-changes the CLI takes across its majors are written up under
+The two crates version and tag independently: the library on `xdk-rs-vX.Y.Z`, the CLI on `vX.Y.Z`. Breaking changes the
+CLI takes across its majors are written up under
 [`docs/migrating`](https://github.com/brettdavies/xurl-rs/tree/main/docs/migrating).
 
 ## Relationship to xr and xurl

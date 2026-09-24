@@ -40,7 +40,7 @@
       "description": "Expanded objects included alongside the primary data.",
       "properties": {
         "posts": {
-          "description": "Post objects referenced by `referenced_posts`.",
+          "description": "Post objects referenced by `referenced_posts`. X may send this under its legacy name `tweets`; either name fills this field.",
           "items": {
             "$ref": "#/$defs/Post"
           },
@@ -116,7 +116,7 @@
           "description": "Engagement counts (likes, replies, reposts, etc)."
         },
         "referenced_posts": {
-          "description": "Posts this one references (reply, quote, repost).",
+          "description": "Posts this one references (reply, quote, repost). X may send this under its legacy name `referenced_tweets`; either name fills this field.",
           "items": {
             "$ref": "#/$defs/ReferencedPost"
           },
@@ -177,7 +177,7 @@
         },
         "repost_count": {
           "default": 0,
-          "description": "Repost count.",
+          "description": "Repost count. X may send this under its legacy name `retweet_count`; either name fills this field.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -324,7 +324,7 @@
         },
         "post_count": {
           "default": 0,
-          "description": "Post count for the user. X sends this key as `tweet_count`; the\n2.168 spec names it `post_count`, so either key fills this field.",
+          "description": "Post count for the user. X sends this under its legacy name `tweet_count`; either name fills this field.",
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
@@ -335,11 +335,11 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Standard X API v2 response envelope.\n\nSingle-item endpoints use `ApiResponse<Post>`, list endpoints use\n`ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.",
+  "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
       "$ref": "#/$defs/Post",
-      "description": "Primary payload — a single object or a `Vec<T>` for list endpoints."
+      "description": "Primary payload: one object, or an array for list endpoints."
     },
     "errors": {
       "description": "Partial errors returned alongside a 200 response.",

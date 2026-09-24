@@ -29,7 +29,7 @@ complete -c xr -n "__fish_xr_needs_command" -s H -l header -d 'Request headers' 
 complete -c xr -n "__fish_xr_needs_command" -s d -l data -d 'Request body data' -r
 complete -c xr -n "__fish_xr_needs_command" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_needs_command" -s u -l username -d 'Username for `OAuth2` authentication' -r
-complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s F -l file -d 'File to upload (for multipart requests)' -r
 complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -107,7 +107,7 @@ complete -c xr -n "__fish_xr_needs_command" -a "help" -d 'Print this message or 
 complete -c xr -n "__fish_xr_using_subcommand post" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -141,7 +141,7 @@ complete -c xr -n "__fish_xr_using_subcommand post" -s h -l help -d 'Print help 
 complete -c xr -n "__fish_xr_using_subcommand reply" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -174,7 +174,7 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -l no-pager -d 'Documented 
 complete -c xr -n "__fish_xr_using_subcommand reply" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand quote" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -207,7 +207,7 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -l no-pager -d 'Documented 
 complete -c xr -n "__fish_xr_using_subcommand quote" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand delete" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -241,7 +241,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand delete" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand read" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -275,7 +275,7 @@ complete -c xr -n "__fish_xr_using_subcommand read" -s h -l help -d 'Print help 
 complete -c xr -n "__fish_xr_using_subcommand search" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -308,7 +308,7 @@ complete -c xr -n "__fish_xr_using_subcommand search" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -341,7 +341,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand user" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -375,7 +375,7 @@ complete -c xr -n "__fish_xr_using_subcommand user" -s h -l help -d 'Print help 
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -409,7 +409,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -s h -l help -d 'Print h
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s n -l max-results -d 'Number of results (5-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -442,7 +442,7 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -l no-pager -d 'Document
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand like" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -475,7 +475,7 @@ complete -c xr -n "__fish_xr_using_subcommand like" -l no-pager -d 'Documented n
 complete -c xr -n "__fish_xr_using_subcommand like" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -508,7 +508,7 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand repost" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -541,7 +541,7 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand repost" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -574,7 +574,7 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -l no-pager -d 'Document
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -607,7 +607,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -l no-pager -d 'Document
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -641,7 +641,7 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s h -l help -d 'Print
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -675,7 +675,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s h -l help -d 'Print 
 complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -708,7 +708,7 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -l no-pager -d 'Documented 
 complete -c xr -n "__fish_xr_using_subcommand likes" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand follow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -741,7 +741,7 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand follow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -776,7 +776,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -s n -l max-results -d 
 complete -c xr -n "__fish_xr_using_subcommand following" -l of -d 'Username to list following for (default: you)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -811,7 +811,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -s n -l max-results -d 
 complete -c xr -n "__fish_xr_using_subcommand followers" -l of -d 'Username to list followers for (default: you)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -844,7 +844,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -l no-pager -d 'Documen
 complete -c xr -n "__fish_xr_using_subcommand followers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand mute" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -877,7 +877,7 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -l no-pager -d 'Documented n
 complete -c xr -n "__fish_xr_using_subcommand mute" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -911,7 +911,7 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -s h -l help -d 'Print hel
 complete -c xr -n "__fish_xr_using_subcommand muted" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -944,7 +944,7 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -l no-pager -d 'Documented 
 complete -c xr -n "__fish_xr_using_subcommand muted" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -977,7 +977,7 @@ complete -c xr -n "__fish_xr_using_subcommand block" -l no-pager -d 'Documented 
 complete -c xr -n "__fish_xr_using_subcommand block" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1011,7 +1011,7 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -s h -l help -d 'Print he
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1044,7 +1044,7 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-pager -d 'Documente
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1079,7 +1079,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1114,7 +1114,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1148,7 +1148,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -s h -l help -d 'Print help (s
 complete -c xr -n "__fish_xr_using_subcommand dms" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2` username to act as' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1179,7 +1179,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l json -d 'Shorthand for `--
 complete -c xr -n "__fish_xr_using_subcommand dms" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand dms" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1211,7 +1211,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_su
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1247,7 +1247,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1289,7 +1289,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step number: 1 (generate auth URL) or 2 (complete exchange)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l auth-url -d 'Redirect URL from browser (step 2). Use \'-\' to read from stdin (recommended on shared machines)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1323,7 +1323,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l consumer-secret -d 'Consumer secret' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l access-token -d 'Access token' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l token-secret -d 'Token secret' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1354,7 +1354,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token -d 'Bearer token' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1384,7 +1384,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1415,7 +1415,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l oauth2-username -d 'Clear `OAuth2` token for username' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1449,7 +1449,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1485,7 +1485,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "list" -d 'List registered apps'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "redirect-uri" -d 'Inspect or set the stored `OAuth2` redirect URI for an app'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1523,7 +1523,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "apps" -d 'Manage registered X API apps'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "default" -d 'Set default app and/or user'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status help" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1561,7 +1561,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l auth -d 'Authentication type' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s u -l username -d 'Username' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1596,7 +1596,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l auth -d 'Authentication type' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s u -l username -d 'Username' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s H -l header -d 'Request headers' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1631,7 +1631,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "upload" -d 'Upload media file'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "status" -d 'Check media upload status'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1664,7 +1664,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "update" -d 'Refresh an existing skill-bundle install in place'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1694,7 +1694,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1727,7 +1727,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "update" -d 'Refresh an existing skill-bundle install in place'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1760,7 +1760,7 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand schema" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand schema" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1790,7 +1790,7 @@ complete -c xr -n "__fish_xr_using_subcommand completions" -l json -d 'Shorthand
 complete -c xr -n "__fish_xr_using_subcommand completions" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand completions" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand completions" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1820,7 +1820,7 @@ complete -c xr -n "__fish_xr_using_subcommand version" -l json -d 'Shorthand for
 complete -c xr -n "__fish_xr_using_subcommand version" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand version" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand version" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
@@ -1851,7 +1851,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print verbose information' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
