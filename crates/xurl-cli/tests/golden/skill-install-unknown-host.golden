@@ -2,12 +2,12 @@ args: ["skill", "install", "bogus_host"]
 store: empty
 exit_code: 2
 stdout_len: 0
-stderr_len: 157
+stderr_len: 152
 --- stdout ---
 
 --- stderr ---
-error: invalid value 'bogus_host' for '[HOST]'
+Error: invalid value 'bogus_host' for '[HOST]'
   [possible values: claude_code, codex, cursor, factory, kiro, opencode]
 
-For more information, try '--help'.
+Try 'xr skill install --help'.
 
