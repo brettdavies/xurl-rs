@@ -38,6 +38,12 @@
      reordering, cargo_bin migration, cfg gates, etc.). Document those in
      the PR body text or Files Modified section, NOT here.
 
+     THE SECTION SETS THE VERSION (RELEASES.md § Versioning). Breaking changes:
+     major. Added or Deprecated: minor. Changed, Fixed, Documentation: patch.
+     A change to the contract (a command, flag, env var, exit code, or a
+     structured-output field, reason, or action) never goes under Changed.
+     An MSRV bump sets a minor wherever it is filed.
+
      RULES:
 - 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
 - Delete empty ### sections entirely; don't leave blank categories.
@@ -47,11 +53,19 @@
   standing with nothing under it. That says "nothing here" and keeps the PR
   title out of that crate's changelog. -->
 
+### Breaking changes
+
+-
+
 ### Added
 
 -
 
 ### Changed
+
+-
+
+### Deprecated
 
 -
 
@@ -66,6 +80,8 @@
 ## Changelog (xdk-rs)
 
 <!-- The library's changelog. Same rules as above, for `xdk-rs` API consumers.
+     While xdk-rs is 0.x, Breaking changes sets a minor, and every other
+     section sets a patch.
 
      BREAKING ENTRIES CARRY A BEFORE/AFTER SNIPPET. crates/xdk/README.md makes
      this a release gate: a release that breaks something and ships no snippet
@@ -86,11 +102,19 @@
   ```
 -->
 
+### Breaking changes
+
+-
+
 ### Added
 
 -
 
 ### Changed
+
+-
+
+### Deprecated
 
 -
 
