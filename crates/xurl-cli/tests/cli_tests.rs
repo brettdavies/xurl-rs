@@ -2955,6 +2955,109 @@ async fn test_limit_help_advertised_globally() {
     );
 }
 
+/// The authenticated user the paging requests below are made for.
+const PAGING_USER_ID: &str = "2244994945";
+
+/// Every command that pages: its arguments, and the path its request lands on
+/// once the authenticated user is resolved.
+const PAGING_COMMANDS: &[(&[&str], &str)] = &[
+    (&["search", "x"], "/2/tweets/search/recent"),
+    (
+        &["timeline"],
+        "/2/users/2244994945/timelines/reverse_chronological",
+    ),
+    (&["mentions"], "/2/users/2244994945/mentions"),
+    (&["bookmarks"], "/2/users/2244994945/bookmarks"),
+    (&["likes"], "/2/users/2244994945/liked_tweets"),
+    (&["following"], "/2/users/2244994945/following"),
+    (&["followers"], "/2/users/2244994945/followers"),
+    (&["muted"], "/2/users/2244994945/muting"),
+    (&["blocked"], "/2/users/2244994945/blocking"),
+    (&["dms"], "/2/dm_events"),
+];
+
+/// `--limit` and `--cursor` reach the wire as `max_results` and
+/// `pagination_token` on every command that pages.
+#[tokio::test]
+async fn every_paging_command_sends_the_limit_and_cursor() {
+    for (args, request_path) in PAGING_COMMANDS {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": {"id": PAGING_USER_ID, "name": "Paging User", "username": "paging"}
+                }))),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(*request_path))
+                .and(wiremock::matchers::query_param("max_results", "25"))
+                .and(wiremock::matchers::query_param(
+                    "pagination_token",
+                    "CURSOR-TOKEN",
+                ))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": [],
+                    "meta": {"result_count": 0}
+                })))
+                .expect(1),
+        )
+        .await;
+
+        let mut argv = vec![
+            "xr",
+            "--output",
+            "json",
+            "--limit",
+            "25",
+            "--cursor",
+            "CURSOR-TOKEN",
+        ];
+        argv.extend_from_slice(args);
+        argv.extend_from_slice(&["--auth", "oauth1"]);
+        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &argv).await;
+        assert_eq!(
+            code, 0,
+            "xr {args:?} must send max_results and pagination_token to {request_path}; \
+             stderr: {stderr}; stdout: {stdout}"
+        );
+    }
+}
+
+/// The `--limit` and `--cursor` help name exactly the commands that page, so
+/// the help cannot promise paging a command does not do.
+#[test]
+fn the_limit_and_cursor_help_name_exactly_the_commands_that_page() {
+    use clap::CommandFactory;
+    let paging: std::collections::BTreeSet<&str> =
+        PAGING_COMMANDS.iter().map(|(args, _)| args[0]).collect();
+    let command = cli::Cli::command();
+    let subcommands: std::collections::BTreeSet<&str> = command
+        .get_subcommands()
+        .map(clap::Command::get_name)
+        .collect();
+    for flag in ["limit", "cursor"] {
+        let help = command
+            .get_arguments()
+            .find(|arg| arg.get_id() == flag)
+            .and_then(|arg| arg.get_long_help())
+            .unwrap_or_else(|| panic!("--{flag} has long help"))
+            .to_string();
+        let named: std::collections::BTreeSet<&str> = help
+            .split('`')
+            .skip(1)
+            .step_by(2)
+            .filter(|word| subcommands.contains(word))
+            .collect();
+        assert_eq!(named, paging, "--{flag} help names {named:?}; help: {help}");
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // U9: TTY-gated dialoguer + `--no-browser` env + headless auto-engage
 // ═══════════════════════════════════════════════════════════════════════════
