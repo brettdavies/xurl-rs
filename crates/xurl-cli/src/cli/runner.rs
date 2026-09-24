@@ -34,6 +34,7 @@ use crate::cli::classify::{
 };
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
+use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{color_choice, failing_command, parse_without_help};
 use crate::cli::{Cli, Commands};
@@ -470,8 +471,9 @@ fn help_command_page(args: &[OsString]) -> String {
 /// Text mode gets the sentence, pointing at the help of the nearest command
 /// under `command`, the one the word was typed under, or at the help of
 /// `command` itself when nothing scored close enough. Every structured mode
-/// gets the envelope with the offending word in `command` and the nearest
-/// real name in `suggestion`, absent when nothing scored.
+/// gets the envelope with the offending word in `command`, the nearest real
+/// name in `suggestion`, absent when nothing scored, and a `next_step` that
+/// runs the same help page.
 ///
 /// The pointer names a help page rather than the corrected invocation: the
 /// suggestion is a guess, and the corrected invocation of a write command
@@ -501,6 +503,7 @@ fn render_unknown_command(
             message: Some(message),
             command: Some(word.to_string()),
             suggestion: suggestion.map(str::to_string),
+            next_step: Some(NextStep::show_help(format!("{target} --help"))),
             ..ErrorBody::default()
         },
     );

@@ -27,6 +27,11 @@
           "const": "enroll-app",
           "description": "X refused the app; enroll it in the developer portal.",
           "type": "string"
+        },
+        {
+          "const": "show-help",
+          "description": "The word named no command; read the help of the nearest one.",
+          "type": "string"
         }
       ]
     },
@@ -233,7 +238,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`. A step carries either a `command`,\nrunnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
