@@ -611,10 +611,18 @@ fn every_non_interactive_example_of_a_confirmed_command_runs_under_dry_run() {
                     .any(|command| line.starts_with(&format!("xr {command} ")))
         })
         .collect();
-    assert_eq!(
-        examples.len(),
-        CONFIRMED_COMMANDS.len(),
-        "expected one non-interactive example per confirmed command; found {examples:?}"
+    let missing: Vec<&str> = CONFIRMED_COMMANDS
+        .iter()
+        .copied()
+        .filter(|command| {
+            !examples
+                .iter()
+                .any(|line| line.starts_with(&format!("xr {command} ")))
+        })
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "no --no-interactive example shows these confirmed commands: {missing:?}"
     );
 
     let failing: Vec<String> = examples
