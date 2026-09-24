@@ -38,9 +38,9 @@ The structural mapping is intentional.
 Go `xurl` accepts any positional and sends it as the endpoint (`cli/root.go`), so a mistyped command name becomes a
 request against a path that does not exist and the caller reads an API error instead of a spelling correction.
 
-The Rust version classifies the positional before anything is loaded or sent. A token that reads as a command name and
-matches none of them is a usage error at exit `2` with reason `unknown-command`, carrying the offending word in
-`command` and the nearest real name in `suggestion` when one is close enough:
+The Rust version classifies the positional after the parse and before anything is loaded or sent. A token that reads as
+a command name and matches none of them is a usage error at exit `2` with reason `unknown-command`, carrying the
+offending word in `command` and the nearest real name in `suggestion` when one is close enough:
 
 | Invocation       | Go behavior                     | Rust behavior                                         |
 | ---------------- | ------------------------------- | ----------------------------------------------------- |
@@ -49,5 +49,30 @@ matches none of them is a usage error at exit `2` with reason `unknown-command`,
 | `xr example.com` | Request to `/example.com`       | Exit 1, `validation` — a URL, and not an absolute one |
 | `xr`             | Usage error                     | Exit 0, root help on stdout                           |
 
+A help or version flag does not change that outcome: `xr whoam --help`, `xr whoam -h`, and `xr whoam --version` fail
+exactly as `xr whoam` does.
+
 A positional that starts with `http://`, `https://`, or `/` is still a raw request, and so is any invocation carrying a
-raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads.
+raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A raw request has no help
+page of its own, so `xr /2/users/me --help` prints the root help.
+
+## Every stream the spec declares is streamed (intentional improvement)
+
+Go `xurl` streams a raw request without `-s` only when its path is on a fixed list of eight: the filtered search stream,
+the sample and sample10 streams, and the firehose stream with its four language variants. Any other path is read as one
+buffered response, so nothing from a long-lived stream missing from the list prints as it arrives.
+
+The Rust version streams every path whose operation the vendored X OpenAPI spec marks `x-twitter-streaming`, and the
+build fails if a spec refresh leaves none marked. That set covers Go's eight plus seven more:
+
+| Path                          | Go without `-s` | Rust without `-s` |
+| ----------------------------- | --------------- | ----------------- |
+| `/2/activity/stream`          | Buffered        | Streamed          |
+| `/2/likes/firehose/stream`    | Buffered        | Streamed          |
+| `/2/likes/sample10/stream`    | Buffered        | Streamed          |
+| `/2/tweets/label/stream`      | Buffered        | Streamed          |
+| `/2/tweets/compliance/stream` | Buffered        | Streamed          |
+| `/2/likes/compliance/stream`  | Buffered        | Streamed          |
+| `/2/users/compliance/stream`  | Buffered        | Streamed          |
+
+`-s` still forces streaming on any path in both.

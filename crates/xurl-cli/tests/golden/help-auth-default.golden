@@ -1,7 +1,7 @@
 args: ["auth", "default", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5296
+stdout_len: 5365
 stderr_len: 0
 --- stdout ---
 Set default app and/or user
@@ -17,7 +17,7 @@ Arguments:
 
 Options:
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12021
+stdout_len: 12108
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -110,7 +110,7 @@ Options:
           Username for `OAuth2` authentication
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]
@@ -261,7 +261,7 @@ ENVIRONMENT VARIABLES:
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
   XURL_COLOR             Color control: auto, always, never (same as --color)
-  XURL_VERBOSE           Verbose request/response logging (same as -v/--verbose)
+  XURL_VERBOSE           Request/response lines and legacy-vocabulary notes (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)

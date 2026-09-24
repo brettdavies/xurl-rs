@@ -102,23 +102,38 @@ else
     fi
 fi
 
-# Paths that cannot change what cargo builds, tests, documents, or audits.
-# Deliberately narrow, because the cost of being wrong is asymmetric.
-# `crates/xdk/vendor/**` is absent on purpose: `spec_scripts.rs` asserts the
-# vendored README is current and validates the vendored spec. `scripts/**` is
-# absent because that same suite runs those scripts.
-INERT_RE='^(docs/|\.github/|\.context/|LICENSE-|[^/]+\.md$)'
+# Paths that cannot change what cargo builds, tests, documents, or audits,
+# markdown aside: `.github/` (its workflows are linted below), the gitignored
+# `.context/`, and the license texts. Deliberately narrow, because the cost of
+# being wrong is asymmetric. `scripts/**` is absent because `spec_scripts.rs`
+# and the surface-bump suite run those scripts.
+INERT_RE='^(\.github/|\.context/|LICENSE-)'
 
 # touched <extended-regex> — true when the push carries a matching path.
+# Every test below reads a string rather than a pipe: `grep -q` exits at its
+# first match, and under pipefail the writer's broken pipe turns that match
+# into a false.
 touched() {
     $scope_all && return 0
-    printf '%s\n' "$changed" | grep -qE "$1"
+    grep -qE "$1" <<< "$changed"
 }
+
+# The changed paths that can reach cargo. Markdown goes through
+# scripts/cargo-inputs.sh wherever it sits, because tests read some documents
+# (AGENTS.md, the root README, the PR template) and not others; CI's `Change
+# scope` job applies the same filter. The pattern reaches awk through the
+# environment, because `awk -v` would rewrite its `\.` escapes. A filter that
+# fails sweeps everything.
+cargo_changed=""
+if ! $scope_all; then
+    cargo_changed=$(INERT="$INERT_RE" awk 'NF && !($0 ~ ENVIRON["INERT"] && $0 !~ /\.md$/)' <<< "$changed" \
+        | bash scripts/cargo-inputs.sh) || scope_all=true
+fi
 
 # code_touched — true unless every changed path is inert.
 code_touched() {
     $scope_all && return 0
-    printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "$INERT_RE"
+    [ -n "$cargo_changed" ]
 }
 
 # library_touched — false only when every changed path provably cannot move a
@@ -128,7 +143,7 @@ code_touched() {
 # it fails open — an unrecognized path runs them. CI runs them regardless.
 library_touched() {
     $scope_all && return 0
-    printf '%s\n' "$changed" | grep -v '^$' | grep -qvE "^crates/xurl-cli/|$INERT_RE"
+    [ -n "$cargo_changed" ] && grep -qv '^crates/xurl-cli/' <<< "$cargo_changed"
 }
 
 banner "Running local CI checks..."

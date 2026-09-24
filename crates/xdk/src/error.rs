@@ -7,6 +7,9 @@
 use serde::{Deserialize, Serialize};
 
 /// What the caller should do next. Closed set; agents branch on it.
+///
+/// A newer release can add a member, so a caller treats one it does not
+/// recognize as its default branch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 #[non_exhaustive]
@@ -21,6 +24,12 @@ pub enum NextAction {
     InspectStore,
     /// X refused the app; enroll it in the developer portal.
     EnrollApp,
+    /// The word named no command; read the help of the nearest one.
+    // `xr` reaches this alone: its unknown-command envelope carries it
+    // (`crates/xurl-cli/src/cli/runner.rs`, `render_unknown_command`), and no
+    // library error returns it.
+    #[doc(hidden)]
+    ShowHelp,
 }
 
 /// The enrollment recipe for an app X refuses.

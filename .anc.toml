@@ -1,6 +1,12 @@
 # Per-CLI domain vocabulary for anc's p6-may-standard-names audit.
 # These verbs are the X (Twitter) platform's canonical actions, plus
 # xr-specific surface verbs (examples, validate) and the media namespace.
+#
+# anc discovers this file at the audit target's root directory, but
+# p6-may-standard-names is a behavioral audit that needs a binary. A
+# workspace root yields no binary, and --command / --binary targets are
+# not directories, so no invocation reaches both today:
+# https://github.com/brettdavies/agentnative-cli
 [p6]
 domain_verbs = [
   "post", "reply", "quote", "delete", "read", "search",
@@ -8,7 +14,8 @@ domain_verbs = [
   "like", "unlike", "repost", "unrepost",
   "bookmark", "unbookmark", "bookmarks", "likes",
   "follow", "unfollow", "following", "followers",
-  "mute", "unmute",
-  "usage", "dm", "dms",
+  "mute", "unmute", "muted",
+  "block", "unblock", "blocked",
+  "usage", "dm", "dms", "broadcasts",
   "media", "examples", "validate",
 ]

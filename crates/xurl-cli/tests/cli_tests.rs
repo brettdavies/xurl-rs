@@ -112,6 +112,31 @@ async fn test_help_flag() {
     );
 }
 
+/// `--verbose` and `XURL_VERBOSE` say they add the legacy-vocabulary note,
+/// the one line the flag prints that is not request or response traffic.
+#[tokio::test]
+async fn test_verbose_help_names_the_legacy_vocabulary_note() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let verbose = stdout
+        .split("--verbose")
+        .nth(1)
+        .and_then(|rest| rest.split("\n\n").next())
+        .unwrap_or_default();
+    assert!(
+        verbose.contains("legacy post vocabulary"),
+        "the --verbose help names the note: {verbose:?}"
+    );
+    let env = stdout
+        .lines()
+        .find(|line| line.trim_start().starts_with("XURL_VERBOSE"))
+        .unwrap_or_default();
+    assert!(
+        env.contains("legacy"),
+        "the XURL_VERBOSE line names the note: {env:?}"
+    );
+}
+
 #[tokio::test]
 async fn test_version_flag() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--version"]).await;
@@ -127,8 +152,8 @@ async fn test_invalid_flag() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "--definitely-not-a-real-flag"]).await;
     assert_ne!(code, 0, "expected non-zero exit for invalid flag");
     assert!(
-        stderr.contains("error"),
-        "stderr should contain 'error': {stderr}"
+        stderr.contains("Error: unexpected argument '--definitely-not-a-real-flag' found"),
+        "stderr should carry the Error: line: {stderr}"
     );
 }
 
@@ -173,15 +198,17 @@ async fn test_clap_error_emits_envelope_under_jsonl_alias() {
 
 #[tokio::test]
 async fn test_clap_error_falls_back_to_text_without_json_intent() {
-    // No --output json, no --json, no XURL_OUTPUT — clap's default text
-    // rendering is preserved.
+    // No --output json, no --json, no XURL_OUTPUT: the text rendering.
     let (code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag"]).await;
     assert_eq!(code, 2);
     assert!(
         serde_json::from_str::<serde_json::Value>(stderr.trim()).is_err(),
         "without JSON intent, stderr should not be JSON: {stderr}"
     );
-    assert!(stderr.contains("error"));
+    assert!(
+        stderr.contains("Error: unexpected argument '--bogus-flag' found"),
+        "stderr: {stderr}"
+    );
 }
 
 #[tokio::test]
@@ -1809,8 +1836,8 @@ async fn test_oauth2_positional_invalid_extra_args() {
         "expected clap usage exit code 2 for extra positional; stderr: {stderr}"
     );
     assert!(
-        stderr.contains("error"),
-        "stderr should contain clap error text: {stderr}"
+        stderr.contains("Error: unexpected argument 'bob' found"),
+        "stderr should name the extra positional: {stderr}"
     );
 }
 
@@ -2416,6 +2443,81 @@ async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
     assert_eq!(v["status"], "dry_run");
     assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
     assert_eq!(v["reason"], "body-too-long");
+}
+
+/// X answers `POST /2/tweets` in its legacy vocabulary; `--output json`
+/// reports the key under the name the spec uses, carrying X's value as sent.
+#[tokio::test]
+async fn test_post_json_reports_edit_history_post_ids_for_the_legacy_key() {
+    let ts = CliMockServer::new().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/tweets"))
+            .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
+                "data": {"id": "2101712260468977783", "text": "hi", "edit_history_tweet_ids": [""]}
+            })))
+            .expect(1),
+    )
+    .await;
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "--output", "json", "post", "hi", "--auth", "oauth1"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "post failed; stderr: {stderr}; stdout: {stdout}");
+    let data = &parse_json(&stdout)["data"];
+    assert_eq!(
+        data["edit_history_post_ids"],
+        serde_json::json!([""]),
+        "stdout: {stdout}"
+    );
+    assert!(
+        data.get("edit_history_tweet_ids").is_none(),
+        "stdout: {stdout}"
+    );
+}
+
+/// A raw request prints the body exactly as X sent it, legacy keys included.
+#[tokio::test]
+async fn test_raw_request_keeps_the_legacy_spelling_x_sent() {
+    let ts = CliMockServer::new().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+    let body = serde_json::json!({
+        "data": {
+            "id": "123",
+            "text": "hi",
+            "edit_history_tweet_ids": ["123"],
+            "public_metrics": {"retweet_count": 1}
+        }
+    });
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/123"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body.clone()))
+            .expect(1),
+    )
+    .await;
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "--output", "json", "/2/tweets/123", "--auth", "app"],
+    )
+    .await;
+
+    assert_eq!(
+        code, 0,
+        "raw read failed; stderr: {stderr}; stdout: {stdout}"
+    );
+    assert_eq!(parse_json(&stdout), body, "stdout: {stdout}");
 }
 
 #[tokio::test]

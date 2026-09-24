@@ -34,5 +34,6 @@ pub use response::types::{
     MediaUploadResponse, MutingResult, Post, PostPublicMetrics, ReferencedPost, RepostedResult,
     ResponseMeta, UsageCreditsData, UsageData, User, UserPublicMetrics, deserialize_response,
 };
+pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
 pub use shortcuts::{resolve_post_id, resolve_username};

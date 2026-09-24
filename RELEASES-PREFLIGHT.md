@@ -129,7 +129,7 @@ xurl-rs is a thin client over the live X API. The contract that ships is the uni
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
-  Changed` (or `### Breaking changes`) bullet in the release changelog.
+  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning).
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
 - [ ] Public library surface (`xurl_rs::*`): `cargo semver-checks check-release --baseline-rev "$LAST_TAG"
@@ -240,13 +240,20 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above, `xrs search "rust" --max-results 1
   --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` → expect `{"has_data":true}`.
 - [ ] **Typed wire vocabulary** (automatable): `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
-  media post and one user through the library's typed structs and fails when a typed metric reads back zero, a legacy
-  key (`referenced_tweets`, `edit_history_tweet_ids`) appears on the post, or `tweet_count` lands in `extra` instead of
-  `post_count`. This is the one gate that catches the vendored spec naming a field the wire does not send; the mocked
-  suite validates against that same spec and cannot. Costs one post read and one user read. `XURL_APP=<app>` picks the
-  store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any
-  other post with media if the default was deleted. The script runs it against `$SMOKE_HOME` with the `app` scheme on
-  the `bird_dev` app.
+  media post and one user through the library's typed structs under a `tracing` subscriber on
+  `xdk::api::VOCABULARY_TARGET`, and fails listing every `legacy → normalized` pair the library reported, so any key X
+  sends in its legacy post vocabulary fails the gate; the keys come from the spec-derived table, not a hand-written
+  list. It also fails when a typed metric reads back zero or the post carries no media keys. This is the one gate that
+  catches the vendored spec naming a field the wire does not send; the mocked suite validates against that same spec and
+  cannot. Blind spot: a lone legacy key of an excluded pair (`tweet_count`, `tweet_id`) is never renamed, so it never
+  reports. X sending `tweet_count` alone on user metrics stays silent here while the `post_count` alias fills the field;
+  X sending `tweet_count` beside `post_count` does report. When it fails only on reported pairs, typed output already
+  reads each one under its current name: add the endpoint and pair to the instance table in
+  `docs/solutions/integration-issues/accept-both-spellings-of-a-mid-migration-api-vocabulary.md`, then check the item by
+  hand. A typed metric that reads back zero or a post with no media keys still holds the release. Costs one post read
+  and one user read. `XURL_APP=<app>` picks the store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and
+  `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any other post with media if the default was deleted. The script runs it
+  against `$SMOKE_HOME` with the `app` scheme on the `bird_dev` app.
 - [ ] **Media upload** (automatable): `xrs media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg --media-type
   image/jpeg --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`.
   **Gotcha:** defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg

@@ -17,8 +17,12 @@ use serde_json::Value;
 /// Single-item endpoints use `ApiResponse<Post>`, list endpoints use
 /// `ApiResponse<Vec<Post>>`. Serde handles both shapes transparently.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+#[schemars(
+    description = "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints."
+)]
 pub struct ApiResponse<T: Default> {
     /// Primary payload — a single object or a `Vec<T>` for list endpoints.
+    #[schemars(description = "Primary payload: one object, or an array for list endpoints.")]
     pub data: T,
     /// Expanded objects referenced by `data` when the caller requested
     /// `expansions=...`.
@@ -42,8 +46,16 @@ pub struct Includes {
     /// User objects referenced by `author_id`, `sender_id`, etc.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<User>>,
-    /// Post objects referenced by `referenced_posts`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Post objects referenced by `referenced_posts`. Deserializing this type
+    /// directly with serde also reads the legacy key `tweets`, and fails with
+    /// serde's `duplicate field` error on an object carrying both spellings;
+    /// responses read through this crate never hit that, because the legacy
+    /// key is dropped first.
+    #[serde(default, alias = "tweets", skip_serializing_if = "Option::is_none")]
+    #[doc(alias = "tweets")]
+    #[schemars(
+        description = "Post objects referenced by `referenced_posts`. X may send this under its legacy name `tweets`; either name fills this field."
+    )]
     pub posts: Option<Vec<Post>>,
     /// Forward-compatibility bucket — captures unknown include keys.
     #[serde(flatten)]
@@ -115,8 +127,20 @@ pub struct Post {
     /// Engagement counts (likes, replies, reposts, etc).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<PostPublicMetrics>,
-    /// Posts this one references (reply, quote, repost).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Posts this one references (reply, quote, repost). Deserializing this
+    /// type directly with serde also reads the legacy key `referenced_tweets`,
+    /// and fails with serde's `duplicate field` error on an object carrying
+    /// both spellings; responses read through this crate never hit that,
+    /// because the legacy key is dropped first.
+    #[serde(
+        default,
+        alias = "referenced_tweets",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[doc(alias = "referenced_tweets")]
+    #[schemars(
+        description = "Posts this one references (reply, quote, repost). X may send this under its legacy name `referenced_tweets`; either name fills this field."
+    )]
     pub referenced_posts: Option<Vec<ReferencedPost>>,
     /// Parsed entities (URLs, mentions, hashtags) — opaque JSON.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -132,8 +156,16 @@ pub struct Post {
 /// Public engagement metrics for a post.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct PostPublicMetrics {
-    /// Repost count.
-    #[serde(default)]
+    /// Repost count. Deserializing this type directly with serde also reads
+    /// the legacy key `retweet_count`, and fails with serde's `duplicate
+    /// field` error on an object carrying both spellings; responses read
+    /// through this crate never hit that, because the legacy key is dropped
+    /// first.
+    #[serde(default, alias = "retweet_count")]
+    #[doc(alias = "retweet_count")]
+    #[schemars(
+        description = "Repost count. X may send this under its legacy name `retweet_count`; either name fills this field."
+    )]
     pub repost_count: u64,
     /// Reply count.
     #[serde(default)]
@@ -211,8 +243,15 @@ pub struct UserPublicMetrics {
     #[serde(default)]
     pub following_count: u64,
     /// Post count for the user. X sends this key as `tweet_count`; the
-    /// 2.168 spec names it `post_count`, so either key fills this field.
+    /// 2.168 spec names it `post_count`. Deserializing this type directly
+    /// with serde reads either key, and fails with serde's `duplicate field`
+    /// error on an object carrying both; responses read through this crate
+    /// never hit that, because `tweet_count` is dropped first.
     #[serde(default, alias = "tweet_count")]
+    #[doc(alias = "tweet_count")]
+    #[schemars(
+        description = "Post count for the user. X sends this under its legacy name `tweet_count`; either name fills this field."
+    )]
     pub post_count: u64,
     /// Number of public lists the user is on.
     #[serde(default)]
@@ -443,6 +482,12 @@ pub struct UsageCreditsData {
 /// non-JSON 2xx bodies) with a descriptive error instead of a cryptic
 /// serde deserialization failure.
 ///
+/// Keys X still sends in its legacy post vocabulary are read under the
+/// names the spec uses now, at any depth: `edit_history_tweet_ids` arrives
+/// as `edit_history_post_ids` with its value unchanged. When one object
+/// carries both spellings, the current one is kept and the legacy one
+/// dropped.
+///
 /// # Errors
 ///
 /// Returns `Error::Json` if the Value is an empty object or cannot
@@ -454,8 +499,9 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
 }
 
 /// Decodes a response body into `T` with the empty-body and errors-only
-/// checks of [`deserialize_response`].
-pub(crate) fn decode<T: serde::de::DeserializeOwned>(value: Value) -> crate::error::Result<T> {
+/// checks of [`deserialize_response`], reading X's legacy post vocabulary
+/// under the names the spec uses now.
+pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate::error::Result<T> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
         return Err(crate::error::Error::Json(
             "empty response body — expected JSON with a \"data\" field".to_string(),
@@ -471,6 +517,7 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(value: Value) -> crate::err
     {
         return Err(crate::error::Error::validation(value.to_string()));
     }
+    super::vocabulary::normalize(&mut value);
     Ok(serde_json::from_value(value)?)
 }
 
@@ -899,6 +946,69 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("empty response body"), "Got: {err}");
+    }
+
+    // ── Legacy post vocabulary ──────────────────────────────────────
+
+    /// Deserializes both bodies directly through serde, asserts they read
+    /// back identically, and returns the one spelled the legacy way.
+    fn read_alike(legacy: Value, current: Value) -> ApiResponse<Post> {
+        let from_legacy: ApiResponse<Post> =
+            serde_json::from_value(legacy).expect("the legacy spelling deserializes");
+        let from_current: ApiResponse<Post> =
+            serde_json::from_value(current).expect("the current spelling deserializes");
+        assert_eq!(
+            serde_json::to_value(&from_legacy).expect("serializes"),
+            serde_json::to_value(&from_current).expect("serializes"),
+            "both spellings must read identically"
+        );
+        from_legacy
+    }
+
+    #[test]
+    fn retweet_count_fills_repost_count() {
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t", "public_metrics": {"retweet_count": 4}}}),
+            json!({"data": {"id": "1", "text": "t", "public_metrics": {"repost_count": 4}}}),
+        );
+        let metrics = post.data.public_metrics.expect("public_metrics present");
+        assert_eq!(metrics.repost_count, 4);
+        assert!(
+            metrics.extra.is_empty(),
+            "left in extra: {:?}",
+            metrics.extra
+        );
+    }
+
+    #[test]
+    fn referenced_tweets_fills_referenced_posts() {
+        let refs = json!([{"id": "2", "type": "quoted"}]);
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t", "referenced_tweets": refs}}),
+            json!({"data": {"id": "1", "text": "t", "referenced_posts": refs}}),
+        );
+        assert_eq!(post.data.referenced_posts.map(|r| r.len()), Some(1));
+        assert!(
+            post.data.extra.is_empty(),
+            "left in extra: {:?}",
+            post.data.extra
+        );
+    }
+
+    #[test]
+    fn tweets_under_includes_fills_posts() {
+        let included = json!([{"id": "2", "text": "q"}]);
+        let post = read_alike(
+            json!({"data": {"id": "1", "text": "t"}, "includes": {"tweets": included}}),
+            json!({"data": {"id": "1", "text": "t"}, "includes": {"posts": included}}),
+        );
+        let includes = post.includes.expect("includes present");
+        assert_eq!(includes.posts.map(|p| p.len()), Some(1));
+        assert!(
+            includes.extra.is_empty(),
+            "left in extra: {:?}",
+            includes.extra
+        );
     }
 
     // ── Red team / adversarial ──────────────────────────────────────

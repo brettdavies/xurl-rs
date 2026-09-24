@@ -1,0 +1,47 @@
+# Fails a pull request whose `xr` surface grows while its `## Changelog
+# (xurl-rs)` block names no minor-or-higher section. RELEASES.md § Versioning
+# lets that section set the release's version, so an addition filed under
+# `### Changed` would ship as a patch; scripts/check-surface-bump.sh names what
+# it compares and what it leaves to review.
+#
+# `edited` is a trigger because the verdict depends on the PR body: fixing the
+# section re-runs the check without a push. PRs to main are release PRs, whose
+# diff spans a whole release and whose body is not a feature changelog.
+name: Changelog bump
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+# A literal token leads the key: see the note in ci.yml.
+concurrency:
+  group: changelog-bump-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  surface:
+    name: Surface growth needs a minor section
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The checkout is GitHub's test merge of the PR into its base, so its
+      # first parent is the base tree the PR is measured against.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: Extract the base tree's surface files
+        run: |
+          mkdir -p "$RUNNER_TEMP/base"
+          git archive HEAD^1 completions schema | tar -x -C "$RUNNER_TEMP/base"
+      # The body reaches the script through the environment and a file, never
+      # through expression interpolation into the shell.
+      - name: Compare the surface against the changelog section
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          bash scripts/check-surface-bump.sh check "$RUNNER_TEMP/base" . "$RUNNER_TEMP/pr-body.md"

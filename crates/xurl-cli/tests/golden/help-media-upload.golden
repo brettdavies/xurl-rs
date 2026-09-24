@@ -1,7 +1,7 @@
 args: ["media", "upload", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5858
+stdout_len: 5927
 stderr_len: 0
 --- stdout ---
 Upload media file
@@ -36,7 +36,7 @@ Options:
           Trace header
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

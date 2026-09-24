@@ -21,6 +21,7 @@ pub mod family_help;
 pub mod output;
 #[cfg(test)]
 mod parse_tests;
+mod reparse;
 pub mod skill_install;
 
 pub use output::OutputFormat;
@@ -68,7 +69,7 @@ ENVIRONMENT VARIABLES:
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
   XURL_COLOR             Color control: auto, always, never (same as --color)
-  XURL_VERBOSE           Verbose request/response logging (same as -v/--verbose)
+  XURL_VERBOSE           Request/response lines and legacy-vocabulary notes (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
@@ -777,7 +778,8 @@ pub struct Cli {
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
-    /// Print verbose information
+    /// Print request and response lines, and a note for each key X sent in its legacy post
+    /// vocabulary
     #[arg(
         short = 'v',
         long = "verbose",

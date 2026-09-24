@@ -8,14 +8,17 @@
 
 use std::ffi::OsString;
 
-use clap::CommandFactory;
 use clap::error::{ContextKind, ContextValue};
+use clap::{CommandFactory, ValueEnum};
 
-use crate::cli::Cli;
 use crate::cli::output::OutputFormat;
+use crate::cli::{Cli, ColorChoice};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
 const SUGGESTION_THRESHOLD: f64 = 0.7;
+
+/// The name every hint gives the binary, however it was invoked.
+pub(crate) const ROOT_COMMAND: &str = "xr";
 
 /// What an invocation is asking for, once clap has parsed it.
 pub(crate) enum Classified {
@@ -120,12 +123,18 @@ pub(crate) fn suggestion_for_rejected(
     word: &str,
 ) -> Option<String> {
     clap_suggestion(error).or_else(|| {
-        args.iter()
-            .take_while(|a| a.to_string_lossy() != word)
-            .any(|a| a.to_string_lossy() == "help")
+        help_command_precedes(args, word)
             .then(|| nearest_command(word))
             .flatten()
     })
+}
+
+/// Whether an argv token `help` comes before `word`: the `xr help ...` form,
+/// where clap's `help` command rejected the word.
+pub(crate) fn help_command_precedes(args: &[OsString], word: &str) -> bool {
+    args.iter()
+        .take_while(|a| a.to_string_lossy() != word)
+        .any(|a| a.to_string_lossy() == "help")
 }
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.
@@ -137,12 +146,58 @@ fn clap_suggestion(error: &clap::Error) -> Option<String> {
     }
 }
 
+/// The command a clap failure belongs to, read from the usage line clap
+/// attached: its words up to the first placeholder or flag, so `Usage: xr
+/// auth [OPTIONS] <COMMAND>` gives `xr auth`. clap names the binary as it was
+/// invoked (`xurl-rs` under the Homebrew alias, `xr.exe` on Windows), so the
+/// first word gives way to [`ROOT_COMMAND`]. `None` when clap attached no
+/// usage, as it does for an invalid value.
+pub(crate) fn usage_command(error: &clap::Error) -> Option<String> {
+    let usage = error.get(ContextKind::Usage)?.to_string();
+    let mut words = usage
+        .trim_start()
+        .strip_prefix("Usage:")?
+        .split_whitespace()
+        .take_while(|word| !word.starts_with(['[', '<', '-']));
+    words.next()?;
+    Some(
+        std::iter::once(ROOT_COMMAND)
+            .chain(words)
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
 /// One string of clap error context.
 pub(crate) fn context_string(error: &clap::Error, kind: ContextKind) -> Option<String> {
     match error.get(kind)? {
         ContextValue::String(value) => Some(value.clone()),
         _ => None,
     }
+}
+
+/// The color choice the caller named before clap parsed anything.
+///
+/// Read from the unparsed argv for the reason [`structured_intent`] is: on
+/// the clap error path no `Cli` exists, and clap stops at the token it
+/// rejected, so a `--color` after that token reaches no parse. The last valid
+/// choice named wins.
+pub(crate) fn color_intent(args: &[OsString]) -> Option<ColorChoice> {
+    let mut found = None;
+    let mut iter = args.iter().peekable();
+    while let Some(a) = iter.next() {
+        let s = a.to_string_lossy();
+        let value = if s == "--color" {
+            iter.peek().map(|next| next.to_string_lossy())
+        } else {
+            s.strip_prefix("--color=")
+                .map(|rest| rest.to_string().into())
+        };
+        if let Some(choice) = value.and_then(|v| ColorChoice::from_str(&v, false).ok()) {
+            found = Some(choice);
+        }
+    }
+    found
 }
 
 /// The output format the caller named before clap parsed anything.

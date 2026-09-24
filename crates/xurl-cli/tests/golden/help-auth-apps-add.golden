@@ -1,7 +1,7 @@
 args: ["auth", "apps", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5613
+stdout_len: 5682
 stderr_len: 0
 --- stdout ---
 Register a new X API app
@@ -23,7 +23,7 @@ Options:
           `OAuth2` redirect URI (https or http on loopback)
 
   -v, --verbose[=<VERBOSE>]
-          Print verbose information
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]

@@ -202,12 +202,13 @@ The line between the crates holds on four rules; a change that crosses one belon
 1. **Dependencies.** The library's graph carries no `clap`, `clap_complete`, `colored`, or `open` on any feature
    combination: `cargo tree -p xdk-rs --all-features -i <crate>` is empty for each, and CI's `Consumer check` compiles
    an out-of-package embedder against the documented surface.
-2. **I/O.** The library returns data, URLs, and `tracing` events (targets `xdk::wire`, `xdk::media`, `xdk::auth`,
-   `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads the process
-   environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`, `CLIENT_SECRET`,
-   `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`,
-   `XURL_TOKEN_STORE`, and `NO_COLOR` are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2
-   callback listener and reading or writing `~/.xurl` are network and file I/O, and belong to the library.
+2. **I/O.** The library returns data, URLs, and `tracing` events (targets `xdk::wire`, `xdk::media`, `xdk::vocabulary`,
+   `xdk::auth`, `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads
+   the process environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`,
+   `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`,
+   `XURL_OUTPUT`, `XURL_TOKEN_STORE`, and `NO_COLOR` are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
+   loopback OAuth2 callback listener and reading or writing `~/.xurl` are network and file I/O, and belong to the
+   library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
    `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
    `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can

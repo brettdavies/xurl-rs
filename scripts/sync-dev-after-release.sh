@@ -155,17 +155,31 @@ git pull --ff-only origin dev
 
 # Cut a branch -- the repo's RELEASES.md and AGENTS.md ban direct commits to dev.
 SYNC_BRANCH="chore/sync-dev-after-${VERSION}"
+# Only a branch this run created may be cleaned up. A dry run creates none, so
+# deleting the branch of a sync already in flight would discard its work.
+BRANCH_IS_OURS=false
 
-if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
-  echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
-  exit 68
-fi
-if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
-  echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
-  exit 68
-fi
+restore_dev() {
+  git switch dev
+  [[ "$BRANCH_IS_OURS" == true ]] && git branch -D "$SYNC_BRANCH"
+  return 0
+}
 
-git checkout -b "$SYNC_BRANCH"
+# A dry run creates no branch, so an existing one is no reason to refuse: the
+# question it answers, what this release would carry back, is exactly the one
+# asked while a prior attempt is still open.
+if [[ "$DRY_RUN" == false ]]; then
+  if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
+    echo "error: branch $SYNC_BRANCH already exists locally -- delete it or finish the prior run" >&2
+    exit 68
+  fi
+  if git ls-remote --exit-code --heads origin "$SYNC_BRANCH" >/dev/null 2>&1; then
+    echo "error: branch $SYNC_BRANCH already exists on origin -- check for an open PR or delete the remote branch" >&2
+    exit 68
+  fi
+  git checkout -b "$SYNC_BRANCH"
+  BRANCH_IS_OURS=true
+fi
 
 # Writes VERSION_NO_V into the first `version = "..."` line of a TOML file,
 # or the first `"version": "..."` entry of a JSON file, in place and without
@@ -220,14 +234,35 @@ if [[ -f VERSION || ${#SYNC_PATHS[@]} -eq 0 ]]; then
   SYNC_PATHS+=(VERSION)
 fi
 
-# CHANGELOG.md from main (authoritative), once the changelog machinery has
+# Every changelog from main (authoritative), once the changelog machinery has
 # produced one there; until then the version carriers are the only synced
 # artifacts.
-CHANGELOG_PATH="$(release_changelog)"
-if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
-  git checkout origin/main -- "$CHANGELOG_PATH"
-  SYNC_PATHS+=("$CHANGELOG_PATH")
-fi
+#
+# Every one, not just the released crate's: a workspace member releases on its
+# own tag line, so a release of one leaves the other's changelog on main ahead
+# of dev. The next release branch overlays dev's tree onto main, which would
+# carry that staler copy back and drop the section main already published.
+changelog_paths() {
+  local path
+  path="$(release_changelog)"
+  [[ -n "$path" ]] && printf '%s\n' "$path"
+  # Each member names its own under [package.metadata.changelog]; the same
+  # table generate-changelog.py reads, so the two cannot disagree.
+  if have_bin cargo && have_bin jaq && [[ -f Cargo.toml ]]; then
+    cargo metadata --format-version 1 --no-deps 2>/dev/null \
+      | jaq -r '.packages[] | .metadata.changelog.changelog // empty' 2>/dev/null
+  fi
+}
+
+while IFS= read -r CHANGELOG_PATH; do
+  [[ -n "$CHANGELOG_PATH" ]] || continue
+  # shellcheck disable=SC2076  # literal match against the accumulated list
+  [[ " ${SYNC_PATHS[*]} " == *" $CHANGELOG_PATH "* ]] && continue
+  if git cat-file -e "origin/main:$CHANGELOG_PATH" 2>/dev/null; then
+    git checkout origin/main -- "$CHANGELOG_PATH"
+    SYNC_PATHS+=("$CHANGELOG_PATH")
+  fi
+done < <(changelog_paths | sort -u)
 
 # --- Everything else the two branches disagree about ------------------------
 
@@ -334,8 +369,7 @@ done
 # already staged and leaves the worktree clean.
 if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]] && git diff --cached --quiet; then
   echo "no changes -- dev already in sync with $VERSION"
-  git switch dev
-  git branch -D "$SYNC_BRANCH"
+  restore_dev
   exit 0
 fi
 
@@ -344,8 +378,10 @@ printf '  %s\n' "${SYNC_PATHS[@]}"
 
 if [[ "$DRY_RUN" == true ]]; then
   echo "dry run -- no branch, commit, or PR created"
-  git switch dev
-  git branch -D "$SYNC_BRANCH"
+  # Discovery copied main's versions in to compare them, which stages as well
+  # as writes, so both have to come back for a dry run to leave no trace.
+  git restore --staged --worktree -- "${SYNC_PATHS[@]}" 2>/dev/null || true
+  restore_dev
   exit 0
 fi
 
