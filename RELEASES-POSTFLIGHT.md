@@ -14,12 +14,12 @@ the same go/no-go shape: every box is explicit, an unchecked or red item holds t
 scripts/release/postflight.sh all
 ```
 
-The script (`scripts/release/postflight.sh`) is a verbatim copy of the github-repo-setup skill's template and covers
-the automatable post-tag gates: `release.yml` end-to-end, homebrew-tap dispatch, `finalize-release.yml` callback,
-GitHub Release `make_latest` flip, crates.io publish verification, and the `main → dev` backport check.
+The script (`scripts/release/postflight.sh`) is a verbatim copy of the github-repo-setup skill's template and covers the
+automatable post-tag gates: `release.yml` end-to-end, homebrew-tap dispatch, `finalize-release.yml` callback, GitHub
+Release `make_latest` flip, crates.io publish verification, and the `main → dev` backport check.
 Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented but not driven from
-the script: running them on the local dev machine pollutes its toolchain and doesn't actually exercise the
-fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
+the script: running them on the local dev machine pollutes its toolchain and doesn't actually exercise the fresh-machine
+semantics. Drive those on a throwaway container or a sibling machine.
 
 `--env staging|prod` is optional and defaults to `prod`. xurl-rs is a single-env CLI, so every gate behaves identically
 and the flag can be ignored; the `surface-smoke` gate auto-SKIPs because no `scripts/release/surface-smoke.sh` is
@@ -39,16 +39,16 @@ Sub-commands let you re-run one verification in isolation:
 | `all`           | every above                                                                                                      | all of the above                          |
 
 The `tap` and `finalize` gates accept only downstream runs created at or after this tag's `release.yml` run, and SKIP
-until that run exists: the tap repo is shared across every CLI, so a name-only match would return another release's
-runs while this one is still queued.
+until that run exists: the tap repo is shared across every CLI, so a name-only match would return another release's runs
+while this one is still queued.
 
 Flags:
 
 - `--env staging|prod`: target environment (default: `prod`); ignored here
 - `--repo OWNER/REPO`: override the auto-detected nameWithOwner
 - `--tap-repo OWNER/REPO`: override the homebrew-tap repo (default: `brettdavies/homebrew-tap`)
-- `--tag vX.Y.Z`: override auto-detection (default: derived from the CLI crate's `crates/xurl-cli/Cargo.toml`
-  version, falls back to the newest `v*` tag)
+- `--tag vX.Y.Z`: override auto-detection (default: derived from the CLI crate's `crates/xurl-cli/Cargo.toml` version,
+  falls back to the newest `v*` tag)
 - `--crate NAME`: override the crate name for the `crates` gate (default: the CLI crate's `[package].name`)
 - `--staging-url URL` / `--prod-url URL`: surface-smoke URLs; unused here
 
@@ -86,19 +86,17 @@ Run immediately after the tag push triggers `release.yml`.
   binstall's asset-resolution rules. Drive on a clean container.
 - [ ] **Last-good identifier recorded.** Before the release goes live, note the three identifiers a rollback needs
   somewhere reachable under incident pressure: the previous crate version on crates.io (`cargo search xurl-rs`), the
-  previous GitHub Release tag (`gh api repos/brettdavies/xurl-rs/releases/latest --jq .tag_name`), and the formula
-  bump and bottle commits on `brettdavies/homebrew-tap` `main` (`git log -2 --format=%H -- Formula/xurl-rs.rb`).
-  Commands are in
-  [`RELEASES.md` § Rollback](./RELEASES.md#rollback).
+  previous GitHub Release tag (`gh api repos/brettdavies/xurl-rs/releases/latest --jq .tag_name`), and the formula bump
+  and bottle commits on `brettdavies/homebrew-tap` `main` (`git log -2 --format=%H -- Formula/xurl-rs.rb`). Commands are
+  in [`RELEASES.md` § Rollback](./RELEASES.md#rollback).
 - [ ] **Rollback path confirmed.** If this release is bad, roll back at the surface first (`cargo yank`, re-point
   `releases/latest`, revert the formula bump), then land a `fix` or `revert` through the normal `dev` to `release/*` to
   `main` flow so `main` reconverges with what is live.
 - [ ] **Sync `dev` with the release** via a **merged PR to `dev` carrying the released tag in its title.**
-  `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into `crates/xurl-cli/Cargo.toml`
-  and the crate's `Cargo.lock` entry, copies `CHANGELOG.md` from `main`, and opens the PR; merge it once CI is green.
-  Keeps the
-  next release's PREFLIGHT `diff-B` step quiet so a real missed change stands out instead of hiding in expected
-  divergence noise.
+  `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into
+  `crates/xurl-cli/Cargo.toml`, copies `CHANGELOG.md` from `main`, refreshes every workspace member's `Cargo.lock` entry
+  from the synced manifests, and opens the PR; merge it once CI is green. Keeps the next release's PREFLIGHT `diff-B`
+  step quiet so a real missed change stands out instead of hiding in expected divergence noise.
 
   The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it searches merged PRs
   to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either

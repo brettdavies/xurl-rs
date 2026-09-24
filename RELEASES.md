@@ -85,8 +85,7 @@ Breaking Changes` on a major, delete the rest when they do not apply.
 ## Versioning
 
 Both crates follow [SemVer 2.0.0](https://semver.org/). A release's version comes from its changelog: each merged PR's
-`## Changelog (<crate>)` sections classify its change, and the release takes the highest bump any of its PRs calls
-for.
+`## Changelog (<crate>)` sections classify its change, and the release takes the highest bump any of its PRs calls for.
 
 ### What the contract is
 
@@ -138,8 +137,8 @@ ships as `0.(y+1).0`, filed under `### Breaking changes` with its before/after s
 `crates/xdk/README.md`), and so does an MSRV bump. Anything additive or a fix ships as `0.y.(z+1)`. From `1.0.0` the
 library follows the three bumps above.
 
-The two tag lines stay independent. A library release moves the CLI's version only through an MSRV bump, or when the
-CLI adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml` moves.
+The two tag lines stay independent. A library release moves the CLI's version only through an MSRV bump, or when the CLI
+adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml` moves.
 
 ### The changelog section decides
 
@@ -148,10 +147,10 @@ CLI adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml`
 - `### Changed`, `### Fixed`, `### Documentation`: patch. `xdk-rs` before 1.0: the last number.
 
 `### Changed` holds a visible change outside the contract, or a change back to conformance with it. A change to the
-contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose bump
-its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before 1.0, wherever it is
-filed, because `rust-version` is shared by both crates. The section is checked when the PR is
-reviewed, and a maintainer-tooling PR carries no entry under either crate.
+contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose
+bump its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before 1.0, wherever
+it is filed, because `rust-version` is shared by both crates. The section is checked when the PR is reviewed, and a
+maintainer-tooling PR carries no entry under either crate.
 
 The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
 `completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
@@ -164,8 +163,8 @@ version.
 
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
 <tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
-template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `### Documentation`)
-and any other heading after them.
+template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `###
+Documentation`) and any other heading after them.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Versioning](./RELEASES-RATIONALE.md#versioning).
 
@@ -358,21 +357,20 @@ this repo, which idempotently flips `make_latest: true`.
 ### After publish: sync `dev` with the release
 
 Once `finalize-release.yml` has flipped the GitHub Release to `published`, bring the release bookkeeping
-(`crates/xurl-cli/Cargo.toml`, `Cargo.lock`, `crates/xurl-cli/CHANGELOG.md`, and whatever else the release branch
-edited that never
-round-tripped to `dev`) back to `dev` so the integration branch starts from the released baseline:
+(`crates/xurl-cli/Cargo.toml`, `Cargo.lock`, `crates/xurl-cli/CHANGELOG.md`, and whatever else the release branch edited
+that never round-tripped to `dev`) back to `dev` so the integration branch starts from the released baseline:
 
 ```bash
 scripts/sync-dev-after-release.sh v3.0.0
 ```
 
-The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `crates/xurl-cli/Cargo.toml`
-and the crate's `Cargo.lock` entry, copies the crate's `CHANGELOG.md` from `main`, and opens a PR against `dev` with
-the version in
-its title; merge it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge
-`main` into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge
-conflicts on every file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content
-(`CONCEPTS.md`, the engineering docs) is never part of the copy, so the sync cannot remove it.
+The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `crates/xurl-cli/Cargo.toml`,
+copies the crate's `CHANGELOG.md` from `main`, refreshes every workspace member's `Cargo.lock` entry from the synced
+manifests (refusing a lock that `cargo build --locked` rejects), and opens a PR against `dev` with the version in its
+title; merge it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge `main`
+into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge conflicts on
+every file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content (`CONCEPTS.md`, the
+engineering docs) is never part of the copy, so the sync cannot remove it.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 
@@ -421,14 +419,13 @@ its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check
 bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
 
 The repository root's `CHANGELOG.md` is prose routing to the two crate changelogs and carries no release history.
-`generate-changelog.py` refuses to write a file carrying its `changelog-router` marker and names `--crate` instead,
-so a run that forgets the flag stops rather than burying the router under a version section. It is the one changelog
-that is hand-written, and the only one markdownlint checks.
+`generate-changelog.py` refuses to write a file carrying its `changelog-router` marker and names `--crate` instead, so a
+run that forgets the flag stops rather than burying the router under a version section. It is the one changelog that is
+hand-written, and the only one markdownlint checks.
 
 Both crate changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev`
-since the
-previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on top of
-`main`, so it carries no per-PR history for git-cliff to read.
+since the previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on
+top of `main`, so it carries no per-PR history for git-cliff to read.
 
 ```bash
 # 1. On the release branch, bump the library and regenerate its changelog. The
@@ -560,14 +557,14 @@ drift the next regeneration overwrites.
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
 - `protect-main.json` (required signatures, linear history, squash-only merges via PR, creation/deletion blocked,
-  non-fast-forward blocked, and the required status checks the file lists: every check `dev` requires but one, plus
-  `ci / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth needs a minor section`,
-  because the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a
-  whole, from a cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
+  non-fast-forward blocked, and the required status checks the file lists: every check `dev` requires but one, plus `ci
+  / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth needs a minor section`, because
+  the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a whole, from a
+  cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
 - `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
-  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth
-  needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it.
-  PR-only norm is convention + `guard-release-branch` on the main side.
+  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth needs
+  a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it. PR-only norm
+  is convention + `guard-release-branch` on the main side.
 
 ### Applying changes
 

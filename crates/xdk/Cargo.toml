@@ -1,6 +1,6 @@
 [package]
 name = "xdk-rs"
-version = "0.1.1"
+version = "0.1.2"
 description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, bearer tokens, media upload, streaming. xdk is X's SDK name; this is an independent project, not affiliated with X Corp."
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]

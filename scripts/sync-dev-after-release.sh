@@ -6,9 +6,10 @@
 # this repo's PR-only convention: direct commits to dev are not permitted).
 #   - Version carriers, each updated in place when present: the release
 #     package's Cargo.toml (the workspace member that builds the binary when
-#     the root manifest is virtual, `RELEASE_MANIFEST`; the root otherwise)
-#     and the crate's own entry in Cargo.lock, package.json, pyproject.toml,
-#     VERSION (plain text, no leading "v").
+#     the root manifest is virtual, `RELEASE_MANIFEST`; the root otherwise),
+#     package.json, pyproject.toml, VERSION (plain text, no leading "v").
+#   - Cargo.lock, whose workspace-member entries are refreshed from the synced
+#     manifests once every other path is in, and checked with `--locked`.
 #   - CHANGELOG.md, copied verbatim from origin/main when main carries one.
 #     Main is fully authoritative for CHANGELOG; dev never edits it directly.
 #   - Every other path main and dev disagree about, discovered rather than
@@ -97,10 +98,10 @@ VERSION_NO_V="${VERSION#v}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# `RELEASE_MANIFEST`, `release_manifest`, and `project_crate` answer which
-# manifest a `vX.Y.Z` tag names. Preflight and postflight read them from here,
-# so this script reads the same definitions rather than keeping a second copy
-# that can drift when the binary crate moves.
+# `RELEASE_MANIFEST` and `release_manifest` answer which manifest a `vX.Y.Z`
+# tag names. Preflight and postflight read them from here, so this script reads
+# the same definitions rather than keeping a second copy that can drift when
+# the binary crate moves.
 # shellcheck disable=SC1091  # sibling release lib, always vendored alongside
 . scripts/release/_lib.sh
 
@@ -165,6 +166,14 @@ restore_dev() {
   return 0
 }
 
+# Discovery copies main's versions in to compare them, which stages as well as
+# writes, so both have to come back for an exit before the commit to leave no
+# trace.
+discard_sync() {
+  git restore --staged --worktree -- "${SYNC_PATHS[@]}" 2>/dev/null || true
+  restore_dev
+}
+
 # A dry run creates no branch, so an existing one is no reason to refuse: the
 # question it answers, what this release would carry back, is exactly the one
 # asked while a prior attempt is still open.
@@ -195,29 +204,14 @@ set_version_line() {
   mv "$tmp" "$file"
 }
 
-# Cargo.lock carries the crate's own version too; a stale entry fails
-# `cargo build --locked`. Update it for the crate the release manifest names.
-set_cargo_lock_version() {
-  local crate tmp
-  crate="$(project_crate)"
-  [[ -n "$crate" && -f Cargo.lock ]] || return 0
-  tmp="$(mktemp)"
-  awk -v crate="$crate" -v v="$VERSION_NO_V" '
-    /^name = "/ { current = $0 }
-    /^version = "/ && current == "name = \"" crate "\"" { sub(/^version = "[^"]*"/, "version = \"" v "\""); current = "" }
-    { print }
-  ' Cargo.lock >"$tmp"
-  mv "$tmp" Cargo.lock
-}
-
 # Every version carrier present gets the released number; the release commit
-# on main bumped each of them.
+# on main bumped each of them. Cargo.lock is listed here so discovery below
+# never copies main's, but it is written only once every manifest is synced.
 SYNC_PATHS=()
 if [[ -f Cargo.toml ]]; then
   set_version_line "$(release_manifest)"
   SYNC_PATHS+=("$(release_manifest)")
   if [[ -f Cargo.lock ]]; then
-    set_cargo_lock_version
     SYNC_PATHS+=(Cargo.lock)
   fi
 fi
@@ -361,6 +355,26 @@ for path in ${DISCOVERED[@]+"${DISCOVERED[@]}"}; do
   SYNC_PATHS+=("$path")
 done
 
+# Cargo.lock records every workspace member's version, and a release can move
+# more than the binary's: a library bump beside it arrives through discovery
+# as another member's manifest. Refresh the members' entries from the synced
+# manifests rather than copying main's lock, which would revert dependency
+# updates dev merged after the release, and refuse to commit a lock that
+# `cargo build --locked` rejects.
+if [[ -f Cargo.lock ]]; then
+  if ! have_bin cargo; then
+    echo "error: cargo not on PATH -- Cargo.lock cannot be synced to the manifests; nothing was committed" >&2
+    discard_sync
+    exit 69
+  fi
+  if ! cargo update --workspace --offline --quiet \
+    || ! cargo metadata --locked --offline --format-version 1 >/dev/null; then
+    echo "error: Cargo.lock does not resolve against the synced manifests; nothing was committed" >&2
+    discard_sync
+    exit 70
+  fi
+fi
+
 # `git checkout origin/main -- FILE` stages the file, so `git diff --quiet`
 # (worktree against index) never sees that change and would report "no
 # changes" with a differing CHANGELOG. `status --porcelain` sees staged,
@@ -378,10 +392,7 @@ printf '  %s\n' "${SYNC_PATHS[@]}"
 
 if [[ "$DRY_RUN" == true ]]; then
   echo "dry run -- no branch, commit, or PR created"
-  # Discovery copied main's versions in to compare them, which stages as well
-  # as writes, so both have to come back for a dry run to leave no trace.
-  git restore --staged --worktree -- "${SYNC_PATHS[@]}" 2>/dev/null || true
-  restore_dev
+  discard_sync
   exit 0
 fi
 
