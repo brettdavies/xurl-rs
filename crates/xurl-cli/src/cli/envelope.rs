@@ -81,7 +81,9 @@ pub struct ErrorBody {
     /// `unsupported-pagination`, and the verb-local `invalid-json`,
     /// `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,
     /// `destination-not-empty`, `destination-is-file`, `git-not-found`,
-    /// `git-clone-failed`, `not-installed`, and `remove-failed`.
+    /// `git-clone-failed`, `not-installed`, and `remove-failed`. The set is
+    /// closed, and a newer release can add to it: treat a value you do not
+    /// recognize as your default branch.
     pub reason: String,
     /// Structured exit code per the sysexits-inspired matrix in
     /// `xurl::error`.
@@ -93,9 +95,11 @@ pub struct ErrorBody {
     /// What the caller should do next, when a recovery step exists.
     ///
     /// `action` is closed: `register-app`, `sign-in`, `select-app`,
-    /// `inspect-store`, `enroll-app`, `show-help`. A step carries either a
-    /// `command`, runnable verbatim by a non-TTY caller, or a `template` whose
-    /// angle-bracket placeholders only the caller can fill, never both.
+    /// `inspect-store`, `enroll-app`, `show-help`. A newer release can add an
+    /// action, so treat one you do not recognize as your default branch. A
+    /// step carries either a `command`, runnable verbatim by a non-TTY caller,
+    /// or a `template` whose angle-bracket placeholders only the caller can
+    /// fill, never both.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
