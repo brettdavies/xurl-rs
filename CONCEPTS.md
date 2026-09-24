@@ -134,3 +134,18 @@ the Public API gate reclassifies it instead of refusing the release.
 The record names the item it covers and is scoped to one release: once that release moves the baseline past the change,
 the record matches nothing and has to be removed, or it understates the next break of the same kind. Recording a break
 is not silencing it. The gate still names the item and still refuses any release below the recorded level.
+
+## Release flow
+
+### Backport
+
+The pull request that carries a release's bookkeeping from `main` back to the integration branch once the release has
+published: version numbers, the lockfile's workspace-member versions, each crate's new changelog section, and any other
+file the release branch edited. It lets the next release start from the released baseline instead of reverting what
+the last one shipped.
+
+A backport is always a pull request, never a merge of `main` into the integration branch or a direct push. It adopts a
+file from `main` on its own only when the integration branch has not touched it since the previous release (a
+release-prep path); a file both branches changed (a contested path) is reported and taken only when named. The lockfile
+is refreshed from the synced manifests rather than copied from `main`, because `main`'s copy would undo dependency
+updates the integration branch merged after the release.
