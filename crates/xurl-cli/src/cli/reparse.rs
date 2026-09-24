@@ -93,8 +93,9 @@ pub(crate) fn raw_choice(args: &[OsString]) -> bool {
 /// The output format for a parse-error rendering: a format named anywhere in
 /// argv, then the `--jsonl` and `--json` aliases as clap resolved them (their
 /// `XURL_JSONL` and `XURL_JSON` bindings included), then `output`, the
-/// caller's `XURL_OUTPUT`. The aliases outrank `XURL_OUTPUT` here as they do
-/// after a successful parse.
+/// caller's `XURL_OUTPUT`. A successful parse never holds an alias beside
+/// `--output`, because clap rejects the pair; ranking the alias first renders
+/// that rejection in the format the alias names.
 pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
     structured_intent(args)
         .or_else(|| {
