@@ -565,6 +565,125 @@ fn the_color_env_var_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Raw on the parse-error path
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// `--raw` compacts every envelope a clap failure hands the runner, wherever
+/// the flag sits in argv, as it does for an error raised after the parse;
+/// `--raw=false` in its place keeps the pretty form.
+#[rstest::rstest]
+#[case::nested_unknown_command(&["xr", "--output", "json", "--raw", "auth", "zzz"])]
+#[case::flag_after_the_word(&["xr", "auth", "zzz", "--output", "json", "--raw"])]
+#[case::help_flag_path(&["xr", "--output", "json", "--raw", "webhooks", "--help"])]
+#[case::missing_argument(&["xr", "--output", "json", "--raw", "post"])]
+#[case::unknown_flag(&["xr", "--output", "json", "--raw", "--bogus-flag"])]
+#[case::explicit_value(&["xr", "--output", "json", "--raw=yes", "auth", "zzz"])]
+#[case::explicit_value_any_case(&["xr", "--output", "json", "--raw=TRUE", "auth", "zzz"])]
+#[tokio::test]
+async fn raw_compacts_the_parse_error_envelope(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert_eq!(
+        stderr.trim_end().lines().count(),
+        1,
+        "args {args:?}; stderr: {stderr}"
+    );
+    envelope(&stderr, "json");
+
+    let undone: Vec<&str> = args
+        .iter()
+        .map(|a| {
+            if a.starts_with("--raw") {
+                "--raw=false"
+            } else {
+                a
+            }
+        })
+        .collect();
+    let (code, _stdout, stderr) = run_isolated(&undone).await;
+    assert_eq!(code, 2, "args {undone:?}; stderr: {stderr}");
+    assert!(
+        stderr.trim_end().lines().count() > 1,
+        "args {undone:?}; stderr: {stderr}"
+    );
+}
+
+/// A `--raw` value reads the way clap reads it after a successful parse: an
+/// empty value and the false literals, in any case, mean false.
+#[rstest::rstest]
+#[case::empty("--raw=")]
+#[case::zero("--raw=0")]
+#[case::off_any_case("--raw=OFF")]
+#[case::no("--raw=no")]
+#[tokio::test]
+async fn a_false_raw_value_keeps_the_parse_error_envelope_pretty(#[case] flag: &str) {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", flag, "auth", "zzz"]).await;
+    assert_eq!(code, 2, "{flag}; stderr: {stderr}");
+    assert!(
+        stderr.trim_end().lines().count() > 1,
+        "{flag}; stderr: {stderr}"
+    );
+    envelope(&stderr, "json");
+}
+
+/// `--raw` strips color from the text rendering even when `--color always`
+/// asks for it, as the flag's help promises.
+#[rstest::rstest]
+#[case::clap_rejection(&["xr", "--color", "always", "--raw", "auth", "zzz"])]
+#[case::clap_text(&["xr", "--color", "always", "--bogus-flag", "--raw"])]
+#[tokio::test]
+async fn raw_strips_color_from_the_parse_error_text(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(
+        stderr.starts_with("Error: "),
+        "args {args:?}; stderr: {stderr:?}"
+    );
+    assert!(
+        !stderr.contains('\u{1b}'),
+        "args {args:?}; stderr: {stderr:?}"
+    );
+}
+
+/// `XURL_RAW` reaches the parse-error path through clap's `env` binding,
+/// which reads the process rather than the injected overrides.
+#[test]
+fn the_raw_env_var_reaches_the_parse_error_rendering() {
+    let output = common::xr()
+        .env("XURL_RAW", "true")
+        .env("XURL_OUTPUT", "json")
+        .args(["auth", "zzz"])
+        .output()
+        .expect("spawn xr");
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(stderr.trim_end().lines().count(), 1, "stderr: {stderr}");
+    envelope(&stderr, "json");
+}
+
+/// `XURL_JSON` and `XURL_JSONL` pick the envelope for a failure clap raises
+/// under a subcommand, as they do for one at the root.
+#[rstest::rstest]
+#[case::json("XURL_JSON", "json")]
+#[case::jsonl("XURL_JSONL", "jsonl")]
+fn the_json_alias_env_vars_reach_the_parse_error_rendering(
+    #[case] var: &str,
+    #[case] format: &str,
+) {
+    let output = common::xr()
+        .env(var, "true")
+        .args(["auth", "zzz"])
+        .output()
+        .expect("spawn xr");
+    assert_eq!(output.status.code(), Some(2), "{var}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v = envelope(&stderr, format);
+    assert_eq!(v["reason"], "unknown-command", "{var}: {stderr}");
+    assert_eq!(v["command"], "zzz", "{var}: {stderr}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Every format, from either source
 // ═══════════════════════════════════════════════════════════════════════════
 

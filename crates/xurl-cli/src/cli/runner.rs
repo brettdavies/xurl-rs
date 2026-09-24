@@ -30,13 +30,15 @@ use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
-    structured_intent, suggestion_for_rejected,
+    suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
-use crate::cli::reparse::{color_choice, failing_command, parse_without_display_flags};
+use crate::cli::reparse::{
+    color_choice, failing_command, output_intent, parse_without_display_flags, raw_choice,
+};
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
@@ -384,7 +386,7 @@ fn render_parse_error(
         return EXIT_SUCCESS;
     }
 
-    let intent = structured_intent(args, overrides.output.as_deref());
+    let intent = output_intent(args, overrides.output.as_deref());
     // Quiet and verbose are unparsed here, and neither changes an error
     // envelope, so the provisional config leaves both off.
     let out = OutputConfig::new_with_no_color(
@@ -392,7 +394,7 @@ fn render_parse_error(
         false,
         false,
         color_choice(args),
-        false,
+        raw_choice(args),
         overrides.no_color,
     );
 
