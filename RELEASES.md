@@ -154,9 +154,9 @@ filed, because `rust-version` is shared by both crates. The section is checked w
 reviewed, and a maintainer-tooling PR carries no entry under either crate.
 
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
-<tag> --dry-run` and set the version from the highest section present. The script emits `### Breaking changes`,
-`### Added`, `### Changed`, `### Fixed`, and `### Documentation` in that order and any other heading after them, so
-`### Deprecated` renders last.
+<tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
+template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `### Documentation`)
+and any other heading after them.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Versioning](./RELEASES-RATIONALE.md#versioning).
 
