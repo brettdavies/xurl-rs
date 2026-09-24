@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.1] - 2026-09-24
+
+### Changed
+
+- Change the vendored X API spec to the 2026-09-24 upstream content of 2.168, which adds an optional `expires_at` to activity subscriptions; shortcut behavior is unchanged. by @brettdavies in [#219](https://github.com/brettdavies/xurl-rs/pull/219)
+
+**Full Changelog**: [v4.1.0...v4.1.1](https://github.com/brettdavies/xurl-rs/compare/v4.1.0...v4.1.1)
+
 ## [4.1.0] - 2026-09-24
 
 ### Added
