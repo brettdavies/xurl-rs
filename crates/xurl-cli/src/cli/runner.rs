@@ -29,8 +29,8 @@ use clap::{Arg, ArgAction, CommandFactory, FromArgMatches, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
-    Classified, classify, context_string, nearest_command, structured_intent,
-    suggestion_for_rejected,
+    Classified, classify, context_string, help_command_precedes, nearest_command,
+    structured_intent, suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
@@ -337,8 +337,11 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
 /// Help and version go to stdout at exit 0, except a help flag on a word that
 /// names no command, which renders as that word does without the flag. An
 /// unrecognized subcommand takes the unknown-command rendering, carrying
-/// clap's own suggestion where clap scored one. Every other kind keeps clap's
-/// text, or the `invalid-args` envelope under structured intent.
+/// clap's own suggestion where clap scored one. A flag spelling where clap
+/// wanted a command is an unexpected argument instead, except `-h` or
+/// `--help` given to the `help` command, which prints that command's page.
+/// Every other kind keeps clap's text, or the `invalid-args` envelope under
+/// structured intent.
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
@@ -372,7 +375,7 @@ fn render_parse_error(
     // Quiet and verbose are unparsed here, and neither changes an error
     // envelope, so the provisional config leaves both off.
     let out = OutputConfig::new_with_no_color(
-        intent.clone().unwrap_or(OutputFormat::Text),
+        intent.unwrap_or(OutputFormat::Text),
         false,
         false,
         ColorChoice::Auto,
@@ -388,11 +391,29 @@ fn render_parse_error(
     if error.kind() == ErrorKind::InvalidSubcommand
         && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
     {
-        let suggestion = suggestion_for_rejected(error, args, &word);
-        return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+        if !word.starts_with('-') {
+            let suggestion = suggestion_for_rejected(error, args, &word);
+            return render_unknown_command(&word, suggestion.as_deref(), &out, stderr);
+        }
+        if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
+            let _ = write!(stdout, "{}", help_command_page(args));
+            return EXIT_SUCCESS;
+        }
+        let unexpected = Cli::command().error(
+            ErrorKind::UnknownArgument,
+            format!("unexpected argument '{word}' found"),
+        );
+        return render_invalid_args(&unexpected, &out, stderr);
     }
 
-    if intent.is_some() {
+    render_invalid_args(error, &out, stderr)
+}
+
+/// clap's own text for a parse failure, or the `invalid-args` envelope under
+/// structured intent.
+fn render_invalid_args(error: &clap::Error, out: &OutputConfig, stderr: &mut dyn Write) -> i32 {
+    let rendered = error.to_string();
+    if out.format.is_structured() {
         out.print_error_envelope(
             stderr,
             "invalid-args",
@@ -403,6 +424,19 @@ fn render_parse_error(
         let _ = write!(stderr, "{rendered}");
     }
     EXIT_USAGE_ERROR
+}
+
+/// The `help` command's own page. clap renders it through `xr help help`, so
+/// the page matches that invocation byte for byte.
+fn help_command_page(args: &[OsString]) -> String {
+    let bin = args
+        .first()
+        .cloned()
+        .unwrap_or_else(|| OsString::from("xr"));
+    Cli::try_parse_from([bin, "help".into(), "help".into()])
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_default()
 }
 
 /// Parses `args` as if the root help flag were absent, so the invocation it

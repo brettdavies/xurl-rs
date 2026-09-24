@@ -237,6 +237,58 @@ async fn a_verb_near_nothing_gets_no_suggestion() {
     assert_unknown_command(&stderr, "json", "whoam", None);
 }
 
+/// Asked for its own help, the `help` command prints its page, as
+/// `xr help help` does.
+#[rstest::rstest]
+#[case::long(&["xr", "help", "--help"])]
+#[case::short(&["xr", "help", "-h"])]
+#[case::after_a_command(&["xr", "help", "whoami", "--help"])]
+#[tokio::test]
+async fn the_help_command_asked_for_help_prints_its_own_page(#[case] args: &[&str]) {
+    let (_, page, _) = run_isolated(&["xr", "help", "help"]).await;
+    assert!(page.contains("Usage: xr help"), "the page itself: {page}");
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 0, "args {args:?}; stderr: {stderr}");
+    assert_eq!(stdout, page, "args {args:?}");
+    assert!(stderr.is_empty(), "args {args:?}; stderr: {stderr}");
+}
+
+/// A flag spelling where clap wanted a command is an unexpected argument:
+/// never an unknown command, and never a suggestion to run `help`.
+#[rstest::rstest]
+#[case::long_after_the_separator(&["--", "webhooks", "--help"], "--help")]
+#[case::short_after_the_separator(&["--", "webhooks", "-h"], "-h")]
+#[case::any_flag_after_the_separator(&["--", "webhooks", "--frob"], "--frob")]
+#[case::any_flag_under_help(&["help", "--frob"], "--frob")]
+#[tokio::test]
+async fn a_flag_where_a_command_goes_is_an_unexpected_argument(
+    #[case] rest: &[&str],
+    #[case] flag: &str,
+) {
+    let mut args = vec!["xr"];
+    args.extend(rest);
+    let (code, stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    let text = plain(&stderr);
+    assert!(
+        text.contains(&format!("unexpected argument '{flag}' found")),
+        "args {args:?}; stderr: {stderr}"
+    );
+    assert!(
+        !text.contains("command") && !text.contains("'help'"),
+        "args {args:?} names no command; stderr: {stderr}"
+    );
+
+    let mut json = vec!["xr", "--output", "json"];
+    json.extend(rest);
+    let (code, _stdout, stderr) = run_isolated(&json).await;
+    assert_eq!(code, 2, "args {json:?}; stderr: {stderr}");
+    let v = envelope(&stderr, "json");
+    assert_eq!(v["reason"], "invalid-args", "args {json:?}; got: {v}");
+    assert!(v.get("command").is_none(), "args {json:?}; got: {v}");
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // What stays a raw request
 // ═══════════════════════════════════════════════════════════════════════════
