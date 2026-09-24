@@ -559,10 +559,10 @@ drift the next regeneration overwrites.
 
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
-- `protect-main.json` (required signatures, linear history, squash-only merges via PR, required status checks (`ci /
-  Fmt, clippy, test`, `ci / Package check`, `ci / Security audit (advisories)`, `ci / Security audit (bans licenses
-  sources)`, `ci / Changelog`, `guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`,
-  `guard-release / check-release-branch-name`), creation/deletion blocked, non-fast-forward blocked).
+- `protect-main.json` (required signatures, linear history, squash-only merges via PR, creation/deletion blocked,
+  non-fast-forward blocked, and the required status checks the file lists: CI jobs from the reusable workflow and
+  from this repository, plus the three `guard-*` checks). `Surface growth needs a minor section` is not among them,
+  because the `Changelog bump` workflow does not run on release PRs.
 - `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
   the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, and `Surface growth
   needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after changing it.
