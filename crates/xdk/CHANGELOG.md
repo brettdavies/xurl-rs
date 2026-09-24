@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-09-24
+
+### Changed
+
+- Change the vendored X API spec to the 2026-09-24 upstream content of 2.168, which adds an optional `expires_at` to activity subscriptions: an RFC 3339 expiration on the create request, and the subscription's expiration time in the create, list, and update responses. `API_SPEC_SHA256` and `API_SPEC_DATE` follow; no typed response or shortcut changes. by @brettdavies in [#219](https://github.com/brettdavies/xurl-rs/pull/219)
+
+**Full Changelog**: [xdk-rs-v0.1.1...xdk-rs-v0.1.2](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.1.1...xdk-rs-v0.1.2)
+
 ## [0.1.1] - 2026-09-24
 
 ### Added
