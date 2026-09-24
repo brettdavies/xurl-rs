@@ -153,6 +153,14 @@ its section does not decide: it sets a minor for `xr` and the breaking position 
 filed, because `rust-version` is shared by both crates. The section is checked when the PR is
 reviewed, and a maintainer-tooling PR carries no entry under either crate.
 
+The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
+`completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
+the `## Changelog (xurl-rs)` block has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`. It
+reads the block with the changelog generator's own parser and re-runs when the PR body is edited. A removal only
+warns, because a change back to the documented contract is a patch. Env vars, exit codes, and the store format have no
+generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked: before 1.0, an addition
+and a change are both patches there.
+
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
 <tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
 template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `### Documentation`)

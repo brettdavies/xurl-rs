@@ -161,7 +161,10 @@ major/minor/patch component is the same". A dependent on `^0.1.0` therefore take
 
 The person who wrote the change classifies it once, when the PR is reviewed, and the release reads that classification
 instead of re-deriving it from commit subjects. Two gates catch a mis-filed break: `cargo semver-checks` for the
-library's API, and the preflight's command-surface and `xr schema` diffs against the last tag for the CLI.
+library's API, and the preflight's command-surface and `xr schema` diffs against the last tag for the CLI. An addition
+filed under a patch section is the mistake review misses most easily, because nothing in the diff reads as wrong. So
+the `Changelog bump` check compares each PR's generated surface against its base and fails the PR while the section
+is still cheap to fix, instead of leaving the question to whoever cuts the release.
 
 ## Triple-diff verification
 

@@ -42,7 +42,9 @@
      major. Added or Deprecated: minor. Changed, Fixed, Documentation: patch.
      A change to the contract (a command, flag, env var, exit code, or a
      structured-output field, reason, or action) never goes under Changed.
-     An MSRV bump sets a minor wherever it is filed.
+     An MSRV bump sets a minor wherever it is filed. The Changelog bump
+     check fails a PR whose xr commands, flags, or schemas grow while this
+     block has no bullet under Added, Deprecated, or Breaking changes.
 
      RULES:
 - 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
