@@ -43,8 +43,8 @@ Pipeline:
     1. git-cliff emits a versioned section from commits since the last tag
        (prepended onto CHANGELOG.md, or created if missing).
     2. PR numbers in that section are fetched from GitHub; each PR body's
-       ## Changelog section is parsed for ### Added / ### Changed / ### Fixed /
-       ### Documentation bullets.
+       ## Changelog section is parsed for ### Breaking changes / ### Added /
+       ### Changed / ### Deprecated / ### Fixed / ### Documentation bullets.
     3. The version section in CHANGELOG.md is rewritten with the aggregated,
        attributed bullets and a Full Changelog compare link.
 
@@ -70,7 +70,7 @@ from pathlib import Path
 # Emitted in this order; any other `###` heading a PR body uses follows them.
 # "Breaking changes" is also the git-cliff group for `type!:` commits in
 # cliff.toml, so the skeleton and the PR-body pass agree on the label.
-CATEGORIES = ["Breaking changes", "Added", "Changed", "Fixed", "Documentation"]
+CATEGORIES = ["Breaking changes", "Added", "Changed", "Deprecated", "Fixed", "Documentation"]
 SKIPPED_TITLE_RE = re.compile(r"^(chore|ci|build|style|test)(\([^)]*\))?!?:")
 
 
