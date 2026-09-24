@@ -82,8 +82,9 @@
 ## Changelog (xdk-rs)
 
 <!-- The library's changelog. Same rules as above, for `xdk-rs` API consumers.
-     While xdk-rs is 0.x, Breaking changes sets a minor, and every other
-     section sets a patch.
+     While xdk-rs is 0.x, Breaking changes moves the middle number (0.1.x to
+     0.2.0) and every other section moves the last (0.1.0 to 0.1.1), which
+     Cargo reads as the compatible position of a 0.x crate.
 
      BREAKING ENTRIES CARRY A BEFORE/AFTER SNIPPET. crates/xdk/README.md makes
      this a release gate: a release that breaks something and ships no snippet

@@ -19,7 +19,8 @@
 # change back to the documented contract as a patch, and the release preflight
 # diffs every removal against the last tag. Env vars, exit codes, and the store
 # format have no generated artifact and are not compared. The `xdk-rs` block is
-# not read, because before 1.0 an addition and a change are both patches there.
+# not read, because before 1.0 an addition and a change both move the library's
+# last number, so filing one as the other cannot change its version.
 #
 # Usage:
 #   check-surface-bump.sh surface <tree>
