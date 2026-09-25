@@ -55,8 +55,9 @@ pub fn xr_bin() -> &'static str {
     env!("CARGO_BIN_EXE_xr")
 }
 
-/// Strips every variable `xr` reads from the inherited environment, then
-/// points the child at `store`, so a test sees only what it sets itself.
+/// Strips every variable `xr` reads from the inherited environment except
+/// `HOME` and the XDG base-directory variables, which stay as the machine set
+/// them, then points the child at `store`.
 fn hermetic<C: EnvBuilder>(cmd: &mut C, store: &Path) {
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("XURL_") {

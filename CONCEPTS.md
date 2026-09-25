@@ -77,9 +77,9 @@ apps, and every write to it is refused, so a damaged store is reported rather th
 ### Spawn seam
 
 The single door through which the test suite runs the built binary. It strips every variable the binary reads from the
-inherited environment, including other tools' config-directory variables, leaving the home directory alone, and points
-the token store at a path the child cannot write, unless the test supplies its own temporary store, so a spawn that
-never asked for a store fails loudly rather than reaching a shared or real file.
+inherited environment, including other tools' config-directory variables, leaving the home directory and the XDG base
+directories alone, and points the token store at a path the child cannot write, unless the test supplies its own
+temporary store, so a spawn that never asked for a store fails loudly rather than reaching a shared or real file.
 
 ### Store isolation guard
 

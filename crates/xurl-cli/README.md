@@ -277,8 +277,10 @@ xr skill update --all                          # Refresh every install in place
 canonical skills directory, so the command surface, the auth paths, and the error contract are discoverable without a
 prompt. Hosts: `claude_code`, `codex`, `cursor`, `factory`, `kiro`, `opencode`. `xr skill update --all` refreshes every
 install in place, and both verbs take `--dry-run`. A host's destination follows that host's own config-directory
-variable when it is set (for example `CLAUDE_CONFIG_DIR`; `xr --help` lists them all); otherwise it sits under `~`,
-which `XURL_SKILL_HOME` replaces.
+variable when it is set (for example `CLAUDE_CONFIG_DIR`; `xr --help` lists them all); otherwise it sits under
+`XURL_SKILL_HOME` when that is set, and under `~` when it is not, where a base-directory variable the host follows (such
+as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's destination is `~/.agents/skills/xurl-rs`;
+`xr skill update codex` also removes a copy at `~/.codex/skills/xurl-rs`, a deprecated location Codex still reads.
 
 ### Response Schema Discovery
 

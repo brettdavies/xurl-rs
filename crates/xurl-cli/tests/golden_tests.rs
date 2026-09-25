@@ -13,8 +13,8 @@
 //! the schema gains a reason that is neither captured nor listed.
 //!
 //! Three values vary between runs and are replaced by placeholders before
-//! the comparison: the mock server origin, the scratch home directory, and
-//! the crate version. Everything else must match byte for byte.
+//! the comparison: the mock server origin, the scratch skill home, and the
+//! crate version. Everything else must match byte for byte.
 //!
 //! Every case points `API_BASE_URL` at the mock server, so a trigger that
 //! regresses into sending a request can never reach the live API.
@@ -37,7 +37,7 @@ use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 const BASE_URL_PLACEHOLDER: &str = "{{API_BASE_URL}}";
-const HOME_PLACEHOLDER: &str = "{{HOME}}";
+const SKILL_HOME_PLACEHOLDER: &str = "{{SKILL_HOME}}";
 /// Stands in for the run's scratch directory inside an `env:` value.
 const SCRATCH_PLACEHOLDER: &str = "{{SCRATCH}}";
 const VERSION_PLACEHOLDER: &str = "{{CRATE_VERSION}}";
@@ -95,8 +95,9 @@ struct Case {
     args: Vec<String>,
     env: Vec<(&'static str, String)>,
     unset_home: bool,
-    /// A scratch directory to present as `HOME`; substituted on output.
-    home: Option<PathBuf>,
+    /// A scratch directory to present as `XURL_SKILL_HOME`; substituted on
+    /// output.
+    skill_home: Option<PathBuf>,
     stdin: Option<&'static str>,
     /// Working directory for the spawn, so a file argument can stay relative.
     cwd: Option<PathBuf>,
@@ -269,9 +270,9 @@ impl Scratch {
         (dir, NAME)
     }
 
-    /// A home whose skill destination is a plain file, so removing the
+    /// A skill home whose destination is a plain file, so removing the
     /// directory that should be there fails.
-    fn home_with_blocked_skill_dir(&self) -> PathBuf {
+    fn skill_home_with_blocked_skill_dir(&self) -> PathBuf {
         let home = self.dir.path().join("home-remove-failed");
         let skills = home.join(".claude").join("skills");
         std::fs::create_dir_all(&skills).expect("skills dir");
@@ -279,9 +280,9 @@ impl Scratch {
         home
     }
 
-    /// A home whose skill destination already holds a file, so an install
+    /// A skill home whose destination already holds a file, so an install
     /// refuses to clone over it.
-    fn home_with_populated_skill_dir(&self) -> PathBuf {
+    fn skill_home_with_populated_skill_dir(&self) -> PathBuf {
         let home = self.dir.path().join("home-populated");
         let dest = home.join(".claude").join("skills").join("xurl-rs");
         std::fs::create_dir_all(&dest).expect("skill dir");
@@ -289,8 +290,8 @@ impl Scratch {
         home
     }
 
-    /// An empty home: nothing installed, nothing in the way.
-    fn empty_home(&self) -> PathBuf {
+    /// An empty skill home: nothing installed, nothing in the way.
+    fn empty_skill_home(&self) -> PathBuf {
         let home = self.dir.path().join("home-empty");
         std::fs::create_dir_all(&home).expect("home dir");
         home
@@ -487,28 +488,28 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            home: Some(scratch.home_with_blocked_skill_dir()),
+            skill_home: Some(scratch.skill_home_with_blocked_skill_dir()),
             ..reason_case(
                 "remove-failed",
                 &["--output", "json", "skill", "update", "claude_code"],
             )
         },
         Case {
-            home: Some(scratch.home_with_populated_skill_dir()),
+            skill_home: Some(scratch.skill_home_with_populated_skill_dir()),
             ..reason_case(
                 "destination-not-empty",
                 &["--output", "json", "skill", "install", "claude_code"],
             )
         },
         Case {
-            home: Some(scratch.home_with_blocked_skill_dir()),
+            skill_home: Some(scratch.skill_home_with_blocked_skill_dir()),
             ..reason_case(
                 "destination-is-file",
                 &["--output", "json", "skill", "install", "claude_code"],
             )
         },
         Case {
-            home: Some(scratch.empty_home()),
+            skill_home: Some(scratch.empty_skill_home()),
             env: vec![("PATH", scratch.path_without_git())],
             ..reason_case(
                 "git-not-found",
@@ -516,7 +517,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            home: Some(scratch.empty_home()),
+            skill_home: Some(scratch.empty_skill_home()),
             env: vec![("PATH", scratch.path_with_refusing_git())],
             ..reason_case(
                 "git-clone-failed",
@@ -524,7 +525,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            home: Some(scratch.empty_home()),
+            skill_home: Some(scratch.empty_skill_home()),
             ..reason_case(
                 "not-installed",
                 &["--output", "json", "skill", "update", "--all"],
@@ -682,8 +683,8 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     if case.unset_home {
         cmd.env_remove("HOME");
     }
-    if let Some(home) = &case.home {
-        cmd.env("HOME", home);
+    if let Some(skill_home) = &case.skill_home {
+        cmd.env("XURL_SKILL_HOME", skill_home);
     }
     if let Some(cwd) = &case.cwd {
         cmd.current_dir(cwd);
@@ -707,8 +708,11 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     let substitute = |bytes: Vec<u8>| {
         let mut text = String::from_utf8(bytes).expect("xr output is utf-8");
         text = text.replace(&api.uri, BASE_URL_PLACEHOLDER);
-        if let Some(home) = &case.home {
-            text = text.replace(home.to_str().expect("utf-8 path"), HOME_PLACEHOLDER);
+        if let Some(skill_home) = &case.skill_home {
+            text = text.replace(
+                skill_home.to_str().expect("utf-8 path"),
+                SKILL_HOME_PLACEHOLDER,
+            );
         }
         text.replace(env!("CARGO_PKG_VERSION"), VERSION_PLACEHOLDER)
     };
@@ -748,8 +752,8 @@ fn render_fixture(case: &Case, captured: &Captured) -> Vec<u8> {
     if case.unset_home {
         let _ = writeln!(out, "env: -HOME");
     }
-    if case.home.is_some() {
-        let _ = writeln!(out, "env: HOME={HOME_PLACEHOLDER}");
+    if case.skill_home.is_some() {
+        let _ = writeln!(out, "env: XURL_SKILL_HOME={SKILL_HOME_PLACEHOLDER}");
     }
     let _ = writeln!(out, "store: {}", store_label(case.store));
     if let Some(input) = case.stdin {
