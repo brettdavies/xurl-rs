@@ -132,7 +132,7 @@ where
 /// doing, calls this.
 ///
 /// Skill destinations resolve against `overrides.home` alone: neither
-/// `XURL_SKILL_HOME` nor a host's config-directory variable applies.
+/// `XURL_SKILL_HOME` nor a host's config- or base-directory variable applies.
 ///
 /// Parse-error behavior matches [`run_with_store_path`], with the output
 /// intent taken from `overrides` rather than `XURL_OUTPUT`.
@@ -155,8 +155,8 @@ where
 }
 
 /// [`run_with_overrides`] with the skill-destination environment supplied as
-/// data too: `XURL_SKILL_HOME` and each host's config-directory variable, which
-/// `overrides` does not carry.
+/// data too: `XURL_SKILL_HOME` and each host's config- and base-directory
+/// variable, which `overrides` does not carry.
 pub async fn run_with_env<I, S>(
     args: I,
     stdout: &mut dyn Write,

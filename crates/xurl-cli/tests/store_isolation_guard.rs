@@ -50,7 +50,7 @@ const ALLOWLIST: &[Allowed] = &[
     Allowed {
         file: "crates/xurl-cli/tests/golden_tests.rs",
         test: "capture",
-        reason: "presents a scratch home to `skill update` so its destination is a plain file, or removes HOME for the home-not-set case; the store stays on XURL_TOKEN_STORE",
+        reason: "removes HOME for the home-not-set case, the one envelope that needs no home at all; the skill cases use XURL_SKILL_HOME and the store stays on XURL_TOKEN_STORE",
     },
 ];
 

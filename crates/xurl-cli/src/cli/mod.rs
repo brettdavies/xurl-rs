@@ -48,7 +48,8 @@ pub enum ColorChoice {
 /// Every env var the binary reads at the root level appears here so agents
 /// can discover the agentic surface from `xr --help` alone (corpus doc:
 /// `cli-env-vars-must-appear-in-help-2026-04-20.md`). The skill hosts'
-/// config-directory lines are generated from the skill manifest by `build.rs`.
+/// config- and base-directory lines are generated from the skill manifest by
+/// `build.rs`.
 const ROOT_HELP: &str = concat!(
     "\
 Examples:
@@ -1524,8 +1525,9 @@ pub enum SkillCmd {
     /// Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is
     /// discoverable to local agents. The destination is the host's skills
     /// directory: under the host's own config-directory variable when it is
-    /// set (ENVIRONMENT VARIABLES in `xr --help` lists them), else under `~`,
-    /// which `XURL_SKILL_HOME` overrides.
+    /// set, else under `XURL_SKILL_HOME`, else under a base-directory variable
+    /// the host follows or `~` (ENVIRONMENT VARIABLES in `xr --help` lists
+    /// every variable).
     #[command(after_help = "Examples:
   xr skill install claude_code                     # install bundle to Claude Code
   xr skill install claude_code --dry-run           # print the resolved git command without spawning

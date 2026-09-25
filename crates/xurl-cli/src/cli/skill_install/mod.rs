@@ -12,7 +12,8 @@
 //!         |
 //!         v
 //!   skill_env.destination(host)
-//!     host config-dir var, else XURL_SKILL_HOME, else HOME
+//!     host config-dir var, else XURL_SKILL_HOME,
+//!     else host base-dir var, else HOME
 //!         |                   -- none set --> MissingHome (reason=home-not-set)
 //!         v
 //!      dry_run? --yes--> emit envelope (mode=dry-run, would_succeed)
@@ -65,23 +66,26 @@ use git::spawn_git_clone;
 use render::{emit_envelope, render_envelope, render_multi, render_structured};
 
 // `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, `host_envelope_str`,
-// `config_dir_env`, and `CONFIG_DIR_VARS` are auto-generated at build time from
-// `src/cli/skill_install/skill.json`. Edit the JSON file to add or remove hosts
-// or change a host's config-dir variable; `cargo build` regenerates this file.
+// `config_dir_env`, `CONFIG_DIR_VARS`, `base_dir_env`, and `BASE_DIR_VARS` are
+// auto-generated at build time from `src/cli/skill_install/skill.json`. Edit the
+// JSON file to add or remove hosts or change a host's variables; `cargo build`
+// regenerates this file.
 #[allow(missing_docs)]
 mod generated_hosts {
     include!(concat!(env!("OUT_DIR"), "/generated_hosts.rs"));
 }
 
 pub use generated_hosts::{
-    CONFIG_DIR_VARS, KNOWN_HOSTS, SkillHost, config_dir_env, host_envelope_str, resolve_host,
+    BASE_DIR_VARS, CONFIG_DIR_VARS, KNOWN_HOSTS, SkillHost, base_dir_env, config_dir_env,
+    host_envelope_str, resolve_host,
 };
 
 /// Typed install error — closed set matching the envelope `reason` taxonomy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstallError {
-    /// Neither the host's config-directory variable, `XURL_SKILL_HOME`, nor
-    /// `$HOME` is set; cannot expand a `~` destination template.
+    /// Neither the host's config- or base-directory variable,
+    /// `XURL_SKILL_HOME`, nor `$HOME` is set; cannot expand a `~` destination
+    /// template.
     MissingHome,
     /// The resolved destination already holds files.
     DestNotEmpty,
@@ -119,8 +123,8 @@ pub struct InstallEnvelope {
     pub action: &'static str,
     /// Target host slug (e.g. `"claude_code"`).
     pub host: &'static str,
-    /// Resolved destination path, with `~` expanded or the host's
-    /// config-directory variable applied.
+    /// Resolved destination path, with `~` expanded or a host config- or
+    /// base-directory variable applied.
     pub install_dir: String,
     /// Human-visible `git clone` command (hardening flags omitted).
     pub command_preview: String,

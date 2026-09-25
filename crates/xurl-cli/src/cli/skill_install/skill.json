@@ -49,6 +49,13 @@
       "source": "https://opencode.ai/docs/config/"
     }
   },
+  "base_dir_env": {
+    "opencode": {
+      "var": "XDG_CONFIG_HOME",
+      "replaces": "~/.config",
+      "source": "https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts"
+    }
+  },
   "update": "cd <install-dir> && git pull --ff-only",
   "uninstall": "rm -rf <install-dir>"
 }
