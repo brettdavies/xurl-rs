@@ -37,7 +37,8 @@ use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
-    color_choice, failing_command, output_intent, parse_without_display_flags, raw_choice,
+    color_choice, failing_command, lenient_cli, output_intent, parse_without_display_flags,
+    raw_choice,
 };
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
@@ -346,16 +347,28 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
     )
 }
 
+/// Whether a clap error is a help or version display rather than a failure.
+fn is_display(kind: ErrorKind) -> bool {
+    matches!(
+        kind,
+        ErrorKind::DisplayHelp
+            | ErrorKind::DisplayVersion
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    )
+}
+
 /// Renders a clap parse failure.
 ///
 /// Help and version go to stdout at exit 0, except a help or version flag on a
-/// word that names no command, which renders as that word does without the
-/// flag. An unrecognized subcommand takes the unknown-command rendering,
-/// carrying clap's own suggestion where clap scored one. A flag spelling where
-/// clap wanted a command is an unexpected argument instead, except `-h` or
-/// `--help` given to the `help` command, which prints that command's page.
-/// Every other kind carries clap's words in `xr`'s dialect, as the `Error:`
-/// line or the `invalid-args` envelope.
+/// word that names no command, which renders as the invocation does without
+/// the flag: as that word does, or, when the invocation is a usage error of its
+/// own (a repeated or unknown flag), as that error. An unrecognized subcommand
+/// takes the unknown-command rendering, carrying clap's own suggestion where
+/// clap scored one. A flag spelling where clap wanted a command is an
+/// unexpected argument instead, except `-h` or `--help` given to the `help`
+/// command, which prints that command's page. Every other kind carries clap's
+/// words in `xr`'s dialect, as the `Error:` line or the `invalid-args`
+/// envelope.
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
@@ -364,24 +377,29 @@ fn render_parse_error(
     stderr: &mut dyn Write,
 ) -> i32 {
     let rendered = error.to_string();
-    let hidden_word = match error.kind() {
-        ErrorKind::DisplayHelp
-        | ErrorKind::DisplayVersion
-        | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => parse_without_display_flags(args)
-            .and_then(|cli| match classify(&cli) {
-                Classified::UnknownCommand(word) => Some(word),
-                Classified::Help | Classified::Raw => None,
-            }),
-        _ => None,
+    let unknown_word = |cli: &Cli| match classify(cli) {
+        Classified::UnknownCommand(word) => Some(word),
+        Classified::Help | Classified::Raw => None,
     };
-    if hidden_word.is_none()
-        && matches!(
-            error.kind(),
-            ErrorKind::DisplayHelp
-                | ErrorKind::DisplayVersion
-                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-        )
-    {
+    let display = is_display(error.kind());
+    let hidden_word = if display {
+        match parse_without_display_flags(args) {
+            Ok(cli) => unknown_word(&cli),
+            Err(without_flag) => {
+                if !is_display(without_flag.kind())
+                    && lenient_cli(args)
+                        .and_then(|cli| unknown_word(&cli))
+                        .is_some()
+                {
+                    return render_parse_error(&without_flag, args, overrides, stdout, stderr);
+                }
+                None
+            }
+        }
+    } else {
+        None
+    };
+    if hidden_word.is_none() && display {
         let _ = write!(stdout, "{rendered}");
         return EXIT_SUCCESS;
     }

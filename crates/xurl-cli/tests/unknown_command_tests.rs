@@ -482,6 +482,8 @@ async fn a_display_flag_ahead_of_the_word_does_not_hide_it(#[case] flag: &str) {
 #[case::missing_subcommand(&["xr", "auth"])]
 #[case::url(&["xr", "/2/users/me", "--help"])]
 #[case::raw_only_flag(&["xr", "-X", "POST", "webhooks", "--help"])]
+#[case::command_missing_its_argument(&["xr", "post", "--help"])]
+#[case::repeated_flag_without_a_word(&["xr", "--raw", "--help", "--raw=false"])]
 #[case::version(&["xr", "--version"])]
 #[case::version_short(&["xr", "-V"])]
 #[case::version_under_structured_intent(&["xr", "--output", "json", "--version"])]
@@ -495,6 +497,47 @@ async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str])
     assert_eq!(code, 0, "args {args:?}; stderr: {stderr}");
     assert_eq!(stdout, display, "args {args:?}");
     assert!(stderr.is_empty(), "args {args:?}; stderr: {stderr}");
+}
+
+/// A help or version flag on a word that names no command renders as the
+/// invocation does without the flag, and when that invocation is a usage error
+/// of its own (a repeated flag, an unknown flag), it renders that error rather
+/// than the root help at exit 0.
+#[rstest::rstest]
+#[case::repeated_flag(
+    &["xr", "--output", "json", "--raw", "webhooks", "--help", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::repeated_flag_short_help(
+    &["xr", "--output", "json", "--raw", "webhooks", "-h", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::repeated_flag_version(
+    &["xr", "--output", "json", "--raw", "webhooks", "--version", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::unknown_flag(
+    &["xr", "--output", "json", "webhooks", "--help", "--bogus-flag"],
+    "unexpected argument '--bogus-flag' found"
+)]
+#[tokio::test]
+async fn a_display_flag_beside_another_usage_error_renders_that_error(
+    #[case] args: &[&str],
+    #[case] expected: &str,
+) {
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stdout: {stdout}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    let v = envelope(&stderr, "json");
+    assert_eq!(
+        v["reason"], "invalid-args",
+        "args {args:?}; stderr: {stderr}"
+    );
+    let message = v["message"].as_str().expect("the message is a string");
+    assert!(
+        message.contains(expected),
+        "args {args:?}; stderr: {stderr}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

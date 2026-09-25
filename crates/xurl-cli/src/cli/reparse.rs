@@ -42,13 +42,18 @@ fn command_with_inert_display_flags() -> clap::Command {
 }
 
 /// Parses `args` as if the root help and version flags were absent, so the
-/// invocation one of them interrupted can be classified like any other. Any
-/// parse error returns `None`, which leaves clap's display in place.
-pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Option<Cli> {
-    let matches = command_with_inert_display_flags()
-        .try_get_matches_from(args)
-        .ok()?;
-    Cli::from_arg_matches(&matches).ok()
+/// invocation one of them interrupted can be classified like any other. The
+/// error is the one that invocation raises without the flag.
+pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap::Error> {
+    let matches = command_with_inert_display_flags().try_get_matches_from(args)?;
+    Cli::from_arg_matches(&matches)
+}
+
+/// `args` read leniently as a [`Cli`]: what clap bound before any error, so
+/// the word a help or version flag hid can be classified even when the
+/// invocation has another usage error.
+pub(crate) fn lenient_cli(args: &[OsString]) -> Option<Cli> {
+    Cli::from_arg_matches(&lenient_matches(args)?).ok()
 }
 
 /// What clap resolved from `args` before an error stopped it: the flags ahead
