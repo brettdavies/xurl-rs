@@ -27,6 +27,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Whether this PR can reach cargo at all. A PR whose every path is
   # documentation no Rust source reads (scripts/cargo-inputs.sh, the filter
