@@ -200,13 +200,37 @@ pub(crate) fn color_intent(args: &[OsString]) -> Option<ColorChoice> {
     found
 }
 
+/// Whether the caller named `--raw` before clap parsed anything.
+///
+/// Read from the unparsed argv for the reason [`color_intent`] is. A bare
+/// `--raw` means true; `--raw=<value>` reads the value the way clap's
+/// `FalseyValueParser` does, so an empty value or a false literal means false
+/// and anything else means true. The last one named wins.
+pub(crate) fn raw_intent(args: &[OsString]) -> Option<bool> {
+    let mut found = None;
+    for a in args {
+        let s = a.to_string_lossy();
+        if s == "--raw" {
+            found = Some(true);
+        } else if let Some(value) = s.strip_prefix("--raw=") {
+            let value = value.to_lowercase();
+            found = Some(!(value.is_empty() || FALSE_LITERALS.contains(&value.as_str())));
+        }
+    }
+    found
+}
+
+/// The spellings clap's `FalseyValueParser` reads as false, compared after
+/// lowercasing.
+const FALSE_LITERALS: [&str; 6] = ["n", "no", "f", "false", "off", "0"];
+
 /// The output format the caller named before clap parsed anything.
 ///
 /// Read from the unparsed argv, because the clap error path runs before `Cli`
-/// exists, and from `XURL_OUTPUT` as supplied by the caller. `text` and any
-/// spelling outside the set return `None`, which keeps clap's own rendering.
-/// The last format named wins, matching how clap resolves a repeated flag.
-pub(crate) fn structured_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
+/// exists. `text` and any spelling outside the set return `None`, which keeps
+/// clap's own rendering. The last format named wins, matching how clap
+/// resolves a repeated flag.
+pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
     let mut found = None;
     let mut iter = args.iter().peekable();
     while let Some(a) = iter.next() {
@@ -223,14 +247,14 @@ pub(crate) fn structured_intent(args: &[OsString], output: Option<&str>) -> Opti
             found = structured_format(rest).or(found);
         }
     }
-    found.or_else(|| output.and_then(structured_format))
+    found
 }
 
 /// The structured format a spelling names, if any.
 ///
 /// `yml` is here and absent from the value enum: a caller that spells YAML
 /// that way gets the usage error rendered as YAML rather than as text.
-fn structured_format(value: &str) -> Option<OutputFormat> {
+pub(crate) fn structured_format(value: &str) -> Option<OutputFormat> {
     match value.to_ascii_lowercase().as_str() {
         "json" => Some(OutputFormat::Json),
         "jsonl" => Some(OutputFormat::Jsonl),

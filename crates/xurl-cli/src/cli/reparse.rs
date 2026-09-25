@@ -10,7 +10,10 @@ use std::ffi::OsString;
 
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
-use crate::cli::classify::{ROOT_COMMAND, color_intent, usage_command};
+use crate::cli::classify::{
+    ROOT_COMMAND, color_intent, raw_intent, structured_format, structured_intent, usage_command,
+};
+use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice};
 
 /// `Cli::command()` with the root help and version flags inert.
@@ -70,6 +73,43 @@ pub(crate) fn color_choice(args: &[OsString]) -> ColorChoice {
                 .copied()
         })
         .unwrap_or_default()
+}
+
+/// Whether a parse-error rendering is raw: a `--raw` named anywhere in argv,
+/// then what clap resolved, which carries the `XURL_RAW` binding and the
+/// default.
+pub(crate) fn raw_choice(args: &[OsString]) -> bool {
+    raw_intent(args)
+        .or_else(|| {
+            lenient_matches(args)?
+                .try_get_one::<bool>("raw")
+                .ok()
+                .flatten()
+                .copied()
+        })
+        .unwrap_or(false)
+}
+
+/// The output format for a parse-error rendering: a format named anywhere in
+/// argv, then the `--jsonl` and `--json` aliases as clap resolved them (their
+/// `XURL_JSONL` and `XURL_JSON` bindings included), then `output`, the
+/// caller's `XURL_OUTPUT`. A successful parse never holds an alias beside
+/// `--output`, because clap rejects the pair; ranking the alias first renders
+/// that rejection in the format the alias names.
+pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
+    structured_intent(args)
+        .or_else(|| {
+            let matches = lenient_matches(args)?;
+            let set = |id: &str| matches!(matches.try_get_one::<bool>(id), Ok(Some(true)));
+            if set("jsonl") {
+                Some(OutputFormat::Jsonl)
+            } else if set("json") {
+                Some(OutputFormat::Json)
+            } else {
+                None
+            }
+        })
+        .or_else(|| output.and_then(structured_format))
 }
 
 /// The command whose help a parse failure points at: the one clap's usage
