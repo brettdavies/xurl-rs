@@ -276,7 +276,9 @@ xr skill update --all                          # Refresh every install in place
 `xr skill install <host>` clones the [skill bundle](https://github.com/brettdavies/xurl-rs-skill) into a host's
 canonical skills directory, so the command surface, the auth paths, and the error contract are discoverable without a
 prompt. Hosts: `claude_code`, `codex`, `cursor`, `factory`, `kiro`, `opencode`. `xr skill update --all` refreshes every
-install in place, and both verbs take `--dry-run`.
+install in place, and both verbs take `--dry-run`. A host's destination follows that host's own config-directory
+variable when it is set (for example `CLAUDE_CONFIG_DIR`; `xr --help` lists them all); otherwise it sits under `~`,
+which `XURL_SKILL_HOME` replaces.
 
 ### Response Schema Discovery
 

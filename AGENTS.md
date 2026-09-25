@@ -206,9 +206,10 @@ The line between the crates holds on four rules; a change that crosses one belon
    `xdk::auth`, `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads
    the process environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`,
    `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`,
-   `XURL_OUTPUT`, `XURL_TOKEN_STORE`, and `NO_COLOR` are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
-   loopback OAuth2 callback listener and reading or writing `~/.xurl` are network and file I/O, and belong to the
-   library.
+   `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts' config-directory variables
+   (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in `crates/xurl-cli/src/cli/env.rs`.
+   Binding the loopback OAuth2 callback listener and reading or writing `~/.xurl` are network and file I/O, and belong
+   to the library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
    `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
    `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can
@@ -262,10 +263,11 @@ scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, e
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
 (`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
 `crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
-`TokenStore::new()`, `TokenStore::with_credentials(`, `default_store_path()`, `default_pending_path()`,
-`dirs::home_dir()`, sets `HOME` on a child process, or spawns the `xr` binary outside `common::xr()` and
-`common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path or the test's own temp store); a
-test that must touch the real path goes on its allowlist with the reason. A companion guard in
+`TokenStore::new()`, `TokenStore::with_credentials(`, `default_store_path()`, `default_pending_path()`, any `dirs::`
+call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable (`USERPROFILE`, `TMPDIR`,
+`CARGO_HOME`, `RUSTUP_HOME`, an `XDG_` directory), clears or bulk-sets a child's environment, or spawns the `xr` binary
+outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path or the
+test's own temp store); a test that must touch the real path goes on its allowlist with the reason. A companion guard in
 `crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either crate reads and fails when `xr
 --help` does not advertise one.
 

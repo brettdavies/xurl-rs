@@ -47,8 +47,10 @@ pub enum ColorChoice {
 ///
 /// Every env var the binary reads at the root level appears here so agents
 /// can discover the agentic surface from `xr --help` alone (corpus doc:
-/// `cli-env-vars-must-appear-in-help-2026-04-20.md`).
-const ROOT_HELP: &str = "\
+/// `cli-env-vars-must-appear-in-help-2026-04-20.md`). The skill hosts'
+/// config-directory lines are generated from the skill manifest by `build.rs`.
+const ROOT_HELP: &str = concat!(
+    "\
 Examples:
   Authenticate (browser):
     xr auth oauth2
@@ -75,7 +77,10 @@ ENVIRONMENT VARIABLES:
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
   XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
-  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
+  XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
+",
+    include_str!(concat!(env!("OUT_DIR"), "/skill_env_help.txt")),
+    "  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
   CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
   CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value
   REDIRECT_URI           OAuth2 redirect URI override for the active app
@@ -109,7 +114,8 @@ TTY behavior:
   --color always is set) and human-only banners are suppressed, so piping
   to jaq or redirecting to a file produces clean machine-readable output
   without any extra flags.
-";
+"
+);
 
 /// `xr post` examples — text + JSON paired, plus a reply variant and a
 /// media-attached form.
@@ -1516,8 +1522,10 @@ pub enum SkillCmd {
     /// Install the skill bundle into a host's canonical skills directory.
     ///
     /// Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is
-    /// discoverable to local agents. The destination is taken from the
-    /// build-generated host map (`src/skill_install/skill.json`).
+    /// discoverable to local agents. The destination is the host's skills
+    /// directory: under the host's own config-directory variable when it is
+    /// set (ENVIRONMENT VARIABLES in `xr --help` lists them), else under `~`,
+    /// which `XURL_SKILL_HOME` overrides.
     #[command(after_help = "Examples:
   xr skill install claude_code                     # install bundle to Claude Code
   xr skill install claude_code --dry-run           # print the resolved git command without spawning
@@ -1541,9 +1549,9 @@ pub enum SkillCmd {
     /// Refresh an existing skill-bundle install in place.
     ///
     /// Removes the current destination and re-runs the install pipeline so
-    /// the bundle picks up upstream changes. Hardening surface is identical
-    /// to `install`. The envelope's `action` is `"skill-update"` so agents
-    /// can distinguish from a first-time install.
+    /// the bundle picks up upstream changes. The destination and hardening
+    /// surface are identical to `install`. The envelope's `action` is
+    /// `"skill-update"` so agents can distinguish from a first-time install.
     #[command(after_help = "Examples:
   xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle
   xr skill update claude_code --dry-run            # show the resolved plan without touching disk

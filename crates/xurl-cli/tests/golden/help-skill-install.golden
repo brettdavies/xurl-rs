@@ -1,12 +1,12 @@
 args: ["skill", "install", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5755
+stdout_len: 5874
 stderr_len: 0
 --- stdout ---
 Install the skill bundle into a host's canonical skills directory.
 
-Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is discoverable to local agents. The destination is taken from the build-generated host map (`src/skill_install/skill.json`).
+Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is discoverable to local agents. The destination is the host's skills directory: under the host's own config-directory variable when it is set (ENVIRONMENT VARIABLES in `xr --help` lists them), else under `~`, which `XURL_SKILL_HOME` overrides.
 
 Usage: xr skill install [OPTIONS] [HOST]
 

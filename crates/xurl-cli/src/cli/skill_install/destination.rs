@@ -1,10 +1,49 @@
-//! `$HOME` expansion and destination inspection. Owns the pre-clone status
+//! Destination resolution and inspection. Owns the pre-clone status
 //! taxonomy and the path functions that resolve and vet an install directory.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::InstallError;
+use super::{InstallError, SkillHost, config_dir_env, resolve_host};
+
+/// The environment a skill destination resolves against, as data.
+///
+/// A host's own config-directory variable, when set, relocates that host's
+/// destination. Otherwise `~` expands against `skill_home`, then `home`. An
+/// empty value counts as unset.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SkillEnv {
+    /// `HOME`.
+    pub home: Option<String>,
+    /// `XURL_SKILL_HOME`, which stands in for `HOME` in skill destinations.
+    pub skill_home: Option<String>,
+    /// The host config-directory variables that are set, by name.
+    pub config_dirs: BTreeMap<String, String>,
+}
+
+impl SkillEnv {
+    /// `host`'s install directory, resolved from its `~`-prefixed destination
+    /// template.
+    pub fn destination(&self, host: SkillHost) -> Result<PathBuf, InstallError> {
+        let template = resolve_host(host).1;
+        if let Some((var, replaces)) = config_dir_env(host)
+            && let Some(dir) = self.config_dirs.get(var).filter(|dir| !dir.is_empty())
+        {
+            let rest = template
+                .strip_prefix(replaces)
+                .and_then(|rest| rest.strip_prefix('/'))
+                .expect("build.rs checks that `replaces` is a directory prefix of the template");
+            return Ok(Path::new(dir).join(rest));
+        }
+        let base = self
+            .skill_home
+            .as_deref()
+            .filter(|dir| !dir.is_empty())
+            .or(self.home.as_deref());
+        expand_tilde_with(template, base)
+    }
+}
 
 /// Snapshot of what [`check_destination`] found at the resolved path.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -85,6 +124,7 @@ pub fn check_destination(path: &Path) -> Result<DestinationStatus, InstallError>
 
 #[cfg(test)]
 mod tests {
+    use super::super::CONFIG_DIR_VARS;
     use super::*;
 
     #[test]
@@ -146,5 +186,72 @@ mod tests {
         std::fs::write(&target, b"contents").expect("write file");
         let err = check_destination(&target).expect_err("file should be DestIsFile");
         assert_eq!(err, InstallError::DestIsFile);
+    }
+
+    /// The first host that documents a config-dir variable, with its variable.
+    fn host_with_var() -> (SkillHost, &'static str, &'static str) {
+        SkillHost::ALL
+            .iter()
+            .find_map(|&host| config_dir_env(host).map(|(var, replaces)| (host, var, replaces)))
+            .expect("a host with a config-dir variable")
+    }
+
+    fn env(home: Option<&str>, skill_home: Option<&str>, dirs: &[(&str, &str)]) -> SkillEnv {
+        SkillEnv {
+            home: home.map(String::from),
+            skill_home: skill_home.map(String::from),
+            config_dirs: dirs
+                .iter()
+                .map(|(var, dir)| ((*var).to_string(), (*dir).to_string()))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn a_host_config_dir_resolves_without_home_and_wins_over_skill_home() {
+        let (host, var, replaces) = host_with_var();
+        let template = resolve_host(host).1;
+        let rest = &template[replaces.len() + 1..];
+        let got = env(None, Some("/skill"), &[(var, "/cfg")])
+            .destination(host)
+            .expect("a set host variable needs no home");
+        assert_eq!(got, Path::new("/cfg").join(rest));
+    }
+
+    #[test]
+    fn skill_home_resolves_without_home_and_an_empty_one_falls_back_to_home() {
+        let (host, _, _) = host_with_var();
+        let template = resolve_host(host).1;
+        let rest = template.strip_prefix("~/").expect("~/ template");
+        let with_skill_home = env(None, Some("/skill"), &[]).destination(host);
+        assert_eq!(with_skill_home, Ok(Path::new("/skill").join(rest)));
+        let empty_skill_home = env(Some("/home"), Some(""), &[]).destination(host);
+        assert_eq!(empty_skill_home, Ok(Path::new("/home").join(rest)));
+    }
+
+    #[test]
+    fn nothing_set_is_missing_home() {
+        let (host, _, _) = host_with_var();
+        let got = SkillEnv::default().destination(host);
+        assert_eq!(got, Err(InstallError::MissingHome));
+    }
+
+    #[test]
+    fn a_host_without_a_variable_ignores_every_other_hosts_variable() {
+        let Some(host) = SkillHost::ALL
+            .iter()
+            .copied()
+            .find(|&host| config_dir_env(host).is_none())
+        else {
+            return;
+        };
+        let template = resolve_host(host).1;
+        let all_vars: Vec<(&str, &str)> = CONFIG_DIR_VARS
+            .iter()
+            .map(|var| (*var, "/elsewhere"))
+            .collect();
+        let got = env(Some("/home"), None, &all_vars).destination(host);
+        let rest = template.strip_prefix("~/").expect("~/ template");
+        assert_eq!(got, Ok(Path::new("/home").join(rest)));
     }
 }

@@ -1,5 +1,6 @@
-//! Build script. Codegen `SkillHost` enum, `KNOWN_HOSTS` const, and
-//! `resolve_host` / `host_envelope_str` functions from
+//! Build script. Codegen `SkillHost` enum, `KNOWN_HOSTS` const,
+//! `resolve_host` / `host_envelope_str` / `config_dir_env` functions,
+//! `CONFIG_DIR_VARS`, and the root help's host-variable lines from
 //! `src/cli/skill_install/skill.json`.
 //!
 //! The JSON file is the single source of truth — updating it regenerates the
@@ -28,7 +29,10 @@ fn main() {
 ///   returning the `(url, dest_template)` parsed from the host's install
 ///   command;
 /// - a match arm in `host_envelope_str(SkillHost) -> &'static str` returning
-///   the canonical JSON-key surface name.
+///   the canonical JSON-key surface name;
+/// - a match arm in `config_dir_env(SkillHost)` from the host's
+///   `config_dir_env` entry, with its variable in `CONFIG_DIR_VARS` and an
+///   `ENVIRONMENT VARIABLES` line in `$OUT_DIR/skill_env_help.txt`.
 ///
 /// Each install command MUST have the canonical shape
 /// `git clone --depth 1 <url> <dest>` — six whitespace-separated tokens.
@@ -98,6 +102,8 @@ fn emit_skill_hosts(manifest_dir: &Path) {
         hosts.push((key.clone(), variant, url, dest));
     }
     hosts.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let config_dirs = parse_config_dir_env(&manifest, &hosts, &skill_json_path);
 
     let mut src = String::new();
     src.push_str(
@@ -172,12 +178,145 @@ fn emit_skill_hosts(manifest_dir: &Path) {
         src.push_str(&format!("        SkillHost::{variant} => {key:?},\n"));
     }
     src.push_str("    }\n");
-    src.push_str("}\n");
+    src.push_str("}\n\n");
+
+    src.push_str("/// The variable `host` reads to relocate the directory its skills live\n");
+    src.push_str("/// under, and the destination prefix that variable's value stands in for;\n");
+    src.push_str("/// `None` for a host that documents no such variable.\n");
+    src.push_str(
+        "pub fn config_dir_env(host: SkillHost) -> Option<(&'static str, &'static str)> {\n",
+    );
+    src.push_str("    match host {\n");
+    for ((_, variant, _, _), entry) in hosts.iter().zip(&config_dirs) {
+        match entry {
+            Some((var, replaces)) => src.push_str(&format!(
+                "        SkillHost::{variant} => Some(({var:?}, {replaces:?})),\n"
+            )),
+            None => src.push_str(&format!("        SkillHost::{variant} => None,\n")),
+        }
+    }
+    src.push_str("    }\n");
+    src.push_str("}\n\n");
+
+    src.push_str("/// Every host config-dir variable, in the JSON-key order of its host.\n");
+    src.push_str("pub const CONFIG_DIR_VARS: &[&str] = &[\n");
+    for (var, _) in config_dirs.iter().flatten() {
+        src.push_str(&format!("    {var:?},\n"));
+    }
+    src.push_str("];\n");
+
+    // One `ENVIRONMENT VARIABLES` line per host variable, spliced into the root
+    // help so the help cannot fall behind the manifest.
+    let mut help = String::new();
+    for ((key, _, _, _), entry) in hosts.iter().zip(&config_dirs) {
+        if let Some((var, replaces)) = entry {
+            help.push_str(&format!(
+                "  {var:<22} Stands in for {replaces} in the {key} skill destination; wins over XURL_SKILL_HOME\n"
+            ));
+        }
+    }
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
     let out_path = out_dir.join("generated_hosts.rs");
     fs::write(&out_path, src)
         .unwrap_or_else(|e| panic!("cannot write {}: {e}", out_path.display()));
+    let help_path = out_dir.join("skill_env_help.txt");
+    fs::write(&help_path, help)
+        .unwrap_or_else(|e| panic!("cannot write {}: {e}", help_path.display()));
+}
+
+/// Parse and vet the manifest's `config_dir_env` map, returning each host's
+/// `(var, replaces)` in the order of `hosts`.
+///
+/// Every install host must carry an entry, so adding a host forces a decision
+/// about its variable. An entry names a `source` for the claim and either a
+/// `var` with the `replaces` prefix it stands in for, or `var: null` with a
+/// `note` saying why the host has none.
+fn parse_config_dir_env(
+    manifest: &serde_json::Value,
+    hosts: &[(String, String, String, String)],
+    path: &Path,
+) -> Vec<Option<(String, String)>> {
+    let map = manifest
+        .get("config_dir_env")
+        .and_then(|v| v.as_object())
+        .unwrap_or_else(|| {
+            panic!(
+                "{}: \"config_dir_env\" must be an object (host -> entry map)",
+                path.display()
+            )
+        });
+    for key in map.keys() {
+        if !hosts.iter().any(|(host, _, _, _)| host == key) {
+            panic!(
+                "{}: config_dir_env.{key:?} names no host in the install map",
+                path.display()
+            );
+        }
+    }
+
+    let mut seen: Vec<String> = Vec::new();
+    hosts
+        .iter()
+        .map(|(key, _, _, dest)| {
+            let entry = map.get(key).and_then(|v| v.as_object()).unwrap_or_else(|| {
+                panic!(
+                    "{}: config_dir_env.{key:?} is missing; every install host needs an entry",
+                    path.display()
+                )
+            });
+            let source = entry.get("source").and_then(|v| v.as_str()).unwrap_or("");
+            if !source.starts_with("https://") {
+                panic!(
+                    "{}: config_dir_env.{key:?}.source must be an https URL",
+                    path.display()
+                );
+            }
+            match entry.get("var") {
+                Some(serde_json::Value::Null) => {
+                    let note = entry.get("note").and_then(|v| v.as_str()).unwrap_or("");
+                    if note.trim().is_empty() || entry.contains_key("replaces") {
+                        panic!(
+                            "{}: config_dir_env.{key:?} has var null, so it needs a note and no replaces",
+                            path.display()
+                        );
+                    }
+                    None
+                }
+                Some(serde_json::Value::String(var)) => {
+                    let valid = var.starts_with(|c: char| c.is_ascii_uppercase())
+                        && var
+                            .chars()
+                            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
+                    if !valid || var == "HOME" || var == "XURL_SKILL_HOME" || seen.contains(var) {
+                        panic!(
+                            "{}: config_dir_env.{key:?}.var {var:?} must be a distinct upper-case variable name other than HOME and XURL_SKILL_HOME",
+                            path.display()
+                        );
+                    }
+                    seen.push(var.clone());
+                    let replaces = entry
+                        .get("replaces")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if !replaces.starts_with("~/")
+                        || replaces.ends_with('/')
+                        || !dest.starts_with(&format!("{replaces}/"))
+                    {
+                        panic!(
+                            "{}: config_dir_env.{key:?}.replaces {replaces:?} must be a ~/ directory prefix of the destination {dest:?}",
+                            path.display()
+                        );
+                    }
+                    Some((var.clone(), replaces.to_string()))
+                }
+                _ => panic!(
+                    "{}: config_dir_env.{key:?}.var must be a string or null",
+                    path.display()
+                ),
+            }
+        })
+        .collect()
 }
 
 /// Convert a snake_case ASCII identifier to PascalCase. Rejects empty

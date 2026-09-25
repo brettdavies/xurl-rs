@@ -17,6 +17,38 @@
     "kiro": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.kiro/skills/xurl-rs",
     "opencode": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.config/opencode/skills/xurl-rs"
   },
+  "config_dir_env": {
+    "claude_code": {
+      "var": "CLAUDE_CONFIG_DIR",
+      "replaces": "~/.claude",
+      "source": "https://code.claude.com/docs/en/claude-directory"
+    },
+    "codex": {
+      "var": "CODEX_HOME",
+      "replaces": "~/.codex",
+      "source": "https://developers.openai.com/codex/config-advanced"
+    },
+    "cursor": {
+      "var": null,
+      "source": "https://cursor.com/docs/skills",
+      "note": "No documented variable relocates ~/.cursor/skills; CURSOR_CONFIG_DIR covers only the CLI settings file."
+    },
+    "factory": {
+      "var": null,
+      "source": "https://docs.factory.ai/cli/configuration/skills",
+      "note": "No documented variable relocates ~/.factory."
+    },
+    "kiro": {
+      "var": "KIRO_HOME",
+      "replaces": "~/.kiro",
+      "source": "https://kiro.dev/docs/reference/settings/"
+    },
+    "opencode": {
+      "var": "OPENCODE_CONFIG_DIR",
+      "replaces": "~/.config/opencode",
+      "source": "https://opencode.ai/docs/config/"
+    }
+  },
   "update": "cd <install-dir> && git pull --ff-only",
   "uninstall": "rm -rf <install-dir>"
 }

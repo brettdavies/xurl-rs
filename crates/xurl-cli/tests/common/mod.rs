@@ -75,6 +75,9 @@ fn hermetic<C: EnvBuilder>(cmd: &mut C, store: &Path) {
     ] {
         cmd.remove(std::ffi::OsStr::new(key));
     }
+    for key in xurl::cli::skill_install::CONFIG_DIR_VARS {
+        cmd.remove(std::ffi::OsStr::new(key));
+    }
     cmd.set("XURL_TOKEN_STORE", store);
 }
 

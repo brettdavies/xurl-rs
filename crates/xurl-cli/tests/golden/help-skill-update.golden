@@ -1,12 +1,12 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5709
+stdout_len: 5730
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
 
-Removes the current destination and re-runs the install pipeline so the bundle picks up upstream changes. Hardening surface is identical to `install`. The envelope's `action` is `"skill-update"` so agents can distinguish from a first-time install.
+Removes the current destination and re-runs the install pipeline so the bundle picks up upstream changes. The destination and hardening surface are identical to `install`. The envelope's `action` is `"skill-update"` so agents can distinguish from a first-time install.
 
 Usage: xr skill update [OPTIONS] [HOST]
 

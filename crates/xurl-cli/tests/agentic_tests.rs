@@ -153,6 +153,23 @@ fn test_help_advertises_every_env_var_the_source_reads() {
             names.insert(name.to_string());
         }
     }
+    // Skill hosts' config-directory variables are read by name from the skill
+    // manifest rather than as literals, so they come from the manifest too.
+    let manifest_path =
+        common::workspace_root().join("crates/xurl-cli/src/cli/skill_install/skill.json");
+    let manifest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(&manifest_path).expect("skill.json must be readable"),
+    )
+    .expect("skill.json must parse");
+    for entry in manifest["config_dir_env"]
+        .as_object()
+        .expect("config_dir_env map")
+        .values()
+    {
+        if let Some(var) = entry["var"].as_str() {
+            names.insert(var.to_string());
+        }
+    }
     // `HOME` is the one core system variable xr reads, only to expand a
     // `~`-prefixed skill destination; it is not an xr setting.
     names.remove("HOME");
