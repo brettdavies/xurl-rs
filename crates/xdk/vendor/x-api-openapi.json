@@ -17509,7 +17509,7 @@
     },
     "/2/chat/conversations/{id}/members": {
       "post": {
-        "description": "Adds one or more members to an existing encrypted Chat group conversation, rotating the conversation key.",
+        "description": "Adds one or more members to an existing encrypted Chat group conversation, rotating the conversation key. Adding a user who has a pending join request approves that request; approval needs the same key-rotation body as adding any member.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
