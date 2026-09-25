@@ -2178,6 +2178,158 @@ async fn skill_install_dest_is_regular_file_errors() {
     assert_eq!(v["destination_status"], "file");
 }
 
+/// The skill manifest the build generates the host table from.
+fn skill_manifest() -> serde_json::Value {
+    let path = common::workspace_root().join("crates/xurl-cli/src/cli/skill_install/skill.json");
+    let text = std::fs::read_to_string(&path).expect("skill.json must be readable");
+    serde_json::from_str(&text).expect("skill.json must parse")
+}
+
+/// The `~`-prefixed destination template in `host`'s install command.
+fn install_template(manifest: &serde_json::Value, host: &str) -> String {
+    let cmd = manifest["install"][host]
+        .as_str()
+        .expect("install command string");
+    cmd.split_whitespace()
+        .last()
+        .expect("install command ends in its destination")
+        .to_string()
+}
+
+/// `host -> install_dir` from `skill install --all --dry-run`, with `vars`
+/// added to the hermetic environment.
+fn dry_run_install_dirs(vars: &[(&str, &Path)]) -> std::collections::BTreeMap<String, String> {
+    let mut cmd = common::xr();
+    for (key, value) in vars {
+        cmd.env(key, value);
+    }
+    let out = cmd
+        .args(["skill", "install", "--all", "--dry-run", "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected a JSON envelope ({e}); stderr: {}",
+            String::from_utf8_lossy(&out.stderr)
+        )
+    });
+    v["installations"]
+        .as_array()
+        .expect("installations array")
+        .iter()
+        .map(|e| {
+            (
+                e["host"].as_str().expect("host").to_string(),
+                e["install_dir"].as_str().expect("install_dir").to_string(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn skill_home_env_stands_in_for_home_in_every_destination() {
+    let manifest = skill_manifest();
+    let skill_home = TempDir::new().expect("tempdir");
+    let dirs = dry_run_install_dirs(&[("XURL_SKILL_HOME", skill_home.path())]);
+    for host in manifest["install"].as_object().expect("install map").keys() {
+        let template = install_template(&manifest, host);
+        let rest = template
+            .strip_prefix("~/")
+            .expect("template starts with ~/");
+        let expected = skill_home.path().join(rest);
+        assert_eq!(
+            dirs.get(host).map(String::as_str),
+            Some(expected.to_string_lossy().as_ref()),
+            "host {host}"
+        );
+    }
+}
+
+#[test]
+fn each_host_config_dir_env_wins_over_skill_home_for_its_own_host() {
+    let manifest = skill_manifest();
+    let entries = manifest["config_dir_env"]
+        .as_object()
+        .expect("skill.json carries a config_dir_env entry for every host");
+    let skill_home = TempDir::new().expect("tempdir");
+    let config_root = TempDir::new().expect("tempdir");
+    let host_dirs: Vec<(String, std::path::PathBuf)> = entries
+        .iter()
+        .filter_map(|(host, entry)| {
+            entry["var"]
+                .as_str()
+                .map(|var| (var.to_string(), config_root.path().join(host)))
+        })
+        .collect();
+    assert!(
+        !host_dirs.is_empty(),
+        "at least one host documents a config-dir variable"
+    );
+    let mut vars: Vec<(&str, &Path)> = vec![("XURL_SKILL_HOME", skill_home.path())];
+    vars.extend(
+        host_dirs
+            .iter()
+            .map(|(var, dir)| (var.as_str(), dir.as_path())),
+    );
+    let dirs = dry_run_install_dirs(&vars);
+
+    for (host, entry) in entries {
+        let template = install_template(&manifest, host);
+        let expected = match entry["var"].as_str() {
+            Some(_) => {
+                let replaces = entry["replaces"]
+                    .as_str()
+                    .expect("replaces for a host with a var");
+                let rest = template
+                    .strip_prefix(replaces)
+                    .and_then(|r| r.strip_prefix('/'))
+                    .expect("replaces is a directory prefix of the template");
+                config_root.path().join(host).join(rest)
+            }
+            None => skill_home
+                .path()
+                .join(template.strip_prefix("~/").expect("~/ template")),
+        };
+        assert_eq!(
+            dirs.get(host).map(String::as_str),
+            Some(expected.to_string_lossy().as_ref()),
+            "host {host}"
+        );
+    }
+}
+
+#[test]
+fn an_empty_host_config_dir_env_falls_through_to_skill_home() {
+    let manifest = skill_manifest();
+    let (host, var) = manifest["config_dir_env"]
+        .as_object()
+        .expect("config_dir_env map")
+        .iter()
+        .find_map(|(host, entry)| {
+            entry["var"]
+                .as_str()
+                .map(|var| (host.clone(), var.to_string()))
+        })
+        .expect("a host with a config-dir variable");
+    let skill_home = TempDir::new().expect("tempdir");
+    let mut cmd = common::xr();
+    cmd.env(&var, "").env("XURL_SKILL_HOME", skill_home.path());
+    let out = cmd
+        .args(["skill", "install", &host, "--dry-run", "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
+    let template = install_template(&manifest, &host);
+    let expected = skill_home
+        .path()
+        .join(template.strip_prefix("~/").expect("~/ template"));
+    assert_eq!(
+        v["install_dir"].as_str(),
+        Some(expected.to_string_lossy().as_ref()),
+        "an empty {var} is unset, so {host} resolves under XURL_SKILL_HOME"
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // U6: P3 progressive help — `after_help` on every subcommand + xr examples
 // ═══════════════════════════════════════════════════════════════════════════

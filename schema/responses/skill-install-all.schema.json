@@ -28,7 +28,7 @@
           "type": "string"
         },
         "install_dir": {
-          "description": "Resolved destination path with `$HOME` expanded.",
+          "description": "Resolved destination path, with `~` expanded or the host's\nconfig-directory variable applied.",
           "type": "string"
         },
         "reason": {

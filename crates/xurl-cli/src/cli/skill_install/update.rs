@@ -9,8 +9,8 @@ use crate::cli::output::OutputConfig;
 
 use super::{
     ACTION_UPDATE, DestinationStatus, InstallEnvelope, InstallError, InstallMultiEnvelope,
-    REASON_NOT_INSTALLED, STATUS_DRY_RUN, STATUS_ERROR, STATUS_OK, STATUS_SKIPPED, SkillHost,
-    compute_install_envelope, emit_envelope, emit_missing_host_envelope, expand_tilde_with,
+    REASON_NOT_INSTALLED, STATUS_DRY_RUN, STATUS_ERROR, STATUS_OK, STATUS_SKIPPED, SkillEnv,
+    SkillHost, compute_install_envelope, emit_envelope, emit_missing_host_envelope,
     format_clone_command, host_envelope_str, render_envelope, render_multi, resolve_host,
 };
 
@@ -22,14 +22,18 @@ use super::{
 /// install at the JSON layer. Every other field mirrors the install envelope,
 /// which is what lets [`run_update_multi`] aggregate hosts through the same
 /// [`InstallMultiEnvelope`] that `skill install --all` uses.
-fn compute_update_envelope(host: SkillHost, dry_run: bool, home: Option<&str>) -> InstallEnvelope {
+fn compute_update_envelope(
+    host: SkillHost,
+    dry_run: bool,
+    skill_env: &SkillEnv,
+) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
     let host_str = host_envelope_str(host);
 
-    let dest = match expand_tilde_with(dest_template, home) {
+    let dest = match skill_env.destination(host) {
         Ok(p) => p,
         Err(InstallError::MissingHome) => {
-            // Without $HOME the destination cannot be resolved, so the template
+            // Without a home the destination cannot be resolved, so the template
             // and its literal `~` are the most specific thing to report.
             return InstallEnvelope {
                 action: ACTION_UPDATE,
@@ -86,16 +90,17 @@ fn compute_update_envelope(host: SkillHost, dry_run: bool, home: Option<&str>) -
         };
     }
 
-    let mut env = compute_install_envelope(host, false, home);
+    let mut env = compute_install_envelope(host, false, skill_env);
     env.action = ACTION_UPDATE;
     env
 }
 
 /// The envelope for a host `--all` passes over because nothing is installed
 /// there. Carries exit code 0: a host with no installation is not a failure.
-fn skipped_envelope(host: SkillHost, home: Option<&str>) -> InstallEnvelope {
+fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
-    let install_dir = expand_tilde_with(dest_template, home)
+    let install_dir = skill_env
+        .destination(host)
         .map(|p| p.display().to_string())
         .unwrap_or_else(|_| dest_template.to_string());
 
@@ -113,9 +118,8 @@ fn skipped_envelope(host: SkillHost, home: Option<&str>) -> InstallEnvelope {
 }
 
 /// Whether a host currently has something to update.
-fn is_installed(host: SkillHost, home: Option<&str>) -> bool {
-    let (_, dest_template) = resolve_host(host);
-    expand_tilde_with(dest_template, home).is_ok_and(|dest| dest.exists())
+fn is_installed(host: SkillHost, skill_env: &SkillEnv) -> bool {
+    skill_env.destination(host).is_ok_and(|dest| dest.exists())
 }
 
 /// Run the update pipeline for a single host and emit its envelope.
@@ -124,9 +128,9 @@ pub fn run_update(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> i32 {
-    let env = compute_update_envelope(host, dry_run, home);
+    let env = compute_update_envelope(host, dry_run, skill_env);
     let rendered = render_envelope(&env, &out.format);
     emit_envelope(stdout, &rendered, &out.format);
     if env.status == STATUS_ERROR {
@@ -147,16 +151,16 @@ pub fn run_update_multi(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> i32 {
     if all {
         let mut installations = Vec::with_capacity(SkillHost::ALL.len());
         let mut worst: i32 = 0;
         for h in SkillHost::ALL {
-            let env = if is_installed(*h, home) {
-                compute_update_envelope(*h, dry_run, home)
+            let env = if is_installed(*h, skill_env) {
+                compute_update_envelope(*h, dry_run, skill_env)
             } else {
-                skipped_envelope(*h, home)
+                skipped_envelope(*h, skill_env)
             };
             if env.status == STATUS_ERROR {
                 worst = worst.max(env.exit_code.unwrap_or(1));
@@ -180,23 +184,32 @@ pub fn run_update_multi(
     let Some(host) = host else {
         return emit_missing_host_envelope(out, stdout);
     };
-    run_update(host, dry_run, out, stdout, home)
+    run_update(host, dry_run, out, stdout, skill_env)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
+    use crate::cli::skill_install::expand_tilde_with;
     use tempfile::TempDir;
 
     fn first_host() -> SkillHost {
         SkillHost::ALL[0]
     }
 
+    /// A skill environment with only `HOME`, at `home`.
+    fn at(home: &TempDir) -> SkillEnv {
+        SkillEnv {
+            home: home.path().to_str().map(String::from),
+            ..SkillEnv::default()
+        }
+    }
+
     #[test]
     fn update_dry_run_reports_the_update_action_and_would_succeed() {
         let home = TempDir::new().expect("tempdir");
-        let env = compute_update_envelope(first_host(), true, home.path().to_str());
+        let env = compute_update_envelope(first_host(), true, &at(&home));
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "dry_run");
@@ -208,14 +221,14 @@ mod tests {
     #[test]
     fn update_dry_run_marks_an_absent_destination_absent() {
         let home = TempDir::new().expect("tempdir");
-        let env = compute_update_envelope(first_host(), true, home.path().to_str());
+        let env = compute_update_envelope(first_host(), true, &at(&home));
 
         assert_eq!(env.destination_status, "absent");
     }
 
     #[test]
     fn update_without_home_is_an_error_naming_the_reason() {
-        let env = compute_update_envelope(first_host(), true, None);
+        let env = compute_update_envelope(first_host(), true, &SkillEnv::default());
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "error");
@@ -227,7 +240,7 @@ mod tests {
     #[test]
     fn a_host_with_no_destination_is_not_installed() {
         let home = TempDir::new().expect("tempdir");
-        assert!(!is_installed(first_host(), home.path().to_str()));
+        assert!(!is_installed(first_host(), &at(&home)));
     }
 
     #[test]
@@ -239,13 +252,13 @@ mod tests {
             .expect("home is set in the test");
         std::fs::create_dir_all(&dest).expect("create destination");
 
-        assert!(is_installed(host, home.path().to_str()));
+        assert!(is_installed(host, &at(&home)));
     }
 
     #[test]
     fn skipped_envelope_carries_the_not_installed_reason_and_a_zero_exit() {
         let home = TempDir::new().expect("tempdir");
-        let env = skipped_envelope(first_host(), home.path().to_str());
+        let env = skipped_envelope(first_host(), &at(&home));
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "skipped");
@@ -265,7 +278,7 @@ mod tests {
         );
         let mut stdout = Vec::new();
 
-        let code = run_update_multi(None, true, true, &out, &mut stdout, home.path().to_str());
+        let code = run_update_multi(None, true, true, &out, &mut stdout, &at(&home));
         assert_eq!(code, 0);
 
         let rendered = String::from_utf8(stdout).expect("utf8");
@@ -299,7 +312,7 @@ mod tests {
             crate::cli::ColorChoice::Never,
         );
         let mut stdout = Vec::new();
-        let code = run_update_multi(None, true, true, &out, &mut stdout, home.path().to_str());
+        let code = run_update_multi(None, true, true, &out, &mut stdout, &at(&home));
         assert_eq!(code, 0);
 
         let rendered = String::from_utf8(stdout).expect("utf8");
@@ -338,7 +351,7 @@ mod tests {
         ] {
             let out = OutputConfig::new(format, false, false, crate::cli::ColorChoice::Never);
             let mut stdout = Vec::new();
-            let code = run_update_multi(None, true, true, &out, &mut stdout, home.path().to_str());
+            let code = run_update_multi(None, true, true, &out, &mut stdout, &at(&home));
 
             assert_eq!(code, 0, "exit code for {:?}", out.format);
             let rendered = String::from_utf8(stdout).expect("utf8");

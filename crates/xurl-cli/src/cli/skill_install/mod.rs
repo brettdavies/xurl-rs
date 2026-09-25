@@ -11,8 +11,9 @@
 //!   resolve_host(SkillHost) -> (url, dest_template)
 //!         |
 //!         v
-//!   expand_tilde_with(dest_template, home)  -- home unset --> MissingHome
-//!         |                                                  (reason=home-not-set)
+//!   skill_env.destination(host)
+//!     host config-dir var, else XURL_SKILL_HOME, else HOME
+//!         |                   -- none set --> MissingHome (reason=home-not-set)
 //!         v
 //!      dry_run? --yes--> emit envelope (mode=dry-run, would_succeed)
 //!         |
@@ -53,7 +54,7 @@ mod git;
 mod render;
 mod update;
 
-pub use destination::{DestinationStatus, check_destination, expand_tilde_with};
+pub use destination::{DestinationStatus, SkillEnv, check_destination, expand_tilde_with};
 pub use git::{
     GIT_HARDEN_ENV_REMOVE, GIT_HARDEN_ENV_SET, GIT_HARDEN_FLAGS, build_clone_command,
     format_clone_command,
@@ -63,20 +64,24 @@ pub use update::{run_update, run_update_multi};
 use git::spawn_git_clone;
 use render::{emit_envelope, render_envelope, render_multi, render_structured};
 
-// `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, and `host_envelope_str` are
-// auto-generated at build time from `src/cli/skill_install/skill.json`. Edit the
-// JSON file to add or remove hosts; `cargo build` regenerates this file.
+// `SkillHost`, `KNOWN_HOSTS`, `resolve_host`, `host_envelope_str`,
+// `config_dir_env`, and `CONFIG_DIR_VARS` are auto-generated at build time from
+// `src/cli/skill_install/skill.json`. Edit the JSON file to add or remove hosts
+// or change a host's config-dir variable; `cargo build` regenerates this file.
 #[allow(missing_docs)]
 mod generated_hosts {
     include!(concat!(env!("OUT_DIR"), "/generated_hosts.rs"));
 }
 
-pub use generated_hosts::{KNOWN_HOSTS, SkillHost, host_envelope_str, resolve_host};
+pub use generated_hosts::{
+    CONFIG_DIR_VARS, KNOWN_HOSTS, SkillHost, config_dir_env, host_envelope_str, resolve_host,
+};
 
 /// Typed install error — closed set matching the envelope `reason` taxonomy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstallError {
-    /// `$HOME` is unset or empty; cannot expand a `~` destination template.
+    /// Neither the host's config-directory variable, `XURL_SKILL_HOME`, nor
+    /// `$HOME` is set; cannot expand a `~` destination template.
     MissingHome,
     /// The resolved destination already holds files.
     DestNotEmpty,
@@ -114,7 +119,8 @@ pub struct InstallEnvelope {
     pub action: &'static str,
     /// Target host slug (e.g. `"claude_code"`).
     pub host: &'static str,
-    /// Resolved destination path with `$HOME` expanded.
+    /// Resolved destination path, with `~` expanded or the host's
+    /// config-directory variable applied.
     pub install_dir: String,
     /// Human-visible `git clone` command (hardening flags omitted).
     pub command_preview: String,
@@ -163,16 +169,16 @@ const REASON_NOT_INSTALLED: &str = "not-installed";
 pub fn compute_install_envelope(
     host: SkillHost,
     dry_run: bool,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
     let host_str = host_envelope_str(host);
 
-    // Step 1: tilde expand. MissingHome surfaces as an envelope error.
-    let dest = match expand_tilde_with(dest_template, home) {
+    // Step 1: resolve the destination. MissingHome surfaces as an envelope error.
+    let dest = match skill_env.destination(host) {
         Ok(p) => p,
         Err(InstallError::MissingHome) => {
-            // Without $HOME we cannot show the resolved destination. Surface
+            // Without a home we cannot show the resolved destination. Surface
             // the template (with its literal `~`) and the matching command.
             let command_preview = format_clone_command(url, dest_template);
             return InstallEnvelope {
@@ -280,9 +286,9 @@ pub fn run_install(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> i32 {
-    let envelope = compute_install_envelope(host, dry_run, home);
+    let envelope = compute_install_envelope(host, dry_run, skill_env);
     let rendered = render_envelope(&envelope, &out.format);
     let _ = writeln!(stdout, "{rendered}");
     if envelope.status == STATUS_ERROR {
@@ -302,17 +308,17 @@ pub fn run_install_multi(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> i32 {
     if all {
-        return run_for_all_hosts(dry_run, out, stdout, home);
+        return run_for_all_hosts(dry_run, out, stdout, skill_env);
     }
     let Some(host) = host else {
         // Missing host AND missing --all. Emit a hint envelope listing the
         // known hosts and return EXIT_USAGE_ERROR (2).
         return emit_missing_host_envelope(out, stdout);
     };
-    run_install(host, dry_run, out, stdout, home)
+    run_install(host, dry_run, out, stdout, skill_env)
 }
 
 /// Render a per-host envelope sequence as a single multi envelope.
@@ -320,12 +326,12 @@ fn run_for_all_hosts(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-    home: Option<&str>,
+    skill_env: &SkillEnv,
 ) -> i32 {
     let mut installations = Vec::with_capacity(SkillHost::ALL.len());
     let mut worst: i32 = 0;
     for host in SkillHost::ALL {
-        let env = compute_install_envelope(*host, dry_run, home);
+        let env = compute_install_envelope(*host, dry_run, skill_env);
         if env.status == STATUS_ERROR {
             worst = worst.max(env.exit_code.unwrap_or(1));
         }

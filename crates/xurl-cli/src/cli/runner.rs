@@ -40,6 +40,7 @@ use crate::cli::reparse::{
     color_choice, failing_command, lenient_cli, output_intent, parse_without_display_flags,
     raw_choice,
 };
+use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
@@ -84,7 +85,8 @@ where
         .as_deref()
         .filter(|p| !p.is_empty())
         .map_or_else(Config::default_store_path, PathBuf::from);
-    run_with_overrides(args, stdout, stderr, &store_path, &overrides).await
+    let skill_env = crate::cli::env::skill_from_process(&overrides);
+    run_with_env(args, stdout, stderr, &store_path, &overrides, &skill_env).await
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
@@ -115,23 +117,22 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
-    run_with_overrides(
-        args,
-        stdout,
-        stderr,
-        store_path,
-        &crate::cli::env::from_process(),
-    )
-    .await
+    let overrides = crate::cli::env::from_process();
+    let skill_env = crate::cli::env::skill_from_process(&overrides);
+    run_with_env(args, stdout, stderr, store_path, &overrides, &skill_env).await
 }
 
 /// The worker entrypoint — everything [`run_with_store_path`] does, with the
 /// environment supplied as data instead of read from the process.
 ///
-/// This is the only entrypoint that reads no environment variables. The layers
-/// above it exist to resolve the two inputs it cannot invent: the token-store
-/// path and `overrides`. A library consumer that embeds `xr`, or a test that
-/// must stay isolated from whatever else the process is doing, calls this.
+/// This and [`run_with_env`] are the entrypoints that read no environment
+/// variables. The layers above them exist to resolve the inputs they cannot
+/// invent: the token-store path and `overrides`. A library consumer that embeds
+/// `xr`, or a test that must stay isolated from whatever else the process is
+/// doing, calls this.
+///
+/// Skill destinations resolve against `overrides.home` alone: neither
+/// `XURL_SKILL_HOME` nor a host's config-directory variable applies.
 ///
 /// Parse-error behavior matches [`run_with_store_path`], with the output
 /// intent taken from `overrides` rather than `XURL_OUTPUT`.
@@ -141,6 +142,28 @@ pub async fn run_with_overrides<I, S>(
     stderr: &mut dyn Write,
     store_path: &Path,
     overrides: &xdk::config::EnvOverrides,
+) -> i32
+where
+    I: IntoIterator<Item = S>,
+    S: Into<OsString> + Clone,
+{
+    let skill_env = SkillEnv {
+        home: overrides.home.clone(),
+        ..SkillEnv::default()
+    };
+    run_with_env(args, stdout, stderr, store_path, overrides, &skill_env).await
+}
+
+/// [`run_with_overrides`] with the skill-destination environment supplied as
+/// data too: `XURL_SKILL_HOME` and each host's config-directory variable, which
+/// `overrides` does not carry.
+pub async fn run_with_env<I, S>(
+    args: I,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    skill_env: &SkillEnv,
 ) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -229,12 +252,7 @@ where
                 let Some(Commands::Skill { cmd }) = cli.command else {
                     unreachable!("matched Commands::Skill above")
                 };
-                return crate::cli::commands::skill::run_skill(
-                    cmd,
-                    &out,
-                    stdout,
-                    overrides.home.as_deref(),
-                );
+                return crate::cli::commands::skill::run_skill(cmd, &out, stdout, skill_env);
             }
             Commands::Validate { file, schema } => {
                 return crate::cli::commands::validate::run_validate(
