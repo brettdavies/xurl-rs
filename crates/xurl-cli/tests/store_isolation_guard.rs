@@ -48,6 +48,11 @@ const ALLOWLIST: &[Allowed] = &[
         reason: "proves the variable the spawn seam relies on, so it spawns raw on purpose",
     },
     Allowed {
+        file: "crates/xurl-cli/tests/cli_tests.rs",
+        test: "a_base_dir_env_applies_only_while_skill_home_is_unset",
+        reason: "XDG_CONFIG_HOME is the input under test; the child runs --dry-run, so it spawns nothing and writes nothing",
+    },
+    Allowed {
         file: "crates/xurl-cli/tests/golden_tests.rs",
         test: "capture",
         reason: "removes HOME for the home-not-set case, the one envelope that needs no home at all; the skill cases use XURL_SKILL_HOME and the store stays on XURL_TOKEN_STORE",

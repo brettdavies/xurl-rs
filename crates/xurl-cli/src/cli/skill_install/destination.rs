@@ -148,7 +148,7 @@ pub fn check_destination(path: &Path) -> Result<DestinationStatus, InstallError>
 
 #[cfg(test)]
 mod tests {
-    use super::super::{CONFIG_DIR_VARS, base_dir_env};
+    use super::super::{BASE_DIR_VARS, CONFIG_DIR_VARS, base_dir_env};
     use super::*;
 
     #[test]
@@ -289,6 +289,7 @@ mod tests {
         let template = resolve_host(host).1;
         let all_vars: Vec<(&str, &str)> = CONFIG_DIR_VARS
             .iter()
+            .chain(BASE_DIR_VARS)
             .map(|var| (*var, "/elsewhere"))
             .collect();
         let got = env(Some("/home"), None, &all_vars).destination(host);

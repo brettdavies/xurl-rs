@@ -2298,17 +2298,9 @@ fn each_host_config_dir_env_wins_over_skill_home_for_its_own_host() {
     }
 }
 
-/// `host`'s `install_dir` from `skill install <host> --dry-run`, with `vars`
-/// added to the hermetic environment.
-fn dry_run_install_dir(host: &str, vars: &[(&str, &Path)]) -> String {
-    let mut cmd = common::xr();
-    for (key, value) in vars {
-        cmd.env(key, value);
-    }
-    let out = cmd
-        .args(["skill", "install", host, "--dry-run", "--output", "json"])
-        .output()
-        .expect("run xr");
+/// `install_dir` from a `skill install ... --dry-run --output json` run.
+fn install_dir_of(cmd: &mut assert_cmd::Command) -> String {
+    let out = cmd.output().expect("run xr");
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
     v["install_dir"].as_str().expect("install_dir").to_string()
 }
@@ -2322,30 +2314,31 @@ fn a_base_dir_env_applies_only_while_skill_home_is_unset() {
         .iter()
         .next()
         .expect("a host that follows a base-directory variable");
-    let var = entry["var"].as_str().expect("var");
+    assert_eq!(entry["var"], "XDG_CONFIG_HOME", "the variable set below");
     let replaces = entry["replaces"].as_str().expect("replaces");
     let template = install_template(&manifest, host);
     let base = TempDir::new().expect("tempdir");
     let skill_home = TempDir::new().expect("tempdir");
+    let args = ["skill", "install", host, "--dry-run", "--output", "json"];
 
-    // A dry run spawns nothing and writes nothing, so handing the child this
-    // standard variable reaches no other tool.
-    let under_base = dry_run_install_dir(host, &[(var, base.path())]);
+    let under_base = install_dir_of(common::xr().env("XDG_CONFIG_HOME", base.path()).args(args));
     let rest = template
         .strip_prefix(replaces)
         .and_then(|r| r.strip_prefix('/'))
         .expect("replaces is a directory prefix of the template");
     assert_eq!(under_base, base.path().join(rest).to_string_lossy());
 
-    let under_skill_home = dry_run_install_dir(
-        host,
-        &[(var, base.path()), ("XURL_SKILL_HOME", skill_home.path())],
+    let under_skill_home = install_dir_of(
+        common::xr()
+            .env("XDG_CONFIG_HOME", base.path())
+            .env("XURL_SKILL_HOME", skill_home.path())
+            .args(args),
     );
     let home_rest = template.strip_prefix("~/").expect("~/ template");
     assert_eq!(
         under_skill_home,
         skill_home.path().join(home_rest).to_string_lossy(),
-        "XURL_SKILL_HOME replaces the whole home, {var} included"
+        "XURL_SKILL_HOME replaces the whole home, XDG_CONFIG_HOME included"
     );
 }
 
