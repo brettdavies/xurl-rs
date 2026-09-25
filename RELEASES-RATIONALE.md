@@ -278,13 +278,19 @@ version and so the next dev work starts from the released baseline.
 
 The backport is a PR opened by `scripts/sync-dev-after-release.sh`, never a merge of `main` into `dev` and never a
 direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides touched,
-and a direct push to `dev` bypasses its required status checks. The script writes the released version into
-`Cargo.toml`, copies `CHANGELOG.md` from `main`, refreshes every workspace member's `Cargo.lock` entry, and opens the
-PR. The lock is refreshed rather than copied from `main`: a release can move the library beside the binary, so more than
-one member's entry changes, and copying `main`'s lock would revert dependency updates `dev` merged after the release.
-The script refuses to commit a lock that `cargo build --locked` rejects. The postflight backport gate treats that merged
-PR as the durable signal that the backport ran. Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of
-the copy, so the backport cannot remove it.
+and a direct push to `dev` bypasses its required status checks. The script writes the released version into the binary
+crate's `Cargo.toml`, copies each crate's changelog from `main`, adopts the other paths the release branch edited,
+refreshes every workspace member's `Cargo.lock` entry, and opens the PR. The lock is refreshed rather than copied from
+`main`: a release can move the library beside the binary, so more than one member's entry changes, and copying `main`'s
+lock would revert dependency updates `dev` merged after the release. The script refuses to commit a lock that `cargo
+build --locked` rejects. The postflight backport gate treats that merged PR as the durable signal that the backport ran.
+Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of the copy, so the backport cannot remove it.
+
+The other paths are discovered rather than listed. A release branch is edited for reasons nobody predicts (a doc fix, a
+reverted payload, a deleted config), and a fixed list misses each such edit silently until the next release's overlay
+restores `dev`'s copy over it. Discovery is bounded by the previous `v*` tag, the last point the branches agreed: a path
+`dev` left alone since then is release-prep and adopted, and a path `dev` also changed is contested and withheld unless
+the operator names it, so widening the copy cannot revert `dev`'s unreleased work.
 
 ### Rollback
 
