@@ -113,6 +113,26 @@ from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
 
+## Skill install
+
+### Skill host
+
+A coding-agent tool whose user skills directory `xr` can clone its agent-facing skill bundle into. Where a host
+documents a variable that relocates its configuration directory, `xr` honors it; a host that documents none resolves its
+skill destination from the home directory or the stand-in the operator names for it.
+
+### Skill destination
+
+The directory the skill bundle lands in for one skill host. It resolves, highest first, from the host's own
+configuration-directory variable, the skill home (a directory the operator names to stand in for the home directory in
+skill destinations only), a standard base-directory variable the host follows, and the home directory; an empty value
+counts as unset.
+
+The skill home outranks base-directory variables because it replaces the whole home while they describe parts of the
+real one, which keeps a sandboxed install inside its sandbox on machines that set those variables globally. A host can
+also have a legacy location it still reads but `xr` no longer installs to: an update removes a copy found there and
+installs at the destination, and an install reports the copy and leaves it in place.
+
 ## Published surface
 
 ### Public API gate
