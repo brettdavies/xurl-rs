@@ -552,6 +552,114 @@ fn test_validate_subcommand_appears_in_help() {
     );
 }
 
+// ── Every non-interactive example runs as written ─────────────────────
+
+/// The stdout of `xr <args>`, one help or examples page.
+fn page(args: &[String]) -> String {
+    let output = common::xr().args(args).output().unwrap();
+    assert!(output.status.success(), "xr {args:?} failed");
+    String::from_utf8(output.stdout).unwrap()
+}
+
+/// The commands that confirm a destructive op before running it. Under
+/// `--no-interactive` each one refuses unless `--force` confirms the op.
+const CONFIRMED_COMMANDS: &[&str] = &["delete", "auth clear", "auth apps remove"];
+
+/// Each command that confirms a destructive op is on the list above, so a new
+/// one cannot escape the example check below.
+#[test]
+fn every_confirmed_command_is_listed() {
+    let call_sites: usize = common::workspace_sources()
+        .iter()
+        .map(|file| {
+            let source = std::fs::read_to_string(file).unwrap();
+            source.matches("gate_destructive(").count()
+                - source.matches("fn gate_destructive(").count()
+        })
+        .sum();
+    assert_eq!(
+        call_sites,
+        CONFIRMED_COMMANDS.len(),
+        "the number of commands calling gate_destructive changed; update CONFIRMED_COMMANDS"
+    );
+}
+
+/// An example of a confirmed command that passes `--no-interactive` is the
+/// invocation an agent or a CI job copies verbatim, so each one, on the
+/// examples page or in any command's help, runs to exit 0 under `--dry-run`
+/// rather than stopping at a confirmation nobody can answer.
+#[test]
+fn every_non_interactive_example_of_a_confirmed_command_runs_under_dry_run() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
+    ts.add_app("my-app", "CLIENT-ID", "SECRET").unwrap();
+
+    let mut pages = vec![page(&["examples".to_string()])];
+    for mut path in common::command_paths() {
+        path.push("--help".to_string());
+        pages.push(page(&path));
+    }
+    let examples: std::collections::BTreeSet<&str> = pages
+        .iter()
+        .flat_map(|p| p.lines())
+        .map(str::trim)
+        .filter(|line| {
+            line.contains(" --no-interactive")
+                && CONFIRMED_COMMANDS
+                    .iter()
+                    .any(|command| line.starts_with(&format!("xr {command} ")))
+        })
+        .collect();
+    let missing: Vec<&str> = CONFIRMED_COMMANDS
+        .iter()
+        .copied()
+        .filter(|command| {
+            !examples
+                .iter()
+                .any(|line| line.starts_with(&format!("xr {command} ")))
+        })
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "no --no-interactive example shows these confirmed commands: {missing:?}"
+    );
+
+    let failing: Vec<String> = examples
+        .iter()
+        .filter_map(|line| {
+            assert!(
+                !line.contains(['"', '\'', '|', '$']),
+                "this example needs shell parsing, which the test does not do: {line}"
+            );
+            let args: Vec<&str> = line
+                .split_whitespace()
+                .skip(1)
+                .chain(["--dry-run"])
+                .collect();
+            // A request that slips past the dry run fails fast on a refused
+            // port instead of reaching the live API.
+            let output = common::xr_with_store(&store)
+                .env("API_BASE_URL", "http://127.0.0.1:9")
+                .args(&args)
+                .output()
+                .unwrap();
+            (!output.status.success()).then(|| {
+                format!(
+                    "{line} --dry-run exited {:?}: {}",
+                    output.status.code(),
+                    String::from_utf8_lossy(&output.stderr).trim()
+                )
+            })
+        })
+        .collect();
+    assert!(
+        failing.is_empty(),
+        "these examples fail as written; a confirmed command under --no-interactive needs --force:\n{}",
+        failing.join("\n")
+    );
+}
+
 // ── Every command family appears on the examples page ─────────────────
 
 /// True when `line` shows an invocation of `xr <family>`, whatever precedes

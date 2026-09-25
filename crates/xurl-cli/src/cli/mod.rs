@@ -156,8 +156,8 @@ Examples:
     xr delete 1585341984679469056
   Delete with JSON envelope:
     xr delete 1585341984679469056 --output json
-  Delete in a non-interactive context (CI, agent):
-    xr delete 1585341984679469056 --no-interactive --output json
+  Delete in a non-interactive context (CI, agent); --force confirms it:
+    xr delete 1585341984679469056 --force --no-interactive --output json
 ";
 
 /// `xr read` examples — paired text + JSON, plus a pipe-to-jaq invocation.
@@ -576,8 +576,8 @@ Examples:
     xr auth clear --bearer --output json
   Clear a single OAuth2 user:
     xr auth clear --oauth2-username alice --output json
-  Non-interactive, fail without an explicit selector:
-    xr auth clear --all --no-interactive --output json
+  Non-interactive (CI, agent); --force confirms it:
+    xr auth clear --all --force --no-interactive --output json
 ";
 
 /// `xr auth apps` parent help — points to subcommands.
@@ -638,8 +638,8 @@ Examples:
     xr auth apps remove my-app
   Remove (JSON envelope):
     xr auth apps remove my-app --output json
-  Non-interactive removal in CI:
-    xr auth apps remove my-app --no-interactive --output json
+  Non-interactive removal in CI; --force confirms it:
+    xr auth apps remove my-app --force --no-interactive --output json
 ";
 
 /// `xr auth apps list` — paired text + JSON.
@@ -932,8 +932,10 @@ pub struct Cli {
 
     /// Global result-set limit, clamped to 1..=100 (U7).
     ///
-    /// Applies to every list-style command. The per-command `-n/--max-results`
-    /// flag takes precedence when both are set.
+    /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
+    /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
+    /// ignore it. The per-command `-n/--max-results` flag takes precedence when
+    /// both are set.
     #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 
@@ -944,7 +946,8 @@ pub struct Cli {
     /// the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`).
     /// Threads through to the `pagination_token` query parameter on every
     /// `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`,
-    /// `followers`, and `dms` invocation.
+    /// `followers`, `muted`, `blocked`, and `dms` invocation; other commands
+    /// ignore it.
     #[arg(
         long = "cursor",
         global = true,

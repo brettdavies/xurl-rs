@@ -48,8 +48,8 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 \"Worth a read.\" --output json
 
-  Delete a post by ID (confirms unless --no-interactive):
-    xr delete 1585341984679469056 --no-interactive --output json
+  Delete a post by ID without a prompt (--force confirms it):
+    xr delete 1585341984679469056 --force --no-interactive --output json
 
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
