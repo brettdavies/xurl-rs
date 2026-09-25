@@ -365,12 +365,24 @@ scripts/sync-dev-after-release.sh v3.0.0
 ```
 
 The script cuts a `chore/sync-dev-after-v3.0.0` branch, writes the released version into `crates/xurl-cli/Cargo.toml`,
-copies the crate's `CHANGELOG.md` from `main`, refreshes every workspace member's `Cargo.lock` entry from the synced
-manifests (refusing a lock that `cargo build --locked` rejects), and opens a PR against `dev` with the version in its
-title; merge it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge `main`
-into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge conflicts on
-every file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content (`CONCEPTS.md`, the
-engineering docs) is never part of the copy, so the sync cannot remove it.
+copies each crate's changelog from `main` verbatim (`crates/xurl-cli/CHANGELOG.md`, `crates/xdk/CHANGELOG.md`), adopts
+the release-prep paths it discovers, refreshes every workspace member's `Cargo.lock` entry from the synced manifests
+(refusing a lock that `cargo build --locked` rejects), and opens a PR against `dev` with the version in its title; merge
+it once CI is green. `scripts/release/postflight.sh backport` gates on that merged PR. Never merge `main` into `dev` or
+push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge conflicts on every file both
+sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content (`CONCEPTS.md`, the engineering
+docs) is never part of the copy, so the sync cannot remove it.
+
+Discovery compares `origin/dev` with `origin/main` and classifies every differing path against the previous `v*` tag,
+the last point the two branches agreed. A path `dev` has not touched since that tag is release-prep and is adopted. A
+path `dev` has also changed since that tag is contested: the script lists it and leaves it out. `--only PATH`
+(repeatable) narrows the adopted set to the paths you name, release-prep or contested, and `--include-contested` adopts
+every contested path. Guarded paths (`scripts/release/guarded-paths.sh`) never enter either list. `--dry-run` prints the
+contested paths and the paths it would sync, then ends on `dev` with no branch created and the tree clean. The lock
+refresh runs offline against the local registry cache, so a crate missing from it stops the run with exit 70 before
+anything is committed; `cargo fetch` fills the cache. After the commit, when the sync carried
+`crates/xurl-cli/CHANGELOG.md`, the script re-runs `scripts/generate-changelog.py --dry-run` and, if that does not pass,
+warns with the generator's own reason line.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 

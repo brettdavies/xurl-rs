@@ -94,9 +94,12 @@ Run immediately after the tag push triggers `release.yml`.
   `main` flow so `main` reconverges with what is live.
 - [ ] **Sync `dev` with the release** via a **merged PR to `dev` carrying the released tag in its title.**
   `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into
-  `crates/xurl-cli/Cargo.toml`, copies `CHANGELOG.md` from `main`, refreshes every workspace member's `Cargo.lock` entry
-  from the synced manifests, and opens the PR; merge it once CI is green. Keeps the next release's PREFLIGHT `diff-B`
-  step quiet so a real missed change stands out instead of hiding in expected divergence noise.
+  `crates/xurl-cli/Cargo.toml`, copies each crate's changelog from `main`, adopts the release-prep paths it discovers
+  since the previous tag, refreshes every workspace member's `Cargo.lock` entry from the synced manifests, and opens the
+  PR; merge it once CI is green. Contested paths, which `dev` also changed, are listed and left out unless named with
+  `--only PATH` or taken with `--include-contested`; `--dry-run` previews what it adopts and withholds, with no branch
+  ([`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)). Keeps the next release's
+  PREFLIGHT `diff-B` step quiet so a real missed change stands out instead of hiding in expected divergence noise.
 
   The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it searches merged PRs
   to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either

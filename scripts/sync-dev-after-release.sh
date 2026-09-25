@@ -120,7 +120,8 @@ if ! git rev-parse --verify --quiet "refs/tags/$VERSION" >/dev/null; then
 fi
 
 # Verify main is at or past the tag (i.e. release/* actually merged).
-TAG_SHA="$(git rev-parse "$VERSION")"
+# Peeled, since an annotated tag names a tag object, not the released commit.
+TAG_SHA="$(git rev-parse "$VERSION^{commit}")"
 if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
   echo "error: tag $VERSION is not reachable from origin/main -- wait for release/v* to merge" >&2
   exit 66
@@ -162,15 +163,29 @@ BRANCH_IS_OURS=false
 
 restore_dev() {
   git switch dev
-  [[ "$BRANCH_IS_OURS" == true ]] && git branch -D "$SYNC_BRANCH"
+  if [[ "$BRANCH_IS_OURS" == true ]]; then
+    git branch -D "$SYNC_BRANCH"
+    BRANCH_IS_OURS=false
+  fi
   return 0
 }
 
 # Discovery copies main's versions in to compare them, which stages as well as
-# writes, so both have to come back for an exit before the commit to leave no
-# trace.
+# writes, so an exit before the commit puts every synced path back to dev's
+# copy. A path dev lacks was created by this run and is removed, along with any
+# directory that held only it; a single restore of the whole list would refuse
+# a created path git has never seen and restore nothing.
 discard_sync() {
-  git restore --staged --worktree -- "${SYNC_PATHS[@]}" 2>/dev/null || true
+  local path
+  for path in ${SYNC_PATHS[@]+"${SYNC_PATHS[@]}"}; do
+    if git cat-file -e "$DEV_HEAD:$path" 2>/dev/null; then
+      git restore --source="$DEV_HEAD" --staged --worktree -- "$path"
+    else
+      git rm --quiet --cached --ignore-unmatch -- "$path"
+      rm -f -- "$path"
+      [[ "$path" == */* ]] && { rmdir -p "${path%/*}" 2>/dev/null || true; }
+    fi
+  done
   restore_dev
 }
 
@@ -190,6 +205,12 @@ if [[ "$DRY_RUN" == false ]]; then
   BRANCH_IS_OURS=true
 fi
 
+# From the first write to the commit, every exit leaves dev as it was found,
+# including one `set -e` takes on an unexpected failure.
+DEV_HEAD="$(git rev-parse HEAD)"
+SYNC_PATHS=()
+trap discard_sync EXIT
+
 # Writes VERSION_NO_V into the first `version = "..."` line of a TOML file,
 # or the first `"version": "..."` entry of a JSON file, in place and without
 # reformatting anything else.
@@ -207,7 +228,6 @@ set_version_line() {
 # Every version carrier present gets the released number; the release commit
 # on main bumped each of them. Cargo.lock is listed here so discovery below
 # never copies main's, but it is written only once every manifest is synced.
-SYNC_PATHS=()
 if [[ -f Cargo.toml ]]; then
   set_version_line "$(release_manifest)"
   SYNC_PATHS+=("$(release_manifest)")
@@ -356,21 +376,19 @@ for path in ${DISCOVERED[@]+"${DISCOVERED[@]}"}; do
 done
 
 # Cargo.lock records every workspace member's version, and a release can move
-# more than the binary's: a library bump beside it arrives through discovery
-# as another member's manifest. Refresh the members' entries from the synced
-# manifests rather than copying main's lock, which would revert dependency
-# updates dev merged after the release, and refuse to commit a lock that
-# `cargo build --locked` rejects.
+# more than the released crate's: a sibling member's bump arrives through
+# discovery as that member's manifest. Refresh the members' entries from the
+# synced manifests rather than copying main's lock, which would revert
+# dependency updates dev merged after the release, and refuse to commit a lock
+# that `cargo build --locked` rejects.
 if [[ -f Cargo.lock ]]; then
   if ! have_bin cargo; then
     echo "error: cargo not on PATH -- Cargo.lock cannot be synced to the manifests; nothing was committed" >&2
-    discard_sync
     exit 69
   fi
   if ! cargo update --workspace --offline --quiet \
     || ! cargo metadata --locked --offline --format-version 1 >/dev/null; then
     echo "error: Cargo.lock does not resolve against the synced manifests; nothing was committed" >&2
-    discard_sync
     exit 70
   fi
 fi
@@ -383,7 +401,6 @@ fi
 # already staged and leaves the worktree clean.
 if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]] && git diff --cached --quiet; then
   echo "no changes -- dev already in sync with $VERSION"
-  restore_dev
   exit 0
 fi
 
@@ -392,7 +409,6 @@ printf '  %s\n' "${SYNC_PATHS[@]}"
 
 if [[ "$DRY_RUN" == true ]]; then
   echo "dry run -- no branch, commit, or PR created"
-  discard_sync
   exit 0
 fi
 
@@ -414,21 +430,30 @@ verbatim from origin/main when main carries one.
 Synced: ${SYNC_PATHS[*]}
 EOF
 git commit --file "$COMMIT_MSG_FILE"
+trap - EXIT
 rm -f "$COMMIT_MSG_FILE"
 
 # Post-sync sanity check: re-running generate-changelog.py against the current
-# PR bodies should produce an identical CHANGELOG.md. Drift here means upstream
-# PR bodies were edited after main's CHANGELOG.md was generated -- the
-# backport brought the stale CHANGELOG over, and a future release-branch
-# regen will surface unexpected diffs. Warn, do not fail; the backport is
-# still correct against what main currently has.
-if [[ -x scripts/generate-changelog.py ]] && command -v git-cliff >/dev/null 2>&1; then
-  if scripts/generate-changelog.py --dry-run --tag "$VERSION" >/dev/null 2>&1; then
+# PR bodies should produce an identical CHANGELOG.md. It fails when upstream PR
+# bodies were edited after main's CHANGELOG.md was generated, when something
+# rewrapped the generated file, or when the generator cannot run at all, and
+# only the generator knows which, so its own reason line is what the warning
+# carries. With no changelog in this sync there is nothing to compare. Warn, do
+# not fail; the backport is still correct against what main currently has.
+#
+# The reason is the generator's `DRY RUN:` or `error:` line, else its last
+# line, since a crash's traceback ends with the exception.
+regen_reason() {
+  awk '/^(DRY RUN|error):/ { print; found = 1; exit } NF { last = $0 } END { if (!found) print last }'
+}
+
+if _already_synced "$(release_changelog)" \
+  && [[ -x scripts/generate-changelog.py ]] && command -v git-cliff >/dev/null 2>&1; then
+  if regen_err="$(scripts/generate-changelog.py --dry-run --tag "$VERSION" 2>&1 >/dev/null)"; then
     echo "regen check: CHANGELOG.md matches what PR bodies would produce"
   else
-    echo "warning: PR bodies have drifted from main's CHANGELOG.md for $VERSION" >&2
-    echo "  re-run 'scripts/generate-changelog.py --dry-run --tag $VERSION' to see the diff" >&2
-    echo "  fix by regenerating CHANGELOG.md on a follow-up release branch" >&2
+    echo "warning: regen check did not pass for $VERSION: $(regen_reason <<<"$regen_err")" >&2
+    echo "  re-run 'scripts/generate-changelog.py --dry-run --tag $VERSION' for its full output" >&2
   fi
 fi
 
@@ -448,7 +473,7 @@ trap 'rm -f "$PR_BODY_FILE"' EXIT
 TAG_SHORT="$(git rev-parse --short "$TAG_SHA")"
 # Backticks below are markdown code spans in the PR body, not expansions.
 # shellcheck disable=SC2016
-SYNC_LIST="$(printf '\`%s\`, ' "${SYNC_PATHS[@]}")"
+SYNC_LIST="$(printf '`%s`, ' "${SYNC_PATHS[@]}")"
 SYNC_LIST="${SYNC_LIST%, }"
 # shellcheck disable=SC2016
 SYNC_BULLETS="$(for f in "${SYNC_PATHS[@]}"; do
