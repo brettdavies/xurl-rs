@@ -31,6 +31,13 @@
           "description": "Resolved destination path, with `~` expanded or a host config- or\nbase-directory variable applied.",
           "type": "string"
         },
+        "legacy_install_dir": {
+          "description": "A copy of the bundle found at a location other than `install_dir` that\nthe host still reads, such as Codex's deprecated `~/.codex/skills`.\n`skill update` removes it and installs at `install_dir`; `skill\ninstall` leaves it in place.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "reason": {
           "description": "Kebab-case error reason from [`InstallError::reason`]; `None` on success.",
           "type": [

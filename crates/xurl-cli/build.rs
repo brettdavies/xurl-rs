@@ -1,7 +1,7 @@
 //! Build script. Codegen `SkillHost` enum, `KNOWN_HOSTS` const,
-//! `resolve_host` / `host_envelope_str` / `config_dir_env` / `base_dir_env`
-//! functions, `CONFIG_DIR_VARS`, `BASE_DIR_VARS`, and the root help's
-//! host-variable lines from `src/cli/skill_install/skill.json`.
+//! `resolve_host` / `host_envelope_str` / `config_dir_env` / `base_dir_env` /
+//! `legacy_destination` functions, `CONFIG_DIR_VARS`, `BASE_DIR_VARS`, and the
+//! root help's host-variable lines from `src/cli/skill_install/skill.json`.
 //!
 //! The JSON file is the single source of truth — updating it regenerates the
 //! consuming Rust module on the next `cargo build` (via
@@ -35,7 +35,9 @@ fn main() {
 ///   `ENVIRONMENT VARIABLES` line in `$OUT_DIR/skill_env_help.txt`;
 /// - a match arm in `base_dir_env(SkillHost)` from the host's optional
 ///   `base_dir_env` entry, with its variable in `BASE_DIR_VARS` and a help
-///   line of its own.
+///   line of its own;
+/// - a match arm in `legacy_destination(SkillHost)` from the host's optional
+///   `legacy_destinations` entry.
 ///
 /// Each install command MUST have the canonical shape
 /// `git clone --depth 1 <url> <dest>` — six whitespace-separated tokens.
@@ -109,6 +111,7 @@ fn emit_skill_hosts(manifest_dir: &Path) {
     let mut seen_vars: Vec<String> = Vec::new();
     let config_dirs = parse_config_dir_env(&manifest, &hosts, &mut seen_vars, &skill_json_path);
     let base_dirs = parse_base_dir_env(&manifest, &hosts, &mut seen_vars, &skill_json_path);
+    let legacy = parse_legacy_destinations(&manifest, &hosts, &skill_json_path);
 
     let mut src = String::new();
     src.push_str(
@@ -213,6 +216,22 @@ fn emit_skill_hosts(manifest_dir: &Path) {
         ],
         "Every base-directory variable, in the JSON-key order of its host.",
     );
+
+    src.push_str("/// A `~`-prefixed location other than the destination where `host` still\n");
+    src.push_str("/// reads skills, so `skill update` removes a copy of the bundle found there;\n");
+    src.push_str("/// `None` for a host with no such location.\n");
+    src.push_str("pub fn legacy_destination(host: SkillHost) -> Option<&'static str> {\n");
+    src.push_str("    match host {\n");
+    for ((_, variant, _, _), entry) in hosts.iter().zip(&legacy) {
+        match entry {
+            Some(path) => src.push_str(&format!(
+                "        SkillHost::{variant} => Some({path:?}),\n"
+            )),
+            None => src.push_str(&format!("        SkillHost::{variant} => None,\n")),
+        }
+    }
+    src.push_str("    }\n");
+    src.push_str("}\n");
 
     // One `ENVIRONMENT VARIABLES` line per variable, spliced into the root help
     // so the help cannot fall behind the manifest.
@@ -437,6 +456,42 @@ fn parse_base_dir_env(
             });
             require_source(section, key, entry, path);
             Some(parse_var(section, key, entry, dest, seen, path))
+        })
+        .collect()
+}
+
+/// Parse and vet the manifest's optional `legacy_destinations` map, returning
+/// each host's `path` in the order of `hosts`. An entry names a `~/` path other
+/// than the host's destination, the `source` showing the host still reads it,
+/// and a `note`.
+fn parse_legacy_destinations(
+    manifest: &serde_json::Value,
+    hosts: &[(String, String, String, String)],
+    path: &Path,
+) -> Vec<Option<String>> {
+    let section = "legacy_destinations";
+    let Some(map) = host_map(manifest, section, false, hosts, path) else {
+        return vec![None; hosts.len()];
+    };
+    hosts
+        .iter()
+        .map(|(key, _, _, dest)| {
+            let entry = map.get(key)?.as_object().unwrap_or_else(|| {
+                panic!("{}: {section}.{key:?} must be an object", path.display())
+            });
+            require_source(section, key, entry, path);
+            let legacy = entry.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            let note = entry.get("note").and_then(|v| v.as_str()).unwrap_or("");
+            if !legacy.starts_with("~/") || legacy.ends_with('/') || legacy == dest {
+                panic!(
+                    "{}: {section}.{key:?}.path {legacy:?} must be a ~/ path other than the destination",
+                    path.display()
+                );
+            }
+            if note.trim().is_empty() {
+                panic!("{}: {section}.{key:?} needs a note", path.display());
+            }
+            Some(legacy.to_string())
         })
         .collect()
 }

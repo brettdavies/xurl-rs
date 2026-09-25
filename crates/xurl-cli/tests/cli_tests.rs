@@ -2349,6 +2349,55 @@ fn a_base_dir_env_applies_only_while_skill_home_is_unset() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn skill_update_removes_a_legacy_copy_before_installing() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let manifest = skill_manifest();
+    let (host, entry) = manifest["legacy_destinations"]
+        .as_object()
+        .expect("legacy_destinations map")
+        .iter()
+        .next()
+        .expect("a host with a legacy location");
+    let skill_home = TempDir::new().expect("tempdir");
+    let legacy = skill_home.path().join(
+        entry["path"]
+            .as_str()
+            .and_then(|path| path.strip_prefix("~/"))
+            .expect("a ~/ path"),
+    );
+    std::fs::create_dir_all(&legacy).expect("create the legacy copy");
+    std::fs::write(legacy.join("SKILL.md"), b"").expect("a file in the copy");
+
+    // A `git` that refuses every clone, ahead of the real one, so the run
+    // never reaches the network.
+    let shim = TempDir::new().expect("tempdir");
+    let git = shim.path().join("git");
+    std::fs::write(&git, "#!/bin/sh\nexit 128\n").expect("git shim");
+    std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755)).expect("executable");
+    let inherited = std::env::var_os("PATH").unwrap_or_default();
+    let path = std::env::join_paths(
+        std::iter::once(shim.path().to_path_buf()).chain(std::env::split_paths(&inherited)),
+    )
+    .expect("PATH");
+
+    let out = common::xr()
+        .env("XURL_SKILL_HOME", skill_home.path())
+        .env("PATH", path)
+        .args(["skill", "update", host, "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
+    assert!(!legacy.exists(), "update removes the legacy copy: {v}");
+    assert_eq!(
+        v["legacy_install_dir"].as_str(),
+        Some(legacy.to_string_lossy().as_ref())
+    );
+    assert_eq!(v["reason"], "git-clone-failed");
+}
+
 #[test]
 fn an_empty_host_config_dir_env_falls_through_to_skill_home() {
     let manifest = skill_manifest();

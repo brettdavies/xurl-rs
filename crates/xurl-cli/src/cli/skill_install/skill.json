@@ -11,7 +11,7 @@
   },
   "install": {
     "claude_code": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.claude/skills/xurl-rs",
-    "codex": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.codex/skills/xurl-rs",
+    "codex": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.agents/skills/xurl-rs",
     "cursor": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.cursor/skills/xurl-rs",
     "factory": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.factory/skills/xurl-rs",
     "kiro": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git ~/.kiro/skills/xurl-rs",
@@ -24,9 +24,9 @@
       "source": "https://code.claude.com/docs/en/claude-directory"
     },
     "codex": {
-      "var": "CODEX_HOME",
-      "replaces": "~/.codex",
-      "source": "https://developers.openai.com/codex/config-advanced"
+      "var": null,
+      "source": "https://developers.openai.com/codex/skills",
+      "note": "Codex reads user skills from $HOME/.agents/skills, which no variable relocates; CODEX_HOME moves only the deprecated $CODEX_HOME/skills location."
     },
     "cursor": {
       "var": null,
@@ -54,6 +54,13 @@
       "var": "XDG_CONFIG_HOME",
       "replaces": "~/.config",
       "source": "https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts"
+    }
+  },
+  "legacy_destinations": {
+    "codex": {
+      "path": "~/.codex/skills/xurl-rs",
+      "source": "https://github.com/openai/codex/blob/main/codex-rs/ext/skills/src/host_roots.rs",
+      "note": "Codex still reads this deprecated location, so a copy here appears beside the one at the destination."
     }
   },
   "update": "cd <install-dir> && git pull --ff-only",

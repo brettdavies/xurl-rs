@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12911
+stdout_len: 12805
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -269,7 +269,6 @@ ENVIRONMENT VARIABLES:
   XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
   XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
   CLAUDE_CONFIG_DIR      Stands in for ~/.claude in the claude_code skill destination; wins over XURL_SKILL_HOME
-  CODEX_HOME             Stands in for ~/.codex in the codex skill destination; wins over XURL_SKILL_HOME
   KIRO_HOME              Stands in for ~/.kiro in the kiro skill destination; wins over XURL_SKILL_HOME
   OPENCODE_CONFIG_DIR    Stands in for ~/.config/opencode in the opencode skill destination; wins over XURL_SKILL_HOME
   XDG_CONFIG_HOME        Stands in for ~/.config in the opencode skill destination when XURL_SKILL_HOME is unset

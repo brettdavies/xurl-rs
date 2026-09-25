@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "update", "--all"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 0
-stdout_len: 2421
+stdout_len: 2423
 stderr_len: 0
 --- stdout ---
 {
@@ -22,8 +22,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "codex",
-      "install_dir": "{{SKILL_HOME}}/.codex/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.codex/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.agents/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.agents/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,

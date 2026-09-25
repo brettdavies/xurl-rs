@@ -15,8 +15,9 @@ use super::{
 };
 
 /// Resolve one host's update outcome without emitting it. Removes the existing
-/// destination and re-runs the install unless `dry_run` is set, so the returned
-/// envelope reports what actually happened.
+/// destination, and any copy at the host's legacy location, then re-runs the
+/// install unless `dry_run` is set, so the returned envelope reports what
+/// actually happened.
 ///
 /// The `action` field is `"skill-update"` so a consumer can tell update from
 /// install at the JSON layer. Every other field mirrors the install envelope,
@@ -45,6 +46,7 @@ fn compute_update_envelope(
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
+                legacy_install_dir: None,
             };
         }
         Err(_) => unreachable!("expand_tilde_with only emits MissingHome"),
@@ -53,6 +55,8 @@ fn compute_update_envelope(
     let dest_display = dest.display().to_string();
     let command_preview = format_clone_command(url, &dest_display);
     let dest_exists = dest.exists();
+    let legacy = skill_env.legacy_copy(host);
+    let legacy_install_dir = legacy.as_ref().map(|path| path.display().to_string());
     let dest_label = if dest_exists {
         DestinationStatus::NonEmptyDir.as_envelope_str()
     } else {
@@ -72,11 +76,16 @@ fn compute_update_envelope(
             would_succeed: Some(true),
             exit_code: Some(0),
             reason: None,
+            legacy_install_dir,
         };
     }
 
-    if dest_exists && let Err(e) = fs::remove_dir_all(&dest) {
-        let _ = e;
+    let to_remove = [dest_exists.then_some(dest.as_path()), legacy.as_deref()];
+    if to_remove
+        .into_iter()
+        .flatten()
+        .any(|dir| fs::remove_dir_all(dir).is_err())
+    {
         return InstallEnvelope {
             action: ACTION_UPDATE,
             host: host_str,
@@ -87,11 +96,13 @@ fn compute_update_envelope(
             would_succeed: None,
             exit_code: Some(1),
             reason: Some("remove-failed"),
+            legacy_install_dir,
         };
     }
 
     let mut env = compute_install_envelope(host, false, skill_env);
     env.action = ACTION_UPDATE;
+    env.legacy_install_dir = legacy_install_dir;
     env
 }
 
@@ -114,12 +125,15 @@ fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
         would_succeed: None,
         exit_code: Some(0),
         reason: Some(REASON_NOT_INSTALLED),
+        legacy_install_dir: None,
     }
 }
 
-/// Whether a host currently has something to update.
+/// Whether a host currently has something to update, at its destination or
+/// its legacy location.
 fn is_installed(host: SkillHost, skill_env: &SkillEnv) -> bool {
     skill_env.destination(host).is_ok_and(|dest| dest.exists())
+        || skill_env.legacy_copy(host).is_some()
 }
 
 /// Run the update pipeline for a single host and emit its envelope.
@@ -191,7 +205,7 @@ pub fn run_update_multi(
 mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
-    use crate::cli::skill_install::expand_tilde_with;
+    use crate::cli::skill_install::{expand_tilde_with, legacy_destination};
     use tempfile::TempDir;
 
     fn first_host() -> SkillHost {
@@ -204,6 +218,34 @@ mod tests {
             home: home.path().to_str().map(String::from),
             ..SkillEnv::default()
         }
+    }
+
+    /// The first host with a legacy location, with a copy created there under
+    /// `home`.
+    fn host_with_legacy_copy(home: &TempDir) -> (SkillHost, std::path::PathBuf) {
+        let host = SkillHost::ALL
+            .iter()
+            .copied()
+            .find(|&host| legacy_destination(host).is_some())
+            .expect("a host with a legacy location");
+        let legacy = expand_tilde_with(
+            legacy_destination(host).expect("found above"),
+            home.path().to_str(),
+        )
+        .expect("home is set in the test");
+        std::fs::create_dir_all(&legacy).expect("create the legacy copy");
+        (host, legacy)
+    }
+
+    #[test]
+    fn a_legacy_copy_counts_as_installed_and_a_dry_run_names_it() {
+        let home = TempDir::new().expect("tempdir");
+        let (host, legacy) = host_with_legacy_copy(&home);
+
+        assert!(is_installed(host, &at(&home)));
+        let env = compute_update_envelope(host, true, &at(&home));
+        assert_eq!(env.legacy_install_dir.as_deref(), legacy.to_str());
+        assert!(legacy.exists(), "a dry run removes nothing");
     }
 
     #[test]

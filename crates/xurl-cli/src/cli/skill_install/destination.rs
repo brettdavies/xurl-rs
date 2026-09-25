@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::{InstallError, SkillHost, base_dir_env, config_dir_env, resolve_host};
+use super::{
+    InstallError, SkillHost, base_dir_env, config_dir_env, legacy_destination, resolve_host,
+};
 
 /// The environment a skill destination resolves against, as data.
 ///
@@ -38,6 +40,20 @@ impl SkillEnv {
             return Ok(dir);
         }
         expand_tilde_with(template, self.home.as_deref())
+    }
+
+    /// The copy of the bundle at `host`'s legacy location, when one exists.
+    /// That location expands against `skill_home`, then `home`; no host
+    /// variable relocates it.
+    pub fn legacy_copy(&self, host: SkillHost) -> Option<PathBuf> {
+        let template = legacy_destination(host)?;
+        let base = self
+            .skill_home
+            .as_deref()
+            .filter(|dir| !dir.is_empty())
+            .or(self.home.as_deref());
+        let path = expand_tilde_with(template, base).ok()?;
+        path.exists().then_some(path)
     }
 
     /// `template` with the `(var, replaces)` prefix swapped for `var`'s value,
