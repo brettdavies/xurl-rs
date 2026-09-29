@@ -1720,7 +1720,7 @@
           },
           "segment_index": {
             "description": "The index of this segment in the upload sequence.",
-            "maximum": 999,
+            "maximum": 9999,
             "minimum": 0,
             "type": "integer"
           }
@@ -3832,7 +3832,8 @@
           }
         },
         "required": [
-          "id"
+          "id",
+          "metadata"
         ],
         "type": "object"
       },
@@ -3886,6 +3887,11 @@
             "description": "The subtitle tracks to associate with the media."
           }
         },
+        "required": [
+          "id",
+          "media_category",
+          "subtitles"
+        ],
         "type": "object"
       },
       "CreateMediaSubtitlesResponse": {
