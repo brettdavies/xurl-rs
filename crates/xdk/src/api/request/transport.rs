@@ -54,11 +54,12 @@ impl Client {
 
         let mut builder = self.http().request(req_method, &url).timeout(timeout);
 
-        // Add body for POST/PUT/PATCH. Content-Type is the client's auto-detect
-        // unless the caller already supplied one; the body itself is always
-        // attached regardless.
+        // Add body for POST/PUT/PATCH/DELETE; the spec gives some DELETE
+        // endpoints a required body (`/2/media/subtitles`, `/2/connections`).
+        // Content-Type is the client's auto-detect unless the caller already
+        // supplied one; the body itself is always attached regardless.
         let would_set_content_type =
-            !options.data.is_empty() && (method == "POST" || method == "PUT" || method == "PATCH");
+            !options.data.is_empty() && matches!(method, "POST" | "PUT" | "PATCH" | "DELETE");
         if would_set_content_type {
             if !user_supplied_header(&options.headers, "Content-Type") {
                 let content_type =

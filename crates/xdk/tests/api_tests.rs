@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use rstest::rstest;
 use tempfile::TempDir;
-use wiremock::matchers::{method, path, path_regex, query_param};
+use wiremock::matchers::{body_json, method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use std::collections::HashMap;
@@ -439,6 +439,36 @@ async fn test_build_request_post() {
 
     let resp = client.send_request(&opts).await.unwrap();
     assert_eq!(resp["data"]["text"], "Hello world!");
+}
+
+#[tokio::test]
+async fn test_build_request_delete_sends_its_json_body() {
+    use wiremock::matchers::header;
+    let ts = TestServer::new().await;
+    ts.mount(
+        Mock::given(method("DELETE"))
+            .and(path("/2/connections"))
+            .and(header("content-type", "application/json"))
+            .and(body_json(serde_json::json!({"uuids": ["1"]})))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":{"ok":true}})),
+            ),
+    )
+    .await;
+
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let client = Client::new(&cfg, auth).expect("client builds");
+
+    let opts = RequestOptions {
+        method: "DELETE".to_string(),
+        target: target_path("/2/connections"),
+        data: r#"{"uuids":["1"]}"#.to_string(),
+        ..Default::default()
+    };
+
+    let resp = client.send_request(&opts).await.unwrap();
+    assert_eq!(resp["data"]["ok"], true);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
