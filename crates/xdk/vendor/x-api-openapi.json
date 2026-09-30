@@ -2256,6 +2256,7 @@
             "type": "string"
           },
           "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
             "type": "integer"
           },
           "created_at_ms": {
@@ -2799,6 +2800,7 @@
               "broadcast.start",
               "broadcast.end",
               "broadcast.chat",
+              "broadcast.chat.remove",
               "chat.received",
               "chat.sent",
               "chat.conversation.join",
@@ -4293,7 +4295,7 @@
             "type": "boolean"
           },
           "chat_option": {
-            "description": "Chat permission option (numeric string).",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -4378,7 +4380,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -7494,7 +7496,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -8672,7 +8674,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -9130,7 +9132,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -13488,7 +13490,7 @@
             "type": "boolean"
           },
           "chat_option": {
-            "description": "Chat permission option (numeric string).",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -13573,7 +13575,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
