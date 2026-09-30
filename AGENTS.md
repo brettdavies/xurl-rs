@@ -1,7 +1,7 @@
 ---
 name: xurl-rs
 binary: xr
-description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, 27 high-level shortcut commands, chunked media upload, and streaming.
+description: Fast, ergonomic CLI for the X (Twitter) API. Rust port of the Go xurl, with OAuth1 / OAuth2-PKCE / Bearer auth, high-level shortcut commands, chunked media upload, and streaming.
 homepage: https://github.com/brettdavies/xurl-rs
 repository: https://github.com/brettdavies/xurl-rs
 ---
