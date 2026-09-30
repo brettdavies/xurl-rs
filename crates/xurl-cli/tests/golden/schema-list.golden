@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 2262
+stdout_len: 2446
 stderr_len: 0
 --- stdout ---
 auth-apps-list                Vec<AppStatusEntry>
@@ -21,6 +21,9 @@ followers                     ApiResponse<Vec<User>>
 following                     ApiResponse<Vec<User>>
 like                          ApiResponse<LikedResult>
 likes                         ApiResponse<Vec<Post>>
+media-alt-text                ApiResponse<MediaMetadataResult>
+media-subtitles-add           ApiResponse<MediaSubtitlesResult>
+media-subtitles-remove        ApiResponse<DeletedResult>
 mentions                      ApiResponse<Vec<Post>>
 mute                          ApiResponse<MutingResult>
 muted                         ApiResponse<Vec<User>>

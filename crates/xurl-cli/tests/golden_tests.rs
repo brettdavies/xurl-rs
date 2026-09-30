@@ -537,6 +537,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
 /// The dry-run refusals a shortcut's validator raises before any request.
 fn dry_run_cases() -> Vec<Case> {
     let long_body = "x".repeat(281);
+    let long_alt_text = "x".repeat(1001);
     let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
         .iter()
         .map(|a| (*a).to_string())
@@ -563,6 +564,56 @@ fn dry_run_cases() -> Vec<Case> {
         case(
             "dry-run-empty-username",
             &["--output", "json", "--dry-run", "follow", ""],
+        ),
+        case(
+            "dry-run-invalid-media-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "alt-text",
+                "not-an-id",
+                "A dog",
+            ],
+        ),
+        case(
+            "dry-run-empty-alt-text",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "alt-text",
+                "1585341984679469056",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-alt-text-too-long",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "alt-text",
+                "1585341984679469056",
+                &long_alt_text,
+            ],
+        ),
+        case(
+            "dry-run-invalid-language-code",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "subtitles",
+                "remove",
+                "1585341984679469056",
+                "--language",
+                "english",
+            ],
         ),
     ]
 }

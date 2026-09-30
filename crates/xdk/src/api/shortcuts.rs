@@ -1,8 +1,8 @@
 //! API shortcut functions — high-level X API v2 operations.
 //!
-//! Each method maps to one of the 30 shortcut commands, building the
-//! appropriate endpoint target and request body into a [`Call`] the caller
-//! configures and sends. Paths are spec-shaped templates (e.g.
+//! Each method maps to one shortcut command, building the appropriate
+//! endpoint target and request body into a [`Call`] the caller configures
+//! and sends. Paths are spec-shaped templates (e.g.
 //! `/2/users/{id}/likes`) so the auth-matrix validator can key on the same
 //! string the build-time codegen ingests.
 
@@ -15,8 +15,8 @@ use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
-    UsageCreditsData, UsageData, User,
+    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -46,6 +46,85 @@ struct PostMedia {
 #[derive(Serialize)]
 struct ChatModeratorBody {
     user_id: String,
+}
+
+#[derive(Serialize)]
+struct MediaMetadataBody {
+    id: String,
+    metadata: MediaMetadata,
+}
+
+#[derive(Serialize)]
+struct MediaMetadata {
+    alt_text: AltText,
+}
+
+#[derive(Serialize)]
+struct AltText {
+    text: String,
+}
+
+#[derive(Serialize)]
+struct AddSubtitlesBody {
+    id: String,
+    media_category: &'static str,
+    subtitles: SubtitleTrack,
+}
+
+#[derive(Serialize)]
+struct SubtitleTrack {
+    id: String,
+    language_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<String>,
+}
+
+#[derive(Serialize)]
+struct RemoveSubtitlesBody {
+    id: String,
+    media_category: &'static str,
+    language_code: String,
+}
+
+/// The upload category of a video that carries subtitles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VideoCategory {
+    /// A video uploaded with `media_category=amplify_video`.
+    AmplifyVideo,
+    /// A video uploaded with `media_category=tweet_video`.
+    TweetVideo,
+}
+
+impl VideoCategory {
+    /// Every category, in the order help text lists them.
+    pub const ALL: [Self; 2] = [Self::AmplifyVideo, Self::TweetVideo];
+
+    /// The `media_category` the video was uploaded with, such as
+    /// `amplify_video`.
+    #[must_use]
+    pub const fn upload_name(self) -> &'static str {
+        match self {
+            Self::AmplifyVideo => "amplify_video",
+            Self::TweetVideo => "tweet_video",
+        }
+    }
+
+    /// The category from its upload name, the inverse of
+    /// [`Self::upload_name`].
+    #[must_use]
+    pub fn from_upload_name(name: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|category| category.upload_name() == name)
+    }
+
+    /// The form the subtitles endpoints take, such as `AmplifyVideo`.
+    const fn wire_name(self) -> &'static str {
+        match self {
+            Self::AmplifyVideo => "AmplifyVideo",
+            Self::TweetVideo => "TweetVideo",
+        }
+    }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -145,6 +224,47 @@ pub fn validate_post_id(input: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
+/// X API alt text length budget, the spec's `maxLength` on `alt_text.text`.
+pub const ALT_TEXT_MAX_CHARS: usize = 1000;
+
+/// Validates a media id: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-media-id` for anything else, the empty string included.
+pub fn validate_media_id(input: &str) -> std::result::Result<(), &'static str> {
+    let id = input.trim();
+    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-media-id");
+    }
+    Ok(())
+}
+
+/// Validates the alt text for a media id.
+///
+/// # Errors
+/// Returns the kebab-case reason: `empty-alt-text`, `alt-text-too-long`.
+pub fn validate_alt_text(text: &str) -> std::result::Result<(), &'static str> {
+    if text.trim().is_empty() {
+        return Err("empty-alt-text");
+    }
+    if text.chars().count() > ALT_TEXT_MAX_CHARS {
+        return Err("alt-text-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a subtitle language code: two ASCII letters, in either case.
+///
+/// # Errors
+/// Returns `invalid-language-code` for anything else.
+pub fn validate_language_code(code: &str) -> std::result::Result<(), &'static str> {
+    let code = code.trim();
+    if code.len() != 2 || !code.bytes().all(|b| b.is_ascii_alphabetic()) {
+        return Err("invalid-language-code");
+    }
+    Ok(())
+}
+
 // ── Request construction ─────────────────────────────────────────────
 
 fn template(
@@ -208,15 +328,25 @@ impl Client {
         Call::new(self, request(method, target, data))
     }
 
-    /// A POST whose body is `body` serialized as JSON; a body that cannot
-    /// be serialized surfaces when the call is sent.
+    /// A POST whose body is `body` serialized as JSON.
     fn post_json<T: DeserializeOwned, B: Serialize>(
         &self,
         target: RequestTarget,
         body: &B,
     ) -> Call<T> {
+        self.json_call("POST", target, body)
+    }
+
+    /// A `method` call whose body is `body` serialized as JSON; a body that
+    /// cannot be serialized surfaces when the call is sent.
+    fn json_call<T: DeserializeOwned, B: Serialize>(
+        &self,
+        method: &str,
+        target: RequestTarget,
+        body: &B,
+    ) -> Call<T> {
         match serde_json::to_string(body) {
-            Ok(data) => self.call_with_body("POST", target, data),
+            Ok(data) => self.call_with_body(method, target, data),
             Err(e) => Call::failed(self, e.into()),
         }
     }
@@ -751,6 +881,86 @@ impl Client {
     /// Lists the users the authenticated user has blocked.
     pub fn get_blocked(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
         self.get_user_list(endpoints::GET_BLOCKED.path, user_id, max_results)
+    }
+
+    // ── Media metadata ───────────────────────────────────────────────
+
+    /// Sets the alt text X shows for `media_id`, an image or video the
+    /// authenticated user uploaded.
+    pub fn set_media_alt_text(
+        &self,
+        media_id: &str,
+        text: &str,
+    ) -> Call<ApiResponse<MediaMetadataResult>> {
+        self.json_call(
+            endpoints::CREATE_MEDIA_METADATA.method,
+            template(
+                endpoints::CREATE_MEDIA_METADATA.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &MediaMetadataBody {
+                id: media_id.trim().to_string(),
+                metadata: MediaMetadata {
+                    alt_text: AltText {
+                        text: text.to_string(),
+                    },
+                },
+            },
+        )
+    }
+
+    /// Adds the subtitle track uploaded as `subtitles_id` (media category
+    /// `subtitles`) to the video `video_id`, under the two-letter
+    /// `language_code` and an optional `display_name`.
+    pub fn add_media_subtitles(
+        &self,
+        video_id: &str,
+        category: VideoCategory,
+        subtitles_id: &str,
+        language_code: &str,
+        display_name: Option<&str>,
+    ) -> Call<ApiResponse<MediaSubtitlesResult>> {
+        self.json_call(
+            endpoints::CREATE_MEDIA_SUBTITLES.method,
+            template(
+                endpoints::CREATE_MEDIA_SUBTITLES.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &AddSubtitlesBody {
+                id: video_id.trim().to_string(),
+                media_category: category.wire_name(),
+                subtitles: SubtitleTrack {
+                    id: subtitles_id.trim().to_string(),
+                    language_code: language_code.trim().to_ascii_uppercase(),
+                    display_name: display_name.map(str::to_string),
+                },
+            },
+        )
+    }
+
+    /// Removes the `language_code` subtitle track from the video
+    /// `video_id`.
+    pub fn remove_media_subtitles(
+        &self,
+        video_id: &str,
+        category: VideoCategory,
+        language_code: &str,
+    ) -> Call<ApiResponse<DeletedResult>> {
+        self.json_call(
+            endpoints::DELETE_MEDIA_SUBTITLES.method,
+            template(
+                endpoints::DELETE_MEDIA_SUBTITLES.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &RemoveSubtitlesBody {
+                id: video_id.trim().to_string(),
+                media_category: category.wire_name(),
+                language_code: language_code.trim().to_ascii_uppercase(),
+            },
+        )
     }
 
     // ── Broadcasts ───────────────────────────────────────────────────

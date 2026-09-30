@@ -1,0 +1,18 @@
+args: ["--output", "json", "--dry-run", "media", "alt-text", "not-an-id", "A dog"]
+store: empty
+exit_code: 0
+stdout_len: 179
+stderr_len: 0
+--- stdout ---
+{
+  "command": "media-alt-text",
+  "exit_code": 1,
+  "media_id": "not-an-id",
+  "reason": "invalid-media-id",
+  "status": "dry_run",
+  "text": "A dog",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -1,21 +1,42 @@
-args: ["media", "--help"]
+args: ["media", "subtitles", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5971
+stdout_len: 6164
 stderr_len: 0
 --- stdout ---
-Media upload, alt text, and subtitles
+Add a subtitle track to an uploaded video
 
-Usage: xr media [OPTIONS] <COMMAND>
+Usage: xr media subtitles add [OPTIONS] --language <CODE> <VIDEO_ID> <SUBTITLES_ID>
 
-Commands:
-  upload     Upload media file
-  status     Check media upload status
-  alt-text   Set the alt text shown for an uploaded image or video
-  subtitles  Add or remove the subtitle tracks of an uploaded video
-  help       Print this message or the help of the given subcommand(s)
+Arguments:
+  <VIDEO_ID>
+          Media id of the video
+
+  <SUBTITLES_ID>
+          Media id of the subtitle file, uploaded with `--category subtitles`
 
 Options:
+      --language <CODE>
+          Two-letter language code of the track (e.g. en)
+
+      --name <NAME>
+          Language name viewers pick the track by (e.g. English)
+
+      --category <CATEGORY>
+          Category the video was uploaded with
+          
+          [default: amplify_video]
+          [possible values: amplify_video, tweet_video]
+
+      --auth <AUTH_TYPE>
+          Authentication type (oauth1, oauth2, app)
+
+  -u, --username <USERNAME>
+          `OAuth2` username to act as
+
+  -t, --trace
+          Add X-B3-Flags trace header
+
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -137,16 +158,10 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Upload an image:
-    xr media upload ./photo.png --media-type image/png --category tweet_image
-  Upload a video and wait for processing:
-    xr media upload ./clip.mp4 --wait --output json
-  Check upload status:
-    xr media status 1585341984679469056 --output json
-  Describe an uploaded image for screen readers:
-    xr media alt-text 1585341984679469056 "A dog asleep on a beach towel"
-  Add an English subtitle track to an uploaded video:
+  Add an English track to a video (text):
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
+  Add (JSON envelope):
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English --output json
 
 --- stderr ---
 

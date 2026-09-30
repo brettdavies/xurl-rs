@@ -1,19 +1,17 @@
-args: ["media", "--help"]
+args: ["media", "subtitles", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5971
+stdout_len: 5643
 stderr_len: 0
 --- stdout ---
-Media upload, alt text, and subtitles
+Add or remove the subtitle tracks of an uploaded video
 
-Usage: xr media [OPTIONS] <COMMAND>
+Usage: xr media subtitles [OPTIONS] <COMMAND>
 
 Commands:
-  upload     Upload media file
-  status     Check media upload status
-  alt-text   Set the alt text shown for an uploaded image or video
-  subtitles  Add or remove the subtitle tracks of an uploaded video
-  help       Print this message or the help of the given subcommand(s)
+  add     Add a subtitle track to an uploaded video
+  remove  Remove a subtitle track from an uploaded video
+  help    Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose[=<VERBOSE>]
@@ -137,16 +135,10 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Upload an image:
-    xr media upload ./photo.png --media-type image/png --category tweet_image
-  Upload a video and wait for processing:
-    xr media upload ./clip.mp4 --wait --output json
-  Check upload status:
-    xr media status 1585341984679469056 --output json
-  Describe an uploaded image for screen readers:
-    xr media alt-text 1585341984679469056 "A dog asleep on a beach towel"
-  Add an English subtitle track to an uploaded video:
+  Add a track from a subtitle file uploaded with --category subtitles (text):
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
+  Remove a track, JSON envelope:
+    xr media subtitles remove 1585341984679469056 --language en --output json
 
 --- stderr ---
 

@@ -88,7 +88,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand dms 'List recent direct messages'
             cand broadcasts 'Broadcast chat moderation'
             cand auth 'Authentication management'
-            cand media 'Media upload operations'
+            cand media 'Media upload, alt text, and subtitles'
             cand skill 'Install or manage the xurl-rs skill bundle'
             cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
@@ -1632,6 +1632,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand upload 'Upload media file'
             cand status 'Check media upload status'
+            cand alt-text 'Set the alt text shown for an uploaded image or video'
+            cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;media;upload'= {
@@ -1697,14 +1699,148 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
+        &'xr;media;alt-text'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;media;subtitles'= {
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand add 'Add a subtitle track to an uploaded video'
+            cand remove 'Remove a subtitle track from an uploaded video'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;media;subtitles;add'= {
+            cand --language 'Two-letter language code of the track (e.g. en)'
+            cand --name 'Language name viewers pick the track by (e.g. English)'
+            cand --category 'Category the video was uploaded with'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;media;subtitles;remove'= {
+            cand --language 'Two-letter language code of the track to remove (e.g. en)'
+            cand --category 'Category the video was uploaded with'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Validate inputs and skip the API call (U7)'
+            cand --limit 'Global result-set limit, clamped to 1..=100 (U7)'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;media;subtitles;help'= {
+            cand add 'Add a subtitle track to an uploaded video'
+            cand remove 'Remove a subtitle track from an uploaded video'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;media;subtitles;help;add'= {
+        }
+        &'xr;media;subtitles;help;remove'= {
+        }
+        &'xr;media;subtitles;help;help'= {
+        }
         &'xr;media;help'= {
             cand upload 'Upload media file'
             cand status 'Check media upload status'
+            cand alt-text 'Set the alt text shown for an uploaded image or video'
+            cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;media;help;upload'= {
         }
         &'xr;media;help;status'= {
+        }
+        &'xr;media;help;alt-text'= {
+        }
+        &'xr;media;help;subtitles'= {
+            cand add 'Add a subtitle track to an uploaded video'
+            cand remove 'Remove a subtitle track from an uploaded video'
+        }
+        &'xr;media;help;subtitles;add'= {
+        }
+        &'xr;media;help;subtitles;remove'= {
         }
         &'xr;media;help;help'= {
         }
@@ -1882,7 +2018,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`). Omit for auto-detection'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1938,7 +2074,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand dms 'List recent direct messages'
             cand broadcasts 'Broadcast chat moderation'
             cand auth 'Authentication management'
-            cand media 'Media upload operations'
+            cand media 'Media upload, alt text, and subtitles'
             cand skill 'Install or manage the xurl-rs skill bundle'
             cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
@@ -2073,10 +2209,22 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;media'= {
             cand upload 'Upload media file'
             cand status 'Check media upload status'
+            cand alt-text 'Set the alt text shown for an uploaded image or video'
+            cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
         }
         &'xr;help;media;upload'= {
         }
         &'xr;help;media;status'= {
+        }
+        &'xr;help;media;alt-text'= {
+        }
+        &'xr;help;media;subtitles'= {
+            cand add 'Add a subtitle track to an uploaded video'
+            cand remove 'Remove a subtitle track from an uploaded video'
+        }
+        &'xr;help;media;subtitles;add'= {
+        }
+        &'xr;help;media;subtitles;remove'= {
         }
         &'xr;help;skill'= {
             cand install 'Install the skill bundle into a host''s canonical skills directory'

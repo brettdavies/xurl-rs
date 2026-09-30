@@ -2477,6 +2477,199 @@ never\:"Never emit ANSI color escapes"))' \
 ':media_id -- Media ID:_default' \
 && ret=0
 ;;
+(alt-text)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_id -- Media id from `xr media upload`:_default' \
+':text -- Alt text, up to 1000 characters:_default' \
+&& ret=0
+;;
+(subtitles)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__media__subcmd__subtitles_commands" \
+"*::: :->subtitles" \
+&& ret=0
+
+    case $state in
+    (subtitles)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-subtitles-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+'--language=[Two-letter language code of the track (e.g. en)]:CODE:_default' \
+'--name=[Language name viewers pick the track by (e.g. English)]:NAME:_default' \
+'--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':video_id -- Media id of the video:_default' \
+':subtitles_id -- Media id of the subtitle file, uploaded with `--category subtitles`:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--language=[Two-letter language code of the track to remove (e.g. en)]:CODE:_default' \
+'--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':video_id -- Media id of the video:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__subtitles__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-subtitles-help-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__media__subcmd__help_commands" \
@@ -2496,6 +2689,34 @@ _arguments "${_arguments_options[@]}" : \
 (status)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
+;;
+(alt-text)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(subtitles)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__help__subcmd__subtitles_commands" \
+"*::: :->subtitles" \
+&& ret=0
+
+    case $state in
+    (subtitles)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-help-subtitles-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
@@ -2784,7 +3005,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`mute\`, \`block\`, \`moderators\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -3128,6 +3349,34 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(alt-text)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(subtitles)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__media__subcmd__subtitles_commands" \
+"*::: :->subtitles" \
+&& ret=0
+
+    case $state in
+    (subtitles)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-media-subtitles-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -3225,7 +3474,7 @@ _xr_commands() {
 'dms:List recent direct messages' \
 'broadcasts:Broadcast chat moderation' \
 'auth:Authentication management' \
-'media:Media upload operations' \
+'media:Media upload, alt text, and subtitles' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -3704,7 +3953,7 @@ _xr__subcmd__help_commands() {
 'dms:List recent direct messages' \
 'broadcasts:Broadcast chat moderation' \
 'auth:Authentication management' \
-'media:Media upload operations' \
+'media:Media upload, alt text, and subtitles' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -3918,13 +4167,38 @@ _xr__subcmd__help__subcmd__media_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
+'alt-text:Set the alt text shown for an uploaded image or video' \
+'subtitles:Add or remove the subtitle tracks of an uploaded video' \
     )
     _describe -t commands 'xr help media commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__alt-text_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__alt-text_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media alt-text commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__media__subcmd__status_commands] )) ||
 _xr__subcmd__help__subcmd__media__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr help media status commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__subtitles_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__subtitles_commands() {
+    local commands; commands=(
+'add:Add a subtitle track to an uploaded video' \
+'remove:Remove a subtitle track from an uploaded video' \
+    )
+    _describe -t commands 'xr help media subtitles commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__subtitles__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__subtitles__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media subtitles add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__subtitles__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__subtitles__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media subtitles remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__media__subcmd__upload_commands] )) ||
 _xr__subcmd__help__subcmd__media__subcmd__upload_commands() {
@@ -4081,18 +4355,32 @@ _xr__subcmd__media_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
+'alt-text:Set the alt text shown for an uploaded image or video' \
+'subtitles:Add or remove the subtitle tracks of an uploaded video' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr media commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__alt-text_commands] )) ||
+_xr__subcmd__media__subcmd__alt-text_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media alt-text commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__help_commands] )) ||
 _xr__subcmd__media__subcmd__help_commands() {
     local commands; commands=(
 'upload:Upload media file' \
 'status:Check media upload status' \
+'alt-text:Set the alt text shown for an uploaded image or video' \
+'subtitles:Add or remove the subtitle tracks of an uploaded video' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr media help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__alt-text_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__alt-text_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help alt-text commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__help__subcmd__help_commands] )) ||
 _xr__subcmd__media__subcmd__help__subcmd__help_commands() {
@@ -4104,6 +4392,24 @@ _xr__subcmd__media__subcmd__help__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help status commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__subtitles_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__subtitles_commands() {
+    local commands; commands=(
+'add:Add a subtitle track to an uploaded video' \
+'remove:Remove a subtitle track from an uploaded video' \
+    )
+    _describe -t commands 'xr media help subtitles commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__subtitles__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__subtitles__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help subtitles add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__subtitles__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__subtitles__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help subtitles remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__media__subcmd__help__subcmd__upload_commands] )) ||
 _xr__subcmd__media__subcmd__help__subcmd__upload_commands() {
     local commands; commands=()
@@ -4113,6 +4419,49 @@ _xr__subcmd__media__subcmd__help__subcmd__upload_commands() {
 _xr__subcmd__media__subcmd__status_commands() {
     local commands; commands=()
     _describe -t commands 'xr media status commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles_commands() {
+    local commands; commands=(
+'add:Add a subtitle track to an uploaded video' \
+'remove:Remove a subtitle track from an uploaded video' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media subtitles commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media subtitles add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__help_commands() {
+    local commands; commands=(
+'add:Add a subtitle track to an uploaded video' \
+'remove:Remove a subtitle track from an uploaded video' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media subtitles help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media subtitles help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media subtitles help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media subtitles help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__subtitles__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__subtitles__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media subtitles remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__upload_commands] )) ||
 _xr__subcmd__media__subcmd__upload_commands() {

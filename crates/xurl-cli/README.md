@@ -175,6 +175,10 @@ xr -s /2/tweets/search/stream                  # Streaming
 ```bash
 xr media upload video.mp4                      # Upload media
 xr media status 1234567890                     # Check status
+xr media alt-text 1234567890 "A dog asleep"    # Set alt text on an upload
+xr media upload captions.srt --media-type text/srt --category subtitles
+xr media subtitles add 1234567890 1234567891 --language en --name English
+xr media subtitles remove 1234567890 --language en
 ```
 
 ## Authentication

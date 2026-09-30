@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12805
+stdout_len: 12819
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -80,7 +80,7 @@ Commands:
   dms          List recent direct messages
   broadcasts   Broadcast chat moderation
   auth         Authentication management
-  media        Media upload operations
+  media        Media upload, alt text, and subtitles
   skill        Install or manage the xurl-rs skill bundle
   schema       Show JSON Schema for a command's response type
   completions  Generate shell completion script

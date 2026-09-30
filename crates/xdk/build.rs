@@ -132,6 +132,9 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "POST",
         "/2/media/upload/{id}/finalize",
     ),
+    ("CREATE_MEDIA_METADATA", "POST", "/2/media/metadata"),
+    ("CREATE_MEDIA_SUBTITLES", "POST", "/2/media/subtitles"),
+    ("DELETE_MEDIA_SUBTITLES", "DELETE", "/2/media/subtitles"),
     // broadcasts
     (
         "GET_CHAT_MODERATORS",

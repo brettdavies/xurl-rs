@@ -11,8 +11,8 @@ use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
-    UsageCreditsData, UsageData, User,
+    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use xdk::error::{Error, Result};
 
@@ -60,7 +60,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<FollowingResult>).into(),
     },
     SchemaEntry {
-        commands: &["delete"],
+        commands: &["delete", "media-subtitles-remove"],
         type_name: "ApiResponse<DeletedResult>",
         schema: || schema_for!(ApiResponse<DeletedResult>).into(),
     },
@@ -115,6 +115,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<ChatModeratorsResult>).into(),
     },
     SchemaEntry {
+        commands: &["media-alt-text"],
+        type_name: "ApiResponse<MediaMetadataResult>",
+        schema: || schema_for!(ApiResponse<MediaMetadataResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["media-subtitles-add"],
+        type_name: "ApiResponse<MediaSubtitlesResult>",
+        schema: || schema_for!(ApiResponse<MediaSubtitlesResult>).into(),
+    },
+    SchemaEntry {
         commands: &["auth-status", "auth-apps-list"],
         type_name: "Vec<AppStatusEntry>",
         schema: || schema_for!(Vec<AppStatusEntry>).into(),
@@ -162,6 +172,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "examples",
     "media",
     "media-status",
+    "media-subtitles",
     "media-upload",
     "schema",
     "skill",

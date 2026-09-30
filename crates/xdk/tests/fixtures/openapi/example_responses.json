@@ -224,6 +224,31 @@
       ]
     }
   },
+  "media_metadata": {
+    "data": {
+      "id": "1880028106020515840",
+      "associated_metadata": {
+        "alt_text": {
+          "text": "A golden retriever asleep on a beach towel"
+        }
+      }
+    }
+  },
+  "media_subtitles": {
+    "data": {
+      "id": "1880028106020515840",
+      "media_category": "AmplifyVideo",
+      "associated_subtitles": {
+        "subtitles": [
+          {
+            "id": "1880028217379905536",
+            "language_code": "EN",
+            "display_name": "English"
+          }
+        ]
+      }
+    }
+  },
   "usage_credits": {
     "data": {
       "total_balance": 12.5,
