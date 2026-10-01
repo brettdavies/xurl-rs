@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 587
+stderr_len: 641
 --- stdout ---
 
 --- stderr ---
@@ -27,9 +27,11 @@ stderr_len: 587
     "bookmark",
     "mute",
     "block",
-    "moderators"
+    "moderators",
+    "alt-text",
+    "subtitles"
   ],
-  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators or omit --schema for auto-detection",
+  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles or omit --schema for auto-detection",
   "reason": "unknown-schema",
   "schema": "bogus",
   "status": "error"

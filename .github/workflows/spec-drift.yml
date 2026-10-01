@@ -35,6 +35,9 @@ concurrency:
   group: spec-drift-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check:
     name: Compare vendored spec against upstream
@@ -241,7 +244,11 @@ jobs:
           # spec-only change cannot move.
           git add crates/xdk/vendor/
 
-          if git diff --cached --quiet; then
+          # Both no-change checks compare the spec alone: the refresh stamps
+          # today's date into spec-metadata.json and vendor/README.md, so a
+          # whole-directory compare reads every new day as new content and
+          # stacks a date-only commit that also rewrites an agent-owned body.
+          if git diff --cached --quiet -- "${VENDOR_PATH}"; then
             echo "Refresh produced no change against dev; nothing to open." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -260,7 +267,7 @@ jobs:
             # and GitHub auto-closes a PR whose head reaches its base.
             git fetch --depth 1 origin "${REFRESH_BRANCH}:refs/remotes/origin/${REFRESH_BRANCH}"
             head_sha="$(git rev-parse "refs/remotes/origin/${REFRESH_BRANCH}")"
-            if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- crates/xdk/vendor/; then
+            if git diff --cached --quiet "refs/remotes/origin/${REFRESH_BRANCH}" -- "${VENDOR_PATH}"; then
               result="current"
               echo "Open refresh PR #${existing_num} already carries this upstream revision; branch content untouched." >> "$GITHUB_STEP_SUMMARY"
             fi

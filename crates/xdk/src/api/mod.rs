@@ -30,10 +30,11 @@ pub use request::{DEFAULT_USER_AGENT, RateLimit};
 #[allow(unused_imports)]
 pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaProcessingInfo,
-    MediaUploadResponse, MutingResult, Post, PostPublicMetrics, ReferencedPost, RepostedResult,
-    ResponseMeta, UsageCreditsData, UsageData, User, UserPublicMetrics, deserialize_response,
+    DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaMetadataResult,
+    MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
+    PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData, UsageData,
+    User, UserPublicMetrics, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
-pub use shortcuts::{resolve_post_id, resolve_username};
+pub use shortcuts::{VideoCategory, resolve_post_id, resolve_username};

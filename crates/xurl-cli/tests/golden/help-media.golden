@@ -1,17 +1,19 @@
 args: ["media", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5381
+stdout_len: 5971
 stderr_len: 0
 --- stdout ---
-Media upload operations
+Media upload, alt text, and subtitles
 
 Usage: xr media [OPTIONS] <COMMAND>
 
 Commands:
-  upload  Upload media file
-  status  Check media upload status
-  help    Print this message or the help of the given subcommand(s)
+  upload     Upload media file
+  status     Check media upload status
+  alt-text   Set the alt text shown for an uploaded image or video
+  subtitles  Add or remove the subtitle tracks of an uploaded video
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose[=<VERBOSE>]
@@ -106,14 +108,14 @@ Options:
       --limit <LIMIT>
           Global result-set limit, clamped to 1..=100 (U7).
           
-          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
           Pagination cursor / `pagination_token` for list endpoints.
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
           
           [env: XURL_CURSOR=]
 
@@ -141,6 +143,10 @@ Examples:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
     xr media status 1585341984679469056 --output json
+  Describe an uploaded image for screen readers:
+    xr media alt-text 1585341984679469056 "A dog asleep on a beach towel"
+  Add an English subtitle track to an uploaded video:
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
 
 --- stderr ---
 

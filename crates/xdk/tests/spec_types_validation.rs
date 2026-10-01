@@ -25,7 +25,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use common::{load_spec, resolve};
 use serde_json::Value;
-use xdk::api::response::types::{DmEvent, Post, UsageData, User};
+use xdk::api::response::types::{
+    DmEvent, MediaMetadataResult, MediaSubtitlesResult, Post, UsageData, User,
+};
 
 /// Documented divergences from the vendored spec, keyed by
 /// (`<SchemaName> :: <dotted struct path>`, field). Every entry needs a
@@ -172,6 +174,14 @@ fn typed_responses_match_vendored_spec() {
         (
             "Usage",
             serde_json::to_value(schemars::schema_for!(UsageData)).unwrap(),
+        ),
+        (
+            "CreateMediaMetadataResponseData",
+            serde_json::to_value(schemars::schema_for!(MediaMetadataResult)).unwrap(),
+        ),
+        (
+            "CreateMediaSubtitlesResponseData",
+            serde_json::to_value(schemars::schema_for!(MediaSubtitlesResult)).unwrap(),
         ),
     ];
 

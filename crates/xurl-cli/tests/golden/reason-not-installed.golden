@@ -1,8 +1,8 @@
 args: ["--output", "json", "skill", "update", "--all"]
-env: HOME={{HOME}}
+env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 0
-stdout_len: 2349
+stdout_len: 2423
 stderr_len: 0
 --- stdout ---
 {
@@ -12,8 +12,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "claude_code",
-      "install_dir": "{{HOME}}/.claude/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.claude/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.claude/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.claude/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
@@ -22,8 +22,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "codex",
-      "install_dir": "{{HOME}}/.codex/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.codex/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.agents/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.agents/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
@@ -32,8 +32,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "cursor",
-      "install_dir": "{{HOME}}/.cursor/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.cursor/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.cursor/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.cursor/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
@@ -42,8 +42,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "factory",
-      "install_dir": "{{HOME}}/.factory/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.factory/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.factory/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.factory/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
@@ -52,8 +52,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "kiro",
-      "install_dir": "{{HOME}}/.kiro/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.kiro/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.kiro/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.kiro/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
@@ -62,8 +62,8 @@ stderr_len: 0
     {
       "action": "skill-update",
       "host": "opencode",
-      "install_dir": "{{HOME}}/.config/opencode/skills/xurl-rs",
-      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{HOME}}/.config/opencode/skills/xurl-rs",
+      "install_dir": "{{SKILL_HOME}}/.config/opencode/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.config/opencode/skills/xurl-rs",
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,

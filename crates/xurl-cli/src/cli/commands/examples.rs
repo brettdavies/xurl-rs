@@ -48,8 +48,8 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 \"Worth a read.\" --output json
 
-  Delete a post by ID (confirms unless --no-interactive):
-    xr delete 1585341984679469056 --no-interactive --output json
+  Delete a post by ID without a prompt (--force confirms it):
+    xr delete 1585341984679469056 --force --no-interactive --output json
 
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
@@ -128,6 +128,13 @@ MEDIA UPLOAD:
 
   Check upload status:
     xr media status 1585341984679469056 --output json
+
+  Describe an uploaded image for screen readers:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+
+  Upload a subtitle file and add it to a video:
+    xr media upload ./captions.srt --media-type text/srt --category subtitles
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English --output json
 
 RAW MODE (curl-style):
   Generic GET:

@@ -246,6 +246,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::CREATE_MEDIA_METADATA,
+        fixture: "media_metadata",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_MEDIA_SUBTITLES,
+        fixture: "media_subtitles",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_MEDIA_SUBTITLES,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_CHAT_MODERATORS,
         fixture: "user_list",
         status: 200,
