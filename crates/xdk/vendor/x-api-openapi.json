@@ -6694,6 +6694,34 @@
         },
         "type": "array"
       },
+      "DuplicateRuleProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.twitter.com/2/problems/duplicate-rules"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "value"
+        ],
+        "type": "object"
+      },
       "EnableChatGroupInviteActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -10323,6 +10351,37 @@
         ],
         "type": "object"
       },
+      "InvalidRuleProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.twitter.com/2/problems/invalid-rules"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "details"
+        ],
+        "type": "object"
+      },
       "Keyword": {
         "description": "A keyword to filter on.",
         "example": "The President",
@@ -13165,6 +13224,8 @@
       "Problem": {
         "discriminator": {
           "mapping": {
+            "https://api.twitter.com/2/problems/duplicate-rules": "#/components/schemas/DuplicateRuleProblem",
+            "https://api.twitter.com/2/problems/invalid-rules": "#/components/schemas/InvalidRuleProblem",
             "https://api.x.com/2/problems/disallowed-resource": "#/components/schemas/DisallowedResourceProblem",
             "https://api.x.com/2/problems/field-hydration-failure": "#/components/schemas/FieldHydrationFailureProblem",
             "https://api.x.com/2/problems/field-unauthorized": "#/components/schemas/FieldUnauthorizedProblem",
@@ -13208,6 +13269,12 @@
           },
           {
             "$ref": "#/components/schemas/InternalErrorProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DuplicateRuleProblem"
+          },
+          {
+            "$ref": "#/components/schemas/InvalidRuleProblem"
           }
         ]
       },
