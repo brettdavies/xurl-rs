@@ -404,6 +404,39 @@ pub struct MediaUploadResponse {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// The metadata X holds for a media id after alt text is set on it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+#[non_exhaustive]
+pub struct MediaMetadataResult {
+    /// The media id the metadata was attached to.
+    pub id: String,
+    /// The metadata now associated with the media, as X returns it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub associated_metadata: Option<Value>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The subtitle tracks X holds for a video after one is added.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+#[non_exhaustive]
+pub struct MediaSubtitlesResult {
+    /// The media id of the video.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The video's media category, in the form the subtitles endpoint
+    /// takes (`AmplifyVideo`, `TweetVideo`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_category: Option<String>,
+    /// The subtitle tracks now associated with the video, as X returns them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub associated_subtitles: Option<Value>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// Media processing status returned during upload polling.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaProcessingInfo {

@@ -1,7 +1,7 @@
 args: ["auth", "clear", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5620
+stdout_len: 5785
 stderr_len: 0
 --- stdout ---
 Clear authentication tokens
@@ -116,14 +116,14 @@ Options:
       --limit <LIMIT>
           Global result-set limit, clamped to 1..=100 (U7).
           
-          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
           Pagination cursor / `pagination_token` for list endpoints.
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
           
           [env: XURL_CURSOR=]
 
@@ -151,8 +151,8 @@ Examples:
     xr auth clear --bearer --output json
   Clear a single OAuth2 user:
     xr auth clear --oauth2-username alice --output json
-  Non-interactive, fail without an explicit selector:
-    xr auth clear --all --no-interactive --output json
+  Non-interactive (CI, agent); --force confirms it:
+    xr auth clear --all --force --no-interactive --output json
 
 --- stderr ---
 

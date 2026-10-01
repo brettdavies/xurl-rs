@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12108
+stdout_len: 12819
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -80,7 +80,7 @@ Commands:
   dms          List recent direct messages
   broadcasts   Broadcast chat moderation
   auth         Authentication management
-  media        Media upload operations
+  media        Media upload, alt text, and subtitles
   skill        Install or manage the xurl-rs skill bundle
   schema       Show JSON Schema for a command's response type
   completions  Generate shell completion script
@@ -210,14 +210,14 @@ Options:
       --limit <LIMIT>
           Global result-set limit, clamped to 1..=100 (U7).
           
-          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
           Pagination cursor / `pagination_token` for list endpoints.
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
           
           [env: XURL_CURSOR=]
 
@@ -267,6 +267,11 @@ ENVIRONMENT VARIABLES:
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
   XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
+  CLAUDE_CONFIG_DIR      Stands in for ~/.claude in the claude_code skill destination; wins over XURL_SKILL_HOME
+  KIRO_HOME              Stands in for ~/.kiro in the kiro skill destination; wins over XURL_SKILL_HOME
+  OPENCODE_CONFIG_DIR    Stands in for ~/.config/opencode in the opencode skill destination; wins over XURL_SKILL_HOME
+  XDG_CONFIG_HOME        Stands in for ~/.config in the opencode skill destination when XURL_SKILL_HOME is unset
   XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
   CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
   CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value

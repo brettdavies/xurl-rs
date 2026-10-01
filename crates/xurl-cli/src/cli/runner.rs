@@ -30,13 +30,17 @@ use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
-    structured_intent, suggestion_for_rejected,
+    suggestion_for_rejected,
 };
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
-use crate::cli::reparse::{color_choice, failing_command, parse_without_display_flags};
+use crate::cli::reparse::{
+    color_choice, failing_command, lenient_cli, output_intent, parse_without_display_flags,
+    raw_choice,
+};
+use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
 use xdk::config::Config;
@@ -81,7 +85,8 @@ where
         .as_deref()
         .filter(|p| !p.is_empty())
         .map_or_else(Config::default_store_path, PathBuf::from);
-    run_with_overrides(args, stdout, stderr, &store_path, &overrides).await
+    let skill_env = crate::cli::env::skill_from_process(&overrides);
+    run_with_env(args, stdout, stderr, &store_path, &overrides, &skill_env).await
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
@@ -112,23 +117,22 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
-    run_with_overrides(
-        args,
-        stdout,
-        stderr,
-        store_path,
-        &crate::cli::env::from_process(),
-    )
-    .await
+    let overrides = crate::cli::env::from_process();
+    let skill_env = crate::cli::env::skill_from_process(&overrides);
+    run_with_env(args, stdout, stderr, store_path, &overrides, &skill_env).await
 }
 
 /// The worker entrypoint — everything [`run_with_store_path`] does, with the
 /// environment supplied as data instead of read from the process.
 ///
-/// This is the only entrypoint that reads no environment variables. The layers
-/// above it exist to resolve the two inputs it cannot invent: the token-store
-/// path and `overrides`. A library consumer that embeds `xr`, or a test that
-/// must stay isolated from whatever else the process is doing, calls this.
+/// This and [`run_with_env`] are the entrypoints that read no environment
+/// variables. The layers above them exist to resolve the inputs they cannot
+/// invent: the token-store path and `overrides`. A library consumer that embeds
+/// `xr`, or a test that must stay isolated from whatever else the process is
+/// doing, calls this.
+///
+/// Skill destinations resolve against `overrides.home` alone: neither
+/// `XURL_SKILL_HOME` nor a host's config- or base-directory variable applies.
 ///
 /// Parse-error behavior matches [`run_with_store_path`], with the output
 /// intent taken from `overrides` rather than `XURL_OUTPUT`.
@@ -138,6 +142,28 @@ pub async fn run_with_overrides<I, S>(
     stderr: &mut dyn Write,
     store_path: &Path,
     overrides: &xdk::config::EnvOverrides,
+) -> i32
+where
+    I: IntoIterator<Item = S>,
+    S: Into<OsString> + Clone,
+{
+    let skill_env = SkillEnv {
+        home: overrides.home.clone(),
+        ..SkillEnv::default()
+    };
+    run_with_env(args, stdout, stderr, store_path, overrides, &skill_env).await
+}
+
+/// [`run_with_overrides`] with the skill-destination environment supplied as
+/// data too: `XURL_SKILL_HOME` and each host's config- and base-directory
+/// variable, which `overrides` does not carry.
+pub async fn run_with_env<I, S>(
+    args: I,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    skill_env: &SkillEnv,
 ) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -226,12 +252,7 @@ where
                 let Some(Commands::Skill { cmd }) = cli.command else {
                     unreachable!("matched Commands::Skill above")
                 };
-                return crate::cli::commands::skill::run_skill(
-                    cmd,
-                    &out,
-                    stdout,
-                    overrides.home.as_deref(),
-                );
+                return crate::cli::commands::skill::run_skill(cmd, &out, stdout, skill_env);
             }
             Commands::Validate { file, schema } => {
                 return crate::cli::commands::validate::run_validate(
@@ -344,16 +365,28 @@ fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
     )
 }
 
+/// Whether a clap error is a help or version display rather than a failure.
+fn is_display(kind: ErrorKind) -> bool {
+    matches!(
+        kind,
+        ErrorKind::DisplayHelp
+            | ErrorKind::DisplayVersion
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    )
+}
+
 /// Renders a clap parse failure.
 ///
 /// Help and version go to stdout at exit 0, except a help or version flag on a
-/// word that names no command, which renders as that word does without the
-/// flag. An unrecognized subcommand takes the unknown-command rendering,
-/// carrying clap's own suggestion where clap scored one. A flag spelling where
-/// clap wanted a command is an unexpected argument instead, except `-h` or
-/// `--help` given to the `help` command, which prints that command's page.
-/// Every other kind carries clap's words in `xr`'s dialect, as the `Error:`
-/// line or the `invalid-args` envelope.
+/// word that names no command, which renders as the invocation does without
+/// the flag: as that word does, or, when the invocation is a usage error of its
+/// own (a repeated or unknown flag), as that error. An unrecognized subcommand
+/// takes the unknown-command rendering, carrying clap's own suggestion where
+/// clap scored one. A flag spelling where clap wanted a command is an
+/// unexpected argument instead, except `-h` or `--help` given to the `help`
+/// command, which prints that command's page. Every other kind carries clap's
+/// words in `xr`'s dialect, as the `Error:` line or the `invalid-args`
+/// envelope.
 fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
@@ -362,29 +395,34 @@ fn render_parse_error(
     stderr: &mut dyn Write,
 ) -> i32 {
     let rendered = error.to_string();
-    let hidden_word = match error.kind() {
-        ErrorKind::DisplayHelp
-        | ErrorKind::DisplayVersion
-        | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => parse_without_display_flags(args)
-            .and_then(|cli| match classify(&cli) {
-                Classified::UnknownCommand(word) => Some(word),
-                Classified::Help | Classified::Raw => None,
-            }),
-        _ => None,
+    let unknown_word = |cli: &Cli| match classify(cli) {
+        Classified::UnknownCommand(word) => Some(word),
+        Classified::Help | Classified::Raw => None,
     };
-    if hidden_word.is_none()
-        && matches!(
-            error.kind(),
-            ErrorKind::DisplayHelp
-                | ErrorKind::DisplayVersion
-                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-        )
-    {
+    let display = is_display(error.kind());
+    let hidden_word = if display {
+        match parse_without_display_flags(args) {
+            Ok(cli) => unknown_word(&cli),
+            Err(without_flag) => {
+                if !is_display(without_flag.kind())
+                    && lenient_cli(args)
+                        .and_then(|cli| unknown_word(&cli))
+                        .is_some()
+                {
+                    return render_parse_error(&without_flag, args, overrides, stdout, stderr);
+                }
+                None
+            }
+        }
+    } else {
+        None
+    };
+    if hidden_word.is_none() && display {
         let _ = write!(stdout, "{rendered}");
         return EXIT_SUCCESS;
     }
 
-    let intent = structured_intent(args, overrides.output.as_deref());
+    let intent = output_intent(args, overrides.output.as_deref());
     // Quiet and verbose are unparsed here, and neither changes an error
     // envelope, so the provisional config leaves both off.
     let out = OutputConfig::new_with_no_color(
@@ -392,7 +430,7 @@ fn render_parse_error(
         false,
         false,
         color_choice(args),
-        false,
+        raw_choice(args),
         overrides.no_color,
     );
 

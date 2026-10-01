@@ -149,3 +149,42 @@ pub mod broadcasts {
         FAMILY.page(SECTIONS)
     }
 }
+
+/// The `xr media subtitles` family.
+pub mod media_subtitles {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "media subtitles",
+    };
+
+    /// `xr media subtitles add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "1585341984679469056 1585341984679469057 --language en --name English",
+        text_caption: "Add an English track to a video (text)",
+        json_caption: "Add (JSON envelope)",
+    };
+
+    /// `xr media subtitles remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1585341984679469056 --language en",
+        text_caption: "Remove the English track (text)",
+        json_caption: "Remove (JSON envelope)",
+    };
+
+    /// The page under `xr media subtitles --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Add a track from a subtitle file uploaded with --category subtitles (text)",
+                &[Example::text(&ADD)],
+            ),
+            ("Remove a track, JSON envelope", &[Example::json(&REMOVE)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}

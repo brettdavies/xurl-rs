@@ -164,12 +164,17 @@
           "description": "The fields available for a ChatConversation object.",
           "items": {
             "enum": [
+              "admin_settings",
               "created_at",
               "group_avatar_url",
+              "group_description",
+              "group_description_key_version",
               "group_name",
               "id",
+              "invite",
               "is_muted",
               "message_ttl_ms",
+              "pending_member_ids",
               "screen_capture_blocking_enabled",
               "screen_capture_detection_enabled",
               "type",
@@ -1030,6 +1035,140 @@
         },
         "type": "object"
       },
+      "AddChatGroupAdminsActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/AddChatGroupAdminsActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "AddChatGroupAdminsActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/AddChatGroupAdminsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "AddChatGroupAdminsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AddChatGroupAdminsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/AddChatGroupAdminsActionSignatures"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "description": "List of member user IDs to make admins.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
+      "AddChatGroupAdminsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddChatGroupAdminsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddChatGroupAdminsResponseData": {
+        "properties": {
+          "added": {
+            "description": "Whether the admins were added.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "added"
+        ],
+        "type": "object"
+      },
       "AddChatGroupMembersActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -1720,7 +1859,7 @@
           },
           "segment_index": {
             "description": "The index of this segment in the upload sequence.",
-            "maximum": 999,
+            "maximum": 9999,
             "minimum": 0,
             "type": "integer"
           }
@@ -1752,6 +1891,128 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/ApproveChatGroupAdminRequestActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/ApproveChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/ApproveChatGroupAdminRequestActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApproveChatGroupAdminRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ApproveChatGroupAdminRequestResponseData": {
+        "properties": {
+          "approved": {
+            "description": "Whether the admin request was approved.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approved"
+        ],
         "type": "object"
       },
       "ArticleCreateDraftContentState": {
@@ -2256,6 +2517,7 @@
             "type": "string"
           },
           "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
             "type": "integer"
           },
           "created_at_ms": {
@@ -2367,6 +2629,9 @@
             },
             "type": "array"
           },
+          "admin_settings": {
+            "$ref": "#/components/schemas/ChatConversationAdminSettings"
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -2374,11 +2639,22 @@
           "group_avatar_url": {
             "type": "string"
           },
+          "group_description": {
+            "description": "The group description, encrypted with the conversation key like group_name.",
+            "type": "string"
+          },
+          "group_description_key_version": {
+            "description": "The conversation key version that group_description is encrypted with.",
+            "type": "string"
+          },
           "group_name": {
             "type": "string"
           },
           "id": {
             "type": "string"
+          },
+          "invite": {
+            "$ref": "#/components/schemas/ChatConversationInvite"
           },
           "is_muted": {
             "type": "boolean"
@@ -2398,6 +2674,9 @@
             },
             "type": "array"
           },
+          "pending_member_ids": {
+            "$ref": "#/components/schemas/ChatConversationPendingMemberIds"
+          },
           "screen_capture_blocking_enabled": {
             "type": "boolean"
           },
@@ -2413,6 +2692,82 @@
           }
         },
         "type": "object"
+      },
+      "ChatConversationAdminSettings": {
+        "description": "Group actions restricted to admins. true means only admins can perform the action.",
+        "properties": {
+          "add_member": {
+            "description": "Whether only admins may add members.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "block_screen_capture": {
+            "description": "Whether only admins may block screen capture. Through the API, only admins can change\nscreen capture in a group, whatever this setting says.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "edit_group_info": {
+            "description": "Whether only admins may edit group info.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "edit_message_ttl": {
+            "description": "Whether only admins may edit the message TTL.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "send_message": {
+            "description": "Whether only admins may send messages.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "start_call": {
+            "description": "Whether only admins may start a call.",
+            "nullable": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ChatConversationInvite": {
+        "description": "An active invite link for a group Chat conversation.",
+        "properties": {
+          "admin_user_id": {
+            "description": "Unique identifier of the admin who turned on the invite link.",
+            "nullable": true,
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "When the invite link stops working.",
+            "nullable": true,
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "The shareable invite link.",
+            "type": "string"
+          },
+          "token": {
+            "description": "Token identifying this invite link.",
+            "nullable": true,
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to Users who join through the invite link.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "invite_url"
+        ],
+        "type": "object"
+      },
+      "ChatConversationPendingMemberIds": {
+        "description": "Unique identifiers of Users who asked to join this group and are awaiting approval. Returned only to callers who can add members.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
       },
       "ChatMediaUploadAppendRequest": {
         "additionalProperties": false,
@@ -2799,6 +3154,7 @@
               "broadcast.start",
               "broadcast.end",
               "broadcast.chat",
+              "broadcast.chat.remove",
               "chat.received",
               "chat.sent",
               "chat.conversation.join",
@@ -3209,6 +3565,258 @@
         },
         "required": [
           "conversation_id"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/CreateChatGroupAdminRequestActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/CreateChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/CreateChatGroupAdminRequestActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateChatGroupAdminRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateChatGroupAdminRequestResponseData": {
+        "properties": {
+          "requested": {
+            "description": "Whether the admin request was created.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requested"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/CreateChatGroupJoinRequestActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/CreateChatGroupJoinRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/CreateChatGroupJoinRequestActionSignatures"
+            },
+            "type": "array"
+          },
+          "token": {
+            "description": "The 10-character invite token from the group's invite link.",
+            "pattern": "^[A-Za-z0-9_-]{10}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateChatGroupJoinRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateChatGroupJoinRequestResponseData": {
+        "properties": {
+          "requested": {
+            "description": "Whether the join request was created.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requested"
         ],
         "type": "object"
       },
@@ -3832,7 +4440,8 @@
           }
         },
         "required": [
-          "id"
+          "id",
+          "metadata"
         ],
         "type": "object"
       },
@@ -3886,6 +4495,11 @@
             "description": "The subtitle tracks to associate with the media."
           }
         },
+        "required": [
+          "id",
+          "media_category",
+          "subtitles"
+        ],
         "type": "object"
       },
       "CreateMediaSubtitlesResponse": {
@@ -4287,7 +4901,7 @@
             "type": "boolean"
           },
           "chat_option": {
-            "description": "Chat permission option (numeric string).",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -4372,7 +4986,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -4917,6 +5531,250 @@
         "properties": {
           "deleted": {
             "description": "Whether the chat message was removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/DeleteChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/DeleteChatConversationMessageTtlActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationMessageTtlActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationMessageTtlActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteChatConversationMessageTtlResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationMessageTtlResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the message lifetime was removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the conversation was deleted.",
             "type": "boolean"
           }
         },
@@ -5474,6 +6332,128 @@
         ],
         "type": "object"
       },
+      "DisableChatGroupInviteActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/DisableChatGroupInviteActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "DisableChatGroupInviteActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/DisableChatGroupInviteActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "DisableChatGroupInviteActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DisableChatGroupInviteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/DisableChatGroupInviteActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DisableChatGroupInviteResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DisableChatGroupInviteResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DisableChatGroupInviteResponseData": {
+        "properties": {
+          "disabled": {
+            "description": "Whether the invite link was turned off.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "disabled"
+        ],
+        "type": "object"
+      },
       "DisallowedResourceProblem": {
         "properties": {
           "detail": {
@@ -5713,6 +6693,213 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "DuplicateRuleProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.twitter.com/2/problems/duplicate-rules"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "value"
+        ],
+        "type": "object"
+      },
+      "EnableChatGroupInviteActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/EnableChatGroupInviteActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "EnableChatGroupInviteActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/EnableChatGroupInviteActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "EnableChatGroupInviteActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EnableChatGroupInviteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/EnableChatGroupInviteActionSignatures"
+            },
+            "type": "array"
+          },
+          "affiliate_user_id": {
+            "description": "ID of the affiliate account to associate with the link.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "decrypted_avatar_url": {
+            "description": "Group avatar URL (https) to show on the invite preview.",
+            "maxLength": 2048,
+            "pattern": "^https://",
+            "type": "string"
+          },
+          "decrypted_title": {
+            "description": "Group name to show on the invite preview.",
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "Invite link built by the client, in the form https://x.com/i/chat/group_join/<conversation_id>/<token>, where the token is exactly 10 letters, digits, '-' or '_'. The conversation segment must match the path ID. It is part of the signed payload, so it is required when action_signatures is sent.",
+            "pattern": "^https://x\\.com/i/chat/group_join/g[0-9]{1,19}/[A-Za-z0-9_-]{10}$",
+            "type": "string"
+          },
+          "validity_duration_msec": {
+            "description": "How long the link stays valid, in milliseconds, from the time of the request. With action_signatures, send validity_expiry_timestamp_msec instead.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "validity_expiry_timestamp_msec": {
+            "description": "When the link expires, in epoch milliseconds. Must be in the future. If validity_duration_msec is also sent, the two must agree within a minute.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to people who open the link.",
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EnableChatGroupInviteResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EnableChatGroupInviteResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "EnableChatGroupInviteResponseData": {
+        "properties": {
+          "conversation_id": {
+            "description": "ID of the group conversation the link joins.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
+            "type": "string"
+          },
+          "group_avatar_url": {
+            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
+            "type": "string"
+          },
+          "group_name": {
+            "description": "Group name shown on the invite preview, stored unencrypted.",
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "Shareable invite link.",
+            "type": "string"
+          },
+          "token": {
+            "description": "Invite token. Together with the conversation ID it identifies the link.",
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to people who open the link.",
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "EnsureAccountRequest": {
         "properties": {
@@ -6391,6 +7578,49 @@
         },
         "type": "object"
       },
+      "GetChatConversationPinnedMessagesResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetChatConversationPinnedMessagesResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatConversationPinnedMessagesResponseData": {
+        "properties": {
+          "encoded_event": {
+            "description": "Base64-encoded Thrift pin event with end-to-end encrypted contents.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "encoded_event"
+        ],
+        "type": "object"
+      },
       "GetChatConversationResponse": {
         "properties": {
           "data": {
@@ -6448,6 +7678,104 @@
         },
         "type": "object"
       },
+      "GetChatGroupAdminRequestsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              },
+              "total_count": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatGroupInviteResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetChatGroupInviteResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatGroupInviteResponseData": {
+        "properties": {
+          "conversation_id": {
+            "description": "ID of the group conversation the link joins.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
+            "type": "string"
+          },
+          "group_avatar_url": {
+            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
+            "type": "string"
+          },
+          "group_name": {
+            "description": "Group name shown on the invite preview, stored unencrypted.",
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "Shareable invite link.",
+            "type": "string"
+          },
+          "join_state": {
+            "description": "The authenticated user's relationship to the group.",
+            "enum": [
+              "member",
+              "not_member",
+              "removed",
+              "requested"
+            ],
+            "type": "string"
+          },
+          "member_count": {
+            "description": "Number of members in the group.",
+            "type": "integer"
+          },
+          "token": {
+            "description": "Invite token. Together with the conversation ID it identifies the link.",
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to people who open the link.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GetChatModeratorsResponse": {
         "properties": {
           "data": {
@@ -6474,6 +7802,98 @@
               }
             },
             "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatSettingsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetChatSettingsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatSettingsResponseData": {
+        "properties": {
+          "allow_dms_from": {
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "enum": [
+              "all",
+              "verified",
+              "following"
+            ],
+            "type": "string"
+          },
+          "always_allow_dms_from_subscribers": {
+            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
+            "type": "boolean"
+          },
+          "av_settings": {
+            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettings",
+            "description": "Audio and video call settings."
+          },
+          "dm_quality_filter": {
+            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "dm_receipt_settings": {
+            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
+            "enum": [
+              "all_enabled",
+              "all_disabled"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatSettingsResponseDataAvSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "av_call_permissions": {
+            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettingsAvCallPermissions",
+            "description": "Who may place audio or video calls to the user."
+          },
+          "has_av_calls_enabled": {
+            "description": "Whether audio and video calls are enabled.",
+            "type": "boolean"
+          },
+          "has_enhanced_call_privacy_enabled": {
+            "description": "Whether enhanced call privacy is enabled.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatSettingsResponseDataAvSettingsAvCallPermissions": {
+        "additionalProperties": false,
+        "properties": {
+          "accept_calls_from_addressbook": {
+            "description": "Whether the user accepts calls from address-book contacts.",
+            "type": "boolean"
+          },
+          "accept_calls_from_everyone": {
+            "description": "Whether the user accepts calls from anyone.",
+            "type": "boolean"
+          },
+          "accept_calls_from_following": {
+            "description": "Whether the user accepts calls from accounts they follow.",
+            "type": "boolean"
+          },
+          "accept_calls_from_verified": {
+            "description": "Whether the user accepts calls from verified accounts.",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -7488,7 +8908,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -8666,7 +10086,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -8931,6 +10351,37 @@
         ],
         "type": "object"
       },
+      "InvalidRuleProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.twitter.com/2/problems/invalid-rules"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "details"
+        ],
+        "type": "object"
+      },
       "Keyword": {
         "description": "A keyword to filter on.",
         "example": "The President",
@@ -9124,7 +10575,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -9795,6 +11246,128 @@
         "properties": {
           "muted": {
             "description": "Whether the user is muted in this broadcast chat.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "type": "object"
+      },
+      "MuteChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/MuteChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "MuteChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/MuteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "MuteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MuteChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/MuteChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MuteChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MuteChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MuteChatConversationResponseData": {
+        "properties": {
+          "muted": {
+            "description": "Whether the conversation is muted for the authenticated user.",
             "type": "boolean"
           }
         },
@@ -11651,6 +13224,8 @@
       "Problem": {
         "discriminator": {
           "mapping": {
+            "https://api.twitter.com/2/problems/duplicate-rules": "#/components/schemas/DuplicateRuleProblem",
+            "https://api.twitter.com/2/problems/invalid-rules": "#/components/schemas/InvalidRuleProblem",
             "https://api.x.com/2/problems/disallowed-resource": "#/components/schemas/DisallowedResourceProblem",
             "https://api.x.com/2/problems/field-hydration-failure": "#/components/schemas/FieldHydrationFailureProblem",
             "https://api.x.com/2/problems/field-unauthorized": "#/components/schemas/FieldUnauthorizedProblem",
@@ -11694,6 +13269,12 @@
           },
           {
             "$ref": "#/components/schemas/InternalErrorProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DuplicateRuleProblem"
+          },
+          {
+            "$ref": "#/components/schemas/InvalidRuleProblem"
           }
         ]
       },
@@ -11756,6 +13337,528 @@
           "type",
           "title",
           "detail"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/RejectChatGroupAdminRequestActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/RejectChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/RejectChatGroupAdminRequestActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RejectChatGroupAdminRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RejectChatGroupAdminRequestResponseData": {
+        "properties": {
+          "rejected": {
+            "description": "Whether the admin request was rejected.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rejected"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/RejectChatGroupJoinRequestsActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/RejectChatGroupJoinRequestsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/RejectChatGroupJoinRequestsActionSignatures"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "description": "List of user IDs whose join requests to reject.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RejectChatGroupJoinRequestsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RejectChatGroupJoinRequestsResponseData": {
+        "properties": {
+          "rejected": {
+            "description": "Whether the join requests were rejected.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rejected"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/RemoveChatGroupAdminsActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupAdminsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupAdminsActionSignatures"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "description": "List of admin user IDs to revoke admin rights from.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RemoveChatGroupAdminsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupAdminsResponseData": {
+        "properties": {
+          "removed": {
+            "description": "Whether the admins were removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "removed"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupMembersActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/RemoveChatGroupMembersActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupMembersActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupMembersActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupMembersActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupMembersRequest": {
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupMembersActionSignatures"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "description": "List of user IDs to remove from the group conversation.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
+      "RemoveChatGroupMembersResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RemoveChatGroupMembersResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupMembersResponseData": {
+        "properties": {
+          "removed": {
+            "description": "Whether the members were removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "removed"
         ],
         "type": "object"
       },
@@ -13092,6 +15195,128 @@
         ],
         "type": "object"
       },
+      "UnmuteChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UnmuteChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UnmuteChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UnmuteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UnmuteChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UnmuteChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UnmuteChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnmuteChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UnmuteChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnmuteChatConversationResponseData": {
+        "properties": {
+          "muted": {
+            "description": "Whether the conversation is muted for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "type": "object"
+      },
       "UnmuteUserResponse": {
         "properties": {
           "data": {
@@ -13327,6 +15552,964 @@
         ],
         "type": "object"
       },
+      "UpdateChatConversationMessageTtlActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UpdateChatConversationMessageTtlActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationMessageTtlActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationMessageTtlActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationMessageTtlActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationMessageTtlRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationMessageTtlActionSignatures"
+            },
+            "type": "array"
+          },
+          "message_ttl_ms": {
+            "description": "How long new messages last, in milliseconds.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_ttl_ms"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationMessageTtlResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateChatConversationMessageTtlResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationMessageTtlResponseData": {
+        "properties": {
+          "updated": {
+            "description": "Whether the message lifetime was set.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureBlockingActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureBlockingActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureBlockingActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureBlockingActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureBlockingActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureDetectionActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureDetectionActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureDetectionActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureDetectionActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureDetectionActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureRequest": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "blocking"
+            ]
+          },
+          {
+            "required": [
+              "detection"
+            ]
+          }
+        ],
+        "description": "At least one of `blocking`, `detection` is required.",
+        "properties": {
+          "blocking": {
+            "description": "Whether participants are prevented from taking screenshots.",
+            "type": "boolean"
+          },
+          "blocking_action_signatures": {
+            "description": "Cryptographic signatures for the screenshot blocking change.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureBlockingActionSignatures"
+            },
+            "type": "array"
+          },
+          "detection": {
+            "description": "Whether participants are notified when someone takes a screenshot.",
+            "type": "boolean"
+          },
+          "detection_action_signatures": {
+            "description": "Cryptographic signatures for the screenshot detection change.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureDetectionActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatConversationScreenCaptureResponseData": {
+        "properties": {
+          "blocking": {
+            "description": "The screenshot blocking setting, when changed.",
+            "type": "boolean"
+          },
+          "detection": {
+            "description": "The screenshot detection setting, when changed.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UpdateChatGroupActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsRequest": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "add_member"
+            ]
+          },
+          {
+            "required": [
+              "edit_group_info"
+            ]
+          },
+          {
+            "required": [
+              "send_message"
+            ]
+          },
+          {
+            "required": [
+              "start_call"
+            ]
+          },
+          {
+            "required": [
+              "edit_message_ttl"
+            ]
+          },
+          {
+            "required": [
+              "block_screen_capture"
+            ]
+          }
+        ],
+        "description": "At least one of `add_member`, `edit_group_info`, `send_message`, `start_call`, `edit_message_ttl`, `block_screen_capture` is required.",
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsActionSignatures"
+            },
+            "type": "array"
+          },
+          "add_member": {
+            "description": "When true, only admins can add members.",
+            "type": "boolean"
+          },
+          "block_screen_capture": {
+            "description": "When true, only admins can change screen capture blocking. Through the API, only admins can change screen capture in a group, whatever this setting says.",
+            "type": "boolean"
+          },
+          "edit_group_info": {
+            "description": "When true, only admins can edit the group name, avatar, and description.",
+            "type": "boolean"
+          },
+          "edit_message_ttl": {
+            "description": "When true, only admins can change the disappearing-message timer.",
+            "type": "boolean"
+          },
+          "send_message": {
+            "description": "When true, only admins can send messages.",
+            "type": "boolean"
+          },
+          "start_call": {
+            "description": "When true, only admins can start calls.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupAdminSettingsResponseData": {
+        "properties": {
+          "updated": {
+            "description": "Whether the admin settings were updated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupConversationParticipantKeys": {
+        "properties": {
+          "encrypted_conversation_key": {
+            "description": "Conversation key encrypted with this participant's public key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "Version of the participant's public key used for encryption.",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Participant user ID.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupActionSignatures"
+            },
+            "type": "array"
+          },
+          "base64_encoded_key_rotation": {
+            "description": "Base64-encoded key rotation payload.",
+            "type": "string"
+          },
+          "conversation_key_version": {
+            "description": "Version of the conversation key the values are encrypted with.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "conversation_participant_keys": {
+            "description": "Encrypted conversation keys for each participant.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupConversationParticipantKeys"
+            },
+            "type": "array"
+          },
+          "group_avatar_url": {
+            "description": "Encrypted group avatar URL.",
+            "type": "string"
+          },
+          "group_description": {
+            "description": "Encrypted group description.",
+            "type": "string"
+          },
+          "group_name": {
+            "description": "Encrypted group name.",
+            "type": "string"
+          },
+          "modified_fields": {
+            "description": "The group values this request changes.",
+            "items": {
+              "enum": [
+                "group_name",
+                "group_avatar_url",
+                "group_description"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "rotated_pmk_bundle": {
+            "description": "Message keys re-encrypted with the rotated conversation key.",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChatGroupRotatedPmkBundle"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "modified_fields",
+          "conversation_key_version"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateChatGroupResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatGroupResponseData": {
+        "properties": {
+          "conversation_key_change_sequence_id": {
+            "description": "Sequence ID of the key change, when the edit rotated the key.",
+            "type": "string"
+          },
+          "updated": {
+            "description": "Whether the group was updated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateChatGroupRotatedPmkBundle": {
+        "properties": {
+          "base64_encoded_encrypted_pmk": {
+            "description": "Base64-encoded message key, encrypted with the new conversation key.",
+            "type": "string"
+          },
+          "message_sequence_id": {
+            "description": "Sequence ID of the message the key belongs to.",
+            "type": "string"
+          },
+          "pme_sequence_id": {
+            "description": "Sequence ID of the key's origin event.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base64_encoded_encrypted_pmk",
+          "message_sequence_id"
+        ],
+        "type": "object"
+      },
+      "UpdateChatSettingsAvSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "av_call_permissions": {
+            "$ref": "#/components/schemas/UpdateChatSettingsAvSettingsAvCallPermissions",
+            "description": "Who may place audio or video calls to the user."
+          },
+          "has_av_calls_enabled": {
+            "description": "Whether audio and video calls are enabled.",
+            "type": "boolean"
+          },
+          "has_enhanced_call_privacy_enabled": {
+            "description": "Whether enhanced call privacy is enabled.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsAvSettingsAvCallPermissions": {
+        "additionalProperties": false,
+        "properties": {
+          "accept_calls_from_addressbook": {
+            "description": "Whether the user accepts calls from address-book contacts.",
+            "type": "boolean"
+          },
+          "accept_calls_from_everyone": {
+            "description": "Whether the user accepts calls from anyone.",
+            "type": "boolean"
+          },
+          "accept_calls_from_following": {
+            "description": "Whether the user accepts calls from accounts they follow.",
+            "type": "boolean"
+          },
+          "accept_calls_from_verified": {
+            "description": "Whether the user accepts calls from verified accounts.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsRequest": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "allow_dms_from"
+            ]
+          },
+          {
+            "required": [
+              "always_allow_dms_from_subscribers"
+            ]
+          },
+          {
+            "required": [
+              "dm_quality_filter"
+            ]
+          },
+          {
+            "required": [
+              "dm_receipt_settings"
+            ]
+          },
+          {
+            "required": [
+              "av_settings"
+            ]
+          }
+        ],
+        "description": "At least one of `allow_dms_from`, `always_allow_dms_from_subscribers`, `dm_quality_filter`, `dm_receipt_settings`, `av_settings` is required.",
+        "properties": {
+          "allow_dms_from": {
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "enum": [
+              "all",
+              "verified",
+              "following"
+            ],
+            "type": "string"
+          },
+          "always_allow_dms_from_subscribers": {
+            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
+            "type": "boolean"
+          },
+          "av_settings": {
+            "$ref": "#/components/schemas/UpdateChatSettingsAvSettings",
+            "description": "Audio and video call settings."
+          },
+          "dm_quality_filter": {
+            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "dm_receipt_settings": {
+            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
+            "enum": [
+              "all_enabled",
+              "all_disabled"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateChatSettingsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsResponseData": {
+        "properties": {
+          "allow_dms_from": {
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "enum": [
+              "all",
+              "verified",
+              "following"
+            ],
+            "type": "string"
+          },
+          "always_allow_dms_from_subscribers": {
+            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
+            "type": "boolean"
+          },
+          "av_settings": {
+            "$ref": "#/components/schemas/UpdateChatSettingsResponseDataAvSettings",
+            "description": "Audio and video call settings."
+          },
+          "dm_quality_filter": {
+            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "dm_receipt_settings": {
+            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
+            "enum": [
+              "all_enabled",
+              "all_disabled"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsResponseDataAvSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "av_call_permissions": {
+            "$ref": "#/components/schemas/UpdateChatSettingsResponseDataAvSettingsAvCallPermissions",
+            "description": "Who may place audio or video calls to the user."
+          },
+          "has_av_calls_enabled": {
+            "description": "Whether audio and video calls are enabled.",
+            "type": "boolean"
+          },
+          "has_enhanced_call_privacy_enabled": {
+            "description": "Whether enhanced call privacy is enabled.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateChatSettingsResponseDataAvSettingsAvCallPermissions": {
+        "additionalProperties": false,
+        "properties": {
+          "accept_calls_from_addressbook": {
+            "description": "Whether the user accepts calls from address-book contacts.",
+            "type": "boolean"
+          },
+          "accept_calls_from_everyone": {
+            "description": "Whether the user accepts calls from anyone.",
+            "type": "boolean"
+          },
+          "accept_calls_from_following": {
+            "description": "Whether the user accepts calls from accounts they follow.",
+            "type": "boolean"
+          },
+          "accept_calls_from_verified": {
+            "description": "Whether the user accepts calls from verified accounts.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "UpdateListsRequest": {
         "additionalProperties": false,
         "properties": {
@@ -13482,7 +16665,7 @@
             "type": "boolean"
           },
           "chat_option": {
-            "description": "Chat permission option (numeric string).",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -13567,7 +16750,7 @@
             "type": "string"
           },
           "chat_option": {
-            "description": "Optional chat permission option.",
+            "description": "Who can chat (numeric string): `0` default, `1` chat off, `2` everyone, `3` verified accounts, `4` accounts the host follows, `5` the host's subscribers, `6` accounts followed by an account the host follows.",
             "type": "string"
           },
           "description": {
@@ -14725,7 +17908,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.168"
+    "version": "2.169"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -17273,6 +20456,79 @@
       }
     },
     "/2/chat/conversations/{id}": {
+      "delete": {
+        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "deleteChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
       "get": {
         "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users.",
         "externalDocs": {
@@ -17339,6 +20595,633 @@
           }
         ],
         "summary": "Get Chat Conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "put": {
+        "description": "Renames an encrypted Chat group conversation, changes its avatar, or sets its description. The client encrypts each value with the conversation key and lists the values it changed in modified_fields.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "updateChatGroup",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateChatGroupResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admin_requests": {
+      "get": {
+        "description": "Returns the users who have asked to become admins of an encrypted Chat group conversation. Only a group admin can list admin requests. Use user.fields to select which profile fields are returned.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatGroupAdminRequests",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "The next_token from a previous response, to fetch the next page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/PostFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatGroupAdminRequestsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get pending admin requests for a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "description": "Asks the admins of an encrypted Chat group conversation to make the authenticated user an admin. An admin approves or rejects the request.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "createChatGroupAdminRequest",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatGroupAdminRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateChatGroupAdminRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Request admin permissions in a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admin_requests/{user_id}/approve": {
+      "post": {
+        "description": "Makes the user who requested admin permissions an admin of an encrypted Chat group conversation. Only a group admin can approve.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "approveChatGroupAdminRequest",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "The ID of the user who requested admin permissions.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveChatGroupAdminRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveChatGroupAdminRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Approve an admin request in a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admin_requests/{user_id}/reject": {
+      "post": {
+        "description": "Declines a user's pending request for admin permissions in an encrypted Chat group conversation. Only a group admin can reject.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "rejectChatGroupAdminRequest",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "The ID of the user who requested admin permissions.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectChatGroupAdminRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectChatGroupAdminRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Reject an admin request in a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admin_settings": {
+      "put": {
+        "description": "Sets which actions only admins can perform in an existing encrypted Chat group conversation. A setting set to true restricts that action to admins, and false opens it to all members. Setting `send_message` to true makes the group announcement-only. Omitted settings keep their stored value. When sending `action_signatures`, sign over the full merged settings: the stored values with this request's changes applied, not only the settings in the request.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "updateChatGroupAdminSettings",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update the admin-only settings of a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admins": {
+      "post": {
+        "description": "Grants admin rights to one or more members of an existing encrypted Chat group conversation.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "addChatGroupAdmins",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddChatGroupAdminsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddChatGroupAdminsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add admins to a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/admins/remove": {
+      "post": {
+        "description": "Revokes admin rights from one or more admins of an existing encrypted Chat group conversation. They stay members of the group.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "removeChatGroupAdmins",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveChatGroupAdminsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveChatGroupAdminsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Remove admins from a Chat group conversation",
         "tags": [
           "Chat"
         ]
@@ -17433,6 +21316,380 @@
         ]
       }
     },
+    "/2/chat/conversations/{id}/invite": {
+      "delete": {
+        "description": "Turns off the invite link for an encrypted Chat group conversation. The existing link stops working.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "disableChatGroupInvite",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableChatGroupInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisableChatGroupInviteResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Disable a Chat group invite link",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "description": "Turns on the invite link for an encrypted Chat group conversation and returns the link details. The client builds the link and sends it as invite_url, in the form https://x.com/i/chat/group_join/<conversation_id>/<token>, where the token is exactly 10 letters, digits, '-' or '_'. invite_url is required when action_signatures is sent. To make the link expire, send validity_duration_msec or validity_expiry_timestamp_msec. With action_signatures, send validity_expiry_timestamp_msec, because the signed payload carries the expiry. The group name and avatar sent here are stored unencrypted and shown to anyone who opens the link.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "enableChatGroupInvite",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableChatGroupInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnableChatGroupInviteResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Enable a Chat group invite link",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/invites/{token}": {
+      "get": {
+        "description": "Returns the preview of an encrypted Chat group conversation from its invite link: group name, avatar, member count, and the authenticated user's join state. The conversation ID and the token both come from the invite link.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatGroupInvite",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "The 10-character invite token from the group's invite link.",
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{10}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatGroupInviteResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a Chat group invite link",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/join_requests": {
+      "post": {
+        "description": "Asks to join an encrypted Chat group conversation through its invite link. The request stays pending until a group admin adds the user to the group.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "createChatGroupJoinRequest",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatGroupJoinRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateChatGroupJoinRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Request to join a Chat group",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/join_requests/reject": {
+      "post": {
+        "description": "Rejects pending requests to join an encrypted Chat group conversation. Only group admins can reject requests. To approve a request instead, add the requesting users with addChatGroupMembers; adding a user clears their pending request.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "rejectChatGroupJoinRequests",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectChatGroupJoinRequestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectChatGroupJoinRequestsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Reject join requests for a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/2/chat/conversations/{id}/keys": {
       "post": {
         "description": "Adds (initializes or rotates) the encryption keys for a Chat conversation. Call this before sending messages in a new 1:1 conversation, and again with a newer key version to rotate the conversation key. For 1:1 conversations, provide the recipient's user ID as the conversation id; the server constructs the canonical conversation ID from the authenticated user and recipient. The request body must contain the conversation key version and participant keys (the conversation key encrypted for each participant using their public key).",
@@ -17509,7 +21766,7 @@
     },
     "/2/chat/conversations/{id}/members": {
       "post": {
-        "description": "Adds one or more members to an existing encrypted Chat group conversation, rotating the conversation key.",
+        "description": "Adds one or more members to an existing encrypted Chat group conversation, rotating the conversation key. Adding a user who has a pending join request approves that request; approval needs the same key-rotation body as adding any member.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -17576,6 +21833,228 @@
           }
         ],
         "summary": "Add members to a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/members/remove": {
+      "post": {
+        "description": "Removes one or more members from an existing encrypted Chat group conversation. To leave a group, pass your own user ID. Leaving does not delete the conversation for the caller.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "removeChatGroupMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveChatGroupMembersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveChatGroupMembersResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Remove members from a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/message_ttl": {
+      "delete": {
+        "description": "Stops new messages in a 1:1 or group Chat conversation from disappearing, for every participant. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "deleteChatConversationMessageTtl",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteChatConversationMessageTtlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteChatConversationMessageTtlResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Turn off disappearing messages in a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "put": {
+        "description": "Sets how long new messages in a 1:1 or group Chat conversation last before they disappear, for every participant. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "updateChatConversationMessageTtl",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatConversationMessageTtlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateChatConversationMessageTtlResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Turn on disappearing messages in a Chat conversation",
         "tags": [
           "Chat"
         ]
@@ -17729,6 +22208,230 @@
         ]
       }
     },
+    "/2/chat/conversations/{id}/mute": {
+      "delete": {
+        "description": "Unmutes notifications for a Chat conversation for the authenticated user only. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "unmuteChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnmuteChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnmuteChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unmute a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "description": "Mutes notifications for a Chat conversation for the authenticated user only. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "muteChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MuteChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MuteChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Mute a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/pinned_messages": {
+      "get": {
+        "description": "Retrieves the pinned message events of a Chat conversation with pagination support. Each event is a Base64-encoded Thrift pin event whose contents are end-to-end encrypted; decode and decrypt it client-side. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatConversationPinnedMessages",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "The next_token from a previous response, to fetch the next page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatConversationPinnedMessagesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat Conversation Pinned Messages",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/2/chat/conversations/{id}/read": {
       "post": {
         "description": "Marks a specific Chat conversation as read on behalf of the authenticated user. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
@@ -17798,6 +22501,81 @@
           }
         ],
         "summary": "Mark Conversation as Read",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/screen_capture": {
+      "put": {
+        "description": "Turns screenshot blocking or screenshot detection on or off in a Chat conversation, for every participant. In a group conversation, only admins can change these settings. Each request changes one setting: send either blocking or detection. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "updateChatConversationScreenCapture",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update screen capture settings for a Chat conversation",
         "tags": [
           "Chat"
         ]
@@ -18140,6 +22918,118 @@
           }
         ],
         "summary": "Download Chat Media",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/settings": {
+      "get": {
+        "description": "Returns the authenticated user's Chat privacy settings: who can message them, read receipts, the message quality filter, and audio/video call permissions.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatSettingsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat settings",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "put": {
+        "description": "Updates the authenticated user's Chat privacy settings: who can message them, read receipts, the message quality filter, and audio/video call permissions. allow_dms_from, dm_receipt_settings, and dm_quality_filter accept only their listed values, matched exactly and case-sensitively; anything else is a 400. av_settings must set at least one of its settings. Whether settings omitted from a partial av_settings keep their values or are reset is not yet confirmed; send every av_settings field you want to keep.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "updateChatSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateChatSettingsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update Chat settings",
         "tags": [
           "Chat"
         ]

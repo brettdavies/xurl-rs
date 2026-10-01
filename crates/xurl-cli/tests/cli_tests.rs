@@ -2178,6 +2178,251 @@ async fn skill_install_dest_is_regular_file_errors() {
     assert_eq!(v["destination_status"], "file");
 }
 
+/// The skill manifest the build generates the host table from.
+fn skill_manifest() -> serde_json::Value {
+    let path = common::workspace_root().join("crates/xurl-cli/src/cli/skill_install/skill.json");
+    let text = std::fs::read_to_string(&path).expect("skill.json must be readable");
+    serde_json::from_str(&text).expect("skill.json must parse")
+}
+
+/// The `~`-prefixed destination template in `host`'s install command.
+fn install_template(manifest: &serde_json::Value, host: &str) -> String {
+    let cmd = manifest["install"][host]
+        .as_str()
+        .expect("install command string");
+    cmd.split_whitespace()
+        .last()
+        .expect("install command ends in its destination")
+        .to_string()
+}
+
+/// `host -> install_dir` from `skill install --all --dry-run`, with `vars`
+/// added to the hermetic environment.
+fn dry_run_install_dirs(vars: &[(&str, &Path)]) -> std::collections::BTreeMap<String, String> {
+    let mut cmd = common::xr();
+    for (key, value) in vars {
+        cmd.env(key, value);
+    }
+    let out = cmd
+        .args(["skill", "install", "--all", "--dry-run", "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected a JSON envelope ({e}); stderr: {}",
+            String::from_utf8_lossy(&out.stderr)
+        )
+    });
+    v["installations"]
+        .as_array()
+        .expect("installations array")
+        .iter()
+        .map(|e| {
+            (
+                e["host"].as_str().expect("host").to_string(),
+                e["install_dir"].as_str().expect("install_dir").to_string(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn skill_home_env_stands_in_for_home_in_every_destination() {
+    let manifest = skill_manifest();
+    let skill_home = TempDir::new().expect("tempdir");
+    let dirs = dry_run_install_dirs(&[("XURL_SKILL_HOME", skill_home.path())]);
+    for host in manifest["install"].as_object().expect("install map").keys() {
+        let template = install_template(&manifest, host);
+        let rest = template
+            .strip_prefix("~/")
+            .expect("template starts with ~/");
+        let expected = skill_home.path().join(rest);
+        assert_eq!(
+            dirs.get(host).map(String::as_str),
+            Some(expected.to_string_lossy().as_ref()),
+            "host {host}"
+        );
+    }
+}
+
+#[test]
+fn each_host_config_dir_env_wins_over_skill_home_for_its_own_host() {
+    let manifest = skill_manifest();
+    let entries = manifest["config_dir_env"]
+        .as_object()
+        .expect("skill.json carries a config_dir_env entry for every host");
+    let skill_home = TempDir::new().expect("tempdir");
+    let config_root = TempDir::new().expect("tempdir");
+    let host_dirs: Vec<(String, std::path::PathBuf)> = entries
+        .iter()
+        .filter_map(|(host, entry)| {
+            entry["var"]
+                .as_str()
+                .map(|var| (var.to_string(), config_root.path().join(host)))
+        })
+        .collect();
+    assert!(
+        !host_dirs.is_empty(),
+        "at least one host documents a config-dir variable"
+    );
+    let mut vars: Vec<(&str, &Path)> = vec![("XURL_SKILL_HOME", skill_home.path())];
+    vars.extend(
+        host_dirs
+            .iter()
+            .map(|(var, dir)| (var.as_str(), dir.as_path())),
+    );
+    let dirs = dry_run_install_dirs(&vars);
+
+    for (host, entry) in entries {
+        let template = install_template(&manifest, host);
+        let expected = match entry["var"].as_str() {
+            Some(_) => {
+                let replaces = entry["replaces"]
+                    .as_str()
+                    .expect("replaces for a host with a var");
+                let rest = template
+                    .strip_prefix(replaces)
+                    .and_then(|r| r.strip_prefix('/'))
+                    .expect("replaces is a directory prefix of the template");
+                config_root.path().join(host).join(rest)
+            }
+            None => skill_home
+                .path()
+                .join(template.strip_prefix("~/").expect("~/ template")),
+        };
+        assert_eq!(
+            dirs.get(host).map(String::as_str),
+            Some(expected.to_string_lossy().as_ref()),
+            "host {host}"
+        );
+    }
+}
+
+/// `install_dir` from a `skill install ... --dry-run --output json` run.
+fn install_dir_of(cmd: &mut assert_cmd::Command) -> String {
+    let out = cmd.output().expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
+    v["install_dir"].as_str().expect("install_dir").to_string()
+}
+
+#[test]
+fn a_base_dir_env_applies_only_while_skill_home_is_unset() {
+    let manifest = skill_manifest();
+    let (host, entry) = manifest["base_dir_env"]
+        .as_object()
+        .expect("base_dir_env map")
+        .iter()
+        .next()
+        .expect("a host that follows a base-directory variable");
+    assert_eq!(entry["var"], "XDG_CONFIG_HOME", "the variable set below");
+    let replaces = entry["replaces"].as_str().expect("replaces");
+    let template = install_template(&manifest, host);
+    let base = TempDir::new().expect("tempdir");
+    let skill_home = TempDir::new().expect("tempdir");
+    let args = ["skill", "install", host, "--dry-run", "--output", "json"];
+
+    let under_base = install_dir_of(common::xr().env("XDG_CONFIG_HOME", base.path()).args(args));
+    let rest = template
+        .strip_prefix(replaces)
+        .and_then(|r| r.strip_prefix('/'))
+        .expect("replaces is a directory prefix of the template");
+    assert_eq!(under_base, base.path().join(rest).to_string_lossy());
+
+    let under_skill_home = install_dir_of(
+        common::xr()
+            .env("XDG_CONFIG_HOME", base.path())
+            .env("XURL_SKILL_HOME", skill_home.path())
+            .args(args),
+    );
+    let home_rest = template.strip_prefix("~/").expect("~/ template");
+    assert_eq!(
+        under_skill_home,
+        skill_home.path().join(home_rest).to_string_lossy(),
+        "XURL_SKILL_HOME replaces the whole home, XDG_CONFIG_HOME included"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn skill_update_removes_a_legacy_copy_before_installing() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let manifest = skill_manifest();
+    let (host, entry) = manifest["legacy_destinations"]
+        .as_object()
+        .expect("legacy_destinations map")
+        .iter()
+        .next()
+        .expect("a host with a legacy location");
+    let skill_home = TempDir::new().expect("tempdir");
+    let legacy = skill_home.path().join(
+        entry["path"]
+            .as_str()
+            .and_then(|path| path.strip_prefix("~/"))
+            .expect("a ~/ path"),
+    );
+    std::fs::create_dir_all(&legacy).expect("create the legacy copy");
+    std::fs::write(legacy.join("SKILL.md"), b"").expect("a file in the copy");
+
+    // A `git` that refuses every clone, ahead of the real one, so the run
+    // never reaches the network.
+    let shim = TempDir::new().expect("tempdir");
+    let git = shim.path().join("git");
+    std::fs::write(&git, "#!/bin/sh\nexit 128\n").expect("git shim");
+    std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755)).expect("executable");
+    let inherited = std::env::var_os("PATH").unwrap_or_default();
+    let path = std::env::join_paths(
+        std::iter::once(shim.path().to_path_buf()).chain(std::env::split_paths(&inherited)),
+    )
+    .expect("PATH");
+
+    let out = common::xr()
+        .env("XURL_SKILL_HOME", skill_home.path())
+        .env("PATH", path)
+        .args(["skill", "update", host, "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
+    assert!(!legacy.exists(), "update removes the legacy copy: {v}");
+    assert_eq!(
+        v["legacy_install_dir"].as_str(),
+        Some(legacy.to_string_lossy().as_ref())
+    );
+    assert_eq!(v["reason"], "git-clone-failed");
+}
+
+#[test]
+fn an_empty_host_config_dir_env_falls_through_to_skill_home() {
+    let manifest = skill_manifest();
+    let (host, var) = manifest["config_dir_env"]
+        .as_object()
+        .expect("config_dir_env map")
+        .iter()
+        .find_map(|(host, entry)| {
+            entry["var"]
+                .as_str()
+                .map(|var| (host.clone(), var.to_string()))
+        })
+        .expect("a host with a config-dir variable");
+    let skill_home = TempDir::new().expect("tempdir");
+    let mut cmd = common::xr();
+    cmd.env(&var, "").env("XURL_SKILL_HOME", skill_home.path());
+    let out = cmd
+        .args(["skill", "install", &host, "--dry-run", "--output", "json"])
+        .output()
+        .expect("run xr");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
+    let template = install_template(&manifest, &host);
+    let expected = skill_home
+        .path()
+        .join(template.strip_prefix("~/").expect("~/ template"));
+    assert_eq!(
+        v["install_dir"].as_str(),
+        Some(expected.to_string_lossy().as_ref()),
+        "an empty {var} is unset, so {host} resolves under XURL_SKILL_HOME"
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // U6: P3 progressive help — `after_help` on every subcommand + xr examples
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2953,6 +3198,109 @@ async fn test_limit_help_advertised_globally() {
         stdout.contains("--limit"),
         "xr --help must advertise --limit globally; got: {stdout}"
     );
+}
+
+/// The authenticated user the paging requests below are made for.
+const PAGING_USER_ID: &str = "2244994945";
+
+/// Every command that pages: its arguments, and the path its request lands on
+/// once the authenticated user is resolved.
+const PAGING_COMMANDS: &[(&[&str], &str)] = &[
+    (&["search", "x"], "/2/tweets/search/recent"),
+    (
+        &["timeline"],
+        "/2/users/2244994945/timelines/reverse_chronological",
+    ),
+    (&["mentions"], "/2/users/2244994945/mentions"),
+    (&["bookmarks"], "/2/users/2244994945/bookmarks"),
+    (&["likes"], "/2/users/2244994945/liked_tweets"),
+    (&["following"], "/2/users/2244994945/following"),
+    (&["followers"], "/2/users/2244994945/followers"),
+    (&["muted"], "/2/users/2244994945/muting"),
+    (&["blocked"], "/2/users/2244994945/blocking"),
+    (&["dms"], "/2/dm_events"),
+];
+
+/// `--limit` and `--cursor` reach the wire as `max_results` and
+/// `pagination_token` on every command that pages.
+#[tokio::test]
+async fn every_paging_command_sends_the_limit_and_cursor() {
+    for (args, request_path) in PAGING_COMMANDS {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": {"id": PAGING_USER_ID, "name": "Paging User", "username": "paging"}
+                }))),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(*request_path))
+                .and(wiremock::matchers::query_param("max_results", "25"))
+                .and(wiremock::matchers::query_param(
+                    "pagination_token",
+                    "CURSOR-TOKEN",
+                ))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": [],
+                    "meta": {"result_count": 0}
+                })))
+                .expect(1),
+        )
+        .await;
+
+        let mut argv = vec![
+            "xr",
+            "--output",
+            "json",
+            "--limit",
+            "25",
+            "--cursor",
+            "CURSOR-TOKEN",
+        ];
+        argv.extend_from_slice(args);
+        argv.extend_from_slice(&["--auth", "oauth1"]);
+        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &argv).await;
+        assert_eq!(
+            code, 0,
+            "xr {args:?} must send max_results and pagination_token to {request_path}; \
+             stderr: {stderr}; stdout: {stdout}"
+        );
+    }
+}
+
+/// The `--limit` and `--cursor` help name exactly the commands that page, so
+/// the help cannot promise paging a command does not do.
+#[test]
+fn the_limit_and_cursor_help_name_exactly_the_commands_that_page() {
+    use clap::CommandFactory;
+    let paging: std::collections::BTreeSet<&str> =
+        PAGING_COMMANDS.iter().map(|(args, _)| args[0]).collect();
+    let command = cli::Cli::command();
+    let subcommands: std::collections::BTreeSet<&str> = command
+        .get_subcommands()
+        .map(clap::Command::get_name)
+        .collect();
+    for flag in ["limit", "cursor"] {
+        let help = command
+            .get_arguments()
+            .find(|arg| arg.get_id() == flag)
+            .and_then(|arg| arg.get_long_help())
+            .unwrap_or_else(|| panic!("--{flag} has long help"))
+            .to_string();
+        let named: std::collections::BTreeSet<&str> = help
+            .split('`')
+            .skip(1)
+            .step_by(2)
+            .filter(|word| subcommands.contains(word))
+            .collect();
+        assert_eq!(named, paging, "--{flag} help names {named:?}; help: {help}");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

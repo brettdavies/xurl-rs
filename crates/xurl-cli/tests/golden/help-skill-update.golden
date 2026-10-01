@@ -1,12 +1,12 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5550
+stdout_len: 5893
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
 
-Removes the current destination and re-runs the install pipeline so the bundle picks up upstream changes. Hardening surface is identical to `install`. The envelope's `action` is `"skill-update"` so agents can distinguish from a first-time install.
+Removes the current destination and re-runs the install pipeline so the bundle picks up upstream changes. The destination and hardening surface are identical to `install`. A copy at a location the host still reads but xr does not install to, such as Codex's `~/.codex/skills/xurl-rs`, is removed too and named in `legacy_install_dir`. The envelope's `action` is `"skill-update"` so agents can distinguish from a first-time install.
 
 Usage: xr skill update [OPTIONS] [HOST]
 
@@ -106,14 +106,14 @@ Options:
       --limit <LIMIT>
           Global result-set limit, clamped to 1..=100 (U7).
           
-          Applies to every list-style command. The per-command `-n/--max-results` flag takes precedence when both are set.
+          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
           Pagination cursor / `pagination_token` for list endpoints.
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, and `dms` invocation.
+          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
           
           [env: XURL_CURSOR=]
 

@@ -482,6 +482,8 @@ async fn a_display_flag_ahead_of_the_word_does_not_hide_it(#[case] flag: &str) {
 #[case::missing_subcommand(&["xr", "auth"])]
 #[case::url(&["xr", "/2/users/me", "--help"])]
 #[case::raw_only_flag(&["xr", "-X", "POST", "webhooks", "--help"])]
+#[case::command_missing_its_argument(&["xr", "post", "--help"])]
+#[case::repeated_flag_without_a_word(&["xr", "--raw", "--help", "--raw=false"])]
 #[case::version(&["xr", "--version"])]
 #[case::version_short(&["xr", "-V"])]
 #[case::version_under_structured_intent(&["xr", "--output", "json", "--version"])]
@@ -495,6 +497,47 @@ async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str])
     assert_eq!(code, 0, "args {args:?}; stderr: {stderr}");
     assert_eq!(stdout, display, "args {args:?}");
     assert!(stderr.is_empty(), "args {args:?}; stderr: {stderr}");
+}
+
+/// A help or version flag on a word that names no command renders as the
+/// invocation does without the flag, and when that invocation is a usage error
+/// of its own (a repeated flag, an unknown flag), it renders that error rather
+/// than the root help at exit 0.
+#[rstest::rstest]
+#[case::repeated_flag(
+    &["xr", "--output", "json", "--raw", "webhooks", "--help", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::repeated_flag_short_help(
+    &["xr", "--output", "json", "--raw", "webhooks", "-h", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::repeated_flag_version(
+    &["xr", "--output", "json", "--raw", "webhooks", "--version", "--raw=false"],
+    "cannot be used multiple times"
+)]
+#[case::unknown_flag(
+    &["xr", "--output", "json", "webhooks", "--help", "--bogus-flag"],
+    "unexpected argument '--bogus-flag' found"
+)]
+#[tokio::test]
+async fn a_display_flag_beside_another_usage_error_renders_that_error(
+    #[case] args: &[&str],
+    #[case] expected: &str,
+) {
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stdout: {stdout}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    let v = envelope(&stderr, "json");
+    assert_eq!(
+        v["reason"], "invalid-args",
+        "args {args:?}; stderr: {stderr}"
+    );
+    let message = v["message"].as_str().expect("the message is a string");
+    assert!(
+        message.contains(expected),
+        "args {args:?}; stderr: {stderr}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -562,6 +605,125 @@ fn the_color_env_var_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
     assert_eq!(output.status.code(), Some(2), "args {args:?}");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.starts_with(RED), "args {args:?}; stderr: {stderr:?}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Raw on the parse-error path
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// `--raw` compacts every envelope a clap failure hands the runner, wherever
+/// the flag sits in argv, as it does for an error raised after the parse;
+/// `--raw=false` in its place keeps the pretty form.
+#[rstest::rstest]
+#[case::nested_unknown_command(&["xr", "--output", "json", "--raw", "auth", "zzz"])]
+#[case::flag_after_the_word(&["xr", "auth", "zzz", "--output", "json", "--raw"])]
+#[case::help_flag_path(&["xr", "--output", "json", "--raw", "webhooks", "--help"])]
+#[case::missing_argument(&["xr", "--output", "json", "--raw", "post"])]
+#[case::unknown_flag(&["xr", "--output", "json", "--raw", "--bogus-flag"])]
+#[case::explicit_value(&["xr", "--output", "json", "--raw=yes", "auth", "zzz"])]
+#[case::explicit_value_any_case(&["xr", "--output", "json", "--raw=TRUE", "auth", "zzz"])]
+#[tokio::test]
+async fn raw_compacts_the_parse_error_envelope(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert_eq!(
+        stderr.trim_end().lines().count(),
+        1,
+        "args {args:?}; stderr: {stderr}"
+    );
+    envelope(&stderr, "json");
+
+    let undone: Vec<&str> = args
+        .iter()
+        .map(|a| {
+            if a.starts_with("--raw") {
+                "--raw=false"
+            } else {
+                a
+            }
+        })
+        .collect();
+    let (code, _stdout, stderr) = run_isolated(&undone).await;
+    assert_eq!(code, 2, "args {undone:?}; stderr: {stderr}");
+    assert!(
+        stderr.trim_end().lines().count() > 1,
+        "args {undone:?}; stderr: {stderr}"
+    );
+}
+
+/// A `--raw` value reads the way clap reads it after a successful parse: an
+/// empty value and the false literals, in any case, mean false.
+#[rstest::rstest]
+#[case::empty("--raw=")]
+#[case::zero("--raw=0")]
+#[case::off_any_case("--raw=OFF")]
+#[case::no("--raw=no")]
+#[tokio::test]
+async fn a_false_raw_value_keeps_the_parse_error_envelope_pretty(#[case] flag: &str) {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "--output", "json", flag, "auth", "zzz"]).await;
+    assert_eq!(code, 2, "{flag}; stderr: {stderr}");
+    assert!(
+        stderr.trim_end().lines().count() > 1,
+        "{flag}; stderr: {stderr}"
+    );
+    envelope(&stderr, "json");
+}
+
+/// `--raw` strips color from the text rendering even when `--color always`
+/// asks for it, as the flag's help promises.
+#[rstest::rstest]
+#[case::clap_rejection(&["xr", "--color", "always", "--raw", "auth", "zzz"])]
+#[case::clap_text(&["xr", "--color", "always", "--bogus-flag", "--raw"])]
+#[tokio::test]
+async fn raw_strips_color_from_the_parse_error_text(#[case] args: &[&str]) {
+    let (code, _stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(
+        stderr.starts_with("Error: "),
+        "args {args:?}; stderr: {stderr:?}"
+    );
+    assert!(
+        !stderr.contains('\u{1b}'),
+        "args {args:?}; stderr: {stderr:?}"
+    );
+}
+
+/// `XURL_RAW` reaches the parse-error path through clap's `env` binding,
+/// which reads the process rather than the injected overrides.
+#[test]
+fn the_raw_env_var_reaches_the_parse_error_rendering() {
+    let output = common::xr()
+        .env("XURL_RAW", "true")
+        .env("XURL_OUTPUT", "json")
+        .args(["auth", "zzz"])
+        .output()
+        .expect("spawn xr");
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(stderr.trim_end().lines().count(), 1, "stderr: {stderr}");
+    envelope(&stderr, "json");
+}
+
+/// `XURL_JSON` and `XURL_JSONL` pick the envelope for a failure clap raises
+/// under a subcommand, as they do for one at the root.
+#[rstest::rstest]
+#[case::json("XURL_JSON", "json")]
+#[case::jsonl("XURL_JSONL", "jsonl")]
+fn the_json_alias_env_vars_reach_the_parse_error_rendering(
+    #[case] var: &str,
+    #[case] format: &str,
+) {
+    let output = common::xr()
+        .env(var, "true")
+        .args(["auth", "zzz"])
+        .output()
+        .expect("spawn xr");
+    assert_eq!(output.status.code(), Some(2), "{var}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v = envelope(&stderr, format);
+    assert_eq!(v["reason"], "unknown-command", "{var}: {stderr}");
+    assert_eq!(v["command"], "zzz", "{var}: {stderr}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

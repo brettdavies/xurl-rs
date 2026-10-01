@@ -27,6 +27,7 @@ pub mod skill_install;
 pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
+use xdk::api::VideoCategory;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -47,8 +48,11 @@ pub enum ColorChoice {
 ///
 /// Every env var the binary reads at the root level appears here so agents
 /// can discover the agentic surface from `xr --help` alone (corpus doc:
-/// `cli-env-vars-must-appear-in-help-2026-04-20.md`).
-const ROOT_HELP: &str = "\
+/// `cli-env-vars-must-appear-in-help-2026-04-20.md`). The skill hosts'
+/// config- and base-directory lines are generated from the skill manifest by
+/// `build.rs`.
+const ROOT_HELP: &str = concat!(
+    "\
 Examples:
   Authenticate (browser):
     xr auth oauth2
@@ -75,7 +79,10 @@ ENVIRONMENT VARIABLES:
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
   XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
-  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
+  XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
+",
+    include_str!(concat!(env!("OUT_DIR"), "/skill_env_help.txt")),
+    "  XURL_BEARER_TOKEN      App-only bearer token; wins over the bearer stored for the active app
   CLIENT_ID              OAuth2 client ID; wins over the active app's stored value
   CLIENT_SECRET          OAuth2 client secret; wins over the active app's stored value
   REDIRECT_URI           OAuth2 redirect URI override for the active app
@@ -109,7 +116,8 @@ TTY behavior:
   --color always is set) and human-only banners are suppressed, so piping
   to jaq or redirecting to a file produces clean machine-readable output
   without any extra flags.
-";
+"
+);
 
 /// `xr post` examples — text + JSON paired, plus a reply variant and a
 /// media-attached form.
@@ -156,8 +164,8 @@ Examples:
     xr delete 1585341984679469056
   Delete with JSON envelope:
     xr delete 1585341984679469056 --output json
-  Delete in a non-interactive context (CI, agent):
-    xr delete 1585341984679469056 --no-interactive --output json
+  Delete in a non-interactive context (CI, agent); --force confirms it:
+    xr delete 1585341984679469056 --force --no-interactive --output json
 ";
 
 /// `xr read` examples — paired text + JSON, plus a pipe-to-jaq invocation.
@@ -458,6 +466,10 @@ Examples:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
     xr media status 1585341984679469056 --output json
+  Describe an uploaded image for screen readers:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+  Add an English subtitle track to an uploaded video:
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
 ";
 
 /// `xr schema` examples — paired text + JSON, list, all.
@@ -576,8 +588,8 @@ Examples:
     xr auth clear --bearer --output json
   Clear a single OAuth2 user:
     xr auth clear --oauth2-username alice --output json
-  Non-interactive, fail without an explicit selector:
-    xr auth clear --all --no-interactive --output json
+  Non-interactive (CI, agent); --force confirms it:
+    xr auth clear --all --force --no-interactive --output json
 ";
 
 /// `xr auth apps` parent help — points to subcommands.
@@ -638,8 +650,8 @@ Examples:
     xr auth apps remove my-app
   Remove (JSON envelope):
     xr auth apps remove my-app --output json
-  Non-interactive removal in CI:
-    xr auth apps remove my-app --no-interactive --output json
+  Non-interactive removal in CI; --force confirms it:
+    xr auth apps remove my-app --force --no-interactive --output json
 ";
 
 /// `xr auth apps list` — paired text + JSON.
@@ -708,6 +720,19 @@ Examples:
     xr media status 1585341984679469056 --output json
   Poll until processing completes:
     xr media status 1585341984679469056 --wait --output json
+";
+
+/// `xr media alt-text` examples.
+const MEDIA_ALT_TEXT_HELP: &str = "\
+Examples:
+  Set the alt text of an uploaded image (text):
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+  Same, JSON envelope:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\" --output json
+  Upload, describe, then post the image:
+    xr media upload ./dog.png --media-type image/png --category tweet_image
+    xr media alt-text <media_id> \"A dog asleep on a beach towel\"
+    xr post \"Beach day\" --media-id <media_id>
 ";
 
 /// Auth-enabled curl-like interface for the X API.
@@ -932,8 +957,10 @@ pub struct Cli {
 
     /// Global result-set limit, clamped to 1..=100 (U7).
     ///
-    /// Applies to every list-style command. The per-command `-n/--max-results`
-    /// flag takes precedence when both are set.
+    /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
+    /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
+    /// ignore it. The per-command `-n/--max-results` flag takes precedence when
+    /// both are set.
     #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 
@@ -944,7 +971,8 @@ pub struct Cli {
     /// the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`).
     /// Threads through to the `pagination_token` query parameter on every
     /// `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`,
-    /// `followers`, and `dms` invocation.
+    /// `followers`, `muted`, `blocked`, and `dms` invocation; other commands
+    /// ignore it.
     #[arg(
         long = "cursor",
         global = true,
@@ -1351,10 +1379,10 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload operations
+    /// Media upload, alt text, and subtitles
     #[command(after_help = MEDIA_HELP)]
     Media {
-        /// `media` subcommand to dispatch (`upload` or `status`).
+        /// `media` subcommand to dispatch.
         #[command(subcommand)]
         command: MediaCommands,
     },
@@ -1513,8 +1541,11 @@ pub enum SkillCmd {
     /// Install the skill bundle into a host's canonical skills directory.
     ///
     /// Shallow-clones the xurl-rs repository so the bundled `AGENTS.md` is
-    /// discoverable to local agents. The destination is taken from the
-    /// build-generated host map (`src/skill_install/skill.json`).
+    /// discoverable to local agents. The destination is the host's skills
+    /// directory: under the host's own config-directory variable when it is
+    /// set, else under `XURL_SKILL_HOME`, else under a base-directory variable
+    /// the host follows or `~` (ENVIRONMENT VARIABLES in `xr --help` lists
+    /// every variable).
     #[command(after_help = "Examples:
   xr skill install claude_code                     # install bundle to Claude Code
   xr skill install claude_code --dry-run           # print the resolved git command without spawning
@@ -1538,9 +1569,12 @@ pub enum SkillCmd {
     /// Refresh an existing skill-bundle install in place.
     ///
     /// Removes the current destination and re-runs the install pipeline so
-    /// the bundle picks up upstream changes. Hardening surface is identical
-    /// to `install`. The envelope's `action` is `"skill-update"` so agents
-    /// can distinguish from a first-time install.
+    /// the bundle picks up upstream changes. The destination and hardening
+    /// surface are identical to `install`. A copy at a location the host still
+    /// reads but xr does not install to, such as Codex's
+    /// `~/.codex/skills/xurl-rs`, is removed too and named in
+    /// `legacy_install_dir`. The envelope's `action` is `"skill-update"` so
+    /// agents can distinguish from a first-time install.
     #[command(after_help = "Examples:
   xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle
   xr skill update claude_code --dry-run            # show the resolved plan without touching disk
@@ -1824,4 +1858,80 @@ pub enum MediaCommands {
         #[arg(short = 'H', long = "header")]
         headers: Vec<String>,
     },
+    /// Set the alt text shown for an uploaded image or video
+    #[command(after_help = MEDIA_ALT_TEXT_HELP)]
+    AltText {
+        /// Media id from `xr media upload`
+        #[arg(value_name = "MEDIA_ID")]
+        media_id: String,
+        /// Alt text, up to 1000 characters
+        #[arg(value_name = "TEXT")]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add or remove the subtitle tracks of an uploaded video
+    #[command(after_help = family_help::media_subtitles::page())]
+    Subtitles {
+        /// `subtitles` verb to dispatch.
+        #[command(subcommand)]
+        action: SubtitlesCommands,
+    },
+}
+
+/// `xr media subtitles` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SubtitlesCommands {
+    /// Add a subtitle track to an uploaded video
+    #[command(after_help = family_help::media_subtitles::FAMILY.verb_page(&family_help::media_subtitles::ADD))]
+    Add {
+        /// Media id of the video
+        #[arg(value_name = "VIDEO_ID")]
+        video_id: String,
+        /// Media id of the subtitle file, uploaded with `--category subtitles`
+        #[arg(value_name = "SUBTITLES_ID")]
+        subtitles_id: String,
+        /// Two-letter language code of the track (e.g. en)
+        #[arg(long = "language", value_name = "CODE")]
+        language: String,
+        /// Language name viewers pick the track by (e.g. English)
+        #[arg(long = "name", value_name = "NAME")]
+        display_name: Option<String>,
+        /// Category the video was uploaded with
+        #[arg(long = "category", value_parser = video_category_parser(), default_value = "amplify_video")]
+        category: VideoCategory,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove a subtitle track from an uploaded video
+    #[command(after_help = family_help::media_subtitles::FAMILY.verb_page(&family_help::media_subtitles::REMOVE))]
+    Remove {
+        /// Media id of the video
+        #[arg(value_name = "VIDEO_ID")]
+        video_id: String,
+        /// Two-letter language code of the track to remove (e.g. en)
+        #[arg(long = "language", value_name = "CODE")]
+        language: String,
+        /// Category the video was uploaded with
+        #[arg(long = "category", value_parser = video_category_parser(), default_value = "amplify_video")]
+        category: VideoCategory,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// Parses a `--category` for a subtitled video: the possible values are the
+/// upload names `VideoCategory::from_upload_name` maps, so the fallible step
+/// never fires.
+fn video_category_parser() -> impl clap::builder::TypedValueParser<Value = VideoCategory> {
+    use clap::builder::TypedValueParser as _;
+
+    clap::builder::PossibleValuesParser::new(VideoCategory::ALL.map(VideoCategory::upload_name))
+        .try_map(|name: String| {
+            VideoCategory::from_upload_name(&name)
+                .ok_or_else(|| format!("unknown category {name:?}"))
+        })
 }

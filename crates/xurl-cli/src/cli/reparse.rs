@@ -10,7 +10,10 @@ use std::ffi::OsString;
 
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
-use crate::cli::classify::{ROOT_COMMAND, color_intent, usage_command};
+use crate::cli::classify::{
+    ROOT_COMMAND, color_intent, raw_intent, structured_format, structured_intent, usage_command,
+};
+use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice};
 
 /// `Cli::command()` with the root help and version flags inert.
@@ -39,13 +42,18 @@ fn command_with_inert_display_flags() -> clap::Command {
 }
 
 /// Parses `args` as if the root help and version flags were absent, so the
-/// invocation one of them interrupted can be classified like any other. Any
-/// parse error returns `None`, which leaves clap's display in place.
-pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Option<Cli> {
-    let matches = command_with_inert_display_flags()
-        .try_get_matches_from(args)
-        .ok()?;
-    Cli::from_arg_matches(&matches).ok()
+/// invocation one of them interrupted can be classified like any other. The
+/// error is the one that invocation raises without the flag.
+pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap::Error> {
+    let matches = command_with_inert_display_flags().try_get_matches_from(args)?;
+    Cli::from_arg_matches(&matches)
+}
+
+/// `args` read leniently as a [`Cli`]: what clap bound before any error, so
+/// the word a help or version flag hid can be classified even when the
+/// invocation has another usage error.
+pub(crate) fn lenient_cli(args: &[OsString]) -> Option<Cli> {
+    Cli::from_arg_matches(&lenient_matches(args)?).ok()
 }
 
 /// What clap resolved from `args` before an error stopped it: the flags ahead
@@ -70,6 +78,43 @@ pub(crate) fn color_choice(args: &[OsString]) -> ColorChoice {
                 .copied()
         })
         .unwrap_or_default()
+}
+
+/// Whether a parse-error rendering is raw: a `--raw` named anywhere in argv,
+/// then what clap resolved, which carries the `XURL_RAW` binding and the
+/// default.
+pub(crate) fn raw_choice(args: &[OsString]) -> bool {
+    raw_intent(args)
+        .or_else(|| {
+            lenient_matches(args)?
+                .try_get_one::<bool>("raw")
+                .ok()
+                .flatten()
+                .copied()
+        })
+        .unwrap_or(false)
+}
+
+/// The output format for a parse-error rendering: a format named anywhere in
+/// argv, then the `--jsonl` and `--json` aliases as clap resolved them (their
+/// `XURL_JSONL` and `XURL_JSON` bindings included), then `output`, the
+/// caller's `XURL_OUTPUT`. A successful parse never holds an alias beside
+/// `--output`, because clap rejects the pair; ranking the alias first renders
+/// that rejection in the format the alias names.
+pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
+    structured_intent(args)
+        .or_else(|| {
+            let matches = lenient_matches(args)?;
+            let set = |id: &str| matches!(matches.try_get_one::<bool>(id), Ok(Some(true)));
+            if set("jsonl") {
+                Some(OutputFormat::Jsonl)
+            } else if set("json") {
+                Some(OutputFormat::Json)
+            } else {
+                None
+            }
+        })
+        .or_else(|| output.and_then(structured_format))
 }
 
 /// The command whose help a parse failure points at: the one clap's usage
