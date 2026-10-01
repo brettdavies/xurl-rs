@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-09-30
+
+### Added
+
+- Add `Client::set_media_alt_text`, `Client::add_media_subtitles`, and `Client::remove_media_subtitles`, with the `MediaMetadataResult` and `MediaSubtitlesResult` response types, the `VideoCategory` enum, and `testing` mock routes for all three endpoints. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+- Add the dry-run checks `shortcuts::validate_media_id`, `validate_alt_text`, and `validate_language_code`, and the `ALT_TEXT_MAX_CHARS` constant.
+
+### Changed
+
+- Change the vendored X API spec to 2.169, which adds 23 `/2/chat` operations and removes nothing; `API_SPEC_VERSION`, `API_SPEC_SHA256`, and `API_SPEC_DATE` follow. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+
+### Fixed
+
+- Fix `Client::send_request` and every `Call` dropping the body of a DELETE request; the body and its `Content-Type` now go out as they do for POST, PUT, and PATCH. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+
+**Full Changelog**: [xdk-rs-v0.1.2...xdk-rs-v0.1.3](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.1.2...xdk-rs-v0.1.3)
+
 ## [0.1.2] - 2026-09-24
 
 ### Changed

@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.0] - 2026-09-30
+
+### Added
+
+- Add `XURL_SKILL_HOME`: it stands in for `~` in `xr skill install` and `xr skill update` destinations, so the skill bundle can install into a directory of your choosing without changing `HOME`. by @brettdavies in [#249](https://github.com/brettdavies/xurl-rs/pull/249)
+- Add support for each skill host's own config-directory variable (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `OPENCODE_CONFIG_DIR`). When one is set, that host's destination sits under it, ahead of `XURL_SKILL_HOME` and `HOME`; `xr --help` lists them.
+- Add `XDG_CONFIG_HOME` to the OpenCode skill destination: when it is set and `XURL_SKILL_HOME` is not, `xr skill install opencode` and `xr skill update opencode` use `$XDG_CONFIG_HOME/opencode/skills/xurl-rs`, where OpenCode reads skills. `OPENCODE_CONFIG_DIR` still wins over both. by @brettdavies in [#250](https://github.com/brettdavies/xurl-rs/pull/250)
+- Add `legacy_install_dir` to the `xr skill install` and `xr skill update` envelopes. It names a copy of the skill at a location the host still reads but `xr` no longer installs to; `skill update` removes that copy, and `skill install` leaves it in place and says so in text mode.
+- Add `xr media alt-text <MEDIA_ID> <TEXT>` to set the alt text screen readers announce for an uploaded image or video; `--dry-run` checks the id and the 1000-character limit. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+- Add `xr media subtitles add <VIDEO_ID> <SUBTITLES_ID> --language <CODE> [--name <NAME>]` and `xr media subtitles remove <VIDEO_ID> --language <CODE>` to attach and detach a subtitle track uploaded with `xr media upload --category subtitles`; `--category` names the video's upload category (`amplify_video` by default, or `tweet_video`).
+- Add the `alt-text` and `subtitles` schemas to `xr validate`, with auto-detection, and the three commands to `xr schema`.
+
+### Changed
+
+- Change the vendored X API spec to 2.169: 23 new `/2/chat` operations that raw mode reaches, two filtered-stream rule error types (`duplicate-rules`, `invalid-rules`), required fields on the media metadata and subtitles requests, a `segment_index` ceiling of 9999 on chunked uploads, and a `broadcast.chat.remove` activity event type. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+
+### Fixed
+
+- Fix `--raw` and `XURL_RAW` being ignored for a usage error under a subcommand, a missing argument, or an unknown flag: the JSON envelope printed pretty-printed and text mode kept its color. It now prints compact and uncolored, as for every other error. by @brettdavies in [#242](https://github.com/brettdavies/xurl-rs/pull/242)
+- Fix `XURL_JSON` and `XURL_JSONL` being ignored for a usage error under a subcommand: `XURL_JSON=true xr auth zzz` printed a text error where `XURL_JSON=true xr zzz` printed the JSON envelope.
+- Fix a help or version flag beside a mistyped word printing the root help at exit 0 when the invocation also repeats a flag or passes an unknown one (`xr --raw webhooks --help --raw=false`); it now reports that usage error at exit 2, as the invocation does without the flag. by @brettdavies in [#245](https://github.com/brettdavies/xurl-rs/pull/245)
+- Fix the Codex skill destination: `xr skill install codex` clones into `~/.agents/skills/xurl-rs`, where Codex reads user skills, instead of the deprecated `~/.codex/skills/xurl-rs`. `xr skill update codex` and `xr skill update --all` move an existing copy by removing the old one and installing at the new path. by @brettdavies in [#250](https://github.com/brettdavies/xurl-rs/pull/250)
+- Fix raw-mode DELETE requests dropping their `-d` body, which left `xr -X DELETE /2/connections -d '...'` unable to reach the endpoint. by @brettdavies in [#252](https://github.com/brettdavies/xurl-rs/pull/252)
+
+### Documentation
+
+- Correct the non-interactive `delete`, `auth apps remove`, and `auth clear` examples in `xr examples` and `--help`, which failed with `confirmation-required` as written; they now pass `--force`, which a destructive op under `--no-interactive` needs. by @brettdavies in [#243](https://github.com/brettdavies/xurl-rs/pull/243)
+- Correct the `--limit` and `--cursor` help to name the commands that page (`search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, `dms`); other commands, including `broadcasts moderators list`, ignore both flags.
+
+**Full Changelog**: [v4.1.1...v4.2.0](https://github.com/brettdavies/xurl-rs/compare/v4.1.1...v4.2.0)
+
 ## [4.1.1] - 2026-09-24
 
 ### Changed
