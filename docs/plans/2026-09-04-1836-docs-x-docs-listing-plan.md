@@ -36,10 +36,10 @@ post-submission checkpoint.
 - **`twitter-v2` is stale but still used.** `jpopesculian/twitter-v2-rs`: last release 0.1.8 on 2022-10-25, last commit
   2022-11-29, seven open issues with no maintainer reply since 2022, about 2,200 downloads in the last 90 days, not
   archived.
-- **The repository publishes two crates.** `xdk-rs` 0.1.0 is the async client library, imported as `xdk`; `xurl-rs`
-  4.0.0 is the `xr` CLI built on it. Both are on crates.io as of 2026-09-18, and each has its own README, changelog, and
-  tag line. A listing that names only one of them misses either the thing a library reader wants or the thing that
-  carries the `xurl` lineage.
+- **The repository publishes two crates.** `xdk-rs` is the async client library, imported as `xdk`; `xurl-rs` is the
+  `xr` CLI built on it. Both have been on crates.io since 2026-09-18, and each has its own README, changelog, and tag
+  line. A listing that names only one of them misses either the thing a library reader wants or the thing that carries
+  the `xurl` lineage.
 - **Presentation is ready.** Every README states that the project is independent and not affiliated with X, and
   `docs.rs/xdk-rs`, the Homebrew tap, and GitHub Releases all resolve. GitHub reports the license as Apache-2.0 only,
   while the manifests declare `MIT OR Apache-2.0`: GitHub's detector names the first license file it recognizes and
@@ -73,8 +73,8 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 
 - **Edit** `tools-and-libraries.mdx` only. Insert a `Rust` tab after the `Ruby` tab and delete the `**Rust**` row from
   the `Other` tab, whose single entry moves into the new tab. The tab mirrors the existing ones (two-column table,
-  left-aligned). "Other tools" is not touched. The two new descriptions run to two lines where every other row fits
-  one; they stay at full length by decision on 2026-09-22. As submitted in `b2b2d39`:
+  left-aligned). "Other tools" is not touched. The two new descriptions run to two lines where every other row fits one;
+  they stay at full length by decision on 2026-09-22. As submitted in `b2b2d39`:
 
 ```mdx
   <Tab title="Rust">
@@ -86,20 +86,20 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
   </Tab>
 ```
 
-- **Verify locally** with the Mintlify CLI (`npx mint dev` from the fork root), since a fork gets no preview
-  deployment. Verified 2026-09-22 in headless Chromium: the `Rust` tab shows the three rows with their links, and the
-  `Other` tab keeps its four remaining rows. The page's `require is not defined` error also occurs on unmodified
-  upstream. npm's 7-day release-age cooldown on this machine rejects a pinned fresh `mint` version; run it unpinned.
+- **Verify locally** with the Mintlify CLI (`npx mint dev` from the fork root), since a fork gets no preview deployment.
+  Verified 2026-09-22 in headless Chromium: the `Rust` tab shows the three rows with their links, and the `Other` tab
+  keeps its four remaining rows. The page's `require is not defined` error also occurs on unmodified upstream. npm's
+  7-day release-age cooldown on this machine rejects a pinned fresh `mint` version; run it unpinned.
 - **PR body.** Short, no template exists. Four parts: what changed; why a tab (Rust had no description column and now
   has two maintained entries that need one); what moved, naming the relocation of `twitter-v2` as a relocation so no
   reviewer reads it as a removal; and an acknowledgement that both crates are community-maintained and unaffiliated,
   matching the page's note, plus an offer to fall back to the first contingency below. It states no `twitter-v2`
   figures. The body as sent is on #447.
 - **Title.** `docs: add a Rust tab to Community libraries`, the `docs:` form the page owner uses.
-- **CLA.** Signed 2026-09-22; the `license/cla` check on #447 passes. It is Twitter's Contributor License Agreement,
-  and one signature covers every future contribution to X's repositories. The grant is a non-exclusive,
-  irrevocable copyright and patent license over text you submit to X's repositories and issue trackers; it does not
-  reach either crate, which are linked, not submitted.
+- **CLA.** Signed 2026-09-22; the `license/cla` check on #447 passes. It is Twitter's Contributor License Agreement, and
+  one signature covers every future contribution to X's repositories. The grant is a non-exclusive, irrevocable
+  copyright and patent license over text you submit to X's repositories and issue trackers; it does not reach either
+  crate, which are linked, not submitted.
 - **Re-verify before opening.** Done on 2026-09-22, the day the PR opened: the page source and the `twitter-v2`
   repository and crate were re-read, and the `twitter-v2` figures in "What the evidence says" are from that read.
 - **Deliverable.** Open PR URL, recorded here: https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 from
@@ -136,8 +136,7 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 - A row in the "Other tools" table, which holds only X-owned entries.
 - Renaming either crate or the binary.
 - Listing in the X Ads API tools page.
-- Any further change to what either crate does. The listing describes `xdk-rs` 0.1.0 and `xurl-rs` 4.0.0, both released
-  2026-09-18.
+- Any change to what either crate does. The listing's descriptions name no version.
 
 ## Sources
 
@@ -151,18 +150,20 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `5cff0ee`, 2026-09-22)
+(against `xurl-rs` `origin/dev` @ `f9df2b1`, 2026-09-30)
 
-| Phase   | State     | Note                                                                                                 |
-| ------- | --------- | ---------------------------------------------------------------------------------------------------- |
-| Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17. |
-| Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22; CLA signed and `license/cla` green; awaiting X review.  |
-| Phase 3 | not-built | Day 0 post undecided; nudge 2026-10-02, forum 2026-10-12, stop 2026-11-01 if #447 stays silent.      |
+| Phase   | State     | Note                                                                                                     |
+| ------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17.     |
+| Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22, mergeable, `license/cla` green; no human comment or review. |
+| Phase 3 | not-built | Day 0 post undecided; nudge 2026-10-02, forum 2026-10-12, stop 2026-11-01 if #447 stays silent.          |
 
-The evidence this plan rests on was re-read on 2026-09-22, the day the PR opened, and still holds:
-`tools-and-libraries.mdx` last changed on 2026-07-25, "Other tools" still carries only its three X-owned rows, and Rust
-is still one bare-link `twitter-v2` row in the `Other` tab. The PR body states no `twitter-v2` figures.
+The page evidence holds: `tools-and-libraries.mdx` has had no commit since 2026-07-25, so "Other tools" still carries
+only its three X-owned rows and Rust is still one bare-link `twitter-v2` row in the `Other` tab. The PR body states no
+`twitter-v2` figures.
 
-What changed since the plan was written is on this side, not X's. The repository now publishes two crates instead of
-one, so the listing names both; the release the listing describes is 4.0.0 rather than the 3.2.0 this plan expected to
-be the last one before the PR; and the `twitter-v2` row is relocated into the new tab rather than proposed for removal.
+### Remaining work
+
+- **2026-10-02:** if #447 is still silent, post the Day 10 nudge comment.
+- **2026-10-12:** if still silent, post in the developer forum.
+- **2026-11-01:** stop; leave the PR open and the fork branch in place.

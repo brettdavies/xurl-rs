@@ -2,7 +2,8 @@
 title: Wire Vocabulary Drift - Plan
 type: fix
 date: 2026-09-20
-status: implementation-ready
+status: completed
+implementation: U1-U5 and the DX follow-up merged to dev 2026-09-22 as stack #217 (#212-#216, #218); released in xdk-rs 0.1.1 and xr 4.1.0 on 2026-09-24
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -344,10 +345,10 @@ Two embedder-facing notes land with it:
   `"edit_history_tweet_ids": [""]`; the built-binary test
   `verbose_reports_a_legacy_key_x_sent_and_stdout_reads_the_current_name` (#215).
 - [x] A raw request still prints X's own spelling. Evidence: `test_raw_request_keeps_the_legacy_spelling_x_sent` (#214).
-- [ ] `cargo semver-checks --release-type patch` passes, and the release is cut as a patch. Evidence: `cargo
+- [x] `cargo semver-checks --release-type patch` passes, and the release is cut as a patch. Evidence: `cargo
   semver-checks check-release --package xdk-rs --baseline-rev xdk-rs-v0.1.0 --release-type patch` reports 223 pass and
-  no semver update required on every unit and on the stack top `b791bf5`. The patch cut is the maintainer's release
-  step.
+  no semver update required on every unit and on the stack top `b791bf5`; released as the patch `xdk-rs` 0.1.1 on
+  2026-09-24, with #213-#216 and #218 under its `crates/xdk/CHANGELOG.md` section.
 - [x] The telemetry emit site carries only the five fields KTD4 names, asserted by a guard rather than by review.
   Evidence: `crates/xdk/tests/vocabulary_event_guard.rs` (#215), observed failing with no emit site.
 - [x] The `docs/solutions/` entry is written and pushed with `sd-commit-doc`. Evidence:
@@ -366,7 +367,7 @@ Two embedder-facing notes land with it:
 (against `xurl-rs` `origin/dev` @ `d4000b7`, 2026-09-22)
 
 U1-U5 and a developer-experience follow-up landed on `dev` together through one atomic `gh stack merge` of stack #217,
-six squash commits with no restack. T1-T6 are done apart from the release cut.
+six squash commits with no restack. T1-T6 are done. The stack released in `xdk-rs` 0.1.1 and `xr` 4.1.0 on 2026-09-24.
 
 | Unit | State  | Branch                                | PR   | Commit    | Note                                                                                                           |
 | ---- | ------ | ------------------------------------- | ---- | --------- | -------------------------------------------------------------------------------------------------------------- |

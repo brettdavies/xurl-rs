@@ -1692,9 +1692,9 @@ into the library README where a reviewer can check them in seconds:
 
 **Landed:** partial — the publish half is done: `xdk-rs` 0.1.0 and `xurl-rs` 4.0.0 are on crates.io (2026-09-18), tagged
 `xdk-rs-v0.1.0` and `v4.0.0`, and the `0.0.0` placeholder is yanked. The listing submission is
-https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 in the placement the listing plan settles, with the
-CLA signed and the PR awaiting X's review. The post-submission checkpoint is what remains, and it is the only item left
-in any of these three plans that depends on someone outside the project; the listing plan's Phase 3 carries its dates.
+https://github.com/xdevplatform/docs/pull/447, opened 2026-09-22 in the placement the listing plan settles, with the CLA
+signed and the PR awaiting X's review. The post-submission checkpoint is what remains, and it is the only item left in
+any of these three plans that depends on someone outside the project; the listing plan's Phase 3 carries its dates.
 
 **Goal.** The crate is on crates.io in its adoption-grade form and submitted for X's community libraries list.
 
@@ -1858,32 +1858,32 @@ call for observing a failure first record the actual failure output.
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `d7a4496`, 2026-09-22)
+(against `xurl-rs` `origin/dev` @ `f9df2b1`, 2026-09-30)
 
 Phase A and Phase B are complete. Phase C is complete except for U13's post-submission checkpoint on
 xdevplatform/docs#447.
 
-| Unit | State     | Stack | PR   | Commit    | Note                                                       |
-| ---- | --------- | ----- | ---- | --------- | ---------------------------------------------------------- |
-| U17  | landed    | —     | n/a  | n/a       | Recon only; conclusion re-checked 2026-09-18 and holds.    |
-| U18  | landed    | S01   | #167 | `8130244` | With the golden baseline (T27, T40).                       |
-| U0   | landed    | S02   | #180 | `a5860dd` | —                                                          |
-| U1   | landed    | S02   | #180 | `a5860dd` | —                                                          |
-| U3   | landed    | S03   | #181 | `539d8cd` | —                                                          |
-| U2   | landed    | S04   | #170 | `e7aa160` | —                                                          |
-| U5   | landed    | S04   | #170 | `e7aa160` | Same branch as U2.                                         |
-| U11  | landed    | S05   | #171 | `c8a22ea` | Reason mapping revised later by #198.                      |
-| U4   | landed    | S06   | #172 | `e7577c4` | —                                                          |
-| U15  | landed    | S06   | #172 | `e7577c4` | —                                                          |
-| U19  | landed    | S07   | #173 | `fdaa636` | —                                                          |
-| U6   | landed    | S08   | #174 | `62e4c1a` | The break that made the CLI 4.0.0.                         |
-| U7   | landed    | S09   | #175 | `1a6928f` | —                                                          |
-| U8   | landed    | S09   | #175 | `1a6928f` | —                                                          |
-| U9   | landed    | S10   | #176 | `7f4791f` | —                                                          |
-| U10  | landed    | S10   | #176 | `7f4791f` | —                                                          |
-| U12  | landed    | S11   | #177 | `e680abb` | Corrected in flight by #199-#209 during the first release. |
-| U13  | partial   | —     | n/a  | n/a       | Published; xdevplatform/docs#447 open, awaiting review.    |
-| U14  | landed    | —     | #210 | `e9d1bda` | Waiver block deleted whole; semver check passed.           |
+| Unit | State   | Stack | PR   | Commit    | Note                                                       |
+| ---- | ------- | ----- | ---- | --------- | ---------------------------------------------------------- |
+| U17  | landed  | —     | n/a  | n/a       | Recon only; conclusion re-checked 2026-09-18 and holds.    |
+| U18  | landed  | S01   | #167 | `8130244` | With the golden baseline (T27, T40).                       |
+| U0   | landed  | S02   | #180 | `a5860dd` | —                                                          |
+| U1   | landed  | S02   | #180 | `a5860dd` | —                                                          |
+| U3   | landed  | S03   | #181 | `539d8cd` | —                                                          |
+| U2   | landed  | S04   | #170 | `e7aa160` | —                                                          |
+| U5   | landed  | S04   | #170 | `e7aa160` | Same branch as U2.                                         |
+| U11  | landed  | S05   | #171 | `c8a22ea` | Reason mapping revised later by #198.                      |
+| U4   | landed  | S06   | #172 | `e7577c4` | —                                                          |
+| U15  | landed  | S06   | #172 | `e7577c4` | —                                                          |
+| U19  | landed  | S07   | #173 | `fdaa636` | —                                                          |
+| U6   | landed  | S08   | #174 | `62e4c1a` | The break that made the CLI 4.0.0.                         |
+| U7   | landed  | S09   | #175 | `1a6928f` | —                                                          |
+| U8   | landed  | S09   | #175 | `1a6928f` | —                                                          |
+| U9   | landed  | S10   | #176 | `7f4791f` | —                                                          |
+| U10  | landed  | S10   | #176 | `7f4791f` | —                                                          |
+| U12  | landed  | S11   | #177 | `e680abb` | Corrected in flight by #199-#209 during the first release. |
+| U13  | partial | —     | n/a  | n/a       | Published; xdevplatform/docs#447 open, awaiting review.    |
+| U14  | landed  | —     | #210 | `e9d1bda` | Waiver block deleted whole; semver check passed.           |
 
 Two units landed that this plan never specified, both from the devex pass on #176: S12 (#178, `b513877`) moved media
 upload behind a builder and stated the line between the crates, and S13 (#182, `f3cf95c`) added the broadcast chat
@@ -1900,8 +1900,8 @@ Every other T-task in this plan's three task lists is checked.
 
 ### Remaining work
 
-- **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review; the listing plan's
-  Phase 3 sets the nudge, forum, and stop dates.
+- **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review; the listing plan's Phase 3
+  sets the nudge, forum, and stop dates.
 - **T30 and T31**, both P3. T30's drift is fixed, but the file still has no effect on an audit.
 
 ## Appendix
@@ -2626,15 +2626,16 @@ before any of it lands.
     audit --help` exposes no config flag, so the committed file has no effect
   - Files: `.anc.toml`
   - Verify: either the `p6` evidence reflects the allowlist, or the file is gone
-  - Still open at `d7a4496`. `50a5f13` added `block`, `unblock`, `blocked`, `muted`, and `broadcasts`, so every verb
-    `p6-may-standard-names` reports against `xr` 4.0.0 is declared, but no `anc` invocation reaches both the workspace
-    root and a binary, so the verify condition is unmet
+  - Still open at `f9df2b1`. `50a5f13` added `block`, `unblock`, `blocked`, `muted`, and `broadcasts`, so every verb
+    `p6-may-standard-names` reports is declared (33 under `anc` 0.5.0 against `xr` 4.1.1), but no `anc` invocation
+    reaches both the workspace root and a binary, so the verify condition is unmet
 - [ ] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
   - Surfaced by: D8 — all 13 reported `.unwrap()` calls sit inside `#[cfg(test)]` blocks; the source scan does not
     exclude test modules
   - Files: none here; an issue against `brettdavies/agentnative-cli`
   - Verify: `code-unwrap` stops reporting test-only hits
-  - Still open at `d7a4496`. `brettdavies/agentnative-cli` has no issue filed for it
+  - Still open at `f9df2b1`. `brettdavies/agentnative-cli` has no issue filed for it; `anc audit .` now reports 32
+    `code-unwrap` hits, every one inside a `#[cfg(test)]` module
 
 ## Final Engineering Pass Outcomes
 

@@ -2,6 +2,8 @@
 title: X API Pricing, Cost Estimates, and Doctor - Plan
 type: feat
 date: 2026-09-03
+status: not-started
+implementation: none of U1-U8 is built; the file paths predate the two-crate workspace and need re-mapping before execution (see Reconciliation)
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -778,3 +780,47 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 - U6: owner set, shown, cleared; no write on load; secret exclusion holds.
 - U7: every status branch covered by mocks; live smoke passes in preflight; no browser flow reachable.
 - U8: workflow dispatch observed producing a runbook PR; docs and glossary updated.
+
+---
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `f9df2b1`, 2026-09-30)
+
+| Unit | State     | Note                                                                                      |
+| ---- | --------- | ----------------------------------------------------------------------------------------- |
+| U1   | not-built | No `vendor/pricing/` directory and no `refresh-x-pricing.sh` or `normalize-x-pricing.sh`. |
+| U2   | not-built | No pricing module in either crate; `build.rs` emits no price table.                       |
+| U3   | not-built | The `--dry-run` doc comment on `Cli` still says "Read ops ignore it".                     |
+| U4   | not-built | No `cost_estimate` field on any output type or schema.                                    |
+| U5   | not-built | No `pricing` command variant.                                                             |
+| U6   | not-built | The store's app type has no owner field; `auth apps update` takes no `--owner`.           |
+| U7   | not-built | No `doctor` command variant or module.                                                    |
+| U8   | not-built | No `pricing-drift.yml` workflow; README, AGENTS.md, and CONCEPTS.md name neither command. |
+
+### Before execution
+
+The units name the single-crate layout. The workspace now has two members, and AGENTS.md § "Where a change goes"
+decides which side each piece lands on. Re-map the paths before starting U1:
+
+| Plan path                                                                                                    | Current home                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `vendor/pricing/`                                                                                            | `crates/xdk/vendor/pricing/`, beside the vendored spec                                                         |
+| `build.rs`                                                                                                   | `crates/xdk/build.rs`; generator helpers go in `crates/xdk/codegen/`                                           |
+| `src/pricing/`, `xurl::pricing`                                                                              | `crates/xdk/src/pricing/`, `xdk::pricing`; constants exported in `crates/xdk/src/lib.rs`                       |
+| `src/api/request.rs` (call records)                                                                          | `crates/xdk/src/api/request/` (`call.rs`, `transport.rs`)                                                      |
+| `src/store/`                                                                                                 | `crates/xdk/src/store/`                                                                                        |
+| `src/doctor/`                                                                                                | Store probe and live checks in `crates/xdk` (they read the store and call X); report text in `crates/xurl-cli` |
+| `src/cli/**`, `src/output.rs`                                                                                | `crates/xurl-cli/src/cli/**`, `crates/xurl-cli/src/cli/output/`                                                |
+| `src/cli/commands/auth.rs`                                                                                   | `crates/xurl-cli/src/cli/commands/auth/` (`apps.rs` holds `auth apps update`)                                  |
+| `tests/pricing_*.rs`, `tests/api_tests.rs`, `tests/live_smoke.rs`                                            | `crates/xdk/tests/`                                                                                            |
+| `tests/cli_tests.rs`, `schema_tests.rs`, `completion_tests.rs`, `store_tests.rs`, `store_isolation_guard.rs` | `crates/xurl-cli/tests/`                                                                                       |
+
+Three facts in the current tree bear on the units:
+
+- U5 and U7 each add a command, so each one follows the AGENTS.md § "Adding a command family" recipe. Its walks check
+  the golden help fixture, the schema registry, the validate alias, the examples page, and completions, which covers
+  more than the units' file lists name.
+- `Client::get_usage_credits` and `xr usage credits` call `GET /2/usage/credits`. U7's credit-balance check calls that
+  shortcut and does not add a second request path.
+- The vendored spec is 2.169. The plan's Sources section cites 2.168.

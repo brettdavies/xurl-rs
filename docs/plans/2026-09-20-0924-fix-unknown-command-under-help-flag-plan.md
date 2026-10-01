@@ -3,7 +3,7 @@ title: Unknown Command Under the Help Flag - Plan
 type: fix
 date: 2026-09-20
 status: completed
-implementation: U1 merged to dev as #221 (fdeddf5) on 2026-09-23 with the #222-#226 follow-ups in stack #227; unreleased
+implementation: U1 merged to dev as #221 (fdeddf5) on 2026-09-23 with the #222-#226 follow-ups in stack #227; released in xr 4.1.0 on 2026-09-24
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -219,8 +219,8 @@ All four hold.
 (against `xurl-rs` `origin/dev` @ `123d401`, 2026-09-23)
 
 U1 landed as #221. A developer-experience review of #221 found five more parse-error defects, fixed as #222-#226 and
-stacked on it; all six landed on `dev` through one atomic `gh stack merge` of stack #227, six squash commits. None is
-released.
+stacked on it; all six landed on `dev` through one atomic `gh stack merge` of stack #227, six squash commits. All six
+released in `xr` 4.1.0 on 2026-09-24 (`crates/xurl-cli/CHANGELOG.md` § 4.1.0).
 
 | Unit / PR | Branch                                           | Commit    | Change                                                                                                           |
 | --------- | ------------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- |
