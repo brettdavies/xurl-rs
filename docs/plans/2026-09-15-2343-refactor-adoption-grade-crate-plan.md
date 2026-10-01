@@ -7,7 +7,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 status: implemented
 implementation: merged into dev 2026-09-17 as #167, #180, #181, #170-#178 (S01-S12) and #182 (broadcast chat moderators); released 2026-09-18 as xdk-rs 0.1.0 and xurl-rs 4.0.0
-open_tasks: U13 post-submission checkpoint (xdevplatform/docs#447 awaiting review), T12 (release-plz, out of scope), T30, T31
+open_tasks: U13 post-submission checkpoint (xdevplatform/docs#447 awaiting review), T12 (release-plz, out of scope), T30
 ---
 
 # Adoption-Grade Crate and CLI - Plan
@@ -1889,12 +1889,12 @@ Two units landed that this plan never specified, both from the devex pass on #17
 upload behind a builder and stated the line between the crates, and S13 (#182, `f3cf95c`) added the broadcast chat
 moderator commands.
 
-| Task | State     | Evidence                                                                  |
-| ---- | --------- | ------------------------------------------------------------------------- |
-| T3   | landed    | `v4.0.0` tagged and published 2026-09-18 with `docs/migrating/v4.0.0.md`. |
-| T12  | not-built | `release-plz` evaluation; the plan already scopes it out.                 |
-| T30  | partial   | `50a5f13` declares all 33 reported verbs; the file is still inert.        |
-| T31  | not-built | No issue filed against `brettdavies/agentnative-cli`.                     |
+| Task | State      | Evidence                                                                     |
+| ---- | ---------- | ---------------------------------------------------------------------------- |
+| T3   | landed     | `v4.0.0` tagged and published 2026-09-18 with `docs/migrating/v4.0.0.md`.    |
+| T12  | not-built  | `release-plz` evaluation; the plan already scopes it out.                    |
+| T30  | partial    | `50a5f13` declares all 33 reported verbs; the file is still inert.           |
+| T31  | superseded | Fixed upstream on `anc` `dev` (#77, #80); ships with the next `anc` release. |
 
 Every other T-task in this plan's three task lists is checked.
 
@@ -1902,7 +1902,8 @@ Every other T-task in this plan's three task lists is checked.
 
 - **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review; the listing plan's Phase 3
   sets the nudge, forum, and stop dates.
-- **T30 and T31**, both P3. T30's drift is fixed, but the file still has no effect on an audit.
+- **T30**, P3. Its drift is fixed, but the file still has no effect on an audit; agentnative-cli's config plan
+  (`docs/plans/2026-10-01-0015-feat-config-follows-the-repo-plan.md`) owns the fix.
 
 ## Appendix
 
@@ -2628,14 +2629,19 @@ before any of it lands.
   - Verify: either the `p6` evidence reflects the allowlist, or the file is gone
   - Still open at `f9df2b1`. `50a5f13` added `block`, `unblock`, `blocked`, `muted`, and `broadcasts`, so every verb
     `p6-may-standard-names` reports is declared (33 under `anc` 0.5.0 against `xr` 4.1.1), but no `anc` invocation
-    reaches both the workspace root and a binary, so the verify condition is unmet
-- [ ] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
+    reaches both the workspace root and a binary, so the verify condition is unmet. The fix is upstream:
+    `brettdavies/agentnative-cli`'s `docs/plans/2026-10-01-0015-feat-config-follows-the-repo-plan.md` applies a repo's
+    `.anc.toml` to a binary audited inside it, and its success criterion is this task's verify condition. Keep the file
+    until a released `anc` carries that plan.
+- [x] **T31 (P3, human: ~20min / CC: ~5min)** — upstream — Report the `code-unwrap` false positive to `anc`
   - Surfaced by: D8 — all 13 reported `.unwrap()` calls sit inside `#[cfg(test)]` blocks; the source scan does not
     exclude test modules
   - Files: none here; an issue against `brettdavies/agentnative-cli`
   - Verify: `code-unwrap` stops reporting test-only hits
-  - Still open at `f9df2b1`. `brettdavies/agentnative-cli` has no issue filed for it; `anc audit .` now reports 32
-    `code-unwrap` hits, every one inside a `#[cfg(test)]` module
+  - Done with no issue to file: `anc` `dev` already exempts `#[cfg(test)]`-gated items (#77 `817d6fa`, #80 `7ba92a5`),
+    and `anc` built from `dev` at `9c91d0c` reports `code-unwrap` as `pass` on this tree, where the released 0.5.0
+    reports 32 hits. Installed binaries get the fix with the next `anc` release, which `brettdavies/agentnative-cli`'s
+    `docs/plans/2026-09-18-1756-fix-release-the-code-unwrap-exemption-plan.md` owns
 
 ## Final Engineering Pass Outcomes
 
