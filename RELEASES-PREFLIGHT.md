@@ -123,9 +123,9 @@ the cut.
 
 Driven by `scripts/release/preflight.sh api-contract`.
 
-xurl-rs is a thin client over the live X API. The contract that ships is the union of the 27 shortcut commands (plus
-`usage credits`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the library re-exports in
-`crates/xdk/src/lib.rs`.
+xurl-rs is a thin client over the live X API. The contract that ships is the union of the shortcut commands (the
+`Client` methods in `crates/xdk/src/api/shortcuts.rs`), the raw `xr <URL>` / `xr -X <method> <URL>` path, and the
+library re-exports in `crates/xdk/src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###

@@ -129,6 +129,13 @@ MEDIA UPLOAD:
   Check upload status:
     xr media status 1585341984679469056 --output json
 
+  Describe an uploaded image for screen readers:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+
+  Upload a subtitle file and add it to a video:
+    xr media upload ./captions.srt --media-type text/srt --category subtitles
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English --output json
+
 RAW MODE (curl-style):
   Generic GET:
     xr /2/users/me --output json

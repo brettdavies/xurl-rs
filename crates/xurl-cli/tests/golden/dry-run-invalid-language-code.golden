@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "media", "subtitles", "remove", "1585341984679469056", "--language", "english"]
+store: empty
+exit_code: 0
+stdout_len: 239
+stderr_len: 0
+--- stdout ---
+{
+  "category": "amplify_video",
+  "command": "media-subtitles-remove",
+  "exit_code": 1,
+  "language": "english",
+  "reason": "invalid-language-code",
+  "status": "dry_run",
+  "video_id": "1585341984679469056",
+  "would_succeed": false
+}
+
+--- stderr ---
+

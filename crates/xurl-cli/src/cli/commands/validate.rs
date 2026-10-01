@@ -15,8 +15,8 @@ use serde::de::DeserializeOwned;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MutingResult, Post, RepostedResult,
-    UsageCreditsData, UsageData, User,
+    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -99,6 +99,8 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<MutingResult>("mute"),
     typed_alias::<BlockingResult>("block"),
     typed_alias::<ChatModeratorsResult>("moderators"),
+    typed_alias::<MediaMetadataResult>("alt-text"),
+    typed_alias::<MediaSubtitlesResult>("subtitles"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.
@@ -181,6 +183,10 @@ fn detect_schema(value: &serde_json::Value) -> &'static str {
                 "usage"
             } else if map.contains_key("total_balance") || map.contains_key("free_balance") {
                 "credits"
+            } else if map.contains_key("associated_metadata") {
+                "alt-text"
+            } else if map.contains_key("associated_subtitles") {
+                "subtitles"
             } else {
                 SCHEMA_UNKNOWN
             }
@@ -401,6 +407,26 @@ mod tests {
         let (code, stdout, _) = run(&event, None, OutputFormat::Json);
         assert_eq!(code, 0);
         assert!(stdout.contains("\"schema\": \"dm-event\""), "got: {stdout}");
+    }
+
+    #[test]
+    fn auto_detects_the_media_alt_text_and_subtitles_results() {
+        let alt_text = serde_json::json!({
+            "data": {"id": "1", "associated_metadata": {"alt_text": {"text": "A dog"}}},
+        });
+        let (code, stdout, _) = run(&alt_text, None, OutputFormat::Json);
+        assert_eq!(code, 0);
+        assert!(stdout.contains("\"schema\": \"alt-text\""), "got: {stdout}");
+
+        let subtitles = serde_json::json!({
+            "data": {"id": "1", "media_category": "AmplifyVideo", "associated_subtitles": {}},
+        });
+        let (code, stdout, _) = run(&subtitles, None, OutputFormat::Json);
+        assert_eq!(code, 0);
+        assert!(
+            stdout.contains("\"schema\": \"subtitles\""),
+            "got: {stdout}"
+        );
     }
 
     #[test]

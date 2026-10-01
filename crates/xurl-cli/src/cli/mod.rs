@@ -27,6 +27,7 @@ pub mod skill_install;
 pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
+use xdk::api::VideoCategory;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -465,6 +466,10 @@ Examples:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
     xr media status 1585341984679469056 --output json
+  Describe an uploaded image for screen readers:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+  Add an English subtitle track to an uploaded video:
+    xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
 ";
 
 /// `xr schema` examples — paired text + JSON, list, all.
@@ -715,6 +720,19 @@ Examples:
     xr media status 1585341984679469056 --output json
   Poll until processing completes:
     xr media status 1585341984679469056 --wait --output json
+";
+
+/// `xr media alt-text` examples.
+const MEDIA_ALT_TEXT_HELP: &str = "\
+Examples:
+  Set the alt text of an uploaded image (text):
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
+  Same, JSON envelope:
+    xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\" --output json
+  Upload, describe, then post the image:
+    xr media upload ./dog.png --media-type image/png --category tweet_image
+    xr media alt-text <media_id> \"A dog asleep on a beach towel\"
+    xr post \"Beach day\" --media-id <media_id>
 ";
 
 /// Auth-enabled curl-like interface for the X API.
@@ -1361,10 +1379,10 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload operations
+    /// Media upload, alt text, and subtitles
     #[command(after_help = MEDIA_HELP)]
     Media {
-        /// `media` subcommand to dispatch (`upload` or `status`).
+        /// `media` subcommand to dispatch.
         #[command(subcommand)]
         command: MediaCommands,
     },
@@ -1840,4 +1858,80 @@ pub enum MediaCommands {
         #[arg(short = 'H', long = "header")]
         headers: Vec<String>,
     },
+    /// Set the alt text shown for an uploaded image or video
+    #[command(after_help = MEDIA_ALT_TEXT_HELP)]
+    AltText {
+        /// Media id from `xr media upload`
+        #[arg(value_name = "MEDIA_ID")]
+        media_id: String,
+        /// Alt text, up to 1000 characters
+        #[arg(value_name = "TEXT")]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add or remove the subtitle tracks of an uploaded video
+    #[command(after_help = family_help::media_subtitles::page())]
+    Subtitles {
+        /// `subtitles` verb to dispatch.
+        #[command(subcommand)]
+        action: SubtitlesCommands,
+    },
+}
+
+/// `xr media subtitles` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SubtitlesCommands {
+    /// Add a subtitle track to an uploaded video
+    #[command(after_help = family_help::media_subtitles::FAMILY.verb_page(&family_help::media_subtitles::ADD))]
+    Add {
+        /// Media id of the video
+        #[arg(value_name = "VIDEO_ID")]
+        video_id: String,
+        /// Media id of the subtitle file, uploaded with `--category subtitles`
+        #[arg(value_name = "SUBTITLES_ID")]
+        subtitles_id: String,
+        /// Two-letter language code of the track (e.g. en)
+        #[arg(long = "language", value_name = "CODE")]
+        language: String,
+        /// Language name viewers pick the track by (e.g. English)
+        #[arg(long = "name", value_name = "NAME")]
+        display_name: Option<String>,
+        /// Category the video was uploaded with
+        #[arg(long = "category", value_parser = video_category_parser(), default_value = "amplify_video")]
+        category: VideoCategory,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove a subtitle track from an uploaded video
+    #[command(after_help = family_help::media_subtitles::FAMILY.verb_page(&family_help::media_subtitles::REMOVE))]
+    Remove {
+        /// Media id of the video
+        #[arg(value_name = "VIDEO_ID")]
+        video_id: String,
+        /// Two-letter language code of the track to remove (e.g. en)
+        #[arg(long = "language", value_name = "CODE")]
+        language: String,
+        /// Category the video was uploaded with
+        #[arg(long = "category", value_parser = video_category_parser(), default_value = "amplify_video")]
+        category: VideoCategory,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// Parses a `--category` for a subtitled video: the possible values are the
+/// upload names `VideoCategory::from_upload_name` maps, so the fallible step
+/// never fires.
+fn video_category_parser() -> impl clap::builder::TypedValueParser<Value = VideoCategory> {
+    use clap::builder::TypedValueParser as _;
+
+    clap::builder::PossibleValuesParser::new(VideoCategory::ALL.map(VideoCategory::upload_name))
+        .try_map(|name: String| {
+            VideoCategory::from_upload_name(&name)
+                .ok_or_else(|| format!("unknown category {name:?}"))
+        })
 }

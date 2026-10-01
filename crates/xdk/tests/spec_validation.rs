@@ -22,8 +22,8 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaUploadResponse, MutingResult, Post,
-    RepostedResult, UsageCreditsData, UsageData, User,
+    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MediaUploadResponse, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -385,6 +385,28 @@ fn spec_chat_moderators() {
 }
 
 #[test]
+fn spec_media_metadata() {
+    let examples = load_examples();
+    let resp: ApiResponse<MediaMetadataResult> =
+        serde_json::from_value(examples["media_metadata"].clone()).unwrap();
+    assert_eq!(resp.data.id, "1880028106020515840");
+    assert_eq!(
+        resp.data.associated_metadata.unwrap()["alt_text"]["text"],
+        "A golden retriever asleep on a beach towel"
+    );
+}
+
+#[test]
+fn spec_media_subtitles() {
+    let examples = load_examples();
+    let resp: ApiResponse<MediaSubtitlesResult> =
+        serde_json::from_value(examples["media_subtitles"].clone()).unwrap();
+    assert_eq!(resp.data.id.as_deref(), Some("1880028106020515840"));
+    assert_eq!(resp.data.media_category.as_deref(), Some("AmplifyVideo"));
+    assert!(resp.data.associated_subtitles.is_some());
+}
+
+#[test]
 fn every_fixture_is_exercised_by_a_validation_test() {
     let source_path =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/spec_validation.rs");
@@ -459,6 +481,16 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "chat_moderators",
         endpoints::ADD_CHAT_MODERATOR,
+        ReplyKind::Success,
+    ),
+    (
+        "media_metadata",
+        endpoints::CREATE_MEDIA_METADATA,
+        ReplyKind::Success,
+    ),
+    (
+        "media_subtitles",
+        endpoints::CREATE_MEDIA_SUBTITLES,
         ReplyKind::Success,
     ),
     ("api_error", endpoints::GET_ME, ReplyKind::Error),
