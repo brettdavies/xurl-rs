@@ -648,6 +648,19 @@ def dev_release_anchor(base: str, prev_tag: str | None) -> str | None:
     return prev_tag if found else None
 
 
+def binary_tag_beside(tag: str) -> str | None:
+    """The binary's `vX.Y.Z` tag on the same commit as a member's tag, or None.
+
+    The dev backport's subject names only the binary's tag, so a member released
+    in the same commit reaches its boundary through that tag's backport.
+    """
+    proc = run(["git", "tag", "--points-at", f"{tag}^{{commit}}"])
+    for candidate in proc.stdout.split():
+        if re.match(r"^v\d", candidate):
+            return candidate
+    return None
+
+
 def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
     """PR numbers this release carries, read from the integration branch's history.
 
@@ -656,7 +669,13 @@ def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
     never returns one. The squash-merge subject carries `(#N)` whatever the PR
     targeted, so the history is the complete list.
     """
-    anchor = dev_release_anchor(base, prev_tag)
+    anchor_tag = prev_tag
+    if prev_tag and not re.match(r"^v\d", prev_tag):
+        # A member's tag sits on main, which shares no recent history with the
+        # integration branch; as an anchor it would open the window to nearly
+        # all of it. The backport of the binary tag beside it is the boundary.
+        anchor_tag = binary_tag_beside(prev_tag) or prev_tag
+    anchor = dev_release_anchor(base, anchor_tag)
     if not anchor:
         # A member releasing for the first time has no tag of its own, and the
         # whole history of the integration branch is not its window: it ships

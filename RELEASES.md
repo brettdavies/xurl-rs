@@ -482,13 +482,19 @@ scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 
 #    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
 #    block keeps its commit subject as its bullet.
 
-# 3. After the release PR merges, tag the library first, then the CLI.
+# 3. After the release PR merges, tag the library first, then the CLI, both on the
+#    merge commit.
 git checkout main && git pull
 git tag -a -m "Release xdk-rs-v0.2.0" xdk-rs-v0.2.0
 git push origin xdk-rs-v0.2.0
 gh run watch "$(gh run list --workflow release-lib.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
-# ...then the CLI's `vX.Y.Z` tag as in § Tagging and publishing.
+# ...then the CLI's `vX.Y.Z` tag as in § Tagging and publishing, and confirm the pair.
+scripts/release/postflight.sh --tag v1.3.0 tags
 ```
+
+The library's next changelog window starts at the backport of the CLI tag on its commit: the backport's subject names
+only the CLI tag, and the library tag sits on `main`, which shares no recent history with `dev`. The `tags` gate fails
+when a release moves `xdk-rs` without `xdk-rs-v<version>` on the CLI tag's commit, and prints the `git tag` command.
 
 A rehearsal runs the same pipeline without a tag: `gh workflow run release-lib.yml --ref <branch>` skips the tag check,
 runs `cargo publish -p xdk-rs --dry-run`, and creates no release. A rehearsal can never publish.

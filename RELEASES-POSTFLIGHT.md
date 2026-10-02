@@ -16,10 +16,10 @@ scripts/release/postflight.sh all
 
 The script (`scripts/release/postflight.sh`) is a verbatim copy of the github-repo-setup skill's template and covers the
 automatable post-tag gates: `release.yml` end-to-end, homebrew-tap dispatch, `finalize-release.yml` callback, GitHub
-Release `make_latest` flip, crates.io publish verification, and the `main → dev` backport check.
-Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented but not driven from
-the script: running them on the local dev machine pollutes its toolchain and doesn't actually exercise the fresh-machine
-semantics. Drive those on a throwaway container or a sibling machine.
+Release `make_latest` flip, crates.io publish verification, the library tag on the release commit, and the `main → dev`
+backport check. Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented
+but not driven from the script: running them on the local dev machine pollutes its toolchain and doesn't actually
+exercise the fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
 
 `--env staging|prod` is optional and defaults to `prod`. xurl-rs is a single-env CLI, so every gate behaves identically
 and the flag can be ignored; the `surface-smoke` gate auto-SKIPs because no `scripts/release/surface-smoke.sh` is
@@ -34,6 +34,7 @@ Sub-commands let you re-run one verification in isolation:
 | `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed)                               | `gh run list -e repository_dispatch`      |
 | `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it                       | `gh api /releases/latest`                 |
 | `crates`        | `crates.io` shows `xurl-rs vX.Y.Z` published (`cargo search xurl-rs` returns the tag)                            | `crates.io` index API                     |
+| `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                            | `git rev-parse`, `cargo metadata`         |
 | `backport`      | a merged PR to `dev` carrying the released tag in its title (durable signal that the sync ran)                   | `gh pr list --base dev --state merged`    |
 | `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                | n/a                                       |
 | `all`           | every above                                                                                                      | all of the above                          |
