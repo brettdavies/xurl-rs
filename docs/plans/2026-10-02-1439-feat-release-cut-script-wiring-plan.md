@@ -18,7 +18,7 @@ is in xurl-rs.
 ## Goal Capsule
 
 - **Objective:** an xurl-rs release branch is built and checked by one command whose behavior the template's test suite
-  covers, and the runbook's remaining manual steps are only those that need an operator's judgment.
+  covers, so no part of the overlay or its checks depends on commands typed by hand.
 - **Means:** bring xurl-rs's vendored release scripts and the template into line, generic workspace support moving up
   and a verbatim copy coming back down (KTD1, KTD3, KTD4), then make `RELEASES.md` call
   `scripts/release/cut-release-branch.sh` (KTD2).
@@ -273,6 +273,8 @@ flowchart TB
   3. Rewrite the reference's generator row: it refreshes verbatim, it has a workspace mode, and `--from-dev-prs` anchors
      on the previous release's backport commit (the row still describes the older rule).
   4. Update the one existing case that asserts fallback titles land under Changed, as KTD5's deliberate change.
+  5. Explain a member's changelog window in `RELEASES-RATIONALE.md`'s workspace section: it starts at the backport of
+     the binary tag beside the member's previous tag, because the backport's subject names only the binary's tag.
 - **Execution note:** port the scratch-harness cases used to verify #261 as permanent tests before moving the code.
 - **Patterns to follow:** xurl-rs `scripts/generate-changelog.py`; the harness in
   `github-repo-setup/tests/generate-changelog.bats` (stubbed `fetch_pr`, real git history through `history_repo`).
@@ -312,14 +314,22 @@ flowchart TB
 
 ### U5. Make preflight's mechanics gate read the release manifest
 
-- **Goal:** the template's mechanics gate reads a virtual workspace's binary version and changelog, so xurl-rs's
-  mechanics body can match it (R5).
+- **Goal:** the template's mechanics gate reads a virtual workspace's binary version and changelog, and checks each
+  member whose release is pending, so xurl-rs's mechanics body can match it without losing a check (R5).
 - **Requirements:** R5, R6
 - **Dependencies:** U4
 - **Files:** `github-repo-setup/templates/scripts/release/preflight.sh`,
   `github-repo-setup/tests/preflight-mechanics.bats` (new)
-- **Approach:** read the version through `project_version` and the changelog through `release_changelog`, as xurl-rs's
-  mechanics gate does; leave the starter gates and their placeholders alone.
+- **Approach:**
+  1. Read the version through `project_version` and the changelog through `release_changelog`, as xurl-rs's mechanics
+     gate does.
+  2. Generalize xurl-rs's library-changelog check: for each publishable member other than the release package, its
+     release is pending when no `<tag_prefix><version>` tag exists, and then its changelog's top section must equal its
+     version with no `[Unreleased]`. Tag prefix and changelog path come from `[package.metadata.changelog]` with the
+     generator's defaults. This check is the safety net KTD2's manual library-changelog step relies on.
+  3. Name `generate-changelog.py --crate <member>` in the failure hint, in place of xurl-rs's reference to a per-crate
+     `cliff.toml` that does not exist.
+  4. Leave the starter gates and their placeholders alone.
 - **Patterns to follow:** xurl-rs `scripts/release/preflight.sh` (`gate_mechanics`); the harness in
   `github-repo-setup/tests/preflight-added-docs.bats`.
 - **Test scenarios:**
@@ -327,6 +337,10 @@ flowchart TB
     changelog's top section, and fails naming both when it does not.
   - A single-package repo behaves exactly as before.
   - A `pyproject.toml` with no version line under `pipefail` does not abort the gate.
+  - A library member with no tag at its manifest version fails when its changelog's top section names another version,
+    and passes when they match.
+  - A library member whose version is already tagged is not checked.
+  - A library member's changelog holding `[Unreleased]` fails while its release is pending.
 - **Verification:** the workspace cases fail against U4's template and pass after.
 
 ### U6. Re-vendor xurl-rs's release scripts
@@ -340,7 +354,8 @@ flowchart TB
   `scripts/release/release.env`, `RELEASES-POSTFLIGHT.md`
 - **Approach:**
   1. Copy each R4 script from the merged template.
-  2. Replace only `gate_mechanics` in `preflight.sh` with the template's.
+  2. Replace only `gate_mechanics` in `preflight.sh` with the template's, which after U5 carries the generalized
+     library-changelog check and the portable `epoch_of_date` date math.
   3. Add any `release.env` key a template script now reads.
   4. Make `RELEASES-POSTFLIGHT.md`'s "verbatim copy" sentence true.
 - **Test expectation:** none beyond verification; the copied behavior is tested in the template, and this unit proves
