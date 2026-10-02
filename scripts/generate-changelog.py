@@ -32,7 +32,11 @@ Options:
     --dry-run      Run the regen flow against the current CHANGELOG.md and
                    restore the original on exit. Exit 0 if regeneration
                    produces identical content (idempotent), exit 1 with a
-                   unified diff if it would drift. Requires an existing
+                   unified diff if it would drift. The first stderr line
+                   names the drift: "differs only in line wrapping" when the
+                   two match once whitespace and line breaks collapse (a
+                   lint config or formatter rewraps the file), "would
+                   change" when the content differs. Requires an existing
                    CHANGELOG.md.
 
 Version detection: the branch name must match release/vN.N.N (with optional
@@ -783,6 +787,38 @@ def rewrite_version_section(
     changelog.write_text(new_content)
 
 
+def report_dry_run(original: str, regenerated: str) -> int:
+    """Report --dry-run drift between the on-disk and regenerated changelog.
+
+    Returns 0 when they match and 1 on any drift, printing the reason line and
+    a unified diff to stderr. Drift that vanishes once every run of whitespace
+    collapses to one space is named as wrapping: the generator writes one
+    logical line per bullet, so a rewrapped file still fails, but the reason
+    points at the rewrap instead of the PR bodies. Line-based whitespace
+    tolerance misses a bullet split across two lines, hence the flattening.
+    """
+    if regenerated == original:
+        print("DRY RUN: CHANGELOG.md is current (no regen drift)")
+        return 0
+    if " ".join(original.split()) == " ".join(regenerated.split()):
+        reason = (
+            "DRY RUN: CHANGELOG.md differs only in line wrapping (whitespace-only "
+            "regen drift; a lint config or formatter likely rewraps it)"
+        )
+    else:
+        reason = "DRY RUN: CHANGELOG.md would change (regen drift detected)"
+    print(reason, file=sys.stderr)
+    sys.stderr.writelines(
+        difflib.unified_diff(
+            original.splitlines(keepends=True),
+            regenerated.splitlines(keepends=True),
+            fromfile="CHANGELOG.md (current)",
+            tofile="CHANGELOG.md (regenerated)",
+        )
+    )
+    return 1
+
+
 def from_dev_prs_mode(
     args,
     cliff_toml: Path,
@@ -871,20 +907,7 @@ def from_dev_prs_mode(
             )
 
         if dry_run_original is not None:
-            new_content = changelog.read_text()
-            if new_content == dry_run_original:
-                print("DRY RUN: CHANGELOG.md is current (no regen drift)")
-                return 0
-            print("DRY RUN: CHANGELOG.md would change (regen drift detected)", file=sys.stderr)
-            sys.stderr.writelines(
-                difflib.unified_diff(
-                    dry_run_original.splitlines(keepends=True),
-                    new_content.splitlines(keepends=True),
-                    fromfile="CHANGELOG.md (current)",
-                    tofile="CHANGELOG.md (regenerated)",
-                )
-            )
-            return 1
+            return report_dry_run(dry_run_original, changelog.read_text())
 
         print(f"Updated {changelog} from {len(pr_nums)} PRs merged into {args.dev_branch}")
         print("\nNext steps:")
@@ -904,7 +927,9 @@ def main() -> int:
         action="store_true",
         help=(
             "Run regen against the current CHANGELOG.md and restore the original on exit. "
-            "Exit 0 if idempotent, 1 with a unified diff if it would drift."
+            "Exit 0 if idempotent, 1 with a unified diff if it would drift. The first "
+            "stderr line names whitespace-only drift as line wrapping (a lint config or "
+            "formatter rewraps the file) and anything else as regen drift."
         ),
     )
     parser.add_argument(
@@ -1046,23 +1071,7 @@ def main() -> int:
                     )
 
         if dry_run_original is not None:
-            new_content = changelog.read_text()
-            if new_content == dry_run_original:
-                print("DRY RUN: CHANGELOG.md is current (no regen drift)")
-                return 0
-            print(
-                "DRY RUN: CHANGELOG.md would change (regen drift detected)",
-                file=sys.stderr,
-            )
-            sys.stderr.writelines(
-                difflib.unified_diff(
-                    dry_run_original.splitlines(keepends=True),
-                    new_content.splitlines(keepends=True),
-                    fromfile="CHANGELOG.md (current)",
-                    tofile="CHANGELOG.md (regenerated)",
-                )
-            )
-            return 1
+            return report_dry_run(dry_run_original, changelog.read_text())
 
         if has_gh_integration:
             print(f"Updated {changelog}")
