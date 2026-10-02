@@ -296,7 +296,9 @@ fi
 # D: what this release ADDS to the base. The leak check screens the registered
 # set, so it is blind to a category nobody registered yet. Reported, never
 # failed: each entry needs a human reason to ship or a place in extra_paths.
-added_docs=$(git diff --cached --diff-filter=A --name-only "origin/$BASE" \
+# --no-renames, because rename detection reports a doc the head moved or
+# rewrote from one the base carries as R, and the A filter then drops it.
+added_docs=$(git diff --cached --no-renames --diff-filter=A --name-only "origin/$BASE" \
   | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || true)
 if [[ -n "$added_docs" ]]; then
   gate_skip "unguarded docs added to origin/$BASE" \
