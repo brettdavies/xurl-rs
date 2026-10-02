@@ -197,9 +197,11 @@ git checkout -B release/v1.3.0 origin/main
 
 # 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
 #    paths but does not delete files that exist on main and are absent on dev, so remove
-#    those next (the 'D' rows are main-only files dev deleted).
+#    those next (the 'D' rows are main-only files dev deleted or moved). `--no-renames`
+#    lists a moved file as a deletion; rename detection would show `src/x.rs` becoming
+#    `src/x/mod.rs` as an R row, and the stale `src/x.rs` left behind breaks the build.
 git checkout origin/dev -- .
-git diff --name-status origin/main origin/dev | grep '^D'
+git diff --no-renames --name-status origin/main origin/dev | grep '^D'
 trash <each main-only file listed above>
 
 # 3. Strip the paths guard-main-docs forbids on main. The set resolves from the workflow;
