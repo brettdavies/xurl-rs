@@ -361,7 +361,8 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 
 - [ ] `crates/xurl-cli/Cargo.toml` `version` bumped to the new tag value (`check-version` in `release.yml` enforces
   this; catch early).
-- [ ] `Cargo.lock` regenerated via `cargo update -p xurl-rs`, committed.
+- [ ] `Cargo.lock` regenerated per `RELEASES.md` § Project specifics (`cargo update -p xurl-rs`, plus `-p xdk-rs` when
+  the library moves), committed.
 - [ ] Rebuild locally, confirm `xr --version` prints the new tag value.
 - [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev
   --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then `gh pr view <num> --json body`.
@@ -369,29 +370,20 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   or revert it before tagging.
 - [ ] No unmerged dependency advisories from `cargo deny check advisories`. The full local pre-push check
   (`scripts/hooks/pre-push`) mirrors CI; run it explicitly before pushing the release branch.
-- [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` filtered by the
-  guarded set (not all of `docs/`, since `docs/migrating/` ships to `main` and a wholesale exclusion would hide a missed
-  pick there), `git diff origin/dev..origin/main` (sanity): all three agree on intended scope.
+- [ ] `scripts/release/cut-release-branch.sh` exited 0, so its check A held: the staged tree equals `origin/dev`'s apart
+  from the version carriers and the guarded paths. A cherry-pick release runs the triple diff in `RELEASES.md` §
+  Exception: cherry-pick instead, with `HEAD..origin/dev` filtered by the guarded set (not all of `docs/`, since
+  `docs/migrating/` ships to `main` and a wholesale exclusion would hide a missed pick there).
 - [ ] **Leak check before pushing the release branch.** No guarded path may surface in the diff vs `origin/main`. The
-  set resolves from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`; never restate the
-  pattern inline. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick
-  conflicts on guarded paths.
-
-  ```bash
-  GUARDED="$(scripts/release/guarded-paths.sh)"
-  git diff origin/main..HEAD --name-only | grep -E "$GUARDED" && echo "LEAKED: reset and redo" || echo "(clean)"
-  ```
-
+  cut's check B screens the staged tree, and `preflight.sh mechanics` screens the committed branch; both resolve the set
+  from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`. If cherry-picks pulled in guarded
+  paths via rename detection, resolve per `RELEASES.md` § Cherry-pick conflicts on guarded paths.
 - [ ] **Every doc this release adds to `main` is meant to ship.** The leak check screens against the registered set, so
-  it cannot flag a category nobody registered yet. Enumerate the additions under `docs/` and every added markdown file
-  anywhere, and read them; an entry that should not ship gets registered in the workflow's `extra_paths` and removed
-  from the branch.
-
-  ```bash
-  git diff --no-renames origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
-  ```
-
-- [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped `Cargo.toml` version.
+  it cannot flag a category nobody registered yet. The cut's check D and `preflight.sh mechanics` list the additions
+  under `docs/` and every added markdown file anywhere; read them. An entry that should not ship gets registered in the
+  workflow's `extra_paths` and removed from the branch.
+- [ ] `crates/xurl-cli/CHANGELOG.md`, and `crates/xdk/CHANGELOG.md` while a library release is pending, open on a
+  versioned section that matches the crate's manifest version, with no `[Unreleased]` placeholder.
 
 ### Post-tag verification
 

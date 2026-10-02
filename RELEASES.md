@@ -185,75 +185,60 @@ from the branch name.
 in history even as their content converges. Reconciling that with a merge, or a branch cut from `dev`, produces a pile
 of rename/delete and lockfile conflicts that are artifacts of the lineage, not of the content shipping. The release
 branch is therefore built as a **clean descendant of `main`** with `dev`'s tree overlaid on top, asserting the desired
-end-state directly:
+end-state directly. `scripts/release/cut-release-branch.sh` builds it:
 
 ```bash
-# 0. Nothing on main that dev never received (security PRs, hotfixes, config). Exits 1 while drift exists.
-scripts/release/drift.sh
+# 1. Build the branch: drift gate, branch from main, overlay dev's tree, strip the
+#    guarded paths, generate the CLI's changelog, and run checks A, B, and D. Stops
+#    before committing; --dry-run prints the plan and touches nothing. The version
+#    comes from § Versioning: the highest bump the merged PRs' sections call for.
+scripts/release/cut-release-branch.sh 1.3.0
 
-# 1. Branch from main, NOT dev.
-git fetch origin
-git checkout -B release/v1.3.0 origin/main
+# 2. Bump the version carriers, refresh the lockfile and the completions, and generate
+#    the library's changelog, in the order § Project specifics lists.
 
-# 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
-#    paths but does not delete files that exist on main and are absent on dev, so remove
-#    those next (the 'D' rows are main-only files dev deleted or moved). `--no-renames`
-#    lists a moved file as a deletion; rename detection would show `src/x.rs` becoming
-#    `src/x/mod.rs` as an R row, and the stale `src/x.rs` left behind breaks the build.
-git checkout origin/dev -- .
-git diff --no-renames --name-status origin/main origin/dev | grep '^D'
-trash <each main-only file listed above>
-
-# 3. Strip the paths guard-main-docs forbids on main. The set resolves from the workflow;
-#    never restate it inline, because every hand-kept copy drifted from what CI enforces.
-GUARDED="$(scripts/release/guarded-paths.sh)"
-git ls-files | grep -E "$GUARDED" | xargs -r trash
-git add -A                                                      # stages adds, mods, AND deletions
-
-# 4. Bump the CLI crate's version, refresh Cargo.lock, and regenerate the completions
-#    (catches any subcommand or flag change missed during dev). The workspace root is a
-#    virtual manifest; the version the `vX.Y.Z` tag names lives in the binary crate. The
-#    number comes from § Versioning: the highest bump the merged PRs' sections call for.
-sed -i 's/^version = ".*"/version = "1.3.0"/' crates/xurl-cli/Cargo.toml
-cargo update -p xurl-rs
-./scripts/generate-completions.sh
-
-# 5. Generate each crate's changelog from the PRs merged into dev since the previous
-#    release. The overlay commit carries no per-PR history, so a section is built from
-#    dev's PRs, not from this branch's commits, and each crate takes the bullets its
-#    own `## Changelog (<crate>)` block carries. Scrub the result via Vale +
-#    LanguageTool + unslop (see § Prose scrubbing); fix findings on the upstream PR
-#    bodies and regenerate, never by hand-editing a changelog.
-scripts/generate-changelog.py --crate xurl-rs --from-dev-prs
-git add -A
-
-# 6. Verify before committing.
-#    A: staged tree equals dev's minus the version files, the completions, and the
-#       stripped guarded paths. Anything else printed here is a mistake.
-git diff --cached --name-only origin/dev | grep -Ev "$GUARDED" \
-  | grep -Ev '^(crates/xurl-cli/(Cargo\.toml|CHANGELOG\.md)|Cargo\.lock|completions/.*)$' \
-  && echo "unexpected delta above; investigate" || echo "(clean: only intended deltas)"
-#    B: no guarded path in the release tree.
-git diff --cached --name-only origin/main | grep -E "$GUARDED" \
-  && echo "LEAKED a guarded path: reset and redo" || echo "(no guarded paths)"
-#    D: what this release ADDS to main. The leak check screens against the registered
-#       set, so it is blind to a category nobody registered yet. Every docs/ entry and
-#       every added markdown file needs a reason to ship, or it needs registering in the
-#       workflow's extra_paths and removing from the branch.
-#       `--no-renames` lists a doc moved from one main carries as added; rename detection
-#       would report it as R, and the A filter would drop it.
-git diff --cached --no-renames --diff-filter=A --name-only origin/main | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
-
-# 7. Commit the overlay as one commit sitting directly on top of main, then run the
+# 3. Commit the overlay as one commit sitting directly on top of main, then run the
 #    preflight gates against it.
+git add -A
 git commit
 cargo build --release --bin xr
 scripts/release/preflight.sh all
 
-# 8. Push and open the PR. Scrub body in /tmp/ first.
+# 4. Push and open the PR. Scrub the body in /tmp/ first.
 git push -u origin release/v1.3.0
 gh pr create --base main --head release/v1.3.0 --title "release: v1.3.0" --body-file /tmp/body.md
 ```
+
+The script asserts `dev`'s tree onto the `main` base with `git read-tree -u --reset`, one operation that carries the
+deletions too, so a file `main` carries and `dev` deleted or moved cannot ship. It strips the paths `guard-main-docs`
+forbids, resolved from the workflow by `scripts/release/guarded-paths.sh` rather than from any restated copy. It writes
+`crates/xurl-cli/CHANGELOG.md` with `scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v<version>`,
+naming the crate because `RELEASE_MANIFEST` in `scripts/release/release.env` is the binary's manifest, not the root's.
+Then it runs three checks:
+
+| Check                                    | Asserts                                                                                                                                                                           | On failure                                                                                                     |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| A: staged tree vs `origin/dev`           | nothing differs but the version carriers (a `Cargo.toml`, `Cargo.lock`, or `CHANGELOG.md` at any depth, so each member's counts) and the stripped guarded paths                   | fails, naming each unexpected path                                                                             |
+| B: guarded paths vs `origin/main`        | no guarded path is added or modified (`--diff-filter=ACMR`, so removing a guarded doc `main` still carries reads as cleanup, not a leak)                                          | fails, naming each leak                                                                                        |
+| D: unguarded docs added to `origin/main` | every added `docs/` entry or markdown file is meant to ship (`--no-renames`, so a doc moved from one `main` carries lists as added rather than as a rename the filter would drop) | reports, never fails: each needs a reason to ship, or registering in the workflow's `extra_paths` and removing |
+
+Only exit 0 leads to step 2:
+
+| Exit | Meaning                                                                                    | Next                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| 0    | The branch is staged and every check passed.                                               | Step 2.                                                                                       |
+| 1    | The drift gate, the changelog step, or a check failed.                                     | Never commit the branch. A drift failure stops before branching; any other recovers as below. |
+| 2    | Setup error: a dirty worktree, an unknown ref, a missing tool, or no guarded-path pattern. | Fix what it names. Only the guarded-path error stops after branching; it recovers as below.   |
+
+A cut that stopped after branching leaves the overlay staged on the release branch. The worktree was clean when the cut
+started, so everything staged is the script's own output, and discarding it loses nothing:
+
+```bash
+git checkout -f dev
+git branch -D release/v1.3.0
+```
+
+Then fix the cause and re-run. The script refuses a dirty worktree, so a failed cut left in place blocks the re-run.
 
 The result is a single commit whose diff against `main` is the release, with `main` as an ancestor, so the PR merges
 with zero conflicts. When it merges, the tag push flow below picks up. Auto-delete removes `release/v1.3.0` from the
@@ -271,6 +256,11 @@ per-PR changelog is not such a reason, since `--from-dev-prs` builds it from `de
 the triple-diff verification:
 
 ```bash
+# 1. Nothing on main that dev never received, then branch from main, NOT dev.
+scripts/release/drift.sh
+git fetch origin
+git checkout -B release/v1.3.0 origin/main
+
 # 2. List the dev commits not yet on main.
 git log --oneline dev --not origin/main
 
@@ -289,7 +279,7 @@ git diff origin/main..HEAD --name-only \
   | grep -E "$GUARDED" \
   && echo "LEAKED: reset and redo" || echo "(clean)"
 
-# D: what this release ADDS to main (see step 6 above for why).
+# D: what this release ADDS to main (see the overlay's check D for why).
 # `--no-renames` lists a doc moved from one main carries as added; rename detection
 # would report it as R, and the A filter would drop it.
 git diff --no-renames origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
@@ -299,8 +289,9 @@ git cherry HEAD origin/dev | grep '^+' || echo "(none)"
 ```
 
 Cherry-picks of PRs that touched guarded paths hit modify/delete or rename/delete conflicts, since those paths live on
-`dev` but are blocked from `main`; resolve them per the next section. Steps 4 to 8 of the overlay recipe then apply
-unchanged.
+`dev` but are blocked from `main`; resolve them per the next section. Then generate the CLI's changelog the way the cut
+script does (`scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v1.3.0`), work through § Project
+specifics, and finish with steps 3 and 4 of the overlay procedure.
 
 → Triple-diff false-positive triage:
 [`RELEASES-RATIONALE.md` § Triple-diff verification](./RELEASES-RATIONALE.md#triple-diff-verification).
@@ -443,26 +434,12 @@ hand-written, and the only one markdownlint checks.
 
 Both crate changelogs are cut on the release branch, each from its own crate's section in the PRs merged into `dev`
 since the previous release. `--from-dev-prs` is what makes that possible: the release branch is one overlay commit on
-top of `main`, so it carries no per-PR history for git-cliff to read.
+top of `main`, so it carries no per-PR history for git-cliff to read. `cut-release-branch.sh` writes the CLI's; the
+library's bump and changelog are operator steps, listed in order in § Project specifics, because its next version is
+read from the PRs' `## Changelog (xdk-rs)` blocks rather than passed to the script.
 
 ```bash
-# 1. On the release branch, bump the library and regenerate its changelog. The
-#    member's [package.metadata.changelog] table names its tag line and its paths.
-#    The number comes from § Versioning, read from the PRs' `## Changelog (xdk-rs)` blocks.
-sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
-#    The CLI's declared bound lives in the workspace manifest and must move with it,
-#    or the workspace stops resolving; this bound is what the tag order below protects.
-sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
-cargo update -p xdk-rs
-#    Each PR contributes what its `## Changelog (xdk-rs)` block says. A PR that
-#    touched both crates contributes only what it addressed to the library.
-scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0
-#    The binary's, from the same PRs' `## Changelog (xurl-rs)` blocks.
-scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v1.3.0
-#    Idempotent, so this answers whether a committed file still matches its inputs.
-scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 --dry-run
-
-# 2. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md).
+# 1. Every breaking entry carries a before/after snippet (the policy in crates/xdk/README.md).
 #    The snippet lives in the PR body, inside the `## Changelog (xdk-rs)` block, as a
 #    fenced block indented under its bullet:
 #
@@ -482,7 +459,7 @@ scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 
 #    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
 #    block keeps its commit subject as its bullet.
 
-# 3. After the release PR merges, tag the library first, then the CLI, both on the
+# 2. After the release PR merges, tag the library first, then the CLI, both on the
 #    merge commit.
 git checkout main && git pull
 git tag -a -m "Release xdk-rs-v0.2.0" xdk-rs-v0.2.0
@@ -603,7 +580,53 @@ gh api -X PUT repos/brettdavies/xurl-rs/rulesets/<id> --input .github/rulesets/p
 → Status-check context strings (inline vs reusable):
 [`RELEASES-RATIONALE.md` § Status-check context strings](./RELEASES-RATIONALE.md#status-check-context-strings).
 
-## Required secrets
+## Project specifics
+
+### Version carriers
+
+`cut-release-branch.sh` leaves every version carrier alone and writes only the CLI's changelog. On the staged branch,
+before the commit, in this order:
+
+```bash
+# 1. Bump the CLI. The workspace root is a virtual manifest; the version the `vX.Y.Z`
+#    tag names lives in the binary crate. Use the version the cut was given.
+sed -i 's/^version = ".*"/version = "1.3.0"/' crates/xurl-cli/Cargo.toml
+
+# 2. When the release moves the library, bump it together with the CLI's declared
+#    bound. The bound lives in the workspace manifest and must move with the library,
+#    or the workspace stops resolving; the tag order in § Releasing the library
+#    protects it. The number comes from § Versioning, read from the PRs'
+#    `## Changelog (xdk-rs)` blocks.
+sed -i 's/^version = ".*"/version = "0.2.0"/' crates/xdk/Cargo.toml
+sed -i 's/^xdk-rs = { version = "[^"]*"/xdk-rs = { version = "0.2.0"/' Cargo.toml
+
+# 3. Refresh the lockfile entry of each crate bumped above.
+cargo update -p xurl-rs
+cargo update -p xdk-rs
+
+# 4. Regenerate the completions, which catches any subcommand or flag change missed
+#    during dev.
+./scripts/generate-completions.sh
+
+# 5. When the release moves the library, generate its changelog. The member's
+#    [package.metadata.changelog] table names its tag line and its paths. Each PR
+#    contributes what its `## Changelog (xdk-rs)` block says, so a PR that touched
+#    both crates contributes only what it addressed to the library. The dry run is
+#    idempotent and answers whether the file still matches its inputs.
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0
+scripts/generate-changelog.py --crate xdk-rs --from-dev-prs --tag xdk-rs-v0.2.0 --dry-run
+
+# 6. Scrub both changelogs per § Prose scrubbing. Fix findings on the PR bodies and
+#    regenerate, never by hand-editing a changelog; the CLI's regenerates with the
+#    command the cut ran.
+scripts/generate-changelog.py --crate xurl-rs --from-dev-prs --tag v1.3.0
+```
+
+`scripts/release/preflight.sh mechanics` checks the result: the CLI's version against the top section of its changelog,
+and, while a library release is pending (no `xdk-rs-v<version>` tag at the library's manifest version), the library's
+version against the top section of its own.
+
+### Required secrets
 
 | Secret                 | Purpose                                                                                                           | Lifecycle                                         |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
@@ -612,7 +635,7 @@ gh api -X PUT repos/brettdavies/xurl-rs/rulesets/<id> --input .github/rulesets/p
 
 `GITHUB_TOKEN` is automatic; CI (`ci.yml`) needs `contents: read` and `pull-requests: read` and uses no extra secrets.
 
-## Distribution channels
+### Distribution channels
 
 | Channel          | How                                                                              |
 | ---------------- | -------------------------------------------------------------------------------- |
