@@ -10,7 +10,8 @@
 #     not a TTY, so output is clean in CI logs.
 #   - Gate counters (PASS_COUNT, FAIL_COUNT, SKIP_COUNT) and emitters
 #     (gate_pass, gate_fail, gate_skip).
-#   - Section header helper.
+#   - Section header helper, and a path-list renderer for gate detail
+#     (count_and_list).
 #   - Dependency checks (require_bin, have_bin).
 #   - 1Password helper (read_1p) routing through the brettdavies 1password skill.
 #   - Final summary printer (print_summary).
@@ -67,6 +68,24 @@ gate_skip() {
 }
 header() { printf "\n%s== %s ==%s\n" "$C_BLD" "$1" "$C_RST"; }
 
+# Renders a newline-separated path list as gate detail: the count first, then
+# the paths. A gate that printed a bare `head -N` told the operator neither how
+# many there were nor that the list was cut, so a release deliberately
+# diverging from dev read as three stray files instead of sixteen.
+#
+# Args: $1 newline-separated list; $2 optional cap (default 20).
+count_and_list() {
+  local list=$1 cap=${2:-20} n shown remainder
+  n=$(printf '%s\n' "$list" | grep -c . || true)
+  shown=$(printf '%s\n' "$list" | grep . | head -"$cap" | tr '\n' ' ')
+  remainder=$((n - cap))
+  if [[ "$remainder" -gt 0 ]]; then
+    printf '%s file(s): %s(+%s more)' "$n" "$shown" "$remainder"
+  else
+    printf '%s file(s): %s' "$n" "$shown"
+  fi
+}
+
 # Release package ------------------------------------------------------------
 
 # Per-repo release configuration, sourced when present. preflight, postflight
@@ -99,28 +118,70 @@ release_changelog() {
   echo "${RELEASE_CHANGELOG:-CHANGELOG.md}"
 }
 
-# The `[package] version` the tag must match.
+# The `[package] version` the tag must match. Empty, not a failure, when the
+# manifest has no version line, so a `set -euo pipefail` caller can test for it.
 project_version() {
   grep -m1 '^version = ' "$(release_manifest)" | sed -E 's/^version = "(.*)"/\1/' || true
 }
 
 # The changelog a workspace member keeps, from its
-# `[package.metadata.changelog]` table. Empty when the member declares none or
-# cargo cannot answer. One reader, so the script that writes a changelog and
-# the scripts that verify one cannot disagree about where it lives.
+# `[package.metadata.changelog]` table: the table generate-changelog.py writes
+# from, so a script that verifies a changelog looks where it was written. Empty
+# when the member declares none or cargo cannot answer.
 crate_changelog_path() {
   local crate="$1"
   have_bin cargo && have_bin jaq || return 0
+  # shellcheck disable=SC2016  # $c is a jaq binding, not a shell var
   cargo metadata --format-version 1 --no-deps 2>/dev/null \
     | jaq -r --arg c "$crate" \
-      '.packages[] | select(.name == $c) | .metadata.changelog.changelog // empty' 2>/dev/null
+      '.packages[] | select(.name == $c) | .metadata.changelog.changelog // empty' 2>/dev/null || true
 }
 
-# Every member's changelog, one per line.
+# Every member's declared changelog, one per line, from the same table.
 crate_changelog_paths() {
   have_bin cargo && have_bin jaq || return 0
   cargo metadata --format-version 1 --no-deps 2>/dev/null \
-    | jaq -r '.packages[] | .metadata.changelog.changelog // empty' 2>/dev/null
+    | jaq -r '.packages[] | .metadata.changelog.changelog // empty' 2>/dev/null || true
+}
+
+# Each publishable workspace member other than the release package, one per
+# line as name, manifest, tag prefix, changelog and version, tab-separated,
+# with both paths relative to the repository root. The tag prefix and the
+# changelog come from the member's [package.metadata.changelog] table with the
+# defaults generate-changelog.py applies, `<name>-v` and the file beside the
+# manifest, so every release script names a member's tag line the same way.
+# `publish = false` reads back as an empty registry list. Empty when cargo or
+# jaq is missing. Run from the repository root.
+release_members() {
+  have_bin cargo && have_bin jaq || return 0
+  local release
+  release=$(project_crate 2>/dev/null || true)
+  # shellcheck disable=SC2016  # $logical, $physical and $release are jaq bindings
+  cargo metadata --format-version 1 --no-deps 2>/dev/null \
+    | jaq -r --arg logical "$PWD/" --arg physical "$(pwd -P)/" --arg release "$release" '
+      .packages[]
+      | select(.publish != [] and .name != $release)
+      | (.manifest_path | ltrimstr($physical) | ltrimstr($logical)) as $manifest
+      | ($manifest | rtrimstr("Cargo.toml")) as $dir
+      | [.name, $manifest,
+         (.metadata.changelog.tag_prefix // "\(.name)-v"),
+         (.metadata.changelog.changelog // "\($dir)CHANGELOG.md"),
+         .version]
+      | @tsv' 2>/dev/null || true
+}
+
+# The generate-changelog.py arguments that select the release package's own
+# changelog: `--crate <name>` when the release manifest is a workspace
+# member's, nothing for a single-package repo. A workspace root's changelog
+# routes to the members' and the generator refuses to write it, so every
+# script that regenerates the release changelog passes these.
+changelog_crate_args() {
+  local crate
+  [[ "$(release_manifest)" != "Cargo.toml" ]] || return 0
+  crate=$(project_crate 2>/dev/null || true)
+  if [[ -n "$crate" ]]; then
+    printf -- '--crate %s\n' "$crate"
+  fi
 }
 
 # The `[package] name` of the release package.

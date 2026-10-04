@@ -230,8 +230,8 @@ Only exit 0 leads to step 2:
 | 1    | The drift gate, the changelog step, or a check failed.                                     | Never commit the branch. A drift failure stops before branching; any other recovers as below. |
 | 2    | Setup error: a dirty worktree, an unknown ref, a missing tool, or no guarded-path pattern. | Fix what it names. Only the guarded-path error stops after branching; it recovers as below.   |
 
-A cut that stopped after branching leaves the overlay staged on the release branch. The worktree was clean when the cut
-started, so everything staged is the script's own output, and discarding it loses nothing:
+A cut that stopped after branching leaves the overlay staged on the release branch and prints the way back. The worktree
+was clean when the cut started, so everything staged is the script's own output, and discarding it loses nothing:
 
 ```bash
 git checkout -f dev
@@ -378,8 +378,8 @@ every contested path. Guarded paths (`scripts/release/guarded-paths.sh`) never e
 contested paths and the paths it would sync, then ends on `dev` with no branch created and the tree clean. The lock
 refresh runs offline against the local registry cache, so a crate missing from it stops the run with exit 70 before
 anything is committed; `cargo fetch` fills the cache. After the commit, when the sync carried
-`crates/xurl-cli/CHANGELOG.md`, the script re-runs `scripts/generate-changelog.py --dry-run` and, if that does not pass,
-warns with the generator's own reason line.
+`crates/xurl-cli/CHANGELOG.md`, the script re-runs `scripts/generate-changelog.py --dry-run --tag v3.0.0 --crate
+xurl-rs`, the arguments the cut script uses, and, if that does not pass, warns with the generator's own reason line.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 
