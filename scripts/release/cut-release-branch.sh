@@ -26,8 +26,11 @@
 #
 # Exit codes:
 #   0 = the branch is staged and every verification passed
-#   1 = a verification failed; the branch is left in place to inspect
-#   2 = setup error (dirty worktree, unknown ref, missing dependency)
+#   1 = the drift gate, the changelog step, or a verification failed. Past the
+#       drift gate the branch is left staged to inspect, and the script prints
+#       the way back instead of the commit steps.
+#   2 = setup error (dirty worktree, unknown ref, missing dependency, no
+#       guarded-path pattern)
 #
 # The worktree must be clean. The overlay resets the index and the working tree
 # to the head branch's tree, which would silently discard uncommitted work.
@@ -119,6 +122,20 @@ act() {
   fi
 }
 
+# The way back from a cut that stopped after branching. The worktree was clean
+# when the cut started, so everything staged is this script's own output and
+# discarding it loses nothing. A re-run refuses the dirty worktree a failed cut
+# leaves behind, so the operator needs these two commands before anything else.
+print_recovery() {
+  cat <<RECOVER
+
+Not committed: $1. Discard the cut, fix the cause, and re-run:
+
+  git checkout -f $HEAD_BRANCH
+  git branch -D $BRANCH
+RECOVER
+}
+
 # Preconditions -------------------------------------------------------------
 
 header "Preconditions"
@@ -196,6 +213,7 @@ fi
 if [[ -z "$GUARDED" ]]; then
   gate_fail "guarded-path list" "scripts/release/guarded-paths.sh resolved no pattern"
   print_summary
+  [[ -n "$DRY_RUN" ]] || print_recovery "the guarded-path list did not resolve"
   exit 2
 fi
 
@@ -232,19 +250,16 @@ act git add -A
 if [[ "$RUN_CHANGELOG" -eq 1 ]]; then
   header "Changelog"
   if [[ -x scripts/generate-changelog.py ]]; then
-    # `--crate` so a workspace updates the member's changelog beside its
-    # manifest rather than creating one at the repository root.
-    # `--tag` explicitly rather than leaving it to the branch name: a caller
-    # that passed --branch is free to name it anything.
-    changelog_args=(--from-dev-prs --tag "v${VERSION}")
-    if [[ -n "$(project_crate)" && "$(release_manifest)" != "Cargo.toml" ]]; then
-      changelog_args+=(--crate "$(project_crate)")
-    fi
+    # --tag explicitly rather than read from the branch name, which --branch
+    # lets the caller choose freely. --crate when the release package is a
+    # workspace member, so the generator writes that member's changelog.
+    read -ra crate_args <<<"$(changelog_crate_args)"
+    changelog_args=(--from-dev-prs --tag "v${VERSION}" "${crate_args[@]}")
     if act scripts/generate-changelog.py "${changelog_args[@]}"; then
       act git add -A
       gate_pass "changelog regenerated from origin/$HEAD_BRANCH PRs"
     else
-      gate_fail "generate-changelog.py --from-dev-prs" "see its output above"
+      gate_fail "generate-changelog.py ${changelog_args[*]}" "see its output above"
     fi
   else
     gate_skip "changelog" "scripts/generate-changelog.py not vendored"
@@ -264,10 +279,10 @@ fi
 
 # A: the staged tree equals the head branch's, minus the version carriers this
 # release edits and the guarded paths just stripped. Anything else is a mistake.
-# A manifest or changelog beside a workspace member counts as a version carrier
-# the same as the repository root's, so a workspace release is not read as a
-# mistake. This is the set the release branch legitimately edits, which is wider
-# than release.env's VERSION_CARRIERS (that one answers what drift.sh may ignore).
+# A manifest or changelog inside a workspace member counts the same as the
+# root's, so a member's version bump and changelog are not read as mistakes.
+# This is the set a release branch legitimately edits, which is wider than
+# release.env's VERSION_CARRIERS (that one answers what drift.sh may ignore).
 VERSION_CARRIERS='^((.*/)?(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md))$'
 unexpected=$(git diff --cached --name-only "origin/$HEAD_BRANCH" \
   | grep -Ev "$GUARDED" | grep -Ev "$VERSION_CARRIERS" || true)
@@ -310,6 +325,11 @@ fi
 
 print_summary
 
+if [[ "$FAIL_COUNT" -ne 0 ]]; then
+  print_recovery "a check above failed on $BRANCH"
+  exit 1
+fi
+
 cat <<NEXT
 
 Staged, not committed, on $BRANCH. Next:
@@ -319,5 +339,3 @@ Staged, not committed, on $BRANCH. Next:
   3. scripts/release/preflight.sh all
   4. git push -u origin $BRANCH
 NEXT
-
-[[ "$FAIL_COUNT" -eq 0 ]] || exit 1

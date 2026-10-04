@@ -157,10 +157,10 @@ resolve_tag() {
   # detects it: Cargo.toml, package.json, pyproject.toml, VERSION.
   local version=""
   if [[ -f "$REPO_ROOT/Cargo.toml" ]]; then
-    # Via the shared helper, so a workspace whose root is a virtual manifest
-    # reads the version from RELEASE_MANIFEST rather than from a root that
-    # carries no `version` key.
-    version=$(project_version)
+    # Through the shared reader, so a workspace whose root is a virtual manifest
+    # reads the version from RELEASE_MANIFEST. Falling through to the newest tag
+    # instead picks a library tag whenever the library's name sorts after `v`.
+    version=$(cd "$REPO_ROOT" && project_version)
   elif [[ -f "$REPO_ROOT/package.json" ]] && have_bin jaq; then
     version=$(jaq -r '.version // empty' "$REPO_ROOT/package.json")
   elif [[ -f "$REPO_ROOT/pyproject.toml" ]]; then
@@ -531,25 +531,26 @@ gate_backport() {
     return
   fi
 
-  # No PR names this tag, which is not the same as the backport not happening.
-  # A workspace releases each member on its own tag line and syncs every
-  # member's changelog back in one PR, so a library tag's bookkeeping arrives
-  # inside the PR titled for the binary. The title is a proxy for the operation
-  # having run; what the operation is FOR is dev carrying what the release
-  # wrote, so ask that directly before reporting nothing happened.
+  # No PR names this tag, which is not the same as no backport. A workspace
+  # releases each member on its own tag line and syncs every member's
+  # changelog back in one PR, titled for the binary's tag, so a member tag's
+  # bookkeeping can arrive under another tag's name. The backport exists so dev
+  # carries what the release wrote; for a member that declares a changelog,
+  # ask that directly before reporting nothing happened.
   local crate changelog on_main on_dev
   crate=$(resolve_crate 2>/dev/null || true)
-  changelog=$(crate_changelog_path "$crate" 2>/dev/null || true)
+  changelog=""
+  [[ -n "$crate" ]] && changelog=$(cd "$REPO_ROOT" && crate_changelog_path "$crate")
   if [[ -n "$changelog" ]]; then
-    on_main=$(git rev-parse --verify --quiet "origin/main:$changelog" || true)
-    on_dev=$(git rev-parse --verify --quiet "origin/dev:$changelog" || true)
+    on_main=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/main:$changelog" || true)
+    on_dev=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/dev:$changelog" || true)
     if [[ -n "$on_main" && "$on_main" == "$on_dev" ]]; then
-      gate_pass "no PR names $tag, but dev carries main's $changelog (backported with another tag's sync)"
+      gate_pass "no PR names $tag, but dev carries main's $changelog (synced under another tag's backport)"
       return
     fi
     if [[ -n "$on_main" && -n "$on_dev" ]]; then
       gate_fail "main → dev backport" \
-        "dev's $changelog differs from main's; run scripts/release/../sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
+        "dev's $changelog differs from main's; run scripts/sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
       return
     fi
   fi
@@ -650,15 +651,13 @@ gate_tags() {
     return
   fi
 
-  # Publishable members other than the binary's own package, as name<TAB>path.
-  # `publish = false` reads back as an empty registry list.
-  local binary members
-  binary=$(cd "$REPO_ROOT" && project_crate)
-  # shellcheck disable=SC2016  # $root and $bin are jaq variables
-  members=$(cargo metadata --format-version 1 --no-deps --manifest-path "$REPO_ROOT/Cargo.toml" 2>/dev/null \
-    | jaq -r --arg root "$REPO_ROOT/" --arg bin "$binary" \
-      '.packages[] | select(.publish != [] and .name != $bin) | "\(.name)\t\(.manifest_path | ltrimstr($root))"')
+  # Publishable members other than the binary's own package, each with the
+  # tag line its [package.metadata.changelog] table names.
+  local members
+  members=$(cd "$REPO_ROOT" && release_members)
   if [[ -z "$members" ]]; then
+    local binary
+    binary=$(cd "$REPO_ROOT" && project_crate)
     gate_skip "release tags" "no publishable member besides ${binary:-the binary} releases on its own tag line"
     return
   fi
@@ -669,8 +668,8 @@ gate_tags() {
     | awk -v cur="$tag" 'seen { print; exit } $0 == cur { seen = 1 }')
   [[ -n "$prev" ]] && prev_commit=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "$prev^{commit}" || true)
 
-  local name path now before member_tag tagged
-  while IFS=$'\t' read -r name path; do
+  local name path prefix now before member_tag tagged
+  while IFS=$'\t' read -r name path prefix _ _; do
     now=$(manifest_version_at "$commit" "$path")
     if [[ -z "$now" ]]; then
       gate_skip "$name tag" "no version in $path at $tag"
@@ -678,7 +677,7 @@ gate_tags() {
     fi
     before=""
     [[ -n "$prev_commit" ]] && before=$(manifest_version_at "$prev_commit" "$path")
-    member_tag="$name-v$now"
+    member_tag="$prefix$now"
     tagged=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "$member_tag^{commit}" || true)
     if [[ "$tagged" == "$commit" ]]; then
       gate_pass "$member_tag is on $tag's commit"
