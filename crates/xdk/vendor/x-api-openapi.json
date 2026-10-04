@@ -18444,7 +18444,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of active subscriptions for XAA",
+        "description": "Get a list of active subscriptions for XAA. Optional user_id narrows the list to subscriptions whose filter.user_id matches; with a user-context token it must identify the authenticated user.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/activity/get-x-activity-subscriptions"
         },
@@ -18471,6 +18471,16 @@
             "schema": {
               "minLength": 16,
               "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Only return subscriptions whose filter.user_id matches.",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
             },
             "style": "form"
           }
