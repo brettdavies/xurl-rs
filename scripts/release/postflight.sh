@@ -27,6 +27,7 @@
 #   make-latest    GitHub Release is non-draft, non-prerelease, and releases/latest matches.
 #                  On a library tag the check inverts: latest must NOT be it (make_latest: false)
 #   crates         crates.io index shows <crate> v<X.Y.Z> published (Rust only; auto-skips otherwise)
+#   tags           every workspace member the release moved is tagged <crate>-v<X.Y.Z> on the binary tag's commit
 #   backport       dev has a merged PR carrying the released version in its title (prod only; SKIPs on staging)
 #   surface-smoke  Delegates to scripts/release/surface-smoke.sh against the env's deployed URL (optional)
 #   all            run every above sequentially
@@ -110,7 +111,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h | --help) usage ;;
-    release | tap | finalize | make-latest | crates | backport | surface-smoke | all)
+    release | tap | finalize | make-latest | crates | tags | backport | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
@@ -156,10 +157,10 @@ resolve_tag() {
   # detects it: Cargo.toml, package.json, pyproject.toml, VERSION.
   local version=""
   if [[ -f "$REPO_ROOT/Cargo.toml" ]]; then
-    # Via the shared helper, so a workspace whose root is a virtual manifest
-    # reads the version from RELEASE_MANIFEST rather than from a root that
-    # carries no `version` key.
-    version=$(project_version)
+    # Through the shared reader, so a workspace whose root is a virtual manifest
+    # reads the version from RELEASE_MANIFEST. Falling through to the newest tag
+    # instead picks a library tag whenever the library's name sorts after `v`.
+    version=$(cd "$REPO_ROOT" && project_version)
   elif [[ -f "$REPO_ROOT/package.json" ]] && have_bin jaq; then
     version=$(jaq -r '.version // empty' "$REPO_ROOT/package.json")
   elif [[ -f "$REPO_ROOT/pyproject.toml" ]]; then
@@ -530,25 +531,26 @@ gate_backport() {
     return
   fi
 
-  # No PR names this tag, which is not the same as the backport not happening.
-  # A workspace releases each member on its own tag line and syncs every
-  # member's changelog back in one PR, so a library tag's bookkeeping arrives
-  # inside the PR titled for the binary. The title is a proxy for the operation
-  # having run; what the operation is FOR is dev carrying what the release
-  # wrote, so ask that directly before reporting nothing happened.
+  # No PR names this tag, which is not the same as no backport. A workspace
+  # releases each member on its own tag line and syncs every member's
+  # changelog back in one PR, titled for the binary's tag, so a member tag's
+  # bookkeeping can arrive under another tag's name. The backport exists so dev
+  # carries what the release wrote; for a member that declares a changelog,
+  # ask that directly before reporting nothing happened.
   local crate changelog on_main on_dev
   crate=$(resolve_crate 2>/dev/null || true)
-  changelog=$(crate_changelog_path "$crate" 2>/dev/null || true)
+  changelog=""
+  [[ -n "$crate" ]] && changelog=$(cd "$REPO_ROOT" && crate_changelog_path "$crate")
   if [[ -n "$changelog" ]]; then
-    on_main=$(git rev-parse --verify --quiet "origin/main:$changelog" || true)
-    on_dev=$(git rev-parse --verify --quiet "origin/dev:$changelog" || true)
+    on_main=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/main:$changelog" || true)
+    on_dev=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/dev:$changelog" || true)
     if [[ -n "$on_main" && "$on_main" == "$on_dev" ]]; then
-      gate_pass "no PR names $tag, but dev carries main's $changelog (backported with another tag's sync)"
+      gate_pass "no PR names $tag, but dev carries main's $changelog (synced under another tag's backport)"
       return
     fi
     if [[ -n "$on_main" && -n "$on_dev" ]]; then
       gate_fail "main → dev backport" \
-        "dev's $changelog differs from main's; run scripts/release/../sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
+        "dev's $changelog differs from main's; run scripts/sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
       return
     fi
   fi
@@ -593,6 +595,104 @@ gate_crates() {
   fi
 }
 
+# Gate: tags -----------------------------------------------------------------
+#
+# A workspace releases each publishable library member on its own
+# `<crate>-vX.Y.Z` line. When a release moves a member's version, the member's
+# tag belongs on the binary tag's commit: release-lib publishes whatever its
+# tag points at, a moved member with no tag never publishes, and tooling keyed
+# to the binary tag, such as the dev backport, reaches the member's release
+# only through that shared commit. Checked from the binary tag, which the
+# runbook pushes last.
+
+# The [package] version a manifest declares at a commit, following
+# `version.workspace = true` to the root's [workspace.package].
+manifest_version_at() {
+  local commit="$1" path="$2" text
+  text=$(git -C "$REPO_ROOT" show "$commit:$path" 2>/dev/null) || return 0
+  if printf '%s\n' "$text" | grep -Eq '^version(\.workspace *= *true| *= *\{ *workspace *= *true)'; then
+    text=$(git -C "$REPO_ROOT" show "$commit:Cargo.toml" 2>/dev/null) || return 0
+    printf '%s\n' "$text" | awk '
+      /^\[workspace\.package\]/ { in_ws = 1; next }
+      /^\[/                     { in_ws = 0 }
+      in_ws && /^version *= *"/ { sub(/^version *= *"/, ""); sub(/".*/, ""); print; exit }
+    '
+    return 0
+  fi
+  printf '%s\n' "$text" | awk '
+    /^\[package\]/            { in_pkg = 1; next }
+    /^\[/                     { in_pkg = 0 }
+    in_pkg && /^version *= *"/ { sub(/^version *= *"/, ""); sub(/".*/, ""); print; exit }
+  '
+}
+
+gate_tags() {
+  header "Release tags"
+  local tag
+  tag=$(resolve_tag)
+  case "$tag" in
+    v[0-9]*) ;;
+    *)
+      gate_skip "release tags" "$tag is a library tag; run this gate on the binary tag, which the runbook pushes last"
+      return
+      ;;
+  esac
+  if [[ ! -f "$REPO_ROOT/Cargo.toml" ]]; then
+    gate_skip "release tags" "no Cargo.toml; non-Rust repo"
+    return
+  fi
+  if ! have_bin cargo || ! have_bin jaq; then
+    gate_skip "release tags" "needs cargo and jaq to list the workspace members"
+    return
+  fi
+  local commit
+  if ! commit=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "$tag^{commit}"); then
+    gate_fail "release tags" "$tag is not a local tag; run git fetch origin --tags"
+    return
+  fi
+
+  # Publishable members other than the binary's own package, each with the
+  # tag line its [package.metadata.changelog] table names.
+  local members
+  members=$(cd "$REPO_ROOT" && release_members)
+  if [[ -z "$members" ]]; then
+    local binary
+    binary=$(cd "$REPO_ROOT" && project_crate)
+    gate_skip "release tags" "no publishable member besides ${binary:-the binary} releases on its own tag line"
+    return
+  fi
+
+  # The binary tag before this one, whose commit says what this release moved.
+  local prev prev_commit=""
+  prev=$(git -C "$REPO_ROOT" tag --list 'v[0-9]*' --sort=-version:refname \
+    | awk -v cur="$tag" 'seen { print; exit } $0 == cur { seen = 1 }')
+  [[ -n "$prev" ]] && prev_commit=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "$prev^{commit}" || true)
+
+  local name path prefix now before member_tag tagged
+  while IFS=$'\t' read -r name path prefix _ _; do
+    now=$(manifest_version_at "$commit" "$path")
+    if [[ -z "$now" ]]; then
+      gate_skip "$name tag" "no version in $path at $tag"
+      continue
+    fi
+    before=""
+    [[ -n "$prev_commit" ]] && before=$(manifest_version_at "$prev_commit" "$path")
+    member_tag="$prefix$now"
+    tagged=$(git -C "$REPO_ROOT" rev-parse --verify --quiet "$member_tag^{commit}" || true)
+    if [[ "$tagged" == "$commit" ]]; then
+      gate_pass "$member_tag is on $tag's commit"
+    elif [[ "$now" == "$before" ]]; then
+      gate_pass "$name $now is unchanged since $prev, so $tag carries no $name release"
+    elif [[ -z "$tagged" ]]; then
+      gate_fail "$name tag" \
+        "$tag moves $name to $now but $member_tag does not exist; tag the release commit: git tag -a -m \"Release $member_tag\" $member_tag ${commit:0:12} && git push origin $member_tag"
+    else
+      gate_fail "$name tag" \
+        "$tag moves $name to $now but $member_tag points at ${tagged:0:12}, not $tag's ${commit:0:12}; the library published from another commit"
+    fi
+  done <<<"$members"
+}
+
 # Gate: surface-smoke (optional delegation) ----------------------------------
 #
 # Multi-env site/service repos with a deployed HTTP / MCP / API surface put
@@ -627,6 +727,7 @@ case "$SUBCMD" in
   finalize) gate_finalize ;;
   make-latest) gate_make_latest ;;
   crates) gate_crates ;;
+  tags) gate_tags ;;
   backport) gate_backport ;;
   surface-smoke) gate_surface_smoke ;;
   all)
@@ -635,6 +736,7 @@ case "$SUBCMD" in
     gate_finalize
     gate_make_latest
     gate_crates
+    gate_tags
     gate_backport
     gate_surface_smoke
     ;;

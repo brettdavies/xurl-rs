@@ -2,11 +2,13 @@
 # These verbs are the X (Twitter) platform's canonical actions, plus
 # xr-specific surface verbs (examples, validate) and the media namespace.
 #
-# anc discovers this file at the audit target's root directory, but
-# p6-may-standard-names is a behavioral audit that needs a binary. A
-# workspace root yields no binary, and --command / --binary targets are
-# not directories, so no invocation reaches both today:
-# https://github.com/brettdavies/agentnative-cli
+# anc applies this file to an audit of xr from this repository: the
+# root with `anc audit . --bin xr`, or a built binary such as
+# `anc audit target/release/xr`. For an installed xr, point anc at a
+# checkout with `anc audit --command xr --repo <checkout>`. This needs an
+# anc release after 0.5.0; 0.5.0 reads the file only for a directory
+# target, where p6-may-standard-names has no binary to probe:
+# https://github.com/brettdavies/agentnative-cli#configuration-anctoml
 [p6]
 domain_verbs = [
   "post", "reply", "quote", "delete", "read", "search",

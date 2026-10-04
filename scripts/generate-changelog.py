@@ -32,7 +32,11 @@ Options:
     --dry-run      Run the regen flow against the current CHANGELOG.md and
                    restore the original on exit. Exit 0 if regeneration
                    produces identical content (idempotent), exit 1 with a
-                   unified diff if it would drift. Requires an existing
+                   unified diff if it would drift. The first stderr line
+                   names the drift: "differs only in line wrapping" when the
+                   two match once whitespace and line breaks collapse (a
+                   lint config or formatter rewraps the file), "would
+                   change" when the content differs. Requires an existing
                    CHANGELOG.md.
 
 Version detection: the branch name must match release/vN.N.N (with optional
@@ -71,7 +75,6 @@ from pathlib import Path
 # "Breaking changes" is also the git-cliff group for `type!:` commits in
 # cliff.toml, so the skeleton and the PR-body pass agree on the label.
 CATEGORIES = ["Breaking changes", "Added", "Changed", "Deprecated", "Fixed", "Documentation"]
-SKIPPED_TITLE_RE = re.compile(r"^(chore|ci|build|style|test)(\([^)]*\))?!?:")
 
 
 def fail(msg: str) -> None:
@@ -199,6 +202,13 @@ def run_git_cliff(
         args += ["-o", str(changelog)]
     if subprocess.run(args).returncode != 0:
         sys.exit(1)
+    if scope:
+        # cliff.toml's body strips only a bare leading `v`, so a member's tag
+        # heads the new section as `## [<crate>-vX.Y.Z]`. Every other section of
+        # a member changelog, and every reader of one, names the bare version.
+        version = version_from_tag(tag, scope["tag_prefix"])
+        content = changelog.read_text()
+        changelog.write_text(content.replace(f"## [{tag}]", f"## [{version}]", 1))
 
 
 def read_crate_changelog_config(repo: Path, crate: str) -> dict:
@@ -266,8 +276,10 @@ def pr_touches_member(
     return False
 
 
-# The groups crates/*/cliff.toml route conventional-commit types to, for a PR
-# that supplied no changelog block and falls back to its title.
+# The groups cliff.toml's commit_parsers route conventional-commit types to,
+# in its order, for a PR that supplied no changelog block and falls back to its
+# title. Kept in step with that file, so a title lands where the same commit
+# would: a `type!:` subject is a breaking change before its type is skipped.
 TITLE_GROUPS: list[tuple[re.Pattern[str], str | None]] = [
     (re.compile(r"^release"), None),
     (re.compile(r"^[a-z]+(\([^)]*\))?!:"), "Breaking changes"),
@@ -276,13 +288,12 @@ TITLE_GROUPS: list[tuple[re.Pattern[str], str | None]] = [
     (re.compile(r"^refactor"), "Changed"),
     (re.compile(r"^perf"), "Changed"),
     (re.compile(r"^docs"), "Documentation"),
+    (re.compile(r"^(chore|ci|build|style|test)(\([^)]*\))?:"), None),
 ]
 
 
 def group_for_title(title: str) -> str | None:
     """The changelog group a conventional-commit subject belongs to, or None to skip."""
-    if SKIPPED_TITLE_RE.match(title):
-        return None
     for pattern, group in TITLE_GROUPS:
         if pattern.match(title):
             return group
@@ -330,8 +341,8 @@ _PR_CACHE: dict[tuple[str, str, int], dict | None] = {}
 def prefetch_prs(owner: str, repo: str, numbers: list[int]) -> None:
     """Fill the PR cache for NUMBERS in as few requests as possible.
 
-    One REST call per PR is what made a workspace release take minutes: the
-    body, the title and the changed paths are all needed for every candidate.
+    One REST call per PR makes a release with many candidates take minutes:
+    the body, the title and the changed paths are all needed for each one.
     GraphQL aliases fetch them together, 50 PRs per request. A failure here is
     not fatal, because the per-PR REST path stays as the fallback.
     """
@@ -417,8 +428,8 @@ def extract_changelog_sections(
     A bullet's continuation lines fold into it as one line, because a changelog
     bullet is one logical line. An indented fenced code block is the exception:
     it is kept verbatim, newlines and indentation intact, so a breaking entry
-    can carry the before/after snippet `crates/xdk/README.md` requires. Folding
-    a fence would paste its lines into running prose and destroy the block.
+    can carry the before/after snippet a breaking-change policy asks for.
+    Folding a fence would paste its lines into running prose and destroy it.
     """
     sections: dict[str, list[str]] = {}
     content = slice_below(body, heading)
@@ -505,9 +516,8 @@ def collect_entries(
 ) -> dict[str, list[str]]:
     """Aggregate the PR bodies' changelog bullets by category.
 
-    ANSWERED, when given, collects the PRs whose body actually carried the
-    heading, so a caller merging against a git-cliff skeleton knows which
-    skeleton bullets an authored entry replaces and which stand on their own.
+    ANSWERED, when given, collects the PRs whose body carried content under the
+    heading, for a caller that reports how many PRs wrote their own entries.
 
     A PR that carries the heading and leaves it empty is skipped; one that never
     carries it falls back to its title, grouped by its conventional-commit type
@@ -625,21 +635,36 @@ def dev_release_anchor(base: str, prev_tag: str | None) -> str | None:
     """The commit on BASE that ends the previous release, or None for the start.
 
     The backport commit is the boundary: everything after it on the integration
-    branch belongs to this release. Falling back to the tag covers a repo whose
-    previous release was never synced back.
+    branch belongs to this release. Its subject reads `sync dev after <tag>`,
+    or `backport <tag> artifacts` from older backport scripts. Only the subject
+    counts, because a later commit's message can quote it. Falling back to the
+    tag covers a repo whose previous release was never synced back.
     """
     if not prev_tag:
         return None
-    proc = run(
-        [
-            "git", "log", f"origin/{base}", "--format=%H",
-            "--grep", f"sync dev after {prev_tag}",
-        ]
+    backport = re.compile(
+        rf"^chore\(release\): (sync dev after|backport) {re.escape(prev_tag)}\b"
     )
-    for line in proc.stdout.split():
-        return line
+    proc = run(["git", "log", f"origin/{base}", "--format=%H %s"])
+    for line in proc.stdout.splitlines():
+        sha, _, subject = line.partition(" ")
+        if backport.match(subject):
+            return sha
     found = run(["git", "rev-parse", "--verify", "--quiet", prev_tag]).stdout.strip()
     return prev_tag if found else None
+
+
+def binary_tag_beside(tag: str) -> str | None:
+    """The binary's `vX.Y.Z` tag on the same commit as a member's tag, or None.
+
+    The dev backport's subject names only the binary's tag, so a member released
+    in the same commit reaches its boundary through that tag's backport.
+    """
+    proc = run(["git", "tag", "--points-at", f"{tag}^{{commit}}"])
+    for candidate in proc.stdout.split():
+        if re.match(r"^v\d", candidate):
+            return candidate
+    return None
 
 
 def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
@@ -650,7 +675,13 @@ def merged_pr_numbers(base: str, prev_tag: str | None) -> list[int]:
     never returns one. The squash-merge subject carries `(#N)` whatever the PR
     targeted, so the history is the complete list.
     """
-    anchor = dev_release_anchor(base, prev_tag)
+    anchor_tag = prev_tag
+    if prev_tag and not re.match(r"^v\d", prev_tag):
+        # A member's tag sits on main, which shares no recent history with the
+        # integration branch; as an anchor it would open the window to nearly
+        # all of it. The backport of the binary tag beside it is the boundary.
+        anchor_tag = binary_tag_beside(prev_tag) or prev_tag
+    anchor = dev_release_anchor(base, anchor_tag)
     if not anchor:
         # A member releasing for the first time has no tag of its own, and the
         # whole history of the integration branch is not its window: it ships
@@ -688,46 +719,6 @@ def seed_version_section(changelog: Path, version: str) -> None:
     else:
         content = content.rstrip("\n") + "\n\n" + section
     changelog.write_text(content)
-
-
-def parse_skeleton_section(section: str) -> list[tuple[str, str, int | None]]:
-    """The git-cliff skeleton as (group, bullet, pr number) in file order."""
-    rows: list[tuple[str, str, int | None]] = []
-    group = ""
-    for line in section.splitlines():
-        h3 = re.match(r"^### (.+)", line)
-        if h3:
-            group = h3.group(1).strip()
-            continue
-        if not line.startswith("- "):
-            continue
-        found = re.search(r"\(#(\d+)\)|\[#(\d+)\]", line)
-        num = int(found.group(1) or found.group(2)) if found else None
-        rows.append((group, line, num))
-    return rows
-
-
-def merge_crate_entries(
-    skeleton: list[tuple[str, str, int | None]],
-    authored: dict[str, list[str]],
-    answered: set[int],
-) -> dict[str, list[str]]:
-    """Authored bullets where a PR supplied them, skeleton bullets elsewhere.
-
-    A member's changelog takes its membership and its grouping from git-cliff,
-    which scopes commits by the member's `include_paths`. Replacing the whole
-    section with the PR bodies' bullets would instead pull in every bullet a
-    shared PR wrote, including the ones describing the other crate. So an
-    authored block only displaces the bullets of the PR that wrote it.
-    """
-    merged: dict[str, list[str]] = {}
-    for group, bullet, num in skeleton:
-        if num is not None and num in answered:
-            continue
-        merged.setdefault(group, []).append(bullet)
-    for group, bullets in authored.items():
-        merged.setdefault(group, []).extend(bullets)
-    return merged
 
 
 def rewrite_version_section(
@@ -781,6 +772,38 @@ def rewrite_version_section(
     changelog.write_text(new_content)
 
 
+def report_dry_run(original: str, regenerated: str) -> int:
+    """Report --dry-run drift between the on-disk and regenerated changelog.
+
+    Returns 0 when they match and 1 on any drift, printing the reason line and
+    a unified diff to stderr. Drift that vanishes once every run of whitespace
+    collapses to one space is named as wrapping: the generator writes one
+    logical line per bullet, so a rewrapped file still fails, but the reason
+    points at the rewrap instead of the PR bodies. Line-based whitespace
+    tolerance misses a bullet split across two lines, hence the flattening.
+    """
+    if regenerated == original:
+        print("DRY RUN: CHANGELOG.md is current (no regen drift)")
+        return 0
+    if " ".join(original.split()) == " ".join(regenerated.split()):
+        reason = (
+            "DRY RUN: CHANGELOG.md differs only in line wrapping (whitespace-only "
+            "regen drift; a lint config or formatter likely rewraps it)"
+        )
+    else:
+        reason = "DRY RUN: CHANGELOG.md would change (regen drift detected)"
+    print(reason, file=sys.stderr)
+    sys.stderr.writelines(
+        difflib.unified_diff(
+            original.splitlines(keepends=True),
+            regenerated.splitlines(keepends=True),
+            fromfile="CHANGELOG.md (current)",
+            tofile="CHANGELOG.md (regenerated)",
+        )
+    )
+    return 1
+
+
 def from_dev_prs_mode(
     args,
     cliff_toml: Path,
@@ -821,8 +844,8 @@ def from_dev_prs_mode(
             # The release branch carries no member history, so membership comes
             # from the files each PR changed rather than from git-cliff. A body
             # that addresses the member directly counts whatever it touched:
-            # before this workspace existed the library's code sat elsewhere,
-            # and the author's own block is the better answer than the paths.
+            # the author's own block is a better answer than the paths, which
+            # miss a change made while the member's code lived elsewhere.
             include = crate_config["include_paths"]
             exclude = crate_config["exclude_paths"]
             heading_re = rf"^## {re.escape(crate_config['heading'])}\s*$"
@@ -869,20 +892,7 @@ def from_dev_prs_mode(
             )
 
         if dry_run_original is not None:
-            new_content = changelog.read_text()
-            if new_content == dry_run_original:
-                print("DRY RUN: CHANGELOG.md is current (no regen drift)")
-                return 0
-            print("DRY RUN: CHANGELOG.md would change (regen drift detected)", file=sys.stderr)
-            sys.stderr.writelines(
-                difflib.unified_diff(
-                    dry_run_original.splitlines(keepends=True),
-                    new_content.splitlines(keepends=True),
-                    fromfile="CHANGELOG.md (current)",
-                    tofile="CHANGELOG.md (regenerated)",
-                )
-            )
-            return 1
+            return report_dry_run(dry_run_original, changelog.read_text())
 
         print(f"Updated {changelog} from {len(pr_nums)} PRs merged into {args.dev_branch}")
         print("\nNext steps:")
@@ -902,7 +912,9 @@ def main() -> int:
         action="store_true",
         help=(
             "Run regen against the current CHANGELOG.md and restore the original on exit. "
-            "Exit 0 if idempotent, 1 with a unified diff if it would drift."
+            "Exit 0 if idempotent, 1 with a unified diff if it would drift. The first "
+            "stderr line names whitespace-only drift as line wrapping (a lint config or "
+            "formatter rewraps the file) and anything else as regen drift."
         ),
     )
     parser.add_argument(
@@ -924,7 +936,8 @@ def main() -> int:
         "--crate",
         help=(
             "Generate a workspace member's own changelog instead of the root one: "
-            "its cliff.toml and CHANGELOG.md, on its <crate>-vX.Y.Z tag line. "
+            "the file its [package.metadata.changelog] table names, on its own tag "
+            "line (default <crate>-vX.Y.Z). "
             "Requires --tag, since a member is released from a branch off the "
             "integration branch rather than from a release/vX.Y.Z branch."
         ),
@@ -1015,52 +1028,22 @@ def main() -> int:
             section = extract_version_section(changelog.read_text(), version)
             pr_nums = pr_numbers_from_section(section)
             prefetch_prs(owner, repo_name, pr_nums)
-            if pr_nums and crate_config:
-                # A member takes its membership and grouping from git-cliff and
-                # its wording from any PR that wrote a block addressed to it.
-                label = crate_config["heading"]
-                heading = rf"^## {re.escape(label)}\s*$"
-                answered: set[int] = set()
-                authored = collect_entries(
-                    owner, repo_name, pr_nums, heading, answered
-                )
-                entries = merge_crate_entries(
-                    parse_skeleton_section(section), authored, answered
-                )
-                if entries:
-                    rewrite_version_section(
-                        changelog, version, tag, owner, repo_name, entries, prefix
-                    )
-                print(
-                    f"{len(answered)} of {len(pr_nums)} PRs carry a "
-                    f"'## {label}' block",
-                    file=sys.stderr,
-                )
-            elif pr_nums:
-                entries = collect_entries(owner, repo_name, pr_nums)
+            heading = r"^## Changelog\s*$"
+            if crate_config:
+                # git-cliff scoped the section to the member's paths, so its PRs
+                # are the member's. Each one's bullets come from the block
+                # addressed to the member, read the way --from-dev-prs reads
+                # them, so refreshing a section either mode wrote reproduces it.
+                heading = rf"^## {re.escape(crate_config['heading'])}\s*$"
+            if pr_nums:
+                entries = collect_entries(owner, repo_name, pr_nums, heading)
                 if entries:
                     rewrite_version_section(
                         changelog, version, tag, owner, repo_name, entries, prefix
                     )
 
         if dry_run_original is not None:
-            new_content = changelog.read_text()
-            if new_content == dry_run_original:
-                print("DRY RUN: CHANGELOG.md is current (no regen drift)")
-                return 0
-            print(
-                "DRY RUN: CHANGELOG.md would change (regen drift detected)",
-                file=sys.stderr,
-            )
-            sys.stderr.writelines(
-                difflib.unified_diff(
-                    dry_run_original.splitlines(keepends=True),
-                    new_content.splitlines(keepends=True),
-                    fromfile="CHANGELOG.md (current)",
-                    tofile="CHANGELOG.md (regenerated)",
-                )
-            )
-            return 1
+            return report_dry_run(dry_run_original, changelog.read_text())
 
         if has_gh_integration:
             print(f"Updated {changelog}")

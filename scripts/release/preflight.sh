@@ -180,9 +180,15 @@ gate_api_contract() {
         --baseline-rev "$lib_tag" --release-type minor 2>&1) && semver_rc=0 || semver_rc=$?
       if [[ $semver_rc -eq 0 ]]; then
         gate_pass "cargo-semver-checks: xdk-rs minor bump sufficient vs $lib_tag"
-      else
+      elif grep -q '^--- failure' <<<"$semver_out"; then
         printf '%s\n' "$semver_out" | grep -E '^--- failure|^  (field|variant|struct|enum|fn|method) ' || true
         gate_fail "cargo-semver-checks: xdk-rs breaks vs $lib_tag (record the break in crates/xdk/Cargo.toml lints)"
+      else
+        # A break arrives as `--- failure` blocks. A non-zero exit without one
+        # means the tool compared nothing, typically a rustdoc build that
+        # failed, so the question is still open; CI's semver gate answers it.
+        gate_skip "cargo-semver-checks" \
+          "did not compare xdk-rs with $lib_tag (exit $semver_rc): $(grep -m1 '^error:' <<<"$semver_out" || tail -n 1 <<<"$semver_out"); CI's public-API semver gate decides on the PR"
       fi
     fi
   else
@@ -465,6 +471,9 @@ gate_mechanics() {
   header "Release mechanics sanity"
   local project_version changelog_version
 
+  # The version a release tag names: the release manifest's for Rust, which a
+  # virtual workspace names in release.env. Non-Rust: swap for the project's
+  # source of truth.
   if [[ -f Cargo.toml ]]; then
     project_version=$(project_version)
     gate_pass "$(release_manifest) version = $project_version"
@@ -499,6 +508,9 @@ gate_mechanics() {
     gate_skip "binary --version" "build the release binary first ($BIN_PATH)"
   fi
 
+  # The changelog the release notes are cut from. One that release.env names
+  # must exist; a repo that declares none and keeps no CHANGELOG.md has
+  # nothing to check.
   local release_changelog
   release_changelog=$(release_changelog)
   if [[ -f "$release_changelog" ]]; then
@@ -515,42 +527,45 @@ gate_mechanics() {
     else
       gate_pass "$release_changelog has no [Unreleased] placeholder"
     fi
-  else
-    gate_fail "$release_changelog" "missing"
+  elif [[ -n "${RELEASE_CHANGELOG:-}" ]]; then
+    gate_fail "$release_changelog" "missing; release.env names it as the release changelog"
   fi
 
-  # The library's own changelog, checked only when a library release is
-  # pending: its manifest version is not the newest xdk-rs-v* tag (or no such
-  # tag exists yet), so the reusable's release step would look for that section.
-  if [[ -f crates/xdk/Cargo.toml ]]; then
-    local lib_version lib_tag lib_changelog_version
-    lib_version=$(grep -m1 '^version = ' crates/xdk/Cargo.toml | sed -E 's/^version = "(.*)"/\1/' || true)
-    lib_tag=$(git tag --list 'xdk-rs-v[0-9]*' --sort=-version:refname | head -n 1)
-    if [[ "xdk-rs-v$lib_version" == "$lib_tag" ]]; then
-      gate_pass "crates/xdk/CHANGELOG.md not checked (xdk-rs $lib_version is released as $lib_tag)"
-    elif [[ -f crates/xdk/CHANGELOG.md ]]; then
-      lib_changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' crates/xdk/CHANGELOG.md | tr -d '[]## ' || true)
-      if [[ "$lib_changelog_version" == "$lib_version" ]]; then
-        gate_pass "crates/xdk/CHANGELOG.md top section = [$lib_changelog_version] (matches xdk-rs version)"
-      else
-        gate_fail "crates/xdk/CHANGELOG.md" "top section=${lib_changelog_version:-none} xdk-rs=$lib_version (a library release is pending; regenerate with git cliff -c crates/xdk/cliff.toml)"
-      fi
-      if grep -q '\[Unreleased\]' crates/xdk/CHANGELOG.md; then
-        gate_fail "crates/xdk/CHANGELOG.md" "has [Unreleased] placeholder"
-      fi
-    else
-      gate_fail "crates/xdk/CHANGELOG.md" "missing"
+  # Each workspace member on its own tag line, checked while its release is
+  # pending: no `<tag_prefix><version>` tag exists yet, so the library
+  # pipeline will cut its notes from that section. The cut script writes only
+  # the release package's changelog, so this is what catches a member's that
+  # the operator forgot.
+  local name prefix member_changelog member_version member_top
+  while IFS=$'\t' read -r name _ prefix member_changelog member_version; do
+    [[ -n "$name" && -n "$member_version" ]] || continue
+    if git rev-parse --verify --quiet "refs/tags/$prefix$member_version" >/dev/null; then
+      gate_pass "$member_changelog not checked ($name $member_version is released as $prefix$member_version)"
+      continue
     fi
-  fi
+    if [[ ! -f "$member_changelog" ]]; then
+      gate_fail "$member_changelog" "missing; a $name release is pending (scripts/generate-changelog.py --crate $name --from-dev-prs --tag $prefix$member_version)"
+      continue
+    fi
+    member_top=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$member_changelog" | tr -d '[]## ' || true)
+    if [[ "$member_top" == "$member_version" ]]; then
+      gate_pass "$member_changelog top section = [$member_top] (matches $name $member_version)"
+    else
+      gate_fail "$member_changelog" "top section=${member_top:-none} $name=$member_version; a $name release is pending (regenerate with scripts/generate-changelog.py --crate $name --from-dev-prs --tag $prefix$member_version)"
+    fi
+    if grep -q '\[Unreleased\]' "$member_changelog"; then
+      gate_fail "$member_changelog" "has [Unreleased] placeholder"
+    fi
+  done < <(release_members)
 
-  # Rust: toolchain quarantine.
+  # Rust: toolchain quarantine. Skip for non-Rust.
   if [[ -f rust-toolchain.toml ]]; then
     local toolchain_channel release_date_match
     toolchain_channel=$(grep -m1 'channel = ' rust-toolchain.toml | sed -E 's/.*"([^"]+)".*/\1/' || true)
     release_date_match=$(grep -m1 'released' rust-toolchain.toml | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
     if [[ -n "$release_date_match" ]]; then
       local age_days
-      age_days=$((($(date +%s) - $(date -d "$release_date_match" +%s)) / 86400))
+      age_days=$((($(date +%s) - $(epoch_of_date "$release_date_match")) / 86400))
       if [[ $age_days -ge 7 ]]; then
         gate_pass "rust-toolchain channel=$toolchain_channel (released $release_date_match, $age_days days ago; 7-day quarantine satisfied)"
       else
@@ -561,7 +576,7 @@ gate_mechanics() {
     fi
   fi
 
-  # Rust: cargo deny check advisories.
+  # Rust: cargo deny check advisories. Swap for the project's scanner.
   if command -v cargo >/dev/null 2>&1 && [[ -f deny.toml ]]; then
     if cargo deny check advisories >/dev/null 2>&1; then
       gate_pass "cargo deny check advisories"
@@ -594,9 +609,11 @@ gate_mechanics() {
   # The leak check screens against the registered set, so it is blind to a
   # category nobody registered yet. Enumerate what the release adds to main
   # (anything under docs/, plus markdown anywhere, so a root-level glossary
-  # shows up) and put every unguarded doc in front of a human.
+  # shows up) and put every unguarded doc in front of a human. --no-renames,
+  # because rename detection reports a doc moved from one main carries as R,
+  # and the A filter then drops it.
   local added_docs
-  added_docs=$(git diff "$ship_base..HEAD" --diff-filter=A --name-only 2>/dev/null | grep -E '(^docs/|\.md$)' | grep -Ev "$guarded" || true)
+  added_docs=$(git diff --no-renames "$ship_base..HEAD" --diff-filter=A --name-only 2>/dev/null | grep -E '(^docs/|\.md$)' | grep -Ev "$guarded" || true)
   if [[ -z "$added_docs" ]]; then
     gate_pass "no unguarded docs newly added to main"
   else
@@ -604,12 +621,15 @@ gate_mechanics() {
   fi
 
   # diff-B: files on dev that this branch lacks. Excluding all of docs/ would
-  # hide a missed pick under docs/migrating, which ships to main, so exclude
-  # only the guarded set. Version files and the regenerated changelog are
-  # release-only by design.
+  # hide a missed pick under a directory that ships to main, so exclude only
+  # the guarded set. Version files and the regenerated changelogs are
+  # release-only by design, at any depth, so a workspace member's bump and
+  # changelog read as release edits; cut-release-branch.sh's check A excludes
+  # the same set.
   if git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
     local missed
-    missed=$(git diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" | grep -Ev '^(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md)$' || true)
+    missed=$(git diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" \
+      | grep -Ev '^((.*/)?(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md))$' || true)
     if [[ -z "$missed" ]]; then
       gate_pass "diff-B: no missed picks vs origin/dev"
     else
