@@ -31,10 +31,10 @@ rename/delete pairs git cannot auto-resolve. The conflict pile is an artifact of
 shipping.
 
 Always cut the release branch from `origin/main` and bring `dev`'s content onto it as a forward diff, never by
-reconciling histories. The default is the whole-tree overlay (`git checkout origin/dev -- .`, then strip the guarded
-set): `main` ships `dev`'s tree minus a small, known exclusion set, so asserting that end-state directly is simpler and
-safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the PRs
-merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the branch's
+reconciling histories. The default is the whole-tree overlay (`dev`'s tree asserted onto the base, then the guarded set
+stripped): `main` ships `dev`'s tree minus a small, known exclusion set, so asserting that end-state directly is simpler
+and safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the
+PRs merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the branch's
 commits; the result is the same per-PR section a cherry-picked branch would yield. Cherry-picking the dev squash-commits
 is kept only as an exception for a repo with a stated reason it cannot overlay, at the cost of guarded-path conflict
 handling.
@@ -43,6 +43,16 @@ Either way, the release must start from a `main` that `dev` fully contains. Secu
 land on `main` first, and both constructions take `dev`'s content for the files they touch, so anything `main` holds
 that `dev` never received is reverted by the release. `scripts/release/drift.sh` lists that set and the cut waits until
 it is empty.
+
+### Why a script builds the release branch
+
+The overlay and its checks are where a hand-typed command goes wrong quietly. `git checkout origin/dev -- .` writes
+`dev`'s paths but leaves every file `main` carries and `dev` deleted, so those have to be read off a diff and removed,
+and that diff and the added-docs listing both need `--no-renames`: with rename detection on, a deleted file pairs with
+any similar addition, reports as `R`, and drops out of a filter on `D` or `A`. `scripts/release/cut-release-branch.sh`
+asserts the tree with `git read-tree -u --reset`, which carries the deletions with no diff to read, and runs its checks
+as code that the `github-repo-setup` template's bats suite covers. The version bumps stay with the operator: the
+library's next version is a judgment read from the PRs' changelog blocks, not an input the script can take.
 
 ### Version branch naming
 
@@ -168,11 +178,12 @@ cheap to fix, instead of leaving the question to whoever cuts the release.
 
 ## Triple-diff verification
 
-The overlay recipe screens the staged release tree twice before the commit (A: release→dev for paths outside the guarded
-set and the version files, B: no guarded path in release→main) and enumerates what the release adds (D). The cherry-pick
-exception runs three diffs (A: main→release, B: release→dev for paths outside the guarded set, C: dev→main) plus a
-patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main` on this and
-sibling repos before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
+`cut-release-branch.sh` screens the staged release tree twice before the commit (A: release→dev for paths outside the
+guarded set and the version carriers, B: no guarded path added or modified in release→main) and enumerates what the
+release adds (D). The cherry-pick exception runs three diffs (A: main→release, B: release→dev for paths outside the
+guarded set, C: dev→main) plus a patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have
+shipped to `main` on this and sibling repos before, and the file-level diff in B alone doesn't catch the patch-id
+false-negative class.
 
 B excludes only the guarded set, not all of `docs/`. `docs/migrating/` ships to `main`, so a wholesale `docs/` exclusion
 hides a missed migration-guide pick.
@@ -191,7 +202,7 @@ the reusable and the script (`**/` any depth, `*` and `?` within a segment, trai
 ### Why the release enumerates what it adds
 
 The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A new
-engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D lists
+engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Check D lists
 every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in front of
 a human; each one needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch. Root-level
 markdown is in scope because an agent-facing glossary at the repo root is exactly the kind of addition a `docs/`-only

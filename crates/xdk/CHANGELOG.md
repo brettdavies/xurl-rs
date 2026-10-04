@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-10-04
+
+### Changed
+
+- Change the vendored X API spec to the 2026-10-02 upstream content of 2.169, which adds an optional `user_id` query parameter to `GET /2/activity/subscriptions`: it narrows the list to subscriptions whose filter names that user, and a user-context token can only name the authenticated user. `API_SPEC_SHA256` and `API_SPEC_DATE` follow; no typed response or shortcut changes. by @brettdavies in [#258](https://github.com/brettdavies/xurl-rs/pull/258)
+
+**Full Changelog**: [xdk-rs-v0.1.3...xdk-rs-v0.1.4](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.1.3...xdk-rs-v0.1.4)
+
 ## [0.1.3] - 2026-09-30
 
 ### Added

@@ -16,10 +16,10 @@ scripts/release/postflight.sh all
 
 The script (`scripts/release/postflight.sh`) is a verbatim copy of the github-repo-setup skill's template and covers the
 automatable post-tag gates: `release.yml` end-to-end, homebrew-tap dispatch, `finalize-release.yml` callback, GitHub
-Release `make_latest` flip, crates.io publish verification, and the `main → dev` backport check.
-Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented but not driven from
-the script: running them on the local dev machine pollutes its toolchain and doesn't actually exercise the fresh-machine
-semantics. Drive those on a throwaway container or a sibling machine.
+Release `make_latest` flip, crates.io publish verification, the library tag on the release commit, and the `main → dev`
+backport check. Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented
+but not driven from the script: running them on the local dev machine pollutes its toolchain and doesn't actually
+exercise the fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
 
 `--env staging|prod` is optional and defaults to `prod`. xurl-rs is a single-env CLI, so every gate behaves identically
 and the flag can be ignored; the `surface-smoke` gate auto-SKIPs because no `scripts/release/surface-smoke.sh` is
@@ -27,16 +27,17 @@ vendored (there is no deployed surface to smoke).
 
 Sub-commands let you re-run one verification in isolation:
 
-| Sub-command     | What it checks                                                                                                   | Source of truth                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `release`       | `release.yml` on the tag push: `gh run view ... --json conclusion` is `"success"`                                | `gh run view`                             |
-| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish bottles` (workflow_run) ran SUCCESS | `gh run list -R brettdavies/homebrew-tap` |
-| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed)                               | `gh run list -e repository_dispatch`      |
-| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it                       | `gh api /releases/latest`                 |
-| `crates`        | `crates.io` shows `xurl-rs vX.Y.Z` published (`cargo search xurl-rs` returns the tag)                            | `crates.io` index API                     |
-| `backport`      | a merged PR to `dev` carrying the released tag in its title (durable signal that the sync ran)                   | `gh pr list --base dev --state merged`    |
-| `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                | n/a                                       |
-| `all`           | every above                                                                                                      | all of the above                          |
+| Sub-command     | What it checks                                                                                                                                                      | Source of truth                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `release`       | `release.yml` on the tag push: `gh run view ... --json conclusion` is `"success"`                                                                                   | `gh run view`                                           |
+| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish bottles` (workflow_run) ran SUCCESS                                                    | `gh run list -R brettdavies/homebrew-tap`               |
+| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed)                                                                                  | `gh run list -e repository_dispatch`                    |
+| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it                                                                          | `gh api /releases/latest`                               |
+| `crates`        | `crates.io` shows `xurl-rs vX.Y.Z` published (`cargo search xurl-rs` returns the tag)                                                                               | `crates.io` index API                                   |
+| `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                                                                               | `git rev-parse`, `cargo metadata`                       |
+| `backport`      | a merged PR to `dev` carrying the released tag in its title; for `xdk-rs-vX.Y.Z`, which the binary's sync carries, `dev` holding `main`'s `crates/xdk/CHANGELOG.md` | `gh pr list --base dev --state merged`, `git rev-parse` |
+| `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                                                                   | n/a                                                     |
+| `all`           | every above                                                                                                                                                         | all of the above                                        |
 
 The `tap` and `finalize` gates accept only downstream runs created at or after this tag's `release.yml` run, and SKIP
 until that run exists: the tap repo is shared across every CLI, so a name-only match would return another release's runs
@@ -103,7 +104,9 @@ Run immediately after the tag push triggers `release.yml`.
 
   The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it searches merged PRs
   to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either
-  spelling in the title. Its SKIP names the sync command to run.
+  spelling in the title. The binary's sync PR carries the library's changelog too, so for an `xdk-rs-vX.Y.Z` tag no PR
+  names, the gate passes when `dev`'s `crates/xdk/CHANGELOG.md` equals `main`'s and fails when they differ. Its SKIP
+  names the sync command to run.
 
   ```bash
   scripts/sync-dev-after-release.sh v<X.Y.Z>
