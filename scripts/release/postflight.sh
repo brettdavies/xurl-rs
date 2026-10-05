@@ -189,16 +189,18 @@ resolve_crate() {
     return
   }
   [[ -f "$REPO_ROOT/Cargo.toml" ]] || return 1
-  # A library tag names its own crate. rust-lib-release.yml defaults tag_prefix
-  # to `<crate>-v`, so the prefix IS the package, which settles the workspace
-  # case the manifest cannot: a workspace holding a binary and a library has no
-  # single "the crate", but a given tag always belongs to exactly one of them.
+  # A library tag names its own crate, which settles the workspace case the
+  # manifest cannot: a workspace holding a binary and a library has no single
+  # "the crate", but a given tag always belongs to exactly one of them. The
+  # crate is the member whose declared tag_prefix the tag carries, read the way
+  # every release script reads it; the `<crate>-v` default is only a default,
+  # so cutting the prefix off the tag would name a package that need not exist.
   local tag
   tag=$(resolve_tag)
   case "$tag" in
     v[0-9]*) ;;
     *-v[0-9]*)
-      echo "${tag%-v*}"
+      member_for_tag "$tag"
       return
       ;;
   esac
@@ -559,6 +561,22 @@ gate_backport() {
     "no PR carrying $tag merged to dev; run scripts/sync-dev-after-release.sh $tag (RELEASES-POSTFLIGHT.md § backport)"
 }
 
+# The workspace member that releases on TAG's line, matched on the tag_prefix
+# its [package.metadata.changelog] table declares; nothing when no member
+# declares the prefix or cargo cannot answer.
+member_for_tag() {
+  local tag="$1" prefix="" name member_prefix
+  [[ "$tag" =~ ^(.*-v)[0-9] ]] && prefix="${BASH_REMATCH[1]}"
+  [[ -n "$prefix" ]] || return 1
+  while IFS=$'\t' read -r name _ member_prefix _ _; do
+    if [[ "$member_prefix" == "$prefix" ]]; then
+      echo "$name"
+      return 0
+    fi
+  done < <(cd "$REPO_ROOT" && release_members)
+  return 1
+}
+
 # Gate: crates.io ------------------------------------------------------------
 
 gate_crates() {
@@ -566,6 +584,16 @@ gate_crates() {
   local crate
   crate=$(resolve_crate || true)
   if [[ -z "$crate" ]]; then
+    local unmatched
+    unmatched=$(resolve_tag)
+    # A library tag no member claims is a mistake in the tag or the manifest,
+    # not a publish still in flight: report it rather than skip past it.
+    if [[ "$unmatched" == *-v[0-9]* && "$unmatched" != v[0-9]* ]] \
+      && [[ -n "$(cd "$REPO_ROOT" && release_members)" ]]; then
+      gate_fail "crates.io publish" \
+        "$unmatched names no workspace member: no [package.metadata.changelog] tag_prefix matches it; fix the tag or pass --crate NAME"
+      return
+    fi
     if [[ -f "$REPO_ROOT/Cargo.toml" ]]; then
       gate_skip "crates.io publish" "workspace with more than one member and a tag that names none of them; pass --crate NAME"
     else

@@ -34,7 +34,9 @@
 #      touched that base does not already contain. A file base has moved
 #      further on its own is not drift: head's change (anchor to head) is
 #      checked against base's copy, first by three-way merge and then line by
-#      line (every added line present, every removed line gone). Lockfiles
+#      line (every added line present, every removed line gone). In a
+#      package.json, a dependency entry counts as present when base declares
+#      it in the same section at the same or a newer lower bound. Lockfiles
 #      are handled by gate 3.
 #   2. .github/ paths head carries that base does not contain. A path
 #      base holds and head does not is what the release delivers, not
@@ -261,7 +263,7 @@ classify_file_at() {
   set -e
   if [[ $status -eq 0 && "$merged" == "$(<"$tmp/base")" ]]; then
     echo contained
-  elif lines_contained "$tmp/anchor" "$tmp/head" "$tmp/base"; then
+  elif lines_contained "$tmp/anchor" "$tmp/head" "$tmp/base" "$path"; then
     echo contained
   else
     echo differs
@@ -288,16 +290,75 @@ diff_side() {
 
 # Returns 0 when every content line ADDED between ANCHOR_FILE and HEAD_FILE
 # is present in BASE_FILE and every content line REMOVED is absent from it.
+# When PATH names a package.json, the three copies are first rewritten in place
+# by qualify_dependency_entries, and an added dependency entry base does not
+# hold verbatim still counts as present when dependency_covered finds base's
+# range at or past it, since a range base has bumped since still carries it.
 lines_contained() {
-  local anchor_file="$1" head_file="$2" base_file="$3" line
+  local anchor_file="$1" head_file="$2" base_file="$3" path="${4:-}" manifest=0 line
+  if [[ "${path##*/}" == package.json ]]; then
+    manifest=1
+    qualify_dependency_entries "$anchor_file" "$head_file" "$base_file"
+  fi
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
-    grep -qxF -- "$line" "$base_file" || return 1
+    grep -qxF -- "$line" "$base_file" && continue
+    [[ $manifest -eq 1 ]] && dependency_covered "$line" "$base_file" && continue
+    return 1
   done < <(diff_side + "$anchor_file" "$head_file")
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
     grep -qxF -- "$line" "$base_file" && return 1
   done < <(diff_side - "$anchor_file" "$head_file")
+  return 0
+}
+
+# Rewrites each entry of a package.json dependency section (dependencies,
+# devDependencies, peerDependencies, optionalDependencies) in FILE... in place
+# as "<section><TAB><name><TAB><range>". The line check then compares an entry
+# within its own section and ignores its indentation and trailing comma, so a
+# removed range that another section repeats still counts as gone. Expects one
+# entry per line, as npm and bun write the file; other lines are left as is.
+qualify_dependency_entries() {
+  # shellcheck disable=SC2016  # perl variables, not shell expansions
+  perl -i -ne '
+    if (/^\s*"(dependencies|devDependencies|peerDependencies|optionalDependencies)"\s*:\s*\{\s*$/) { $s = $1 }
+    elsif (defined $s && /^\s*\}/) { undef $s }
+    elsif (defined $s && /^\s*"([^"]+)"\s*:\s*"([^"]*)"\s*,?\s*$/) { $_ = "$s\t$1\t$2\n" }
+    print;
+    undef $s if eof;
+  ' "$@"
+}
+
+# Returns 0 when BASE_FILE covers the qualified dependency LINE: base declares
+# the same package in the same section at a range whose lower bound is the same
+# as or newer than the line's. Only a bare version or one led by ^, ~, >=, or =
+# has a lower bound here; any other range (a URL, a tag, a workspace or
+# compound range) is never covered.
+dependency_covered() {
+  local line="$1" base_file="$2" section name range want base_range
+  local entry=$'^(dependencies|devDependencies|peerDependencies|optionalDependencies)\t([^\t]+)\t(.+)$'
+  local floor='^(\^|~|>=|=)?([0-9]+(\.[0-9]+)*)$'
+  [[ "$line" =~ $entry ]] || return 1
+  section="${BASH_REMATCH[1]}" name="${BASH_REMATCH[2]}" range="${BASH_REMATCH[3]}"
+  [[ "$range" =~ $floor ]] || return 1
+  want="${BASH_REMATCH[2]}"
+  base_range=$(awk -F'\t' -v s="$section" -v n="$name" '$1 == s && $2 == n { print $3; exit }' "$base_file")
+  [[ "$base_range" =~ $floor ]] || return 1
+  version_at_least "${BASH_REMATCH[2]}" "$want"
+}
+
+# Returns 0 when dotted version A is the same as or newer than dotted version
+# B, comparing component by component as numbers (a missing component is 0).
+version_at_least() {
+  local -a a b
+  local i
+  IFS=. read -ra a <<<"$1"
+  IFS=. read -ra b <<<"$2"
+  for ((i = 0; i < ${#a[@]} || i < ${#b[@]}; i++)); do
+    ((10#${a[i]:-0} > 10#${b[i]:-0})) && return 0
+    ((10#${a[i]:-0} < 10#${b[i]:-0})) && return 1
+  done
   return 0
 }
 

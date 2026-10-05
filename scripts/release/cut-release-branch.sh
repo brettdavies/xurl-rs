@@ -127,6 +127,7 @@ act() {
 # discarding it loses nothing. A re-run refuses the dirty worktree a failed cut
 # leaves behind, so the operator needs these two commands before anything else.
 print_recovery() {
+  RECOVERY_SHOWN=1
   cat <<RECOVER
 
 Not committed: $1. Discard the cut, fix the cause, and re-run:
@@ -187,6 +188,17 @@ header "Branch"
 
 act git checkout -B "$BRANCH" "origin/$BASE" --quiet
 gate_pass "$BRANCH branched from origin/$BASE"
+
+# From here a failing command leaves the half-built branch checked out and the
+# worktree dirty, which a re-run refuses. Under set -e the script would end on
+# git's own error alone, so any failing exit that has not already printed the
+# way back prints it now.
+RECOVERY_SHOWN=""
+recover_on_failure() {
+  local rc=$?
+  [[ $rc -eq 0 || -n "$RECOVERY_SHOWN" ]] || print_recovery "a step failed (exit $rc)"
+}
+[[ -n "$DRY_RUN" ]] || trap recover_on_failure EXIT
 
 # One command asserts the whole tree, including the deletions. The procedure
 # this replaces used `git checkout origin/dev -- .` and then hand-removed the
