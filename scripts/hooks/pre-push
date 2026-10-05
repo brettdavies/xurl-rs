@@ -163,8 +163,9 @@ if code_touched; then
     cargo fmt -- --check 2>/dev/null || fail "cargo fmt -- --check"
     pass "fmt"
 
-    # 2. Clippy with warnings-as-errors (matches CI's RUSTFLAGS=-Dwarnings)
-    RUSTFLAGS="-Dwarnings" cargo clippy --workspace --quiet 2>&1 || fail "cargo clippy -Dwarnings"
+    # 2. Clippy with warnings-as-errors: CI's RUSTFLAGS=-Dwarnings as a clippy
+    # argument, since cargo keys every dependency build on RUSTFLAGS.
+    cargo clippy --workspace --quiet -- -D warnings 2>&1 || fail "cargo clippy -- -D warnings"
     pass "clippy"
 
     # 3. Tests
@@ -301,8 +302,8 @@ if code_touched; then
     # becomes the only backstop. Install both to close that gap.
     if command -v x86_64-w64-mingw32-gcc &>/dev/null \
         && rustup target list --installed 2>/dev/null | grep -q '^x86_64-pc-windows-gnu$'; then
-        RUSTFLAGS="-Dwarnings" cargo clippy --workspace --target x86_64-pc-windows-gnu --all-targets --quiet 2>&1 \
-            || fail "cargo clippy --target x86_64-pc-windows-gnu -Dwarnings"
+        cargo clippy --workspace --target x86_64-pc-windows-gnu --all-targets --quiet -- -D warnings 2>&1 \
+            || fail "cargo clippy --target x86_64-pc-windows-gnu -- -D warnings"
         pass "windows clippy (cross-target)"
     else
         echo "  - windows clippy (skipped: install \`mingw-w64\` + \`rustup target add x86_64-pc-windows-gnu\` to enable)"
