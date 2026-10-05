@@ -55,7 +55,7 @@ docs.rs landing page, where it is compiled as a doctest.
 
 `xr` calls the X API from a shell or an agent: curl-style raw requests, shortcut commands over the common endpoints,
 every auth flow, chunked media upload, streaming, seven output formats, and a typed error envelope with structured exit
-codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install xurl-rs`.
+codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install --locked xurl-rs`.
 
 - [Install](crates/xurl-cli/README.md#install), [Quick start](crates/xurl-cli/README.md#quick-start), and the
   [command reference](crates/xurl-cli/README.md#commands)

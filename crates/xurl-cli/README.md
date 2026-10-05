@@ -30,8 +30,12 @@ Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases)
 ### Cargo
 
 ```bash
-cargo install xurl-rs
+cargo install --locked xurl-rs
 ```
+
+`--locked` builds with the dependency versions the release was tested against. Without it, cargo resolves the
+newest compatible versions at install time, and with cc 1.6.0 that breaks the aws-lc-sys build whenever `CFLAGS`
+carries an optimization flag such as `-O2` ([aws/aws-lc-rs#1252](https://github.com/aws/aws-lc-rs/issues/1252)).
 
 ### From Source
 
