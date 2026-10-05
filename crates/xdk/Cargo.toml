@@ -21,8 +21,9 @@ exclude = ["tests/", "!tests/fixtures/openapi/example_responses.json"]
 # xdk-rs` reads these and passes them to git-cliff, so the workspace keeps one
 # cliff.toml and each member states its own scope here.
 [package.metadata.changelog]
-# The heading in a PR body that addresses this member. A PR touching both crates
-# describes the binary under `## Changelog` and the library under this one.
+# The heading in a PR body that addresses this member. Every crate is named in
+# its own heading, so a PR touching both crates describes the binary under
+# `## Changelog (xurl-rs)` and the library under this one.
 heading = "Changelog (xdk-rs)"
 tag_prefix = "xdk-rs-v"
 changelog = "crates/xdk/CHANGELOG.md"
