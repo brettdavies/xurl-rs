@@ -180,9 +180,15 @@ gate_api_contract() {
         --baseline-rev "$lib_tag" --release-type minor 2>&1) && semver_rc=0 || semver_rc=$?
       if [[ $semver_rc -eq 0 ]]; then
         gate_pass "cargo-semver-checks: xdk-rs minor bump sufficient vs $lib_tag"
-      else
+      elif grep -q '^--- failure' <<<"$semver_out"; then
         printf '%s\n' "$semver_out" | grep -E '^--- failure|^  (field|variant|struct|enum|fn|method) ' || true
         gate_fail "cargo-semver-checks: xdk-rs breaks vs $lib_tag (record the break in crates/xdk/Cargo.toml lints)"
+      else
+        # A break arrives as `--- failure` blocks. A non-zero exit without one
+        # means the tool compared nothing, typically a rustdoc build that
+        # failed, so the question is still open; CI's semver gate answers it.
+        gate_skip "cargo-semver-checks" \
+          "did not compare xdk-rs with $lib_tag (exit $semver_rc): $(grep -m1 '^error:' <<<"$semver_out" || tail -n 1 <<<"$semver_out"); CI's public-API semver gate decides on the PR"
       fi
     fi
   else
@@ -616,11 +622,14 @@ gate_mechanics() {
 
   # diff-B: files on dev that this branch lacks. Excluding all of docs/ would
   # hide a missed pick under a directory that ships to main, so exclude only
-  # the guarded set. Version files and the regenerated changelog are
-  # release-only by design.
+  # the guarded set. Version files and the regenerated changelogs are
+  # release-only by design, at any depth, so a workspace member's bump and
+  # changelog read as release edits; cut-release-branch.sh's check A excludes
+  # the same set.
   if git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
     local missed
-    missed=$(git diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" | grep -Ev '^(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md)$' || true)
+    missed=$(git diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" \
+      | grep -Ev '^((.*/)?(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md))$' || true)
     if [[ -z "$missed" ]]; then
       gate_pass "diff-B: no missed picks vs origin/dev"
     else

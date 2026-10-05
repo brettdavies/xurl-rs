@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.1] - 2026-10-04
+
+### Changed
+
+- Change the vendored X API spec to the 2026-10-02 upstream content of 2.169, which adds an optional `user_id` filter to listing activity subscriptions; shortcut behavior is unchanged. by @brettdavies in [#258](https://github.com/brettdavies/xurl-rs/pull/258)
+
+**Full Changelog**: [v4.2.0...v4.2.1](https://github.com/brettdavies/xurl-rs/compare/v4.2.0...v4.2.1)
+
 ## [4.2.0] - 2026-09-30
 
 ### Added
