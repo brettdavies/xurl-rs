@@ -172,9 +172,9 @@ resolve_tag() {
     echo "v${version#v}"
     return
   fi
-  # Fallback: latest git tag.
+  # Fallback: the newest tag on the binary's line.
   local git_tag
-  git_tag=$(git -C "$REPO_ROOT" tag --sort=-version:refname | head -n 1)
+  git_tag=$(cd "$REPO_ROOT" && last_release_tag)
   if [[ -n "$git_tag" ]]; then
     echo "$git_tag"
     return
@@ -204,24 +204,19 @@ resolve_crate() {
       return
       ;;
   esac
-  # [package].name = "..."
-  local root_name
-  root_name=$(awk '
-        /^\[package\]/ { in_pkg = 1; next }
-        /^\[/          { in_pkg = 0 }
-        in_pkg && /^name = / {
-            sub(/^name = "/, ""); sub(/".*/, ""); print; exit
-        }
-    ' "$REPO_ROOT/Cargo.toml")
-  if [[ -n "$root_name" ]]; then
-    echo "$root_name"
+  # The release package: the root [package], or in a virtual workspace the
+  # member release.env names as RELEASE_MANIFEST.
+  local release_name
+  release_name=$(cd "$REPO_ROOT" && project_crate 2>/dev/null || true)
+  if [[ -n "$release_name" ]]; then
+    echo "$release_name"
     return
   fi
-  # A workspace's root manifest is virtual: it carries [workspace] and no
-  # [package], so the awk above finds nothing and the repo is not "non-Rust".
-  # With --no-deps, cargo lists exactly the workspace members; one member is
-  # unambiguous, and more than one needs --crate because a binary tag carries
-  # no package name to read.
+  # A virtual root with no RELEASE_MANIFEST carries [workspace] and no
+  # [package], so there is no release manifest to read and the repo is not
+  # "non-Rust". With --no-deps, cargo lists exactly the workspace members; one
+  # member is unambiguous, and more than one needs --crate because a binary tag
+  # carries no package name to read.
   have_bin cargo || return 1
   have_bin jaq || return 1
   local members count
