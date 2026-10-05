@@ -346,14 +346,15 @@ jobs:
         run: cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --locked
 
   # `anc audit` runs against the release binary because the behavioral rows
-  # execute the CLI. The gate has two halves. First, any MUST-tier `fail` other
-  # than `p2-must-json-errors` fails the job; that one id is exempt because its
-  # fix (top-level `error`/`kind` keys on the JSON envelope) belongs to the
-  # 3.3.0 output-shape release, and a MUST-only gate would otherwise be red from
-  # its first run. Second, the credit-weighted score must stay at or above the
-  # committed floor: vocabulary drift (`p6`) reports as `warn`, which a
-  # MUST-only gate never sees, so the floor is what catches it. Raise the floor
-  # deliberately when the score improves.
+  # execute the CLI. The gate has two halves. First, any MUST-tier `fail` or
+  # `error` fails the job. Second, the credit-weighted score must stay at or
+  # above the committed floor: vocabulary drift (`p6`) reports as `warn`, which
+  # a MUST-only gate never sees, so the floor is what catches it. Raise the
+  # floor deliberately when the score improves.
+  #
+  # anc is pinned to ANC_VERSION. A new anc release can add rows or change how
+  # one scores, so it reaches this gate only through a PR that bumps the pin
+  # and settles the score and the floor together.
   #
   # The same job checks the release binary's size against a standing ceiling.
   # Cargo honors [profile.release] only in the workspace root, and a profile
@@ -368,8 +369,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      ANC_VERSION: "0.6.0"
       ANC_SCORE_FLOOR: "94"
-      ANC_EXEMPT_ID: p2-must-json-errors
       XR_SIZE_CEILING_BYTES: "9600000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -383,10 +384,15 @@ jobs:
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
         run: |
-          cargo binstall agentnative --force --no-confirm \
-            || cargo binstall agentnative --force --no-confirm \
-            || cargo install agentnative --locked
-          anc --version
+          cargo binstall "agentnative@${ANC_VERSION}" --force --no-confirm \
+            || cargo binstall "agentnative@${ANC_VERSION}" --force --no-confirm \
+            || cargo install "agentnative@${ANC_VERSION}" --locked
+          installed="$(anc --version)"
+          echo "${installed} (pinned ${ANC_VERSION})"
+          if [ "$installed" != "anc ${ANC_VERSION}" ]; then
+            echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${ANC_VERSION}"
+            exit 1
+          fi
       - name: Build the release binary
         run: cargo build --release --locked --bin xr
       - name: Release binary size ceiling
@@ -401,11 +407,10 @@ jobs:
         run: |
           set -euo pipefail
           # anc exits 0 when every audit passes, 1 when warnings are present
-          # without failures, and 2 on failures, errors (the exempt id
-          # included) or usage errors. Each of the three is read from the
-          # scorecard below, whose shape check rejects a usage error's output;
-          # any other exit means the audit never ran (unreachable binary,
-          # crash) and fails outright.
+          # without failures, and 2 on failures, errors or usage errors. Each of
+          # the three is read from the scorecard below, whose shape check
+          # rejects a usage error's output; any other exit means the audit never
+          # ran (unreachable binary, crash) and fails outright.
           status=0
           anc audit --command target/release/xr --output json > anc-scorecard.json || status=$?
           if [ "$status" -ne 0 ] && [ "$status" -ne 1 ] && [ "$status" -ne 2 ]; then
@@ -421,7 +426,7 @@ jobs:
           echo "anc score: ${score}% (floor ${ANC_SCORE_FLOOR}%), ${skips} row(s) skipped"
           # `error` rows are excluded from the score denominator, so a harness
           # that cannot execute the binary would otherwise pass at score 100.
-          must_fails="$(jq -r --arg exempt "$ANC_EXEMPT_ID" '[.results[] | select(.tier == "must" and (.status == "fail" or .status == "error") and .id != $exempt) | .id] | join(", ")' anc-scorecard.json)"
+          must_fails="$(jq -r '[.results[] | select(.tier == "must" and (.status == "fail" or .status == "error")) | .id] | join(", ")' anc-scorecard.json)"
           if [ -n "$must_fails" ]; then
             echo "::error title=anc audit::MUST-tier failures: ${must_fails}"
             exit 1
