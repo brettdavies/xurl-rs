@@ -400,12 +400,15 @@ jobs:
       - name: anc audit
         run: |
           set -euo pipefail
-          # anc exits 2 when any MUST-tier row fails, the exempt id included,
-          # so exit 2 is read from the scorecard; any other non-zero exit means
-          # the audit never ran (unreachable binary, crash) and fails outright.
+          # anc exits 0 when every audit passes, 1 when warnings are present
+          # without failures, and 2 on failures, errors (the exempt id
+          # included) or usage errors. Each of the three is read from the
+          # scorecard below, whose shape check rejects a usage error's output;
+          # any other exit means the audit never ran (unreachable binary,
+          # crash) and fails outright.
           status=0
           anc audit --command target/release/xr --output json > anc-scorecard.json || status=$?
-          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+          if [ "$status" -ne 0 ] && [ "$status" -ne 1 ] && [ "$status" -ne 2 ]; then
             echo "::error title=anc audit::anc audit exited ${status} without a verdict"
             exit 1
           fi
