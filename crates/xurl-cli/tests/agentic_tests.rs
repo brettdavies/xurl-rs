@@ -4,6 +4,44 @@ mod common;
 
 use predicates::prelude::*;
 
+/// The stdout of `xr <args>`, one help or examples page.
+fn page(args: &[String]) -> String {
+    let output = common::xr().args(args).output().unwrap();
+    assert!(output.status.success(), "xr {args:?} failed");
+    String::from_utf8(output.stdout).unwrap()
+}
+
+/// The help page of `xr <path>`, the root page for an empty path. The one
+/// place this file passes the help flag, so a test that asks for help holds
+/// the text it then asserts on.
+#[must_use]
+fn help(path: &[String]) -> String {
+    let mut args = path.to_vec();
+    args.push("--help".to_string());
+    page(&args)
+}
+
+/// A run that passes the help flag beside another flag exits 0 whatever that
+/// flag does, so it proves clap parsed the flag and nothing about its effect.
+#[test]
+fn no_test_passes_the_help_flag_itself() {
+    let source = std::fs::read_to_string(
+        common::workspace_root().join("crates/xurl-cli/tests/agentic_tests.rs"),
+    )
+    .expect("this file must be readable");
+    let flag = concat!("\"--", "help\"");
+    let offenders: std::collections::BTreeSet<String> = source
+        .match_indices(flag)
+        .map(|(offset, _)| common::enclosing_test(&source, offset))
+        .filter(|name| name != "help")
+        .collect();
+    assert!(
+        offenders.is_empty(),
+        "these tests pass --help themselves; read the page through help() and assert on its \
+         text, or assert the behavior the flag under test produces: {offenders:#?}"
+    );
+}
+
 #[test]
 fn test_output_json_flag_accepted() {
     // --output json should be accepted and change behavior
@@ -125,8 +163,7 @@ fn test_exit_code_nonzero_on_error() {
 #[test]
 fn test_help_advertises_xurl_verbose_env() {
     // p1-must-env-var: --verbose must show [env: XURL_VERBOSE=] in --help.
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("XURL_VERBOSE"),
         "expected XURL_VERBOSE in --help: {stdout}"
@@ -179,8 +216,7 @@ fn test_help_advertises_every_env_var_the_source_reads() {
     // `~`-prefixed skill destination; it is not an xr setting.
     names.remove("HOME");
 
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     let missing: Vec<&String> = names
         .iter()
         .filter(|n| !stdout.contains(n.as_str()))
@@ -194,8 +230,7 @@ fn test_help_advertises_every_env_var_the_source_reads() {
 #[test]
 fn test_help_advertises_color_flag() {
     // p6-may-color-flag: --color must appear in --help.
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("--color"),
         "expected --color in --help: {stdout}"
@@ -410,8 +445,7 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
 /// matches anc's `p2-may-more-formats` audit shape.
 #[test]
 fn test_help_advertises_extra_output_formats() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     for token in ["csv", "tsv", "yaml", "yml", "toml", "xml", "ndjson"] {
         assert!(
             stdout.to_lowercase().contains(token),
@@ -456,8 +490,7 @@ fn test_output_tsv_accepted_as_value() {
 /// `p7-may-cursor-pagination` substring audit passes.
 #[test]
 fn test_help_advertises_cursor_pagination_flags() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     for flag in ["--cursor", "--after", "--page"] {
         assert!(
             stdout.contains(flag),
@@ -566,8 +599,7 @@ fn test_page_flag_emits_unsupported_pagination_envelope() {
 
 #[test]
 fn test_validate_subcommand_appears_in_help() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("validate"),
         "expected 'validate' subcommand in --help: {stdout}"
@@ -575,13 +607,6 @@ fn test_validate_subcommand_appears_in_help() {
 }
 
 // ── Every non-interactive example runs as written ─────────────────────
-
-/// The stdout of `xr <args>`, one help or examples page.
-fn page(args: &[String]) -> String {
-    let output = common::xr().args(args).output().unwrap();
-    assert!(output.status.success(), "xr {args:?} failed");
-    String::from_utf8(output.stdout).unwrap()
-}
 
 /// The commands that confirm a destructive op before running it. Under
 /// `--no-interactive` each one refuses unless `--force` confirms the op.
@@ -618,9 +643,8 @@ fn every_non_interactive_example_of_a_confirmed_command_runs_under_dry_run() {
     ts.add_app("my-app", "CLIENT-ID", "SECRET").unwrap();
 
     let mut pages = vec![page(&["examples".to_string()])];
-    for mut path in common::command_paths() {
-        path.push("--help".to_string());
-        pages.push(page(&path));
+    for path in common::command_paths() {
+        pages.push(help(&path));
     }
     let examples: std::collections::BTreeSet<&str> = pages
         .iter()
@@ -737,15 +761,13 @@ fn secret_on_argv(text: &str) -> Vec<String> {
 fn no_example_passes_a_secret_on_the_command_line() {
     let mut shown: Vec<(String, String)> = vec![
         ("xr examples".to_string(), page(&["examples".to_string()])),
-        ("xr --help".to_string(), page(&["--help".to_string()])),
+        ("xr --help".to_string(), help(&[])),
     ];
     for path in common::command_paths() {
-        let mut args = path.clone();
-        args.push("--help".to_string());
-        let help = page(&args);
+        let page = help(&path);
         // A command's own option list names the plain flags with their value
         // placeholders; only the examples under it are copied.
-        let examples = help
+        let examples = page
             .split_once("Examples:")
             .map(|(_, examples)| examples.to_string())
             .unwrap_or_default();
