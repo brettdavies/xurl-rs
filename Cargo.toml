@@ -30,6 +30,9 @@ libc = "0.2"
 tempfile = "3"
 wiremock = "0.6"
 rstest = "0.27"
+# `std` alone: the `fork` and `timeout` features run each case in a child
+# process, which a pure function under test does not need.
+proptest = { version = "1", default-features = false, features = ["std"] }
 serial_test = "4"
 regex = "1"
 

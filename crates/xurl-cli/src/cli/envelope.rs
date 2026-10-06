@@ -156,7 +156,7 @@ impl Reason {
 /// verb-local fields the `validate` and `skill` commands carry are declared
 /// here too, because the generated schema closes the object and a key it
 /// does not name would make that schema wrong about what callers receive.
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[non_exhaustive]
 pub struct ErrorBody {
