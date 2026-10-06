@@ -82,7 +82,7 @@ pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
 ///     Ok(()) => println!("ok"),
 ///     Err(Error::Api { status, body, .. }) => eprintln!("api {status}: {body}"),
 ///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
-///     Err(Error::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(Error::InvalidUrl { message, .. }) => eprintln!("bad URL: {message}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
 /// }
 /// # Ok(()) }
@@ -134,11 +134,18 @@ pub enum Error {
     #[error("{0}")]
     Validation(String),
 
-    /// Raw URL supplied with an unsupported scheme. Only `http://` and
-    /// `https://` are accepted; file/ftp/etc are rejected before any
-    /// network or filesystem activity.
-    #[error("invalid URL: {0}")]
-    InvalidUrl(String),
+    /// A URL that cannot be requested: a raw URL with a scheme other than
+    /// `http://` or `https://`, or one that does not parse. Both are
+    /// rejected before any network or filesystem activity.
+    #[error("invalid URL: {message}")]
+    InvalidUrl {
+        /// What is wrong with the URL, naming it.
+        message: String,
+        /// The parse failure underneath, a `url::ParseError`, when the URL
+        /// did not parse.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// Path-parameter value contained a character that would break URL
     /// semantics (`/`, `?`, `#`, or `%`). Surfaces real IDs that contain
@@ -399,6 +406,14 @@ impl Error {
         }
     }
 
+    /// Create an invalid-URL error from a message naming the URL.
+    pub fn invalid_url(message: impl Into<String>) -> Self {
+        Self::InvalidUrl {
+            message: message.into(),
+            source: None,
+        }
+    }
+
     /// Create an auth error with a descriptive message.
     pub fn auth(message: impl Into<String>) -> Self {
         Self::Auth {
@@ -429,7 +444,8 @@ impl Error {
         | Self::Io { source, .. }
         | Self::Json { source, .. }
         | Self::Auth { source, .. }
-        | Self::TokenStore { source, .. } = &mut self
+        | Self::TokenStore { source, .. }
+        | Self::InvalidUrl { source, .. } = &mut self
         {
             *source = Some(cause.into());
         }
@@ -466,7 +482,7 @@ impl Error {
             | Self::Io { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::Json { .. }
@@ -499,7 +515,7 @@ impl Error {
             | Self::Io { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::Json { .. }
@@ -568,7 +584,7 @@ impl Error {
             Self::InvalidMethod(_) => "invalid-method",
             Self::AuthMethodMismatch(_) => "auth-method-mismatch",
             Self::Validation(_) => "validation",
-            Self::InvalidUrl(_) => "invalid-url",
+            Self::InvalidUrl { .. } => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
             Self::ProcessingTimeout { .. } => "processing-timeout",
@@ -594,7 +610,7 @@ impl Error {
             Self::Json { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::ProcessingTimeout { .. } => EXIT_GENERAL_ERROR,
@@ -621,15 +637,16 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+// The token store and a `.twurlrc` import are the library's only YAML.
 impl From<serde_yaml::Error> for Error {
     fn from(err: serde_yaml::Error) -> Self {
-        Self::json(err.to_string()).with_source(err)
+        Self::token_store(err.to_string()).with_source(err)
     }
 }
 
 impl From<url::ParseError> for Error {
     fn from(err: url::ParseError) -> Self {
-        Self::http(err.to_string()).with_source(err)
+        Self::invalid_url(err.to_string()).with_source(err)
     }
 }
 

@@ -46,8 +46,8 @@ pub fn build_oauth1_header_with_nonce_ts(
     fixed_nonce: Option<&str>,
     fixed_timestamp: Option<&str>,
 ) -> Result<String> {
-    let parsed_url =
-        Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
+    let parsed_url = Url::parse(url_str)
+        .map_err(|e| Error::invalid_url(format!("{url_str}: {e}")).with_source(e))?;
 
     let mut params = BTreeMap::new();
 
@@ -109,8 +109,8 @@ fn generate_signature(
     consumer_secret: &str,
     token_secret: &str,
 ) -> Result<String> {
-    let parsed_url =
-        Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
+    let parsed_url = Url::parse(url_str)
+        .map_err(|e| Error::invalid_url(format!("{url_str}: {e}")).with_source(e))?;
 
     let base_url = format!(
         "{}://{}{}",

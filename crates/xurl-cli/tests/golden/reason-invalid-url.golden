@@ -1,0 +1,15 @@
+args: ["--output", "json", "--auth", "app", "http://[bad"]
+store: bearer-env
+exit_code: 1
+stdout_len: 0
+stderr_len: 132
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "Invalid URL: http://[bad: invalid IPv6 address",
+  "reason": "invalid-url",
+  "status": "error"
+}
+

@@ -133,7 +133,7 @@ fn one_of_each_variant() -> Vec<Error> {
         Error::InvalidMethod("bad method".into()),
         Error::api(500, "server error"),
         Error::validation("missing field"),
-        Error::InvalidUrl("ftp://example".into()),
+        Error::invalid_url("ftp://example"),
         Error::InvalidPathParam {
             name: "id".into(),
             value: "1/2".into(),
@@ -274,7 +274,7 @@ fn errors_without_a_documented_recovery_carry_no_pointer() {
         Error::validation("missing field"),
         Error::token_store("corrupt yaml"),
         Error::InvalidMethod("bad method".into()),
-        Error::InvalidUrl("ftp://example".into()),
+        Error::invalid_url("ftp://example"),
         Error::InvalidPathParam {
             name: "id".into(),
             value: "1/2".into(),
