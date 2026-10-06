@@ -1,7 +1,7 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6606
+stdout_len: 6601
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
@@ -119,7 +119,7 @@ Options:
           [default: auto]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100 (U7).
+          Global result-set limit, clamped to 1..=100.
           
           Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           

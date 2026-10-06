@@ -983,7 +983,7 @@ pub struct Cli {
     )]
     pub color: ColorChoice,
 
-    /// Validate inputs and skip the API call (U7).
+    /// Validate inputs and skip the API call.
     ///
     /// Honored by every write op; emits a canonical dry-run envelope on
     /// stdout under `--output json` / `--output jsonl`, or a "Would …" line
@@ -1000,7 +1000,7 @@ pub struct Cli {
     )]
     pub dry_run: bool,
 
-    /// Global result-set limit, clamped to 1..=100 (U7).
+    /// Global result-set limit, clamped to 1..=100.
     ///
     /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
     /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands

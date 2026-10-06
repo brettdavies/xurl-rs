@@ -1,7 +1,7 @@
 args: ["auth", "apps", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6039
+stdout_len: 6029
 stderr_len: 0
 --- stdout ---
 List registered apps
@@ -105,7 +105,7 @@ Options:
           [default: auto]
 
       --dry-run[=<DRY_RUN>]
-          Validate inputs and skip the API call (U7).
+          Validate inputs and skip the API call.
           
           Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
           
@@ -114,7 +114,7 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100 (U7).
+          Global result-set limit, clamped to 1..=100.
           
           Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
