@@ -5,6 +5,7 @@ date: 2026-10-05
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
+deepened: 2026-10-05
 ---
 
 # Public Review Follow-ups - Plan
@@ -252,6 +253,41 @@ changing code (KTD1).
 - KTD15. **Each repo's work ships as one stacked PR series.** The xurl-rs stack runs in phase order (High-Level
   Technical Design). It lands with one atomic `gh stack merge` so restacks do not re-run CI quadratically. xurl-rs-skill
   and brettdavies/.github each get their own short series.
+- KTD16. **Every surface this plan adds reaches the skill bundle after the `xr` release ships.** Agents learn `xr` from
+  xurl-rs-skill, so the new credential-file flags, `--scopes`, `--wait-timeout`, the retry flag, the timeout `reason`,
+  and the retry-time key are documented there (U22). The skill PR lands after the `xr` minor publishes, because a skill
+  that names a flag the installed `xr` lacks sends an agent's first command to failure, as
+  `docs/solutions/architecture-patterns/prose-reference-is-a-release-dependency.md` records.
+
+### System-Wide Impact
+
+- **Agents reading the envelope** gain a `reason` (U7) and a key (U8). Both are additive; the documented contract
+  already tells consumers to treat an unknown `reason` as their default branch.
+- **Scripts reading raw-mode output** see a non-JSON success body as text where `dev` printed `{}` (U8), and a malformed
+  URL exit as `invalid-url` where `dev` reported a network or auth error (U11). Both are returns to the documented
+  contract, filed under Fixed.
+- **Embedders of `xdk-rs`** absorb the variant-shape changes (U10, U11) and the new media-wait and scope parameters (U3,
+  U7) in one 0.2.0.
+- **The token store's directory** gains a `<store>.refresh.lock` sidecar beside the existing `<store>.lock` (U5).
+- **Every xurl-rs PR** waits on three more required checks: the audit, MSRV, and Go parity (U4, U9).
+- **Other Rust repos** calling the shared release workflow see no change until they turn on `attest` (U21).
+- **Agents using the skill bundle** see the new surface only after U22, which follows the `xr` release.
+
+### Risks & Dependencies
+
+- **A required check that never reports blocks every merge.** U4 confirms the audit, MSRV, and parity jobs report on
+  every PR, including docs-only ones, before Brett applies the rulesets.
+- **The refresh lock is as strong as the filesystem's locking.** On an NFS or SMB mount that ignores `flock`, two hosts
+  can still race, the same limit `crates/xdk/src/store/atomic.rs` documents for store writes. Cross-host locking is
+  considered and not built: one user's store on a network mount is rare, and a report of the race there would change the
+  call.
+- **The Go `xurl` pin depends on Go's module proxy.** If the pinned commit stops resolving, the parity job fails visibly
+  rather than passing, which is the outcome R9 wants.
+- **Attestation needs caller permissions.** The `attest` input stays off by default (KTD14), so a caller without
+  `id-token: write` and `attestations: write` keeps working.
+- **The OAuth1 fix rests on X's published vector.** One live call in U6 confirms X accepts the corrected signature; if
+  it does not, U6 stops and reports before merging.
+- **Live API spend is one call.** No other unit touches the live API; the mock serves every other scenario.
 
 ### High-Level Technical Design
 
@@ -336,35 +372,37 @@ flowchart TB
   P5 --> P7a[Phase 7: U20 stability statement]
   S1[xurl-rs-skill: U18 contract in CI, U19 field assertions]
   G1[brettdavies/.github: U21 attestations] --> G2[xurl-rs caller turns on attest]
+  P5 --> R[xr minor released] --> K[xurl-rs-skill: U22 skill bundle reflects the new surface]
 ```
 
 ---
 
 ## Implementation Units
 
-| U-ID | Title                                          | Key files                                                                          | Depends on |
-| ---- | ---------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| U1   | Audit floor and remaining rows                 | `.github/workflows/ci.yml`                                                         | none       |
-| U2   | Credentials from a file or stdin               | `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/auth/`         | U1         |
-| U3   | Narrower OAuth2 scopes on request              | `crates/xdk/src/auth/oauth2.rs`, `crates/xurl-cli/src/cli/commands/auth/signin.rs` | U1         |
-| U4   | Agent-native audit and MSRV as required checks | `.github/workflows/ci.yml`, `.github/rulesets/`                                    | U1         |
-| U5   | One refresh across processes                   | `crates/xdk/src/auth/oauth2.rs`, `crates/xdk/src/store/lock.rs`                    | U4         |
-| U6   | RFC 5849 OAuth1 encoding                       | `crates/xdk/src/auth/oauth1.rs`, `KNOWN_DIFFERENCES.md`                            | U4         |
-| U7   | Bounded media wait                             | `crates/xdk/src/api/media.rs`, `crates/xurl-cli/src/cli/mod.rs`                    | U4         |
-| U8   | Transport keeps failures and retry timing      | `crates/xdk/src/api/request/transport.rs`, `crates/xurl-cli/src/cli/output/`       | U4         |
-| U9   | Go parity suite in CI                          | `crates/xurl-cli/tests/conformance_runner.rs`, `.github/workflows/ci.yml`          | U4         |
-| U10  | Error sources                                  | `crates/xdk/src/error.rs`                                                          | U8         |
-| U11  | URL and YAML classification                    | `crates/xdk/src/error.rs`, `crates/xdk/src/store/mod.rs`                           | U10        |
-| U12  | Agentic tests prove behavior                   | `crates/xurl-cli/tests/agentic_tests.rs`                                           | U11        |
-| U13  | Typed `reason`                                 | `crates/xurl-cli/src/cli/envelope.rs`                                              | U7, U8     |
-| U14  | Dispatch split by family                       | `crates/xurl-cli/src/cli/commands/mod.rs`                                          | U13        |
-| U15  | One `AuthMismatch` builder                     | `crates/xdk/src/api/request/auth_header.rs`                                        | U11        |
-| U16  | Property tests                                 | `crates/xdk/tests/property_tests.rs`                                               | U6, U13    |
-| U17  | Comments cite only public sources              | `crates/`, `scripts/`                                                              | U14        |
-| U18  | Contract harness in CI                         | `xurl-rs-skill:.github/workflows/ci.yml`                                           | none       |
-| U19  | Contract assertions read fields                | `xurl-rs-skill:tests/contract.sh`                                                  | U18        |
-| U20  | Stability statement                            | `README.md`, `crates/xurl-cli/README.md`, `crates/xdk/README.md`                   | U11        |
-| U21  | Release provenance and SBOM                    | `dot-github:.github/workflows/rust-release.yml`, `.github/workflows/release.yml`   | none       |
+| U-ID | Title                                          | Key files                                                                          | Depends on                       |
+| ---- | ---------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------- |
+| U1   | Audit floor and remaining rows                 | `.github/workflows/ci.yml`                                                         | none                             |
+| U2   | Credentials from a file or stdin               | `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/auth/`         | U1                               |
+| U3   | Narrower OAuth2 scopes on request              | `crates/xdk/src/auth/oauth2.rs`, `crates/xurl-cli/src/cli/commands/auth/signin.rs` | U1                               |
+| U4   | Agent-native audit and MSRV as required checks | `.github/workflows/ci.yml`, `.github/rulesets/`                                    | U1                               |
+| U5   | One refresh across processes                   | `crates/xdk/src/auth/oauth2.rs`, `crates/xdk/src/store/lock.rs`                    | U4                               |
+| U6   | RFC 5849 OAuth1 encoding                       | `crates/xdk/src/auth/oauth1.rs`, `KNOWN_DIFFERENCES.md`                            | U4                               |
+| U7   | Bounded media wait                             | `crates/xdk/src/api/media.rs`, `crates/xurl-cli/src/cli/mod.rs`                    | U4                               |
+| U8   | Transport keeps failures and retry timing      | `crates/xdk/src/api/request/transport.rs`, `crates/xurl-cli/src/cli/output/`       | U4                               |
+| U9   | Go parity suite in CI                          | `crates/xurl-cli/tests/conformance_runner.rs`, `.github/workflows/ci.yml`          | U4                               |
+| U10  | Error sources                                  | `crates/xdk/src/error.rs`                                                          | U8                               |
+| U11  | URL and YAML classification                    | `crates/xdk/src/error.rs`, `crates/xdk/src/store/mod.rs`                           | U10                              |
+| U12  | Agentic tests prove behavior                   | `crates/xurl-cli/tests/agentic_tests.rs`                                           | U11                              |
+| U13  | Typed `reason`                                 | `crates/xurl-cli/src/cli/envelope.rs`                                              | U7, U8                           |
+| U14  | Dispatch split by family                       | `crates/xurl-cli/src/cli/commands/mod.rs`                                          | U13                              |
+| U15  | One `AuthMismatch` builder                     | `crates/xdk/src/api/request/auth_header.rs`                                        | U11                              |
+| U16  | Property tests                                 | `crates/xdk/tests/property_tests.rs`                                               | U6, U13                          |
+| U17  | Comments cite only public sources              | `crates/`, `scripts/`                                                              | U14                              |
+| U18  | Contract harness in CI                         | `xurl-rs-skill:.github/workflows/ci.yml`                                           | none                             |
+| U19  | Contract assertions read fields                | `xurl-rs-skill:tests/contract.sh`                                                  | U18                              |
+| U20  | Stability statement                            | `README.md`, `crates/xurl-cli/README.md`, `crates/xdk/README.md`                   | U11                              |
+| U21  | Release provenance and SBOM                    | `dot-github:.github/workflows/rust-release.yml`, `.github/workflows/release.yml`   | none                             |
+| U22  | Skill bundle reflects the new surface          | `xurl-rs-skill:references/agent-flags.md`, `xurl-rs-skill:templates/`              | U2, U3, U7, U8, the `xr` release |
 
 ### U1. Audit floor and remaining rows
 
@@ -1013,6 +1051,38 @@ runs dry, and then `gh attestation verify` on the next real release's archive.
 
 **Verification:** a caller without the input behaves as today, and xurl-rs's next release archive verifies with `gh
 attestation verify`.
+
+### U22. Skill bundle reflects the new surface
+
+**Goal:** An agent following the skill bundle uses the new flags and handles the new `reason` and key.
+
+**Requirements:** R4, R8, R10, R11 (KTD16)
+
+**Dependencies:** U2, U3, U7, U8, and the published `xr` minor that carries them
+
+**Files:**
+
+- Modify: `xurl-rs-skill:references/agent-flags.md`, `xurl-rs-skill:SKILL.md`
+- Modify: `xurl-rs-skill:templates/oauth2-setup.md`, `xurl-rs-skill:templates/media-upload.md`
+- Modify: `xurl-rs-skill:evals/eval-04-rate-limited-recovery.md`
+- Test: `xurl-rs-skill:tests/contract.sh`
+
+**Approach:**
+
+1. Document the credential-file flags first in every credential example.
+2. Document `--scopes`, `--wait-timeout`, and the retry flag where their commands appear.
+3. Teach the rate-limited recovery eval to read the retry-time key instead of guessing a wait.
+4. Add contract checks against the released `xr` for each new flag and the timeout `reason`.
+5. Pin the harness's `xr` to that release.
+
+**Test scenarios:**
+
+- A contract check passes a secret through `--client-secret-file -` and asserts it was stored.
+- A contract check reads the retry-time key from a stubbed 429 response.
+- A contract check sees the timeout `reason` from a stubbed media status that never finishes.
+
+**Verification:** the skill bundle names every flag U2, U3, U7, and U8 add, and its contract job passes against the
+released `xr`.
 
 ---
 
