@@ -35,6 +35,7 @@ use pretty_assertions::StrComparison;
 use tempfile::TempDir;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
+use xurl::cli::envelope::{ErrorBody, Reason};
 
 const BASE_URL_PLACEHOLDER: &str = "{{API_BASE_URL}}";
 const SKILL_HOME_PLACEHOLDER: &str = "{{SKILL_HOME}}";
@@ -1106,7 +1107,7 @@ fn every_schema_reason_is_captured_or_listed_untriggerable() {
 }
 
 /// An error body carrying `reason` and the one other field it requires.
-fn body_with(reason: &str) -> Result<xurl::cli::envelope::ErrorBody, serde_json::Error> {
+fn body_with(reason: &str) -> Result<ErrorBody, serde_json::Error> {
     serde_json::from_value(serde_json::json!({"reason": reason, "exit_code": 1}))
 }
 
@@ -1150,17 +1151,32 @@ fn commands_block_parser_reads_only_direct_entries() {
     assert!(commands_in("no commands here").is_empty());
 }
 
-/// Every `reason` literal the binary can emit, read from the source: the
-/// `kind()` arms, the installer's `reason()` arms, its `REASON_*` constants,
-/// every `print_error_envelope` call, and every `reason:` field literal.
+/// Every value the `Reason` type holds, read from its generated schema.
+fn typed_reasons() -> BTreeSet<String> {
+    let schema = serde_json::to_value(schemars::schema_for!(Reason)).expect("schema serializes");
+    schema["oneOf"]
+        .as_array()
+        .expect("one branch per variant")
+        .iter()
+        .map(|branch| {
+            branch["const"]
+                .as_str()
+                .expect("each variant is a string constant")
+                .to_string()
+        })
+        .collect()
+}
+
+/// Every `reason` the binary can emit: the values the `Reason` type holds,
+/// and the literals the source spells outside it, which are the `kind()`
+/// arms, the installer's `reason()` arms, its `REASON_*` constants, and every
+/// `reason:` field literal.
 fn source_reasons() -> BTreeSet<String> {
     let files = common::shipped_sources();
     let arm = regex::Regex::new(r#"=> "([a-z]+(?:-[a-z]+)+)""#).unwrap();
-    let envelope_call =
-        regex::Regex::new(r#"print_error_envelope\(\s*[^,]+,\s*"([a-z-]+)""#).unwrap();
     let field = regex::Regex::new(r#"reason: (?:Some\()?"([a-z]+(?:-[a-z]+)+)""#).unwrap();
     let constant = regex::Regex::new(r#"const REASON_[A-Z_]+: &str = "([a-z-]+)""#).unwrap();
-    let mut out = BTreeSet::new();
+    let mut out = typed_reasons();
     for path in files {
         let source = std::fs::read_to_string(&path).expect("source readable");
         let arms_apply = path.ends_with("error.rs") || path.ends_with("skill_install/mod.rs");
@@ -1180,11 +1196,47 @@ fn source_reasons() -> BTreeSet<String> {
                 out.insert(m[1].to_string());
             }
         }
-        for m in envelope_call.captures_iter(&source) {
-            out.insert(m[1].to_string());
-        }
     }
     out
+}
+
+/// Every kind `Error::kind()` in the library declares, read from its arms.
+fn library_kinds() -> BTreeSet<String> {
+    let source = std::fs::read_to_string(common::workspace_root().join("crates/xdk/src/error.rs"))
+        .expect("the library's error module is readable");
+    let start = source
+        .find("pub fn kind(&self) -> &'static str {")
+        .expect("Error::kind is declared");
+    let end = start
+        + source[start..]
+            .find("\n    }\n")
+            .expect("Error::kind has a closing brace");
+    let arm = regex::Regex::new(r#"=> "([a-z-]+)""#).unwrap();
+    arm.captures_iter(&source[start..end])
+        .map(|m| m[1].to_string())
+        .collect()
+}
+
+/// A library error reaches the envelope under its own kind: the `Reason` set
+/// holds every kind the library declares, so none takes the `internal`
+/// fallback.
+#[test]
+fn every_library_kind_is_a_reason() {
+    let kinds = library_kinds();
+    assert!(
+        kinds.len() >= 15,
+        "found only {} kinds in Error::kind(); the scan is broken: {kinds:?}",
+        kinds.len()
+    );
+    let unmapped: Vec<&String> = kinds
+        .iter()
+        .filter(|kind| Reason::from_kind(kind).is_none())
+        .collect();
+    assert!(
+        unmapped.is_empty(),
+        "kinds the library reports that the Reason set in crates/xurl-cli/src/cli/envelope.rs \
+         does not hold: {unmapped:?}"
+    );
 }
 
 /// The refusals `validate_*` in the library's `api/shortcuts.rs` can raise.

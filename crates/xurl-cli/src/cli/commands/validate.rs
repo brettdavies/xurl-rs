@@ -12,6 +12,7 @@ use std::path::Path;
 
 use serde::de::DeserializeOwned;
 
+use crate::cli::envelope::Reason;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
@@ -209,7 +210,7 @@ pub fn run_validate(
     let raw = match read_input(file) {
         Ok(s) => s,
         Err(reason) => {
-            out.print_error_envelope(stderr, "io", EXIT_GENERAL_ERROR, &reason);
+            out.print_error_envelope(stderr, Reason::Io, EXIT_GENERAL_ERROR, &reason);
             return EXIT_GENERAL_ERROR;
         }
     };
@@ -219,7 +220,7 @@ pub fn run_validate(
         Err(e) => {
             let payload = serde_json::json!({
                 "status": "error",
-                "reason": "invalid-json",
+                "reason": Reason::InvalidJson,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "message": format!("input is not valid JSON: {e}"),
             });
@@ -237,7 +238,7 @@ pub fn run_validate(
         let known: Vec<&str> = schema_names().collect();
         let payload = serde_json::json!({
             "status": "error",
-            "reason": "unknown-schema",
+            "reason": Reason::UnknownSchema,
             "exit_code": EXIT_VALIDATION_FAILED,
             "schema": schema,
             "known_schemas": known,
@@ -263,7 +264,7 @@ pub fn run_validate(
         Err(msg) => {
             let payload = serde_json::json!({
                 "status": "error",
-                "reason": "validation-failed",
+                "reason": Reason::ValidationFailed,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "schema": schema,
                 "valid": false,

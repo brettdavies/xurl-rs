@@ -14,6 +14,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
+use crate::cli::envelope::Reason;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
 use crate::cli::{
@@ -237,7 +238,7 @@ pub(crate) async fn run(
     if cli.page.is_some() {
         out.print_error_envelope(
             stderr,
-            "unsupported-pagination",
+            Reason::UnsupportedPagination,
             EXIT_GENERAL_ERROR,
             "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
         );
