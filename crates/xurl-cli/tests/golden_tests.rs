@@ -1105,6 +1105,27 @@ fn every_schema_reason_is_captured_or_listed_untriggerable() {
     );
 }
 
+/// An error body carrying `reason` and the one other field it requires.
+fn body_with(reason: &str) -> Result<xurl::cli::envelope::ErrorBody, serde_json::Error> {
+    serde_json::from_value(serde_json::json!({"reason": reason, "exit_code": 1}))
+}
+
+/// `reason` is closed in the type, not only in its description: the body
+/// holds every documented value under its own spelling and refuses any other.
+#[test]
+fn the_error_body_holds_the_documented_reasons_and_no_other() {
+    for reason in schema_reasons() {
+        let body = body_with(&reason)
+            .unwrap_or_else(|e| panic!("{reason} is documented but the body refuses it: {e}"));
+        let written = serde_json::to_value(&body).expect("the body serializes");
+        assert_eq!(written["reason"], reason.as_str());
+    }
+    assert!(
+        body_with("not-a-reason").is_err(),
+        "the body accepted a reason outside the documented set"
+    );
+}
+
 #[test]
 fn fixture_format_round_trips_byte_for_byte() {
     let case = Case {
