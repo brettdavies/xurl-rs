@@ -175,7 +175,7 @@ fn test_generate_timestamp() {
 
 #[rstest]
 #[case("abc", "abc")]
-#[case("a b c", "a+b+c")]
+#[case("a b c", "a%20b%20c")]
 #[case("a+b+c", "a%2Bb%2Bc")]
 #[case("a/b/c", "a%2Fb%2Fc")]
 #[case("a?b=c", "a%3Fb%3Dc")]
@@ -358,7 +358,7 @@ fn test_timestamp_is_recent() {
 
 #[rstest]
 #[case("", "")]
-#[case("hello world", "hello+world")]
+#[case("hello world", "hello%20world")]
 #[case("100%", "100%25")]
 fn test_encode_edge_cases(#[case] input: &str, #[case] expected: &str) {
     let result = encode(input);

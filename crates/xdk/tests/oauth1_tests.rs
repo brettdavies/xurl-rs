@@ -1,7 +1,8 @@
 //! OAuth1 signature verification tests.
 //!
 //! Tests deterministic OAuth1 HMAC-SHA1 signature generation against
-//! known test vectors from RFC 5849 and pre-captured reference values.
+//! known test vectors from RFC 5849, X's published signature example, and
+//! pre-captured reference values.
 
 use std::collections::BTreeMap;
 
@@ -12,11 +13,10 @@ use xdk::store::OAuth1Token;
 // RFC 5849 Section 3.4 — Percent-Encoding Test Vectors
 // ═══════════════════════════════════════════════════════════════════════════
 
-// RFC 5849 Section 3.6 specifies percent-encoding.
-// Note: Our `encode` uses form_urlencoded (spaces → +), matching Go's url.QueryEscape.
-// This is different from RFC 5849's strict percent-encoding (spaces → %20).
-// The OAuth1 signing process uses the same encoding on both sides, so consistency
-// is what matters (and we match Go's behavior exactly).
+// RFC 5849 Section 3.6: only the RFC 3986 unreserved characters (letters,
+// digits, `-`, `.`, `_`, `~`) stay bare, and every other byte is `%XX` in
+// uppercase hex. X recomputes the signature with this encoding, so a query
+// encoder's `+` for a space or `%7E` for a tilde signs a different string.
 
 #[test]
 fn test_percent_encoding_unreserved_chars() {
@@ -30,14 +30,10 @@ fn test_percent_encoding_unreserved_chars() {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     );
     assert_eq!(encode("0123456789"), "0123456789");
-    // encode() uses form_urlencoded::byte_serialize (matching Go's url.QueryEscape):
-    // - hyphen and period are unreserved
-    // - underscore is unreserved
-    // - tilde is encoded as %7E (Go compat; strict RFC 5849 leaves it unreserved)
     assert_eq!(encode("-"), "-");
     assert_eq!(encode("."), ".");
     assert_eq!(encode("_"), "_");
-    assert_eq!(encode("~"), "%7E"); // Go's url.QueryEscape encodes ~
+    assert_eq!(encode("~"), "~");
 }
 
 #[test]
@@ -56,8 +52,7 @@ fn test_percent_encoding_reserved_chars() {
     assert_eq!(encode("'"), "%27");
     assert_eq!(encode("("), "%28");
     assert_eq!(encode(")"), "%29");
-    // Note: form_urlencoded doesn't encode *, matching Go's url.QueryEscape
-    assert_eq!(encode("*"), "*");
+    assert_eq!(encode("*"), "%2A");
     assert_eq!(encode("+"), "%2B");
     assert_eq!(encode(","), "%2C");
     assert_eq!(encode(";"), "%3B");
@@ -67,8 +62,9 @@ fn test_percent_encoding_reserved_chars() {
 #[test]
 fn test_percent_encoding_special_chars() {
     assert_eq!(encode("%"), "%25");
-    // Space is encoded as + (form_urlencoded / Go url.QueryEscape behavior)
-    assert_eq!(encode(" "), "+");
+    assert_eq!(encode(" "), "%20");
+    // A non-ASCII character is encoded byte by byte from its UTF-8 form.
+    assert_eq!(encode("é"), "%C3%A9");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -436,4 +432,83 @@ fn test_oauth1_header_contains_all_required_params() {
     assert!(header.contains("oauth_timestamp=\"1700000000\""));
     assert!(header.contains("oauth_signature_method=\"HMAC-SHA1\""));
     assert!(header.contains("oauth_version=\"1.0\""));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// X's published signature example
+// https://docs.x.com/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The `status` value of X's example, whose space, `+`, `,` and `!` are the
+/// characters a query-string encoder and RFC 3986 disagree on.
+const X_EXAMPLE_STATUS: &str = "Hello Ladies + Gentlemen, a signed OAuth request!";
+
+/// The page's request, keys, nonce, and timestamp produce the page's
+/// `oauth_signature`, `Ls93hJiZbQ3akF3HF3x1Bz8/zU4=`.
+#[test]
+fn test_x_published_example_produces_the_published_signature() {
+    let token = OAuth1Token {
+        consumer_key: "xvz1evFS4wEEPTGEFPHBog".to_string(),
+        consumer_secret: "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw".to_string(),
+        access_token: "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb".to_string(),
+        token_secret: "LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE".to_string(),
+    };
+    let mut body = BTreeMap::new();
+    body.insert("status".to_string(), X_EXAMPLE_STATUS.to_string());
+
+    let header = build_oauth1_header_with_nonce_ts(
+        "POST",
+        "https://api.x.com/1.1/statuses/update.json?include_entities=true",
+        &token,
+        Some(&body),
+        Some("kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"),
+        Some("1318622958"),
+    )
+    .unwrap();
+
+    assert!(
+        header.contains("oauth_signature=\"Ls93hJiZbQ3akF3HF3x1Bz8%2FzU4%3D\""),
+        "got: {header}"
+    );
+}
+
+/// The signature base string encodes each value once in the parameter string
+/// and the parameter string once more, so the page's base string carries the
+/// `status` value as below: `%2520` for a space and `%252B` for the `+`.
+#[test]
+fn test_x_published_example_status_as_the_base_string_carries_it() {
+    assert_eq!(
+        encode(&encode(X_EXAMPLE_STATUS)),
+        "Hello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
+    );
+}
+
+/// A request with no query and no body parameters has nothing the two
+/// encoders disagree on, so its header is the one the Go-compatible encoder
+/// produced.
+#[test]
+fn test_a_request_without_parameters_signs_as_before() {
+    let token = OAuth1Token {
+        consumer_key: "dpf43f3p2l4k3l03".to_string(),
+        consumer_secret: "kd94hf93k423kf44".to_string(),
+        access_token: "nnch734d00sl2jdk".to_string(),
+        token_secret: "pfkkdhi9sl3r4s00".to_string(),
+    };
+
+    let header = build_oauth1_header_with_nonce_ts(
+        "GET",
+        "https://api.x.com/2/users/me",
+        &token,
+        None,
+        Some("kllo9940pd9333jh"),
+        Some("1191242096"),
+    )
+    .unwrap();
+
+    assert_eq!(
+        header,
+        "OAuth oauth_consumer_key=\"dpf43f3p2l4k3l03\", oauth_nonce=\"kllo9940pd9333jh\", \
+         oauth_signature=\"n4eoY3O3I7bQ6slLqNVCxcXp9Mo%3D\", oauth_signature_method=\"HMAC-SHA1\", \
+         oauth_timestamp=\"1191242096\", oauth_token=\"nnch734d00sl2jdk\", oauth_version=\"1.0\""
+    );
 }
