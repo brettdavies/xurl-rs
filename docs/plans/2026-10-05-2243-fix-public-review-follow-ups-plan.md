@@ -504,8 +504,9 @@ recorded.
 - `auth apps add --client-secret-file -` with the secret piped on stdin stores it.
 - `auth oauth1 --consumer-secret-file - --token-secret-file -` exits with the usage `reason` and names both flags.
 - Passing both `--client-secret` and `--client-secret-file` exits with the usage `reason`.
-- `auth apps add --client-secret-file -` with stdin attached to a terminal exits `invalid-args` without reading, naming
-  the flag and telling the caller to pipe the secret or pass a path.
+- The secret resolver, given the path `-` and `is_terminal = true`, returns `invalid-args` without reading, naming the
+  flag and telling the caller to pipe the secret or pass a path; production passes `std::io::stdin().is_terminal()`,
+  since an integration test cannot attach a terminal.
 - A missing file exits with the I/O `reason` and names the path.
 - The plain `--client-secret` flag keeps working unchanged.
 
@@ -669,6 +670,7 @@ deterministic tests.
   `media_id` key)
 - Modify: `crates/xdk/src/error.rs` (`NextAction::ResumeWait`), `crates/xurl-cli/src/cli/hints.rs` (the `resume-wait`
   `next_step`), `AGENTS.md` (the action list agents branch on)
+- Modify: `KNOWN_DIFFERENCES.md` (the deadline, the empty-state finish, and `--wait=N`)
 - Test: `crates/xdk/tests/media_upload_tests.rs`, `crates/xurl-cli/tests/media_upload_tests.rs`
 
 **Approach:**
@@ -688,6 +690,9 @@ deterministic tests.
    `-v, --verbose[=<VERBOSE>]`: bare or `true` waits up to the default, `N` up to N seconds, `0` or `false` not at all,
    so Go `xurl`'s `--wait=false` keeps working. List the value forms in each help page, change the example that shows
    `--wait false` to `--wait=false`, and make `--wait 60` with a space exit `invalid-args` pointing at `--wait=60`.
+6. Carry `media_id` and the deadline it waited on the library's timeout error, so the CLI can build the `resume-wait`
+   command, and record in `KNOWN_DIFFERENCES.md` that Go `xurl` waits with no deadline, polls an empty state forever,
+   and takes only a bool for `--wait`.
 
 **Execution note:** start with a failing test that a status without `processing_info` returns instead of polling.
 
@@ -737,7 +742,9 @@ failure.
    `retry_after_secs` and `retry_at` (RFC 3339 UTC, from the header's epoch) on the envelope, with `next_step {action:
    "wait-and-retry", docs}` from the library's existing `RATE_LIMIT_DOCS`, and the human message stating both times. Add
    `NextAction::WaitAndRetry` to xdk-rs's non-exhaustive `NextAction` and the action to `AGENTS.md`. With no parseable
-   header, omit both keys and the `next_step`, and do not retry.
+   header, omit both keys and the `next_step`, and do not retry. `retry_after_secs` clamps at 0 when the reset has
+   passed, and `retry_at` comes from a UTC-only epoch-to-RFC-3339 formatter in `crates/xurl-cli/src/cli/output/`, with
+   no new dependency (R6).
 4. Add the global `--wait-on-rate-limit` and `--rate-limit-max-wait <SECS>`, each with its `XURL_` env var; the ceiling
    defaults to 60 s. Re-bless the help fixtures they reach.
 5. Fold the three request paths' header assembly into one helper.
@@ -762,6 +769,9 @@ headers; the closed-set rules in `AGENTS.md` § Output formats.
 - A 429 with no `x-rate-limit-reset`, after an earlier response that carried one, gives the `rate-limited` envelope
   without `retry_after_secs`, `retry_at` or a `next_step`, and with `--wait-on-rate-limit` the CLI fails at once without
   a second request.
+- A reset already in the past gives `retry_after_secs` 0.
+- The `retry_at` formatter maps 0 to `1970-01-01T00:00:00Z`, 1709208000 to `2024-02-29T12:00:00Z`, 1767225599 to
+  `2025-12-31T23:59:59Z`, and 2147483648 to `2038-01-19T03:14:08Z`.
 - The default, without the flag, never retries.
 
 **Verification:** each swallowed case now surfaces, the envelope addition shows in the regenerated schema, and existing
@@ -1961,18 +1971,139 @@ released `xr` against this target.
   - Files: `crates/xurl-cli/README.md`
   - Verify: the README's command matches U21's postflight item
 
+## Eng Review, second pass
+
+`/plan-eng-review` on 2026-10-06 at `7484b49`, scoped to the surface the developer-experience review added. Structure
+D1 (Original arrangement) stands: the new surface adds no modules. R1 through R5 stand; R2 and R5 carry the corrections
+the developer-experience review recorded in their History.
+
+Routine work recorded without a question, each required by an approved decision:
+
+- U7: the library's timeout error carries `media_id` and the deadline it waited, which D12's `resume-wait` command needs.
+- U7: `KNOWN_DIFFERENCES.md` records the 60 s deadline, the empty-state finish, and `--wait=N`, where Go `xurl` waits
+  with no deadline and takes only a bool.
+- U8: `retry_after_secs` clamps at 0 when the reset has passed; RFC 9110 delay-seconds is non-negative.
+- U2: the terminal refusal is tested at the secret resolver with `is_terminal` passed in, which production supplies from
+  `std::io::stdin().is_terminal()`; an integration test cannot attach a terminal.
+
+### R6: how `retry_at` gets its RFC 3339 form
+
+Finding: F1, P2, confidence 9/10, KTD6 and U8 step 3 (`retry_at` in RFC 3339 UTC, from DX D17), reviewer
+plan-eng-review (Claude).
+
+Plan baseline: DX D17 answer A, `retry_at` as an RFC 3339 UTC string beside `retry_after_secs`.
+
+Runtime evidence: neither crate depends on a date or time crate; `cargo tree --workspace -e normal` lists no `chrono`,
+`time`, `jiff`, `humantime` or `httpdate`. X's reset arrives as epoch seconds (`RateLimit::from_headers`,
+`crates/xdk/src/api/request/mod.rs:205`).
+
+Comparison grid:
+
+| Choice                 | Current               | A                                                                                      | B                                         | C                                      |
+| ---------------------- | --------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------- |
+| R6 RFC 3339 formatting | unspecified           | a UTC formatter in `crates/xurl-cli/src/cli/output/`, about 25 lines, with table tests | a date crate (`jiff`) as a CLI dependency | none: `retry_at` becomes epoch seconds |
+| `retry_at` value form  | RFC 3339 UTC (DX D17) | unchanged                                                                              | unchanged                                 | epoch seconds, reopening D17's format  |
+| New dependency         | none                  | none                                                                                   | `jiff`, through `cargo deny`              | none                                   |
+| R1-R5, DX decisions    | approved              | unchanged                                                                              | unchanged                                 | unchanged except D17's format          |
+
+Question D7:
+
+```text
+D7 — How does `retry_at` get its RFC 3339 form with no date crate in the tree?
+Project/branch/task: xurl-rs dev, second eng review of the public review follow-ups plan.
+ELI10: The DX review put `retry_at` on the rate-limited envelope as an RFC 3339 time like 2026-10-06T05:12:00Z. X sends the reset as epoch seconds, and neither crate depends on any date library today, so something has to turn the number into that string. A UTC-only formatter is about 25 lines of well-known arithmetic; a date crate is tested code but a new dependency; or the field could carry the epoch number X sent.
+Stakes if we pick wrong: a hand formatter with a calendar bug prints a wrong retry time, or a dependency adds supply-chain surface for one string.
+Recommendation: A because UTC-only formatting from epoch seconds is a few lines with a table test, and the reuse ladder says no new dependency for what a few lines cover.
+Completeness: A=9/10, B=9/10, C=7/10
+Pros / cons:
+A) Small UTC formatter (recommended)
+  ✅ No new dependency: epoch to YYYY-MM-DDTHH:MM:SSZ with the days-from-civil algorithm, about 25 lines
+  ✅ Table tests pin epoch 0, a leap day, a year boundary and the 2038 rollover, so a calendar slip fails CI
+  ❌ Hand-written date arithmetic the crate owns forever, even though its UTC-only scope is small (human ~1 h / CC ~10 min)
+B) Add `jiff`
+  ✅ Calendar logic from a maintained crate, with RFC 3339 formatting built in
+  ✅ Ready if xr later needs time zones or parsing, not only UTC output
+  ❌ A new dependency through `cargo deny`, build time and supply-chain review for one formatted string
+C) Epoch seconds instead
+  ✅ No formatting at all: `retry_at` carries X's own number, matching X's `expires_at` style
+  ✅ Integer comparison is trivial for scripts and agents
+  ❌ Reopens DX D17's RFC 3339 choice, and a transcript reader can no longer read the time at a glance
+Net: a few owned lines, a dependency, or a different format.
+```
+
+Header: D7 retry_at
+
+Options:
+
+```text
+A) Small UTC formatter (recommended)
+U8 adds a UTC-only epoch-to-RFC-3339 formatter in crates/xurl-cli/src/cli/output/, with table tests for 1970-01-01T00:00:00Z, 2024-02-29T12:00:00Z, 2025-12-31T23:59:59Z and 2038-01-19T03:14:08Z; no new dependency.
+B) Add jiff
+U8 adds `jiff` as a dependency of the CLI crate and formats `retry_at` with it; `cargo deny check` gates it.
+C) Epoch seconds instead
+`retry_at` carries the reset as integer epoch seconds; DX D17's RFC 3339 detail is reopened and recorded as changed.
+```
+
+```text
+State: approved
+Actual answer: A) Small UTC formatter (recommended), D7 answer in this review
+Accepted scope: U8 adds a UTC-only epoch-to-RFC-3339 formatter in crates/xurl-cli/src/cli/output/ with table tests for 1970-01-01T00:00:00Z, 2024-02-29T12:00:00Z, 2025-12-31T23:59:59Z and 2038-01-19T03:14:08Z; no new dependency.
+History: none
+```
+
+Approval readiness: PASS. R6 (D7 answer A); R1 through R5 unchanged; the four routine items cite DX D8, D12, D14 and
+D17.
+
+Second-pass findings: Architecture 1 (F1, resolved as R6); Code quality, Tests and Performance none. Outside voice:
+codex, disabled by `codex_reviews`.
+
+Coverage of the paths the developer-experience review added (each has a planned test; none runs yet):
+
+```text
+[+] U2 secret resolver        [PLANNED ★★ ] `-` with is_terminal = true -> invalid-args, nothing read
+[+] U2 register-app template  [PLANNED ★★ ] golden fixtures pin the vault-pipe template
+[+] U7 --wait[=<SECS>]        [PLANNED ★★★] bare, true, false, 0, N, and `--wait 60` -> invalid-args
+[+] U7 processing-timeout     [PLANNED ★★★] exit 1, media_id, resume-wait command with twice the deadline
+[+] U8 wait-and-retry         [PLANNED ★★★] with a reset: both keys and next_step; without: none; past reset: 0
+[+] U8 retry_at formatter     [PLANNED ★★ ] four-row table from 1970 to the 2038 rollover
+COVERAGE: 6/6 new paths planned  |  GAPS: 0
+```
+
+Second-pass implementation task:
+
+- [ ] **T6 (P2, human: ~1 h / CC: ~10 min)** — U8 — UTC epoch-to-RFC-3339 formatter for `retry_at`
+  - Surfaced by: Architecture — F1, R6 (D7)
+  - Files: `crates/xurl-cli/src/cli/output/`
+  - Verify: the four-row table test passes, and the 429 test reads `retry_at` from the header's epoch
+
+Completion summary, second pass:
+
+- Step 0: Scope Challenge — scope accepted as-is (D1 answer reused)
+- Architecture Review: 1 issue found
+- Code Quality Review: 0 issues found
+- Test Review: diagram produced, 0 gaps identified
+- Performance Review: 0 issues found
+- NOT in scope: unchanged from the first pass
+- What already exists: `NextStep::sign_in`, `--verbose[=<VERBOSE>]`, `RATE_LIMIT_DOCS`, `RateLimit::from_headers`
+- TODOS.md updates: 0 items proposed to user
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, disabled (`codex_reviews` disabled in gstack config)
+- Parallelization: 0 lanes, all sequential (standing no-worktree rule)
+- Lake Score: 1/1 = answers picking a 10/10 option / answers scored for Completeness
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger                                               | Why                             | Runs | Status      | Findings                                                                                                 |
 | -------------- | ----------------------------------------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------------------------------------------------------- |
 | CEO Review     | `/plan-ceo-review`                                    | Scope & strategy                | 0    | —           | —                                                                                                        |
-| Outside Review | codex via `/plan-eng-review` and `/plan-devex-review` | Independent 2nd opinion         | 14   | disabled    | none (codex_reviews disabled)                                                                            |
-| Eng Review     | `/plan-eng-review`                                    | Architecture & tests (required) | 10   | ISSUES OPEN | 4 issues, 0 critical gaps (all resolved into the plan, D2-D6)                                            |
+| Outside Review | codex via `/plan-eng-review` and `/plan-devex-review` | Independent 2nd opinion         | 15   | disabled    | none (codex_reviews disabled)                                                                            |
+| Eng Review     | `/plan-eng-review`                                    | Architecture & tests (required) | 11   | ISSUES OPEN | second pass: 1 issue, 0 critical gaps (resolved as R6, D7); first pass: 4 issues, all resolved           |
 | Design Review  | `/plan-design-review`                                 | UI/UX gaps                      | 0    | —           | —                                                                                                        |
 | DX Review      | `/plan-devex-review`                                  | Developer experience gaps       | 5    | ISSUES OPEN | score: 5/10 → 7/10, TTHW: OAuth2 3-5 min (bearer < 1 min) → Champion < 2 min; 17 decisions, all answered |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by `codex_reviews` for both reviews; no outside findings.
-- **VERDICT:** no review CLEAR for this plan; ENG and DX ISSUES OPEN with every decision answered and folded in; eng
-  review required (the second pass is next).
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by `codex_reviews` for every review; no outside findings.
+- **VERDICT:** no review CLEAR; ENG and DX ISSUES OPEN with every decision answered and folded into the plan. The plan
+  is ready for `ce-work`; eng review required stays on the dashboard because resolved findings still count as issues.
 
 NO UNRESOLVED DECISIONS
