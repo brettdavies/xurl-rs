@@ -493,3 +493,36 @@ fn an_error_is_unwind_safe() {
     unwind_safe::<Error>();
     unwind_safe::<xdk::api::MediaUploadOutcome>();
 }
+
+// ── URL and YAML classification ────────────────────────────────────
+
+#[test]
+fn a_url_parse_failure_is_an_invalid_url_with_the_parse_error_as_its_source() {
+    let parse_err = url::Url::parse("http://[bad").expect_err("an unclosed IPv6 host");
+
+    let err: Error = parse_err.into();
+
+    assert_eq!(err.kind(), "invalid-url", "got: {err:?}");
+    assert_eq!(err.exit_code(), EXIT_GENERAL_ERROR);
+    assert_eq!(
+        std::error::Error::source(&err).and_then(|s| s.downcast_ref::<url::ParseError>()),
+        Some(&parse_err)
+    );
+}
+
+#[test]
+fn a_yaml_failure_is_a_token_store_error_with_the_yaml_error_as_its_source() {
+    let yaml_err = serde_yaml::from_str::<serde_yaml::Value>("{{{").expect_err("not YAML");
+    let display = yaml_err.to_string();
+
+    let err: Error = yaml_err.into();
+
+    assert_eq!(err.kind(), "token-store", "got: {err:?}");
+    assert_eq!(err.to_string(), display);
+    assert!(
+        std::error::Error::source(&err)
+            .and_then(|s| s.downcast_ref::<serde_yaml::Error>())
+            .is_some(),
+        "the source is the serde_yaml::Error"
+    );
+}
