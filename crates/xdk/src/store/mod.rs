@@ -18,6 +18,7 @@ mod tokens;
 pub mod types;
 
 pub(crate) use atomic::write_atomically;
+pub(crate) use lock::RefreshLock;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -606,6 +607,13 @@ impl TokenStore {
         })
         .await
         .map_err(|e| Error::Internal(format!("store update task failed: {e}")))?
+    }
+
+    /// Re-reads the backing file so this view carries what another process
+    /// has written since it loaded. Saves replace the file by rename, so a
+    /// read needs no lock to see a whole store.
+    pub(crate) fn reload(&mut self) {
+        self.reload_locked();
     }
 
     /// Re-reads the backing file, keeping a backfilled credential where the

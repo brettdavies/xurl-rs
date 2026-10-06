@@ -11,6 +11,9 @@
 //! locked update finds the sidecar already held and proceeds without a
 //! second OS lock, which would otherwise block against the first handle
 //! forever.
+//!
+//! A second sidecar, `<store>.refresh.lock`, serializes `OAuth2` refreshes:
+//! see [`RefreshLock`].
 
 use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
@@ -93,9 +96,120 @@ impl Drop for StoreLock {
     }
 }
 
+/// The refresh lock path beside `store_path`: the full file name plus
+/// `.refresh.lock`.
+pub(crate) fn refresh_lock_path_for(store_path: &Path) -> PathBuf {
+    let mut os = store_path.as_os_str().to_os_string();
+    os.push(".refresh.lock");
+    PathBuf::from(os)
+}
+
+/// An exclusive lock that serializes the `OAuth2` refreshes of one store
+/// across processes, released on drop.
+///
+/// A refresh token is single-use, so two processes holding the same expired
+/// login must not both spend it: the second waits here, then reads the pair
+/// the first saved. The lock is a second sidecar rather than [`StoreLock`]
+/// because it is held across the token request. `StoreLock` records what each
+/// thread holds, and an `.await` can resume on another thread, which would
+/// leave that record naming the wrong one. This lock keeps no record; the save
+/// a refresh ends with takes the store lock on its own.
+///
+/// Like every lock here it is as strong as the filesystem's: on a network
+/// mount that ignores `flock`, two hosts can still refresh at once.
+#[derive(Debug)]
+pub(crate) struct RefreshLock {
+    file: File,
+}
+
+impl RefreshLock {
+    /// Blocks until the refresh lock for `store_path` is held.
+    ///
+    /// The sidecar is created on first use with mode `0600`, beside the file
+    /// the store path resolves to; its parent directory is never created.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error naming the sidecar when it cannot be opened or locked.
+    pub(crate) fn acquire(store_path: &Path) -> Result<Self> {
+        let path = refresh_lock_path_for(&super::atomic::resolve(store_path));
+        let mut opts = OpenOptions::new();
+        opts.read(true).write(true).create(true).truncate(false);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.mode(0o600);
+        }
+        let file = opts.open(&path).map_err(|e| {
+            Error::Io(format!(
+                "cannot open the refresh lock {}: {e}",
+                path.display()
+            ))
+        })?;
+        file.lock()
+            .map_err(|e| Error::Io(format!("cannot lock {}: {e}", path.display())))?;
+        Ok(Self { file })
+    }
+
+    /// [`Self::acquire`] on tokio's blocking pool, so a lock another process
+    /// holds for the length of its token request never parks a runtime
+    /// thread.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Self::acquire`] returns, plus an internal error when the
+    /// blocking task cannot be joined.
+    pub(crate) async fn acquire_off_runtime(store_path: PathBuf) -> Result<Self> {
+        tokio::task::spawn_blocking(move || Self::acquire(&store_path))
+            .await
+            .map_err(|e| Error::Internal(format!("refresh lock task failed: {e}")))?
+    }
+}
+
+impl Drop for RefreshLock {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refresh_lock_path_sits_beside_the_store() {
+        assert_eq!(
+            refresh_lock_path_for(Path::new("/h/.xurl")),
+            PathBuf::from("/h/.xurl.refresh.lock")
+        );
+    }
+
+    #[test]
+    fn a_second_refresh_lock_waits_for_the_first_to_drop() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = dir.path().join(".xurl");
+        let first = RefreshLock::acquire(&store).unwrap();
+        let (acquired, on_acquire) = std::sync::mpsc::channel();
+        let waiter = std::thread::spawn({
+            let store = store.clone();
+            move || {
+                let _second = RefreshLock::acquire(&store).unwrap();
+                acquired.send(()).unwrap();
+            }
+        });
+
+        assert!(
+            on_acquire
+                .recv_timeout(std::time::Duration::from_millis(200))
+                .is_err(),
+            "the second acquire completed while the first was held"
+        );
+        drop(first);
+        on_acquire
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("the second acquire completes once the first drops");
+        waiter.join().unwrap();
+    }
 
     #[test]
     fn lock_path_sits_beside_the_store() {
