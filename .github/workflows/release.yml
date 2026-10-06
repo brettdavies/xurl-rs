@@ -1,9 +1,9 @@
 # Source repo release wrapper — calls the centralized reusable workflow.
 #
-# Pipeline: check-version -> build (7 targets) -> crates.io -> release (non-draft) ->
-# homebrew bottle build -> bottles upload back to release assets -> finalize-release
-# marks the release final. Beside the homebrew leg, the release's archives are
-# attested: build provenance, and a CycloneDX SBOM of the binary.
+# Pipeline: check-version -> build (7 targets) -> attest (build provenance, and a
+# CycloneDX SBOM of the binary) -> crates.io -> release (non-draft) -> verify the
+# published files against their attestations -> homebrew bottle build -> bottles
+# upload back to release assets -> finalize-release marks the release final.
 name: Release
 
 on:
