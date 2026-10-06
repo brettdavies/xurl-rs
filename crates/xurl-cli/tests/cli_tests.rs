@@ -158,7 +158,7 @@ async fn test_invalid_flag() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U5: JSON envelope on clap parse failure + --json/--jsonl/--raw aliases
+// JSON envelope on clap parse failure + --json/--jsonl/--raw aliases
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Asserts `stderr` parses as the canonical `invalid-args` envelope at
@@ -228,7 +228,7 @@ async fn test_version_under_output_json_still_writes_to_stdout() {
 
 #[tokio::test]
 async fn test_envelope_consistency_clap_error_has_status_key() {
-    // R6 / p2-should-consistent-envelope: clap-error JSON and runtime-error
+    // p2-should-consistent-envelope: clap-error JSON and runtime-error
     // JSON share the `status` discriminant; agents dispatch on it uniformly.
     let (_code, _stdout, stderr) = run_isolated(&["xr", "--bogus-flag", "--json"]).await;
     let parsed: serde_json::Value = serde_json::from_str(stderr.trim()).unwrap();
@@ -407,7 +407,7 @@ async fn test_trace_flag_accepted() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U4: --redirect-uri on add/update + auth apps redirect-uri get/set
+// --redirect-uri on add/update + auth apps redirect-uri get/set
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn parse_json(stdout: &str) -> serde_json::Value {
@@ -941,7 +941,7 @@ async fn test_redirect_uri_get_json_output_app_config_source() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U5: Status + Apps-List rendering — text mode, JSON mode, secret exclusion
+// Status + Apps-List rendering — text mode, JSON mode, secret exclusion
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Populates a tempdir-rooted store with one app that carries every credential
@@ -970,7 +970,7 @@ fn populate_credentialed_store(store_path: &Path) {
     .expect("save_oauth1");
     ts.save_bearer_token_for_app("myapp", "BEARER-VALUE-FFF")
         .expect("save_bearer");
-    // KTD9 + R20: the unnamed slot carries OAuth2 credentials that must also
+    // The unnamed slot carries OAuth2 credentials that must also
     // be excluded from rendered JSON. The banned-string list below grows to
     // match.
     ts.save_oauth2_token_unnamed_for_app(
@@ -998,7 +998,7 @@ fn assert_no_credentials(stdout: &str, context: &str) {
         "TOKEN-SECRET-EEE",
         "BEARER-VALUE-FFF",
         // Unnamed (`/me`-failed salvage) slot credentials from
-        // `populate_credentialed_store` per KTD1; the JSON entry surfaces
+        // `populate_credentialed_store`; the JSON entry surfaces
         // only `oauth2_unnamed: true`, never the raw token strings.
         "UNNAMED-AT-AAA",
         "UNNAMED-RT-BBB",
@@ -1123,7 +1123,7 @@ async fn test_auth_text_renderers_exclude_all_credentials(#[case] args: &[&str])
 
 #[tokio::test]
 async fn test_auth_status_text_includes_redirect_uri_line() {
-    // R24: status text output gains a `redirect_uri:` line per app.
+    // Status text output gains a `redirect_uri:` line per app.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage from
     // another env-mutating test in the same binary.
     let tmp = TempDir::new().unwrap();
@@ -1164,7 +1164,7 @@ async fn test_auth_status_text_includes_redirect_uri_line() {
 
 #[tokio::test]
 async fn test_auth_status_text_default_built_in_when_no_stored_uri() {
-    // R24: status text falls through to built-in default when no env, no stored.
+    // Status text falls through to built-in default when no env, no stored.
     // `#[serial]` + explicit env removal guards against `REDIRECT_URI` leaking
     // from another env-mutating test in the same binary.
     let tmp = TempDir::new().unwrap();
@@ -1197,7 +1197,7 @@ async fn test_auth_status_text_default_built_in_when_no_stored_uri() {
 
 #[tokio::test]
 async fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
-    // R21: source serializes as kebab-case; `redirect_uri_stored` is absent
+    // Source serializes as kebab-case; `redirect_uri_stored` is absent
     // when the env does not override the stored value.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
     // would flip the asserted source to `env-var`.
@@ -1247,7 +1247,7 @@ async fn test_auth_status_json_emits_app_config_source_and_no_stored_field() {
 
 #[tokio::test]
 async fn test_auth_status_json_env_override_surfaces_stored_field() {
-    // R21 + R19: when REDIRECT_URI overrides the stored value, the JSON entry
+    // When REDIRECT_URI overrides the stored value, the JSON entry
     // includes `redirect_uri_stored` and `redirect_uri_source == "env-var"`.
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
@@ -1299,7 +1299,7 @@ async fn test_auth_status_json_env_override_surfaces_stored_field() {
 
 #[tokio::test]
 async fn test_auth_status_json_default_flag_per_app() {
-    // R21: with two apps, only the default app's entry has `default: true`.
+    // With two apps, only the default app's entry has `default: true`.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage from
     // a parallel env-mutating test (env source would not affect this
     // assertion, but the discipline keeps the snapshot stable).
@@ -1362,7 +1362,7 @@ async fn test_auth_status_json_default_flag_per_app() {
 
 #[tokio::test]
 async fn test_auth_apps_list_json_shape_per_app() {
-    // R21 (list): per-app object carries `name`, `client_id_hint`,
+    // Per-app object carries `name`, `client_id_hint`,
     // `redirect_uri`, `redirect_uri_source`, `oauth2_users`, `oauth1`,
     // `bearer`, `default`.
     // `#[serial]` + env removal guards against `REDIRECT_URI` leakage that
@@ -1488,7 +1488,7 @@ async fn test_auth_status_text_snapshot_two_apps_default_case() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U3: resolve_my_user_id --username fallback
+// `resolve_my_user_id` and its --username fallback
 //
 // Drives the `like` shortcut through wiremock to verify the resolver picks
 // `/2/users/by/username/<u>` when `-u` is non-empty and `/2/users/me` when
@@ -1932,7 +1932,7 @@ async fn test_status_json_omits_oauth2_unnamed_when_false() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U10: `xr skill install` — agent bundle distribution
+// `xr skill install` — agent bundle distribution
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // Hermetic by construction: every invocation that touches the host map runs
@@ -2424,7 +2424,7 @@ fn an_empty_host_config_dir_env_falls_through_to_skill_home() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U6: P3 progressive help — `after_help` on every subcommand + xr examples
+// P3 progressive help — `after_help` on every subcommand + xr examples
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Returns the index of the first line within `lines[start..]` that starts
@@ -2495,7 +2495,7 @@ async fn test_auth_oauth2_help_shows_no_browser_example() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U7: --force, --dry-run, --limit mutation-safety envelopes
+// --force, --dry-run, --limit mutation-safety envelopes
 //
 // The `wiremock::Mock::expect(0)` calls below double as no-HTTP guards: any
 // stray API call would fail the test when the mock-server drop checks the
@@ -3304,7 +3304,7 @@ fn the_limit_and_cursor_help_name_exactly_the_commands_that_page() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U9: TTY-gated dialoguer + `--no-browser` env + headless auto-engage
+// TTY-gated dialoguer + `--no-browser` env + headless auto-engage
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// `xr auth default --no-interactive --output json` (no app_name supplied)
@@ -3461,8 +3461,8 @@ async fn register_app_at(store: &Path) {
 
 /// `xr auth oauth2 --no-browser --output json` (no `--step`) emits the
 /// canonical `{"status":"awaiting_callback","url":"..."}` envelope on stdout
-/// and exits 0; the user is expected to invoke step 2 separately. Validates
-/// the U9 "explicit --no-browser without --step" auto-promotion to step 1.
+/// and exits 0; the user is expected to invoke step 2 separately: an
+/// explicit `--no-browser` without `--step` promotes to step 1.
 ///
 /// Uses a subprocess with `XURL_TOKEN_STORE` pointed at a tempdir store so
 /// the OAuth2 step-1 pending state lands beside that store.
@@ -3521,7 +3521,7 @@ async fn test_auth_oauth2_xurl_no_browser_env_engages_headless_flow() {
 /// When stdout is not a TTY (subprocess piped output) and neither
 /// `--no-browser` nor `XURL_NO_BROWSER` is set, `xr auth oauth2 --output
 /// json` must auto-engage the headless path rather than attempting to spawn
-/// a browser. Confirms scenario 5 of the U9 plan.
+/// a browser.
 #[tokio::test]
 async fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     let tmp = TempDir::new().expect("tempdir");
@@ -3547,7 +3547,7 @@ async fn test_auth_oauth2_auto_engages_headless_when_stdout_not_tty() {
     assert!(v["url"].is_string(), "url present: {trimmed}");
 }
 
-// ── Injected environment overrides (U2) ─────────────────────────────────────
+// ── Injected environment overrides ─────────────────────────────────────
 
 #[tokio::test]
 async fn test_injected_redirect_uri_takes_env_precedence_without_touching_process() {
@@ -3981,7 +3981,7 @@ async fn test_status_json_env_bearer_follows_app_flag() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U10: an empty store is empty; a store that failed to load is never
+// An empty store is empty; a store that failed to load is never
 // overwritten; registration promotes past a credential-less default
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -4952,7 +4952,7 @@ async fn test_text_output_is_unchanged(#[case] args: &[&str], #[case] expected: 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U5: the no-credentials error carries a next step, in both modes
+// The no-credentials error carries a next step, in both modes
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// The JSON baseline. Every key the no-credentials envelope carries today
@@ -5204,7 +5204,7 @@ async fn test_hint_quotes_a_spaced_app_name() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U11: the post-sign-in 403 names the enrollment fix
+// The post-sign-in 403 names the enrollment fix
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Runs a shortcut against a mock returning `body` with the given status.

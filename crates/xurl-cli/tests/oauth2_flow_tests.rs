@@ -158,9 +158,9 @@ fn test_auth(cfg: Config, tmp: &TempDir, redirect_uri: &str) -> Auth {
     let store_path = tmp.path().join(".xurl");
 
     // Pre-stage the store with the test app's redirect_uri so the resolver
-    // (run by Auth::new_with_store_path) returns it instead of the legacy
-    // default. Tests bypass the validator by writing YAML directly because
-    // the validator is exercised in U1/U2 tests.
+    // (run by Auth::new_with_store_path) returns it instead of the built-in
+    // default. The YAML is written directly, past the redirect-URI
+    // validator, which has tests of its own.
     let yaml = format!(
         "apps:\n  default:\n    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    redirect_uri: '{redirect_uri}'\n    oauth2_tokens: {{}}\ndefault_app: default\n"
     );

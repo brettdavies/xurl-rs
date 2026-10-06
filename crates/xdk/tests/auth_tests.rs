@@ -395,7 +395,7 @@ fn test_oauth1_header_format() {
     assert!(header.contains("oauth_version"));
 }
 
-// ── Explicit store-path injection (U3) ─────────────────────────────────────
+// ── Explicit store-path injection ─────────────────────────────────────
 //
 // `Auth::new_with_store_path` honours an explicit `TempDir` path so library
 // tests need no `HOME` / `XDG_CONFIG_HOME` env-var mutation. Parallel-safe.
@@ -433,7 +433,7 @@ fn test_new_with_store_path_honors_explicit_path() {
     assert_eq!(reopened_header, "Bearer explicit-path-bearer");
 }
 
-// ── U3: redirect URI single-source-of-truth on owned Config ───────────────
+// ── Redirect URI single-source-of-truth on owned Config ───────────────
 //
 // `Auth::new_with_store_path` runs the three-level resolver (env > app-stored
 // > built-in default) and writes the resolved value back into the owned
@@ -567,9 +567,8 @@ fn test_with_app_name_env_override_survives_app_switch() {
     // Env wins for the default app.
     assert_eq!(auth.redirect_uri(), "https://envvar.example.com/cb");
 
-    // Env still wins after switching apps — KTD3 forbids the credential's
-    // "preserve if non-empty" pattern; the resolver itself enforces env
-    // precedence each time.
+    // Env still wins after switching apps: the resolver applies env
+    // precedence on every read, with no "preserve if non-empty" shortcut.
     auth.with_app_name("beta");
     let still_env_after_switch = auth.redirect_uri().to_string();
 

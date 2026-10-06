@@ -252,7 +252,7 @@ fn test_exit_code_nonzero_on_error() {
     assert_ne!(output.status.code().unwrap(), 0);
 }
 
-// ── U3: env-backed global flags + TTY-aware color ────────────────────
+// ── Env-backed global flags + TTY-aware color ────────────────────
 
 #[test]
 fn test_help_advertises_xurl_verbose_env() {
@@ -429,7 +429,7 @@ fn test_no_color_env_overrides_color_always() {
     );
 }
 
-// ── U5: clap-error envelope via XURL_OUTPUT env var ──────────────────
+// ── Clap-error envelope via XURL_OUTPUT env var ──────────────────
 
 #[test]
 fn test_clap_error_envelope_via_xurl_output_env() {
@@ -494,11 +494,11 @@ fn test_raw_without_flag_pretty_prints() {
     );
 }
 
-// ── U8: output discipline (no naked println/eprintln) ───────────────────
+// ── Output discipline (no naked println/eprintln) ───────────────────
 
 #[test]
 fn test_lint_stdio_script_passes_on_clean_tree() {
-    // The U8 CI guard at scripts/lint-stdio.sh must succeed against the
+    // The CI guard at scripts/lint-stdio.sh must succeed against the
     // working tree (every site routes through src/cli/output/).
     let root = common::workspace_root();
     let script = root.join("scripts/lint-stdio.sh");
@@ -524,7 +524,7 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
 // guarantee. The script is also exercised on every CI run, so a regression
 // in its detection logic surfaces immediately.
 
-// ── U13: csv/tsv/yaml/ndjson formats + --cursor + xr validate ────────
+// ── csv/tsv/yaml/ndjson formats + --cursor + xr validate ────────
 
 /// `xr --help` must surface every additional output-format token agents
 /// look for: csv, tsv, yaml, yml, toml, xml, ndjson. The substring search

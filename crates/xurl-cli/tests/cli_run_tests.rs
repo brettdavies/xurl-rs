@@ -1,5 +1,5 @@
 /// Library-level tests for the `xurl::cli::run` / `run_with_store_path`
-/// entrypoints (U4).
+/// entrypoints.
 ///
 /// Parallel-safe: each test creates its own `TempDir` and passes the path to
 /// `run_with_store_path`. No `HOME` / `XDG_CONFIG_HOME` mutation, no
