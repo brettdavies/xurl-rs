@@ -235,15 +235,22 @@ changing code (KTD1).
   replaces the `String`. The library's `kind()` strings map into it in one exhaustive function. Unchanged golden
   fixtures and committed schemas prove the wire did not move. The CLI crate's library target is not a published API, so
   no semver gate applies.
-- KTD10. **`run_subcommand` splits by command family.** Each family gets its own dispatch function in a sibling module,
-  matching the families `family_help.rs` already declares. The lint allows come off, and the golden and dry-run fixtures
-  are the behavior proof. No fixture is re-blessed.
+- KTD10. **`run_subcommand` splits by command group.** The groups follow `AGENTS.md` § Command grammar: each
+  subcommand-family noun (`auth`, `media`, `usage`, `broadcasts`, `skill`, `schema`, `completions`) gets its own
+  dispatch function in a sibling module, the top-level core-domain verbs group by the resource they act on (posts,
+  engagement, the social graph, reads, DMs), and the remaining tooling commands (`validate`, `examples`, `version`)
+  share one. `family_help.rs` declares only two families, `broadcasts moderators` and `media subtitles`, so it cannot
+  drive a split of the forty-odd commands the function dispatches. The lint allows come off, and the golden and dry-run
+  fixtures are the behavior proof. No fixture is re-blessed.
 - KTD11. **The Go parity job installs Go `xurl` at a pinned commit.** An inline job in `ci.yml` runs `go install` for a
-  SHA-pinned `xdevplatform/xurl` and sets `XURL_ORIGINAL_BIN`. Under `CI=true`, the runner fails on a missing binary
-  instead of skipping. The three live-API cases stay skipped, so the job spends nothing.
+  SHA-pinned `xdevplatform/xurl` and sets `XURL_ORIGINAL_BIN`. When `XURL_ORIGINAL_BIN` is set and names no executable,
+  the runner fails instead of skipping; unset, it skips as it does today. `CI=true` cannot be the trigger: the shared
+  reusable workflow's test job runs the same test target with a plain `cargo test`, and GitHub sets `CI=true` there with
+  no Go binary. The three live-API cases stay skipped, so the job spends nothing.
 - KTD12. **The MSRV check is an inline CI job.** It reads `rust-version` from the workspace `Cargo.toml` and runs `cargo
   check --workspace --all-features` on that toolchain. It mirrors the pre-push step, and both rulesets require it.
-- KTD13. **Property tests use `proptest` as an `xdk-rs` dev-dependency.** `cargo deny` already allows its MIT/Apache-2.0
+- KTD13. **Property tests use `proptest` as a dev-dependency of both crates.** The envelope lives in the CLI crate and
+  the signer and store in the library, so each crate's tests need it. `cargo deny` already allows its MIT/Apache-2.0
   licenses. Cases stay bounded so the default suite's runtime barely moves.
 - KTD14. **Attestations are opt-in in the shared release workflow.** `dot-github:.github/workflows/rust-release.yml`
   gains an `attest` input, default `false`. When it is on, the workflow attests every archive and `sha256sum.txt` with
@@ -369,7 +376,7 @@ flowchart TB
   P2 --> P3[Phase 3: U5 refresh, U6 OAuth1, U7 media, U8 transport, U9 Go parity]
   P3 --> P4[Phase 4: U10 error sources, U11 classification]
   P4 --> P5[Phase 5: U12 tests, U13 reason, U14 dispatch split, U15 select_scheme, U16 property tests, U17 comments]
-  P5 --> P7a[Phase 7: U20 stability statement]
+  P5 --> P6[Phase 6: U20 stability statement]
   S1[xurl-rs-skill: U18 contract in CI, U19 field assertions]
   G1[brettdavies/.github: U21 attestations] --> G2[xurl-rs caller turns on attest]
   P5 --> R[xr minor released] --> K[xurl-rs-skill: U22 skill bundle reflects the new surface]
@@ -467,8 +474,8 @@ recorded.
 
 **Test scenarios:**
 
-- `auth apps add --client-secret-file <tmpfile>` stores the file's contents, trimmed of one trailing newline, and the
-  secret appears nowhere in argv.
+- `auth apps add --client-secret-file <tmpfile>` stores the file's contents, trimmed of one trailing line ending (`\n`
+  or `\r\n`, since a Windows editor writes the latter), and the secret appears nowhere in argv.
 - `auth apps add --client-secret-file -` with the secret piped on stdin stores it.
 - `auth oauth1 --consumer-secret-file - --token-secret-file -` exits with the usage `reason` and names both flags.
 - Passing both `--client-secret` and `--client-secret-file` exits with the usage `reason`.
@@ -565,7 +572,8 @@ Brett applies the rulesets.
 **Execution note:** write the two-handle test first. It must fail on `dev` by showing two refresh POSTs.
 
 **Patterns to follow:** `StoreLock` in `crates/xdk/src/store/lock.rs` for the sidecar naming and the Windows lock
-semantics; the mock token endpoint in `crates/xdk/src/testing/mod.rs`.
+semantics; the wiremock token endpoint in `crates/xdk/tests/async_context_tests.rs`, which already counts refresh POSTs.
+The `testing` mock serves no token endpoint.
 
 **Test scenarios:**
 
@@ -668,6 +676,8 @@ failure.
 - Modify: `crates/xdk/src/api/request/transport.rs`
 - Modify: `crates/xdk/src/error.rs` (the reset time on the rate-limited error)
 - Modify: `crates/xdk/src/testing/mod.rs` (a 429 route and a non-JSON route)
+- Modify: `crates/xurl-cli/tests/golden/` help fixtures, which every global flag reaches (68 of 121 carry the global
+  `--timeout` today)
 - Modify: `crates/xurl-cli/src/cli/output/` and `crates/xurl-cli/src/cli/envelope.rs` (the retry key, and the opt-in
   retry flag)
 - Test: `crates/xdk/tests/api_tests.rs`, `crates/xurl-cli/tests/cli_tests.rs`
@@ -677,7 +687,7 @@ failure.
 1. Map a failed body read to a network error.
 2. Return a non-JSON success body as a JSON string, and carry a non-JSON error body into the `Api` error.
 3. Read `x-rate-limit-reset` onto the rate-limited error, and add the seconds-until-reset key to the envelope.
-4. Add the global opt-in retry flag with its ceiling.
+4. Add the global opt-in retry flag with its ceiling, and re-bless the help fixtures it reaches.
 5. Fold the three request paths' header assembly into one helper.
 6. Regenerate the output schema.
 
@@ -710,14 +720,16 @@ envelope keys are unchanged.
 
 **Files:**
 
-- Modify: `crates/xurl-cli/tests/conformance_runner.rs` (fail under `CI=true` when the binary is missing)
+- Modify: `crates/xurl-cli/tests/conformance_runner.rs` (fail when `XURL_ORIGINAL_BIN` names a missing binary)
 - Modify: `.github/workflows/ci.yml` (the parity job)
 - Modify: `.github/rulesets/protect-dev.json`, `.github/rulesets/protect-main.json`
 
 **Approach:**
 
 1. Install Go `xurl` at a pinned SHA in the new job and point `XURL_ORIGINAL_BIN` at it.
-2. Under `CI=true`, make the runner fail instead of returning when the binary is missing.
+2. When `XURL_ORIGINAL_BIN` is set and names no executable, make the runner fail, naming the variable and the path.
+   Leave the unset case skipping, because the reusable workflow's test job runs this target with `CI=true` and no Go
+   binary (KTD11).
 3. Read the runner's path from `XURL_ORIGINAL_BIN` alone, dropping the hard-coded Homebrew path.
 4. Add the job to the rulesets alongside U4's checks.
 
@@ -726,8 +738,9 @@ envelope keys are unchanged.
 **Test scenarios:**
 
 - The parity job runs all offline cases against the pinned Go `xurl` and passes on the branch.
-- With `XURL_ORIGINAL_BIN` unset and `CI=true`, the runner fails with a message naming the variable.
-- With `XURL_ORIGINAL_BIN` unset locally, the runner skips with its existing message.
+- With `XURL_ORIGINAL_BIN` pointing at a missing path, the runner fails with a message naming the variable and the path.
+- With `XURL_ORIGINAL_BIN` unset, the runner skips with its existing message, which keeps the reusable workflow's test
+  job green.
 
 **Verification:** the parity job reports on the PR, and a deliberately broken parity case turns it red.
 
@@ -862,7 +875,7 @@ in tests, and the envelope matches the schema.
 
 ### U14. Dispatch split by family
 
-**Goal:** Command dispatch reads per family, with no size lint allow.
+**Goal:** Command dispatch reads per command group, with no size lint allow.
 
 **Requirements:** R17 (KTD10)
 
@@ -871,19 +884,22 @@ in tests, and the envelope matches the schema.
 **Files:**
 
 - Modify: `crates/xurl-cli/src/cli/commands/mod.rs`
-- Create: per-family dispatch modules beside it, named by the families in `crates/xurl-cli/src/cli/family_help.rs`
+- Create: per-group dispatch modules beside it, one per group KTD10 names
 - Test: the existing golden and dry-run suites
 
 **Approach:**
 
-1. Move each family's arms into its own function and module.
+1. Move each group's arms into its own function and module.
 2. Pass shared context as one struct, removing `too_many_arguments`.
 3. Take the lint allows off.
 
 **Test expectation:** behavior-preserving refactor. The proof is the existing golden, dry-run, and CLI suites passing
 unchanged, with no fixture re-blessed.
 
-**Verification:** clippy passes with the allows removed, and no golden fixture moves.
+**Verification:** clippy passes with the allows removed; `cargo clippy -p xurl-rs --all-targets -- -W
+clippy::too_many_lines` names no dispatch function, where on `dev` it names `run_subcommand` (the failing-first proof);
+and no golden fixture moves. The size lint is off in this workspace, so removing its allow proves nothing about size on
+its own.
 
 ### U15. One `AuthMismatch` builder
 
@@ -901,12 +917,15 @@ unchanged, with no fixture re-blessed.
 **Approach:**
 
 1. Extract the mismatch construction into one helper that every rejection path calls.
-2. Split the remaining selection steps so the function no longer needs a length allow.
+2. Split the remaining selection steps until `cargo clippy -p xdk-rs --all-targets -- -W clippy::too_many_lines` no
+   longer names `select_scheme`. It carries no allow today only because the lint is off; at 147 lines it is past the
+   lint's 100-line threshold.
 
 **Test expectation:** behavior-preserving refactor. The existing `auth-method-mismatch` tests, with all three mismatch
 shapes, are the proof.
 
-**Verification:** each of the three mismatch shapes produces the same envelope as on `dev`.
+**Verification:** each of the three mismatch shapes produces the same envelope as on `dev`, and the `too_many_lines`
+check in step 2 passes where it fails on `dev`.
 
 ### U16. Property tests
 
@@ -918,16 +937,19 @@ shapes, are the proof.
 
 **Files:**
 
-- Modify: `crates/xdk/Cargo.toml` (`proptest` dev-dependency)
-- Create: `crates/xdk/tests/property_tests.rs`
+- Modify: `crates/xdk/Cargo.toml`, `crates/xurl-cli/Cargo.toml` (`proptest` dev-dependency)
+- Modify: `crates/xdk/src/auth/oauth1.rs` (the base-string property, in its test module, because the base string is
+  built inside the private `generate_signature`)
+- Create: `crates/xdk/tests/property_tests.rs` (the encoder and store properties)
 - Create: `crates/xurl-cli/tests/envelope_property_tests.rs`
 
 **Test scenarios:**
 
 - For any parameter map of printable strings, the OAuth1 base string decodes back to the same pairs.
 - For any parameter map, the encoder leaves exactly the RFC 3986 unreserved characters bare.
-- For any generated `ErrorBody`, serializing then deserializing returns an equal value, and the JSON validates against
-  `schema/output.schema.json`.
+- For any generated `ErrorBody`, serializing then deserializing returns an equal value. The existing drift guard in
+  `crates/xurl-cli/tests/schema_tests.rs` already ties the committed schema to the type, so the property needs no JSON
+  Schema validator dependency.
 - For any generated set of apps and tokens, saving to a temp store path and loading returns equal data.
 
 **Verification:** the property suites pass within the default test run, and `cargo deny check` passes with the new
@@ -945,13 +967,16 @@ dependency.
 
 - Modify: comments the scan finds under `crates/` and `scripts/`, starting with `crates/xurl-cli/tests/cli_tests.rs` and
   `crates/xurl-cli/tests/output_writer_tests.rs`
+- Create: `crates/xurl-cli/tests/comment_citation_guard.rs`, following `crates/xdk/tests/path_literal_guard.rs`
 
 **Approach:** run the `/code-comments` scan over the tree. Rewrite each comment that cites a plan, todo, or unit ID to
-state the reason directly, or remove it when it only restates the code.
+state the reason directly, or remove it when it only restates the code. Then add the guard: it scans comments under
+`crates/` and `scripts/` for a plan unit ID, a plan cited by name, or `TODO.md`, and it fails on `dev`'s citations
+before the rewrite.
 
-**Test expectation:** none -- comment-only. The proof is a clean `/code-comments` scan.
+**Test expectation:** the guard, which fails on `dev` and passes after the rewrite (KTD1, R2).
 
-**Verification:** the scan reports no citation of non-public material.
+**Verification:** the scan reports no citation of non-public material, and the guard passes.
 
 ### U18. Contract harness in CI
 
@@ -1012,6 +1037,7 @@ output to it, and keep substring checks only for text output.
 **Files:**
 
 - Modify: `README.md`, `crates/xurl-cli/README.md`, `crates/xdk/README.md`
+- Test: a README test beside `crates/xdk/tests/readme_landing_tests.rs`
 
 **Approach:**
 
@@ -1020,7 +1046,8 @@ output to it, and keep substring checks only for text output.
 3. State how breaks are batched and announced, with migration snippets.
 4. Add the cadence line once the Open Question is answered.
 
-**Test expectation:** none -- documentation. `crates/xdk/tests/readme_landing_tests.rs` must keep passing.
+**Test expectation:** a README test asserting each of the three READMEs carries the Stability section. It fails on `dev`
+(KTD1, R2), and `crates/xdk/tests/readme_landing_tests.rs` keeps passing.
 
 **Verification:** each README carries the section, and the statements match `RELEASES.md` § Versioning.
 
@@ -1046,8 +1073,9 @@ output to it, and keep substring checks only for text output.
 
 **Patterns to follow:** existing optional inputs in the reusable, such as `linux_musl_required`, for the input shape.
 
-**Test expectation:** none -- release workflow configuration. The proof is a manual dispatch on a release branch, which
-runs dry, and then `gh attestation verify` on the next real release's archive.
+**Test expectation:** none -- release workflow configuration. Neither `release.yml` nor the reusable has a dispatch
+trigger or a dry-run mode, so `actionlint` is the pre-merge gate, and the proof is `gh attestation verify` on the next
+real release's archive, which fails on every release before it.
 
 **Verification:** a caller without the input behaves as today, and xurl-rs's next release archive verifies with `gh
 attestation verify`.
@@ -1097,7 +1125,7 @@ released `xr`.
 | Public API gate    | `scripts/release/preflight.sh api-contract` (`cargo semver-checks` on `xdk-rs`)          | U3, U5, U7, U8, U10, U11     |
 | Schemas            | `scripts/generate-response-schemas.sh`, then `crates/xurl-cli/tests/schema_tests.rs`     | U7, U8, U11, U13             |
 | Completions        | `scripts/generate-completions.sh`; CI's freshness gate                                   | U2, U3, U7, U8               |
-| Golden fixtures    | `crates/xurl-cli/tests/golden_tests.rs`, re-blessed only where a unit says content moved | U2, U3, U7                   |
+| Golden fixtures    | `crates/xurl-cli/tests/golden_tests.rs`, re-blessed only where a unit says content moved | U2, U3, U7, U8               |
 | Agent-native audit | CI audit job at the raised floor                                                         | every xurl-rs PR after U1    |
 | Supply chain       | `cargo deny check`                                                                       | U16                          |
 | Skill harness      | `bash tests/run.sh` and `bash tests/contract.sh`                                         | U18, U19                     |
@@ -1118,3 +1146,5 @@ released `xr`.
 - The local TODO.md marks each item with its outcome and points here; the file stays uncommitted.
 - Brett has applied the updated rulesets, and `gh api` shows the audit, MSRV, and parity checks required on `dev` and
   `main`.
+- After Brett publishes the `xr` minor, U22's xurl-rs-skill PR pins that release and its contract job passes, and `gh
+  attestation verify` passes on one of that release's archives (U21).
