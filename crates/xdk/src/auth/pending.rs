@@ -38,6 +38,22 @@ pub struct PendingOAuth2State {
     /// Unix epoch seconds when the authorization was initiated. Used by
     /// [`load`] to enforce the 15-minute freshness window.
     pub created_at: u64,
+    /// The scopes the authorize URL requested. Empty in a file written
+    /// before the field existed, which requested every scope.
+    #[serde(default)]
+    pub scopes: Vec<String>,
+}
+
+impl PendingOAuth2State {
+    /// The scopes step 1 requested, reading an absent list as every scope.
+    #[must_use]
+    pub fn requested_scopes(&self) -> Vec<&str> {
+        if self.scopes.is_empty() {
+            super::oauth2::get_oauth2_scopes()
+        } else {
+            self.scopes.iter().map(String::as_str).collect()
+        }
+    }
 }
 
 /// Returns the pending-state path that sits beside a token store: `<store>.pending`.

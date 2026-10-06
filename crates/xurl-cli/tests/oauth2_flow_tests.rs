@@ -298,6 +298,7 @@ fn seed_pending_for_app(store_path: &std::path::Path, app_name: &str) -> std::pa
         client_id: "test-client-id".to_string(),
         app_name: app_name.to_string(),
         created_at,
+        scopes: Vec::new(),
     };
     xdk::auth::pending::save(&state, &path).expect("seed pending state");
     path

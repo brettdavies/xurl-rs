@@ -1664,6 +1664,7 @@ _arguments "${_arguments_options[@]}" : \
 '--no-browser=[Enable manual two-step flow for headless machines (SSH, containers)]::NO_BROWSER:(true false)' \
 '--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
 '--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
+'*--scopes=[Request only these comma-separated scopes, plus offline.access (default\: every scope)]:SCOPES:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \

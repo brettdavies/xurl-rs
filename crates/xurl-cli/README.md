@@ -200,7 +200,13 @@ op read 'op://<vault>/<item>/client_secret' | xr auth apps add myapp --client-id
 xr auth oauth2                                 # Opens browser
 xr auth oauth2 alice                           # Skip /2/users/me; save under "alice"
 xr auth oauth2 --app myapp alice               # Same, against a specific app
+xr auth oauth2 --scopes tweet.read,users.read  # Request only these scopes
 ```
+
+A sign-in requests every scope `xr` can use. `--scopes` narrows it to a comma-separated subset; `offline.access` is
+always added, because without a refresh token the login ends within hours. A name X does not define is rejected before
+any request, with the valid names listed. In the headless flow the flag goes on step 1, and step 2 takes the scopes step
+1 saved.
 
 `xr auth oauth2` accepts an optional `[USERNAME]` positional. If X's `/2/users/me` endpoint is unreliable, supplying the
 handle explicitly skips that lookup and stores the resulting token under the known username so shortcut commands resolve

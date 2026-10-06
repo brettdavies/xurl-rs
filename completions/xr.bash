@@ -2166,7 +2166,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__auth__subcmd__oauth2)
-            opts="-v -q -h --no-browser --step --auth-url --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            opts="-v -q -h --no-browser --step --auth-url --scopes --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2181,6 +2181,10 @@ _xr() {
                     return 0
                     ;;
                 --auth-url)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --scopes)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

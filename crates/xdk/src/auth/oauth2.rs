@@ -17,7 +17,12 @@ use crate::error::{Error, Result};
 use crate::store::OAuth2Token;
 use tokio_util::sync::CancellationToken;
 
-/// `OAuth2` scopes the client requests.
+/// The scope that makes X issue a refresh token. Every sign-in requests it:
+/// without one the login ends when the access token does, within hours.
+pub const OFFLINE_ACCESS: &str = "offline.access";
+
+/// Every `OAuth2` scope a sign-in can request, and the set it requests when
+/// the caller names none.
 #[must_use]
 pub fn get_oauth2_scopes() -> Vec<&'static str> {
     vec![
@@ -51,6 +56,39 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
     ]
 }
 
+/// Narrows a sign-in to `requested`, in the order [`get_oauth2_scopes`] lists
+/// them, with [`OFFLINE_ACCESS`] added.
+///
+/// # Errors
+///
+/// Returns a validation error naming the valid scopes when `requested`
+/// carries a name outside [`get_oauth2_scopes`].
+pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'static str>> {
+    let known = get_oauth2_scopes();
+    let unknown: Vec<&str> = requested
+        .iter()
+        .map(AsRef::as_ref)
+        .filter(|name| !known.contains(name))
+        .collect();
+    if !unknown.is_empty() {
+        return Err(Error::validation(format!(
+            "unknown OAuth2 scope {}. Valid scopes: {}",
+            unknown
+                .iter()
+                .map(|name| format!("{name:?}"))
+                .collect::<Vec<_>>()
+                .join(", "),
+            known.join(", ")
+        )));
+    }
+    Ok(known
+        .into_iter()
+        .filter(|scope| {
+            *scope == OFFLINE_ACCESS || requested.iter().any(|name| name.as_ref() == *scope)
+        })
+        .collect())
+}
+
 /// Generates a PKCE code verifier and its S256 challenge.
 #[must_use]
 pub fn generate_code_verifier_and_challenge() -> (String, String) {
@@ -68,7 +106,7 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
 ///
 /// Returns an error if the base authorization URL cannot be parsed.
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
-    let scopes = get_oauth2_scopes().join(" ");
+    let scopes = auth.oauth2_scopes().join(" ");
     let mut auth_url =
         Url::parse(auth.auth_url()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
     auth_url
@@ -307,6 +345,11 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         client_id: auth.client_id().to_string(),
         app_name: auth.app_name().to_string(),
         created_at: now,
+        scopes: auth
+            .oauth2_scopes()
+            .iter()
+            .map(ToString::to_string)
+            .collect(),
     };
 
     pending::save(&pending_state, pending_path)?;
@@ -320,14 +363,19 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
 /// and client ID, extracts the authorization code from `redirect_url`,
 /// exchanges it for an access token, and saves the token to the store.
 ///
+/// The scope set is the one step 1 saved: the consent the redirect URL
+/// answers was given for it. A scope set chosen on `auth` since then
+/// ([`Auth::with_oauth2_scopes`]) must name the same scopes.
+///
 /// The pending state file is deleted only on success — on any error the
 /// file is preserved so the user can retry.
 ///
 /// # Errors
 ///
 /// Returns an error if the pending state is missing/expired/invalid,
-/// the client ID doesn't match, the state parameter doesn't match,
-/// the redirect URL is missing the code, or the token exchange fails.
+/// the client ID or the chosen scope set doesn't match, the state
+/// parameter doesn't match, the redirect URL is missing the code, or the
+/// token exchange fails.
 pub async fn run_remote_step2(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -346,6 +394,18 @@ pub async fn run_remote_step2(
             pending_state.client_id,
             auth.client_id()
         )));
+    }
+
+    if let Some(chosen) = auth.chosen_oauth2_scopes() {
+        let saved = pending_state.requested_scopes();
+        if chosen != saved {
+            return Err(Error::auth(format!(
+                "ScopeMismatch: step 1 requested the scopes {}, but this step names {}. \
+                 Drop the scope choice from step 2, or re-run step 1 with it",
+                saved.join(" "),
+                chosen.join(" ")
+            )));
+        }
     }
 
     // Parse redirect URL to extract query parameters
