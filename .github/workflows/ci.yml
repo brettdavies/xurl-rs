@@ -352,6 +352,21 @@ jobs:
   # a MUST-only gate never sees, so the floor is what catches it. Raise the
   # floor deliberately when the score improves.
   #
+  # The floor is the score the audit reports for this tree. Four rows do not
+  # pass:
+  #
+  # - `p2-must-output-flag` (warn): anc validates JSON only through `--help`
+  #   and `--version`, and `xr` prints both as clap's own text whatever
+  #   `--output` says. `xr version --output json` is the JSON form.
+  # - `p6-should-consistent-naming` (warn): `auth` and `media` each hold the
+  #   verb `status` beside names anc does not count as verbs (`oauth2`, `apps`,
+  #   `upload`, `subtitles`). Regrouping them renames commands, which is a
+  #   breaking change.
+  # - `p1-must-no-interactive` (skip): anc skips the flag check for a tool
+  #   that prints its help on a bare invocation, as `xr` does.
+  # - `p2-should-consistent-envelope` (skip): the success probe is `--help
+  #   --output json`, which prints text for the reason the first row gives.
+  #
   # anc is pinned to ANC_VERSION. A new anc release can add rows or change how
   # one scores, so it reaches this gate only through a PR that bumps the pin
   # and settles the score and the floor together.
@@ -370,7 +385,7 @@ jobs:
     timeout-minutes: 20
     env:
       ANC_VERSION: "0.6.0"
-      ANC_SCORE_FLOOR: "94"
+      ANC_SCORE_FLOOR: "98"
       XR_SIZE_CEILING_BYTES: "9600000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
