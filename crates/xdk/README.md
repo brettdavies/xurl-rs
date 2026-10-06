@@ -222,6 +222,14 @@ DEBUG xdk::vocabulary: legacy="edit_history_tweet_ids" normalized="edit_history_
 A build with neither TLS feature fails at compile time with a message naming both, rather than at the first `https`
 request.
 
+## Stability
+
+The crate follows [SemVer 2.0.0](https://semver.org/). Its contract is the public Rust API, which `cargo semver-checks`
+reads on every pull request, and the behavior the rustdoc documents. Items marked `#[doc(hidden)]` are outside it.
+
+A break ships only in a release that moves the breaking position, and its changelog entry carries a before/after
+snippet. [Versioning](#versioning) has the rules.
+
 ## Versioning
 
 The crate is `0.x`, so Cargo reads the middle number as the breaking position: a breaking change moves it (`0.1.x` to
