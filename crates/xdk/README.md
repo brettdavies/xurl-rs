@@ -101,7 +101,9 @@ async fn main() -> xdk::Result<()> {
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error
 answers four questions: `kind()` names its category as a stable string, `exit_code()` maps it to the process exit code
 the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (sign in,
-register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists.
+register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. An
+error that wraps a lower-level failure keeps it: `std::error::Error::source()` returns the `reqwest`, `std::io`,
+`serde_json`, or `serde_yaml` error underneath, so a caller can walk the chain or downcast to it.
 
 A 429 carries the reset its own response named, as seconds since the Unix epoch in the `reset_at` field of `Error::Api`,
 and `NextAction::WaitAndRetry` with it; a 429 that named none carries neither. `ClientBuilder::wait_on_rate_limit` makes

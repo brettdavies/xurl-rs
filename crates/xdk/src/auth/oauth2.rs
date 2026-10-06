@@ -107,8 +107,8 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
 /// Returns an error if the base authorization URL cannot be parsed.
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
     let scopes = auth.oauth2_scopes().join(" ");
-    let mut auth_url =
-        Url::parse(auth.auth_url()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let mut auth_url = Url::parse(auth.auth_url())
+        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")
@@ -164,13 +164,13 @@ pub(crate) async fn exchange_code_for_token(
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
 
     let status = token_resp.status();
     let token_data: serde_json::Value = token_resp
         .json()
         .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
 
     if !status.is_success() {
         let api_error = token_data["error"].as_str().unwrap_or("unknown");
@@ -280,8 +280,8 @@ where
     // Parse the resolved redirect URI; the listener binds host, port, and path
     // from it. Validation already accepted https or http+loopback at write and
     // resolve time, so a parse failure here is a programmer error.
-    let redirect_parsed =
-        Url::parse(auth.redirect_uri()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let redirect_parsed = Url::parse(auth.redirect_uri())
+        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
 
     // The opener runs on the listener's bind-success hook. A failed open
     // cancels the listener immediately rather than waiting out the callback
@@ -411,6 +411,7 @@ pub async fn run_remote_step2(
     // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url).map_err(|e| {
         Error::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
+            .with_source(e)
     })?;
 
     let params: std::collections::HashMap<String, String> = parsed
@@ -522,12 +523,12 @@ pub(crate) async fn refresh_grant(
         .basic_auth(client_id, Some(client_secret))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
 
     let token_data: serde_json::Value = token_resp
         .json()
         .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
 
     let access_token = token_data["access_token"]
         .as_str()

@@ -80,10 +80,10 @@ pub async fn execute_media_upload(
     client: &Client,
 ) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
-        .map_err(|e| Error::Io(format!("error accessing file: {e}")))?;
+        .map_err(|e| Error::io(format!("error accessing file: {e}")).with_source(e))?;
 
     if !metadata.is_file() {
-        return Err(Error::Io(format!("{file_path} is not a regular file")));
+        return Err(Error::io(format!("{file_path} is not a regular file")));
     }
 
     let file_size = metadata.len();
@@ -118,9 +118,7 @@ pub async fn execute_media_upload(
         deserialize_response(client.send_request(&init_opts).await?)?;
     let media_id = init_response.data.id.clone();
     if media_id.is_empty() {
-        return Err(Error::Json(
-            "failed to parse media ID from init response".to_string(),
-        ));
+        return Err(Error::json("failed to parse media ID from init response"));
     }
 
     // APPEND — upload in 4MB chunks

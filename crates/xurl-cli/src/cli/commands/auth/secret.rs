@@ -128,11 +128,11 @@ fn read(arg: SecretArg, stdin: &mut dyn Read) -> Result<Option<String>, Error> {
         let mut piped = String::new();
         stdin
             .read_to_string(&mut piped)
-            .map_err(|e| Error::Io(format!("cannot read {flag} from stdin: {e}")))?;
+            .map_err(|e| Error::io(format!("cannot read {flag} from stdin: {e}")).with_source(e))?;
         piped
     } else {
         std::fs::read_to_string(&path)
-            .map_err(|e| Error::Io(format!("cannot read {flag} {path}: {e}")))?
+            .map_err(|e| Error::io(format!("cannot read {flag} {path}: {e}")).with_source(e))?
     };
     Ok(Some(without_line_ending(contents)))
 }

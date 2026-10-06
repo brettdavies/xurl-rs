@@ -152,7 +152,7 @@ async fn a_refresh_the_server_rejects_is_an_auth_error_with_exit_77() {
         .send()
         .await
         .expect_err("a rejected refresh fails the request");
-    assert!(matches!(err, xdk::Error::Auth(_)), "got {err:?}");
+    assert!(matches!(err, xdk::Error::Auth { .. }), "got {err:?}");
     assert!(
         err.to_string().starts_with("RefreshTokenError"),
         "got {err}"
@@ -190,7 +190,7 @@ async fn a_refresh_against_a_silent_server_gives_up_at_the_configured_timeout() 
         elapsed < std::time::Duration::from_secs(5),
         "the refresh must stop at http_timeout_secs, not hang; elapsed {elapsed:?}"
     );
-    assert!(matches!(err, xdk::Error::Auth(_)), "got {err:?}");
+    assert!(matches!(err, xdk::Error::Auth { .. }), "got {err:?}");
 }
 
 #[tokio::test]

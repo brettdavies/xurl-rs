@@ -468,12 +468,12 @@ impl Auth {
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
             .await
-            .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
+            .map_err(|e| Error::auth_with_cause("NetworkError", &e).with_source(e))?;
 
         let body: serde_json::Value = resp
             .json()
             .await
-            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
+            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e).with_source(e))?;
 
         body.get("data")
             .and_then(|d| d.get("username"))

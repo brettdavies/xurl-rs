@@ -206,7 +206,7 @@ fn load_valid_yaml_missing_fields_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should fail deserialization, not panic
-    assert!(matches!(err, xdk::Error::Auth(_)), "got: {err:?}");
+    assert!(matches!(err, xdk::Error::Auth { .. }), "got: {err:?}");
 }
 
 #[test]

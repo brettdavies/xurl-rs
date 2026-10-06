@@ -660,7 +660,7 @@ async fn slow_endpoint_trips_explicit_timeout() {
         "timeout should fire well under the server's 10s delay; elapsed = {elapsed:?}"
     );
     assert!(
-        matches!(err, xdk::Error::Http(_)),
+        matches!(err, xdk::Error::Http { .. }),
         "expected an HTTP/transport error, got: {err:?}"
     );
 }
@@ -2602,7 +2602,7 @@ async fn auth_error_propagates_for_oauth2_path_with_no_token() {
     // returns Err without silently sending a request — not the exact
     // failure mode.
     assert!(
-        matches!(err, xdk::Error::Auth(_) | xdk::Error::Http(_)),
+        matches!(err, xdk::Error::Auth { .. } | xdk::Error::Http { .. }),
         "expected auth-layer error, got: {err:?}"
     );
 }

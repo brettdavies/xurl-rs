@@ -537,12 +537,12 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
 /// under the names the spec uses now.
 pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate::error::Result<T> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
-        return Err(crate::error::Error::Json(
-            "empty response body — expected JSON with a \"data\" field".to_string(),
+        return Err(crate::error::Error::json(
+            "empty response body — expected JSON with a \"data\" field",
         ));
     }
     if let Value::String(body) = &value {
-        return Err(crate::error::Error::Json(format!(
+        return Err(crate::error::Error::json(format!(
             "response body is not a JSON object — expected JSON with a \"data\" field, got: {body}"
         )));
     }

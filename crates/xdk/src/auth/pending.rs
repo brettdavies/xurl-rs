@@ -99,7 +99,8 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
             "PendingStatePermissions: pending state path is a symlink (refusing to write through it)",
         ));
     }
-    let data = serde_yaml::to_string(state).map_err(|e| Error::Auth(e.to_string()))?;
+    let data =
+        serde_yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
 }
@@ -175,7 +176,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         Err(e) => return Err(e.into()),
     };
     let state: PendingOAuth2State =
-        serde_yaml::from_str(&data).map_err(|e| Error::Auth(e.to_string()))?;
+        serde_yaml::from_str(&data).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
 
     // TTL check.
     let now = SystemTime::now()
