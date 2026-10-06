@@ -315,6 +315,42 @@ jobs:
             exit 1
           fi
 
+  # Every other job compiles on the toolchain rust-toolchain.toml pins, which is
+  # newer than the `rust-version` the crates declare. A dependency bump or a
+  # language feature that needs a later compiler passes all of them and breaks
+  # a consumer still on the declared version. This job reads that version from
+  # the workspace manifest and checks the workspace on it, as step 4 of
+  # scripts/hooks/pre-push does.
+  msrv:
+    name: MSRV
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Install the declared rust-version
+        id: msrv
+        run: |
+          set -euo pipefail
+          msrv="$(awk -F\" '/^rust-version *= *"/ {print $2; exit}' Cargo.toml)"
+          if [ -z "$msrv" ]; then
+            echo "::error title=MSRV::the workspace Cargo.toml declares no rust-version"
+            exit 1
+          fi
+          rustup toolchain install "$msrv" --profile minimal --no-self-update
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: msrv-${{ steps.msrv.outputs.version }}
+      - name: cargo check on the declared rust-version
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: cargo "+${MSRV}" check --workspace --all-features --locked
+
   # The matrix above names the cells a reader expects; this job compiles every
   # remaining subset that carries a backend (`native-tls` with `testing`, both
   # backends without it), each from `--no-default-features`, so a feature added
