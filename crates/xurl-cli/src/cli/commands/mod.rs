@@ -375,7 +375,6 @@ async fn run_raw_mode(
 }
 
 /// Runs a subcommand.
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 async fn run_subcommand(
     cmd: Commands,
     cfg: &Config,
