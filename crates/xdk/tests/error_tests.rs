@@ -409,3 +409,78 @@ fn test_exit_usage_error_is_ex_usage() {
     assert_eq!(EXIT_USAGE_ERROR, 2);
     assert_eq!(EXIT_USAGE_ERROR, EXIT_AUTH_MISMATCH);
 }
+
+// ── source() chains ────────────────────────────────────────────────
+
+/// The lower-level failure an error wraps, read the way an embedder would.
+fn source_of(err: &Error) -> &(dyn std::error::Error + 'static) {
+    std::error::Error::source(err).unwrap_or_else(|| panic!("{err:?} exposes no source"))
+}
+
+#[test]
+fn an_io_failure_is_reachable_through_source() {
+    let err: Error = std::io::Error::new(std::io::ErrorKind::NotFound, "no such file").into();
+
+    let io = source_of(&err)
+        .downcast_ref::<std::io::Error>()
+        .expect("the source is the io::Error");
+    assert_eq!(io.kind(), std::io::ErrorKind::NotFound);
+    assert_eq!(err.to_string(), "no such file");
+    assert_eq!(err.kind(), "io");
+    assert_eq!(err.exit_code(), EXIT_NETWORK_ERROR);
+}
+
+#[tokio::test]
+async fn a_transport_failure_is_reachable_through_source() {
+    // A relative URL cannot be sent, so this fails before any connection.
+    let reqwest_err = reqwest::Client::new()
+        .get("not-a-url")
+        .send()
+        .await
+        .expect_err("a relative URL is not sendable");
+    let display = reqwest_err.to_string();
+
+    let err: Error = reqwest_err.into();
+
+    assert!(
+        source_of(&err).downcast_ref::<reqwest::Error>().is_some(),
+        "the source is the reqwest::Error"
+    );
+    assert_eq!(err.to_string(), display);
+    assert_eq!(err.kind(), "network-error");
+    assert_eq!(err.exit_code(), EXIT_NETWORK_ERROR);
+}
+
+#[test]
+fn a_json_failure_is_reachable_through_source() {
+    let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
+    let display = json_err.to_string();
+
+    let err: Error = json_err.into();
+
+    assert!(
+        source_of(&err)
+            .downcast_ref::<serde_json::Error>()
+            .is_some(),
+        "the source is the serde_json::Error"
+    );
+    assert_eq!(err.to_string(), display);
+    assert_eq!(err.kind(), "serialization");
+    assert_eq!(err.exit_code(), EXIT_GENERAL_ERROR);
+}
+
+/// An error built from a message alone has nothing underneath it.
+#[test]
+fn an_error_with_no_lower_level_failure_has_no_source() {
+    for err in [
+        Error::auth("token expired"),
+        Error::token_store("corrupt yaml"),
+        Error::validation("bad input"),
+        Error::api(500, "server error"),
+    ] {
+        assert!(
+            std::error::Error::source(&err).is_none(),
+            "{err:?} has no source"
+        );
+    }
+}
