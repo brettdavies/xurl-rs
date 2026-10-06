@@ -10,9 +10,13 @@
 #   api-contract  xr help command surface diff, public API semver check vs last tag
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
+#   changelog-sections
+#                 No PR this release carries leaves its changelog entry to its title for want
+#                 of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
 #                 unguarded docs added to main, diff-B vs origin/dev)
-#   all           Run drift, surface, api-contract, smoke, multi-app, mechanics (and surface-smoke if present)
+#   all           Run drift, surface, api-contract, smoke, multi-app, changelog-sections, mechanics
+#                 (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
 # scripts/release/postflight.sh, which runs AFTER the tag push, not before.
@@ -21,6 +25,10 @@
 #   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
 #   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
+#
+# Environment:
+#   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
+#                       when origin/dev does not exist)
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -34,7 +42,7 @@
 #   - ~/.claude/skills/1password/scripts/ for vault reads (via _lib.sh's read_1p)
 #
 # The shared scaffolding (gate helpers, 1Password reads, shred cleanup, dispatch, drift,
-# surface, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
+# surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
 # and multi-app gates and the seed recipe are this project's.
 
 set -euo pipefail
@@ -462,6 +470,58 @@ gate_surface_smoke() {
   delegate_to_subscript "$surface_script" "$local_url"
 }
 
+# Gate: changelog-sections ---------------------------------------------------
+#
+# generate-changelog.py owns the rules for reading a PR body, so it runs the
+# audit: `--audit-sections` names the PRs whose entry would fall back to their
+# title because the body never offered the changelog section. It reads the PRs
+# from the integration branch's history since the previous release on the tag
+# line, as the changelog itself does, so stacked PRs are among them and a
+# member's tag never moves the binary's window. A section left empty on purpose
+# passes, because the generator reads it as "nothing for this crate".
+#
+# One audit per changelog the release writes: the release package's, and each
+# workspace member whose release is pending (no tag yet at its version), each
+# under the heading its [package.metadata.changelog] table declares.
+gate_changelog_sections() {
+  header "PR changelog sections"
+  if [[ ! -x "$REPO_ROOT/scripts/generate-changelog.py" ]]; then
+    gate_skip "PR changelog sections" "scripts/generate-changelog.py not vendored"
+    return
+  fi
+  have_bin gh || {
+    gate_skip "PR changelog sections" "gh not installed"
+    return
+  }
+
+  local base
+  base="${CHANGELOG_PR_BASE:-dev}"
+  git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/$base" >/dev/null 2>&1 || base="main"
+
+  local targets=() name prefix version
+  targets+=("$(cd "$REPO_ROOT" && changelog_crate_args)")
+  while IFS=$'\t' read -r name _ prefix _ version; do
+    [[ -n "$name" && -n "$version" ]] || continue
+    git -C "$REPO_ROOT" rev-parse --verify --quiet "refs/tags/$prefix$version" >/dev/null && continue
+    targets+=("--crate $name --tag $prefix$version")
+  done < <(cd "$REPO_ROOT" && release_members)
+
+  local target label out
+  for target in "${targets[@]}"; do
+    label="PR changelog sections"
+    if [[ "$target" == --crate* ]]; then
+      read -r _ name _ <<<"$target"
+      label="$label ($name)"
+    fi
+    # shellcheck disable=SC2086  # target is a flag list, split on purpose
+    if out=$(cd "$REPO_ROOT" && scripts/generate-changelog.py --audit-sections --dev-branch "$base" $target 2>&1); then
+      gate_pass "$label: ${out%%$'\n'*}"
+    else
+      gate_fail "$label" "$out"
+    fi
+  done
+}
+
 # Gate: mechanics ------------------------------------------------------------
 #
 # Mostly generic; the Rust-specific lines (Cargo.toml, rust-toolchain.toml,
@@ -597,9 +657,12 @@ gate_mechanics() {
   ship_base="${LAST_TAG:-origin/main}"
   git rev-parse --verify --quiet origin/main >/dev/null 2>&1 && ship_base=origin/main
 
-  # Leak check: no guarded path in what the release adds to main.
+  # Leak check: no guarded path added or modified in what the release ships to
+  # main. --diff-filter=ACMR, as in cut-release-branch.sh's check B: a release
+  # that removes a guarded doc main still carries from before the guard existed
+  # lists the removal too, and that is cleanup, not a leak.
   local leaked
-  leaked=$(git diff "$ship_base..HEAD" --name-only 2>/dev/null | grep -E "$guarded" || true)
+  leaked=$(git diff --diff-filter=ACMR "$ship_base..HEAD" --name-only 2>/dev/null | grep -E "$guarded" || true)
   if [[ -z "$leaked" ]]; then
     gate_pass "leak check (guarded paths): clean"
   else
@@ -667,7 +730,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h | --help) usage ;;
-    drift | surface | api-contract | smoke | multi-app | mechanics | surface-smoke | all)
+    drift | surface | api-contract | smoke | multi-app | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
@@ -690,6 +753,7 @@ case "$SUBCMD" in
   api-contract) gate_api_contract ;;
   smoke) gate_smoke ;;
   multi-app) gate_multi_app ;;
+  changelog-sections) gate_changelog_sections ;;
   mechanics) gate_mechanics ;;
   surface-smoke) gate_surface_smoke ;;
   all)
@@ -699,6 +763,7 @@ case "$SUBCMD" in
     gate_smoke
     gate_multi_app
     gate_surface_smoke
+    gate_changelog_sections
     gate_mechanics
     ;;
 esac
