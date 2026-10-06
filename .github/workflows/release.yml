@@ -2,7 +2,8 @@
 #
 # Pipeline: check-version -> build (7 targets) -> crates.io -> release (non-draft) ->
 # homebrew bottle build -> bottles upload back to release assets -> finalize-release
-# marks the release final.
+# marks the release final. Beside the homebrew leg, the release's archives are
+# attested: build provenance, and a CycloneDX SBOM of the binary.
 name: Release
 
 on:
@@ -13,6 +14,8 @@ on:
 permissions:
   contents: write
   id-token: write
+  # The reusable workflow's attest job takes this from the caller.
+  attestations: write
 
 jobs:
   pipeline:
@@ -27,5 +30,6 @@ jobs:
       # musl failure now blocks the release instead of silently omitting two
       # artifacts from it.
       linux_musl_required: true
+      attest: true
     secrets:
       CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
