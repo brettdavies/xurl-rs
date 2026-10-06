@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12819
+stdout_len: 12824
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -31,7 +31,7 @@ Raw API access (curl-style):
                         xr -s /2/users/me
 
 Multi-app management:
-  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps add my-app --client-id ... --client-secret-file ...
   xr auth apps list
   xr auth default                                # interactive picker
   xr auth default my-app                         # set by name

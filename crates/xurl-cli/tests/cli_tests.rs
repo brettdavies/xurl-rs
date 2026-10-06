@@ -4082,7 +4082,7 @@ async fn test_status_on_empty_store_names_the_registration_command() {
     assert_eq!(code, 0, "an empty store is not an error; stderr: {stderr}");
     assert!(
         stdout.contains(
-            "No apps registered. Run: xr auth apps add NAME --client-id ID --client-secret SECRET"
+            "No apps registered. Run: <secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -"
         ),
         "got:\n{stdout}"
     );
@@ -4471,7 +4471,7 @@ async fn test_apps_list_on_empty_store_matches_status() {
     let (code, stdout, stderr) = run_at(&store, &["xr", "auth", "apps", "list"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
-        stdout.contains("No apps registered. Run: xr auth apps add"),
+        stdout.contains("No apps registered. Run: <secret-command> | xr auth apps add"),
         "got:\n{stdout}"
     );
 

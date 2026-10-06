@@ -5,6 +5,7 @@ use std::io::{IsTerminal, Write};
 
 use serde_json::json;
 
+use super::secret::{self, SecretArg};
 use super::{AuthCtx, AuthGlobalFlags};
 use crate::cli::envelope::ErrorBody;
 use crate::cli::failure::{CommandResult, Failure};
@@ -232,9 +233,9 @@ pub(super) async fn oauth2(
 /// app and the access token/secret pair identifying the user.
 pub(super) struct Oauth1Args {
     pub(super) consumer_key: String,
-    pub(super) consumer_secret: String,
-    pub(super) access_token: String,
-    pub(super) token_secret: String,
+    pub(super) consumer_secret: SecretArg,
+    pub(super) access_token: SecretArg,
+    pub(super) token_secret: SecretArg,
 }
 
 pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
@@ -249,9 +250,13 @@ pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
         flags,
         out,
         stdout,
-        ..
+        stderr,
     } = ctx;
     let AuthGlobalFlags { dry_run, .. } = flags;
+    let [consumer_secret, access_token, token_secret] =
+        secret::resolve_from_process([consumer_secret, access_token, token_secret])
+            .map_err(|e| e.report("xr auth oauth1", out, stderr))?
+            .map(Option::unwrap_or_default);
     if dry_run {
         let ctx = json!({"command": "auth-oauth1"});
         out.print_dry_run(stdout, true, 0, &ctx);
@@ -285,15 +290,18 @@ pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
     Ok(())
 }
 
-pub(super) fn bearer(bearer_token: String, ctx: AuthCtx<'_>) -> CommandResult<()> {
+pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult<()> {
     let AuthCtx {
         auth,
         flags,
         out,
         stdout,
-        ..
+        stderr,
     } = ctx;
     let AuthGlobalFlags { dry_run, .. } = flags;
+    let [bearer_token] = secret::resolve_from_process([bearer_token])
+        .map_err(|e| e.report("xr auth app", out, stderr))?
+        .map(Option::unwrap_or_default);
     if dry_run {
         let ctx = json!({"command": "auth-app"});
         out.print_dry_run(stdout, true, 0, &ctx);

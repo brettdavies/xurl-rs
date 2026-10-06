@@ -1216,8 +1216,11 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;auth;oauth1'= {
             cand --consumer-key 'Consumer key'
             cand --consumer-secret 'Consumer secret'
+            cand --consumer-secret-file 'File holding the consumer secret; ''-'' reads it from stdin'
             cand --access-token 'Access token'
+            cand --access-token-file 'File holding the access token; ''-'' reads it from stdin'
             cand --token-secret 'Token secret'
+            cand --token-secret-file 'File holding the token secret; ''-'' reads it from stdin'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1241,6 +1244,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;auth;app'= {
             cand --bearer-token 'Bearer token'
+            cand --bearer-token-file 'File holding the bearer token; ''-'' reads it from stdin'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1342,6 +1346,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;auth;apps;add'= {
             cand --client-id '`OAuth2` client ID'
             cand --client-secret '`OAuth2` client secret'
+            cand --client-secret-file 'File holding the `OAuth2` client secret; ''-'' reads it from stdin'
             cand --redirect-uri '`OAuth2` redirect URI (https or http on loopback)'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
@@ -1367,6 +1372,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;auth;apps;update'= {
             cand --client-id '`OAuth2` client ID'
             cand --client-secret '`OAuth2` client secret'
+            cand --client-secret-file 'File holding the `OAuth2` client secret; ''-'' reads it from stdin'
             cand --redirect-uri '`OAuth2` redirect URI (https or http on loopback); empty string clears'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'

@@ -451,8 +451,8 @@ Examples:
     xr auth oauth2
   Headless OAuth2 (servers, containers):
     xr auth oauth2 --no-browser --step 1
-  Bearer token for read-only / search:
-    xr auth app --bearer-token \"$TOKEN\"
+  Bearer token for read-only / search, piped so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
   Show current auth state, machine-readable:
     xr auth status --output json
 ";
@@ -548,22 +548,27 @@ Examples:
 /// `xr auth oauth1` — non-interactive OAuth1 setup.
 const AUTH_OAUTH1_HELP: &str = "\
 Examples:
-  Configure OAuth1 from app + user credentials:
-    xr auth oauth1 \\
-      --consumer-key CK --consumer-secret CS \\
-      --access-token AT --token-secret TS
-  Same, with JSON envelope for scripted setup:
-    xr auth oauth1 --consumer-key CK --consumer-secret CS \\
-      --access-token AT --token-secret TS --output json
+  Configure OAuth1 with one secret piped from a vault and the others read
+  from files, so none reaches argv (stdin carries one value):
+    op read 'op://<vault>/<item>/token_secret' | xr auth oauth1 --consumer-key CK \\
+      --consumer-secret-file consumer-secret.txt \\
+      --access-token-file access-token.txt --token-secret-file -
+  Every secret from a file, with JSON envelope for scripted setup:
+    xr auth oauth1 --consumer-key CK \\
+      --consumer-secret-file consumer-secret.txt \\
+      --access-token-file access-token.txt \\
+      --token-secret-file token-secret.txt --output json
 ";
 
 /// `xr auth app` — bearer-token configuration.
 const AUTH_APP_HELP: &str = "\
 Examples:
-  Set the bearer token from an env var:
-    xr auth app --bearer-token \"$XURL_BEARER_TOKEN\"
-  Same, JSON envelope:
-    xr auth app --bearer-token \"$XURL_BEARER_TOKEN\" --output json
+  Store the bearer token, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
+  Same from an env var, JSON envelope:
+    printenv XURL_BEARER_TOKEN | xr auth app --bearer-token-file - --output json
+  Read it from a file:
+    xr auth app --bearer-token-file bearer-token.txt
   Test the configured bearer:
     xr auth status --output json
 ";
@@ -595,12 +600,12 @@ Examples:
 /// `xr auth apps` parent help — points to subcommands.
 const AUTH_APPS_HELP: &str = "\
 Examples:
-  Register a new app:
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
   List registered apps (JSON):
     xr auth apps list --output json
-  Update credentials for an existing app:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the secret of an existing app from a file:
+    xr auth apps update my-app --client-secret-file client-secret.txt
   Inspect or set the stored OAuth2 redirect URI:
     xr auth apps redirect-uri get my-app --output json
 ";
@@ -621,26 +626,28 @@ Examples:
 /// `xr auth apps add` examples.
 const APPS_ADD_HELP: &str = "\
 Examples:
-  Register a new app (text):
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
+  Read the secret from a file:
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt
   Register with a custom redirect URI:
-    xr auth apps add my-app --client-id ID --client-secret SECRET \\
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt \\
       --redirect-uri https://localhost:8443/callback
   Register, JSON envelope for scripted setup:
-    xr auth apps add my-app --client-id ID --client-secret SECRET --output json
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file - --output json
 ";
 
 /// `xr auth apps update` examples.
 const APPS_UPDATE_HELP: &str = "\
 Examples:
-  Rotate the client secret:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the client secret, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps update my-app --client-secret-file -
   Update the redirect URI:
     xr auth apps update my-app --redirect-uri https://localhost:8443/callback
   Clear the stored redirect URI (pass empty string):
     xr auth apps update my-app --redirect-uri \"\"
-  Same, JSON envelope:
-    xr auth apps update my-app --client-secret NEW --output json
+  Rotate from a file, JSON envelope:
+    xr auth apps update my-app --client-secret-file client-secret.txt --output json
 ";
 
 /// `xr auth apps remove` — destructive op; advertise non-interactive shape.
@@ -767,7 +774,7 @@ Raw API access (curl-style):
                         xr -s /2/users/me
 
 Multi-app management:
-  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps add my-app --client-id ... --client-secret-file ...
   xr auth apps list
   xr auth default                                # interactive picker
   xr auth default my-app                         # set by name
@@ -1634,6 +1641,15 @@ pub struct CommonFlags {
     pub trace: bool,
 }
 
+/// A required secret's two sources, exactly one of which is given: the plain
+/// flag, or its file twin that keeps the value out of argv.
+fn secret_source(plain: &'static str, file: &'static str) -> clap::ArgGroup {
+    clap::ArgGroup::new(format!("{plain}_source"))
+        .args([plain, file])
+        .required(true)
+        .multiple(false)
+}
+
 /// Auth subcommands.
 #[derive(Subcommand, Debug)]
 pub enum AuthCommands {
@@ -1670,27 +1686,47 @@ pub enum AuthCommands {
         username: Option<String>,
     },
     /// Configure `OAuth1` authentication
-    #[command(after_help = AUTH_OAUTH1_HELP)]
+    #[command(
+        after_help = AUTH_OAUTH1_HELP,
+        group(secret_source("consumer_secret", "consumer_secret_file")),
+        group(secret_source("access_token", "access_token_file")),
+        group(secret_source("token_secret", "token_secret_file")),
+    )]
     Oauth1 {
         /// Consumer key
         #[arg(long = "consumer-key")]
         consumer_key: String,
         /// Consumer secret
         #[arg(long = "consumer-secret")]
-        consumer_secret: String,
+        consumer_secret: Option<String>,
+        /// File holding the consumer secret; '-' reads it from stdin
+        #[arg(long = "consumer-secret-file", value_name = "PATH")]
+        consumer_secret_file: Option<String>,
         /// Access token
         #[arg(long = "access-token")]
-        access_token: String,
+        access_token: Option<String>,
+        /// File holding the access token; '-' reads it from stdin
+        #[arg(long = "access-token-file", value_name = "PATH")]
+        access_token_file: Option<String>,
         /// Token secret
         #[arg(long = "token-secret")]
-        token_secret: String,
+        token_secret: Option<String>,
+        /// File holding the token secret; '-' reads it from stdin
+        #[arg(long = "token-secret-file", value_name = "PATH")]
+        token_secret_file: Option<String>,
     },
     /// Configure app-auth (bearer token)
-    #[command(after_help = AUTH_APP_HELP)]
+    #[command(
+        after_help = AUTH_APP_HELP,
+        group(secret_source("bearer_token", "bearer_token_file")),
+    )]
     App {
         /// Bearer token
         #[arg(long = "bearer-token")]
-        bearer_token: String,
+        bearer_token: Option<String>,
+        /// File holding the bearer token; '-' reads it from stdin
+        #[arg(long = "bearer-token-file", value_name = "PATH")]
+        bearer_token_file: Option<String>,
     },
     /// Show authentication status
     #[command(after_help = AUTH_STATUS_HELP)]
@@ -1735,7 +1771,10 @@ pub enum AuthCommands {
 #[derive(Subcommand, Debug)]
 pub enum AppCommands {
     /// Register a new X API app
-    #[command(after_help = APPS_ADD_HELP)]
+    #[command(
+        after_help = APPS_ADD_HELP,
+        group(secret_source("client_secret", "client_secret_file")),
+    )]
     Add {
         /// App name
         name: String,
@@ -1744,7 +1783,10 @@ pub enum AppCommands {
         client_id: String,
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
-        client_secret: String,
+        client_secret: Option<String>,
+        /// File holding the `OAuth2` client secret; '-' reads it from stdin
+        #[arg(long = "client-secret-file", value_name = "PATH")]
+        client_secret_file: Option<String>,
         /// `OAuth2` redirect URI (https or http on loopback)
         #[arg(long = "redirect-uri")]
         redirect_uri: Option<String>,
@@ -1760,6 +1802,13 @@ pub enum AppCommands {
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: Option<String>,
+        /// File holding the `OAuth2` client secret; '-' reads it from stdin
+        #[arg(
+            long = "client-secret-file",
+            value_name = "PATH",
+            conflicts_with = "client_secret"
+        )]
+        client_secret_file: Option<String>,
         /// `OAuth2` redirect URI (https or http on loopback); empty string clears
         #[arg(long = "redirect-uri")]
         redirect_uri: Option<String>,

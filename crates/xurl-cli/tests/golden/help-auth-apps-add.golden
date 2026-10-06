@@ -1,12 +1,12 @@
 args: ["auth", "apps", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5841
+stdout_len: 6256
 stderr_len: 0
 --- stdout ---
 Register a new X API app
 
-Usage: xr auth apps add [OPTIONS] --client-id <CLIENT_ID> --client-secret <CLIENT_SECRET> <NAME>
+Usage: xr auth apps add [OPTIONS] --client-id <CLIENT_ID> <--client-secret <CLIENT_SECRET>|--client-secret-file <PATH>> <NAME>
 
 Arguments:
   <NAME>
@@ -18,6 +18,9 @@ Options:
 
       --client-secret <CLIENT_SECRET>
           `OAuth2` client secret
+
+      --client-secret-file <PATH>
+          File holding the `OAuth2` client secret; '-' reads it from stdin
 
       --redirect-uri <REDIRECT_URI>
           `OAuth2` redirect URI (https or http on loopback)
@@ -143,13 +146,15 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Register a new app (text):
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
+  Read the secret from a file:
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt
   Register with a custom redirect URI:
-    xr auth apps add my-app --client-id ID --client-secret SECRET \
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt \
       --redirect-uri https://localhost:8443/callback
   Register, JSON envelope for scripted setup:
-    xr auth apps add my-app --client-id ID --client-secret SECRET --output json
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file - --output json
 
 --- stderr ---
 

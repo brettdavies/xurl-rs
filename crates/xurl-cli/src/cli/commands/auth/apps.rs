@@ -5,6 +5,7 @@ use std::io::Write;
 
 use serde_json::json;
 
+use super::secret::{self, SecretArg, SecretError};
 use super::{
     AuthCtx, AuthGlobalFlags, Gate, RedirectUriGetResponse, RedirectUriSetResponse,
     build_app_status_entries, env_bearer_app, gate_destructive, print_no_apps_registered,
@@ -36,8 +37,12 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
             name,
             client_id,
             client_secret,
+            client_secret_file,
             redirect_uri,
         } => {
+            let client_secret = resolve_client_secret(client_secret, client_secret_file)
+                .map_err(|e| e.report("xr auth apps add", out, stderr))?
+                .unwrap_or_default();
             if dry_run {
                 let ctx = json!({
                     "command": "app-add",
@@ -77,8 +82,11 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
             name,
             client_id,
             client_secret,
+            client_secret_file,
             redirect_uri,
         } => {
+            let client_secret = resolve_client_secret(client_secret, client_secret_file)
+                .map_err(|e| e.report("xr auth apps update", out, stderr))?;
             if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
                 return Err(Error::validation(
                     "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
@@ -190,6 +198,19 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
         }
     }
     Ok(())
+}
+
+/// The client secret from its plain flag or its file twin.
+fn resolve_client_secret(
+    value: Option<String>,
+    file: Option<String>,
+) -> std::result::Result<Option<String>, SecretError> {
+    let [client_secret] = secret::resolve_from_process([SecretArg {
+        file_flag: "--client-secret-file",
+        value,
+        file,
+    }])?;
+    Ok(client_secret)
 }
 
 fn run_redirect_uri_command(
