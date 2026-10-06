@@ -1122,3 +1122,64 @@ async fn refresh_without_a_rotated_token_keeps_the_stored_refresh_token() {
         "an omitted refresh_token keeps the stored one"
     );
 }
+
+// ── OAuth2 scope selection ─────────────────────────────────────────────────
+
+/// The `scope` parameter of the authorize URL a sign-in with `auth` opens.
+fn authorize_scope(auth: &Auth, tmp: &TempDir) -> String {
+    let authorize_url = auth
+        .remote_oauth2_step1(&tmp.path().join(".xurl.pending"))
+        .expect("step 1 builds the URL");
+    url::Url::parse(&authorize_url)
+        .expect("the authorize URL parses")
+        .query_pairs()
+        .find(|(key, _)| key == "scope")
+        .map(|(_, value)| value.into_owned())
+        .expect("the URL carries a scope")
+}
+
+#[test]
+fn test_a_sign_in_requests_every_scope_by_default() {
+    let (token_store, tmp) = create_temp_token_store();
+    let auth = auth_for(&test_config(), token_store);
+
+    assert_eq!(
+        authorize_scope(&auth, &tmp),
+        "tweet.read users.read bookmark.read follows.read list.read block.read mute.read \
+         like.read users.email dm.read broadcast.read tweet.write tweet.moderate.write \
+         follows.write bookmark.write block.write mute.write like.write list.write media.write \
+         dm.write broadcast.write offline.access space.read"
+    );
+}
+
+#[rstest]
+#[case::a_subset(&["tweet.read", "users.read"], "tweet.read users.read offline.access")]
+#[case::offline_access_named(&["offline.access", "tweet.read"], "tweet.read offline.access")]
+#[case::a_scope_named_twice(&["dm.read", "dm.read"], "dm.read offline.access")]
+fn test_a_narrowed_sign_in_requests_the_named_scopes_and_offline_access(
+    #[case] requested: &[&str],
+    #[case] scope: &str,
+) {
+    let (token_store, tmp) = create_temp_token_store();
+    let mut auth = auth_for(&test_config(), token_store);
+    auth.with_oauth2_scopes(requested).expect("known scopes");
+
+    assert_eq!(authorize_scope(&auth, &tmp), scope);
+}
+
+#[test]
+fn test_an_unknown_scope_is_rejected_naming_the_valid_ones() {
+    let (token_store, _tmp) = create_temp_token_store();
+    let mut auth = auth_for(&test_config(), token_store);
+
+    let error = auth
+        .with_oauth2_scopes(&["tweet.read", "tweet.reed"])
+        .expect_err("tweet.reed is not a scope");
+
+    assert_eq!(error.kind(), "validation");
+    let message = error.to_string();
+    assert!(message.contains("tweet.reed"), "{message}");
+    for valid in get_oauth2_scopes() {
+        assert!(message.contains(valid), "{valid} is listed: {message}");
+    }
+}
