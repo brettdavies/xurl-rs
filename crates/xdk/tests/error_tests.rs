@@ -86,7 +86,7 @@ fn test_xurl_error_display_validation() {
 fn test_xurl_error_api_constructor() {
     let err = Error::api(401, "unauthorized");
     match &err {
-        Error::Api { status, body } => {
+        Error::Api { status, body, .. } => {
             assert_eq!(*status, 401);
             assert_eq!(body, "unauthorized");
         }

@@ -96,11 +96,12 @@ pub struct ErrorBody {
     /// What the caller should do next, when a recovery step exists.
     ///
     /// `action` is closed: `register-app`, `sign-in`, `select-app`,
-    /// `inspect-store`, `enroll-app`, `show-help`, `resume-wait`. A newer
-    /// release can add an action, so treat one you do not recognize as your
-    /// default branch. A step carries either a `command`, runnable verbatim by
-    /// a non-TTY caller, or a `template` whose angle-bracket placeholders only
-    /// the caller can fill, never both.
+    /// `inspect-store`, `enroll-app`, `show-help`, `resume-wait`,
+    /// `wait-and-retry`. A newer release can add an action, so treat one you
+    /// do not recognize as your default branch. A step carries either a
+    /// `command`, runnable verbatim by a non-TTY caller, or a `template` whose
+    /// angle-bracket placeholders only the caller can fill, never both;
+    /// `enroll-app` and `wait-and-retry` carry neither, only `docs`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
@@ -138,6 +139,15 @@ pub struct ErrorBody {
     /// Media id whose processing a wait gave up on; the upload is intact.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_id: Option<String>,
+
+    /// Seconds until the rate limit resets, zero once it has; present on a
+    /// `rate-limited` error whose own response named the reset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_after_secs: Option<u64>,
+    /// The same reset as an RFC 3339 UTC timestamp, for a caller that
+    /// schedules the retry instead of sleeping.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_at: Option<String>,
 
     /// Post id a destructive verb targeted.
     #[serde(skip_serializing_if = "Option::is_none")]

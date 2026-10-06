@@ -33,6 +33,9 @@ pub enum NextAction {
     /// Media was still processing when the wait's deadline passed; wait on
     /// the same media id again.
     ResumeWait,
+    /// X rate limited the request and said when the window resets; send it
+    /// again once that time has passed.
+    WaitAndRetry,
 }
 
 /// The enrollment recipe for an app X refuses.
@@ -68,7 +71,7 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// # let result: Result<(), Error> = Err(Error::validation("missing field"));
 /// match result {
 ///     Ok(()) => println!("ok"),
-///     Err(Error::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(Error::Api { status, body, .. }) => eprintln!("api {status}: {body}"),
 ///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
 ///     Err(Error::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
@@ -97,6 +100,13 @@ pub enum Error {
         status: u16,
         /// Raw response body (typically JSON).
         body: String,
+        /// When the rate-limit window resets, as seconds since the Unix
+        /// epoch: the `x-rate-limit-reset` header of this response. `None`
+        /// when the response named no reset, which is every response but a
+        /// 429 and some 429s too. It is never the window an earlier response
+        /// reported, so a caller that waits on it waits on what X said about
+        /// this request.
+        reset_at: Option<u64>,
     },
 
     /// Non-HTTP validation or logic error (e.g., missing fields, errors-only 200 responses).
@@ -310,6 +320,7 @@ impl Error {
         Self::Api {
             status,
             body: body.into(),
+            reset_at: None,
         }
     }
 
@@ -337,9 +348,10 @@ impl Error {
     ///
     /// A 403 that says X refused the app is `EnrollApp`; a bare 403 on X's
     /// Pay-per-use enrollment failure is unactionable without it. A
-    /// processing timeout is `ResumeWait`. Every other error is `None` here:
-    /// the steps that depend on a credential store are the binary's to
-    /// choose.
+    /// processing timeout is `ResumeWait`, and a 429 that named its reset is
+    /// `WaitAndRetry`; a 429 that named none has no time to wait for. Every
+    /// other error is `None` here: the steps that depend on a credential
+    /// store are the binary's to choose.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -348,9 +360,14 @@ impl Error {
     #[must_use]
     pub fn next_action(&self) -> Option<NextAction> {
         match self {
-            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
                 Some(NextAction::EnrollApp)
             }
+            Self::Api {
+                status: 429,
+                reset_at: Some(_),
+                ..
+            } => Some(NextAction::WaitAndRetry),
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Api { .. }
             | Self::Http(_)
@@ -378,7 +395,7 @@ impl Error {
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
         match self {
-            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
                 Some(ENROLLMENT_DOCS)
             }
             Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch(_) => {

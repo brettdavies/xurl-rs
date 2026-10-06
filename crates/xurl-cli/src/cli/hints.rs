@@ -14,7 +14,8 @@ use xdk::store::snapshot::StoreSnapshot;
 /// The `next_step` object carried by an error envelope.
 ///
 /// Exactly one of [`Self::command`] and [`Self::template`] is present,
-/// except for [`NextAction::EnrollApp`], which carries only `docs`:
+/// except for [`NextAction::EnrollApp`] and [`NextAction::WaitAndRetry`],
+/// which carry only `docs`:
 /// a command is a verbatim invocation safe for a non-TTY caller, while a
 /// template carries angle-bracket placeholders the caller must fill in.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -127,6 +128,19 @@ impl NextStep {
             command: Some(format!("xr media status {media_id} --wait={secs}")),
             template: None,
             docs: None,
+        }
+    }
+
+    /// Send the same request again once the rate limit has reset. There is
+    /// no command: the request is the caller's own, and the time to wait is
+    /// in the envelope beside this step.
+    #[must_use]
+    pub fn wait_and_retry(docs: String) -> Self {
+        Self {
+            action: NextAction::WaitAndRetry,
+            command: None,
+            template: None,
+            docs: Some(docs),
         }
     }
 
@@ -273,6 +287,31 @@ pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
         )],
         next_step,
+    })
+}
+
+/// Builds the retry hint when `error` is a 429 that named its reset.
+///
+/// A 429 that named no reset gets no hint: there is no time to state.
+#[must_use]
+pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
+    let (
+        Error::Api {
+            reset_at: Some(reset_at),
+            ..
+        },
+        Some(NextAction::WaitAndRetry),
+        Some(docs),
+    ) = (error, error.next_action(), error.docs_url())
+    else {
+        return None;
+    };
+    let (retry_after_secs, retry_at) = crate::cli::output::retry_times(*reset_at);
+    Some(Hint {
+        text_lines: vec![format!(
+            "Rate limited. Retry in {retry_after_secs} seconds, at {retry_at}. See: {docs}"
+        )],
+        next_step: NextStep::wait_and_retry(docs.to_string()),
     })
 }
 

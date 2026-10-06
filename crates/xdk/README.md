@@ -101,9 +101,13 @@ async fn main() -> xdk::Result<()> {
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error
 answers four questions: `kind()` names its category as a stable string, `exit_code()` maps it to the process exit code
 the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (sign in,
-register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. A 429
-carries no next action; `Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent response
-that reported one, which is what a retry loop waits on.
+register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists.
+
+A 429 carries the reset its own response named, as seconds since the Unix epoch in the `reset_at` field of `Error::Api`,
+and `NextAction::WaitAndRetry` with it; a 429 that named none carries neither. `ClientBuilder::wait_on_rate_limit` makes
+the client wait for that reset and send the request once more, when the wait fits the bound it is given.
+`Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent response that reported one, which
+is what a loop pacing its own requests reads.
 
 ```rust,no_run
 use xdk::api::Client;

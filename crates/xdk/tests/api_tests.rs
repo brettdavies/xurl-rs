@@ -621,32 +621,6 @@ async fn test_send_request_http_error() {
     assert!(err.is_api(), "Expected API error, got: {err}");
 }
 
-#[tokio::test]
-async fn test_send_request_json_parse_error() {
-    let ts = TestServer::new().await;
-    ts.mount(
-        Mock::given(method("GET"))
-            .and(path("/2/bad-json"))
-            .respond_with(ResponseTemplate::new(200).set_body_string("this is not json")),
-    )
-    .await;
-
-    let cfg = create_test_config(ts.uri());
-    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
-    let client = Client::new(&cfg, auth).expect("client builds");
-
-    // Non-JSON 200 response returns empty JSON object
-    let resp = client
-        .send_request(&RequestOptions {
-            method: "GET".to_string(),
-            target: target_path("/2/bad-json"),
-            ..Default::default()
-        })
-        .await
-        .unwrap();
-    assert_eq!(resp, serde_json::json!({}));
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Timeout wiring — --timeout / XURL_TIMEOUT bound network calls
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1630,27 +1604,36 @@ async fn redteam_search_posts_null_data() {
     assert!(result.is_err(), "Should fail: null data for Vec<Post>");
 }
 
+/// A typed call names what it got in place of the JSON it expected: nothing
+/// at all, or a body that is not a JSON object.
+#[rstest]
+#[case::empty_body("", "empty response body")]
+#[case::text_body("not json", "response body is not a JSON object")]
 #[tokio::test]
-async fn redteam_empty_body_returns_descriptive_error() {
-    // send_request returns empty {} for non-JSON 2xx — shortcut should give clear error
+async fn redteam_a_success_body_a_shortcut_cannot_decode_returns_a_descriptive_error(
+    #[case] body: &str,
+    #[case] expected: &str,
+) {
     let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(200).set_body_string("not json")),
+            .respond_with(ResponseTemplate::new(200).set_body_string(body)),
     )
     .await;
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
     let client = Client::new(&cfg, auth).expect("client builds");
 
-    let result = client.get_me().send().await;
-    assert!(result.is_err());
-    let err = result.unwrap_err().to_string();
-    assert!(
-        err.contains("empty response body"),
-        "Expected descriptive error, got: {err}"
-    );
+    let err = client
+        .get_me()
+        .send()
+        .await
+        .expect_err("nothing to decode")
+        .to_string();
+
+    assert!(err.contains(expected), "got: {err}");
+    assert!(err.contains(body), "the body is quoted: {err}");
 }
 
 #[tokio::test]
@@ -2464,7 +2447,7 @@ async fn redteam_api_error_preserves_status_and_body() {
     assert!(err.is_api());
     // Verify structured error carries status
     match &err {
-        xdk::Error::Api { status, body } => {
+        xdk::Error::Api { status, body, .. } => {
             assert_eq!(*status, 403);
             assert!(body.contains("Forbidden"));
         }

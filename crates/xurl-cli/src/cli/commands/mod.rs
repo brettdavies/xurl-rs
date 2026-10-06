@@ -208,6 +208,9 @@ pub(crate) async fn run(
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
     // OAuth2 token exchange/refresh, and the `/2/users/me` lookup.
     cfg.http_timeout_secs = cli.timeout;
+    cfg.rate_limit_max_wait = cli
+        .wait_on_rate_limit
+        .then(|| std::time::Duration::from_secs(cli.rate_limit_max_wait));
 
     // Capture whether the user passed `--app` BEFORE `cli.app` is
     // collapsed into `auth.with_app_name(...)` below. The collapsed
@@ -357,7 +360,15 @@ async fn run_raw_mode(
         streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await
     } else {
         let response = client.send_request(&options).await?;
-        out.print_response(stdout, &response);
+        // A body that is not JSON arrives as a string holding it. Text mode
+        // prints those bytes as they are; a structured mode still prints
+        // JSON, so it keeps the string form.
+        match &response {
+            serde_json::Value::String(text) if !out.format.is_structured() => {
+                out.print_message(stdout, text);
+            }
+            _ => out.print_response(stdout, &response),
+        }
         Ok(())
     }
 }

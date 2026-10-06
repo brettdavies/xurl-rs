@@ -15,6 +15,7 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
+mod rfc3339;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -617,9 +618,28 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         Error::ProcessingTimeout { media_id, .. } => {
             body.media_id = Some(media_id.clone());
         }
+        Error::Api {
+            status: 429,
+            reset_at: Some(reset_at),
+            ..
+        } => {
+            let (retry_after_secs, retry_at) = retry_times(*reset_at);
+            body.retry_after_secs = Some(retry_after_secs);
+            body.retry_at = Some(retry_at);
+        }
         _ => {}
     }
     body
+}
+
+/// The two forms of a rate limit's reset: the seconds left until it, zero
+/// once it has passed, and the moment itself as an RFC 3339 UTC timestamp.
+pub(crate) fn retry_times(reset_at: u64) -> (u64, String) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    (reset_at.saturating_sub(now), rfc3339::utc_rfc3339(reset_at))
 }
 
 impl Default for OutputConfig {

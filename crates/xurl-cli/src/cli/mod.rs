@@ -72,6 +72,8 @@ ENVIRONMENT VARIABLES:
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
+  XURL_WAIT_ON_RATE_LIMIT  Wait out a rate limit and retry once (same as --wait-on-rate-limit)
+  XURL_RATE_LIMIT_MAX_WAIT Longest rate-limit wait in seconds (same as --rate-limit-max-wait)
   XURL_COLOR             Color control: auto, always, never (same as --color)
   XURL_VERBOSE           Request/response lines and legacy-vocabulary notes (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)
@@ -942,6 +944,34 @@ pub struct Cli {
     /// Request timeout in seconds
     #[arg(long, global = true, default_value = "30", env = "XURL_TIMEOUT")]
     pub timeout: u64,
+
+    /// Wait out a rate limit and retry once, instead of failing with `rate-limited`
+    ///
+    /// Applies when X answers 429 and that response names its reset, and the
+    /// wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names
+    /// no reset, fails at once as it does without this flag, and the second
+    /// response is final whatever it is.
+    #[arg(
+        long,
+        global = true,
+        env = "XURL_WAIT_ON_RATE_LIMIT",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = true,
+    )]
+    pub wait_on_rate_limit: bool,
+
+    /// Longest `--wait-on-rate-limit` waits before its retry, in seconds
+    #[arg(
+        long,
+        global = true,
+        value_name = "SECS",
+        default_value = "60",
+        env = "XURL_RATE_LIMIT_MAX_WAIT"
+    )]
+    pub rate_limit_max_wait: u64,
 
     /// Colorize output: auto (TTY-aware), always, or never
     #[arg(
