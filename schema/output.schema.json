@@ -29,13 +29,13 @@
           "type": "string"
         },
         {
-          "const": "resume-wait",
-          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
+          "const": "show-help",
+          "description": "The word named no command; read the help of the nearest one.",
           "type": "string"
         },
         {
-          "const": "show-help",
-          "description": "The word named no command; read the help of the nearest one.",
+          "const": "resume-wait",
+          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
           "type": "string"
         }
       ]
