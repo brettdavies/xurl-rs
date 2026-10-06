@@ -58,8 +58,6 @@ impl MediaUploadOutcome {
 
 /// Handles the full media upload lifecycle.
 ///
-/// # Errors
-///
 /// `wait_for_processing` is the deadline a video's processing is awaited to;
 /// `None` returns after FINALIZE.
 ///
