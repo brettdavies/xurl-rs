@@ -1,8 +1,10 @@
 # Pre-release verification: `xurl-rs`
 
-Operational pre-flight checklist. Runs **before** step 1 of
-[`RELEASES.md` § Releasing dev to main](./RELEASES.md#releasing-dev-to-main). Gates the cut of the `release/v<version>`
-branch, not the daily dev integration. Each box is an explicit go/no-go. If any item is unchecked or red, hold the
+Operational pre-flight checklist. Walk it before step 1 of
+[`RELEASES.md` § Releasing dev to main](./RELEASES.md#releasing-dev-to-main), the cut: it gates the `release/v<version>`
+branch, not the daily dev integration. The automated gates (`scripts/release/preflight.sh all`) run at step 3, against
+the committed release branch, because the mechanics checks read the bumped versions and the release tree; the cut runs
+the drift gate itself before it branches. Each box is an explicit go/no-go. If any item is unchecked or red, hold the
 release.
 
 CI (fmt, clippy, test, cargo-deny, Windows-compat, package-check) catches mechanical regressions inside this repo. This
@@ -17,6 +19,50 @@ checklist covers what CI structurally can't:
 - TLS stack correctness on Windows (the rustls + rustls-platform-verifier path differs from the dynamic-linker stack on
   Linux/macOS and CI's `ci / Windows check` only covers compile-time correctness).
 
+## Quick start: run the automated gates
+
+Most of this checklist runs from one script. Build `xr` first, then:
+
+```bash
+cargo build --release --bin xr
+scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + changelog-sections + mechanics
+```
+
+After `git push origin vX.Y.Z` triggers the release pipeline, run
+[`scripts/release/postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
+
+The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
+shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, and the drift,
+surface, changelog-sections, and mechanics gates) is the skeleton's; the api-contract, smoke, and multi-app gates and
+the seed recipe are this repo's. `all` runs the drift gate first, since nothing else matters while `main` holds changes
+`dev` never received. It exits non-zero if any gate fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2
+headless, 429 rate-limit) are skipped with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate
+group in isolation:
+
+| Sub-command          | What it runs                                                                                                                                                                                                              | Live API?                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `drift`              | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)                                              | no                            |
+| `surface`            | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                                                                   | no                            |
+| `api-contract`       | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` on `xdk-rs` vs its last `xdk-rs-v*` tag                                                                                                                 | no (builds prev tag once)     |
+| `smoke`              | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                                                           | yes                           |
+| `multi-app`          | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                                                                    | yes                           |
+| `changelog-sections` | No PR this release carries leaves its changelog entry to its title for want of a `## Changelog (<crate>)` section (`generate-changelog.py --audit-sections`, for `xurl-rs` and for `xdk-rs` while its release is pending) | no (reads PR bodies via `gh`) |
+| `mechanics`          | CLI crate version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev`                                         | no                            |
+| `all`                | every above                                                                                                                                                                                                               | yes                           |
+
+Flags:
+
+- `--smoke-home PATH`: reuse an existing seeded store (skip the 1Password seed)
+- `--no-cleanup`: keep the temp store after exit (useful for follow-up `xr` probes)
+- `--tag TAG`: override LAST_TAG auto-detection (default: the newest `v[0-9]*` tag, so an `xdk-rs-v*` tag never stands
+  in for the CLI's)
+
+The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and **`shred -u`s** every tempdir that
+held credentials on exit (overwrites bytes with three passes before unlinking; falls back to `dd if=/dev/urandom + rm`
+if `shred` isn't on `PATH`; refuses to operate outside `/tmp` or `$HOME` as a path-typo guardrail). The detailed recipes
+in the gate sections below still document what the script does and serve as the manual fallback when 1Password is
+unavailable or you want to iterate on a single gate by hand.
+
 ## Establish the surface
 
 Everything below assumes you know what's changing. Run this first.
@@ -25,59 +71,25 @@ Driven by `scripts/release/preflight.sh surface`.
 
 ```bash
 LAST_TAG=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
-git log "$LAST_TAG..dev" --oneline                              # commits going out
-git diff "$LAST_TAG..dev" --stat                                # file-level scope
-git diff "$LAST_TAG..dev" -- crates/xdk/src/ crates/xurl-cli/src/  # surface area: library, CLI
-git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
+# The commit that synced the tag back into dev opens dev's window.
+SINCE=$(git log origin/dev --format='%H %s' \
+  | grep -E -m1 "^[0-9a-f]+ chore\(release\): (sync dev after|backport) ${LAST_TAG//./\\.}( |$)" | cut -d' ' -f1)
+git log "$SINCE..origin/dev" --oneline                          # commits going out
+git diff "$LAST_TAG" origin/dev --name-only \
+  | grep -Ev "$(scripts/release/guarded-paths.sh)"              # file-level scope: what ships
+git diff "$LAST_TAG" origin/dev -- crates/xdk/src/ crates/xurl-cli/src/   # surface area: library, CLI
+git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
-On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
-`origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
+Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
+`dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
+`chore(release): sync dev after vX.Y.Z`: the boundary `generate-changelog.py` uses. The file list compares trees, so it
+reads from the tag directly, minus the guarded set `dev` carries but never ships. With no commit syncing the tag back,
+`preflight.sh surface` SKIPs, and the surface is `origin/main..origin/dev`.
 
 `cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
 detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
 the release's `### Breaking changes` section, and so does every break the semver gate reports.
-
-## Quick start: run the automated gates
-
-Most of this checklist runs from one script. Build `xr` first, then:
-
-```bash
-cargo build --release --bin xr
-scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + mechanics
-```
-
-After `git push origin vX.Y.Z` triggers the release pipeline, run
-[`scripts/release/postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
-
-The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
-shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, drift + surface +
-mechanics gates) is the skeleton's; the api-contract, smoke, and multi-app gates and the seed recipe are this repo's.
-`all` runs the drift gate first, since nothing else matters while `main` holds changes `dev` never received. It exits
-non-zero if any gate fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2 headless, 429 rate-limit) are skipped
-with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
-
-| Sub-command    | What it runs                                                                                                                                                                      | Live API?                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `drift`        | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)      | no                        |
-| `surface`      | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                           | no                        |
-| `api-contract` | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` vs LAST_TAG                                                                                                     | no (builds prev tag once) |
-| `smoke`        | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                   | yes                       |
-| `multi-app`    | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                            | yes                       |
-| `mechanics`    | CLI crate version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | no                        |
-| `all`          | every above                                                                                                                                                                       | yes                       |
-
-Flags:
-
-- `--smoke-home PATH`: reuse an existing seeded store (skip the 1Password seed)
-- `--no-cleanup`: keep the temp store after exit (useful for follow-up `xr` probes)
-- `--tag TAG`: override LAST_TAG auto-detection
-
-The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and **`shred -u`s** every tempdir that
-held credentials on exit (overwrites bytes with three passes before unlinking; falls back to `dd if=/dev/urandom + rm`
-if `shred` isn't on `PATH`; refuses to operate outside `/tmp` or `$HOME` as a path-typo guardrail). The detailed recipes
-in the gate sections below still document what the script does and serve as the manual fallback when 1Password is
-unavailable or you want to iterate on a single gate by hand.
 
 ## Checklist
 
@@ -104,20 +116,20 @@ Dependabot raises the same fix again.
 
 ### Dependabot preflight
 
-Run before `Cargo.toml` is bumped and before any release branch is cut. Surfaces pending dependency updates so they can
-be merged on `dev` (or rejected) instead of arriving as Dependabot PRs the moment the release commit lands: `Cargo.lock`
-churn triggers Dependabot's out-of-cycle re-evaluation, and at that point the release is already tagged and they miss
-the cut.
+Run before the versions are bumped and before the release branch is cut. A release commit that re-resolves `Cargo.lock`
+triggers Dependabot's out-of-cycle re-evaluation, so an update still pending at the cut arrives as a PR the moment the
+release lands, after the tag it needed to make. Surface what is pending now, so each update merges on `dev` or is
+declined first.
 
-- [ ] Trigger the workflow: GitHub → Actions → "Dependabot Preflight" → "Run workflow" (head = `dev`). The caller is
-  `.github/workflows/dependabot-preflight.yml`.
-- [ ] Review the `cargo` job's `cargo outdated --workspace --depth 1` report in the run summary. For each direct dep
-  with a newer compatible version, decide: merge an update PR on dev now, accept the stale version this release, or rule
-  out the update with a `Cargo.toml` constraint.
-- [ ] Review the `github-actions` job's pin-drift table. For every drifted action, bump the pinned SHA on dev and update
-  the trailing `# <version>` comment.
-- [ ] (Optional) Trigger Dependabot to open PRs for whatever the preflight surfaced: GitHub → Insights → Dependency
-  graph → Dependabot → "Check for updates". Wait for the PRs to land; merge anything that passes CI on dev.
+- [ ] Trigger the workflow: Actions → "Dependabot Preflight" → "Run workflow" (head = `dev`). The caller is
+  `.github/workflows/dependabot-preflight.yml`, a thin caller of the `brettdavies/.github` reusable.
+- [ ] Review the `cargo` job's `cargo outdated --workspace --depth 1` report in the run summary; the job runs red while
+  any direct dependency has a newer compatible version. For each one, decide: merge an update PR on `dev` now, accept
+  the stale version this release, or rule the update out with a `Cargo.toml` constraint.
+- [ ] Review the `github-actions` job's pin-drift table. For every drifted action, bump the pinned SHA on `dev` and
+  update the trailing `# <version>` comment.
+- [ ] (Optional) Have Dependabot open PRs for whatever the preflight surfaced: Insights → Dependency graph → Dependabot
+  → "Check for updates". Merge anything that passes CI on `dev`.
 
 ### API-contract surface
 
@@ -132,13 +144,15 @@ library re-exports in `crates/xdk/src/lib.rs`.
   Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning).
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
-- [ ] Public library surface (`xurl_rs::*`): `cargo semver-checks check-release --baseline-rev "$LAST_TAG"
-  --release-type <bump>` passes. It reads rustdoc JSON and applies Rust's own semver rules, so it sees `pub` fields,
-  consts, type aliases, and traits across every public module. Confirm each reported break has a row in the release
-  changelog. A break shipping in a minor by decision gets a `required-update = "minor"` entry in `Cargo.toml` under
-  `[package.metadata.cargo-semver-checks.lints]`, which reclassifies it rather than silencing it: the gate still names
-  the break and still fails a patch release. Those entries are scoped to one release and are deleted once the tag moves
-  the baseline past them.
+- [ ] Public library surface (`xdk::*`, the `xdk-rs` package): `cargo semver-checks check-release --package xdk-rs
+  --baseline-rev <last xdk-rs-v* tag> --release-type minor` passes. The library baselines on its own tag line, as CI's
+  public-API semver job does, because the CLI's `v*` tags would name the wrong crate. It reads rustdoc JSON and applies
+  Rust's own semver rules, so it sees `pub` fields, consts, type aliases, and traits across every public module. Confirm
+  each reported break has a row in the `xdk-rs` changelog. A break shipping in a minor by decision gets a
+  `required-update = "minor"` entry in `crates/xdk/Cargo.toml` under `[package.metadata.cargo-semver-checks.lints]`,
+  which reclassifies it rather than silencing it: the gate still names the break. Those entries are scoped to one
+  release and are deleted once the tag moves the baseline past them. Before the first `xdk-rs-v*` tag the gate skips:
+  there is no baseline.
 
 ### Real-world smoke (live X API)
 
@@ -364,8 +378,12 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] `Cargo.lock` regenerated per `RELEASES.md` § Project specifics (`cargo update -p xurl-rs`, plus `-p xdk-rs` when
   the library moves), committed.
 - [ ] Rebuild locally, confirm `xr --version` prints the new tag value.
-- [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev
-  --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then `gh pr view <num> --json body`.
+- [ ] No PR this release carries leaves its changelog entry to its title. Swept, not sampled, by
+  `scripts/release/preflight.sh changelog-sections`, which runs `generate-changelog.py --audit-sections` for `xurl-rs`
+  and, while a library release is pending, for `xdk-rs`. It reads the PRs from `dev`'s history since the previous
+  release on the tag line, stacked PRs included, and names every one that never offered the crate's `## Changelog
+  (<crate>)` section under a title the fallback would print. A section left empty on purpose passes: the generator reads
+  it as nothing for that crate.
 - [ ] `rust-toolchain.toml` last bumped ≥7 days ago (supply-chain quarantine). If a bump landed inside the window, hold
   or revert it before tagging.
 - [ ] No unmerged dependency advisories from `cargo deny check advisories`. The full local pre-push check
@@ -374,16 +392,33 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   from the version carriers and the guarded paths. A cherry-pick release runs the triple diff in `RELEASES.md` §
   Exception: cherry-pick instead, with `HEAD..origin/dev` filtered by the guarded set (not all of `docs/`, since
   `docs/migrating/` ships to `main` and a wholesale exclusion would hide a missed pick there).
-- [ ] **Leak check before pushing the release branch.** No guarded path may surface in the diff vs `origin/main`. The
-  cut's check B screens the staged tree, and `preflight.sh mechanics` screens the committed branch; both resolve the set
-  from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`. If cherry-picks pulled in guarded
-  paths via rename detection, resolve per `RELEASES.md` § Cherry-pick conflicts on guarded paths.
+- [ ] **Leak check before pushing the release branch.** No guarded path may be added or modified in the diff vs
+  `origin/main`. The cut's check B screens the staged tree, and `preflight.sh mechanics` screens the committed branch;
+  both resolve the set from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`, and both
+  filter with `--diff-filter=ACMR`, because a release that removes a guarded doc `main` still carries lists the removal
+  too, and that is cleanup, not a leak. If cherry-picks pulled in guarded paths via rename detection, resolve per
+  `RELEASES.md` § Cherry-pick conflicts on guarded paths.
 - [ ] **Every doc this release adds to `main` is meant to ship.** The leak check screens against the registered set, so
   it cannot flag a category nobody registered yet. The cut's check D and `preflight.sh mechanics` list the additions
   under `docs/` and every added markdown file anywhere; read them. An entry that should not ship gets registered in the
   workflow's `extra_paths` and removed from the branch.
 - [ ] `crates/xurl-cli/CHANGELOG.md`, and `crates/xdk/CHANGELOG.md` while a library release is pending, open on a
   versioned section that matches the crate's manifest version, with no `[Unreleased]` placeholder.
+
+### Workspace library member (when the release moves `xdk-rs`)
+
+`xdk-rs` ships on its own `xdk-rs-v<version>` tag through `release-lib.yml`. Its pipeline is tag-triggered, so nothing
+exercises it until the tag exists, which is the wrong moment to find a packaging error.
+
+- [ ] **Library version bumped and `crates/xdk/CHANGELOG.md` cut**, per `RELEASES.md` § Project specifics, together with
+  the CLI's declared bound in the root `Cargo.toml`. The changelog beside the manifest is where `rust-ci.yml`'s
+  per-crate `Changelog` check looks, and where `release-lib.yml` cuts release notes from.
+- [ ] **Rehearse the publish from the release branch**: `gh workflow run release-lib.yml --ref release/v<version>`, then
+  watch it to `success`. A manual dispatch always runs dry (the caller derives `dry_run` from `github.event_name`), so
+  this cannot publish. It runs the real audit and a real `cargo publish -p xdk-rs --dry-run`, and creates no release.
+- [ ] **Tag order planned: library first, CLI second.** `cargo publish -p xurl-rs` resolves `xdk-rs` from crates.io, so
+  the CLI cannot publish until the library is on the index at a version its bound accepts. The CLI's `check-version`
+  refuses up front when it is not, which costs a full run to discover.
 
 ### Post-tag verification
 
