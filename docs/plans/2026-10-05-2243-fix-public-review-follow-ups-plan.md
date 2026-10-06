@@ -214,15 +214,16 @@ changing code (KTD1).
   signature example is the acceptance vector. The change diverges from Go `xurl`, which shares the `url.QueryEscape`
   behavior, so `KNOWN_DIFFERENCES.md` records it.
 - KTD5. **Media waiting gets a library deadline and a CLI flag.** A status with no `processing_info` counts as finished,
-  and the wait ends with a distinct error once a deadline passes. The deadline is a library parameter with a default;
-  the CLI exposes it as `--wait-timeout <SECS>` on `media upload` and `media status`. The timeout becomes a new `reason`
-  in the closed set, which is an additive change.
+  and the wait ends with a distinct error once a deadline passes. The deadline is a library parameter defaulting to 300
+  seconds, which caps a stuck job at about 300 paid status calls; the CLI exposes it as `--wait-timeout <SECS>` on
+  `media upload` and `media status`. The timeout becomes a new `reason` in the closed set, which is an additive change.
 - KTD6. **The transport keeps every byte it received.** A failed body read becomes a network error. A non-JSON success
   body reaches the caller as a JSON string, which raw mode prints as text and a typed call fails to deserialize. A
-  non-JSON error body becomes the `Api` error's body. A rate-limited error carries the reset time from the
-  `x-rate-limit-reset` header, and the envelope adds it as a new key. Opt-in retry is one global flag that waits until
-  the reset and retries once, within a caller-set ceiling. The three request paths in `transport.rs` share one header
-  assembler.
+  non-JSON error body becomes the `Api` error's body. A rate-limited error carries the reset time from that 429
+  response's own `x-rate-limit-reset` header, never the window the client remembers from other calls, and the envelope
+  adds it as a new key. With no parseable reset header, the envelope omits the key and the retry flag does not retry.
+  Opt-in retry is one global flag that waits until the reset and retries once, within a caller-set ceiling. The three
+  request paths in `transport.rs` share one header assembler.
 - KTD7. **Scopes come from `--scopes` on `xr auth oauth2`.** The flag takes a comma-separated subset of the known set
   and rejects unknown names by listing the valid ones. `offline.access` is always added, because a login without a
   refresh token expires within hours. The library takes the scope set as an input to building the authorize URL, with
@@ -645,12 +646,15 @@ deterministic tests.
 
 1. Return the current status at once when `processing_info` is absent.
 2. Track elapsed time against the deadline before each sleep, and stop with the timeout error once the next check would
-   pass it.
-3. Add the timeout `reason` and its exit code, and regenerate the schemas and completions.
+   pass it. The default is 300 s for the library parameter and `--wait-timeout`. The deadline's doc comment says X sets
+   no processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait --wait-timeout <secs>`
+   resumes a longer job.
+3. Add the timeout `reason`, exiting 1 (`EXIT_GENERAL_ERROR`) as `network-error` and `api-error` do, and regenerate the
+   schemas and completions.
 
 **Execution note:** start with a failing test that a status without `processing_info` returns instead of polling.
 
-**Patterns to follow:** the mock media routes in `crates/xdk/src/testing/mod.rs`.
+**Patterns to follow:** the wiremock media stubs in `crates/xdk/tests/media_upload_tests.rs`.
 
 **Test scenarios:**
 
@@ -675,7 +679,6 @@ failure.
 
 - Modify: `crates/xdk/src/api/request/transport.rs`
 - Modify: `crates/xdk/src/error.rs` (the reset time on the rate-limited error)
-- Modify: `crates/xdk/src/testing/mod.rs` (a 429 route and a non-JSON route)
 - Modify: `crates/xurl-cli/tests/golden/` help fixtures, which every global flag reaches (68 of 121 carry the global
   `--timeout` today)
 - Modify: `crates/xurl-cli/src/cli/output/` and `crates/xurl-cli/src/cli/envelope.rs` (the retry key, and the opt-in
@@ -686,15 +689,16 @@ failure.
 
 1. Map a failed body read to a network error.
 2. Return a non-JSON success body as a JSON string, and carry a non-JSON error body into the `Api` error.
-3. Read `x-rate-limit-reset` onto the rate-limited error, and add the seconds-until-reset key to the envelope.
+3. Read that 429 response's own `x-rate-limit-reset` onto the rate-limited error, not `Client::last_rate_limit`, and add
+   the seconds-until-reset key to the envelope. With no parseable header, omit the key and do not retry.
 4. Add the global opt-in retry flag with its ceiling, and re-bless the help fixtures it reaches.
 5. Fold the three request paths' header assembly into one helper.
 6. Regenerate the output schema.
 
-**Execution note:** start with failing mock tests for the swallowed cases.
+**Execution note:** start with failing wiremock tests for the swallowed cases, stubbed inside the test files below.
 
-**Patterns to follow:** `record_rate_limit` and `Client::last_rate_limit` in `crates/xdk/src/api/request/mod.rs`; the
-closed-set rules in `AGENTS.md` § Output formats.
+**Patterns to follow:** `RateLimit::from_headers` in `crates/xdk/src/api/request/mod.rs` for parsing one response's
+headers; the closed-set rules in `AGENTS.md` § Output formats.
 
 **Test scenarios:**
 
@@ -705,6 +709,8 @@ closed-set rules in `AGENTS.md` § Output formats.
 - With the opt-in retry flag and a reset 1 second ahead, the CLI retries once and succeeds against a mock that answers
   200 on the second call.
 - With the retry flag and a reset beyond its ceiling, the CLI fails at once with the `rate-limited` envelope.
+- A 429 with no `x-rate-limit-reset`, after an earlier response that carried one, gives the `rate-limited` envelope
+  without the retry key, and with the retry flag the CLI fails at once without a second request.
 - The default, without the flag, never retries.
 
 **Verification:** each swallowed case now surfaces, the envelope addition shows in the regenerated schema, and existing
@@ -829,13 +835,12 @@ in tests, and the envelope matches the schema.
 **Files:**
 
 - Modify: `crates/xurl-cli/tests/agentic_tests.rs`
-- Modify: `crates/xdk/src/testing/mod.rs`, if a delayed route is needed for `--timeout`
 
 **Approach:**
 
 1. Classify each test that only runs `--help`. Keep tests that genuinely assert help content. Replace the others with a
    behavior assertion, or delete them where another test already proves the behavior.
-2. Prove `--timeout` against a mock route that delays longer than the timeout.
+2. Prove `--timeout` against a wiremock stub whose response delay is longer than the timeout.
 
 **Test scenarios:**
 
@@ -863,7 +868,8 @@ in tests, and the envelope matches the schema.
 
 1. Add the `Reason` enum, covering every value in the documented set plus the additions from U7 and U8.
 2. Map the library's `kind()` strings into it in one exhaustive function.
-3. Keep the JSON schema identical, generated from the enum.
+3. Keep the JSON schema identical: the field keeps a string schema (`#[schemars(with = "String")]`) and its doc comment,
+   because a closed `enum` in the schema would make an older schema reject a `reason` a newer release adds.
 
 **Test scenarios:**
 
@@ -890,7 +896,8 @@ in tests, and the envelope matches the schema.
 **Approach:**
 
 1. Move each group's arms into its own function and module.
-2. Pass shared context as one struct, removing `too_many_arguments`.
+2. Pass shared context as one struct where it shortens the group signatures. `run_subcommand` takes seven parameters and
+   clippy's `too_many_arguments` fires above seven, so that allow comes off with or without the struct.
 3. Take the lint allows off.
 
 **Test expectation:** behavior-preserving refactor. The proof is the existing golden, dry-run, and CLI suites passing
@@ -1069,7 +1076,9 @@ output to it, and keep substring checks only for text output.
 
 1. Add the `attest` input and the attestation and SBOM steps to the reusable workflow, with SHA-pinned actions.
 2. Turn it on in xurl-rs's caller.
-3. Add a postflight item that runs `gh attestation verify` on one archive of a release.
+3. Add a postflight item that runs `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow
+   brettdavies/.github/.github/workflows/rust-release.yml` on one archive of a release. The reusable workflow is the
+   signer, so `--repo` alone fails.
 
 **Patterns to follow:** existing optional inputs in the reusable, such as `linux_musl_required`, for the input shape.
 
@@ -1077,8 +1086,8 @@ output to it, and keep substring checks only for text output.
 trigger or a dry-run mode, so `actionlint` is the pre-merge gate, and the proof is `gh attestation verify` on the next
 real release's archive, which fails on every release before it.
 
-**Verification:** a caller without the input behaves as today, and xurl-rs's next release archive verifies with `gh
-attestation verify`.
+**Verification:** a caller without the input behaves as today, and xurl-rs's next release archive verifies with the step
+3 command, `--signer-workflow` included.
 
 ### U22. Skill bundle reflects the new surface
 
@@ -1146,5 +1155,553 @@ released `xr`.
 - The local TODO.md marks each item with its outcome and points here; the file stays uncommitted.
 - Brett has applied the updated rulesets, and `gh api` shows the audit, MSRV, and parity checks required on `dev` and
   `main`.
-- After Brett publishes the `xr` minor, U22's xurl-rs-skill PR pins that release and its contract job passes, and `gh
-  attestation verify` passes on one of that release's archives (U21).
+- After Brett publishes the `xr` minor, U22's xurl-rs-skill PR pins that release and its contract job passes, and U21's
+  `gh attestation verify --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml` passes on one of that
+  release's archives.
+
+---
+
+## Eng Review
+
+Target: `docs/plans/2026-10-05-2243-fix-public-review-follow-ups-plan.md` (this file, at `681e23d`), `/plan-eng-review`
+on 2026-10-05.
+
+### Scope record
+
+feature answers: none proposed; structure: A (D1, Original arrangement); accepted scope: U1 through U22 as written at
+`681e23d`; pending remedies: R1 and every later finding until answered.
+
+### Factual corrections
+
+- U14 step 2: `run_subcommand` takes seven parameters (`crates/xurl-cli/src/cli/commands/mod.rs:367-375`) and clippy's
+  `too_many_arguments` fires above seven, so the context struct is optional rather than what removes that allow.
+- U13 step 3: the `reason` field keeps `#[schemars(with = "String")]`, because `schema/output.schema.json` describes it
+  today as a documented `"type": "string"` and an enum would close a set the contract says a newer release extends.
+
+### Decision ledger
+
+#### R1: how the attestation check names the signer
+
+Finding: C1, P2, confidence 9/10, U21 Approach step 3 and Verification, Definition of Done last bullet, reviewer
+plan-eng-review (Claude).
+
+Plan baseline: original proposal. U21's postflight item and the Definition of Done run `gh attestation verify` on one
+archive with no signer flag.
+
+Runtime evidence: U21 signs inside `brettdavies/.github`'s reusable `rust-release.yml`, which xurl-rs's
+`.github/workflows/release.yml:19` calls. The gh manual states that an attestation generated by a reusable workflow
+needs `--signer-workflow` or `--signer-repo`; `--repo` alone checks the signer against the caller repository and fails
+(<https://cli.github.com/manual/gh_attestation_verify>). Not probed live: no attested release exists yet.
+
+Comparison grid:
+
+| Choice                                                                 | Current                        | A                                                                          | B                                   | C                |
+| ---------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
+| R1 signer flag in U21's postflight item, U21 Verification, and the DoD | none                           | `--signer-workflow brettdavies/.github/.github/workflows/rust-release.yml` | `--signer-repo brettdavies/.github` | none (unchanged) |
+| Structure (D1)                                                         | Original arrangement, approved | unchanged                                                                  | unchanged                           | unchanged        |
+| Other findings                                                         | pending                        | pending                                                                    | pending                             | pending          |
+
+Question D2:
+
+```text
+D2 — How should the attestation check name the signer?
+Project/branch/task: xurl-rs dev, eng review of the public review follow-ups plan.
+ELI10: U21 makes the shared release workflow sign each archive, and the plan checks the result with `gh attestation verify`. The signing happens inside brettdavies/.github's reusable workflow, and GitHub's CLI rejects that check unless it is told which workflow signed; `--repo brettdavies/xurl-rs` alone fails. As written, the postflight item and the Definition of Done would fail on a correctly attested release.
+Stakes if we pick wrong: the first attested release reads as broken at postflight, and anyone copying the command cannot verify an archive.
+Recommendation: A because it pins the exact signing workflow, the stricter form GitHub's docs recommend.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Pin the workflow (recommended)
+  ✅ Fails if anything but the shared release workflow signed the archive, the strict form GitHub recommends
+  ✅ One command checks every archive and the SBOM attestation the same reusable workflow produces
+  ❌ Renaming or moving rust-release.yml breaks the check until the command is updated (human ~5 min / CC ~1 min)
+B) Pin the repo
+  ✅ Survives a rename of the reusable workflow file inside brettdavies/.github
+  ✅ Still rejects an attestation signed from any repository other than brettdavies/.github
+  ❌ Accepts an attestation from any workflow in brettdavies/.github, a weaker check than pinning the file
+C) Keep as written
+  ✅ No change to U21 or the Definition of Done, and the command stays the shortest form
+  ✅ Leaves the flag choice to whoever runs the first attested release
+  ❌ Fails on every release signed through the reusable workflow, so postflight goes red on a good release
+Net: a strict pin that needs an update on a rename, against a looser pin, against a check that cannot pass.
+```
+
+Header: D2 attest verify
+
+Options:
+
+```text
+A) Pin the workflow (recommended)
+U21's postflight item, U21 Verification, and the DoD run `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml`.
+B) Pin the repo
+The same three places run `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-repo brettdavies/.github`.
+C) Keep as written
+No change: `gh attestation verify` with no signer flag in all three places.
+```
+
+```text
+State: approved
+Actual answer: A) Pin the workflow (recommended), D2 answer in this review
+Accepted scope: U21's postflight item (Approach step 3), U21 Verification, and the Definition of Done run `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml`.
+History: none
+```
+
+#### R2: the exit code the media-wait timeout returns
+
+Finding: A1, P2, confidence 8/10, U7 Approach step 3 ("Add the timeout `reason` and its exit code") and KTD5, reviewer
+plan-eng-review (Claude).
+
+Plan baseline: original proposal. U7 adds a new `reason` and "its exit code" without naming the code.
+
+Runtime evidence: the exit-code set is `crates/xdk/src/error.rs:542-580`: 0 success, 1 general, 2 usage and auth
+mismatch, 3 rate-limited, 4 not-found, 5 `Error::Io`, 77 auth-required. A transport failure (`network-error`) and an
+unclassified API status (`api-error`) both exit 1, with `reason` carrying the precise kind.
+
+Comparison grid:
+
+| Choice                          | Current     | A                                                        | B                                                                                           | C                               |
+| ------------------------------- | ----------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------- |
+| R2 media-wait timeout exit code | unspecified | 1 (`EXIT_GENERAL_ERROR`); `reason` carries the precision | a new dedicated code, `EXIT_PROCESSING_TIMEOUT = 6`, added to the closed set and documented | unspecified (implementer picks) |
+| R1 signer flag                  | approved, A | unchanged                                                | unchanged                                                                                   | unchanged                       |
+| Other findings                  | pending     | pending                                                  | pending                                                                                     | pending                         |
+
+Question D3:
+
+```text
+D3 — Which exit code does the media-wait timeout return?
+Project/branch/task: xurl-rs dev, eng review of the public review follow-ups plan.
+ELI10: U7 makes `media status --wait` and `media upload` give up after a deadline instead of polling the paid API forever, with a new `reason` in the error envelope. It also says the timeout gets "its exit code" but never says which. Agents and scripts branch on exit codes, so whatever number lands becomes part of the contract the moment it ships.
+Stakes if we pick wrong: a script that treats exit 1 as fatal, or switches on known codes, misreads a timeout that only needed a longer wait.
+Recommendation: A because the codes are coarse classes and `reason` already carries the precise kind, as network-error and api-error do today.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Exit 1, reason carries it (recommended)
+  ✅ No new number in the closed set, so embedders matching on `exit_code()` see nothing new
+  ✅ Matches how network-error and api-error already exit 1 with the precise kind in `reason`
+  ❌ A script reading only the exit code cannot tell a timeout from other general failures
+B) New dedicated code 6
+  ✅ A shell script can branch on `$? -eq 6` and retry with a longer `--wait-timeout` without parsing JSON
+  ✅ The new constant documents the timeout as its own class beside rate-limited and not-found
+  ❌ Grows the closed exit-code set, a contract addition every consumer's switch must learn (human ~30 min / CC ~5 min)
+C) Leave it to the implementer
+  ✅ No plan change now; the choice moves to U7's PR, where the reviewer sees the code
+  ✅ Keeps this review from fixing a number before the reason name exists
+  ❌ A contract value gets chosen without a recorded decision, the gap this finding names
+Net: keeping the exit-code set small against letting shell scripts branch on the timeout without JSON.
+```
+
+Header: D3 timeout exit
+
+Options:
+
+```text
+A) Exit 1, reason carries it (recommended)
+U7's timeout exits 1 (`EXIT_GENERAL_ERROR`); its new `reason` is the precise signal. U7 Approach step 3 names the code.
+B) New dedicated code 6
+U7 adds `EXIT_PROCESSING_TIMEOUT = 6` to the closed set in `crates/xdk/src/error.rs`, documents it with the other codes, and the timeout exits 6.
+C) Leave it to the implementer
+No plan change: U7 keeps "its exit code" unspecified.
+```
+
+```text
+State: approved
+Actual answer: A) Exit 1, reason carries it (recommended), D3 answer in this review
+Accepted scope: U7's timeout exits 1 (`EXIT_GENERAL_ERROR`) and its new `reason` is the precise signal; U7 Approach step 3 names the code.
+History: none
+```
+
+#### R3: where the rate-limited reset comes from, and a 429 without one
+
+Finding: A2, P2, confidence 8/10, KTD6 ("A rate-limited error carries the reset time from the `x-rate-limit-reset`
+header") and U8 Patterns to follow (`Client::last_rate_limit`), reviewer plan-eng-review (Claude).
+
+Plan baseline: original proposal. The reset rides on the rate-limited error; the case of a 429 with no reset header is
+not stated, and U8 points at the client's remembered window as the pattern. Reading the 429's own headers is common work
+under the approved R11 ("a rate-limited error says when to retry"), so every option below carries it.
+
+Runtime evidence: `RateLimit::from_headers` (`crates/xdk/src/api/request/mod.rs:195-209`) returns `None` when a response
+carries no rate-limit header, and `record_rate_limit` (`:335-343`) then keeps the last window it saw, which may belong
+to another endpoint. Whether X ever sends a 429 without `x-rate-limit-reset` is unverified.
+
+Comparison grid:
+
+| Choice                      | Current                                              | A                                                           | B                                                                                                      | C                                                       |
+| --------------------------- | ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| R3 reset source             | unspecified; pattern names `Client::last_rate_limit` | that 429 response's own headers (common work under R11)     | that 429 response's own headers (common work under R11)                                                | that 429 response's own headers (common work under R11) |
+| R3 429 with no reset header | unspecified                                          | envelope omits the retry key; the retry flag does not retry | envelope omits the retry key; the retry flag waits a fixed 60 s, within its ceiling, then retries once | unspecified                                             |
+| R1, R2                      | approved                                             | unchanged                                                   | unchanged                                                                                              | unchanged                                               |
+| Other findings              | pending                                              | pending                                                     | pending                                                                                                | pending                                                 |
+
+Question D4:
+
+```text
+D4 — What does a 429 with no reset header do?
+Project/branch/task: xurl-rs dev, eng review of the public review follow-ups plan.
+ELI10: U8 puts "when to retry" on the rate-limited error and adds an opt-in flag that waits until that time and retries once. R11 already requires that time to come from the 429 being retried, not from the window the client remembers from other endpoints, so every option reads the response's own `x-rate-limit-reset`. What the plan never says is what happens when that header is missing.
+Stakes if we pick wrong: the retry flag spends a paid call after a guessed wait on a 429 that waiting will not clear, or fails where a short wait would have worked.
+Recommendation: A because it never guesses: the key and the retry appear only when this 429 said when to come back.
+Completeness: A=9/10, B=8/10, C=5/10
+Pros / cons:
+A) No header, no retry (recommended)
+  ✅ The retry time and the retry come only from the response being retried, never from another endpoint's window
+  ✅ No extra paid call when X gives no reset, which is often a cap that waiting will not clear
+  ❌ A caller who passed the retry flag sees an immediate failure on a header-less 429 (human ~1 h / CC ~10 min)
+B) Fixed 60 s fallback
+  ✅ The retry flag still does something on a header-less 429, inside its ceiling
+  ✅ Uses the response's own headers when present, the same as A
+  ❌ Spends a paid call after a guessed wait that may be far too short for a usage cap
+C) Leave it unstated
+  ✅ Only the reset source changes; U8's implementer settles the rest with the code in front of them
+  ✅ The reset still comes from the 429's own headers, so no stale window drives the retry
+  ❌ A header-less 429 under the retry flag does whatever the implementer guesses, possibly a paid retry on no basis
+Net: never guessing a retry time against keeping the flag useful when X omits the header.
+```
+
+Header: D4 no reset header
+
+Options:
+
+```text
+A) No header, no retry (recommended)
+The reset comes from that 429 response's own headers, never `Client::last_rate_limit`. With no parseable `x-rate-limit-reset`, the envelope omits the retry key and the retry flag fails at once with `rate-limited`. U8 adds a test for that case.
+B) Fixed 60 s fallback
+The reset comes from that 429 response's own headers. With none, the envelope omits the retry key and the retry flag waits 60 s, within its ceiling, then retries once. U8 adds a test for that case.
+C) Leave it unstated
+The reset comes from that 429 response's own headers (common work under R11). The header-less case stays unstated.
+```
+
+```text
+State: approved
+Actual answer: A) No header, no retry (recommended), D4 answer in this review
+Accepted scope: KTD6 and U8 step 3 read the reset from that 429 response's own headers, never `Client::last_rate_limit`; with no parseable `x-rate-limit-reset` the envelope omits the retry key and the retry flag fails at once with `rate-limited`; U8's pattern points at `RateLimit::from_headers`; U8 adds a test for the header-less 429 after a response that carried one.
+History: none
+```
+
+#### R4: where the new test responses live
+
+Finding: T1, P2, confidence 9/10, U8 Files ("Modify: `crates/xdk/src/testing/mod.rs` (a 429 route and a non-JSON
+route)"), U7 Patterns to follow ("the mock media routes in `crates/xdk/src/testing/mod.rs`"), U12 Files (the same file,
+"if a delayed route is needed for `--timeout`"), reviewer plan-eng-review (Claude).
+
+Plan baseline: original proposal. The 429, non-JSON, never-finishing media, and delayed responses are added to the
+public `testing` mock.
+
+Runtime evidence: the test files these units name already serve responses with wiremock (`crates/xdk/tests/api_tests.rs`
+22 uses, `crates/xurl-cli/tests/cli_tests.rs` 12, both `media_upload_tests.rs` files 2 each) and none uses the `testing`
+mock. A test that does must be declared with `required-features = ["testing"]` (`crates/xdk/Cargo.toml:99-101`, as
+`mock_endpoint_coverage` is), or `cargo test --workspace` fails to compile it. Prior learning applied:
+xurl-mockx-covers-22-of-38-endpoints-and-has-no-test-users (10/10, 2026-09-17). The `testing` mock is published API for
+embedders behind its feature.
+
+Comparison grid:
+
+| Choice                                   | Current                                                     | A                                                                    | B                                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| R4 home of U7/U8/U12 test-only responses | the public `testing` mock (`crates/xdk/src/testing/mod.rs`) | wiremock stubs inside each named test file                           | the `testing` mock, with each consuming test target declared `required-features = ["testing"]` |
+| U8 Files entry for `testing/mod.rs`      | present                                                     | removed                                                              | kept                                                                                           |
+| U7 pattern                               | the `testing` mock's media routes                           | the wiremock media stubs in `crates/xdk/tests/media_upload_tests.rs` | the `testing` mock's media routes                                                              |
+| U12 conditional `testing/mod.rs` entry   | present                                                     | removed                                                              | kept                                                                                           |
+| R1, R2, R3                               | approved                                                    | unchanged                                                            | unchanged                                                                                      |
+| Other findings                           | pending                                                     | pending                                                              | pending                                                                                        |
+
+Question D5:
+
+```text
+D5 — Where do the new test responses live?
+Project/branch/task: xurl-rs dev, eng review of the public review follow-ups plan.
+ELI10: U7, U8 and U12 need fake servers that answer with a 429, a plain-text body, a media job that never finishes, and a slow reply. The plan adds those to the public `testing` mock that embedders use, but every test file the plan names already builds its fake server with wiremock, and none uses that mock. Using the mock from those files also needs a feature gate on each test target, or the default test run fails to compile.
+Stakes if we pick wrong: the published mock grows routes that exist only for xr's tests, or the default test run breaks on a missing feature gate.
+Recommendation: A because it follows the pattern all of those files already use and leaves the published mock untouched.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Wiremock in each test (recommended)
+  ✅ Matches the 17 test files that already stub responses with wiremock, so no new gate or setup
+  ✅ The published `testing` mock stays a stand-in for X's real endpoints, with no test-only routes
+  ❌ Each test file builds its own stub, so a 429 shape appears in more than one place
+B) Extend the testing mock
+  ✅ One definition of each fake response, reusable by embedders who want to test their own 429 handling
+  ✅ Exercises the published mock, so its routes stay honest
+  ❌ Every consuming test target needs `required-features = ["testing"]`, and the published mock carries xr-only routes (human ~2 h / CC ~15 min)
+Net: following the existing test pattern against one shared, published definition of each fake response.
+```
+
+Header: D5 test mocks
+
+Options:
+
+```text
+A) Wiremock in each test (recommended)
+U7, U8 and U12 build their 429, non-JSON, unfinished-media and delayed responses as wiremock stubs inside the test files they already name. U8 drops `crates/xdk/src/testing/mod.rs` from its Files, U7's pattern points at the wiremock media stubs in `crates/xdk/tests/media_upload_tests.rs`, and U12 drops its conditional `testing/mod.rs` entry.
+B) Extend the testing mock
+U7, U8 and U12 add their responses to `crates/xdk/src/testing/mod.rs`, and every test target that uses them is declared with `required-features = ["testing"]` in its crate's Cargo.toml.
+```
+
+```text
+State: approved
+Actual answer: A) Wiremock in each test (recommended), D5 answer in this review
+Accepted scope: U7, U8 and U12 build their 429, non-JSON, unfinished-media and delayed responses as wiremock stubs inside the test files they already name; U8 drops `crates/xdk/src/testing/mod.rs` from its Files and its execution note names wiremock; U7's pattern points at the wiremock media stubs in `crates/xdk/tests/media_upload_tests.rs`; U12 drops its conditional `testing/mod.rs` entry and proves `--timeout` against a delayed wiremock stub.
+History: none
+```
+
+#### R5: the default media-wait deadline
+
+Finding: P1, P2, confidence 7/10, KTD5 ("The deadline is a library parameter with a default"), reviewer plan-eng-review
+(Claude); raised as an FYI in this plan's document review.
+
+Plan baseline: original proposal. U7 adds a deadline with an unstated default, used by the library and by
+`--wait-timeout`.
+
+Runtime evidence: `wait_for_media_processing` (`crates/xdk/src/api/media.rs:261-304`) sleeps
+`check_after_secs.unwrap_or(1).max(1)` between status calls, so a stuck job spends up to one paid call per second. X
+documents no processing cap and its sample loop polls until a terminal state
+(<https://docs.x.com/x-api/media/quickstart/media-upload-chunked>); video runs up to 125 minutes and 16 GB for Premium
+accounts (<https://docs.x.com/x-api/media/introduction>); a media id stays usable for 24 hours (`expires_after_secs:
+86400`), so `xr media status <id> --wait` can resume after a timeout without a re-upload.
+
+Comparison grid:
+
+| Choice                                                  | Current         | A                                                                                                                       | B         | C                    |
+| ------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- | --------- | -------------------- |
+| R5 default deadline (library and `--wait-timeout`)      | unstated        | 300 s                                                                                                                   | 1800 s    | unstated             |
+| Doc comment on the deadline                             | none            | X sets no processing cap; the media id stays valid 24 h, so `xr media status <id> --wait --wait-timeout <secs>` resumes | same as A | none                 |
+| Worst-case status calls on a stuck job at the 1 s floor | unbounded today | 300                                                                                                                     | 1800      | implementer's choice |
+| R1-R4                                                   | approved        | unchanged                                                                                                               | unchanged | unchanged            |
+| Other findings                                          | pending         | pending                                                                                                                 | pending   | pending              |
+
+Question D6:
+
+```text
+D6 — What is the default media-wait deadline?
+Project/branch/task: xurl-rs dev, eng review of the public review follow-ups plan.
+ELI10: U7 ends the endless media poll with a deadline, but never says how long the default is. Every status check is a paid call, at most one a second, so the default caps what a stuck job can spend. X sets no processing limit and accepts videos up to two hours for Premium accounts, so a long video could still be processing when a short default fires; the upload is not lost, though, since the media id stays valid for a day and `xr media status <id> --wait` picks the wait back up.
+Stakes if we pick wrong: a long default lets a stuck job spend up to 1,800 paid calls, and a short one makes a huge video's first wait time out and need a second command.
+Recommendation: A because it caps a stuck job at about 300 calls, and the rare long video resumes with one command instead of a re-upload.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) 5-minute default (recommended)
+  ✅ A stuck job spends at most about 300 paid status calls before the CLI stops and says so
+  ✅ A long video that outlasts it resumes with `xr media status <id> --wait --wait-timeout <secs>`, no re-upload
+  ❌ The largest Premium videos may time out on the first wait and need that second command (human ~15 min / CC ~3 min)
+B) 30-minute default
+  ✅ Nearly every upload X accepts finishes inside the first wait, with no second command
+  ✅ Same doc comment and resume path as A for the rare job that outlasts it
+  ❌ A stuck job can spend up to about 1,800 paid status calls before the deadline ends it
+C) Leave it unstated
+  ✅ No plan change; U7's implementer picks the value with the code in front of them
+  ✅ Keeps this review from fixing a number X's docs give no basis for
+  ❌ The spend cap on a stuck job, the problem T5 exists to fix, gets set without a recorded decision
+Net: a tight spend cap with an occasional resume command against fewer resumes and a looser cap.
+```
+
+Header: D6 wait default
+
+Options:
+
+```text
+A) 5-minute default (recommended)
+KTD5 and U7 set the default deadline to 300 s for the library parameter and `--wait-timeout`. Its doc comment says X sets no processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait --wait-timeout <secs>` resumes a longer job.
+B) 30-minute default
+KTD5 and U7 set the default deadline to 1800 s for the library parameter and `--wait-timeout`, with the same doc comment as A.
+C) Leave it unstated
+No change: KTD5 keeps "a library parameter with a default" without a value.
+```
+
+```text
+State: approved
+Actual answer: A) 5-minute default (recommended), D6 answer in this review
+Accepted scope: KTD5 and U7 step 2 set the default deadline to 300 s for the library parameter and `--wait-timeout`; the deadline's doc comment says X sets no processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait --wait-timeout <secs>` resumes a longer job.
+History: none
+```
+
+Approval readiness: PASS. Structure D1 answer A; R1 (D2 answer A), R2 (D3 answer A), R3 (D4 answer A), R4 (D5 answer
+A), R5 (D6 answer A). The two factual corrections change no behavior and need no answer.
+
+### Findings by section
+
+Scope Challenge: scope accepted as-is. C1 (signer flag) resolved as R1.
+
+Architecture:
+
+- `[P2] (confidence: 8/10)` U7 Approach step 3 — the media-wait timeout's exit code was unnamed. Accepted, D3 A: exit 1.
+- `[P2] (confidence: 8/10)` KTD6 and U8 — the 429 reset source and the header-less 429 were unstated, and U8 pointed at
+  the client's remembered window. Accepted, D4 A.
+
+Code quality: no main-report findings. Two factual corrections recorded above; two items in the appendix.
+
+Tests:
+
+- `[P2] (confidence: 9/10)` U7, U8, U12 — test-only responses aimed at the published `testing` mock. Accepted, D5 A:
+  wiremock stubs in the named test files.
+
+Performance:
+
+- `[P2] (confidence: 7/10)` KTD5 — the default deadline was unstated, and it caps paid calls on a stuck job. Accepted,
+  D6 A: 300 s.
+
+Coverage of the planned code paths (every path has a planned test; none runs yet):
+
+```text
+CODE PATHS                                              USER FLOWS
+[+] U2 secret twins (cli/mod.rs, auth/apps.rs)          [+] Store a secret without argv
+  ├── [PLANNED ★★★] file, stdin, both-flags, missing      ├── [PLANNED ★★★] file and `-` stored (cli_tests)
+  ├── [PLANNED ★★ ] trailing \n and \r\n trimmed          └── [PLANNED ★★ ] second `-` -> invalid-args
+  └── [PLANNED ★★ ] plain flag unchanged
+[+] U3 --scopes (oauth2.rs, pending.rs)                 [+] Narrow sign-in
+  ├── [PLANNED ★★★] subset + offline.access, unknown     └── [PLANNED ★★ ] headless step 2 reuses scopes
+  └── [PLANNED ★★ ] default URL unchanged
+[+] U5 refresh lock (oauth2.rs, store/lock.rs)          [+] Two xr processes refresh at once
+  ├── [PLANNED ★★★] one POST, both get new token          └── [PLANNED ★★★] wiremock counts token POSTs
+  ├── [PLANNED ★★ ] lock held across POST
+  ├── [PLANNED ★★ ] failed POST releases
+  └── [PLANNED ★★ ] unexpired login skips the lock
+[+] U6 RFC 3986 encoder (oauth1.rs)
+  ├── [PLANNED ★★★] X published vector
+  ├── [PLANNED ★★ ] ~ * space unit cases
+  └── [PLANNED ★★★] property: base string round trip (U16)
+[+] U7 bounded wait (media.rs)                          [+] media status --wait
+  ├── [PLANNED ★★ ] no processing_info -> one call        ├── [PLANNED ★★★] timeout -> reason, exit 1
+  ├── [PLANNED ★★★] in_progress past deadline              └── [PLANNED ★★ ] failed stays processing-failed
+  └── [PLANNED ★★ ] succeeded unchanged
+[+] U8 transport (transport.rs, envelope)               [+] Raw mode and 429 handling
+  ├── [PLANNED ★★ ] non-JSON 200 -> text                   ├── [PLANNED ★★★] retry key near reset
+  ├── [PLANNED ★★ ] HTML 500 body in message               ├── [PLANNED ★★★] retry once inside ceiling
+  ├── [PLANNED ★★ ] failed body read -> network error      ├── [PLANNED ★★ ] reset past ceiling fails at once
+  └── [PLANNED ★★★] header-less 429: no key, no retry      └── [PLANNED ★★ ] default never retries
+[+] U9 parity runner                                    [+] U10/U11 errors
+  ├── [PLANNED ★★ ] set + missing binary fails             ├── [PLANNED ★★★] source() chains, Display unchanged
+  └── [PLANNED ★★ ] unset skips                            └── [PLANNED ★★★] invalid-url on raw and OAuth1 paths
+[+] U13/U14/U15 refactors: existing golden, dry-run, schema and mismatch suites, plus `-W clippy::too_many_lines`
+[+] U17/U20 guards: comment-citation guard and README Stability test, each failing on dev first
+
+COVERAGE: every planned path has a planned test  |  QUALITY: no ★ smoke-only entries  |  GAPS: 0
+```
+
+Test Plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review-test-plan-20261005-233916.md`.
+
+### NOT in scope
+
+- Cross-host refresh locking on a network mount: the Risks entry records it as considered and not built.
+- Turning on attestations in bird and agentnative-cli: Deferred to Follow-Up Work, one input per repo after U21.
+- A user-facing attestation verification line in the READMEs: R23 asks for attestations on release archives, not
+  documentation; left to the developer-experience review that follows this one.
+- A shared sidecar-open helper for U5 and `StoreLock`: below the shared-code bar (appendix).
+
+### What already exists
+
+- `StoreLock` (`crates/xdk/src/store/lock.rs`) shows the sidecar naming and the `0o600` open U5's refresh lock copies;
+  its per-thread reentrancy is why U5 needs a separate lock.
+- `RateLimit::from_headers` (`crates/xdk/src/api/request/mod.rs:195`) already parses one response's rate-limit headers
+  into optional fields, which U8 reuses for the 429 (D4).
+- Wiremock stubs serve every test file U7, U8 and U12 name (D5).
+- The `--auth-url -` stdin read in `crates/xurl-cli/src/cli/commands/auth/signin.rs` is U2's precedent.
+- `crates/xdk/tests/path_literal_guard.rs`, `readme_landing_tests.rs`, and the schema drift guard in
+  `crates/xurl-cli/tests/schema_tests.rs` are the patterns U17, U20 and U16 follow.
+- `commands/auth/`, `media.rs`, `schema.rs`, `skill.rs`, `validate.rs`, `examples.rs` exist; D1 kept U14's new sibling
+  dispatch modules beside them.
+
+### Diagrams
+
+The plan's five mermaid diagrams cover triage, the refresh sequence, the media-wait states, the transport
+classification, and the stack phases. The 429 path after D4:
+
+```text
+429 received
+  ├── own x-rate-limit-reset parses? ── no ──> rate-limited envelope, no retry key, no retry
+  └── yes ──> envelope carries seconds-until-reset
+                ├── retry flag off ─────────────────────> fail with rate-limited
+                ├── reset beyond ceiling ───────────────> fail with rate-limited
+                └── reset within ceiling ──> wait, retry once ──> success, or the second response as-is
+```
+
+### Failure modes
+
+| New path        | Realistic failure                      | Test or handling                                            | User sees                                 |
+| --------------- | -------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| U2 secret file  | file missing or unreadable             | `io` reason naming the path (test)                          | clear error                               |
+| U3 scopes       | typo in a scope name                   | rejected before any network call, valid names listed (test) | clear error                               |
+| U5 refresh lock | store on a mount that ignores `flock`  | documented limit (Risks)                                    | rare double refresh, then `invalid_grant` |
+| U6 encoder      | X rejects the corrected signature      | one live call before merge (Risks)                          | caught before release                     |
+| U7 wait         | job stuck in progress                  | 300 s deadline, timeout `reason`, exit 1 (test)             | clear error with a resume path            |
+| U8 transport    | 429 with no reset header               | no key, no retry (test, D4)                                 | clear `rate-limited` error                |
+| U9 parity       | Go module proxy cannot resolve the pin | job fails red (Risks)                                       | visible CI failure                        |
+| U21 attest      | verify run without the signer flag     | the documented command carries it (D2)                      | verification passes                       |
+
+Critical gaps: 0.
+
+### Worktree parallelization strategy
+
+Sequential implementation, no parallelization opportunity: the standing rule for this repo runs every unit inline in
+one stacked series with no worktrees. The phase order in High-Level Technical Design is the execution order;
+xurl-rs-skill (U18, U19) and brettdavies/.github (U21) are separate repos and can run between xurl-rs phases.
+
+### Implementation Tasks
+
+Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or
+Codex; checkbox as you ship.
+
+- [ ] **T1 (P2, human: ~10 min / CC: ~2 min)** — U21 — run verification with `--signer-workflow`
+  - Surfaced by: Scope Challenge — C1, R1 (D2)
+  - Files: `RELEASES-POSTFLIGHT.md`, `dot-github:.github/workflows/rust-release.yml`
+  - Verify: `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow
+    brettdavies/.github/.github/workflows/rust-release.yml` exits 0 on the first attested release
+- [ ] **T2 (P2, human: ~20 min / CC: ~3 min)** — U7 — exit 1 on the media-wait timeout
+  - Surfaced by: Architecture — A1, R2 (D3)
+  - Files: `crates/xdk/src/error.rs`, `crates/xdk/src/api/media.rs`
+  - Verify: the U7 timeout test asserts the new `reason` and exit 1
+- [ ] **T3 (P2, human: ~1 h / CC: ~10 min)** — U8 — read the reset from the 429 itself; no header, no retry
+  - Surfaced by: Architecture — A2, R3 (D4)
+  - Files: `crates/xdk/src/api/request/transport.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/output/`
+  - Verify: the header-less 429 test passes after a response that carried a reset
+- [ ] **T4 (P2, human: ~30 min / CC: ~5 min)** — U7, U8, U12 — stub responses with wiremock in the test files
+  - Surfaced by: Tests — T1, R4 (D5)
+  - Files: `crates/xdk/tests/api_tests.rs`, `crates/xdk/tests/media_upload_tests.rs`,
+    `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/agentic_tests.rs`
+  - Verify: `cargo test --workspace` compiles and passes with no `testing` feature
+- [ ] **T5 (P2, human: ~15 min / CC: ~3 min)** — U7 — default the deadline to 300 s with the resume doc comment
+  - Surfaced by: Performance — P1, R5 (D6)
+  - Files: `crates/xdk/src/api/media.rs`, `crates/xurl-cli/src/cli/mod.rs`
+  - Verify: `xr media status --help` shows the 300 s default; the doc comment names the resume command
+
+### Unresolved decisions
+
+None.
+
+### Completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is
+- Architecture Review: 2 issues found
+- Code Quality Review: 0 issues found
+- Test Review: diagram produced, 1 gap identified
+- Performance Review: 1 issue found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 0 items proposed to user
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, disabled (`codex_reviews` disabled in gstack config)
+- Parallelization: 0 lanes, 0 parallel / all sequential
+- Lake Score: 1/1 = answers picking a 10/10 option / answers scored for Completeness
+
+### Suppressed findings
+
+- (confidence: 6/10) U5 — a shared sidecar-open helper for `StoreLock` and the refresh lock would save about ten lines;
+  below the shared-code bar, since the refresh lock file holds nothing.
+- (confidence: 6/10) U2 — an empty secret file stores an empty secret on `auth apps add`, the same as `--client-secret
+  ""` today; `update_app` keeps the stored secret on an empty value (`crates/xdk/src/store/mod.rs:322`), so nothing is
+  overwritten.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger                      | Why                             | Runs | Status                                  | Findings                                                      |
+| -------------- | ---------------------------- | ------------------------------- | ---- | --------------------------------------- | ------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`           | Scope & strategy                | 0    | —                                       | —                                                             |
+| Outside Review | codex via `/plan-eng-review` | Independent 2nd opinion         | 13   | disabled                                | none (codex_reviews disabled)                                 |
+| Eng Review     | `/plan-eng-review`           | Architecture & tests (required) | 10   | ISSUES OPEN                             | 4 issues, 0 critical gaps (all resolved into the plan, D2-D6) |
+| Design Review  | `/plan-design-review`        | UI/UX gaps                      | 0    | —                                       | —                                                             |
+| DX Review      | `/plan-devex-review`         | Developer experience gaps       | 4    | issues_found (2026-09-17, another plan) | —                                                             |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by `codex_reviews`; no outside findings.
+- **VERDICT:** no review CLEAR for this plan; ENG ISSUES OPEN with every finding resolved into the plan; eng review
+  required (a second pass is scheduled).
+
+NO UNRESOLVED DECISIONS
