@@ -26,7 +26,6 @@ pub(super) struct Oauth2Args {
     pub(super) username: Option<String>,
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(super) async fn oauth2(
     args: Oauth2Args,
     mut auth: Auth,

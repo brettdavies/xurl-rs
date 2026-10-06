@@ -147,9 +147,12 @@ never the tests.
 - **Clap command.** A variant in `crates/xurl-cli/src/cli/mod.rs` with its `after_help`, through a
   `crates/xurl-cli/src/cli/family_help.rs` declaration when the family has several verbs.
   `crates/xurl-cli/tests/golden_tests.rs` demands a `help-<command>.golden` fixture for every command.
-- **Dispatch arm.** An arm in `crates/xurl-cli/src/cli/commands/mod.rs`; a verb that resolves a handle or acts on a post
-  from the caller's account goes through `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`. The dry-run
-  golden fixtures pin the envelope.
+- **Dispatch arm.** An arm in the group's module beside `crates/xurl-cli/src/cli/commands/mod.rs` (posts, reads,
+  engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
+  that file. A verb that resolves a handle or acts on a post from the caller's account goes through
+  `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
+  `list_for_user`. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
+  and the dry-run golden fixtures pin the envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that
@@ -191,10 +194,11 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   (`shortcuts.rs`), media upload (`media.rs`), and typed responses (`response/`).
 - `crates/xdk/src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler),
   Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
-- `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema,
-  streaming, and `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns
-  `AppStatusEntry`, while `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes
-  the exit-code contract.
+- `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` routes each command to its group and holds what the
+  groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
+  broadcasts, media), the tooling commands (schema, skill, validate, examples), streaming, and `commands/auth/`, where
+  `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while `types.rs` holds the
+  bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `crates/xdk/src/config/`: env-var-based configuration.
 - `crates/xdk/src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
 - `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
