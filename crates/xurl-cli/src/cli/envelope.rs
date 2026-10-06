@@ -77,13 +77,14 @@ pub struct ErrorBody {
     /// `invalid-request`, `server-error`, `api-error`, `network-error`,
     /// `invalid-args`, `unknown-command`, `invalid-method`,
     /// `invalid-url`, `invalid-path-param`, `validation`, `serialization`,
-    /// `io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,
-    /// `unsupported-pagination`, and the verb-local `invalid-json`,
-    /// `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,
-    /// `destination-not-empty`, `destination-is-file`, `git-not-found`,
-    /// `git-clone-failed`, `not-installed`, and `remove-failed`. The set is
-    /// closed, and a newer release can add to it: treat a value you do not
-    /// recognize as your default branch.
+    /// `io`, `token-store`, `internal`, `processing-timeout`,
+    /// `confirmation-required`, `no-tty`, `unsupported-pagination`, and the
+    /// verb-local `invalid-json`, `unknown-schema`, `validation-failed`,
+    /// `missing-host`, `home-not-set`, `destination-not-empty`,
+    /// `destination-is-file`, `git-not-found`, `git-clone-failed`,
+    /// `not-installed`, and `remove-failed`. The set is closed, and a newer
+    /// release can add to it: treat a value you do not recognize as your
+    /// default branch.
     pub reason: String,
     /// Structured exit code per the sysexits-inspired matrix in
     /// `xurl::error`.
@@ -95,11 +96,11 @@ pub struct ErrorBody {
     /// What the caller should do next, when a recovery step exists.
     ///
     /// `action` is closed: `register-app`, `sign-in`, `select-app`,
-    /// `inspect-store`, `enroll-app`, `show-help`. A newer release can add an
-    /// action, so treat one you do not recognize as your default branch. A
-    /// step carries either a `command`, runnable verbatim by a non-TTY caller,
-    /// or a `template` whose angle-bracket placeholders only the caller can
-    /// fill, never both.
+    /// `inspect-store`, `enroll-app`, `show-help`, `resume-wait`. A newer
+    /// release can add an action, so treat one you do not recognize as your
+    /// default branch. A step carries either a `command`, runnable verbatim by
+    /// a non-TTY caller, or a `template` whose angle-bracket placeholders only
+    /// the caller can fill, never both.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
@@ -133,6 +134,10 @@ pub struct ErrorBody {
     /// Other apps holding credentials, when the active one holds none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_apps_with_creds: Option<Vec<String>>,
+
+    /// Media id whose processing a wait gave up on; the upload is intact.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_id: Option<String>,
 
     /// Post id a destructive verb targeted.
     #[serde(skip_serializing_if = "Option::is_none")]

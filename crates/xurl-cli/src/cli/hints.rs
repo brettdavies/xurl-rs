@@ -119,6 +119,17 @@ impl NextStep {
         }
     }
 
+    /// The wait on `media_id` again, for `secs` seconds.
+    #[must_use]
+    pub fn resume_wait(media_id: &str, secs: u64) -> Self {
+        Self {
+            action: NextAction::ResumeWait,
+            command: Some(format!("xr media status {media_id} --wait={secs}")),
+            template: None,
+            docs: None,
+        }
+    }
+
     /// The invocation to show a human: the command, else the template.
     #[must_use]
     pub fn display_invocation(&self) -> Option<&str> {
@@ -240,6 +251,28 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
     Some(Hint {
         text_lines,
         next_step: NextStep::enroll_app(docs.to_string()),
+    })
+}
+
+/// Builds the resume hint when `error` is a processing wait that reached
+/// its deadline.
+///
+/// The command waits twice as long as the wait that expired: a job that
+/// outlasted one deadline is unlikely to finish inside the same one again.
+#[must_use]
+pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
+    let (Error::ProcessingTimeout { media_id, waited }, Some(NextAction::ResumeWait)) =
+        (error, error.next_action())
+    else {
+        return None;
+    };
+    let next_step = NextStep::resume_wait(media_id, waited.as_secs().saturating_mul(2));
+    let command = next_step.command.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
+        )],
+        next_step,
     })
 }
 

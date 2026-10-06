@@ -1,0 +1,11 @@
+args: ["media", "status", "4242", "--wait=1"]
+store: oauth2
+exit_code: 1
+stdout_len: 0
+stderr_len: 180
+--- stdout ---
+
+--- stderr ---
+Error: media 4242 was still processing when the 1-second wait ended
+The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: xr media status 4242 --wait=2
+

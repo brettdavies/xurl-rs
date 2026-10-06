@@ -97,3 +97,25 @@ RFC says. It reproduces the `oauth_signature` of X's published example,
 | `*`   | `*`         | `%2A`         |
 
 A request with none of those characters in a signed value produces the same signature in both.
+
+## A wait on media processing has a deadline (intentional improvement)
+
+Go `xurl` waits on media processing in a loop with no deadline (`api/media.go`, `WaitForProcessing`): it polls until the
+status reads `succeeded` or `failed`. A status that carries no `processing_info`, which is what an image reports, reads
+as neither, so that wait never ends, and a job X never finishes is polled for as long as the process lives. Its `--wait`
+is a boolean flag.
+
+The Rust version always ends the wait:
+
+| Situation                           | Go behavior                     | Rust behavior                                            |
+| ----------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| Status carries no `processing_info` | Polls once a second without end | Returns the status after one call                        |
+| Job still running                   | Polls without a deadline        | Exit 1, reason `processing-timeout`, at the deadline     |
+| `--wait`, `--wait=true`             | Waits                           | Waits up to 60 seconds                                   |
+| `--wait=<SECS>`                     | Accepts only `0` or `1`         | Waits up to that many seconds; `0` does not wait         |
+| `--wait=false`                      | Does not wait                   | Does not wait                                            |
+| `--wait 60` (value after a space)   | Not the flag's value            | Exit 2, with a tip pointing at `--wait=60`               |
+
+`media upload` still waits by default and `media status` still reads the status once unless `--wait` is given. The
+timeout leaves the upload intact: its envelope carries `media_id` and a `resume-wait` step whose `command`, `xr media
+status <media_id> --wait=<secs>`, waits again for twice as long.

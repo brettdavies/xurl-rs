@@ -51,7 +51,7 @@ pub(super) async fn run_media_command(
                 &auth_type.unwrap_or_default(),
                 &username.unwrap_or_default(),
                 trace,
-                wait,
+                wait.0,
                 &headers,
                 &client,
             )
@@ -91,7 +91,7 @@ pub(super) async fn run_media_command(
                 &media_id,
                 &auth_type.unwrap_or_default(),
                 &username.unwrap_or_default(),
-                wait,
+                wait.0,
                 trace,
                 &headers,
                 &client,

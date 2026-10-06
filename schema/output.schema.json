@@ -29,6 +29,11 @@
           "type": "string"
         },
         {
+          "const": "resume-wait",
+          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
+          "type": "string"
+        },
+        {
           "const": "show-help",
           "description": "The word named no command; read the help of the nearest one.",
           "type": "string"
@@ -208,6 +213,13 @@
             "null"
           ]
         },
+        "media_id": {
+          "description": "Media id whose processing a wait gave up on; the upload is intact.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "message": {
           "description": "Human-readable message. Omitted entirely (not `null`) when absent.",
           "type": [
@@ -238,7 +250,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`. A newer release can add an\naction, so treat one you do not recognize as your default branch. A\nstep carries either a `command`, runnable verbatim by a non-TTY caller,\nor a `template` whose angle-bracket placeholders only the caller can\nfill, never both."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`. A newer\nrelease can add an action, so treat one you do not recognize as your\ndefault branch. A step carries either a `command`, runnable verbatim by\na non-TTY caller, or a `template` whose angle-bracket placeholders only\nthe caller can fill, never both."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -268,7 +280,7 @@
           ]
         },
         "reason": {
-          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\n`destination-not-empty`, `destination-is-file`, `git-not-found`,\n`git-clone-failed`, `not-installed`, and `remove-failed`. The set is\nclosed, and a newer release can add to it: treat a value you do not\nrecognize as your default branch.",
+          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `processing-timeout`,\n`confirmation-required`, `no-tty`, `unsupported-pagination`, and the\nverb-local `invalid-json`, `unknown-schema`, `validation-failed`,\n`missing-host`, `home-not-set`, `destination-not-empty`,\n`destination-is-file`, `git-not-found`, `git-clone-failed`,\n`not-installed`, and `remove-failed`. The set is closed, and a newer\nrelease can add to it: treat a value you do not recognize as your\ndefault branch.",
           "type": "string"
         },
         "rendered_url": {

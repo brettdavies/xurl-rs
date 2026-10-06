@@ -13,7 +13,9 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Http(msg) => format!("HTTP Error: {msg}"),
         Error::Io(msg) => format!("IO Error: {msg}"),
         Error::InvalidMethod(method) => format!("Invalid Method: Invalid HTTP method: {method}"),
-        Error::Api { .. } | Error::Validation(_) => error.to_string(),
+        Error::Api { .. } | Error::Validation(_) | Error::ProcessingTimeout { .. } => {
+            error.to_string()
+        }
         Error::InvalidUrl(url) => format!("Invalid URL: {url}"),
         Error::InvalidPathParam { name, value } => {
             format!(

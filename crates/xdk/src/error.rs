@@ -24,6 +24,9 @@ pub enum NextAction {
     InspectStore,
     /// X refused the app; enroll it in the developer portal.
     EnrollApp,
+    /// Media was still processing when the wait's deadline passed; wait on
+    /// the same media id again.
+    ResumeWait,
     /// The word named no command; read the help of the nearest one.
     // `xr` reaches this alone: its unknown-command envelope carries it
     // (`crates/xurl-cli/src/cli/runner.rs`, `render_unknown_command`), and no
@@ -134,6 +137,18 @@ pub enum Error {
     /// Token store persistence / lookup error.
     #[error("{0}")]
     TokenStore(String),
+
+    /// A wait on media processing reached its deadline with the job still
+    /// running. The upload itself is intact: X keeps a media id valid for 24
+    /// hours, so another wait on [`Self::ProcessingTimeout::media_id`] picks
+    /// the job up where this one left it.
+    #[error("media {media_id} was still processing when the {}-second wait ended", waited.as_secs())]
+    ProcessingTimeout {
+        /// The media id whose processing had not finished.
+        media_id: String,
+        /// The deadline the wait ran to.
+        waited: std::time::Duration,
+    },
 
     /// Auth method mismatch: the caller asked for, or auto-detect resolved,
     /// a scheme the endpoint's matrix entry does not accept. The payload is
@@ -321,9 +336,10 @@ impl Error {
     /// The recovery step this error carries, when the library can name one.
     ///
     /// A 403 that says X refused the app is `EnrollApp`; a bare 403 on X's
-    /// Pay-per-use enrollment failure is unactionable without it. Every
-    /// other error is `None` here: the steps that depend on a credential
-    /// store are the binary's to choose.
+    /// Pay-per-use enrollment failure is unactionable without it. A
+    /// processing timeout is `ResumeWait`. Every other error is `None` here:
+    /// the steps that depend on a credential store are the binary's to
+    /// choose.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -335,6 +351,7 @@ impl Error {
             Self::Api { status, body } if refuses_enrollment(*status, body) => {
                 Some(NextAction::EnrollApp)
             }
+            Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Api { .. }
             | Self::Http(_)
             | Self::Io(_)
@@ -377,7 +394,8 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::Json(_)
-            | Self::TokenStore(_) => None,
+            | Self::TokenStore(_)
+            | Self::ProcessingTimeout { .. } => None,
         }
     }
 
@@ -418,6 +436,7 @@ impl Error {
     /// | `InvalidPathParam`     | `invalid-path-param` |
     /// | `Internal`             | `internal`       |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
+    /// | `ProcessingTimeout`    | `processing-timeout` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -443,6 +462,7 @@ impl Error {
             Self::InvalidUrl(_) => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
+            Self::ProcessingTimeout { .. } => "processing-timeout",
         }
     }
 
@@ -467,7 +487,8 @@ impl Error {
             | Self::Validation(_)
             | Self::InvalidUrl(_)
             | Self::InvalidPathParam { .. }
-            | Self::Internal(_) => EXIT_GENERAL_ERROR,
+            | Self::Internal(_)
+            | Self::ProcessingTimeout { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }
     }
@@ -573,9 +594,9 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// A filesystem or connection failure the library reports as
-/// [`Error::Io`]. An API response with any other status and a transport
-/// failure both exit `EXIT_GENERAL_ERROR`.
+/// A transport or filesystem failure: [`Error::Http`] and [`Error::Io`]. An
+/// API response whose status has no code of its own exits
+/// [`EXIT_GENERAL_ERROR`].
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

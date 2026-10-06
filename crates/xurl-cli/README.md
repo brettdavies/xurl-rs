@@ -177,12 +177,35 @@ xr -s /2/tweets/search/stream                  # Streaming
 ### Media Upload
 
 ```bash
-xr media upload video.mp4                      # Upload media
+xr media upload video.mp4                      # Upload media; waits up to 60 s for a video to process
+xr media upload video.mp4 --wait=300           # Wait up to five minutes
+xr media upload video.mp4 --wait=false         # Return after FINALIZE
 xr media status 1234567890                     # Check status
+xr media status 1234567890 --wait=120          # Wait on processing, up to two minutes
 xr media alt-text 1234567890 "A dog asleep"    # Set alt text on an upload
 xr media upload captions.srt --media-type text/srt --category subtitles
 xr media subtitles add 1234567890 1234567891 --language en --name English
 xr media subtitles remove 1234567890 --language en
+```
+
+`--wait` takes its value after `=`: bare or `true` waits up to 60 seconds, a number that many seconds, and `false` or `0`
+not at all. `media upload` waits by default and `media status` does not. A wait ends when X reports the job finished or
+failed, or when the status carries no processing information, as an image's does. A wait that reaches its deadline
+exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a media id for 24 hours, so the
+envelope carries the id and the command that resumes the wait for twice as long:
+
+```json
+{
+  "status": "error",
+  "reason": "processing-timeout",
+  "exit_code": 1,
+  "message": "media 1234567890 was still processing when the 60-second wait ended",
+  "media_id": "1234567890",
+  "next_step": {
+    "action": "resume-wait",
+    "command": "xr media status 1234567890 --wait=120"
+  }
+}
 ```
 
 ## Authentication
@@ -383,12 +406,12 @@ on a machine with nothing registered:
 }
 ```
 
-`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, and
-`show-help`, which an `unknown-command` envelope carries with the help of the nearest command (`xr auth status --help`
-for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat a value you do not
-recognize as your default branch. A step carries either a `command`, runnable verbatim, or a `template` with
-angle-bracket placeholders only the caller can fill. Text mode prints the same advice as prose instead; the two need not
-match word for word.
+`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`,
+`resume-wait`, which a `processing-timeout` envelope carries, and `show-help`, which an `unknown-command` envelope
+carries with the help of the nearest command (`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A
+newer release can add to either set, so treat a value you do not recognize as your default branch. A step carries either
+a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill. Text mode
+prints the same advice as prose instead; the two need not match word for word.
 
 ### NO_COLOR Support
 

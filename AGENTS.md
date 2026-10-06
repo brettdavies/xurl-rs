@@ -76,6 +76,10 @@ Branch on `next_step.action`: `register-app` means nothing is registered, so run
 `sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
 names it in the message.
 
+One action answers a failure that is not about credentials. `resume-wait` rides on reason `processing-timeout` (exit 1):
+a wait on media processing reached its deadline with the job still running. The upload is intact, the envelope names it
+in `media_id`, and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long.
+
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
 

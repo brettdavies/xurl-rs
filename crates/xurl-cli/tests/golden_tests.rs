@@ -227,6 +227,23 @@ impl MockApi {
                         .set_body_json(serde_json::json!({"data": {"id": ""}})),
                 ),
         );
+        // Media 4242 never finishes processing. A one-second wait against a
+        // one-second check interval times out after its first status call.
+        self.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/media/upload"))
+                .and(query_param("media_id", "4242"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "4242",
+                                "processing_info": {"state": "in_progress", "check_after_secs": 1}
+                            }
+                        })),
+                ),
+        );
     }
 }
 
@@ -242,8 +259,13 @@ impl Scratch {
         }
     }
 
+    /// The seeded store, written on the first call and shared by every case
+    /// that asks for it.
     fn oauth2_store(&self) -> PathBuf {
         let store = self.dir.path().join("oauth2-store").join(".xurl");
+        if store.exists() {
+            return store;
+        }
         std::fs::create_dir_all(store.parent().expect("parent")).expect("store dir");
         let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
         ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
@@ -422,6 +444,13 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             ..reason_case(
                 "serialization",
                 &["--output", "json", "media", "upload", upload_name],
+            )
+        },
+        Case {
+            store: Store::OAuth2,
+            ..reason_case(
+                "processing-timeout",
+                &["--output", "json", "media", "status", "4242", "--wait=1"],
             )
         },
         reason_case(
@@ -637,6 +666,13 @@ fn text_cases() -> Vec<Case> {
             "text-rate-limited",
             &["--auth", "app", "search", "q429"],
         )),
+        Case {
+            store: Store::OAuth2,
+            ..case(
+                "text-processing-timeout",
+                &["media", "status", "4242", "--wait=1"],
+            )
+        },
         case(
             "skill-install-unknown-host",
             &["skill", "install", "bogus_host"],

@@ -235,13 +235,9 @@ impl OutputConfig {
         hint: &crate::cli::hints::Hint,
     ) {
         if self.format.is_structured() {
-            let display = message::render(error);
             let body = ErrorBody {
-                reason: error.kind().to_string(),
-                exit_code,
-                message: Some(display),
                 next_step: Some(hint.next_step.clone()),
-                ..ErrorBody::default()
+                ..error_body(error, exit_code)
             };
             self.emit_error_envelope(err, body);
             return;
@@ -349,42 +345,7 @@ impl OutputConfig {
     /// emit a JSON line carrying the envelope (delimited formats are not a good
     /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
-        let display = message::render(error);
-        let mut body = ErrorBody {
-            reason: error.kind().to_string(),
-            exit_code,
-            message: Some(display),
-            ..ErrorBody::default()
-        };
-        // `AuthMethodMismatch` carries structured fields: the envelope folds
-        // `endpoint` (template), `rendered_url` (substituted), `method`,
-        // `requested`, `supported`, `available_in_app`, `app`, and
-        // `other_apps_with_creds` alongside the standard `message`. Agents
-        // pattern-match on these without re-parsing the human message.
-        if let Error::AuthMethodMismatch(mismatch) = error {
-            let xdk::error::AuthMismatch {
-                endpoint,
-                rendered_url,
-                method,
-                requested,
-                supported,
-                available_in_app,
-                app,
-                other_apps_with_creds,
-            } = &**mismatch;
-            body.endpoint = Some(endpoint.clone());
-            body.rendered_url = rendered_url.clone();
-            body.method = Some(method.clone());
-            body.requested = Some(match requested {
-                Some(s) => Value::String(s.clone()),
-                None => Value::Null,
-            });
-            body.supported = Some(supported.clone());
-            body.available_in_app = available_in_app.clone();
-            body.app = app.clone();
-            body.other_apps_with_creds = other_apps_with_creds.clone();
-        }
-        self.emit_error_envelope(err, body);
+        self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
     /// Emits a canonical success envelope under structured modes.
@@ -617,6 +578,48 @@ impl OutputConfig {
             let _ = writeln!(err, "\x1b[31mError: {display}\x1b[0m");
         }
     }
+}
+
+/// The envelope body for a library error: its `reason`, the message `xr`
+/// prints for it, and the facts the variant carries as fields of their own,
+/// so an agent reads them without parsing the message.
+fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
+    let mut body = ErrorBody {
+        reason: error.kind().to_string(),
+        exit_code,
+        message: Some(message::render(error)),
+        ..ErrorBody::default()
+    };
+    match error {
+        Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                rendered_url,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                app,
+                other_apps_with_creds,
+            } = &**mismatch;
+            body.endpoint = Some(endpoint.clone());
+            body.rendered_url = rendered_url.clone();
+            body.method = Some(method.clone());
+            body.requested = Some(match requested {
+                Some(s) => Value::String(s.clone()),
+                None => Value::Null,
+            });
+            body.supported = Some(supported.clone());
+            body.available_in_app = available_in_app.clone();
+            body.app = app.clone();
+            body.other_apps_with_creds = other_apps_with_creds.clone();
+        }
+        Error::ProcessingTimeout { media_id, .. } => {
+            body.media_id = Some(media_id.clone());
+        }
+        _ => {}
+    }
+    body
 }
 
 impl Default for OutputConfig {

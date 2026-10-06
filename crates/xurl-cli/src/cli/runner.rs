@@ -37,8 +37,8 @@ use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
-    color_choice, failing_command, lenient_cli, output_intent, parse_without_display_flags,
-    raw_choice,
+    color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
+    parse_without_display_flags, raw_choice,
 };
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
@@ -343,7 +343,9 @@ where
                     .collect();
                 let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                 out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e) {
+            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e)
+                .or_else(|| crate::cli::hints::resume_wait_hint(&e))
+            {
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else {
                 out.print_error(stderr, &e, code);
@@ -483,6 +485,14 @@ fn render_invalid_args(
         .unwrap_or(body)
         .trim_end();
     let command = failing_command(error, args);
+    // clap puts its own tips between the error line and the usage line.
+    let body = match equals_form_hint(error, args, &command) {
+        Some(hint) => match body.split_once("\n\nUsage:") {
+            Some((failure, usage)) => format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}"),
+            None => format!("{body}\n\n  tip: {hint}"),
+        },
+        None => body.to_string(),
+    };
     out.print_error_envelope(
         stderr,
         "invalid-args",
