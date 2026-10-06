@@ -2054,6 +2054,9 @@ History: none
 Approval readiness: PASS. R6 (D7 answer A); R1 through R5 unchanged; the four routine items cite DX D8, D12, D14 and
 D17.
 
+D8 (asked after R6): keep `retry_after_secs` rather than Cloudflare's bare `retry_after`; the relative field keeps
+X's `*_after_secs` spelling and `retry_at` stays the absolute time. No plan change.
+
 Second-pass findings: Architecture 1 (F1, resolved as R6); Code quality, Tests and Performance none. Outside voice:
 codex, disabled by `codex_reviews`.
 
