@@ -713,3 +713,66 @@ fn every_command_family_appears_on_the_examples_page() {
          XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests."
     );
 }
+
+// ── No example passes a secret on the command line ────────────────────
+
+/// The lines of `text` that give a secret flag a value. The `--<name>-file`
+/// twins take a path, so they never match.
+fn secret_on_argv(text: &str) -> Vec<String> {
+    let secret_value = regex::Regex::new(
+        r"--(client-secret|consumer-secret|access-token|token-secret|bearer-token)[ =][^\s-]",
+    )
+    .unwrap();
+    text.lines()
+        .filter(|line| secret_value.is_match(line))
+        .map(|line| line.trim().to_string())
+        .collect()
+}
+
+/// An example is what an agent or a person copies, and whatever follows a
+/// secret flag lands in argv, where any process listing shows it. So the
+/// examples page, the examples of every help page, and the docs that ship with
+/// the tool all show the `--<name>-file` form instead.
+#[test]
+fn no_example_passes_a_secret_on_the_command_line() {
+    let mut shown: Vec<(String, String)> = vec![
+        ("xr examples".to_string(), page(&["examples".to_string()])),
+        ("xr --help".to_string(), page(&["--help".to_string()])),
+    ];
+    for path in common::command_paths() {
+        let mut args = path.clone();
+        args.push("--help".to_string());
+        let help = page(&args);
+        // A command's own option list names the plain flags with their value
+        // placeholders; only the examples under it are copied.
+        let examples = help
+            .split_once("Examples:")
+            .map(|(_, examples)| examples.to_string())
+            .unwrap_or_default();
+        shown.push((format!("xr {} --help", path.join(" ")), examples));
+    }
+    for doc in [
+        "README.md",
+        "AGENTS.md",
+        "crates/xurl-cli/README.md",
+        "crates/xdk/README.md",
+    ] {
+        let text = std::fs::read_to_string(common::workspace_root().join(doc)).unwrap();
+        shown.push((doc.to_string(), text));
+    }
+
+    let offending: Vec<String> = shown
+        .iter()
+        .flat_map(|(source, text)| {
+            secret_on_argv(text)
+                .into_iter()
+                .map(move |line| format!("{source}: {line}"))
+        })
+        .collect();
+    assert!(
+        offending.is_empty(),
+        "these examples put a secret in argv; show `--<name>-file -` with the secret piped in, \
+         or `--<name>-file PATH`:\n{}",
+        offending.join("\n")
+    );
+}

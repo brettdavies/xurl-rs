@@ -5360,3 +5360,300 @@ async fn test_enrollment_403_hint_is_suppressed_under_quiet() {
         "quiet drops the advice; got: {stderr}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Secrets from a file or stdin
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// The client secret stored for `app`.
+fn stored_client_secret(store: &Path, app: &str) -> String {
+    let ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.get_app(app).expect("app stored").client_secret.clone()
+}
+
+/// A secret file's contents are stored without their one trailing line ending.
+#[rstest::rstest]
+#[case::unix_line_ending("FILE-SECRET\n", "FILE-SECRET")]
+#[case::windows_line_ending("FILE-SECRET\r\n", "FILE-SECRET")]
+#[case::no_line_ending("FILE-SECRET", "FILE-SECRET")]
+#[case::only_one_line_ending_is_trimmed("FILE-SECRET\n\n", "FILE-SECRET\n")]
+#[tokio::test]
+async fn test_apps_add_reads_the_client_secret_from_a_file(
+    #[case] contents: &str,
+    #[case] stored: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let secret_file = tmp.path().join("client-secret");
+    std::fs::write(&secret_file, contents).expect("secret file");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            secret_file.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(stored_client_secret(&store, "myapp"), stored);
+}
+
+/// `-` reads the secret from stdin.
+#[test]
+fn test_apps_add_reads_the_client_secret_from_stdin() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    common::xr_with_store(&store)
+        .args([
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            "-",
+        ])
+        .write_stdin("PIPED-SECRET\n")
+        .assert()
+        .success();
+    assert_eq!(stored_client_secret(&store, "myapp"), "PIPED-SECRET");
+}
+
+/// `apps update` rotates the secret from a file.
+#[tokio::test]
+async fn test_apps_update_reads_the_client_secret_from_a_file() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = seeded_store(&tmp);
+    let secret_file = tmp.path().join("client-secret");
+    std::fs::write(&secret_file, "ROTATED-SECRET\n").expect("secret file");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "update",
+            "myapp",
+            "--client-secret-file",
+            secret_file.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(stored_client_secret(&store, "myapp"), "ROTATED-SECRET");
+}
+
+/// Every `auth oauth1` secret has a file twin, and each lands in its own slot.
+#[tokio::test]
+async fn test_oauth1_reads_each_secret_from_its_file() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let file = |name: &str, contents: &str| {
+        let path = tmp.path().join(name);
+        std::fs::write(&path, contents).expect("secret file");
+        path.to_str().expect("utf-8 path").to_string()
+    };
+    let consumer_secret = file("consumer-secret", "CS-FROM-FILE\n");
+    let access_token = file("access-token", "AT-FROM-FILE\n");
+    let token_secret = file("token-secret", "TS-FROM-FILE\n");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "oauth1",
+            "--consumer-key",
+            "CK",
+            "--consumer-secret-file",
+            &consumer_secret,
+            "--access-token-file",
+            &access_token,
+            "--token-secret-file",
+            &token_secret,
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+
+    let ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let token = ts
+        .get_oauth1_tokens()
+        .and_then(|token| token.oauth1.clone())
+        .expect("oauth1 token stored");
+    assert_eq!(token.consumer_key, "CK");
+    assert_eq!(token.consumer_secret, "CS-FROM-FILE");
+    assert_eq!(token.access_token, "AT-FROM-FILE");
+    assert_eq!(token.token_secret, "TS-FROM-FILE");
+}
+
+/// `auth app` reads the bearer token from a file.
+#[tokio::test]
+async fn test_auth_app_reads_the_bearer_token_from_a_file() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let bearer_file = tmp.path().join("bearer");
+    std::fs::write(&bearer_file, "BEARER-FROM-FILE\n").expect("secret file");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "app",
+            "--bearer-token-file",
+            bearer_file.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+
+    let ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let bearer = ts
+        .get_bearer_token()
+        .and_then(|token| token.bearer.clone())
+        .expect("bearer stored");
+    assert_eq!(bearer, "BEARER-FROM-FILE");
+}
+
+/// Stdin carries one value, so a second `-` is a usage error naming both flags.
+#[test]
+fn test_oauth1_rejects_a_second_stdin_secret() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let output = common::xr_with_store(&store)
+        .args([
+            "--output",
+            "json",
+            "auth",
+            "oauth1",
+            "--consumer-key",
+            "CK",
+            "--consumer-secret-file",
+            "-",
+            "--access-token",
+            "AT",
+            "--token-secret-file",
+            "-",
+        ])
+        .write_stdin("ONE-VALUE\n")
+        .output()
+        .expect("xr runs");
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "invalid-args", "got: {v}");
+    let message = v["message"].as_str().expect("message");
+    assert!(
+        message.contains("--consumer-secret-file") && message.contains("--token-secret-file"),
+        "the message names both flags: {message}"
+    );
+    assert!(!store.exists(), "nothing is stored");
+}
+
+/// A secret given both ways is a usage error.
+#[tokio::test]
+async fn test_apps_add_rejects_the_secret_given_twice() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let secret_file = tmp.path().join("client-secret");
+    std::fs::write(&secret_file, "FILE-SECRET\n").expect("secret file");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret",
+            "ARGV-SECRET",
+            "--client-secret-file",
+            secret_file.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_invalid_args_envelope(&stderr);
+    assert!(
+        stderr.contains("cannot be used with") && stderr.contains("--client-secret-file"),
+        "the two sources conflict: {stderr}"
+    );
+}
+
+/// A secret file that cannot be read is an I/O failure naming the path.
+#[tokio::test]
+async fn test_apps_add_names_a_missing_secret_file() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let missing = tmp.path().join("no-such-secret");
+    let missing = missing.to_str().expect("utf-8 path");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            missing,
+        ],
+    )
+    .await;
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "io", "got: {v}");
+    assert!(
+        v["message"].as_str().expect("message").contains(missing),
+        "the message names the path: {v}"
+    );
+    assert!(!store.exists(), "nothing is stored");
+}
+
+/// The plain flag stores its value as given.
+#[tokio::test]
+async fn test_apps_add_plain_client_secret_is_stored_as_given() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret",
+            "ARGV-SECRET",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(stored_client_secret(&store, "myapp"), "ARGV-SECRET");
+}
