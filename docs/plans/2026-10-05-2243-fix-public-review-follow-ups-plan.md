@@ -286,6 +286,9 @@ changing code (KTD1).
   contract, filed under Fixed.
 - **Embedders of `xdk-rs`** absorb the variant-shape changes (U10, U11) and the new media-wait and scope parameters (U3,
   U7) in one 0.2.0.
+- **Scripts uploading long videos** see `media upload` exit 1 with `processing-timeout` after 60 s where `dev` waited
+  until processing finished (U7). The media id stays usable for 24 hours, `--wait=N` restores a longer wait, and the
+  envelope's `resume-wait` command continues it; the change ships in the minor under Changed.
 - **The token store's directory** gains a `<store>.refresh.lock` sidecar beside the existing `<store>.lock` (U5).
 - **Every xurl-rs PR** waits on three more required checks: the audit, MSRV, and Go parity (U4, U9).
 - **Other Rust repos** calling the shared release workflow see no change until they turn on `attest` (U21).
@@ -376,7 +379,9 @@ flowchart TB
   S2 -->|yes| E2[Api error with the raw body]
   E1 --> RL{Status 429?}
   E2 --> RL
-  RL -->|yes| RT[Rate-limited error carrying the reset time]
+  RL -->|yes| RH{Parseable x-rate-limit-reset?}
+  RH -->|yes| RT[rate-limited with retry_after_secs, retry_at, wait-and-retry]
+  RH -->|no| RN[rate-limited with no timing and no next_step]
 ```
 
 The xurl-rs stack lands in phases; xurl-rs-skill and the shared workflows run in parallel with it:
@@ -693,6 +698,8 @@ deterministic tests.
 6. Carry `media_id` and the deadline it waited on the library's timeout error, so the CLI can build the `resume-wait`
    command, and record in `KNOWN_DIFFERENCES.md` that Go `xurl` waits with no deadline, polls an empty state forever,
    and takes only a bool for `--wait`.
+7. File the bounded upload wait under `### Changed` in the PR's `## Changelog (xurl-rs)` block, naming `--wait=N` and
+   the `resume-wait` command, since it changes what `media upload` does for a video that processes longer than 60 s.
 
 **Execution note:** start with a failing test that a status without `processing_info` returns instead of polling.
 
@@ -1172,10 +1179,10 @@ real release's archive, which fails on every release before it.
 **Approach:**
 
 1. Lead every credential example with the vault pipe (`op read op://<vault>/<item>/<field> | xr … --<secret>-file -`),
-   starting with step 1 of `templates/oauth2-setup.md`. Replace the "`--wait` takes no value" row in
-   `templates/media-upload.md` with the `--wait[=<SECS>]` forms, and `--wait=false` for upload-then-poll.
+   starting with step 1 of `templates/oauth2-setup.md`.
 2. Document `--scopes`, `--wait[=<SECS>]`, `--wait-on-rate-limit`, and `--rate-limit-max-wait` where their commands
-   appear.
+   appear, and replace the "`--wait` takes no value" row in `templates/media-upload.md` with the `--wait[=<SECS>]` forms
+   and `--wait=false` for upload-then-poll.
 3. Teach the rate-limited recovery eval to branch on the `wait-and-retry` action and read `retry_after_secs` (or
    `retry_at` when it schedules) instead of guessing a wait.
 4. Add contract checks against the released `xr` for each new flag, the `processing-timeout` `reason`, and its
@@ -1218,7 +1225,10 @@ released `xr`.
 
 - Every ledger row has an outcome, and every Fix row's unit is merged, with its failing-first proof in the PR's commit
   history.
-- The `xr` changes are additive, or patch-level returns to the documented contract, so the next `xr` release is a minor.
+- The `xr` changes are additive or patch-level returns to the documented contract, with one stated exception: the 60 s
+  bound on `media upload`'s default wait changes `--wait`'s documented meaning and ships in the minor under Changed, by
+  the blast-radius rule used for 3.2.0 (the upload survives for 24 hours, `--wait=N` restores a longer wait, and the
+  envelope carries a `resume-wait` command). The next `xr` release is a minor.
 - The `xdk-rs` changes accumulate for one 0.2.0, with a before/after snippet in each breaking PR's `## Changelog
   (xdk-rs)` block.
 - No fixture moved unless its unit says the content moved.
@@ -1446,7 +1456,7 @@ The reset comes from that 429 response's own headers (common work under R11). Th
 State: approved
 Actual answer: A) No header, no retry (recommended), D4 answer in this review
 Accepted scope: KTD6 and U8 step 3 read the reset from that 429 response's own headers, never `Client::last_rate_limit`; with no parseable `x-rate-limit-reset` the envelope omits the retry key and the retry flag fails at once with `rate-limited`; U8's pattern points at `RateLimit::from_headers`; U8 adds a test for the header-less 429 after a response that carried one.
-History: none
+History: the developer-experience review's D16 and D17 added `retry_at` beside `retry_after_secs` and a `wait-and-retry` `next_step`; a 429 without a parseable reset carries none of the three.
 ```
 
 #### R4: where the new test responses live
@@ -1635,7 +1645,7 @@ CODE PATHS                                              USER FLOWS
   ├── [PLANNED ★★★] in_progress past deadline              └── [PLANNED ★★ ] failed stays processing-failed
   └── [PLANNED ★★ ] succeeded unchanged
 [+] U8 transport (transport.rs, envelope)               [+] Raw mode and 429 handling
-  ├── [PLANNED ★★ ] non-JSON 200 -> text                   ├── [PLANNED ★★★] retry key near reset
+  ├── [PLANNED ★★ ] non-JSON 200 -> text                   ├── [PLANNED ★★★] retry_after_secs near reset
   ├── [PLANNED ★★ ] HTML 500 body in message               ├── [PLANNED ★★★] retry once inside ceiling
   ├── [PLANNED ★★ ] failed body read -> network error      ├── [PLANNED ★★ ] reset past ceiling fails at once
   └── [PLANNED ★★★] header-less 429: no key, no retry      └── [PLANNED ★★ ] default never retries
@@ -1654,8 +1664,6 @@ Test Plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review
 
 - Cross-host refresh locking on a network mount: the Risks entry records it as considered and not built.
 - Turning on attestations in bird and agentnative-cli: Deferred to Follow-Up Work, one input per repo after U21.
-- A user-facing attestation verification line in the READMEs: R23 asks for attestations on release archives, not
-  documentation; left to the developer-experience review that follows this one.
 - A shared sidecar-open helper for U5 and `StoreLock`: below the shared-code bar (appendix).
 
 ### What already exists
@@ -1674,15 +1682,15 @@ Test Plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review
 ### Diagrams
 
 The plan's five mermaid diagrams cover triage, the refresh sequence, the media-wait states, the transport
-classification, and the stack phases. The 429 path after D4:
+classification, and the stack phases. The 429 path after D4 and the developer-experience review's D16 and D17:
 
 ```text
 429 received
-  ├── own x-rate-limit-reset parses? ── no ──> rate-limited envelope, no retry key, no retry
-  └── yes ──> envelope carries seconds-until-reset
-                ├── retry flag off ─────────────────────> fail with rate-limited
-                ├── reset beyond ceiling ───────────────> fail with rate-limited
-                └── reset within ceiling ──> wait, retry once ──> success, or the second response as-is
+  ├── own x-rate-limit-reset parses? ── no ──> rate-limited; no retry_after_secs, retry_at or next_step; no retry
+  └── yes ──> retry_after_secs (clamped at 0) and retry_at; next_step wait-and-retry
+                ├── --wait-on-rate-limit off ───────────> fail with rate-limited
+                ├── reset beyond --rate-limit-max-wait ─> fail with rate-limited
+                └── reset within it ──> wait, retry once ──> success, or the second response as-is
 ```
 
 ### Failure modes
@@ -1906,7 +1914,7 @@ The default wait was first proposed at 300 s in the engineering review (R5), set
 | Zero friction        | covered (bearer); OAuth2 bounded by consent   |
 | Learn by doing       | covered: one golden path in every surface     |
 | Fight uncertainty    | covered: every new error names its next step  |
-| Opinionated + escape | covered: 60 s defaults, flags and env override|
+| Opinionated + escape | covered: 60 s defaults, flag overrides each   |
 | Code in context      | covered: real vault pipe, not a placeholder   |
 | Magical moments      | covered: registration with no argv secret     |
 +====================================================================+
@@ -2094,6 +2102,18 @@ Completion summary, second pass:
 - Outside voice: codex, disabled (`codex_reviews` disabled in gstack config)
 - Parallelization: 0 lanes, all sequential (standing no-worktree rule)
 - Lake Score: 1/1 = answers picking a 10/10 option / answers scored for Completeness
+
+### Consistency check
+
+A read of the whole plan after the second pass found seven places where a later decision had not reached an earlier
+section, now aligned: the eng-review NOT-in-scope list (the README attestation line U21 adds), the eng-review 429
+diagram and the transport mermaid diagram (D4, D16, D17), the R3 record's History, the eng coverage diagram's key name,
+the DX scorecard's override claim, and U22's step order.
+
+D9: the 60 s bound on `media upload`'s default wait changes `--wait`'s documented meaning, which `RELEASES.md` §
+Versioning files as a major. Brett chose to ship it in the minor under Changed by the blast-radius rule used for 3.2.0:
+the upload survives, `--wait=N` restores a longer wait, and the envelope carries the resume command. The Definition of
+Done, System-Wide Impact and U7 step 7 say so.
 
 ## GSTACK REVIEW REPORT
 
