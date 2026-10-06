@@ -77,9 +77,12 @@ pub fn normalize_line_endings(input: &str) -> String {
 }
 
 static VERSION_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:xurl|xr) \d+\.\d+\.\d+").unwrap());
+    LazyLock::new(|| Regex::new(r"(?:xurl|xr) v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.+-]+)?").unwrap());
 
 /// Normalize version strings so "xurl 1.0.3" and "xr 1.0.3" compare equal.
+///
+/// A Go binary built with `go install` reports its module version, which
+/// carries a leading `v` and, off a tag, a pseudo-version suffix.
 pub fn normalize_version_string(input: &str) -> String {
     VERSION_RE.replace_all(input, "xurl VERSION").to_string()
 }
@@ -153,6 +156,22 @@ pub fn normalize_output(input: &str, normalizations: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_version_string_reads_each_form_a_binary_prints() {
+        for printed in [
+            "xr 4.2.1",
+            "xurl 1.0.3",
+            "xurl v1.3.4",
+            "xurl v1.3.5-0.20260929212022-18dcb447f090",
+        ] {
+            assert_eq!(
+                normalize_version_string(&format!("{printed}\n")),
+                "xurl VERSION\n",
+                "{printed}"
+            );
+        }
+    }
 
     #[test]
     fn test_normalize_timestamps() {

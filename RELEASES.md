@@ -536,9 +536,10 @@ Two rulesets are committed under `.github/rulesets/` and applied to the repo via
   the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a whole, from a
   cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
 - `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
-  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, `Agent-native audit` and
-  `MSRV` among them, and `Surface growth needs a minor section` from the `Changelog bump` workflow). The file is the
-  list; apply it after changing it. PR-only norm is convention + `guard-release-branch` on the main side.
+  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, `Agent-native audit`,
+  `Go parity`, and `MSRV` among them, and `Surface growth needs a minor section` from the `Changelog bump` workflow).
+  The file is the list; apply it after changing it. PR-only norm is convention + `guard-release-branch` on the main
+  side.
 
 A job its `if:` skips on a documentation-only PR still reports under its own name, as skipped, and that satisfies the
 requirement. A matrix job skipped whole never expands and reports nothing, which is why `Features (...)` runs on every

@@ -1,31 +1,68 @@
 //! Runs the differential conformance suite against the Go xurl binary.
 //!
-//! Requires the Go binary at /home/linuxbrew/.linuxbrew/bin/xurl or
-//! set XURL_ORIGINAL_BIN to point to it.
+//! `XURL_ORIGINAL_BIN` names that binary. Unset, the suite skips, which is
+//! what every run without Go `xurl` installed does; set, it must name an
+//! executable, and the suite fails when it does not. CI's `Go parity` job
+//! installs the original at a pinned commit and sets the variable.
 //!
-//! Run with: XURL_ORIGINAL_BIN=/home/linuxbrew/.linuxbrew/bin/xurl cargo test --test conformance_runner -- --nocapture
+//! The original runs against a scratch home directory, because it relocates
+//! the token store it finds under the real one.
+//!
+//! Run with: `XURL_ORIGINAL_BIN=<path to Go xurl> cargo test -p xurl-rs --test conformance_runner -- --nocapture`
 
 mod common;
 mod conformance;
 
+use std::path::{Path, PathBuf};
+
 use conformance::{DifferentialRunner, TestCaseFile};
+
+/// The variable naming the Go original.
+const ORIGINAL_BIN_VAR: &str = "XURL_ORIGINAL_BIN";
+
+/// The Go original to compare against: `None` when `configured`, the value of
+/// [`ORIGINAL_BIN_VAR`], is unset.
+///
+/// A set value is a promise that the suite runs, so one that names no
+/// executable is an error instead of a skip.
+fn original_bin(configured: Option<&str>) -> Result<Option<PathBuf>, String> {
+    let Some(configured) = configured else {
+        return Ok(None);
+    };
+    let path = Path::new(configured);
+    if is_executable(path) {
+        Ok(Some(path.to_path_buf()))
+    } else {
+        Err(format!(
+            "{ORIGINAL_BIN_VAR} names {configured}, which is not an executable file. \
+             Point it at the Go xurl binary, or unset it to skip the suite."
+        ))
+    }
+}
+
+#[cfg(unix)]
+fn is_executable(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::metadata(path)
+        .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+}
+
+#[cfg(not(unix))]
+fn is_executable(path: &Path) -> bool {
+    path.is_file()
+}
 
 #[test]
 fn run_differential_conformance_suite() {
-    let original = std::env::var("XURL_ORIGINAL_BIN").ok();
-    if original.is_none() {
-        // Try known path
-        let known_path = "/home/linuxbrew/.linuxbrew/bin/xurl";
-        if !std::path::Path::new(known_path).exists() {
-            eprintln!(
-                "SKIP: Go xurl binary not found. Set XURL_ORIGINAL_BIN or install at {known_path}"
-            );
+    let configured = std::env::var(ORIGINAL_BIN_VAR).ok();
+    let original = match original_bin(configured.as_deref()) {
+        Ok(Some(original)) => original,
+        Ok(None) => {
+            eprintln!("SKIP: {ORIGINAL_BIN_VAR} is unset, so there is no Go xurl to compare with");
             return;
         }
-        unsafe {
-            std::env::set_var("XURL_ORIGINAL_BIN", known_path);
-        }
-    }
+        Err(problem) => panic!("{problem}"),
+    };
 
     let toml_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
@@ -37,7 +74,7 @@ fn run_differential_conformance_suite() {
     let cases: TestCaseFile =
         toml::from_str(&content).unwrap_or_else(|e| panic!("Failed to parse test_cases.toml: {e}"));
 
-    let runner = DifferentialRunner::new();
+    let runner = DifferentialRunner::new(&original);
     let results = runner.run_all(&cases.test);
 
     DifferentialRunner::print_report(&results);

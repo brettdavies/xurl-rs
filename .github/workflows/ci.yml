@@ -351,6 +351,39 @@ jobs:
           MSRV: ${{ steps.msrv.outputs.version }}
         run: cargo "+${MSRV}" check --workspace --all-features --locked
 
+  # The differential suite runs each case against `xr` and against the Go
+  # original, and it skips when `XURL_ORIGINAL_BIN` is unset, which is what the
+  # reusable workflow's test job sees. This job is where the comparison
+  # happens: it installs Go `xurl` at a pinned commit and names it in the
+  # variable, and with the variable set a missing binary fails the suite
+  # instead of skipping it. The cases that need the live API stay skipped, so
+  # the job spends nothing.
+  parity:
+    name: Go parity
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # xdevplatform/xurl v1.3.4
+      GO_XURL_REV: 18dcb447f090667171ff23666a05d6d387e2aa73
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Install Go xurl at the pinned commit
+        run: |
+          set -euo pipefail
+          go version
+          go install "github.com/xdevplatform/xurl@${GO_XURL_REV}"
+          original="$(go env GOPATH)/bin/xurl"
+          test -x "$original"
+          echo "XURL_ORIGINAL_BIN=${original}" >> "$GITHUB_ENV"
+      - name: Run the differential suite
+        run: cargo test -p xurl-rs --test conformance_runner --locked -- --nocapture
+
   # The matrix above names the cells a reader expects; this job compiles every
   # remaining subset that carries a backend (`native-tls` with `testing`, both
   # backends without it), each from `--no-default-features`, so a feature added
