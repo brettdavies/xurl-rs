@@ -71,14 +71,21 @@ Driven by `scripts/release/preflight.sh surface`.
 
 ```bash
 LAST_TAG=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
-git log "$LAST_TAG..dev" --oneline                              # commits going out
-git diff "$LAST_TAG..dev" --stat                                # file-level scope
-git diff "$LAST_TAG..dev" -- crates/xdk/src/ crates/xurl-cli/src/  # surface area: library, CLI
-git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
+# The commit that synced the tag back into dev opens dev's window.
+SINCE=$(git log origin/dev --format='%H %s' \
+  | grep -E -m1 "^[0-9a-f]+ chore\(release\): (sync dev after|backport) ${LAST_TAG//./\\.}( |$)" | cut -d' ' -f1)
+git log "$SINCE..origin/dev" --oneline                          # commits going out
+git diff "$LAST_TAG" origin/dev --name-only \
+  | grep -Ev "$(scripts/release/guarded-paths.sh)"              # file-level scope: what ships
+git diff "$LAST_TAG" origin/dev -- crates/xdk/src/ crates/xurl-cli/src/   # surface area: library, CLI
+git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
-On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
-`origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
+Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
+`dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
+`chore(release): sync dev after vX.Y.Z`: the boundary `generate-changelog.py` uses. The file list compares trees, so it
+reads from the tag directly, minus the guarded set `dev` carries but never ships. With no commit syncing the tag back,
+`preflight.sh surface` SKIPs, and the surface is `origin/main..origin/dev`.
 
 `cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
 detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
