@@ -17,9 +17,9 @@ scripts/release/postflight.sh all
 The script (`scripts/release/postflight.sh`) is a verbatim copy of the github-repo-setup skill's template and covers the
 automatable post-tag gates: `release.yml` end-to-end, homebrew-tap dispatch, `finalize-release.yml` callback, GitHub
 Release `make_latest` flip, crates.io publish verification, the library tag on the release commit, and the `main → dev`
-backport check. Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented
-but not driven from the script: running them on the local dev machine pollutes its toolchain and doesn't actually
-exercise the fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
+backport check. Install-on-fresh-machine smokes (`cargo install`, `brew install`, `cargo binstall`) are documented but
+not driven from the script: running them on the local dev machine pollutes its toolchain and doesn't actually exercise
+the fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
 
 `--env staging|prod` is optional and defaults to `prod`. xurl-rs is a single-env CLI, so every gate behaves identically
 and the flag can be ignored; the `surface-smoke` gate auto-SKIPs because no `scripts/release/surface-smoke.sh` is
@@ -29,11 +29,11 @@ Sub-commands let you re-run one verification in isolation:
 
 | Sub-command     | What it checks                                                                                                                                                      | Source of truth                                         |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `release`       | `release.yml` on the tag push: `gh run view ... --json conclusion` is `"success"`                                                                                   | `gh run view`                                           |
-| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish bottles` (workflow_run) ran SUCCESS                                                    | `gh run list -R brettdavies/homebrew-tap`               |
-| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed)                                                                                  | `gh run list -e repository_dispatch`                    |
-| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it                                                                          | `gh api /releases/latest`                               |
-| `crates`        | `crates.io` shows `xurl-rs vX.Y.Z` published (`cargo search xurl-rs` returns the tag)                                                                               | `crates.io` index API                                   |
+| `release`       | The tag's pipeline concluded `"success"`: `release.yml`, or `release-lib.yml` on an `xdk-rs-v*` tag                                                                 | `gh run view`                                           |
+| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish bottles` (workflow_run) ran SUCCESS. SKIPs on a library tag                            | `gh run list -R brettdavies/homebrew-tap`               |
+| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed). SKIPs on a library tag                                                          | `gh run list -e repository_dispatch`                    |
+| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it. On an `xdk-rs-v*` tag the check inverts: latest must not be it          | `gh api /releases/latest`                               |
+| `crates`        | `crates.io` shows the tag's crate at its version: `xurl-rs` for `vX.Y.Z`, `xdk-rs` for `xdk-rs-vX.Y.Z`                                                              | `crates.io` index API                                   |
 | `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                                                                               | `git rev-parse`, `cargo metadata`                       |
 | `backport`      | a merged PR to `dev` carrying the released tag in its title; for `xdk-rs-vX.Y.Z`, which the binary's sync carries, `dev` holding `main`'s `crates/xdk/CHANGELOG.md` | `gh pr list --base dev --state merged`, `git rev-parse` |
 | `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                                                                   | n/a                                                     |
@@ -48,10 +48,20 @@ Flags:
 - `--env staging|prod`: target environment (default: `prod`); ignored here
 - `--repo OWNER/REPO`: override the auto-detected nameWithOwner
 - `--tap-repo OWNER/REPO`: override the homebrew-tap repo (default: `brettdavies/homebrew-tap`)
-- `--tag vX.Y.Z`: override auto-detection (default: derived from the CLI crate's `crates/xurl-cli/Cargo.toml` version,
-  falls back to the newest `v*` tag)
-- `--crate NAME`: override the crate name for the `crates` gate (default: the CLI crate's `[package].name`)
+- `--tag vX.Y.Z`: override auto-detection (default: `v` plus the CLI crate's version in `crates/xurl-cli/Cargo.toml`,
+  which `RELEASE_MANIFEST` in `scripts/release/release.env` names; falls back to the newest `v[0-9]*` tag). Required for
+  a library release, whose tag is `xdk-rs-vX.Y.Z`
+- `--crate NAME`: override the package the `crates` gate looks up (default: `xurl-rs` for a `v` tag, the package
+  `RELEASE_MANIFEST` names; `xdk-rs` for an `xdk-rs-v*` tag, the member whose declared `tag_prefix` it carries)
 - `--staging-url URL` / `--prod-url URL`: surface-smoke URLs; unused here
+
+**The tag shape selects the release line.** `vX.Y.Z` is the CLI's and drives `release.yml`; `xdk-rs-vX.Y.Z` is the
+library's and drives `release-lib.yml`. Every gate reads the tag and adjusts: `release` queries the right workflow,
+`tap` and `finalize` SKIP on a library tag (nothing dispatches, nothing calls back), `make-latest` inverts (latest must
+*not* be the library tag, because `make_latest: false` is permanent there), and `crates` looks up the member whose
+declared `tag_prefix` the tag carries, failing a member-shaped tag no member declares rather than skipping the publish
+check. Pass `--tag xdk-rs-vX.Y.Z` explicitly when verifying a library release, since tag auto-detection reads the CLI's
+manifest.
 
 ## Checklist
 
@@ -72,9 +82,8 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **GitHub Release marked latest.** `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` returns `vX.Y.Z`,
   not the previous tag. Confirms `finalize-release.yml` actually flipped the flag. Run `scripts/release/postflight.sh
   make-latest` for the automated check.
-- [ ] **`crates.io` shows the new version published.** `cargo search xurl-rs` lists the new version. The `xurl_rs`
-  library re-exports (`use xurl_rs::*`) compile in a downstream toy crate. Run `scripts/release/postflight.sh crates`
-  for the automated index check; the downstream-compile smoke is human-driven on a throwaway target.
+- [ ] **`crates.io` shows the new version published.** `cargo search xurl-rs` lists the new version. Run
+  `scripts/release/postflight.sh crates` for the automated index check.
 - [ ] **`cargo install xurl-rs --version <new>`** on a clean environment resolves and runs. Drive on a fresh container
   or a sibling machine so the local `~/.cargo/bin` isn't polluted. Confirms the crates.io publish landed all package
   data and `cargo install` can reconstruct the binary from source.
@@ -106,11 +115,18 @@ Run immediately after the tag push triggers `release.yml`.
   to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either
   spelling in the title. The binary's sync PR carries the library's changelog too, so for an `xdk-rs-vX.Y.Z` tag no PR
   names, the gate passes when `dev`'s `crates/xdk/CHANGELOG.md` equals `main`'s and fails when they differ. Its SKIP
-  names the sync command to run.
+  and FAIL name the sync command to run.
 
   ```bash
   scripts/sync-dev-after-release.sh v<X.Y.Z>
   ```
+
+- [ ] **(Library release) Verify the `xdk-rs` tag separately, before the CLI's.** Run `scripts/release/postflight.sh
+  --tag xdk-rs-v<X.Y.Z> all`. Expect `release-lib.yml` green, `tap` and `finalize` SKIPped, `releases/latest` still
+  pointing at the CLI's tag, and the index showing `xdk-rs <X.Y.Z>`. Only then push the CLI tag; its `check-version`
+  reads the library's published version from crates.io. Then confirm the downstream surface: the documented `xdk` API
+  compiles in a throwaway crate depending on `xdk-rs = "<X.Y.Z>"`, a human-driven check on a throwaway target. A release
+  that does not move `xdk-rs` skips this row.
 
 ## Related docs
 
