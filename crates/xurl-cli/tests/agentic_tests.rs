@@ -2,7 +2,12 @@
 
 mod common;
 
+use std::time::{Duration, Instant};
+
 use predicates::prelude::*;
+use rstest::rstest;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// The stdout of `xr <args>`, one help or examples page.
 fn page(args: &[String]) -> String {
@@ -19,6 +24,23 @@ fn help(path: &[String]) -> String {
     let mut args = path.to_vec();
     args.push("--help".to_string());
     page(&args)
+}
+
+/// Runs `xr <args>` against `server` with an app-only bearer and `env` in the
+/// child's environment, returning the exit code, stdout, and stderr.
+fn run_against(server: &MockServer, env: &[(&str, &str)], args: &[&str]) -> (i32, String, String) {
+    let mut cmd = common::xr();
+    cmd.env("API_BASE_URL", server.uri())
+        .env("XURL_BEARER_TOKEN", "env-bearer-value");
+    for (key, value) in env {
+        cmd.env(key, value);
+    }
+    let output = cmd.args(args).output().expect("spawn xr");
+    (
+        output.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&output.stdout).into_owned(),
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
 }
 
 /// A run that passes the help flag beside another flag exits 0 whatever that
@@ -42,110 +64,182 @@ fn no_test_passes_the_help_flag_itself() {
     );
 }
 
-#[test]
-fn test_output_json_flag_accepted() {
-    // --output json should be accepted and change behavior
-    common::xr()
-        .args(["--output", "json", "--help"])
-        .assert()
-        .success();
+// ── --output: each format renders the same result its own way ─────────
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Stdout of `xr --output <format> version`. The command needs no credentials
+/// and no network, so the format is all that varies between runs.
+fn version_in(format: &str) -> String {
+    let output = common::xr()
+        .args(["--output", format, "version"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "--output {format} version failed");
+    String::from_utf8(output.stdout).unwrap()
 }
 
 #[test]
-fn test_output_jsonl_flag_accepted() {
-    common::xr()
-        .args(["--output", "jsonl", "--help"])
-        .assert()
-        .success();
+fn test_output_text_prints_the_version_line() {
+    assert_eq!(version_in("text"), format!("xr {VERSION}\n"));
+}
+
+#[rstest]
+#[case::json("json")]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_json_formats_print_a_json_object(#[case] format: &str) {
+    let stdout = version_in(format);
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("--output {format} must print JSON ({e}): {stdout}"));
+    assert_eq!(parsed["name"], "xr");
+    assert_eq!(parsed["version"], VERSION);
 }
 
 #[test]
-fn test_output_text_flag_accepted() {
-    common::xr()
-        .args(["--output", "text", "--help"])
-        .assert()
-        .success();
+fn test_output_ndjson_prints_one_line() {
+    let stdout = version_in("ndjson");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "--output ndjson prints one record per line: {stdout}"
+    );
+}
+
+#[test]
+fn test_output_yaml_prints_a_yaml_mapping() {
+    let stdout = version_in("yaml");
+    assert!(
+        stdout.contains(&format!("name: xr\nversion: {VERSION}\n")),
+        "--output yaml must print a block-style mapping: {stdout}"
+    );
+}
+
+#[rstest]
+#[case::csv("csv", ',')]
+#[case::tsv("tsv", '\t')]
+fn test_output_delimited_formats_print_a_header_and_a_row(
+    #[case] format: &str,
+    #[case] delimiter: char,
+) {
+    let stdout = version_in(format);
+    let rows: Vec<Vec<&str>> = stdout
+        .lines()
+        .map(|line| line.split(delimiter).collect())
+        .collect();
+    assert_eq!(
+        rows.len(),
+        2,
+        "--output {format} prints a header and one row: {stdout}"
+    );
+    assert_eq!(rows[0][..2], ["name", "version"]);
+    assert_eq!(rows[1][..2], ["xr", VERSION]);
 }
 
 #[test]
 fn test_output_invalid_value_fails() {
     common::xr()
-        .args(["--output", "xml", "--help"])
+        .args(["--output", "xml", "version"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid value"));
+        .code(2)
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::contains("invalid value 'xml'"));
 }
 
 #[test]
-fn test_quiet_flag_accepted() {
-    common::xr().args(["--quiet", "--help"]).assert().success();
-}
-
-#[test]
-fn test_quiet_short_flag_accepted() {
-    common::xr().args(["-q", "--help"]).assert().success();
-}
-
-#[test]
-fn test_no_interactive_flag_accepted() {
-    common::xr()
-        .args(["--no-interactive", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_timeout_flag_accepted() {
-    common::xr()
-        .args(["--timeout", "60", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_no_color_env_respected() {
-    // NO_COLOR is an industry standard (https://no-color.org/)
-    // When set, colored output should be suppressed.
-    // We test that the flag doesn't cause a crash.
-    common::xr()
-        .env("NO_COLOR", "1")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_output_env_var() {
-    // XURL_OUTPUT env var should set default output format
-    common::xr()
+fn test_xurl_output_env_sets_the_format() {
+    let output = common::xr()
         .env("XURL_OUTPUT", "json")
-        .arg("--help")
-        .assert()
-        .success();
+        .arg("version")
+        .output()
+        .unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("XURL_OUTPUT=json must print JSON");
+    assert_eq!(parsed["version"], VERSION);
 }
 
-#[test]
-fn test_combined_agentic_flags() {
-    // All agentic flags can be used together
-    common::xr()
-        .args([
+// ── --quiet: the status lines a command prints to stderr ──────────────
+
+const STREAM_PATH: &str = "/2/tweets/search/stream";
+
+/// A stream prints its status lines to stderr and each record to stdout.
+/// `--quiet`, `-q`, and a truthy `XURL_QUIET` drop the status lines and leave
+/// the records alone; `XURL_QUIET=0` is falsey, so the lines stay.
+#[rstest]
+#[case::default(&[], &[], true)]
+#[case::long_flag(&["--quiet"], &[], false)]
+#[case::short_flag(&["-q"], &[], false)]
+#[case::truthy_env(&[], &[("XURL_QUIET", "yes")], false)]
+#[case::falsey_env(&[], &[("XURL_QUIET", "0")], true)]
+#[tokio::test]
+async fn test_quiet_drops_the_stream_status_lines(
+    #[case] flags: &[&str],
+    #[case] env: &[(&str, &str)],
+    #[case] status_lines: bool,
+) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(STREAM_PATH))
+        .respond_with(ResponseTemplate::new(200).set_body_string("{\"data\":{\"id\":\"1\"}}\n"))
+        .mount(&server)
+        .await;
+
+    let args = [flags, &["--auth", "app", "-s", STREAM_PATH]].concat();
+    let (code, stdout, stderr) = run_against(&server, env, &args);
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains(r#"{"data":{"id":"1"}}"#),
+        "the record must reach stdout: {stdout}"
+    );
+    assert_eq!(
+        stderr.contains("End of stream"),
+        status_lines,
+        "stderr: {stderr:?}"
+    );
+}
+
+// ── --timeout: the wait for a response ────────────────────────────────
+
+/// A server slower than `--timeout` ends the run as a network error before it
+/// answers.
+#[tokio::test]
+async fn test_timeout_ends_a_request_the_server_answers_too_slowly() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(Duration::from_secs(3))
+                .set_body_string(r#"{"data":[]}"#),
+        )
+        .mount(&server)
+        .await;
+
+    let started = Instant::now();
+    let (code, _stdout, stderr) = run_against(
+        &server,
+        &[],
+        &[
+            "--timeout",
+            "1",
             "--output",
             "json",
-            "--quiet",
-            "--no-interactive",
-            "--timeout",
-            "10",
-            "--help",
-        ])
-        .assert()
-        .success();
-}
+            "--auth",
+            "app",
+            "/2/tweets/search/recent?query=hi",
+        ],
+    );
+    let elapsed = started.elapsed();
 
-#[test]
-fn test_exit_code_success_on_help() {
-    let output = common::xr().arg("--help").output().unwrap();
-
-    assert_eq!(output.status.code().unwrap(), 0);
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim())
+        .unwrap_or_else(|e| panic!("a timeout must print one envelope ({e}): {stderr}"));
+    assert_eq!(envelope["reason"], "network-error", "got: {envelope}");
+    assert_eq!(envelope["exit_code"], code, "got: {envelope}");
+    assert!(
+        elapsed < Duration::from_secs(3),
+        "--timeout 1 must not wait out the 3-second response: {elapsed:?}"
+    );
 }
 
 #[test]
@@ -238,61 +332,53 @@ fn test_help_advertises_color_flag() {
 }
 
 #[test]
-fn test_color_choices_accepted() {
-    for choice in ["auto", "always", "never"] {
-        common::xr()
-            .args(["--color", choice, "--help"])
-            .assert()
-            .success();
-    }
+fn test_color_auto_emits_no_ansi_on_a_captured_stderr() {
+    let output = common::xr()
+        .args(["--color", "auto", "whoam"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains('\x1b'),
+        "--color auto must not color a stderr that is not a terminal: {stderr:?}"
+    );
 }
 
 #[test]
 fn test_color_invalid_value_fails() {
     common::xr()
-        .args(["--color", "rainbow", "--help"])
+        .args(["--color", "rainbow", "version"])
         .assert()
-        .failure();
+        .code(2)
+        .stderr(predicate::str::contains("invalid value 'rainbow'"));
 }
 
 #[test]
-fn test_xurl_quiet_falsey_env_does_not_enable_quiet() {
-    // FalseyValueParser must treat XURL_QUIET=0 as "not quiet".
-    // --help itself succeeds either way; this is mostly a smoke that the
-    // env-backed bool flag parses "0" without error.
-    common::xr()
-        .env("XURL_QUIET", "0")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_quiet_truthy_env_accepts_arbitrary_string() {
-    // Any non-falsey env value is truthy under FalseyValueParser.
-    common::xr()
-        .env("XURL_QUIET", "yes")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_verbose_env_accepted() {
-    common::xr()
+fn test_xurl_verbose_env_adds_the_library_version() {
+    let output = common::xr()
         .env("XURL_VERBOSE", "1")
-        .arg("--help")
-        .assert()
-        .success();
+        .arg("version")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("(xdk-rs "),
+        "XURL_VERBOSE=1 must add the library version to the version line: {stdout}"
+    );
 }
 
 #[test]
-fn test_xurl_color_env_accepted() {
-    common::xr()
-        .env("XURL_COLOR", "never")
-        .arg("--help")
-        .assert()
-        .success();
+fn test_xurl_color_env_always_emits_ansi_on_stderr() {
+    let output = common::xr()
+        .env("XURL_COLOR", "always")
+        .arg("whoam")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains('\x1b'),
+        "XURL_COLOR=always must emit ANSI even when stderr is captured: {stderr:?}"
+    );
 }
 
 // ── Color resolution: NO_COLOR and --color via subprocess ────────────
@@ -454,38 +540,6 @@ fn test_help_advertises_extra_output_formats() {
     }
 }
 
-#[test]
-fn test_output_csv_accepted_as_value() {
-    common::xr()
-        .args(["--output", "csv", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_yaml_accepted_as_value() {
-    common::xr()
-        .args(["--output", "yaml", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_ndjson_accepted_as_value() {
-    common::xr()
-        .args(["--output", "ndjson", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_tsv_accepted_as_value() {
-    common::xr()
-        .args(["--output", "tsv", "--help"])
-        .assert()
-        .success();
-}
-
 /// `xr --help` must surface `--cursor`, `--after`, and `--page` so anc's
 /// `p7-may-cursor-pagination` substring audit passes.
 #[test]
@@ -499,20 +553,32 @@ fn test_help_advertises_cursor_pagination_flags() {
     }
 }
 
-#[test]
-fn test_cursor_flag_accepted() {
-    common::xr()
-        .args(["--cursor", "next-page-token", "--help"])
-        .assert()
-        .success();
-}
+/// `--after` is the documented alias of `--cursor`: its token reaches the wire
+/// as `pagination_token`.
+#[tokio::test]
+async fn test_after_sends_the_pagination_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .and(query_param("pagination_token", "AFTER-TOKEN"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string(r#"{"data":[{"id":"1","text":"hi"}],"meta":{"result_count":1}}"#),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
 
-#[test]
-fn test_after_flag_accepted() {
-    common::xr()
-        .args(["--after", "next-page-token", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_against(
+        &server,
+        &[],
+        &["--after", "AFTER-TOKEN", "--auth", "app", "search", "hi"],
+    );
+
+    assert_eq!(
+        code, 0,
+        "--after must reach the request as pagination_token; stderr: {stderr}"
+    );
 }
 
 #[test]
