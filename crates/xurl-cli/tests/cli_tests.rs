@@ -5657,3 +5657,309 @@ async fn test_apps_add_plain_client_secret_is_stored_as_given() {
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(stored_client_secret(&store, "myapp"), "ARGV-SECRET");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// The transport keeps what it received, and a rate limit says when to retry
+// ═══════════════════════════════════════════════════════════════════════════
+
+mod rate_limit_and_body_handling {
+    use tempfile::TempDir;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    use super::{CliMockServer, api_env_with_bearer, populate_oauth1_store, run_at_with};
+
+    const SEARCH: &str = "/2/tweets/search/recent";
+    const RATE_LIMIT_DOCS: &str = "https://docs.x.com/resources/fundamentals/rate-limits";
+
+    fn now_secs() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_secs()
+    }
+
+    fn too_many_requests() -> ResponseTemplate {
+        ResponseTemplate::new(429).set_body_json(serde_json::json!({
+            "title": "Too Many Requests", "status": 429
+        }))
+    }
+
+    /// Runs `xr <args>` with an environment bearer against `ts`.
+    async fn run(ts: &CliMockServer, args: &[&str]) -> (i32, String, String) {
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        let mut argv = vec!["xr"];
+        argv.extend_from_slice(args);
+        run_at_with(&store, &api_env_with_bearer(ts.uri(), "env-bearer"), &argv).await
+    }
+
+    async fn searches(ts: &CliMockServer) -> usize {
+        ts.server
+            .received_requests()
+            .await
+            .expect("request recording is on")
+            .iter()
+            .filter(|request| request.url.path() == SEARCH)
+            .count()
+    }
+
+    fn envelope(stderr: &str) -> serde_json::Value {
+        serde_json::from_str(stderr.trim())
+            .unwrap_or_else(|e| panic!("stderr is not a JSON envelope ({e}): {stderr}"))
+    }
+
+    /// A 200 whose body is not JSON is the response: raw mode prints it.
+    #[tokio::test]
+    async fn a_raw_request_prints_a_success_body_that_is_not_json() {
+        let ts = CliMockServer::new().await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/plain"))
+                .respond_with(ResponseTemplate::new(200).set_body_string("ok")),
+        )
+        .await;
+
+        let (code, stdout, stderr) = run(&ts, &["--auth", "app", "/2/plain"]).await;
+
+        assert_eq!(code, 0, "stderr: {stderr}");
+        assert_eq!(stdout, "ok\n");
+    }
+
+    /// An error page is the error: the envelope's message carries it.
+    #[tokio::test]
+    async fn an_error_body_that_is_not_json_reaches_the_message() {
+        let ts = CliMockServer::new().await;
+        let page = "<html><body><h1>502 Bad Gateway</h1></body></html>";
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(SEARCH))
+                .respond_with(ResponseTemplate::new(502).set_body_string(page)),
+        )
+        .await;
+
+        let (code, _stdout, stderr) = run(&ts, &["--output", "json", "search", "hi"]).await;
+
+        assert_eq!(code, 1, "stderr: {stderr}");
+        let v = envelope(&stderr);
+        assert_eq!(v["reason"], "server-error", "got: {v}");
+        assert_eq!(v["message"], page, "got: {v}");
+    }
+
+    /// A 429 that names its reset says when to retry, as a delay and as a
+    /// time, and names the step.
+    #[tokio::test]
+    async fn a_rate_limited_envelope_says_when_to_retry() {
+        let ts = CliMockServer::new().await;
+        // 2100-01-01T00:00:00Z, far enough ahead that the delay is not in doubt.
+        let reset: u64 = 4_102_444_800;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            too_many_requests().insert_header("x-rate-limit-reset", reset.to_string()),
+        ))
+        .await;
+
+        let (code, _stdout, stderr) = run(&ts, &["--output", "json", "search", "hi"]).await;
+
+        assert_eq!(code, 3, "stderr: {stderr}");
+        let v = envelope(&stderr);
+        assert_eq!(v["reason"], "rate-limited", "got: {v}");
+        assert_eq!(v["retry_at"], "2100-01-01T00:00:00Z", "got: {v}");
+        let delay = v["retry_after_secs"].as_u64().expect("retry_after_secs");
+        let expected = reset - now_secs();
+        assert!(
+            (expected..=expected + 5).contains(&delay),
+            "retry_after_secs {delay} is the seconds until the reset, about {expected}"
+        );
+        assert_eq!(
+            v["next_step"],
+            serde_json::json!({"action": "wait-and-retry", "docs": RATE_LIMIT_DOCS}),
+            "got: {v}"
+        );
+        assert_eq!(searches(&ts).await, 1, "the default never retries");
+    }
+
+    #[tokio::test]
+    async fn a_reset_thirty_seconds_ahead_reads_as_about_thirty() {
+        let ts = CliMockServer::new().await;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            too_many_requests().insert_header("x-rate-limit-reset", (now_secs() + 30).to_string()),
+        ))
+        .await;
+
+        let (_code, _stdout, stderr) = run(&ts, &["--output", "json", "search", "hi"]).await;
+
+        let delay = envelope(&stderr)["retry_after_secs"]
+            .as_u64()
+            .expect("retry_after_secs");
+        assert!((27..=30).contains(&delay), "got {delay}");
+    }
+
+    /// A delay is never negative: a reset already behind the clock is zero.
+    #[tokio::test]
+    async fn a_reset_already_past_reads_as_zero() {
+        let ts = CliMockServer::new().await;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            too_many_requests().insert_header("x-rate-limit-reset", (now_secs() - 120).to_string()),
+        ))
+        .await;
+
+        let (_code, _stdout, stderr) = run(&ts, &["--output", "json", "search", "hi"]).await;
+
+        assert_eq!(envelope(&stderr)["retry_after_secs"], 0);
+    }
+
+    /// Text mode states both times in a sentence.
+    #[tokio::test]
+    async fn a_rate_limited_error_in_text_mode_states_both_times() {
+        let ts = CliMockServer::new().await;
+        ts.mount(
+            Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+                too_many_requests().insert_header("x-rate-limit-reset", "4102444800"),
+            ),
+        )
+        .await;
+
+        let (code, _stdout, stderr) = run(&ts, &["search", "hi"]).await;
+
+        assert_eq!(code, 3, "stderr: {stderr}");
+        assert!(stderr.contains("2100-01-01T00:00:00Z"), "got: {stderr}");
+        assert!(stderr.contains(" seconds"), "got: {stderr}");
+        assert!(stderr.contains(RATE_LIMIT_DOCS), "got: {stderr}");
+    }
+
+    /// With no reset on the 429 itself there is nothing to say: no keys, no
+    /// step, and the retry flag has no time to wait for. The window an
+    /// earlier response reported belongs to that response.
+    #[tokio::test]
+    async fn a_429_without_a_reset_carries_no_timing_and_is_not_retried() {
+        let ts = CliMockServer::new().await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .insert_header("x-rate-limit-reset", (now_secs() + 1).to_string())
+                        .set_body_json(serde_json::json!({
+                            "data": {"id": "42", "name": "Me", "username": "me"}
+                        })),
+                ),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("POST"))
+                .and(path("/2/users/42/likes"))
+                .respond_with(too_many_requests())
+                .expect(1),
+        )
+        .await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+
+        let (code, _stdout, stderr) = run_at_with(
+            &store,
+            &super::api_env(ts.uri()),
+            &[
+                "xr",
+                "--output",
+                "json",
+                "--wait-on-rate-limit",
+                "--auth",
+                "oauth1",
+                "like",
+                "1234567890",
+            ],
+        )
+        .await;
+
+        assert_eq!(code, 3, "stderr: {stderr}");
+        let v = envelope(&stderr);
+        assert_eq!(v["reason"], "rate-limited", "got: {v}");
+        for key in ["retry_after_secs", "retry_at", "next_step"] {
+            assert!(v.get(key).is_none(), "{key} needs a reset to say: {v}");
+        }
+    }
+
+    #[tokio::test]
+    async fn wait_on_rate_limit_retries_once_after_the_reset() {
+        let ts = CliMockServer::new().await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(SEARCH))
+                .respond_with(
+                    too_many_requests()
+                        .insert_header("x-rate-limit-reset", (now_secs() + 1).to_string()),
+                )
+                .up_to_n_times(1),
+        )
+        .await;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": [{"id": "1", "text": "hi"}],
+                "meta": {"result_count": 1}
+            })),
+        ))
+        .await;
+
+        let (code, stdout, stderr) = run(
+            &ts,
+            &["--output", "json", "--wait-on-rate-limit", "search", "hi"],
+        )
+        .await;
+
+        assert_eq!(code, 0, "stderr: {stderr}");
+        assert!(
+            stdout.contains("\"hi\""),
+            "the retried search printed: {stdout}"
+        );
+        assert_eq!(searches(&ts).await, 2);
+    }
+
+    #[tokio::test]
+    async fn a_reset_past_the_ceiling_fails_at_once() {
+        let ts = CliMockServer::new().await;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            too_many_requests().insert_header("x-rate-limit-reset", (now_secs() + 600).to_string()),
+        ))
+        .await;
+
+        let started = std::time::Instant::now();
+        let (code, _stdout, stderr) = run(
+            &ts,
+            &[
+                "--output",
+                "json",
+                "--wait-on-rate-limit",
+                "--rate-limit-max-wait",
+                "5",
+                "search",
+                "hi",
+            ],
+        )
+        .await;
+
+        assert_eq!(code, 3, "stderr: {stderr}");
+        assert_eq!(envelope(&stderr)["reason"], "rate-limited");
+        assert_eq!(searches(&ts).await, 1);
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(3),
+            "nothing waited"
+        );
+    }
+
+    /// Without the flag a 429 fails at once, even when its reset is a second
+    /// away.
+    #[tokio::test]
+    async fn the_default_never_retries() {
+        let ts = CliMockServer::new().await;
+        ts.mount(Mock::given(method("GET")).and(path(SEARCH)).respond_with(
+            too_many_requests().insert_header("x-rate-limit-reset", (now_secs() + 1).to_string()),
+        ))
+        .await;
+
+        let (code, _stdout, stderr) = run(&ts, &["--output", "json", "search", "hi"]).await;
+
+        assert_eq!(code, 3, "stderr: {stderr}");
+        assert_eq!(searches(&ts).await, 1);
+    }
+}
