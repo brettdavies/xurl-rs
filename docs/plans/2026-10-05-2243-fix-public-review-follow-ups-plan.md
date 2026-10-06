@@ -214,16 +214,24 @@ changing code (KTD1).
   signature example is the acceptance vector. The change diverges from Go `xurl`, which shares the `url.QueryEscape`
   behavior, so `KNOWN_DIFFERENCES.md` records it.
 - KTD5. **Media waiting gets a library deadline and a CLI flag.** A status with no `processing_info` counts as finished,
-  and the wait ends with a distinct error once a deadline passes. The deadline is a library parameter defaulting to 300
-  seconds, which caps a stuck job at about 300 paid status calls; the CLI exposes it as `--wait-timeout <SECS>` on
-  `media upload` and `media status`. The timeout becomes a new `reason` in the closed set, which is an additive change.
+  and the wait ends with a distinct error once a deadline passes. The deadline is a library parameter defaulting to 60
+  seconds, which caps a stuck job at about 60 paid status calls and returns inside a default agent tool-call budget. The
+  CLI exposes it through one `--wait[=<SECS>]` flag on `media upload` and `media status`: bare `--wait` or `--wait=true`
+  waits up to the default, `--wait=N` up to N seconds, `--wait=0` or `--wait=false` not at all. Upload waits by default;
+  status does not. The timeout becomes the new `reason` `processing-timeout` in the closed set, an additive change. Its
+  envelope carries `media_id` and a `resume-wait` `next_step` whose `command` resumes the wait on that id with twice the
+  expired deadline.
 - KTD6. **The transport keeps every byte it received.** A failed body read becomes a network error. A non-JSON success
   body reaches the caller as a JSON string, which raw mode prints as text and a typed call fails to deserialize. A
   non-JSON error body becomes the `Api` error's body. A rate-limited error carries the reset time from that 429
   response's own `x-rate-limit-reset` header, never the window the client remembers from other calls, and the envelope
-  adds it as a new key. With no parseable reset header, the envelope omits the key and the retry flag does not retry.
-  Opt-in retry is one global flag that waits until the reset and retries once, within a caller-set ceiling. The three
-  request paths in `transport.rs` share one header assembler.
+  carries it as two top-level keys, `retry_after_secs` (delay-seconds, the primary value, as HTTP's `Retry-After` and
+  the IETF RateLimit draft use) and `retry_at` (RFC 3339 UTC, for an agent that schedules rather than sleeps), with
+  `next_step {action: "wait-and-retry", docs}` naming the instruction and X's rate-limit page. With no parseable reset
+  header, the envelope carries neither key and no `next_step`, and the retry flag does not retry. Opt-in retry is the
+  global `--wait-on-rate-limit` (env `XURL_WAIT_ON_RATE_LIMIT`), which waits until the reset and retries once when the
+  wait fits `--rate-limit-max-wait <SECS>` (env `XURL_RATE_LIMIT_MAX_WAIT`, default 60 s, inside a default agent
+  tool-call budget). The three request paths in `transport.rs` share one header assembler.
 - KTD7. **Scopes come from `--scopes` on `xr auth oauth2`.** The flag takes a comma-separated subset of the known set
   and rejects unknown names by listing the valid ones. `offline.access` is always added, because a login without a
   refresh token expires within hours. The library takes the scope set as an input to building the authorize URL, with
@@ -262,15 +270,17 @@ changing code (KTD1).
   Technical Design). It lands with one atomic `gh stack merge` so restacks do not re-run CI quadratically. xurl-rs-skill
   and brettdavies/.github each get their own short series.
 - KTD16. **Every surface this plan adds reaches the skill bundle after the `xr` release ships.** Agents learn `xr` from
-  xurl-rs-skill, so the new credential-file flags, `--scopes`, `--wait-timeout`, the retry flag, the timeout `reason`,
-  and the retry-time key are documented there (U22). The skill PR lands after the `xr` minor publishes, because a skill
+  xurl-rs-skill, so the new credential-file flags, `--scopes`, `--wait[=<SECS>]`, `--wait-on-rate-limit`,
+  `--rate-limit-max-wait`, the `processing-timeout` `reason`, the `retry_after_secs` and `retry_at` keys, and the
+  `wait-and-retry` action are documented there (U22). The skill PR lands after the `xr` minor publishes, because a skill
   that names a flag the installed `xr` lacks sends an agent's first command to failure, as
   `docs/solutions/architecture-patterns/prose-reference-is-a-release-dependency.md` records.
 
 ### System-Wide Impact
 
-- **Agents reading the envelope** gain a `reason` (U7) and a key (U8). Both are additive; the documented contract
-  already tells consumers to treat an unknown `reason` as their default branch.
+- **Agents reading the envelope** gain the `processing-timeout` `reason` with its `media_id` key and `resume-wait`
+  action (U7) and the `retry_after_secs` and `retry_at` keys with the `wait-and-retry` action (U8). Both are additive;
+  the documented contract already tells consumers to treat an unknown `reason` as their default branch.
 - **Scripts reading raw-mode output** see a non-JSON success body as text where `dev` printed `{}` (U8), and a malformed
   URL exit as `invalid-url` where `dev` reported a network or auth error (U11). Both are returns to the documented
   contract, filed under Fixed.
@@ -457,7 +467,12 @@ recorded.
 - Modify: `crates/xurl-cli/src/cli/mod.rs` (the `auth apps add`, `auth apps update`, `auth oauth1`, and `auth app`
   arguments)
 - Modify: `crates/xurl-cli/src/cli/commands/auth/apps.rs`, `crates/xurl-cli/src/cli/commands/auth/signin.rs`
-- Modify: `crates/xurl-cli/tests/fixtures/` golden help fixtures for the changed commands
+- Modify: `crates/xurl-cli/src/cli/hints.rs` (the `register-app` `next_step` template)
+- Modify: `crates/xurl-cli/tests/golden/` help fixtures for the changed commands, and the fixtures that pin the
+  `register-app` template
+- Modify: `crates/xurl-cli/README.md` (the quick start and the auth examples)
+- Modify: `crates/xurl-cli/src/cli/commands/examples.rs` (the auth examples at lines 33 and 161) and its golden fixture,
+  re-blessed as a named content move
 - Test: `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/store_tests.rs`
 
 **Approach:**
@@ -465,9 +480,18 @@ recorded.
 1. Add `--client-secret-file`, `--consumer-secret-file`, `--access-token-file`, `--token-secret-file`, and
    `--bearer-token-file`, each conflicting with its plain twin.
 2. Resolve each into the same value the handlers already consume, so storage code does not change.
-3. Read `-` from stdin, and reject a second `-` in one invocation with a usage error that names both flags.
-4. Show the file form first in each command's `after_help` example.
+3. Read `-` from stdin, and reject a second `-` in one invocation with a usage error that names both flags. When the
+   path is `-` and stdin is a terminal, exit `invalid-args` at once, naming the flag and the fix: pipe the secret in or
+   pass a file path.
+4. Lead each command's `after_help` with the vault pipe, for example `op read op://<vault>/<item>/client_secret | xr
+   auth apps add my-app --client-id <id> --client-secret-file -`, and lead the `crates/xurl-cli/README.md` quick start
+   with the same command.
 5. Regenerate the completions.
+6. Change the `register-app` `next_step` template in `crates/xurl-cli/src/cli/hints.rs` to `<secret-command> | xr auth
+   apps add <name> --client-id <client-id> --client-secret-file -`, re-bless the fixtures that pin it, and update the
+   envelope example in `crates/xurl-cli/README.md`.
+7. Change the auth examples in `crates/xurl-cli/src/cli/commands/examples.rs` to the vault pipe and `--<secret>-file -`
+   forms, and re-bless the `xr examples` golden fixture.
 
 **Execution note:** start with a failing test that stores a secret through the file form.
 
@@ -480,6 +504,8 @@ recorded.
 - `auth apps add --client-secret-file -` with the secret piped on stdin stores it.
 - `auth oauth1 --consumer-secret-file - --token-secret-file -` exits with the usage `reason` and names both flags.
 - Passing both `--client-secret` and `--client-secret-file` exits with the usage `reason`.
+- `auth apps add --client-secret-file -` with stdin attached to a terminal exits `invalid-args` without reading, naming
+  the flag and telling the caller to pipe the secret or pass a path.
 - A missing file exits with the I/O `reason` and names the path.
 - The plain `--client-secret` flag keeps working unchanged.
 
@@ -638,19 +664,30 @@ deterministic tests.
 
 - Modify: `crates/xdk/src/api/media.rs` (`wait_for_media_processing` and its two public callers)
 - Modify: `crates/xdk/src/error.rs` (the timeout classification)
-- Modify: `crates/xurl-cli/src/cli/mod.rs` (`--wait-timeout` on `media upload` and `media status`)
-- Modify: `crates/xurl-cli/src/cli/envelope.rs`, `schema/output.schema.json` (the new `reason`)
+- Modify: `crates/xurl-cli/src/cli/mod.rs` (`--wait[=<SECS>]` on `media upload` and `media status`)
+- Modify: `crates/xurl-cli/src/cli/envelope.rs`, `schema/output.schema.json` (the `processing-timeout` `reason` and the
+  `media_id` key)
+- Modify: `crates/xdk/src/error.rs` (`NextAction::ResumeWait`), `crates/xurl-cli/src/cli/hints.rs` (the `resume-wait`
+  `next_step`), `AGENTS.md` (the action list agents branch on)
 - Test: `crates/xdk/tests/media_upload_tests.rs`, `crates/xurl-cli/tests/media_upload_tests.rs`
 
 **Approach:**
 
 1. Return the current status at once when `processing_info` is absent.
 2. Track elapsed time against the deadline before each sleep, and stop with the timeout error once the next check would
-   pass it. The default is 300 s for the library parameter and `--wait-timeout`. The deadline's doc comment says X sets
-   no processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait --wait-timeout <secs>`
-   resumes a longer job.
-3. Add the timeout `reason`, exiting 1 (`EXIT_GENERAL_ERROR`) as `network-error` and `api-error` do, and regenerate the
-   schemas and completions.
+   pass it. The default is 60 s for the library parameter and bare `--wait`. The deadline's doc comment says X sets no
+   processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait=<secs>` resumes a longer job.
+3. Add the `processing-timeout` `reason`, exiting 1 (`EXIT_GENERAL_ERROR`) as `api-error` does (`network-error` exits
+   5), and regenerate the schemas and completions. Correct the `EXIT_NETWORK_ERROR` doc comment
+   (`crates/xdk/src/error.rs:576-578`), which says a transport failure exits 1 while `exit_code()` maps `Error::Http`
+   and `Error::Io` to 5.
+4. Put `media_id` on the `processing-timeout` envelope, and give it `next_step {action: "resume-wait", command: "xr
+   media status <media_id> --wait=<twice the expired deadline>"}`, adding `NextAction::ResumeWait` to xdk-rs's
+   non-exhaustive `NextAction` and the action to the list in `AGENTS.md`.
+5. Replace `media upload`'s `--wait` switch, and give `media status`, one `--wait[=<SECS|true|false>]` flag shaped like
+   `-v, --verbose[=<VERBOSE>]`: bare or `true` waits up to the default, `N` up to N seconds, `0` or `false` not at all,
+   so Go `xurl`'s `--wait=false` keeps working. List the value forms in each help page, change the example that shows
+   `--wait false` to `--wait=false`, and make `--wait 60` with a space exit `invalid-args` pointing at `--wait=60`.
 
 **Execution note:** start with a failing test that a status without `processing_info` returns instead of polling.
 
@@ -659,9 +696,13 @@ deterministic tests.
 **Test scenarios:**
 
 - `media status --wait` on media whose status carries no `processing_info` returns after one status call.
-- A mock that reports `in_progress` with `check_after_secs: 1` and a 2-second `--wait-timeout` ends with the timeout
-  `reason` after at most three status calls.
+- A mock that reports `in_progress` with `check_after_secs: 1` and `--wait=2` ends with the `processing-timeout`
+  `reason` after at most three status calls; the envelope carries the `media_id` and a `resume-wait` `next_step` whose
+  `command` is `xr media status <that id> --wait=4`.
 - A `succeeded` status ends the wait successfully, as today.
+- `media upload <file> --wait=false` and `--wait=0` each return after FINALIZE without a status call.
+- `xr media status <id> --wait 60` with a space exits `invalid-args`, and its message points at `--wait=60`.
+- `xr media status <id> --wait` waits up to the default, and `--wait=true` does the same.
 - A `failed` status still ends with the existing processing-failed error, distinct from the timeout.
 
 **Verification:** no wait path can loop without bound, and the timeout reports a `reason` distinct from processing
@@ -681,17 +722,24 @@ failure.
 - Modify: `crates/xdk/src/error.rs` (the reset time on the rate-limited error)
 - Modify: `crates/xurl-cli/tests/golden/` help fixtures, which every global flag reaches (68 of 121 carry the global
   `--timeout` today)
-- Modify: `crates/xurl-cli/src/cli/output/` and `crates/xurl-cli/src/cli/envelope.rs` (the retry key, and the opt-in
-  retry flag)
+- Modify: `crates/xurl-cli/src/cli/output/` and `crates/xurl-cli/src/cli/envelope.rs` (the `retry_after_secs` and
+  `retry_at` keys, and `--wait-on-rate-limit` with `--rate-limit-max-wait`)
+- Modify: `crates/xdk/src/error.rs` (`NextAction::WaitAndRetry`), `crates/xurl-cli/src/cli/hints.rs` (the
+  `wait-and-retry` `next_step`), `AGENTS.md` (the action and the two keys it pairs with)
+- Modify: `crates/xurl-cli/tests/golden/reason-rate-limited.golden`, when its stub carries a reset header
 - Test: `crates/xdk/tests/api_tests.rs`, `crates/xurl-cli/tests/cli_tests.rs`
 
 **Approach:**
 
 1. Map a failed body read to a network error.
 2. Return a non-JSON success body as a JSON string, and carry a non-JSON error body into the `Api` error.
-3. Read that 429 response's own `x-rate-limit-reset` onto the rate-limited error, not `Client::last_rate_limit`, and add
-   the seconds-until-reset key to the envelope. With no parseable header, omit the key and do not retry.
-4. Add the global opt-in retry flag with its ceiling, and re-bless the help fixtures it reaches.
+3. Read that 429 response's own `x-rate-limit-reset` onto the rate-limited error, not `Client::last_rate_limit`, and put
+   `retry_after_secs` and `retry_at` (RFC 3339 UTC, from the header's epoch) on the envelope, with `next_step {action:
+   "wait-and-retry", docs}` from the library's existing `RATE_LIMIT_DOCS`, and the human message stating both times. Add
+   `NextAction::WaitAndRetry` to xdk-rs's non-exhaustive `NextAction` and the action to `AGENTS.md`. With no parseable
+   header, omit both keys and the `next_step`, and do not retry.
+4. Add the global `--wait-on-rate-limit` and `--rate-limit-max-wait <SECS>`, each with its `XURL_` env var; the ceiling
+   defaults to 60 s. Re-bless the help fixtures they reach.
 5. Fold the three request paths' header assembly into one helper.
 6. Regenerate the output schema.
 
@@ -704,13 +752,16 @@ headers; the closed-set rules in `AGENTS.md` § Output formats.
 
 - A mock returning 200 with `text/plain` body `ok` gives raw mode output `ok`, where `dev` prints `{}`.
 - A mock returning 500 with an HTML body gives an `Api` error whose message contains that body.
-- A mock returning 429 with `x-rate-limit-reset` 30 seconds ahead gives the `rate-limited` envelope with a retry value
-  near 30.
-- With the opt-in retry flag and a reset 1 second ahead, the CLI retries once and succeeds against a mock that answers
+- A mock returning 429 with `x-rate-limit-reset` 30 seconds ahead gives the `rate-limited` envelope with
+  `retry_after_secs` near 30, `retry_at` equal to the header's epoch in RFC 3339 UTC, and `next_step.action`
+  `wait-and-retry` carrying the rate-limit docs URL.
+- With `--wait-on-rate-limit` and a reset 1 second ahead, the CLI retries once and succeeds against a mock that answers
   200 on the second call.
-- With the retry flag and a reset beyond its ceiling, the CLI fails at once with the `rate-limited` envelope.
+- With `--wait-on-rate-limit` and a reset beyond `--rate-limit-max-wait`, the CLI fails at once with the `rate-limited`
+  envelope.
 - A 429 with no `x-rate-limit-reset`, after an earlier response that carried one, gives the `rate-limited` envelope
-  without the retry key, and with the retry flag the CLI fails at once without a second request.
+  without `retry_after_secs`, `retry_at` or a `next_step`, and with `--wait-on-rate-limit` the CLI fails at once without
+  a second request.
 - The default, without the flag, never retries.
 
 **Verification:** each swallowed case now surfaces, the envelope addition shows in the regenerated schema, and existing
@@ -1071,6 +1122,7 @@ output to it, and keep substring checks only for text output.
 - Modify: `dot-github:.github/workflows/rust-release.yml`
 - Modify: `.github/workflows/release.yml` (turn on `attest` and grant its permissions)
 - Modify: `RELEASES-POSTFLIGHT.md` (a verification item)
+- Modify: `crates/xurl-cli/README.md` (the install section's verification command)
 
 **Approach:**
 
@@ -1079,6 +1131,8 @@ output to it, and keep substring checks only for text output.
 3. Add a postflight item that runs `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow
    brettdavies/.github/.github/workflows/rust-release.yml` on one archive of a release. The reusable workflow is the
    signer, so `--repo` alone fails.
+4. Put the same command in the install section of `crates/xurl-cli/README.md`, so a user who downloads an archive can
+   check it.
 
 **Patterns to follow:** existing optional inputs in the reusable, such as `linux_musl_required`, for the input shape.
 
@@ -1091,7 +1145,8 @@ real release's archive, which fails on every release before it.
 
 ### U22. Skill bundle reflects the new surface
 
-**Goal:** An agent following the skill bundle uses the new flags and handles the new `reason` and key.
+**Goal:** An agent following the skill bundle uses the new flags and handles the `processing-timeout` `reason`, the
+`retry_after_secs` and `retry_at` keys, and the `wait-and-retry` action.
 
 **Requirements:** R4, R8, R10, R11 (KTD16)
 
@@ -1106,17 +1161,23 @@ real release's archive, which fails on every release before it.
 
 **Approach:**
 
-1. Document the credential-file flags first in every credential example.
-2. Document `--scopes`, `--wait-timeout`, and the retry flag where their commands appear.
-3. Teach the rate-limited recovery eval to read the retry-time key instead of guessing a wait.
-4. Add contract checks against the released `xr` for each new flag and the timeout `reason`.
+1. Lead every credential example with the vault pipe (`op read op://<vault>/<item>/<field> | xr … --<secret>-file -`),
+   starting with step 1 of `templates/oauth2-setup.md`. Replace the "`--wait` takes no value" row in
+   `templates/media-upload.md` with the `--wait[=<SECS>]` forms, and `--wait=false` for upload-then-poll.
+2. Document `--scopes`, `--wait[=<SECS>]`, `--wait-on-rate-limit`, and `--rate-limit-max-wait` where their commands
+   appear.
+3. Teach the rate-limited recovery eval to branch on the `wait-and-retry` action and read `retry_after_secs` (or
+   `retry_at` when it schedules) instead of guessing a wait.
+4. Add contract checks against the released `xr` for each new flag, the `processing-timeout` `reason`, and its
+   `resume-wait` `next_step`.
 5. Pin the harness's `xr` to that release.
 
 **Test scenarios:**
 
 - A contract check passes a secret through `--client-secret-file -` and asserts it was stored.
-- A contract check reads the retry-time key from a stubbed 429 response.
-- A contract check sees the timeout `reason` from a stubbed media status that never finishes.
+- A contract check reads `retry_after_secs`, `retry_at` and the `wait-and-retry` action from a stubbed 429 response.
+- A contract check sees the `processing-timeout` `reason` from a stubbed media status that never finishes, and runs the
+  `resume-wait` command it carries.
 
 **Verification:** the skill bundle names every flag U2, U3, U7, and U8 add, and its contract job passes against the
 released `xr`.
@@ -1254,8 +1315,9 @@ plan-eng-review (Claude).
 Plan baseline: original proposal. U7 adds a new `reason` and "its exit code" without naming the code.
 
 Runtime evidence: the exit-code set is `crates/xdk/src/error.rs:542-580`: 0 success, 1 general, 2 usage and auth
-mismatch, 3 rate-limited, 4 not-found, 5 `Error::Io`, 77 auth-required. A transport failure (`network-error`) and an
-unclassified API status (`api-error`) both exit 1, with `reason` carrying the precise kind.
+mismatch, 3 rate-limited, 4 not-found, 5 `network-error` and `io` (`Self::Http(_) | Self::Io(_) => EXIT_NETWORK_ERROR`
+at line 464, asserted by `crates/xurl-cli/tests/wiring_tests.rs:662`), 77 auth-required. An unclassified API status
+(`api-error`) exits 1, with `reason` carrying the precise kind.
 
 Comparison grid:
 
@@ -1306,8 +1368,8 @@ No plan change: U7 keeps "its exit code" unspecified.
 ```text
 State: approved
 Actual answer: A) Exit 1, reason carries it (recommended), D3 answer in this review
-Accepted scope: U7's timeout exits 1 (`EXIT_GENERAL_ERROR`) and its new `reason` is the precise signal; U7 Approach step 3 names the code.
-History: none
+Accepted scope: U7's timeout exits 1 (`EXIT_GENERAL_ERROR`) and its new `reason` is the precise signal; U7 Approach step 3 names the code as `api-error`'s class and corrects the stale `EXIT_NETWORK_ERROR` doc comment.
+History: the runtime evidence and D3's option A first said `network-error` exits 1, taken from the `EXIT_NETWORK_ERROR` doc comment (`error.rs:576-578`), which contradicts the code; `network-error` exits 5. Reopened as D11 in the developer-experience review with the facts corrected; D11 answer A kept exit 1 and added the doc-comment fix.
 ```
 
 #### R3: where the rate-limited reset comes from, and a 429 without one
@@ -1510,11 +1572,11 @@ No change: KTD5 keeps "a library parameter with a default" without a value.
 State: approved
 Actual answer: A) 5-minute default (recommended), D6 answer in this review
 Accepted scope: KTD5 and U7 step 2 set the default deadline to 300 s for the library parameter and `--wait-timeout`; the deadline's doc comment says X sets no processing cap and keeps a media id valid for 24 hours, so `xr media status <id> --wait --wait-timeout <secs>` resumes a longer job.
-History: none
+History: Brett set the default to 60 s during the developer-experience review, after learning that Go `xurl` waits with no deadline and that 300 s came from this review's own recommendation (a community five-minute guideline and the spend cap), not from any convention; 60 s returns inside a default agent tool-call budget and matches the 60 s `--rate-limit-max-wait` default (D10), and the `resume-wait` command covers longer jobs. History: D14 in the developer-experience review folded `--wait-timeout` into one `--wait[=<SECS>]` flag; the default applies to bare `--wait`, and the resume command is `xr media status <id> --wait=<secs>`.
 ```
 
-Approval readiness: PASS. Structure D1 answer A; R1 (D2 answer A), R2 (D3 answer A), R3 (D4 answer A), R4 (D5 answer
-A), R5 (D6 answer A). The two factual corrections change no behavior and need no answer.
+Approval readiness: PASS. Structure D1 answer A; R1 (D2 answer A), R2 (D3 answer A), R3 (D4 answer A), R4 (D5 answer A),
+R5 (D6 answer A). The two factual corrections change no behavior and need no answer.
 
 ### Findings by section
 
@@ -1536,7 +1598,7 @@ Tests:
 Performance:
 
 - `[P2] (confidence: 7/10)` KTD5 — the default deadline was unstated, and it caps paid calls on a stuck job. Accepted,
-  D6 A: 300 s.
+  D6 A: 300 s, then set to 60 s in the developer-experience review.
 
 Coverage of the planned code paths (every path has a planned test; none runs yet):
 
@@ -1621,7 +1683,7 @@ classification, and the stack phases. The 429 path after D4:
 | U3 scopes       | typo in a scope name                   | rejected before any network call, valid names listed (test) | clear error                               |
 | U5 refresh lock | store on a mount that ignores `flock`  | documented limit (Risks)                                    | rare double refresh, then `invalid_grant` |
 | U6 encoder      | X rejects the corrected signature      | one live call before merge (Risks)                          | caught before release                     |
-| U7 wait         | job stuck in progress                  | 300 s deadline, timeout `reason`, exit 1 (test)             | clear error with a resume path            |
+| U7 wait         | job stuck in progress                  | 60 s deadline, timeout `reason`, exit 1 (test)              | clear error with a resume path            |
 | U8 transport    | 429 with no reset header               | no key, no retry (test, D4)                                 | clear `rate-limited` error                |
 | U9 parity       | Go module proxy cannot resolve the pin | job fails red (Risks)                                       | visible CI failure                        |
 | U21 attest      | verify run without the signer flag     | the documented command carries it (D2)                      | verification passes                       |
@@ -1630,14 +1692,14 @@ Critical gaps: 0.
 
 ### Worktree parallelization strategy
 
-Sequential implementation, no parallelization opportunity: the standing rule for this repo runs every unit inline in
-one stacked series with no worktrees. The phase order in High-Level Technical Design is the execution order;
-xurl-rs-skill (U18, U19) and brettdavies/.github (U21) are separate repos and can run between xurl-rs phases.
+Sequential implementation, no parallelization opportunity: the standing rule for this repo runs every unit inline in one
+stacked series with no worktrees. The phase order in High-Level Technical Design is the execution order; xurl-rs-skill
+(U18, U19) and brettdavies/.github (U21) are separate repos and can run between xurl-rs phases.
 
 ### Implementation Tasks
 
-Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or
-Codex; checkbox as you ship.
+Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or Codex;
+checkbox as you ship.
 
 - [ ] **T1 (P2, human: ~10 min / CC: ~2 min)** — U21 — run verification with `--signer-workflow`
   - Surfaced by: Scope Challenge — C1, R1 (D2)
@@ -1657,10 +1719,10 @@ Codex; checkbox as you ship.
   - Files: `crates/xdk/tests/api_tests.rs`, `crates/xdk/tests/media_upload_tests.rs`,
     `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/agentic_tests.rs`
   - Verify: `cargo test --workspace` compiles and passes with no `testing` feature
-- [ ] **T5 (P2, human: ~15 min / CC: ~3 min)** — U7 — default the deadline to 300 s with the resume doc comment
+- [ ] **T5 (P2, human: ~15 min / CC: ~3 min)** — U7 — default the deadline to 60 s with the resume doc comment
   - Surfaced by: Performance — P1, R5 (D6)
   - Files: `crates/xdk/src/api/media.rs`, `crates/xurl-cli/src/cli/mod.rs`
-  - Verify: `xr media status --help` shows the 300 s default; the doc comment names the resume command
+  - Verify: `xr media status --help` shows the 60 s default; the doc comment names the resume command
 
 ### Unresolved decisions
 
@@ -1690,18 +1752,227 @@ None.
   ""` today; `update_app` keeps the stored secret on an empty value (`crates/xdk/src/store/mod.rs:322`), so nothing is
   overwritten.
 
+## Developer experience
+
+`/plan-devex-review` on 2026-10-05, after the engineering review. Primary surface: the `xr` CLI (D1); the `xdk-rs`
+library and the xurl-rs-skill bundle are secondary.
+
+### Persona
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       An AI agent (Claude Code, Codex) running xr with no TTY, often through xurl-rs-skill.
+Context:   Registers an app, signs in once with a human's consent, then reads, posts and uploads for a task.
+Tolerance: Zero interactive prompts; a hang costs its whole tool-call budget; a guess costs paid calls.
+Expects:   JSON envelopes it can branch on (reason, exit_code, next_step), secrets kept off argv, copyable examples.
+```
+
+### Developer perspective
+
+"I load xurl-rs-skill and register the app. `templates/oauth2-setup.md:41` tells me to write `--client-secret "$(op read
+op://...)"`, so my transcript stays clean, but the secret still sits in xr's argv where any process listing shows it;
+`xr auth apps add --help` offers no file or stdin form. I run `xr auth oauth2 --no-browser` and the URL asks for 24
+scopes, DM write and email included, though my task only reads posts. Calls come back as JSON envelopes I can branch on,
+which is good. Then a search returns `{"status":"error","reason":"rate-limited","exit_code":3}` with no retry time, so I
+either guess a sleep or spend more calls on `xr usage`. Later `xr media upload --wait` on a video stalls; the command
+never returns, my tool call hangs until my own timeout, and every poll was a paid call. The plan fixes all four, but I
+only learn the new flags once the skill PR lands after the release."
+
+Observed: the released 4.2.1 help, the skill template line, the eval-04 envelope, the 24 scopes. Predicted: the hang's
+effect on an agent's own tool timeout. Confirmed as accurate (D3).
+
+### Benchmark and target
+
+Clock: from `xr` installed, the skill loaded, and credentials in a secret store, to the first authenticated JSON read
+with no secret in argv.
+
+| Tool                            | Start to result                          | Time and evidence                                                           | DX choice                                                                     | Source                                                     |
+| ------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `xr` 4.2.1, app-only bearer     | env var to `xr search ... --output json` | under 1 min, estimated; one command                                         | `XURL_BEARER_TOKEN` env, never argv                                           | README                                                     |
+| `xr` 4.2.1, OAuth2 user context | vault to `xr whoami`                     | 3-5 min, estimated; two commands, one human browser consent, one paste-back | secret through argv or `CLIENT_SECRET` env                                    | `xr auth apps add --help`; `templates/oauth2-setup.md:41`  |
+| `xr` after this plan            | same                                     | same time; secret through `--client-secret-file -`                          | stdin and file twins, `--scopes`                                              | U2, U3                                                     |
+| Go `xurl`                       | same                                     | reported as similar                                                         | argv `--client-secret`, or `CLIENT_ID`/`CLIENT_SECRET` env saved on first use | <https://github.com/xdevplatform/xurl/blob/main/README.md> |
+| `gh`                            | token to authenticated call              | seconds with `GH_TOKEN`, reported                                           | `--with-token` reads stdin only; env for headless                             | <https://cli.github.com/manual/gh_auth_login>              |
+
+The OAuth2 rows include a human consent step `gh`'s token path skips, so the times do not compare like for like. Target:
+Champion, under 2 minutes (D4). The bearer path meets it today; the OAuth2 path is bounded by X's one-time human browser
+consent, which this plan cannot remove.
+
+### Magical moment
+
+The first command an agent runs registers the app with the secret piped from the vault: `op read
+op://<vault>/<item>/client_secret | xr auth apps add my-app --client-id <id> --client-secret-file -`. The secret never
+touches argv or the transcript, and the next read works. D5 makes that pipe the first example in U2's `after_help`, the
+CLI README quick start, and U22's `templates/oauth2-setup.md`.
+
+### Journey map
+
+| Stage       | Agent does                                           | Friction found                                                                                                                                      | Resolution                                                                                                                |
+| ----------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Discover    | Reads the README and loads xurl-rs-skill             | none admitted; U20 adds the stability statement                                                                                                     | ok                                                                                                                        |
+| Install     | `brew install xurl-rs`, `xr skill install`           | U21's attestation check named only in a postflight item                                                                                             | routine: U21 puts the command in the CLI README's install section                                                         |
+| Hello world | Registers the app, signs in, runs `xr whoami`        | `register-app` `next_step` template puts the secret in argv; `-` on a terminal hangs and echoes                                                     | D7: template uses the vault pipe; D8: refuse `-` on a terminal                                                            |
+| Real usage  | Reads, posts, uploads; meets a 429                   | the retry flag, its ceiling, the retry key and the timeout reason were unnamed; the ceiling had no default                                          | D9: names; D10: 60 s ceiling default; D16, D17: `wait-and-retry` with `retry_after_secs` and `retry_at`                   |
+| Debug       | Branches on `reason` and `next_step`                 | the timeout's exit-code rationale was false; the timeout envelope gave an upload's agent no media id or resume step; upload could not skip its wait | D11: exit 1, facts fixed; D12: `media_id` and a `resume-wait` command; D13, D14: one `--wait[=<SECS>]` flag; default 60 s |
+| Upgrade     | Moves to the `xr` minor; embedders to `xdk-rs` 0.2.0 | none admitted: each break carries a before/after snippet (KTD8)                                                                                     | ok                                                                                                                        |
+
+### First-time agent report
+
+```text
+FIRST-TIME DEVELOPER REPORT
+============================
+Persona: an agent driving xr headless, after this plan ships
+Attempting: register, sign in, read, upload
+
+T+0:00  `xr --output json auth status` shows no apps; the envelope's register-app template reads
+        `<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -` (D7).
+T+0:15  Pipes the secret from the vault into that command; nothing lands in argv (U2, D5).
+T+0:30  `xr auth oauth2 --no-browser --step 1 --scopes tweet.read,users.read --output json` prints the URL (U3);
+        a human approves once in a browser, outside the agent's clock.
+T+1:30  Step 2 reads the redirect URL from stdin; `xr whoami --output json` succeeds. Under the 2-minute target (D4)
+        for the agent's own steps.
+T+2:00  A search returns 429 with `retry_after_secs: 640`, `retry_at` and a `wait-and-retry` next_step
+        (D16, D17); 640 s is past the 60 s ceiling (D10), so the agent schedules the retry at `retry_at`
+        instead of blocking.
+T+3:00  `xr media upload clip.mp4 --output json` hits the 60 s default; the envelope carries `media_id` and a
+        `resume-wait` command `xr media status <id> --wait=120` (D12, D14); the agent runs it and the job finishes.
+```
+
+No step in this report hit an unplanned dead end. The open risk is the one this plan cannot remove: the human browser
+consent in the OAuth2 path.
+
+### DX decisions
+
+Each row is one question asked in this review, with the actual answer and the plan text it changed.
+
+| ID  | Question                                                                  | Answer                                                                                    | Plan change                                                       |
+| --- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| D1  | Product type                                                              | CLI tool first, library second                                                            | none                                                              |
+| D2  | Persona                                                                   | an agent driving `xr` headless                                                            | Persona card                                                      |
+| D3  | Developer perspective accurate?                                           | yes                                                                                       | Developer perspective                                             |
+| D4  | Time-to-first-success target                                              | Champion, under 2 minutes                                                                 | Benchmark and target                                              |
+| D5  | Magical moment vehicle                                                    | vault pipe first in help, README and skill                                                | U2 step 4, U2 Files, U22 step 1                                   |
+| D6  | Review mode                                                               | DX POLISH                                                                                 | none                                                              |
+| D7  | `register-app` template                                                   | vault pipe                                                                                | U2 step 6, U2 Files                                               |
+| D8  | `-` on a terminal                                                         | refuse with `invalid-args`                                                                | U2 step 3, U2 test scenario                                       |
+| D9  | Names                                                                     | `--wait-on-rate-limit`, `--rate-limit-max-wait`, `retry_after_secs`, `processing-timeout` | KTD5, KTD6, KTD16, U7, U8, U22                                    |
+| D10 | Retry ceiling default                                                     | 60 s                                                                                      | KTD6, U8 step 4                                                   |
+| D11 | Timeout exit code, reopened from the eng review's D3 with corrected facts | exit 1; fix the stale doc comment                                                         | U7 step 3, R2 record                                              |
+| D12 | Timeout `next_step`                                                       | `media_id` plus a runnable `resume-wait` command                                          | KTD5, U7 step 4, U7 test, U22                                     |
+| D13 | Skipping upload's wait                                                    | `--wait=false`, Go parity                                                                 | folded into D14                                                   |
+| D14 | Wait flag shape                                                           | one `--wait[=<SECS>]` flag; default wait 60 s                                             | KTD5, KTD16, U7 Files, U7 steps 2 and 5, U7 tests, U22, R5 record |
+| D15 | `xr examples` gallery                                                     | vault pipe                                                                                | U2 step 7, U2 Files                                               |
+| D16 | `next_step` for `rate-limited`                                            | build it now, with the backoff time instead of a command                                  | U8                                                                |
+| D17 | Rate-limited shape                                                        | top-level `retry_after_secs` and `retry_at`; `next_step {action: "wait-and-retry", docs}` | KTD6, KTD16, U8, U22, System-Wide Impact                          |
+
+The default wait was first proposed at 300 s in the engineering review (R5), set to 50 s, then corrected to 60 s; Go
+`xurl` waits with no deadline, so no external convention set the value.
+
+### DX scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW: SCORECARD                              |
++====================================================================+
+| Dimension            | Before | After | Evidence                    |
+|----------------------|--------|-------|-----------------------------|
+| Getting Started      | 5/10   | 8/10  | D5, D7, D8                  |
+| API/CLI/SDK          | 5/10   | 8/10  | D9, D10, D13, D14           |
+| Error Messages       | 6/10   | 9/10  | D11, D12, D16, D17          |
+| Documentation        | 5/10   | 8/10  | D5, D15, U21 README         |
+| Upgrade Path         | 6/10   | 7/10  | KTD8 snippets               |
+| Dev Environment      | 7/10   | 8/10  | D8, D9 env vars, CRLF       |
+| Community            | 6/10   | 7/10  | U18, U19, U20               |
+| DX Measurement       | 3/10   | 4/10  | /devex-review boomerang     |
++--------------------------------------------------------------------+
+| TTHW                 | bearer < 1 min; OAuth2 3-5 min, consent-bound |
+| Target               | Champion, < 2 min for the agent's own steps   |
+| Magical moment       | designed: vault pipe at registration          |
+| Product type         | CLI tool (xdk-rs library second)              |
+| Mode                 | DX POLISH                                     |
+| Overall DX           | 5/10 -> 7/10                                  |
++====================================================================+
+| Zero friction        | covered (bearer); OAuth2 bounded by consent   |
+| Learn by doing       | covered: one golden path in every surface     |
+| Fight uncertainty    | covered: every new error names its next step  |
+| Opinionated + escape | covered: 60 s defaults, flags and env override|
+| Code in context      | covered: real vault pipe, not a placeholder   |
+| Magical moments      | covered: registration with no argv secret     |
++====================================================================+
+```
+
+Below 6: DX Measurement. Nothing in the plan times the Champion clock; the measure is a `/devex-review` run on the
+released `xr` against this target.
+
+### DX implementation checklist
+
+```text
+[ ] The agent's own steps from install to `xr whoami` take under 2 minutes (bearer path today; OAuth2 after consent)
+[ ] Every secret example in help, README, `xr examples`, the skill and the register-app template is the vault pipe
+[ ] `--<secret>-file -` on a terminal exits invalid-args naming the fix
+[ ] The new flags and keys use the D9 names, each global flag with its XURL_ env var
+[ ] processing-timeout exits 1 with media_id and a runnable resume-wait command
+[ ] rate-limited carries retry_after_secs, retry_at and a wait-and-retry next_step when X sends a reset
+[ ] `--wait[=<SECS>]` accepts bare, true, false, 0 and N, and `--wait 60` points at `--wait=60`
+[ ] The CLI README shows the attestation check with --signer-workflow
+```
+
+### NOT in scope
+
+- A `next_step` command that re-runs the caller's own invocation: rejected in D16 for the backoff time, because rebuilding
+  argv is fragile with quoting and piped stdin.
+- Listing valid `--scopes` names in help: a rejected name already lists them before any network call.
+- Removing the human browser consent from OAuth2 sign-in: X requires it; it bounds the Champion target for that path.
+- Instrumenting the getting-started clock: the boomerang is a `/devex-review` run after the release, not telemetry.
+
+### What already exists
+
+- The envelope's fact-versus-instruction split (top-level `endpoint`, `app`, `available_in_app`; `next_step` with an
+  action) is the pattern D17 follows.
+- `NextStep::sign_in` in `crates/xurl-cli/src/cli/hints.rs` is the runnable-command pattern D12's `resume-wait` copies.
+- `-v, --verbose[=<VERBOSE>]` is the optional-value flag shape D14 reuses.
+- `RATE_LIMIT_DOCS` and `Error::docs_url()` (`crates/xdk/src/error.rs:40`) already supply the `wait-and-retry` docs URL.
+- `RateLimit::from_headers` already parses one response's reset epoch, the source of both D17 keys.
+
+### DX implementation tasks
+
+- [ ] **T1 (P2, human: ~1 h / CC: ~10 min)** — U2 — make the vault pipe the golden path
+  - Surfaced by: Step 0D and Pass 4 — D5, D7, D15
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/hints.rs`,
+    `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xurl-cli/README.md`
+  - Verify: help, `xr examples` and the register-app golden fixtures show `--client-secret-file -`
+- [ ] **T2 (P2, human: ~30 min / CC: ~5 min)** — U2 — refuse `-` on a terminal
+  - Surfaced by: Step 0F Hello World — D8
+  - Files: `crates/xurl-cli/src/cli/commands/auth/`
+  - Verify: the terminal test exits invalid-args without reading
+- [ ] **T3 (P2, human: ~2 h / CC: ~20 min)** — U7 — one `--wait[=<SECS>]` flag, 60 s default, resume-wait next step
+  - Surfaced by: Step 0F Debug and 0G — D11, D12, D13, D14
+  - Files: `crates/xdk/src/api/media.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/mod.rs`,
+    `crates/xurl-cli/src/cli/hints.rs`, `AGENTS.md`
+  - Verify: the U7 test scenarios, including `--wait=0`, `--wait 60`, and the resume-wait command
+- [ ] **T4 (P2, human: ~2 h / CC: ~20 min)** — U8 — wait-and-retry with retry_after_secs and retry_at
+  - Surfaced by: Step 0F Real Usage and Pass 3 — D9, D10, D16, D17
+  - Files: `crates/xdk/src/api/request/transport.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/hints.rs`,
+    `crates/xurl-cli/src/cli/output/`, `AGENTS.md`
+  - Verify: the U8 429 scenarios with and without a reset header
+- [ ] **T5 (P3, human: ~10 min / CC: ~2 min)** — U21 — attestation check in the CLI README
+  - Surfaced by: Step 0F Install (routine)
+  - Files: `crates/xurl-cli/README.md`
+  - Verify: the README's command matches U21's postflight item
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger                      | Why                             | Runs | Status                                  | Findings                                                      |
-| -------------- | ---------------------------- | ------------------------------- | ---- | --------------------------------------- | ------------------------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`           | Scope & strategy                | 0    | —                                       | —                                                             |
-| Outside Review | codex via `/plan-eng-review` | Independent 2nd opinion         | 13   | disabled                                | none (codex_reviews disabled)                                 |
-| Eng Review     | `/plan-eng-review`           | Architecture & tests (required) | 10   | ISSUES OPEN                             | 4 issues, 0 critical gaps (all resolved into the plan, D2-D6) |
-| Design Review  | `/plan-design-review`        | UI/UX gaps                      | 0    | —                                       | —                                                             |
-| DX Review      | `/plan-devex-review`         | Developer experience gaps       | 4    | issues_found (2026-09-17, another plan) | —                                                             |
+| Review         | Trigger                                               | Why                             | Runs | Status      | Findings                                                                                                 |
+| -------------- | ----------------------------------------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`                                    | Scope & strategy                | 0    | —           | —                                                                                                        |
+| Outside Review | codex via `/plan-eng-review` and `/plan-devex-review` | Independent 2nd opinion         | 14   | disabled    | none (codex_reviews disabled)                                                                            |
+| Eng Review     | `/plan-eng-review`                                    | Architecture & tests (required) | 10   | ISSUES OPEN | 4 issues, 0 critical gaps (all resolved into the plan, D2-D6)                                            |
+| Design Review  | `/plan-design-review`                                 | UI/UX gaps                      | 0    | —           | —                                                                                                        |
+| DX Review      | `/plan-devex-review`                                  | Developer experience gaps       | 5    | ISSUES OPEN | score: 5/10 → 7/10, TTHW: OAuth2 3-5 min (bearer < 1 min) → Champion < 2 min; 17 decisions, all answered |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by `codex_reviews`; no outside findings.
-- **VERDICT:** no review CLEAR for this plan; ENG ISSUES OPEN with every finding resolved into the plan; eng review
-  required (a second pass is scheduled).
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by `codex_reviews` for both reviews; no outside findings.
+- **VERDICT:** no review CLEAR for this plan; ENG and DX ISSUES OPEN with every decision answered and folded in; eng
+  review required (the second pass is next).
 
 NO UNRESOLVED DECISIONS
