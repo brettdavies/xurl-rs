@@ -3274,6 +3274,46 @@ async fn every_paging_command_sends_the_limit_and_cursor() {
     }
 }
 
+/// X answers a page with no results as `meta` alone, with no `data` key. Every
+/// command that pages reports that as an empty list at exit 0.
+#[tokio::test]
+async fn every_paging_command_answers_a_page_with_no_results() {
+    for (args, request_path) in PAGING_COMMANDS {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": {"id": PAGING_USER_ID, "name": "Paging User", "username": "paging"}
+                }))),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(*request_path))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(serde_json::json!({"meta": {"result_count": 0}})),
+                )
+                .expect(1),
+        )
+        .await;
+
+        let mut argv = vec!["xr", "--output", "json"];
+        argv.extend_from_slice(args);
+        argv.extend_from_slice(&["--auth", "oauth1"]);
+        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &argv).await;
+        assert_eq!(code, 0, "xr {args:?}; stderr: {stderr}; stdout: {stdout}");
+        let page: serde_json::Value =
+            serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("xr {args:?}: {e}: {stdout}"));
+        assert_eq!(page["data"], serde_json::json!([]), "xr {args:?}: {page}");
+        assert_eq!(page["meta"]["result_count"], 0, "xr {args:?}: {page}");
+    }
+}
+
 /// The `--limit` and `--cursor` help name exactly the commands that page, so
 /// the help cannot promise paging a command does not do.
 #[test]

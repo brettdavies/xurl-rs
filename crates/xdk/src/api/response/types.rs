@@ -1156,6 +1156,30 @@ mod tests {
     }
 
     #[test]
+    fn a_page_with_no_results_decodes_as_an_empty_list() {
+        let page: ApiResponse<Vec<Post>> =
+            deserialize_response(json!({"meta": {"result_count": 0}})).expect("an empty page");
+        assert!(page.data.is_empty());
+        assert_eq!(page.meta.expect("meta").result_count, Some(0));
+    }
+
+    #[test]
+    fn a_single_item_without_data_is_still_an_error() {
+        let err = deserialize_response::<Post>(json!({"meta": {"result_count": 0}}))
+            .expect_err("a post has no empty form")
+            .to_string();
+        assert!(err.contains("missing field `data`"), "got: {err}");
+    }
+
+    #[test]
+    fn a_list_without_data_that_counts_results_is_still_an_error() {
+        let err = deserialize_response::<Vec<Post>>(json!({"meta": {"result_count": 3}}))
+            .expect_err("three results and no data is not an empty page")
+            .to_string();
+        assert!(err.contains("missing field `data`"), "got: {err}");
+    }
+
+    #[test]
     fn errors_only_response_returns_validation_error() {
         // X API v2 returns {"errors": [...]} with no "data" on 200 for not-found resources.
         // deserialize_response should return Error::Validation with the raw JSON.
