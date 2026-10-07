@@ -41,6 +41,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -91,6 +93,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -130,6 +134,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -169,6 +175,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -208,6 +216,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -247,6 +257,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -287,6 +299,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -325,6 +339,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -362,6 +378,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -402,6 +420,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -441,6 +461,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -478,6 +500,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -516,6 +540,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -554,6 +580,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -592,6 +620,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -630,6 +660,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -668,6 +700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -708,6 +742,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -747,6 +783,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -784,6 +822,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -822,6 +862,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -863,6 +905,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -903,6 +947,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -940,6 +986,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -978,6 +1026,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1018,6 +1068,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1055,6 +1107,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1093,6 +1147,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1133,6 +1189,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1170,6 +1228,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1215,6 +1275,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1280,6 +1342,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1321,6 +1385,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1355,6 +1421,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1395,6 +1463,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1438,6 +1508,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1475,6 +1547,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1513,6 +1587,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1636,6 +1712,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1680,6 +1758,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1720,6 +1800,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1754,6 +1836,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1786,6 +1870,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1819,6 +1905,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1855,6 +1943,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1899,6 +1989,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1936,6 +2028,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -1969,6 +2063,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2003,6 +2099,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2035,6 +2133,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2075,6 +2175,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2108,6 +2210,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2238,6 +2342,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2376,6 +2482,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2424,6 +2532,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2466,6 +2576,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2504,6 +2616,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2540,6 +2654,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2586,6 +2702,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2627,6 +2745,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2754,6 +2874,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2794,6 +2916,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2828,6 +2952,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2894,6 +3020,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2930,6 +3058,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2963,6 +3093,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -2995,6 +3127,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
@@ -3028,6 +3162,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \

@@ -1,7 +1,7 @@
 args: ["unlike", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5499
+stdout_len: 6212
 stderr_len: 0
 --- stdout ---
 Unlike a post
@@ -90,6 +90,21 @@ Options:
           
           [env: XURL_TIMEOUT=]
           [default: 30]
+
+      --wait-on-rate-limit[=<WAIT_ON_RATE_LIMIT>]
+          Wait out a rate limit and retry once, instead of failing with `rate-limited`
+          
+          Applies when X answers 429 and that response names its reset, and the wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names no reset, fails at once as it does without this flag, and the second response is final whatever it is.
+          
+          [env: XURL_WAIT_ON_RATE_LIMIT=]
+          [default: false]
+          [possible values: true, false]
+
+      --rate-limit-max-wait <SECS>
+          Longest `--wait-on-rate-limit` waits before its retry, in seconds
+          
+          [env: XURL_RATE_LIMIT_MAX_WAIT=]
+          [default: 60]
 
       --color <COLOR>
           Colorize output: auto (TTY-aware), always, or never

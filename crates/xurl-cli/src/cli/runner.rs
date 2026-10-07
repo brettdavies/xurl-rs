@@ -345,6 +345,7 @@ where
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e)
                 .or_else(|| crate::cli::hints::resume_wait_hint(&e))
+                .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
             {
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else {

@@ -132,7 +132,7 @@ async fn a_stubbed_problem_body_surfaces_as_an_api_error() {
         .await
         .expect_err("a 403 is an error");
     match err {
-        Error::Api { status, body } => {
+        Error::Api { status, body, .. } => {
             assert_eq!(status, 403);
             assert!(
                 body.contains(problem["detail"].as_str().unwrap()),

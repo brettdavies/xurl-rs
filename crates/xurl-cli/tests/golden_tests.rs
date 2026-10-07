@@ -181,6 +181,17 @@ impl MockApi {
                 "status": 429
             })),
         ));
+        // The reset is a fixed moment in the past, 2025-12-31T23:59:59Z, so
+        // the delay the envelope reports is zero on every run.
+        self.mount(search(
+            "q429reset",
+            ResponseTemplate::new(429)
+                .insert_header("x-rate-limit-reset", "1767225599")
+                .set_body_json(serde_json::json!({
+                    "title": "Too Many Requests",
+                    "status": 429
+                })),
+        ));
         self.mount(search(
             "q404",
             ResponseTemplate::new(404).set_body_json(serde_json::json!({
@@ -403,6 +414,10 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         bearer(reason_case(
             "rate-limited",
             &["--output", "json", "--auth", "app", "search", "q429"],
+        )),
+        bearer(case(
+            "rate-limited-with-reset",
+            &["--output", "json", "--auth", "app", "search", "q429reset"],
         )),
         bearer(reason_case(
             "not-found",
@@ -665,6 +680,10 @@ fn text_cases() -> Vec<Case> {
         bearer(case(
             "text-rate-limited",
             &["--auth", "app", "search", "q429"],
+        )),
+        bearer(case(
+            "text-rate-limited-with-reset",
+            &["--auth", "app", "search", "q429reset"],
         )),
         Case {
             store: Store::OAuth2,

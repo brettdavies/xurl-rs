@@ -1,0 +1,11 @@
+args: ["--auth", "app", "search", "q429reset"]
+store: bearer-env
+exit_code: 3
+stdout_len: 0
+stderr_len: 168
+--- stdout ---
+
+--- stderr ---
+Error: {"status":429,"title":"Too Many Requests"}
+Rate limited. Retry in 0 seconds, at 2025-12-31T23:59:59Z. See: https://docs.x.com/resources/fundamentals/rate-limits
+

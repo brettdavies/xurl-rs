@@ -115,3 +115,15 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 # The README's subscriber example for `api::VOCABULARY_TARGET` compiles as a
 # doctest against it.
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
+
+# Breaking library-API changes shipping in a minor by decision. `required-update`
+# reclassifies a break rather than silencing it: the gate CI runs
+# (`release-type: minor`) passes, while a patch-level probe
+# (`cargo semver-checks --release-type patch`) still names every break. Each
+# entry is scoped to one release and is self-clearing: once the tag moves the
+# baseline past the change, the lint stops firing and the entry must be
+# deleted. A standing entry understates the next break of the same kind.
+[package.metadata.cargo-semver-checks.lints]
+# Covers `Error::Api::reset_at`: a 429 carries the reset its own response
+# named, so a pattern that names every field of the variant gains `..`.
+enum_struct_variant_field_added = { lint-level = "deny", required-update = "minor" }

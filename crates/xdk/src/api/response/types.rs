@@ -523,8 +523,9 @@ pub struct UsageCreditsData {
 ///
 /// # Errors
 ///
-/// Returns `Error::Json` if the Value is an empty object or cannot
-/// be deserialized into the target type.
+/// Returns `Error::Json` if the Value is an empty object, a string (the
+/// transport's form for a body that was not JSON), or cannot be deserialized
+/// into the target type.
 pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     value: Value,
 ) -> crate::error::Result<ApiResponse<T>> {
@@ -539,6 +540,11 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate:
         return Err(crate::error::Error::Json(
             "empty response body — expected JSON with a \"data\" field".to_string(),
         ));
+    }
+    if let Value::String(body) = &value {
+        return Err(crate::error::Error::Json(format!(
+            "response body is not a JSON object — expected JSON with a \"data\" field, got: {body}"
+        )));
     }
     // X API v2 returns errors-only 200 responses with no `data` field
     // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface

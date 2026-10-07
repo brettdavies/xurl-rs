@@ -383,10 +383,43 @@ xr whoami --no-interactive                     # Error instead of prompt
 | 0    | Success                                                     | Continue                                                      |
 | 1    | General error                                               | Log and handle                                                |
 | 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth` |
-| 3    | Rate limited                                                | Retry with backoff                                            |
+| 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry      |
 | 4    | Not found                                                   | Resource doesn't exist                                        |
 | 5    | Network error                                               | Check connectivity                                            |
 | 77   | Auth required                                               | See Authentication; agents: read `next_step`                  |
+
+### Rate Limits
+
+A 429 exits 3 with reason `rate-limited`. When X names the reset on that response, the envelope says when to retry, as a
+delay and as a time, and the `next_step` names the step:
+
+```json
+{
+  "status": "error",
+  "reason": "rate-limited",
+  "exit_code": 3,
+  "message": "{\"status\":429,\"title\":\"Too Many Requests\"}",
+  "retry_after_secs": 640,
+  "retry_at": "2026-10-06T19:12:00Z",
+  "next_step": {
+    "action": "wait-and-retry",
+    "docs": "https://docs.x.com/resources/fundamentals/rate-limits"
+  }
+}
+```
+
+`retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in RFC
+3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
+`x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`.
+
+`xr` never retries on its own. `--wait-on-rate-limit` (`XURL_WAIT_ON_RATE_LIMIT`) makes it wait for the reset and send
+the request once more, when the wait fits `--rate-limit-max-wait <SECS>` (`XURL_RATE_LIMIT_MAX_WAIT`, 60 by default). A
+longer wait, or a 429 with no reset, fails at once, and the second response is final whatever it is.
+
+```bash
+xr --wait-on-rate-limit search "rustlang"                           # Wait up to 60 s, retry once
+xr --wait-on-rate-limit --rate-limit-max-wait 900 search "rustlang" # Wait up to 15 minutes
+```
 
 ### Recovering From an Auth Failure
 
@@ -407,10 +440,11 @@ on a machine with nothing registered:
 ```
 
 `action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`,
-`resume-wait`, which a `processing-timeout` envelope carries, and `show-help`, which an `unknown-command` envelope
-carries with the help of the nearest command (`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A
-newer release can add to either set, so treat a value you do not recognize as your default branch. A step carries either
-a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill. Text mode
+`resume-wait`, which a `processing-timeout` envelope carries, `wait-and-retry`, which a `rate-limited` envelope carries,
+and `show-help`, which an `unknown-command` envelope carries with the help of the nearest command (`xr auth status
+--help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat a value you do
+not recognize as your default branch. A step carries either a `command`, runnable verbatim, or a `template` with
+angle-bracket placeholders only the caller can fill; `enroll-app` and `wait-and-retry` carry `docs` alone. Text mode
 prints the same advice as prose instead; the two need not match word for word.
 
 ### NO_COLOR Support

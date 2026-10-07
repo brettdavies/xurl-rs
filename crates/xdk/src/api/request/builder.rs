@@ -34,6 +34,7 @@ pub struct ClientBuilder {
     token_url: String,
     timeout: Duration,
     user_agent: Option<String>,
+    rate_limit_max_wait: Option<Duration>,
 }
 
 impl std::fmt::Debug for ClientBuilder {
@@ -47,6 +48,7 @@ impl std::fmt::Debug for ClientBuilder {
             .field("token_url", &self.token_url)
             .field("timeout", &self.timeout)
             .field("user_agent", &self.user_agent)
+            .field("rate_limit_max_wait", &self.rate_limit_max_wait)
             .finish()
     }
 }
@@ -62,6 +64,7 @@ impl ClientBuilder {
             token_url: DEFAULT_TOKEN_URL.to_string(),
             timeout: Duration::from_secs(DEFAULT_TIMEOUT_SECS),
             user_agent: None,
+            rate_limit_max_wait: None,
         }
     }
 
@@ -118,6 +121,17 @@ impl ClientBuilder {
         self
     }
 
+    /// Waits out a rate limit and retries once, when the wait fits
+    /// `max_wait`; without this call a 429 is always returned as the error.
+    ///
+    /// The wait is the 429's own `x-rate-limit-reset`. A 429 that names no
+    /// reset, or one whose reset lies past `max_wait`, is returned at once,
+    /// and the second response is returned whatever it is.
+    pub fn wait_on_rate_limit(mut self, max_wait: Duration) -> Self {
+        self.rate_limit_max_wait = Some(max_wait);
+        self
+    }
+
     /// Builds the client.
     ///
     /// # Errors
@@ -144,6 +158,7 @@ impl ClientBuilder {
             self.timeout,
             self.user_agent
                 .unwrap_or_else(|| super::DEFAULT_USER_AGENT.to_string()),
+            self.rate_limit_max_wait,
         )
     }
 }

@@ -37,12 +37,17 @@
           "const": "resume-wait",
           "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
           "type": "string"
+        },
+        {
+          "const": "wait-and-retry",
+          "description": "X rate limited the request and said when the window resets; send it\nagain once that time has passed.",
+          "type": "string"
         }
       ]
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nExactly one of [`Self::command`] and [`Self::template`] is present,\nexcept for [`NextAction::EnrollApp`], which carries only `docs`:\na command is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in.",
+      "description": "The `next_step` object carried by an error envelope.\n\nExactly one of [`Self::command`] and [`Self::template`] is present,\nexcept for [`NextAction::EnrollApp`] and [`NextAction::WaitAndRetry`],\nwhich carry only `docs`:\na command is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in.",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",
@@ -250,7 +255,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`. A newer\nrelease can add an action, so treat one you do not recognize as your\ndefault branch. A step carries either a `command`, runnable verbatim by\na non-TTY caller, or a `template` whose angle-bracket placeholders only\nthe caller can fill, never both."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both;\n`enroll-app` and `wait-and-retry` carry neither, only `docs`."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -292,6 +297,22 @@
         },
         "requested": {
           "description": "Auth scheme the caller asked for; `null` when auto-detect ran."
+        },
+        "retry_after_secs": {
+          "description": "Seconds until the rate limit resets, zero once it has; present on a\n`rate-limited` error whose own response named the reset.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retry_at": {
+          "description": "The same reset as an RFC 3339 UTC timestamp, for a caller that\nschedules the retry instead of sleeping.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "schema": {
           "description": "Schema name a `validate` invocation named.",
