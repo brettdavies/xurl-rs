@@ -63,6 +63,8 @@ pub struct Auth {
     redirect_uri_override: Option<String>,
     /// The `XURL_BEARER_TOKEN` value supplied at construction.
     bearer_token_override: Option<String>,
+    /// The scopes a sign-in requests, when the caller narrowed them.
+    oauth2_scopes: Option<Vec<&'static str>>,
 }
 
 crate::assert_send_sync!(Auth);
@@ -168,7 +170,34 @@ impl Auth {
             app_name,
             redirect_uri_override: overrides.redirect_uri.clone(),
             bearer_token_override: overrides.bearer_token.clone(),
+            oauth2_scopes: None,
         }
+    }
+
+    /// Narrows the scopes a sign-in requests to `requested`, plus
+    /// [`oauth2::OFFLINE_ACCESS`]. Without this call a sign-in requests every
+    /// scope [`oauth2::get_oauth2_scopes`] lists.
+    ///
+    /// # Errors
+    ///
+    /// Returns a validation error naming the valid scopes when `requested`
+    /// carries an unknown name; the selection is left as it was.
+    pub fn with_oauth2_scopes<S: AsRef<str>>(&mut self, requested: &[S]) -> Result<()> {
+        self.oauth2_scopes = Some(oauth2::narrow_oauth2_scopes(requested)?);
+        Ok(())
+    }
+
+    /// The scopes a sign-in requests.
+    #[must_use]
+    pub fn oauth2_scopes(&self) -> Vec<&'static str> {
+        self.oauth2_scopes
+            .clone()
+            .unwrap_or_else(oauth2::get_oauth2_scopes)
+    }
+
+    /// The narrowed scope set, when [`Self::with_oauth2_scopes`] chose one.
+    pub(crate) fn chosen_oauth2_scopes(&self) -> Option<&[&'static str]> {
+        self.oauth2_scopes.as_deref()
     }
 
     /// Whether a non-empty `XURL_BEARER_TOKEN` was supplied at construction.
@@ -439,12 +468,12 @@ impl Auth {
             .header("Authorization", format!("Bearer {access_token}"))
             .send()
             .await
-            .map_err(|e| Error::auth_with_cause("NetworkError", &e))?;
+            .map_err(|e| Error::auth_with_cause("NetworkError", &e).with_source(e))?;
 
         let body: serde_json::Value = resp
             .json()
             .await
-            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e))?;
+            .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e).with_source(e))?;
 
         body.get("data")
             .and_then(|d| d.get("username"))

@@ -49,6 +49,18 @@ pub fn xr_std_with_store_at(program: &str, store: &Path) -> std::process::Comman
     cmd
 }
 
+/// The Go original at `program`, with `home` as its home directory.
+///
+/// The original keeps its token store under the home directory and moves a
+/// `.xurl` file it finds there into a directory of the same name, on every
+/// invocation. Run against the developer's own home it would relocate the
+/// store `xr` reads, so it always runs against a scratch one.
+pub fn original_std_at(program: &Path, home: &Path) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    cmd.env("HOME", home).env("USERPROFILE", home);
+    cmd
+}
+
 /// Path of the built `xr` binary, for a harness that spawns it by path
 /// through [`xr_std_at`].
 pub fn xr_bin() -> &'static str {

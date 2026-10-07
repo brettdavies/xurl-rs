@@ -96,6 +96,11 @@ pub(super) fn build_url_for_target(base_url: &str, target: &RequestTarget) -> Re
         }
         RequestTarget::RawUrl(raw) => {
             validate_raw_url_scheme(raw)?;
+            // The HTTP client and the OAuth1 signer each parse the URL later
+            // and report a failure as their own kind; parsed here, a URL that
+            // cannot be requested is an invalid URL on every path.
+            url::Url::parse(raw.trim_start())
+                .map_err(|e| Error::invalid_url(format!("{raw}: {e}")).with_source(e))?;
             Ok(raw.clone())
         }
     }
@@ -158,7 +163,7 @@ fn validate_raw_url_scheme(url: &str) -> Result<()> {
     if lower.starts_with("https://") || lower.starts_with("http://") {
         return Ok(());
     }
-    Err(Error::InvalidUrl(format!(
+    Err(Error::invalid_url(format!(
         "URL must start with http:// or https://: {url}"
     )))
 }
@@ -335,13 +340,13 @@ mod tests {
     fn build_url_raw_url_file_scheme_rejected() {
         let target = RequestTarget::RawUrl("file:///etc/passwd".to_string());
         let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)), "got {err:?}");
+        assert!(matches!(err, Error::InvalidUrl { .. }), "got {err:?}");
     }
 
     #[test]
     fn build_url_raw_url_ftp_scheme_rejected() {
         let target = RequestTarget::RawUrl("ftp://attacker.com/payload".to_string());
         let err = build_url_for_target(TEST_BASE_URL, &target).unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)), "got {err:?}");
+        assert!(matches!(err, Error::InvalidUrl { .. }), "got {err:?}");
     }
 }

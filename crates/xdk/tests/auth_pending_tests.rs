@@ -25,6 +25,7 @@ fn sample_state() -> PendingOAuth2State {
         client_id: "client_id_001".into(),
         app_name: "myapp".into(),
         created_at: now_secs(),
+        scopes: vec!["tweet.read".into(), "offline.access".into()],
     }
 }
 
@@ -40,6 +41,33 @@ fn save_and_load_round_trip() {
 
     let loaded = pending::load(&path).unwrap();
     assert_eq!(original, loaded);
+}
+
+/// A file with no `scopes` key loads, and reads as the full set every
+/// sign-in requested when that file was written.
+#[test]
+fn a_state_without_scopes_loads_as_every_scope() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut written = sample_state();
+    written.scopes.clear();
+    pending::save(&written, &path).unwrap();
+    let yaml = std::fs::read_to_string(&path).unwrap();
+    let without_key: String = yaml
+        .lines()
+        .filter(|line| !line.starts_with("scopes"))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    assert_ne!(yaml, without_key, "the key was there to remove");
+    std::fs::write(&path, without_key).unwrap();
+
+    let loaded = pending::load(&path).unwrap();
+
+    assert!(loaded.scopes.is_empty());
+    assert_eq!(
+        loaded.requested_scopes(),
+        xdk::auth::oauth2::get_oauth2_scopes()
+    );
 }
 
 #[test]
@@ -154,9 +182,12 @@ fn load_corrupt_yaml_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should be a deserialization error, not a panic
+    assert_eq!(err.kind(), "auth-required", "got: {err:?}");
     assert!(
-        matches!(err, xdk::Error::Auth(_)),
-        "Expected auth/parse error, got: {err:?}"
+        std::error::Error::source(&err)
+            .and_then(|source| source.downcast_ref::<serde_yaml::Error>())
+            .is_some(),
+        "the YAML error is the auth error's source: {err:?}"
     );
 }
 
@@ -175,7 +206,7 @@ fn load_valid_yaml_missing_fields_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should fail deserialization, not panic
-    assert!(matches!(err, xdk::Error::Auth(_)), "got: {err:?}");
+    assert!(matches!(err, xdk::Error::Auth { .. }), "got: {err:?}");
 }
 
 #[test]

@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.0] - 2026-10-07
+
+### Added
+
+- Add `--client-secret-file`, `--consumer-secret-file`, `--access-token-file`, `--token-secret-file`, and `--bearer-token-file` to `xr auth apps add`, `auth apps update`, `auth oauth1`, and `auth app`. Each reads the secret from a file, or from stdin when the path is `-`, so the secret never appears in the process's arguments or shell history. The plain flags keep working. by @brettdavies in [#276](https://github.com/brettdavies/xurl-rs/pull/276)
+- Add `--scopes` to `xr auth oauth2`: a comma-separated subset of the OAuth2 scopes to request, with `offline.access` always added. The default stays every scope. An unknown name exits with `validation` and lists the valid ones. by @brettdavies in [#277](https://github.com/brettdavies/xurl-rs/pull/277)
+- Add `--wait[=<SECS>]` to `xr media upload` and `xr media status`: bare or `true` waits up to 60 seconds, a number that many seconds, and `false` or `0` not at all. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+- Add the `processing-timeout` reason (exit 1) for a wait that reaches its deadline. Its envelope carries `media_id` and a `next_step` with the new `resume-wait` action, whose `command` resumes the wait for twice as long.
+- Add `retry_after_secs` and `retry_at` to the `rate-limited` envelope when the 429 names its reset, with a `next_step` whose new action is `wait-and-retry`. by @brettdavies in [#282](https://github.com/brettdavies/xurl-rs/pull/282)
+- Add `--wait-on-rate-limit` (`XURL_WAIT_ON_RATE_LIMIT`) to wait out a rate limit and retry once, and `--rate-limit-max-wait <SECS>` (`XURL_RATE_LIMIT_MAX_WAIT`, default 60) to bound that wait. Without the flag `xr` never retries.
+- Add build-provenance and SBOM attestations to the release archives. Verify a downloaded archive with `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml`. by @brettdavies in [#293](https://github.com/brettdavies/xurl-rs/pull/293)
+- Add `yml` as an alias of `yaml` for `--output` and `XURL_OUTPUT`. by @brettdavies in [#304](https://github.com/brettdavies/xurl-rs/pull/304)
+- Add a `next_step` to every `invalid-args` envelope: `show-help` with the `xr <command> --help` the message names. by @brettdavies in [#306](https://github.com/brettdavies/xurl-rs/pull/306)
+- Add a `next_step` to a `token-store` envelope when the store file exists and could not be loaded: `inspect-store` with `docs`.
+- Add `docs` to the `inspect-store` step an `auth-required` envelope carries.
+
+### Changed
+
+- Change the `register-app` `next_step` template to `<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -`, and show the piped or file form in every help example, `xr examples`, and the README. by @brettdavies in [#276](https://github.com/brettdavies/xurl-rs/pull/276)
+- Change `xr media upload`'s default wait on a video from unbounded to 60 seconds. A video that processes longer exits 1 with `processing-timeout`; the upload is intact, `--wait=N` waits longer, and the envelope's `resume-wait` command (`xr media status <media_id> --wait=<secs>`) continues the wait. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+- Change the error for an unsupported `--output` or `XURL_OUTPUT` value (`toml`, `xml`) from plain text to a JSON envelope with reason `invalid-args`. The exit code is still 2. by @brettdavies in [#305](https://github.com/brettdavies/xurl-rs/pull/305)
+
+### Fixed
+
+- Fix two `xr` processes refreshing the same expired OAuth2 login at once: the second now waits and uses the token the first saved, where both used to spend the single-use refresh token. The store's directory gains a `<store>.refresh.lock` file beside `<store>.lock`. by @brettdavies in [#279](https://github.com/brettdavies/xurl-rs/pull/279)
+- Fix OAuth1 signatures for a request whose query or body value contains a space, `+`, `~`, or `*`. Parameters are now percent-encoded as RFC 5849 requires, matching the signature X computes. by @brettdavies in [#280](https://github.com/brettdavies/xurl-rs/pull/280)
+- Fix `xr media status --wait` polling forever on media whose status carries no processing information, such as an image. The wait returns after one status call. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+- Fix `xr media upload --wait=false`, which was rejected, so an upload can return after FINALIZE without waiting.
+- Fix a raw request printing `{}` for a successful response whose body is not JSON. The body is printed as it was sent. by @brettdavies in [#282](https://github.com/brettdavies/xurl-rs/pull/282)
+- Fix an error response whose body is not JSON reporting `HTTP error: <status>`. The message carries the body.
+- Fix a response whose body fails to read being reported as an empty success. It exits 5 with reason `network-error`.
+- Fix a malformed raw URL (for example `xr 'http://[bad'`) exiting 5 with `network-error`, or 77 with `auth-required` under `--auth oauth1`. It exits 1 with reason `invalid-url`, names the URL, and sends nothing. by @brettdavies in [#285](https://github.com/brettdavies/xurl-rs/pull/285)
+- Fix a `.twurlrc` that does not parse being reported as `serialization`; it is `token-store`.
+- Fix the `--dry-run` and `--limit` help text, and the shell completions generated from it, ending in an internal reference, `(U7)`. by @brettdavies in [#291](https://github.com/brettdavies/xurl-rs/pull/291)
+- Fix `xr media upload` printing two JSON documents for an upload it waited on (three under `--verbose`). It prints one: FINALIZE's document with the final `processing_info`, so `.data.id` and `.data.processing_info.state` read from the same object. by @brettdavies in [#296](https://github.com/brettdavies/xurl-rs/pull/296)
+- Fix `xr media upload` returning at once for a GIF or other non-video upload that X reports as still processing. It waits whenever FINALIZE's answer carries an unfinished `processing_info`, up to the same deadline as a video. by @brettdavies in [#297](https://github.com/brettdavies/xurl-rs/pull/297)
+- Fix `xr auth default <app> <user>` printing two JSON documents. It prints one, whose message names the app and the user. by @brettdavies in [#299](https://github.com/brettdavies/xurl-rs/pull/299)
+- Fix `xr auth default <app> <user>` moving the default app when the user is not one the app holds. The command now fails with the store unchanged.
+- Fix `--output jsonl` printing an indented, multi-line document for anything that is not a stream. It prints one record per line, as `ndjson` does and as JSON Lines means. by @brettdavies in [#300](https://github.com/brettdavies/xurl-rs/pull/300)
+- Fix the `search -n` and `likes -n` help, which gave 1 as the minimum; X's minimums are 10 and 5, and `search` raises a lower value to 10. by @brettdavies in [#301](https://github.com/brettdavies/xurl-rs/pull/301)
+- Fix the examples under `search`, `timeline`, `mentions`, `bookmarks`, `likes`, and `dms`, and on the examples page, that piped a list into `jaq '.id'` and printed `null`. They show a filter that prints each record's id.
+- Fix `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` exiting 1 with reason `serialization` when nothing matched. X sends such a page without a `data` key; the command now prints an empty `data` list at exit 0. by @brettdavies in [#303](https://github.com/brettdavies/xurl-rs/pull/303)
+
+### Documentation
+
+- Document `cargo install --locked xurl-rs` as the cargo install command: without `--locked`, a fresh resolution that picks cc 1.6.0 fails to build aws-lc-sys when `CFLAGS` carries an optimization flag. by @brettdavies in [#272](https://github.com/brettdavies/xurl-rs/pull/272)
+- Add a Stability section to the README: what `xr`'s machine contract covers, what is outside it, and what a patch, a minor, and a major can carry. by @brettdavies in [#292](https://github.com/brettdavies/xurl-rs/pull/292)
+- Correct the README where it disagreed with the binary: the uploads `media upload` waits for and its one-document answer, the `bearer` and `bearer_source` fields of `auth status`, exit 5 for an unreadable file, and which errors carry a `next_step`. by @brettdavies in [#301](https://github.com/brettdavies/xurl-rs/pull/301)
+- Document which error reasons carry a `next_step` and which do not, and how to recover a token store that could not be read. by @brettdavies in [#306](https://github.com/brettdavies/xurl-rs/pull/306)
+
+**Full Changelog**: [v4.2.1...v4.3.0](https://github.com/brettdavies/xurl-rs/compare/v4.2.1...v4.3.0)
+
 ## [4.2.1] - 2026-10-04
 
 ### Changed

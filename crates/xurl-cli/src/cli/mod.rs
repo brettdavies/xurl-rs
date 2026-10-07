@@ -72,6 +72,8 @@ ENVIRONMENT VARIABLES:
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
+  XURL_WAIT_ON_RATE_LIMIT  Wait out a rate limit and retry once (same as --wait-on-rate-limit)
+  XURL_RATE_LIMIT_MAX_WAIT Longest rate-limit wait in seconds (same as --rate-limit-max-wait)
   XURL_COLOR             Color control: auto, always, never (same as --color)
   XURL_VERBOSE           Request/response lines and legacy-vocabulary notes (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)
@@ -190,8 +192,8 @@ Examples:
     xr search \"rustlang\" -n 25 --output json
   Demonstrate env-var precedence (XURL_OUTPUT == --output):
     XURL_OUTPUT=json xr search \"rustlang\"
-  Stream-friendly JSONL piped to jaq:
-    xr search \"rustlang\" --output jsonl | jaq '.id'
+  The id of each result, one per line:
+    xr search \"rustlang\" --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr whoami` examples — paired text + JSON.
@@ -223,8 +225,8 @@ Examples:
     xr timeline
   Home timeline (50 results, JSON envelope):
     xr timeline -n 50 --output json
-  Stream-friendly JSONL piped to jaq:
-    xr timeline -n 100 --output jsonl | jaq '.id'
+  The id of each post, one per line:
+    xr timeline -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr mentions` examples — paired text + JSON.
@@ -234,8 +236,8 @@ Examples:
     xr mentions
   Last 25, JSON envelope:
     xr mentions -n 25 --output json
-  JSONL pipeline:
-    xr mentions -n 100 --output jsonl | jaq '.id'
+  The id of each mention, one per line:
+    xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr like` examples — paired text + JSON.
@@ -300,8 +302,8 @@ Examples:
     xr bookmarks
   100 results, JSON envelope:
     xr bookmarks -n 100 --output json
-  JSONL piped to jaq:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+  The id of each bookmark, one per line:
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr likes` examples — paired text + JSON, JSONL pipeline.
@@ -311,8 +313,8 @@ Examples:
     xr likes
   100 results, JSON envelope:
     xr likes -n 100 --output json
-  JSONL piped to jaq:
-    xr likes -n 100 --output jsonl | jaq '.id'
+  The id of each liked post, one per line:
+    xr likes -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr follow` examples — paired text + JSON.
@@ -440,8 +442,8 @@ Examples:
     xr dms
   50 results, JSON envelope:
     xr dms -n 50 --output json
-  JSONL piped to jaq:
-    xr dms -n 100 --output jsonl | jaq '.id'
+  The id of each event, one per line:
+    xr dms -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr auth` parent help — points to subcommands.
@@ -451,8 +453,8 @@ Examples:
     xr auth oauth2
   Headless OAuth2 (servers, containers):
     xr auth oauth2 --no-browser --step 1
-  Bearer token for read-only / search:
-    xr auth app --bearer-token \"$TOKEN\"
+  Bearer token for read-only / search, piped so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
   Show current auth state, machine-readable:
     xr auth status --output json
 ";
@@ -543,27 +545,36 @@ Examples:
     echo 'https://localhost/callback?code=...&state=...' | xr auth oauth2 --no-browser --step 2 --auth-url - --output json
   Label the saved token with a specific username (skips /2/users/me):
     xr auth oauth2 alice --output json
+  Sign in with only the scopes a task needs (offline.access is always added):
+    xr auth oauth2 --scopes tweet.read,users.read
+  Same, headless:
+    xr auth oauth2 --no-browser --step 1 --scopes tweet.read,users.read --output json
 ";
 
 /// `xr auth oauth1` — non-interactive OAuth1 setup.
 const AUTH_OAUTH1_HELP: &str = "\
 Examples:
-  Configure OAuth1 from app + user credentials:
-    xr auth oauth1 \\
-      --consumer-key CK --consumer-secret CS \\
-      --access-token AT --token-secret TS
-  Same, with JSON envelope for scripted setup:
-    xr auth oauth1 --consumer-key CK --consumer-secret CS \\
-      --access-token AT --token-secret TS --output json
+  Configure OAuth1 with one secret piped from a vault and the others read
+  from files, so none reaches argv (stdin carries one value):
+    op read 'op://<vault>/<item>/token_secret' | xr auth oauth1 --consumer-key CK \\
+      --consumer-secret-file consumer-secret.txt \\
+      --access-token-file access-token.txt --token-secret-file -
+  Every secret from a file, with JSON envelope for scripted setup:
+    xr auth oauth1 --consumer-key CK \\
+      --consumer-secret-file consumer-secret.txt \\
+      --access-token-file access-token.txt \\
+      --token-secret-file token-secret.txt --output json
 ";
 
 /// `xr auth app` — bearer-token configuration.
 const AUTH_APP_HELP: &str = "\
 Examples:
-  Set the bearer token from an env var:
-    xr auth app --bearer-token \"$XURL_BEARER_TOKEN\"
-  Same, JSON envelope:
-    xr auth app --bearer-token \"$XURL_BEARER_TOKEN\" --output json
+  Store the bearer token, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
+  Same from an env var, JSON envelope:
+    printenv XURL_BEARER_TOKEN | xr auth app --bearer-token-file - --output json
+  Read it from a file:
+    xr auth app --bearer-token-file bearer-token.txt
   Test the configured bearer:
     xr auth status --output json
 ";
@@ -595,12 +606,12 @@ Examples:
 /// `xr auth apps` parent help — points to subcommands.
 const AUTH_APPS_HELP: &str = "\
 Examples:
-  Register a new app:
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
   List registered apps (JSON):
     xr auth apps list --output json
-  Update credentials for an existing app:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the secret of an existing app from a file:
+    xr auth apps update my-app --client-secret-file client-secret.txt
   Inspect or set the stored OAuth2 redirect URI:
     xr auth apps redirect-uri get my-app --output json
 ";
@@ -621,26 +632,28 @@ Examples:
 /// `xr auth apps add` examples.
 const APPS_ADD_HELP: &str = "\
 Examples:
-  Register a new app (text):
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
+  Read the secret from a file:
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt
   Register with a custom redirect URI:
-    xr auth apps add my-app --client-id ID --client-secret SECRET \\
+    xr auth apps add my-app --client-id ID --client-secret-file client-secret.txt \\
       --redirect-uri https://localhost:8443/callback
   Register, JSON envelope for scripted setup:
-    xr auth apps add my-app --client-id ID --client-secret SECRET --output json
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file - --output json
 ";
 
 /// `xr auth apps update` examples.
 const APPS_UPDATE_HELP: &str = "\
 Examples:
-  Rotate the client secret:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the client secret, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps update my-app --client-secret-file -
   Update the redirect URI:
     xr auth apps update my-app --redirect-uri https://localhost:8443/callback
   Clear the stored redirect URI (pass empty string):
     xr auth apps update my-app --redirect-uri \"\"
-  Same, JSON envelope:
-    xr auth apps update my-app --client-secret NEW --output json
+  Rotate from a file, JSON envelope:
+    xr auth apps update my-app --client-secret-file client-secret.txt --output json
 ";
 
 /// `xr auth apps remove` — destructive op; advertise non-interactive shape.
@@ -703,12 +716,14 @@ const MEDIA_UPLOAD_HELP: &str = "\
 Examples:
   Upload an image (text):
     xr media upload ./photo.png --media-type image/png --category tweet_image
-  Upload a video and wait for processing (JSON envelope):
+  Upload a video and wait for processing, up to 60 seconds (JSON envelope):
     xr media upload ./clip.mp4 --wait --output json
+  Wait up to five minutes for a long video:
+    xr media upload ./clip.mp4 --wait=300 --output json
   Upload using a specific auth method:
     xr media upload ./photo.png --auth oauth2 --output json
   Skip waiting (returns immediately after FINALIZE):
-    xr media upload ./clip.mp4 --wait false --output json
+    xr media upload ./clip.mp4 --wait=false --output json
 ";
 
 /// `xr media status` examples.
@@ -718,8 +733,10 @@ Examples:
     xr media status 1585341984679469056
   Check status (JSON envelope):
     xr media status 1585341984679469056 --output json
-  Poll until processing completes:
+  Poll until processing completes, up to 60 seconds:
     xr media status 1585341984679469056 --wait --output json
+  Resume a wait that timed out, for up to two minutes:
+    xr media status 1585341984679469056 --wait=120 --output json
 ";
 
 /// `xr media alt-text` examples.
@@ -767,7 +784,7 @@ Raw API access (curl-style):
                         xr -s /2/users/me
 
 Multi-app management:
-  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps add my-app --client-id ... --client-secret-file ...
   xr auth apps list
   xr auth default                                # interactive picker
   xr auth default my-app                         # set by name
@@ -835,9 +852,8 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
-    /// yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml,
-    /// xml) are not supported — xurl emits a JSON envelope with reason
-    /// `invalid-args` if requested.
+    /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused
+    /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
     #[arg(
         long,
         global = true,
@@ -871,8 +887,8 @@ pub struct Cli {
     )]
     pub jsonl: bool,
 
-    /// Emit unstyled, compact output. Strips ANSI in text mode; compact (no
-    /// pretty-printing) JSON in json/jsonl modes.
+    /// Emit unstyled, compact output. Strips ANSI in text mode; prints
+    /// `json` output on one line, as `jsonl` and `ndjson` always are.
     #[arg(
         long,
         global = true,
@@ -928,6 +944,34 @@ pub struct Cli {
     #[arg(long, global = true, default_value = "30", env = "XURL_TIMEOUT")]
     pub timeout: u64,
 
+    /// Wait out a rate limit and retry once, instead of failing with `rate-limited`
+    ///
+    /// Applies when X answers 429 and that response names its reset, and the
+    /// wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names
+    /// no reset, fails at once as it does without this flag, and the second
+    /// response is final whatever it is.
+    #[arg(
+        long,
+        global = true,
+        env = "XURL_WAIT_ON_RATE_LIMIT",
+        value_parser = FalseyValueParser::new(),
+        num_args = 0..=1,
+        default_value_t = false,
+        default_missing_value = "true",
+        require_equals = true,
+    )]
+    pub wait_on_rate_limit: bool,
+
+    /// Longest `--wait-on-rate-limit` waits before its retry, in seconds
+    #[arg(
+        long,
+        global = true,
+        value_name = "SECS",
+        default_value = "60",
+        env = "XURL_RATE_LIMIT_MAX_WAIT"
+    )]
+    pub rate_limit_max_wait: u64,
+
     /// Colorize output: auto (TTY-aware), always, or never
     #[arg(
         long,
@@ -938,7 +982,7 @@ pub struct Cli {
     )]
     pub color: ColorChoice,
 
-    /// Validate inputs and skip the API call (U7).
+    /// Validate inputs and skip the API call.
     ///
     /// Honored by every write op; emits a canonical dry-run envelope on
     /// stdout under `--output json` / `--output jsonl`, or a "Would …" line
@@ -955,7 +999,7 @@ pub struct Cli {
     )]
     pub dry_run: bool,
 
-    /// Global result-set limit, clamped to 1..=100 (U7).
+    /// Global result-set limit, clamped to 1..=100.
     ///
     /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
     /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
@@ -1090,7 +1134,8 @@ pub enum Commands {
     Search {
         /// Search query
         query: String,
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1207,7 +1252,7 @@ pub enum Commands {
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (5-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1634,6 +1679,15 @@ pub struct CommonFlags {
     pub trace: bool,
 }
 
+/// A required secret's two sources, exactly one of which is given: the plain
+/// flag, or its file twin that keeps the value out of argv.
+fn secret_source(plain: &'static str, file: &'static str) -> clap::ArgGroup {
+    clap::ArgGroup::new(format!("{plain}_source"))
+        .args([plain, file])
+        .required(true)
+        .multiple(false)
+}
+
 /// Auth subcommands.
 #[derive(Subcommand, Debug)]
 pub enum AuthCommands {
@@ -1665,32 +1719,61 @@ pub enum AuthCommands {
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]
         auth_url: Option<String>,
+        /// Request only these comma-separated scopes, plus offline.access (default: every scope)
+        ///
+        /// A sign-in asks for every scope `xr` can use unless this names a
+        /// subset. `offline.access` is always added, because without a refresh
+        /// token the login ends within hours. A name X does not define is
+        /// rejected with the list of valid ones. Step 2 of the headless flow
+        /// takes the scopes step 1 saved, so the flag belongs on step 1.
+        #[arg(long, value_name = "SCOPES", value_delimiter = ',')]
+        scopes: Option<Vec<String>>,
         /// Username to label the saved token (bypasses `/2/users/me` lookup when supplied)
         #[arg(value_name = "USERNAME")]
         username: Option<String>,
     },
     /// Configure `OAuth1` authentication
-    #[command(after_help = AUTH_OAUTH1_HELP)]
+    #[command(
+        after_help = AUTH_OAUTH1_HELP,
+        group(secret_source("consumer_secret", "consumer_secret_file")),
+        group(secret_source("access_token", "access_token_file")),
+        group(secret_source("token_secret", "token_secret_file")),
+    )]
     Oauth1 {
         /// Consumer key
         #[arg(long = "consumer-key")]
         consumer_key: String,
         /// Consumer secret
         #[arg(long = "consumer-secret")]
-        consumer_secret: String,
+        consumer_secret: Option<String>,
+        /// File holding the consumer secret; '-' reads it from stdin
+        #[arg(long = "consumer-secret-file", value_name = "PATH")]
+        consumer_secret_file: Option<String>,
         /// Access token
         #[arg(long = "access-token")]
-        access_token: String,
+        access_token: Option<String>,
+        /// File holding the access token; '-' reads it from stdin
+        #[arg(long = "access-token-file", value_name = "PATH")]
+        access_token_file: Option<String>,
         /// Token secret
         #[arg(long = "token-secret")]
-        token_secret: String,
+        token_secret: Option<String>,
+        /// File holding the token secret; '-' reads it from stdin
+        #[arg(long = "token-secret-file", value_name = "PATH")]
+        token_secret_file: Option<String>,
     },
     /// Configure app-auth (bearer token)
-    #[command(after_help = AUTH_APP_HELP)]
+    #[command(
+        after_help = AUTH_APP_HELP,
+        group(secret_source("bearer_token", "bearer_token_file")),
+    )]
     App {
         /// Bearer token
         #[arg(long = "bearer-token")]
-        bearer_token: String,
+        bearer_token: Option<String>,
+        /// File holding the bearer token; '-' reads it from stdin
+        #[arg(long = "bearer-token-file", value_name = "PATH")]
+        bearer_token_file: Option<String>,
     },
     /// Show authentication status
     #[command(after_help = AUTH_STATUS_HELP)]
@@ -1735,7 +1818,10 @@ pub enum AuthCommands {
 #[derive(Subcommand, Debug)]
 pub enum AppCommands {
     /// Register a new X API app
-    #[command(after_help = APPS_ADD_HELP)]
+    #[command(
+        after_help = APPS_ADD_HELP,
+        group(secret_source("client_secret", "client_secret_file")),
+    )]
     Add {
         /// App name
         name: String,
@@ -1744,7 +1830,10 @@ pub enum AppCommands {
         client_id: String,
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
-        client_secret: String,
+        client_secret: Option<String>,
+        /// File holding the `OAuth2` client secret; '-' reads it from stdin
+        #[arg(long = "client-secret-file", value_name = "PATH")]
+        client_secret_file: Option<String>,
         /// `OAuth2` redirect URI (https or http on loopback)
         #[arg(long = "redirect-uri")]
         redirect_uri: Option<String>,
@@ -1760,6 +1849,13 @@ pub enum AppCommands {
         /// `OAuth2` client secret
         #[arg(long = "client-secret")]
         client_secret: Option<String>,
+        /// File holding the `OAuth2` client secret; '-' reads it from stdin
+        #[arg(
+            long = "client-secret-file",
+            value_name = "PATH",
+            conflicts_with = "client_secret"
+        )]
+        client_secret_file: Option<String>,
         /// `OAuth2` redirect URI (https or http on loopback); empty string clears
         #[arg(long = "redirect-uri")]
         redirect_uri: Option<String>,
@@ -1807,6 +1903,24 @@ pub enum RedirectUriCommands {
     },
 }
 
+/// How long a media command waits for X to finish processing: `None` does
+/// not wait.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessingWait(pub Option<std::time::Duration>);
+
+/// Reads a `--wait` value: `true` is the default deadline, `false` or `0` is
+/// no wait, and a number is that many seconds.
+fn parse_processing_wait(value: &str) -> Result<ProcessingWait, String> {
+    match value {
+        "true" => Ok(ProcessingWait(Some(xdk::api::DEFAULT_PROCESSING_WAIT))),
+        "false" | "0" => Ok(ProcessingWait(None)),
+        secs => secs
+            .parse::<u64>()
+            .map(|secs| ProcessingWait(Some(std::time::Duration::from_secs(secs))))
+            .map_err(|_| "expected a number of seconds, 'true', or 'false'".to_string()),
+    }
+}
+
 /// Media subcommands.
 #[derive(Subcommand, Debug)]
 pub enum MediaCommands {
@@ -1821,9 +1935,26 @@ pub enum MediaCommands {
         /// Media category (e.g., `amplify_video`)
         #[arg(long = "category", default_value = "amplify_video")]
         category: String,
-        /// Wait for media processing to complete
-        #[arg(long = "wait", default_value = "true")]
-        wait: bool,
+        /// Wait for X to finish processing the upload before returning
+        ///
+        /// On by default, for up to 60 seconds. It applies to a video, and to
+        /// any other upload X reports as still processing when it is
+        /// finalized, such as an animated GIF; an upload X reports as ready
+        /// returns at once. `--wait=<SECS>` waits that long, and
+        /// `--wait=false` or `--wait=0` returns after FINALIZE. The value
+        /// follows `=`. A wait that reaches its deadline exits 1 with reason
+        /// `processing-timeout`; the upload itself is intact, and the error
+        /// names the `xr media status` command that resumes the wait.
+        #[arg(
+            long = "wait",
+            value_name = "SECS",
+            num_args = 0..=1,
+            require_equals = true,
+            default_value = "true",
+            default_missing_value = "true",
+            value_parser = parse_processing_wait,
+        )]
+        wait: ProcessingWait,
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
@@ -1848,9 +1979,24 @@ pub enum MediaCommands {
         /// Username
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
-        /// Wait for processing
-        #[arg(short = 'w', long = "wait")]
-        wait: bool,
+        /// Wait for X to finish processing instead of reading the status once
+        ///
+        /// Bare `--wait` or `--wait=true` waits up to 60 seconds, and
+        /// `--wait=<SECS>` that long; `--wait=false` or `--wait=0` reads the
+        /// status once, which is the default. The value follows `=`. A wait
+        /// that reaches its deadline exits 1 with reason `processing-timeout`
+        /// and names the command that resumes it for twice as long.
+        #[arg(
+            short = 'w',
+            long = "wait",
+            value_name = "SECS",
+            num_args = 0..=1,
+            require_equals = true,
+            default_value = "false",
+            default_missing_value = "true",
+            value_parser = parse_processing_wait,
+        )]
+        wait: ProcessingWait,
         /// Trace header
         #[arg(short = 't', long = "trace")]
         trace: bool,

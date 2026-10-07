@@ -32,13 +32,13 @@ use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
     suggestion_for_rejected,
 };
-use crate::cli::envelope::ErrorBody;
+use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
-    color_choice, failing_command, lenient_cli, output_intent, parse_without_display_flags,
-    raw_choice,
+    color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
+    parse_without_display_flags, raw_choice,
 };
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
@@ -50,8 +50,7 @@ use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
 ///
 /// Help text answers a person; an agent that asked for a machine-readable
 /// format gets the usage error instead.
-const NO_COMMAND_MESSAGE: &str =
-    "No command given. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.";
+const NO_COMMAND_MESSAGE: &str = "No command given. Usage: xr [OPTIONS] [URL] [COMMAND].";
 
 /// How clap closes a failure, naming no command.
 const CLAP_HELP_FOOTER: &str = "For more information, try '--help'.";
@@ -102,8 +101,9 @@ where
 /// When the un-parsed argv (or `XURL_OUTPUT`) names a structured format,
 /// parse-error stderr is the canonical envelope
 /// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`
-/// rendered in that format. Otherwise it is the `Error:` line every error
-/// takes, closing on the failing command's help. An unrecognized subcommand,
+/// rendered in that format, and in JSON when it names a format `xr` does not
+/// print. Otherwise it is the `Error:` line every error takes, closing on the
+/// failing command's help. An unrecognized subcommand,
 /// and a bare word that names no command, both render as `unknown-command` at
 /// the same exit code, with or without a help or version flag, and a bare
 /// invocation prints the root help at exit 0.
@@ -271,12 +271,7 @@ where
     match classify(&cli) {
         Classified::Help => {
             return if out.format.is_structured() {
-                out.print_error_envelope(
-                    stderr,
-                    "invalid-args",
-                    EXIT_USAGE_ERROR,
-                    NO_COMMAND_MESSAGE,
-                );
+                out.print_invalid_args(stderr, NO_COMMAND_MESSAGE, " ", ROOT_COMMAND);
                 EXIT_USAGE_ERROR
             } else {
                 let _ = write!(stdout, "{}", Cli::command().render_help());
@@ -343,7 +338,11 @@ where
                     .collect();
                 let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                 out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e) {
+            } else if let Some(hint) = crate::cli::hints::unloadable_store_hint(&snapshot, &e)
+                .or_else(|| crate::cli::hints::enrollment_hint(&e))
+                .or_else(|| crate::cli::hints::resume_wait_hint(&e))
+                .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
+            {
                 out.print_error_with_hint(stderr, &e, code, &hint);
             } else {
                 out.print_error(stderr, &e, code);
@@ -360,8 +359,8 @@ where
 fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
     matches!(
         error,
-        xdk::error::Error::Auth(msg)
-            if msg == xdk::error::NO_AUTH_METHOD || msg == xdk::error::NO_OAUTH2_TOKEN
+        xdk::error::Error::Auth { message, .. }
+            if message == xdk::error::NO_AUTH_METHOD || message == xdk::error::NO_OAUTH2_TOKEN
     )
 }
 
@@ -483,12 +482,15 @@ fn render_invalid_args(
         .unwrap_or(body)
         .trim_end();
     let command = failing_command(error, args);
-    out.print_error_envelope(
-        stderr,
-        "invalid-args",
-        EXIT_USAGE_ERROR,
-        &format!("{body}\n\nTry '{command} --help'."),
-    );
+    // clap puts its own tips between the error line and the usage line.
+    let body = match equals_form_hint(error, args, &command) {
+        Some(hint) => match body.split_once("\n\nUsage:") {
+            Some((failure, usage)) => format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}"),
+            None => format!("{body}\n\n  tip: {hint}"),
+        },
+        None => body.to_string(),
+    };
+    out.print_invalid_args(stderr, &body, "\n\n", &command);
     EXIT_USAGE_ERROR
 }
 
@@ -537,7 +539,7 @@ fn render_unknown_command(
     out.emit_error_envelope(
         stderr,
         ErrorBody {
-            reason: "unknown-command".to_string(),
+            reason: Reason::UnknownCommand,
             exit_code: EXIT_USAGE_ERROR,
             message: Some(message),
             command: Some(word.to_string()),

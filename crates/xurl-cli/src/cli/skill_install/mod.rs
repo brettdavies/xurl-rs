@@ -48,6 +48,7 @@
 
 use std::io::Write;
 
+use crate::cli::envelope::Reason;
 use crate::cli::output::OutputConfig;
 
 mod destination;
@@ -384,7 +385,7 @@ fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32
         let json = serde_json::json!({
             "action": ACTION_INSTALL,
             "status": "error",
-            "reason": "missing-host",
+            "reason": Reason::MissingHost,
             "exit_code": 2,
             "message": "missing target host; pass <host> or --all",
             "known_hosts": KNOWN_HOSTS,

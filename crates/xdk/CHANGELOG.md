@@ -2,6 +2,110 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-10-07
+
+### Breaking changes
+
+- Change `api::execute_media_status` to take the deadline to wait to as `Option<Duration>`, where it took a `bool`. `None` reads the status once. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+
+  ```rust
+  // Before
+  let status = execute_media_status(id, "", "", true, false, &[], &client).await?;
+
+  // After
+  use xdk::api::DEFAULT_PROCESSING_WAIT;
+  let status =
+      execute_media_status(id, "", "", Some(DEFAULT_PROCESSING_WAIT), false, &[], &client).await?;
+  ```
+- Add the `reset_at` field to `Error::Api`: the reset a 429's own response named, as seconds since the Unix epoch. A pattern that names every field of the variant gains `..`, and a literal becomes `Error::api`. by @brettdavies in [#282](https://github.com/brettdavies/xurl-rs/pull/282)
+
+  ```rust
+  // Before
+  match err {
+      Error::Api { status, body } => eprintln!("api {status}: {body}"),
+      other => eprintln!("{other}"),
+  }
+  let err = Error::Api { status: 404, body: String::new() };
+
+  // After
+  match err {
+      Error::Api { status, body, .. } => eprintln!("api {status}: {body}"),
+      other => eprintln!("{other}"),
+  }
+  let err = Error::api(404, "");
+  ```
+- Change `Error::Http`, `Error::Io`, `Error::Json`, `Error::Auth`, and `Error::TokenStore` from tuple variants holding a message to struct variants holding `message` and `source`, so the lower-level failure is reachable through `std::error::Error::source()`. by @brettdavies in [#284](https://github.com/brettdavies/xurl-rs/pull/284)
+
+  ```rust
+  // Before
+  match err {
+      Error::Auth(message) => eprintln!("sign in again: {message}"),
+      Error::Http(_) | Error::Io(_) => eprintln!("check the connection"),
+      other => eprintln!("{other}"),
+  }
+  let err = Error::Io("disk full".to_string());
+
+  // After
+  match &err {
+      Error::Auth { message, .. } => eprintln!("sign in again: {message}"),
+      Error::Http { .. } | Error::Io { .. } => eprintln!("check the connection"),
+      other => eprintln!("{other}"),
+  }
+  let err = Error::io("disk full");
+  if let Some(io) = std::error::Error::source(&err).and_then(|s| s.downcast_ref::<std::io::Error>()) {
+      eprintln!("caused by {:?}", io.kind());
+  }
+  ```
+- Change `Error::InvalidUrl` from a tuple variant to a struct variant holding `message` and `source`, so a URL that failed to parse carries the `url::ParseError`. by @brettdavies in [#285](https://github.com/brettdavies/xurl-rs/pull/285)
+
+  ```rust
+  // Before
+  if let Error::InvalidUrl(url) = &err {
+      eprintln!("bad URL: {url}");
+  }
+
+  // After
+  if let Error::InvalidUrl { message, .. } = &err {
+      eprintln!("bad URL: {message}");
+  }
+  ```
+
+### Added
+
+- Add `Auth::with_oauth2_scopes` to narrow the scopes a sign-in requests, `Auth::oauth2_scopes` to read them, `oauth2::narrow_oauth2_scopes` to validate a selection, and `oauth2::OFFLINE_ACCESS`. A sign-in that narrows nothing requests every scope, as before. by @brettdavies in [#277](https://github.com/brettdavies/xurl-rs/pull/277)
+- Add `Error::ProcessingTimeout { media_id, waited }` for a wait that reaches its deadline, with `kind()` `processing-timeout` and `next_action()` `NextAction::ResumeWait`. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+- Add `MediaUpload::processing_deadline` and `api::DEFAULT_PROCESSING_WAIT` (60 seconds).
+- Add `NextAction::WaitAndRetry`, which a 429 that named its reset returns from `next_action()`. by @brettdavies in [#282](https://github.com/brettdavies/xurl-rs/pull/282)
+- Add `ClientBuilder::wait_on_rate_limit` and `Config::rate_limit_max_wait`: wait for a 429's reset and send the request once more, when the wait fits the bound. Off by default.
+- Add `Error::http`, `Error::io`, and `Error::json` constructors, `Error::with_source` to attach a cause, and the `error::Source` alias for the boxed cause. by @brettdavies in [#284](https://github.com/brettdavies/xurl-rs/pull/284)
+- Add `Error::invalid_url` to build the variant from a message. by @brettdavies in [#285](https://github.com/brettdavies/xurl-rs/pull/285)
+- Add `MediaUploadOutcome::response()`: FINALIZE's response carrying the final processing state when a wait completed, and FINALIZE's response unchanged otherwise. by @brettdavies in [#296](https://github.com/brettdavies/xurl-rs/pull/296)
+- Add `TokenStore::set_default_app_and_user`, which sets the default app and that app's default `OAuth2` user in one write after checking both names. by @brettdavies in [#299](https://github.com/brettdavies/xurl-rs/pull/299)
+
+### Changed
+
+- Change `Client::upload_media` to wait on a video's processing for at most `DEFAULT_PROCESSING_WAIT` unless `processing_deadline` sets another bound. A wait that reaches it reports `Error::ProcessingTimeout` in `MediaUploadOutcome::processing`, with the media id still valid. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+
+### Fixed
+
+- Fix `Auth::refresh_oauth2_token` spending one refresh token twice when two processes, or two `Auth` values on one store, refresh the same expired login concurrently. The refresh runs under `<store>.refresh.lock` and re-reads the stored token first. by @brettdavies in [#279](https://github.com/brettdavies/xurl-rs/pull/279)
+- Fix `auth::oauth1::encode` and the OAuth1 signer to percent-encode as RFC 5849 section 3.6 requires: a space is `%20`, `~` stays bare, and `*` is `%2A`. X's published signature example now produces its published `oauth_signature`. by @brettdavies in [#280](https://github.com/brettdavies/xurl-rs/pull/280)
+- Fix the processing wait never ending when the status carries no `processing_info`: that status is returned as finished. by @brettdavies in [#281](https://github.com/brettdavies/xurl-rs/pull/281)
+- Fix `Client::send_request` and `send_multipart_request` returning `{}` for a success body that is not JSON; the body is returned as a JSON string. by @brettdavies in [#282](https://github.com/brettdavies/xurl-rs/pull/282)
+- Fix a non-JSON error body being replaced in `Error::Api`; the body is carried as sent.
+- Fix a failed read of a response body returning an empty success; it is `Error::Http`.
+- Fix `impl From<url::ParseError> for Error` producing `Error::Http`; it produces `Error::InvalidUrl`, and a raw URL that does not parse is rejected as one before the request is built, on every auth scheme. by @brettdavies in [#285](https://github.com/brettdavies/xurl-rs/pull/285)
+- Fix `impl From<serde_yaml::Error> for Error` and the token store's save producing `Error::Json`; they produce `Error::TokenStore`.
+- Fix `Client::upload_media` not waiting for a non-video upload whose FINALIZE answer reports processing still under way. `MediaUploadOutcome::processing` is `Some` for such an upload when waiting is on. by @brettdavies in [#297](https://github.com/brettdavies/xurl-rs/pull/297)
+- Fix the list shortcuts returning `Error::Json` for a page with no results, which X sends as `meta` with a `result_count` of zero and no `data` key. `ApiResponse<Vec<T>>` decodes it with an empty `data`; a single item with no `data` is still an error. by @brettdavies in [#303](https://github.com/brettdavies/xurl-rs/pull/303)
+
+### Documentation
+
+- Add a Stability section to the README naming the crate's contract: the public Rust API and the behavior its rustdoc documents. by @brettdavies in [#292](https://github.com/brettdavies/xurl-rs/pull/292)
+- Replace the README's version-pinned dependency snippets with `cargo add` commands, so the install instructions no longer name a version line that predates the examples beside them. by @brettdavies in [#301](https://github.com/brettdavies/xurl-rs/pull/301)
+
+**Full Changelog**: [xdk-rs-v0.1.4...xdk-rs-v0.2.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.1.4...xdk-rs-v0.2.0)
+
 ## [0.1.4] - 2026-10-04
 
 ### Changed

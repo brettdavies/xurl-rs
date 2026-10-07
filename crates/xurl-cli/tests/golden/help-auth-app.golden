@@ -1,16 +1,19 @@
 args: ["auth", "app", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5466
+stdout_len: 6451
 stderr_len: 0
 --- stdout ---
 Configure app-auth (bearer token)
 
-Usage: xr auth app [OPTIONS] --bearer-token <BEARER_TOKEN>
+Usage: xr auth app [OPTIONS] <--bearer-token <BEARER_TOKEN>|--bearer-token-file <PATH>>
 
 Options:
       --bearer-token <BEARER_TOKEN>
           Bearer token
+
+      --bearer-token-file <PATH>
+          File holding the bearer token; '-' reads it from stdin
 
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
@@ -25,7 +28,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
 
           Possible values:
           - text:   Default: colored, human-readable
@@ -50,7 +53,7 @@ Options:
           [env: XURL_JSONL=]
 
       --raw[=<RAW>]
-          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
           
           [env: XURL_RAW=]
           [default: false]
@@ -81,6 +84,21 @@ Options:
           [env: XURL_TIMEOUT=]
           [default: 30]
 
+      --wait-on-rate-limit[=<WAIT_ON_RATE_LIMIT>]
+          Wait out a rate limit and retry once, instead of failing with `rate-limited`
+          
+          Applies when X answers 429 and that response names its reset, and the wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names no reset, fails at once as it does without this flag, and the second response is final whatever it is.
+          
+          [env: XURL_WAIT_ON_RATE_LIMIT=]
+          [default: false]
+          [possible values: true, false]
+
+      --rate-limit-max-wait <SECS>
+          Longest `--wait-on-rate-limit` waits before its retry, in seconds
+          
+          [env: XURL_RATE_LIMIT_MAX_WAIT=]
+          [default: 60]
+
       --color <COLOR>
           Colorize output: auto (TTY-aware), always, or never
 
@@ -93,7 +111,7 @@ Options:
           [default: auto]
 
       --dry-run[=<DRY_RUN>]
-          Validate inputs and skip the API call (U7).
+          Validate inputs and skip the API call.
           
           Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
           
@@ -102,7 +120,7 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100 (U7).
+          Global result-set limit, clamped to 1..=100.
           
           Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
@@ -133,10 +151,12 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Set the bearer token from an env var:
-    xr auth app --bearer-token "$XURL_BEARER_TOKEN"
-  Same, JSON envelope:
-    xr auth app --bearer-token "$XURL_BEARER_TOKEN" --output json
+  Store the bearer token, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
+  Same from an env var, JSON envelope:
+    printenv XURL_BEARER_TOKEN | xr auth app --bearer-token-file - --output json
+  Read it from a file:
+    xr auth app --bearer-token-file bearer-token.txt
   Test the configured bearer:
     xr auth status --output json
 

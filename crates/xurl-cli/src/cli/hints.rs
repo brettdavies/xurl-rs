@@ -13,10 +13,13 @@ use xdk::store::snapshot::StoreSnapshot;
 
 /// The `next_step` object carried by an error envelope.
 ///
-/// Exactly one of [`Self::command`] and [`Self::template`] is present,
-/// except for [`NextAction::EnrollApp`], which carries only `docs`:
-/// a command is a verbatim invocation safe for a non-TTY caller, while a
-/// template carries angle-bracket placeholders the caller must fill in.
+/// At most one of [`Self::command`] and [`Self::template`] is present: a
+/// command is a verbatim invocation safe for a non-TTY caller, while a
+/// template carries angle-bracket placeholders the caller must fill in. A
+/// step with neither carries `docs` alone, because its recovery is not an
+/// `xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],
+/// and [`NextAction::InspectStore`] when the command that failed is the one
+/// that reports on the store.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -33,8 +36,17 @@ pub struct NextStep {
     pub docs: Option<String>,
 }
 
+/// The registration invocation, with a placeholder for each value only the
+/// caller has. `<secret-command>` is whatever prints the client secret.
+pub(crate) const REGISTER_APP_TEMPLATE: &str =
+    "<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -";
+
+/// The README section on a token store that could not be loaded.
+pub(crate) const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+
 impl NextStep {
-    /// The help page that answers a mistyped command, run as given.
+    /// The help page that answers a mistyped command or a usage error, run
+    /// as given.
     #[must_use]
     pub fn show_help(command: String) -> Self {
         Self {
@@ -45,16 +57,14 @@ impl NextStep {
         }
     }
 
-    /// Registration, which needs values only the caller has.
+    /// Registration, which needs values only the caller has. The secret is
+    /// piped in, so filling the template puts no secret in argv.
     #[must_use]
     pub fn register_app() -> Self {
         Self {
             action: NextAction::RegisterApp,
             command: None,
-            template: Some(
-                "xr auth apps add <name> --client-id <client-id> --client-secret <client-secret>"
-                    .to_string(),
-            ),
+            template: Some(REGISTER_APP_TEMPLATE.to_string()),
             docs: None,
         }
     }
@@ -94,14 +104,25 @@ impl NextStep {
         }
     }
 
-    /// Look at a store file that could not be loaded.
+    /// Look at a store file that could not be loaded, starting from the
+    /// command that reports on it and names its path.
     #[must_use]
     pub fn inspect_store() -> Self {
         Self {
-            action: NextAction::InspectStore,
             command: Some("xr auth status".to_string()),
+            ..Self::inspect_store_page()
+        }
+    }
+
+    /// [`Self::inspect_store`] for a failure that already names the path: no
+    /// `xr` invocation says more, so the step is the page alone.
+    #[must_use]
+    pub fn inspect_store_page() -> Self {
+        Self {
+            action: NextAction::InspectStore,
+            command: None,
             template: None,
-            docs: None,
+            docs: Some(STORE_DOCS.to_string()),
         }
     }
 
@@ -110,6 +131,30 @@ impl NextStep {
     pub fn enroll_app(docs: String) -> Self {
         Self {
             action: NextAction::EnrollApp,
+            command: None,
+            template: None,
+            docs: Some(docs),
+        }
+    }
+
+    /// The wait on `media_id` again, for `secs` seconds.
+    #[must_use]
+    pub fn resume_wait(media_id: &str, secs: u64) -> Self {
+        Self {
+            action: NextAction::ResumeWait,
+            command: Some(format!("xr media status {media_id} --wait={secs}")),
+            template: None,
+            docs: None,
+        }
+    }
+
+    /// Send the same request again once the rate limit has reset. There is
+    /// no command: the request is the caller's own, and the time to wait is
+    /// in the envelope beside this step.
+    #[must_use]
+    pub fn wait_and_retry(docs: String) -> Self {
+        Self {
+            action: NextAction::WaitAndRetry,
             command: None,
             template: None,
             docs: Some(docs),
@@ -158,7 +203,7 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         return Hint {
             text_lines: vec![
                 format!("The token store could not be read: {}", snapshot.store_path),
-                "Inspect or move that file, then retry.".to_string(),
+                format!("Inspect or move that file, then retry. See: {STORE_DOCS}"),
             ],
             next_step,
         };
@@ -212,6 +257,23 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     }
 }
 
+/// Builds the hint for a store command that failed on a file it could not
+/// load.
+///
+/// The load state decides, not the error's wording: `token-store` is also the
+/// reason for a name the store does not hold, where the file loaded and there
+/// is nothing to inspect.
+#[must_use]
+pub fn unloadable_store_hint(snapshot: &StoreSnapshot, error: &Error) -> Option<Hint> {
+    if !(matches!(error, Error::TokenStore { .. }) && snapshot.load_failed()) {
+        return None;
+    }
+    Some(Hint {
+        text_lines: vec![format!("See: {STORE_DOCS}")],
+        next_step: NextStep::inspect_store_page(),
+    })
+}
+
 /// Builds the enrollment hint when `error` is X refusing the app.
 ///
 /// The body's own `detail` line is quoted when present so the reader can
@@ -237,6 +299,53 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
     Some(Hint {
         text_lines,
         next_step: NextStep::enroll_app(docs.to_string()),
+    })
+}
+
+/// Builds the resume hint when `error` is a processing wait that reached
+/// its deadline.
+///
+/// The command waits twice as long as the wait that expired: a job that
+/// outlasted one deadline is unlikely to finish inside the same one again.
+#[must_use]
+pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
+    let (Error::ProcessingTimeout { media_id, waited }, Some(NextAction::ResumeWait)) =
+        (error, error.next_action())
+    else {
+        return None;
+    };
+    let next_step = NextStep::resume_wait(media_id, waited.as_secs().saturating_mul(2));
+    let command = next_step.command.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
+        )],
+        next_step,
+    })
+}
+
+/// Builds the retry hint when `error` is a 429 that named its reset.
+///
+/// A 429 that named no reset gets no hint: there is no time to state.
+#[must_use]
+pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
+    let (
+        Error::Api {
+            reset_at: Some(reset_at),
+            ..
+        },
+        Some(NextAction::WaitAndRetry),
+        Some(docs),
+    ) = (error, error.next_action(), error.docs_url())
+    else {
+        return None;
+    };
+    let (retry_after_secs, retry_at) = crate::cli::output::retry_times(*reset_at);
+    Some(Hint {
+        text_lines: vec![format!(
+            "Rate limited. Retry in {retry_after_secs} seconds, at {retry_at}. See: {docs}"
+        )],
+        next_step: NextStep::wait_and_retry(docs.to_string()),
     })
 }
 
@@ -304,7 +413,12 @@ mod tests {
         let step = NextStep::register_app();
         assert_eq!(step.action, NextAction::RegisterApp);
         assert!(step.command.is_none(), "never both");
-        assert!(step.template.as_deref().unwrap().contains("<client-id>"));
+        let template = step.template.as_deref().unwrap();
+        assert!(template.contains("<client-id>"));
+        assert!(
+            template.ends_with("--client-secret-file -"),
+            "the secret is piped, never an argument: {template}"
+        );
     }
 
     #[test]
@@ -333,6 +447,11 @@ mod tests {
             NextStep::inspect_store().command.as_deref(),
             Some("xr auth status")
         );
+        assert_eq!(NextStep::inspect_store().docs.as_deref(), Some(STORE_DOCS));
+        let page = NextStep::inspect_store_page();
+        assert_eq!(page.action, NextAction::InspectStore);
+        assert!(page.command.is_none() && page.template.is_none());
+        assert_eq!(page.docs.as_deref(), Some(STORE_DOCS));
         let step = NextStep::select_app("xr auth oauth2 --app work".to_string());
         assert_eq!(step.action, NextAction::SelectApp);
         assert_eq!(step.command.as_deref(), Some("xr auth oauth2 --app work"));

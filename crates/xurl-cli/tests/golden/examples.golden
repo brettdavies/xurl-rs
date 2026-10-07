@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 5008
+stdout_len: 5095
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -15,7 +15,7 @@ AUTHENTICATE:
     xr auth oauth2 --no-browser --step 2 --auth-url '<paste>'
 
   App-only bearer token (read-only endpoints + search):
-    xr auth app --bearer-token "$XURL_BEARER_TOKEN"
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
 
   Show current auth state, machine-readable:
     xr auth status --output json
@@ -76,7 +76,7 @@ INSPECT YOUR ACCOUNT:
     xr mentions -n 50 --output json
 
   Your bookmarks and liked posts:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
     xr likes -n 100 --output jsonl
 
   Users you have muted or blocked:
@@ -143,7 +143,7 @@ INSPECT SCHEMAS:
 
 MULTI-APP:
   Register, list, set default:
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
     xr auth apps list --output json
     xr auth default my-app
 

@@ -103,14 +103,13 @@ are noise and they age poorly as tools shift.
 Author each paragraph and each bullet as one logical line, however long. GitHub soft-wraps for display. Hard wraps
 within prose produce visible mid-sentence breaks in some renderers and interfere with the prose-check pipeline: Vale's
 line-anchored output reports findings against split lines, and LanguageTool's input handling can choke on certain
-control-char interactions. The auto-format hook skips `/tmp/` paths so the body keeps its authored shape; don't undo
-that with manual wrapping during composition. Same rule applies to commit messages composed via heredoc.
+control-char interactions.
 
 ### Why release-PR bodies repeat changelog entries from upstream PRs
 
-The release PR carries the same `### Added` / `### Changed` / `### Fixed` / `### Documentation` bullets as the feature
-PRs it cherry-picks. The repetition is intentional and harmless: `cliff.toml` already skips its own changelog-update
-commit, so the release-PR squash commit can't be double-counted in any future regeneration.
+The release PR carries the same changelog bullets as the feature PRs it ships. The repetition is intentional and
+harmless: the release PR merges into `main`, so `--from-dev-prs`, which reads `dev`'s history, never sees it, and
+`cliff.toml` skips the `release:` squash commit on the git-cliff path, so it is never counted twice.
 
 ### Why internal-tooling commits don't appear in `## Changelog`
 
@@ -238,28 +237,45 @@ prior squash, it's a false positive (no action). Otherwise cherry-pick the commi
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
 merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
-Breaking changes / Added / Changed / Fixed / Documentation` subsections (with author and PR-link attribution). On a
-cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands the
-same way.
+Breaking changes / Added / Changed / Deprecated / Fixed / Documentation` subsections (with author and PR-link
+attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's
+commits, then expands the same way.
 
-If a PR's body offers no changelog section at all, its title becomes a `Changed` bullet, except for `chore`, `ci`,
-`build`, `style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. A body that carries
-the `## Changelog` heading and leaves it empty is the template's way of saying the PR ships nothing user-facing, and the
-title fallback respects that: internal work also lands as `fix(ci)`, `fix(hooks)`, and `fix(release)`, which the type
-prefixes above do not cover. To fix a wrong CHANGELOG entry, fix the input: edit the squash-merged PR body, then re-run
-the script. Do **not** edit `CHANGELOG.md` directly.
+If a PR's body offers no section for a crate at all, its title becomes a bullet under the group `cliff.toml` gives the
+same commit (`type!:` under Breaking changes, `feat` under Added, `fix` under Fixed, `docs` under Documentation,
+anything else under Changed), except for `chore`, `ci`, `build`, `style`, and `test` PRs, which stay out unless they
+carry a section of their own, and the `release:` PR, which is bookkeeping. A body that carries a crate's `## Changelog
+(<crate>)` heading and leaves it empty is the PR template's way of saying the PR ships nothing user-facing for that
+crate, and the fallback respects that whatever the title: internal work also lands as `fix(ci)`, `fix(hooks)`, or
+`fix(release)`, which the skip list does not cover. `preflight.sh changelog-sections` names every PR whose entry would
+fall back to its title. To fix a wrong CHANGELOG entry, fix the input: edit the squash-merged PR body, then re-run the
+script. Do **not** edit a changelog directly.
 
-CI enforces that `CHANGELOG.md` is modified in every PR to main (`ci / Changelog` required status check) and that it
-contains a versioned section, not `[Unreleased]`. The release workflow extracts the latest section for the GitHub
-Release body.
+On a PR to `main`, the `ci / Changelog` required check fails when a published crate's manifest changed and the changelog
+beside it did not: `crates/xurl-cli/CHANGELOG.md` for the CLI, `crates/xdk/CHANGELOG.md` for the library. `preflight.sh
+mechanics` checks that each changelog a release writes opens on the crate's version with no `[Unreleased]` placeholder.
+`release.yml` and `release-lib.yml` cut each GitHub Release body from the section of that crate's changelog whose
+heading names the tag's version, and fall back to generated notes, with a warning, when there is none.
 
 ### Why `cliff.toml` skips chore/style/test/ci/build
 
-These commit types do not produce user-facing content. If a cherry-picked PR has user-facing `## Changelog` content but
-its commit subject starts with one of those types, its bullets get silently dropped. After running the script,
-cross-check the generated section against `gh pr view <num> --json body` for each cherry-picked PR; correct mistyped PR
-titles (e.g. `chore` → `feat`) and re-amend the cherry-pick subject before re-running. See § Why `feat`/`fix` are
-preferred over `chore` above for prevention.
+These commit types do not produce user-facing content, so neither generation path emits a bullet for one on the strength
+of its subject alone. What differs is the handling when such a PR *does* carry `## Changelog` content, and the two paths
+differ in a way that decides how much the title matters:
+
+- **`--from-dev-prs`.** The generator enumerates merged PRs and reads each body directly. A body with `## Changelog`
+  content is extracted whatever the title says, so a `test:` or `chore:` PR carrying real bullets still lands in the
+  section. The skip list applies only to the no-body fallback, where the title would otherwise become a bullet on its
+  own.
+- **`git-cliff` (the cherry-pick path).** The commit parsers drop these types from the skeleton before any PR body is
+  fetched, so the PR number never enters the section, the expansion pass never reaches it, and its bullets are silently
+  lost.
+
+So on a cherry-picked branch a mistyped subject loses content: cross-check the generated section against `gh pr view
+<num> --json body`, correct the title (e.g. `chore` → `feat`), re-amend the cherry-pick subject, and re-run. On a
+`--from-dev-prs` branch the title costs only the fallback bullet, so the check worth making there is narrower: a PR with
+an *empty* `## Changelog` and a skipped type that nonetheless shipped something user-facing. Either way the fix is to
+the input, never to `CHANGELOG.md`.
 
 ## Release pipeline
 
@@ -281,6 +297,44 @@ homebrew-tap workflow uploads bottles to this repo's release assets, it dispatch
 which idempotently flips `make_latest: true`. End result: crate on crates.io, GitHub Release marked latest, Homebrew
 formula updated with bottles, all atomically advertised.
 
+### Why `xdk-rs` ships on its own tag
+
+The two could in principle ride one tag and one pipeline. They do not, for three reasons that all point the same way.
+**Versions diverge.** A library's public API moves on its own schedule; forcing it to share the binary's version number
+either inflates the library's semver or freezes the binary's. **`cargo publish` is per-package anyway.** Publishing
+resolves each package against the registry rather than the working tree, so the two publishes are already sequential and
+independently failable; one pipeline would only hide that. **A failed half is cheaper to retry alone.** Re-running a
+combined pipeline after the library published and the binary did not means re-publishing an already-published version,
+which crates.io refuses.
+
+The library's tag is namespaced `<crate>-v<version>` so it cannot match the binary caller's `v[0-9]+.[0-9]+.[0-9]+`
+filter. One tag push then starts exactly one pipeline, which is what keeps the two lines from racing each other for the
+same crate.
+
+Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the bottle window above: a visitor
+resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive. Nothing
+finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever resolves to
+one.
+
+Order is a hard dependency: the library publishes first, and the binary's `check-version` refuses up front when a
+workspace member it depends on is not yet on crates.io at the declared bound. Without that check the same failure lands
+after every cross-compile target has built, as a resolver error naming no cause.
+
+### Why a member's changelog window starts at the binary's backport
+
+Each member keeps its own changelog, cut with `generate-changelog.py --crate <member>` from the
+`[package.metadata.changelog]` table beside its manifest: the PR-body heading that addresses it (default `Changelog
+(<member>)`), its tag line (default `<member>-v`), its changelog path, and the paths it counts as its own. A PR belongs
+to a member when it touched one of those paths or carries the member's own block, and an empty block says the member is
+unaffected.
+
+The window is what needs care. `--from-dev-prs` reads the PRs merged into `dev` after the previous release's backport
+commit, found by its subject. That subject names only the binary's tag, and a member's tag sits on `main`, which shares
+no recent history with `dev`, so neither the member's tag nor a backport named for it marks where its last release
+ended. The generator finds the binary tag on the same commit as the member's previous tag and starts at that tag's
+backport. A member released on its own commit starts at its own backport, or its tag when it has none, and a member's
+first release starts at the repository's previous backport rather than at the beginning of history.
+
 ### Why backport `main` → `dev` after publish
 
 Once `finalize-release.yml` has flipped the GitHub Release to `published`, the release-bookkeeping files on `main`
@@ -294,8 +348,8 @@ crate's `Cargo.toml`, copies each crate's changelog from `main`, adopts the othe
 refreshes every workspace member's `Cargo.lock` entry, and opens the PR. The lock is refreshed rather than copied from
 `main`: a release can move the library beside the binary, so more than one member's entry changes, and copying `main`'s
 lock would revert dependency updates `dev` merged after the release. The script refuses to commit a lock that `cargo
-build --locked` rejects. The postflight backport gate treats that merged PR as the durable signal that the backport ran.
-Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of the copy, so the backport cannot remove it.
+metadata --locked` rejects. The postflight backport gate treats that merged PR as the durable signal that the backport
+ran. Dev-only content (`CONCEPTS.md`, the engineering docs) is never part of the copy, so the backport cannot remove it.
 
 The other paths are discovered rather than listed. A release branch is edited for reasons nobody predicts (a doc fix, a
 reverted payload, a deleted config), and a fixed list misses each such edit silently until the next release's overlay
@@ -322,10 +376,24 @@ desktop platforms and on Linux CI runners, including Alpine and other glibc-free
 `release-matrix-check.yml` builds the same seven rows on every push to a `release/*` branch so a broken row surfaces
 before the tag.
 
+Four of the archives are also what Homebrew installs. `Formula/xurl-rs.rb` in `brettdavies/homebrew-tap` names
+`xurl-rs-aarch64-apple-darwin.tar.gz`, `xurl-rs-x86_64-apple-darwin.tar.gz`, `xurl-rs-aarch64-unknown-linux-musl.tar.gz`,
+and `xurl-rs-x86_64-unknown-linux-musl.tar.gz`, and installs the `xr` at the top of each archive's single directory.
+The musl builds are the Linux ones because they are static and run against any glibc, Homebrew's included. An archive
+name, the place of `xr` inside it, and those four targets are therefore a contract with the formula: change one and the
+tap's bump for the next release fails, so the formula changes in the same step.
+
 The Windows row uses `x86_64-pc-windows-msvc` (MSVC ABI) rather than GNU because the X API uses TLS with a vendored
 rustls and rustls-platform-verifier; the MSVC ABI is the path of least resistance for that stack on Windows. CI also
 runs a separate `ci / Windows check` job on every PR (not just at release) so MSVC build failures surface immediately,
 not at tag time.
+
+### Known CI transient: cargo-deny Docker Hub timeout
+
+The `EmbarkStudios/cargo-deny-action` container image is pulled from Docker Hub at job start. Docker Hub timeouts
+periodically cause this step to fail before any real work runs. Recovery: `gh run rerun <id> --failed`. Don't treat the
+first red as a real advisory failure until the second attempt also fails. Bird sprint PR35 hit this and a rerun resolved
+it.
 
 ## Prose scrubbing scope
 

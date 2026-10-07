@@ -1,6 +1,6 @@
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_xr_global_optspecs
-    string join \n X/method= H/header= d/data= auth= u/username= v/verbose= t/trace s/stream F/file= app= output= json jsonl raw= no-pager q/quiet= no-interactive= timeout= color= dry-run= limit= cursor= page= after= h/help V/version
+    string join \n X/method= H/header= d/data= auth= u/username= v/verbose= t/trace s/stream F/file= app= output= json jsonl raw= no-pager q/quiet= no-interactive= timeout= wait-on-rate-limit= rate-limit-max-wait= color= dry-run= limit= cursor= page= after= h/help V/version
 end
 
 function __fish_xr_needs_command
@@ -33,26 +33,29 @@ complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request an
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s F -l file -d 'File to upload (for multipart requests)' -r
 complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_needs_command" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_needs_command" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_needs_command" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_needs_command" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_needs_command" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_needs_command" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_needs_command" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -110,26 +113,29 @@ complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand post" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand post" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand post" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -144,26 +150,29 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand reply" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand reply" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -177,26 +186,29 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand quote" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand quote" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -210,26 +222,29 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand delete" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand delete" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -244,26 +259,29 @@ complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand read" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand read" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand read" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -272,32 +290,35 @@ complete -c xr -n "__fish_xr_using_subcommand read" -l json -d 'Shorthand for `-
 complete -c xr -n "__fish_xr_using_subcommand read" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand read" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand read" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand search" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand search" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand search" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand search" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -311,26 +332,29 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -344,26 +368,29 @@ complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand user" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand user" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand user" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -378,26 +405,29 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -412,26 +442,29 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -445,26 +478,29 @@ complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand like" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand like" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand like" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -478,26 +514,29 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -511,26 +550,29 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand repost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand repost" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -544,26 +586,29 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -577,26 +622,29 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -610,26 +658,29 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -644,26 +695,29 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -672,32 +726,35 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l json -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (5-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand likes" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand likes" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -711,26 +768,29 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand follow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand follow" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -744,26 +804,29 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -779,26 +842,29 @@ complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand following" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand following" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand following" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -814,26 +880,29 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand followers" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand followers" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -847,26 +916,29 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand mute" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -880,26 +952,29 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -914,26 +989,29 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand muted" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand muted" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -947,26 +1025,29 @@ complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand block" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand block" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand block" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -980,26 +1061,29 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAu
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1014,26 +1098,29 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAu
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1047,26 +1134,29 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1082,26 +1172,29 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1117,26 +1210,29 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` 
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dm" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand dm" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1151,26 +1247,29 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2`
 complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dms" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand dms" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1182,26 +1281,29 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1214,26 +1316,29 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_su
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1250,26 +1355,29 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1289,29 +1397,33 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step number: 1 (generate auth URL) or 2 (complete exchange)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l auth-url -d 'Redirect URL from browser (step 2). Use \'-\' to read from stdin (recommended on shared machines)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l scopes -d 'Request only these comma-separated scopes, plus offline.access (default: every scope)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1321,31 +1433,37 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l consumer-key -d 'Consumer key' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l consumer-secret -d 'Consumer secret' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l consumer-secret-file -d 'File holding the consumer secret; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l access-token -d 'Access token' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l access-token-file -d 'File holding the access token; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l token-secret -d 'Token secret' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l token-secret-file -d 'File holding the token secret; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1354,29 +1472,33 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token -d 'Bearer token' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token-file -d 'File holding the bearer token; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1387,26 +1509,29 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1418,26 +1543,29 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1452,26 +1580,29 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1488,26 +1619,29 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1526,26 +1660,29 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1560,36 +1697,39 @@ complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l media-type -d 'Media type (e.g., video/mp4)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l category -d 'Media category (e.g., `amplify_video`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for X to finish processing the upload before returning' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l auth -d 'Authentication type' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s u -l username -d 'Username' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for media processing to complete'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s t -l trace -d 'Trace header'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l json -d 'Shorthand for `--output json` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
@@ -1597,34 +1737,37 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l auth -d 'Authentication type' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s u -l username -d 'Username' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s w -l wait -d 'Wait for X to finish processing instead of reading the status once' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s w -l wait -d 'Wait for processing'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s t -l trace -d 'Trace header'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
@@ -1635,26 +1778,29 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1666,26 +1812,29 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1704,26 +1853,29 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1737,24 +1889,27 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1767,24 +1922,27 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1800,26 +1958,29 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand schema" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand schema" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1833,26 +1994,29 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -s h -l help -d 'Print hel
 complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand completions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand completions" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1863,26 +2027,29 @@ complete -c xr -n "__fish_xr_using_subcommand completions" -s h -l help -d 'Prin
 complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand version" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand version" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand version" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1893,26 +2060,29 @@ complete -c xr -n "__fish_xr_using_subcommand version" -s h -l help -d 'Print he
 complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand examples" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand examples" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
@@ -1924,26 +2094,29 @@ complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema nam
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand validate" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand validate" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Validate inputs and skip the API call (U7)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Global result-set limit, clamped to 1..=100 (U7)' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r

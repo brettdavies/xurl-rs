@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 12819
+stdout_len: 13701
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -31,7 +31,7 @@ Raw API access (curl-style):
                         xr -s /2/users/me
 
 Multi-app management:
-  xr auth apps add my-app --client-id ... --client-secret ...
+  xr auth apps add my-app --client-id ... --client-secret-file ...
   xr auth apps list
   xr auth default                                # interactive picker
   xr auth default my-app                         # set by name
@@ -131,7 +131,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
 
           Possible values:
           - text:   Default: colored, human-readable
@@ -156,7 +156,7 @@ Options:
           [env: XURL_JSONL=]
 
       --raw[=<RAW>]
-          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
           
           [env: XURL_RAW=]
           [default: false]
@@ -187,6 +187,21 @@ Options:
           [env: XURL_TIMEOUT=]
           [default: 30]
 
+      --wait-on-rate-limit[=<WAIT_ON_RATE_LIMIT>]
+          Wait out a rate limit and retry once, instead of failing with `rate-limited`
+          
+          Applies when X answers 429 and that response names its reset, and the wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names no reset, fails at once as it does without this flag, and the second response is final whatever it is.
+          
+          [env: XURL_WAIT_ON_RATE_LIMIT=]
+          [default: false]
+          [possible values: true, false]
+
+      --rate-limit-max-wait <SECS>
+          Longest `--wait-on-rate-limit` waits before its retry, in seconds
+          
+          [env: XURL_RATE_LIMIT_MAX_WAIT=]
+          [default: 60]
+
       --color <COLOR>
           Colorize output: auto (TTY-aware), always, or never
 
@@ -199,7 +214,7 @@ Options:
           [default: auto]
 
       --dry-run[=<DRY_RUN>]
-          Validate inputs and skip the API call (U7).
+          Validate inputs and skip the API call.
           
           Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
           
@@ -208,7 +223,7 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100 (U7).
+          Global result-set limit, clamped to 1..=100.
           
           Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
@@ -260,6 +275,8 @@ ENVIRONMENT VARIABLES:
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
+  XURL_WAIT_ON_RATE_LIMIT  Wait out a rate limit and retry once (same as --wait-on-rate-limit)
+  XURL_RATE_LIMIT_MAX_WAIT Longest rate-limit wait in seconds (same as --rate-limit-max-wait)
   XURL_COLOR             Color control: auto, always, never (same as --color)
   XURL_VERBOSE           Request/response lines and legacy-vocabulary notes (same as -v/--verbose)
   XURL_APP               Override default app (same as --app)

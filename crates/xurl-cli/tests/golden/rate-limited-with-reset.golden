@@ -1,0 +1,21 @@
+args: ["--output", "json", "--auth", "app", "search", "q429reset"]
+store: bearer-env
+exit_code: 3
+stdout_len: 0
+stderr_len: 320
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 3,
+  "message": "{\"status\":429,\"title\":\"Too Many Requests\"}",
+  "next_step": {
+    "action": "wait-and-retry",
+    "docs": "https://docs.x.com/resources/fundamentals/rate-limits"
+  },
+  "reason": "rate-limited",
+  "retry_after_secs": 0,
+  "retry_at": "2025-12-31T23:59:59Z",
+  "status": "error"
+}
+

@@ -30,14 +30,24 @@
         },
         {
           "const": "show-help",
-          "description": "The word named no command; read the help of the nearest one.",
+          "description": "The invocation was not one the tool takes, a word that names no\ncommand or a usage error; read the help it names.",
+          "type": "string"
+        },
+        {
+          "const": "resume-wait",
+          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
+          "type": "string"
+        },
+        {
+          "const": "wait-and-retry",
+          "description": "X rate limited the request and said when the window resets; send it\nagain once that time has passed.",
           "type": "string"
         }
       ]
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nExactly one of [`Self::command`] and [`Self::template`] is present,\nexcept for [`NextAction::EnrollApp`], which carries only `docs`:\na command is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in.",
+      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in. A\nstep with neither carries `docs` alone, because its recovery is not an\n`xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],\nand [`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store.",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",
@@ -208,6 +218,13 @@
             "null"
           ]
         },
+        "media_id": {
+          "description": "Media id whose processing a wait gave up on; the upload is intact.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "message": {
           "description": "Human-readable message. Omitted entirely (not `null`) when absent.",
           "type": [
@@ -238,7 +255,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`. A newer release can add an\naction, so treat one you do not recognize as your default branch. A\nstep carries either a `command`, runnable verbatim by a non-TTY caller,\nor a `template` whose angle-bracket placeholders only the caller can\nfill, never both."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both. One\nwhose recovery is not an `xr` invocation carries neither, only `docs`:\n`enroll-app`, `wait-and-retry`, and `inspect-store` when a store\ncommand is what failed."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -268,7 +285,7 @@
           ]
         },
         "reason": {
-          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `confirmation-required`, `no-tty`,\n`unsupported-pagination`, and the verb-local `invalid-json`,\n`unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`,\n`destination-not-empty`, `destination-is-file`, `git-not-found`,\n`git-clone-failed`, `not-installed`, and `remove-failed`. The set is\nclosed, and a newer release can add to it: treat a value you do not\nrecognize as your default branch.",
+          "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `token-store`, `internal`, `processing-timeout`,\n`confirmation-required`, `no-tty`, `unsupported-pagination`, and the\nverb-local `invalid-json`, `unknown-schema`, `validation-failed`,\n`missing-host`, `home-not-set`, `destination-not-empty`,\n`destination-is-file`, `git-not-found`, `git-clone-failed`,\n`not-installed`, and `remove-failed`. The set is closed, and a newer\nrelease can add to it: treat a value you do not recognize as your\ndefault branch.",
           "type": "string"
         },
         "rendered_url": {
@@ -280,6 +297,22 @@
         },
         "requested": {
           "description": "Auth scheme the caller asked for; `null` when auto-detect ran."
+        },
+        "retry_after_secs": {
+          "description": "Seconds until the rate limit resets, zero once it has; present on a\n`rate-limited` error whose own response named the reset.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retry_at": {
+          "description": "The same reset as an RFC 3339 UTC timestamp, for a caller that\nschedules the retry instead of sleeping.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "schema": {
           "description": "Schema name a `validate` invocation named.",

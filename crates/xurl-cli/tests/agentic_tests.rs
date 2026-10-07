@@ -2,112 +2,382 @@
 
 mod common;
 
+use std::time::{Duration, Instant};
+
 use predicates::prelude::*;
+use rstest::rstest;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
+
+/// The stdout of `xr <args>`, one help or examples page.
+fn page(args: &[String]) -> String {
+    let output = common::xr().args(args).output().unwrap();
+    assert!(output.status.success(), "xr {args:?} failed");
+    String::from_utf8(output.stdout).unwrap()
+}
+
+/// The help page of `xr <path>`, the root page for an empty path. The one
+/// place this file passes the help flag, so a test that asks for help holds
+/// the text it then asserts on.
+#[must_use]
+fn help(path: &[String]) -> String {
+    let mut args = path.to_vec();
+    args.push("--help".to_string());
+    page(&args)
+}
+
+/// Runs `xr <args>` against `server` with an app-only bearer and `env` in the
+/// child's environment, returning the exit code, stdout, and stderr.
+fn run_against(server: &MockServer, env: &[(&str, &str)], args: &[&str]) -> (i32, String, String) {
+    let mut cmd = common::xr();
+    cmd.env("API_BASE_URL", server.uri())
+        .env("XURL_BEARER_TOKEN", "env-bearer-value");
+    for (key, value) in env {
+        cmd.env(key, value);
+    }
+    let output = cmd.args(args).output().expect("spawn xr");
+    (
+        output.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&output.stdout).into_owned(),
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
+}
+
+/// A run that passes the help flag beside another flag exits 0 whatever that
+/// flag does, so it proves clap parsed the flag and nothing about its effect.
+#[test]
+fn no_test_passes_the_help_flag_itself() {
+    let source = std::fs::read_to_string(
+        common::workspace_root().join("crates/xurl-cli/tests/agentic_tests.rs"),
+    )
+    .expect("this file must be readable");
+    let flag = concat!("\"--", "help\"");
+    let offenders: std::collections::BTreeSet<String> = source
+        .match_indices(flag)
+        .map(|(offset, _)| common::enclosing_test(&source, offset))
+        .filter(|name| name != "help")
+        .collect();
+    assert!(
+        offenders.is_empty(),
+        "these tests pass --help themselves; read the page through help() and assert on its \
+         text, or assert the behavior the flag under test produces: {offenders:#?}"
+    );
+}
+
+// ── --output: each format renders the same result its own way ─────────
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Stdout of `xr --output <format> version`. The command needs no credentials
+/// and no network, so the format is all that varies between runs.
+fn version_in(format: &str) -> String {
+    let output = common::xr()
+        .args(["--output", format, "version"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "--output {format} version failed");
+    String::from_utf8(output.stdout).unwrap()
+}
 
 #[test]
-fn test_output_json_flag_accepted() {
-    // --output json should be accepted and change behavior
+fn test_output_text_prints_the_version_line() {
+    assert_eq!(version_in("text"), format!("xr {VERSION}\n"));
+}
+
+#[rstest]
+#[case::json("json")]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_json_formats_print_a_json_object(#[case] format: &str) {
+    let stdout = version_in(format);
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("--output {format} must print JSON ({e}): {stdout}"));
+    assert_eq!(parsed["name"], "xr");
+    assert_eq!(parsed["version"], VERSION);
+}
+
+/// `yml` is `yaml` under its other common spelling, from the flag and from
+/// `XURL_OUTPUT`.
+#[test]
+fn test_output_yml_is_yaml() {
+    let yaml = version_in("yaml");
+    assert!(yaml.starts_with("name: xr\n"), "{yaml}");
+
+    let from_flag = common::xr()
+        .args(["--output", "yml", "version"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        from_flag.status.code(),
+        Some(0),
+        "--output yml: {}",
+        String::from_utf8_lossy(&from_flag.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&from_flag.stdout), yaml);
+
+    let from_env = common::xr()
+        .env("XURL_OUTPUT", "yml")
+        .arg("version")
+        .output()
+        .unwrap();
+    assert_eq!(
+        from_env.status.code(),
+        Some(0),
+        "XURL_OUTPUT=yml: {}",
+        String::from_utf8_lossy(&from_env.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&from_env.stdout), yaml);
+}
+
+/// JSON Lines is one record per line, under either of its names and for a
+/// command that is not a stream as much as for one that is.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_line_formats_print_one_line(#[case] format: &str) {
+    let stdout = version_in(format);
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "--output {format} prints one record per line: {stdout}"
+    );
+}
+
+/// The same holds for every document `xr` prints under a line format: a
+/// dry-run envelope on stdout and an error envelope on stderr.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_line_formats_print_envelopes_on_one_line(#[case] format: &str) {
+    let dry_run = common::xr()
+        .args(["--output", format, "post", "hi", "--dry-run"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&dry_run.stdout);
+    assert_eq!(dry_run.status.code(), Some(0), "{stdout}");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "a dry-run envelope is one line: {stdout}"
+    );
+    let envelope: serde_json::Value = serde_json::from_str(&stdout).expect("a JSON line");
+    assert_eq!(envelope["status"], "dry_run");
+
+    let failure = common::xr()
+        .args(["--output", format, "whoam"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&failure.stderr);
+    assert_eq!(failure.status.code(), Some(2), "{stderr}");
+    assert_eq!(
+        stderr.lines().count(),
+        1,
+        "an error envelope is one line: {stderr}"
+    );
+    let envelope: serde_json::Value = serde_json::from_str(&stderr).expect("a JSON line");
+    assert_eq!(envelope["reason"], "unknown-command");
+}
+
+/// And for an API document: the response to a request prints as one line.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+#[tokio::test]
+async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] format: &str) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string(r#"{"data":[{"id":"1","text":"hi"}],"meta":{"result_count":1}}"#),
+        )
+        .mount(&server)
+        .await;
+
+    let (code, stdout, stderr) = run_against(
+        &server,
+        &[],
+        &["--output", format, "--auth", "app", "search", "hi"],
+    );
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "an API document is one line: {stdout}"
+    );
+    let document: serde_json::Value = serde_json::from_str(&stdout).expect("a JSON line");
+    assert_eq!(document["data"][0]["id"], "1");
+}
+
+#[test]
+fn test_output_yaml_prints_a_yaml_mapping() {
+    let stdout = version_in("yaml");
+    assert!(
+        stdout.contains(&format!("name: xr\nversion: {VERSION}\n")),
+        "--output yaml must print a block-style mapping: {stdout}"
+    );
+}
+
+#[rstest]
+#[case::csv("csv", ',')]
+#[case::tsv("tsv", '\t')]
+fn test_output_delimited_formats_print_a_header_and_a_row(
+    #[case] format: &str,
+    #[case] delimiter: char,
+) {
+    let stdout = version_in(format);
+    let rows: Vec<Vec<&str>> = stdout
+        .lines()
+        .map(|line| line.split(delimiter).collect())
+        .collect();
+    assert_eq!(
+        rows.len(),
+        2,
+        "--output {format} prints a header and one row: {stdout}"
+    );
+    assert_eq!(rows[0][..2], ["name", "version"]);
+    assert_eq!(rows[1][..2], ["xr", VERSION]);
+}
+
+/// A format `xr` does not print is a usage error at exit 2. The caller asked
+/// for a structured format, so the error is the JSON envelope, whether the
+/// format came from the flag in either spelling or from `XURL_OUTPUT`.
+#[rstest]
+#[case::flag(&["--output", "toml", "version"], None, "toml")]
+#[case::flag_equals(&["--output=xml", "version"], None, "xml")]
+#[case::env(&["version"], Some("toml"), "toml")]
+fn test_output_unsupported_format_is_a_json_envelope(
+    #[case] args: &[&str],
+    #[case] env: Option<&str>,
+    #[case] format: &str,
+) {
+    let mut command = common::xr();
+    command.args(args);
+    if let Some(value) = env {
+        command.env("XURL_OUTPUT", value);
+    }
+    let output = command.output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(2), "{stderr}");
+    assert!(output.stdout.is_empty(), "nothing on stdout");
+    let envelope: serde_json::Value = serde_json::from_str(&stderr)
+        .unwrap_or_else(|e| panic!("stderr must be a JSON envelope ({e}): {stderr}"));
+    assert_eq!(envelope["status"], "error");
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["exit_code"], 2);
+    let message = envelope["message"].as_str().expect("message");
+    assert!(
+        message.contains(&format!("invalid value '{format}'")),
+        "{message}"
+    );
+}
+
+/// A miscased `text` asks for no structure, so its usage error stays text.
+#[test]
+fn test_output_miscased_text_keeps_the_text_error() {
     common::xr()
-        .args(["--output", "json", "--help"])
+        .args(["--output", "Text", "version"])
         .assert()
-        .success();
+        .code(2)
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::starts_with("Error: invalid value 'Text'"));
 }
 
 #[test]
-fn test_output_jsonl_flag_accepted() {
-    common::xr()
-        .args(["--output", "jsonl", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_text_flag_accepted() {
-    common::xr()
-        .args(["--output", "text", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_invalid_value_fails() {
-    common::xr()
-        .args(["--output", "xml", "--help"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid value"));
-}
-
-#[test]
-fn test_quiet_flag_accepted() {
-    common::xr().args(["--quiet", "--help"]).assert().success();
-}
-
-#[test]
-fn test_quiet_short_flag_accepted() {
-    common::xr().args(["-q", "--help"]).assert().success();
-}
-
-#[test]
-fn test_no_interactive_flag_accepted() {
-    common::xr()
-        .args(["--no-interactive", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_timeout_flag_accepted() {
-    common::xr()
-        .args(["--timeout", "60", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_no_color_env_respected() {
-    // NO_COLOR is an industry standard (https://no-color.org/)
-    // When set, colored output should be suppressed.
-    // We test that the flag doesn't cause a crash.
-    common::xr()
-        .env("NO_COLOR", "1")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_output_env_var() {
-    // XURL_OUTPUT env var should set default output format
-    common::xr()
+fn test_xurl_output_env_sets_the_format() {
+    let output = common::xr()
         .env("XURL_OUTPUT", "json")
-        .arg("--help")
-        .assert()
-        .success();
+        .arg("version")
+        .output()
+        .unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("XURL_OUTPUT=json must print JSON");
+    assert_eq!(parsed["version"], VERSION);
 }
 
-#[test]
-fn test_combined_agentic_flags() {
-    // All agentic flags can be used together
-    common::xr()
-        .args([
+// ── --quiet: the status lines a command prints to stderr ──────────────
+
+const STREAM_PATH: &str = "/2/tweets/search/stream";
+
+/// A stream prints its status lines to stderr and each record to stdout.
+/// `--quiet`, `-q`, and a truthy `XURL_QUIET` drop the status lines and leave
+/// the records alone; `XURL_QUIET=0` is falsey, so the lines stay.
+#[rstest]
+#[case::default(&[], &[], true)]
+#[case::long_flag(&["--quiet"], &[], false)]
+#[case::short_flag(&["-q"], &[], false)]
+#[case::truthy_env(&[], &[("XURL_QUIET", "yes")], false)]
+#[case::falsey_env(&[], &[("XURL_QUIET", "0")], true)]
+#[tokio::test]
+async fn test_quiet_drops_the_stream_status_lines(
+    #[case] flags: &[&str],
+    #[case] env: &[(&str, &str)],
+    #[case] status_lines: bool,
+) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(STREAM_PATH))
+        .respond_with(ResponseTemplate::new(200).set_body_string("{\"data\":{\"id\":\"1\"}}\n"))
+        .mount(&server)
+        .await;
+
+    let args = [flags, &["--auth", "app", "-s", STREAM_PATH]].concat();
+    let (code, stdout, stderr) = run_against(&server, env, &args);
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains(r#"{"data":{"id":"1"}}"#),
+        "the record must reach stdout: {stdout}"
+    );
+    assert_eq!(
+        stderr.contains("End of stream"),
+        status_lines,
+        "stderr: {stderr:?}"
+    );
+}
+
+// ── --timeout: the wait for a response ────────────────────────────────
+
+/// A server slower than `--timeout` ends the run as a network error before it
+/// answers.
+#[tokio::test]
+async fn test_timeout_ends_a_request_the_server_answers_too_slowly() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(Duration::from_secs(3))
+                .set_body_string(r#"{"data":[]}"#),
+        )
+        .mount(&server)
+        .await;
+
+    let started = Instant::now();
+    let (code, _stdout, stderr) = run_against(
+        &server,
+        &[],
+        &[
+            "--timeout",
+            "1",
             "--output",
             "json",
-            "--quiet",
-            "--no-interactive",
-            "--timeout",
-            "10",
-            "--help",
-        ])
-        .assert()
-        .success();
-}
+            "--auth",
+            "app",
+            "/2/tweets/search/recent?query=hi",
+        ],
+    );
+    let elapsed = started.elapsed();
 
-#[test]
-fn test_exit_code_success_on_help() {
-    let output = common::xr().arg("--help").output().unwrap();
-
-    assert_eq!(output.status.code().unwrap(), 0);
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim())
+        .unwrap_or_else(|e| panic!("a timeout must print one envelope ({e}): {stderr}"));
+    assert_eq!(envelope["reason"], "network-error", "got: {envelope}");
+    assert_eq!(envelope["exit_code"], code, "got: {envelope}");
+    assert!(
+        elapsed < Duration::from_secs(3),
+        "--timeout 1 must not wait out the 3-second response: {elapsed:?}"
+    );
 }
 
 #[test]
@@ -120,13 +390,12 @@ fn test_exit_code_nonzero_on_error() {
     assert_ne!(output.status.code().unwrap(), 0);
 }
 
-// ── U3: env-backed global flags + TTY-aware color ────────────────────
+// ── Env-backed global flags + TTY-aware color ────────────────────
 
 #[test]
 fn test_help_advertises_xurl_verbose_env() {
     // p1-must-env-var: --verbose must show [env: XURL_VERBOSE=] in --help.
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("XURL_VERBOSE"),
         "expected XURL_VERBOSE in --help: {stdout}"
@@ -179,8 +448,7 @@ fn test_help_advertises_every_env_var_the_source_reads() {
     // `~`-prefixed skill destination; it is not an xr setting.
     names.remove("HOME");
 
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     let missing: Vec<&String> = names
         .iter()
         .filter(|n| !stdout.contains(n.as_str()))
@@ -194,8 +462,7 @@ fn test_help_advertises_every_env_var_the_source_reads() {
 #[test]
 fn test_help_advertises_color_flag() {
     // p6-may-color-flag: --color must appear in --help.
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("--color"),
         "expected --color in --help: {stdout}"
@@ -203,61 +470,53 @@ fn test_help_advertises_color_flag() {
 }
 
 #[test]
-fn test_color_choices_accepted() {
-    for choice in ["auto", "always", "never"] {
-        common::xr()
-            .args(["--color", choice, "--help"])
-            .assert()
-            .success();
-    }
+fn test_color_auto_emits_no_ansi_on_a_captured_stderr() {
+    let output = common::xr()
+        .args(["--color", "auto", "whoam"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains('\x1b'),
+        "--color auto must not color a stderr that is not a terminal: {stderr:?}"
+    );
 }
 
 #[test]
 fn test_color_invalid_value_fails() {
     common::xr()
-        .args(["--color", "rainbow", "--help"])
+        .args(["--color", "rainbow", "version"])
         .assert()
-        .failure();
+        .code(2)
+        .stderr(predicate::str::contains("invalid value 'rainbow'"));
 }
 
 #[test]
-fn test_xurl_quiet_falsey_env_does_not_enable_quiet() {
-    // FalseyValueParser must treat XURL_QUIET=0 as "not quiet".
-    // --help itself succeeds either way; this is mostly a smoke that the
-    // env-backed bool flag parses "0" without error.
-    common::xr()
-        .env("XURL_QUIET", "0")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_quiet_truthy_env_accepts_arbitrary_string() {
-    // Any non-falsey env value is truthy under FalseyValueParser.
-    common::xr()
-        .env("XURL_QUIET", "yes")
-        .arg("--help")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_xurl_verbose_env_accepted() {
-    common::xr()
+fn test_xurl_verbose_env_adds_the_library_version() {
+    let output = common::xr()
         .env("XURL_VERBOSE", "1")
-        .arg("--help")
-        .assert()
-        .success();
+        .arg("version")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("(xdk-rs "),
+        "XURL_VERBOSE=1 must add the library version to the version line: {stdout}"
+    );
 }
 
 #[test]
-fn test_xurl_color_env_accepted() {
-    common::xr()
-        .env("XURL_COLOR", "never")
-        .arg("--help")
-        .assert()
-        .success();
+fn test_xurl_color_env_always_emits_ansi_on_stderr() {
+    let output = common::xr()
+        .env("XURL_COLOR", "always")
+        .arg("whoam")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains('\x1b'),
+        "XURL_COLOR=always must emit ANSI even when stderr is captured: {stderr:?}"
+    );
 }
 
 // ── Color resolution: NO_COLOR and --color via subprocess ────────────
@@ -308,7 +567,7 @@ fn test_no_color_env_overrides_color_always() {
     );
 }
 
-// ── U5: clap-error envelope via XURL_OUTPUT env var ──────────────────
+// ── Clap-error envelope via XURL_OUTPUT env var ──────────────────
 
 #[test]
 fn test_clap_error_envelope_via_xurl_output_env() {
@@ -373,11 +632,11 @@ fn test_raw_without_flag_pretty_prints() {
     );
 }
 
-// ── U8: output discipline (no naked println/eprintln) ───────────────────
+// ── Output discipline (no naked println/eprintln) ───────────────────
 
 #[test]
 fn test_lint_stdio_script_passes_on_clean_tree() {
-    // The U8 CI guard at scripts/lint-stdio.sh must succeed against the
+    // The CI guard at scripts/lint-stdio.sh must succeed against the
     // working tree (every site routes through src/cli/output/).
     let root = common::workspace_root();
     let script = root.join("scripts/lint-stdio.sh");
@@ -403,15 +662,14 @@ fn test_lint_stdio_script_passes_on_clean_tree() {
 // guarantee. The script is also exercised on every CI run, so a regression
 // in its detection logic surfaces immediately.
 
-// ── U13: csv/tsv/yaml/ndjson formats + --cursor + xr validate ────────
+// ── csv/tsv/yaml/ndjson formats + --cursor + xr validate ────────
 
 /// `xr --help` must surface every additional output-format token agents
 /// look for: csv, tsv, yaml, yml, toml, xml, ndjson. The substring search
 /// matches anc's `p2-may-more-formats` audit shape.
 #[test]
 fn test_help_advertises_extra_output_formats() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     for token in ["csv", "tsv", "yaml", "yml", "toml", "xml", "ndjson"] {
         assert!(
             stdout.to_lowercase().contains(token),
@@ -420,44 +678,11 @@ fn test_help_advertises_extra_output_formats() {
     }
 }
 
-#[test]
-fn test_output_csv_accepted_as_value() {
-    common::xr()
-        .args(["--output", "csv", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_yaml_accepted_as_value() {
-    common::xr()
-        .args(["--output", "yaml", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_ndjson_accepted_as_value() {
-    common::xr()
-        .args(["--output", "ndjson", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_output_tsv_accepted_as_value() {
-    common::xr()
-        .args(["--output", "tsv", "--help"])
-        .assert()
-        .success();
-}
-
 /// `xr --help` must surface `--cursor`, `--after`, and `--page` so anc's
 /// `p7-may-cursor-pagination` substring audit passes.
 #[test]
 fn test_help_advertises_cursor_pagination_flags() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     for flag in ["--cursor", "--after", "--page"] {
         assert!(
             stdout.contains(flag),
@@ -466,20 +691,32 @@ fn test_help_advertises_cursor_pagination_flags() {
     }
 }
 
-#[test]
-fn test_cursor_flag_accepted() {
-    common::xr()
-        .args(["--cursor", "next-page-token", "--help"])
-        .assert()
-        .success();
-}
+/// `--after` is the documented alias of `--cursor`: its token reaches the wire
+/// as `pagination_token`.
+#[tokio::test]
+async fn test_after_sends_the_pagination_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .and(query_param("pagination_token", "AFTER-TOKEN"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string(r#"{"data":[{"id":"1","text":"hi"}],"meta":{"result_count":1}}"#),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
 
-#[test]
-fn test_after_flag_accepted() {
-    common::xr()
-        .args(["--after", "next-page-token", "--help"])
-        .assert()
-        .success();
+    let (code, _stdout, stderr) = run_against(
+        &server,
+        &[],
+        &["--after", "AFTER-TOKEN", "--auth", "app", "search", "hi"],
+    );
+
+    assert_eq!(
+        code, 0,
+        "--after must reach the request as pagination_token; stderr: {stderr}"
+    );
 }
 
 #[test]
@@ -566,8 +803,7 @@ fn test_page_flag_emits_unsupported_pagination_envelope() {
 
 #[test]
 fn test_validate_subcommand_appears_in_help() {
-    let output = common::xr().arg("--help").output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = help(&[]);
     assert!(
         stdout.contains("validate"),
         "expected 'validate' subcommand in --help: {stdout}"
@@ -575,13 +811,6 @@ fn test_validate_subcommand_appears_in_help() {
 }
 
 // ── Every non-interactive example runs as written ─────────────────────
-
-/// The stdout of `xr <args>`, one help or examples page.
-fn page(args: &[String]) -> String {
-    let output = common::xr().args(args).output().unwrap();
-    assert!(output.status.success(), "xr {args:?} failed");
-    String::from_utf8(output.stdout).unwrap()
-}
 
 /// The commands that confirm a destructive op before running it. Under
 /// `--no-interactive` each one refuses unless `--force` confirms the op.
@@ -618,9 +847,8 @@ fn every_non_interactive_example_of_a_confirmed_command_runs_under_dry_run() {
     ts.add_app("my-app", "CLIENT-ID", "SECRET").unwrap();
 
     let mut pages = vec![page(&["examples".to_string()])];
-    for mut path in common::command_paths() {
-        path.push("--help".to_string());
-        pages.push(page(&path));
+    for path in common::command_paths() {
+        pages.push(help(&path));
     }
     let examples: std::collections::BTreeSet<&str> = pages
         .iter()
@@ -711,5 +939,101 @@ fn every_command_family_appears_on_the_examples_page() {
          GRAPH, INSPECT YOUR ACCOUNT, DIRECT MESSAGES, BROADCASTS, MEDIA UPLOAD, RAW MODE, \
          INSPECT SCHEMAS, MULTI-APP, TOOLING), then re-bless examples.golden with \
          XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests."
+    );
+}
+
+// ── No example passes a secret on the command line ────────────────────
+
+/// The lines of `text` that give a secret flag a value. The `--<name>-file`
+/// twins take a path, so they never match.
+fn secret_on_argv(text: &str) -> Vec<String> {
+    let secret_value = regex::Regex::new(
+        r"--(client-secret|consumer-secret|access-token|token-secret|bearer-token)[ =][^\s-]",
+    )
+    .unwrap();
+    text.lines()
+        .filter(|line| secret_value.is_match(line))
+        .map(|line| line.trim().to_string())
+        .collect()
+}
+
+/// Every example a reader copies, with where it is shown: the examples page,
+/// the examples under each help page, and the docs that ship with the tool.
+fn shown_examples() -> Vec<(String, String)> {
+    let mut shown: Vec<(String, String)> = vec![
+        ("xr examples".to_string(), page(&["examples".to_string()])),
+        ("xr --help".to_string(), help(&[])),
+    ];
+    for path in common::command_paths() {
+        let page = help(&path);
+        // A command's own option list names the plain flags with their value
+        // placeholders; only the examples under it are copied.
+        let examples = page
+            .split_once("Examples:")
+            .map(|(_, examples)| examples.to_string())
+            .unwrap_or_default();
+        shown.push((format!("xr {} --help", path.join(" ")), examples));
+    }
+    for doc in [
+        "README.md",
+        "AGENTS.md",
+        "crates/xurl-cli/README.md",
+        "crates/xdk/README.md",
+    ] {
+        let text = std::fs::read_to_string(common::workspace_root().join(doc)).unwrap();
+        shown.push((doc.to_string(), text));
+    }
+    shown
+}
+
+/// The shown lines `find` picks out, each prefixed with its source.
+fn offending_examples(find: fn(&str) -> Vec<String>) -> Vec<String> {
+    shown_examples()
+        .iter()
+        .flat_map(|(source, text)| {
+            find(text)
+                .into_iter()
+                .map(move |line| format!("{source}: {line}"))
+        })
+        .collect()
+}
+
+/// An example is what an agent or a person copies, and whatever follows a
+/// secret flag lands in argv, where any process listing shows it. So the
+/// examples page, the examples of every help page, and the docs that ship with
+/// the tool all show the `--<name>-file` form instead.
+#[test]
+fn no_example_passes_a_secret_on_the_command_line() {
+    let offending = offending_examples(secret_on_argv);
+    assert!(
+        offending.is_empty(),
+        "these examples put a secret in argv; show `--<name>-file -` with the secret piped in, \
+         or `--<name>-file PATH`:\n{}",
+        offending.join("\n")
+    );
+}
+
+// ── No example reads a record's field off the top of a document ───────
+
+/// The lines of `text` that pipe `xr` into a `jaq` filter starting at a
+/// top-level `.id`.
+fn top_level_id_filter(text: &str) -> Vec<String> {
+    let filter = regex::Regex::new(r"\bxr\b.*\|\s*jaq\s+(-\w+\s+)*'\.id\b").unwrap();
+    text.lines()
+        .filter(|line| filter.is_match(line))
+        .map(|line| line.trim().to_string())
+        .collect()
+}
+
+/// A list command answers X's document, whose records sit under `data` in
+/// every output format, so a filter that starts at `.id` prints `null`.
+#[test]
+fn no_example_reads_a_list_record_at_the_top_level() {
+    let offending = offending_examples(top_level_id_filter);
+    assert!(
+        offending.is_empty(),
+        "these examples filter `.id` off the top of a document that keeps its records under \
+         `data`, so they print `null`; show `--output json | jaq -r '.data[]?.id'`:\n{}",
+        offending.join("\n")
     );
 }

@@ -54,6 +54,16 @@ pub struct Config {
     /// Sourced from `--timeout` / `XURL_TIMEOUT` via the CLI runner;
     /// `Config::new()` defaults to [`crate::api::DEFAULT_TIMEOUT_SECS`].
     pub http_timeout_secs: u64,
+    /// How long a client built from this configuration waits out a rate
+    /// limit before sending the request once more; `None`, the default,
+    /// never waits.
+    ///
+    /// When X answers 429 and that response names its reset, a client with a
+    /// bound here sleeps until the reset and retries once, provided the wait
+    /// fits the bound. A longer wait, or a 429 that names no reset, is
+    /// returned as the error it is. Sourced from `--wait-on-rate-limit` and
+    /// `--rate-limit-max-wait` via the CLI runner.
+    pub rate_limit_max_wait: Option<std::time::Duration>,
 }
 
 crate::assert_send_sync!(Config);
@@ -72,6 +82,7 @@ impl std::fmt::Debug for Config {
             .field("redirect_uri_source", &self.redirect_uri_source)
             .field("redirect_uri_from_env", &self.redirect_uri_from_env)
             .field("http_timeout_secs", &self.http_timeout_secs)
+            .field("rate_limit_max_wait", &self.rate_limit_max_wait)
             .finish()
     }
 }
@@ -266,6 +277,7 @@ impl Config {
             redirect_uri_source,
             redirect_uri_from_env,
             http_timeout_secs: crate::api::DEFAULT_TIMEOUT_SECS,
+            rate_limit_max_wait: None,
         }
     }
 }

@@ -26,3 +26,68 @@ fn the_repository_readme_carries_the_library_landing_program_verbatim() {
         "the root README's landing program drifted from the doctested copy in crates/xdk/README.md"
     );
 }
+
+/// A dependency line that pins `xdk-rs` to a version goes stale the first
+/// time the breaking position moves: the snippet keeps resolving the old
+/// line while the examples beside it use the new API. The READMEs add the
+/// crate with `cargo add`, which names no version.
+#[test]
+fn no_readme_pins_an_xdk_rs_version() {
+    let root = Path::new(env!("CARGO_WORKSPACE_DIR"));
+    for readme in [
+        "README.md",
+        "crates/xdk/README.md",
+        "crates/xurl-cli/README.md",
+    ] {
+        let text = std::fs::read_to_string(root.join(readme)).expect("a README");
+        let pinned: Vec<&str> = text
+            .lines()
+            .filter(|line| {
+                let line = line.replace(' ', "");
+                line.contains("xdk-rs=\"") || line.contains("xdk-rs={version=")
+            })
+            .collect();
+        assert!(
+            pinned.is_empty(),
+            "{readme} pins an xdk-rs version; show `cargo add xdk-rs` with its flags instead: {pinned:#?}"
+        );
+    }
+}
+
+/// The `.rs` files under `dir`, at any depth.
+fn rust_sources(dir: &Path, found: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).expect("a source directory") {
+        let path = entry.expect("a directory entry").path();
+        if path.is_dir() {
+            rust_sources(&path, found);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            found.push(path);
+        }
+    }
+}
+
+/// The same holds for what the crate itself prints and documents: its
+/// rustdoc and its build errors reach a reader who has the current version,
+/// so a dependency line there names no version either.
+#[test]
+fn no_library_source_pins_an_xdk_rs_version() {
+    let root = Path::new(env!("CARGO_WORKSPACE_DIR"));
+    let mut sources = Vec::new();
+    rust_sources(&root.join("crates/xdk/src"), &mut sources);
+    let mut pinned = Vec::new();
+    for source in sources {
+        let text = std::fs::read_to_string(&source).expect("a source file");
+        for (number, line) in text.lines().enumerate() {
+            let bare = line.replace([' ', '\\'], "");
+            if bare.contains("xdk-rs=\"") || bare.contains("xdk-rs={version=") {
+                let file = source.strip_prefix(root).unwrap_or(&source).display();
+                pinned.push(format!("{file}:{}: {}", number + 1, line.trim()));
+            }
+        }
+    }
+    assert!(
+        pinned.is_empty(),
+        "the library source pins an xdk-rs version; show `cargo add xdk-rs` with its flags instead:\n{}",
+        pinned.join("\n")
+    );
+}

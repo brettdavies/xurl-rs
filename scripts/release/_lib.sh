@@ -193,22 +193,19 @@ project_crate() {
   ' "$(release_manifest)"
 }
 
-# The newest tag on the binary's `vX.Y.Z` line. A workspace's library tags
-# (`<crate>-vX.Y.Z`) sort into the same list and would name the wrong crate, so
-# the pattern is anchored to a bare `v` followed by a digit.
-last_release_tag() {
-  git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1
+# The newest tag on one release line: `v` for the binary's, a member's declared
+# tag_prefix for a library's. Every line's tags sort into one list, where
+# `<crate>-vX.Y.Z` sorts after `vX.Y.Z` and would name the wrong crate, so the
+# pattern is anchored to the prefix followed by a digit.
+last_tag_on_line() {
+  git tag --list "${1}[0-9]*" --sort=-version:refname | head -n 1
 }
 
-# Semver helpers -------------------------------------------------------------
+# The newest tag on the binary's `vX.Y.Z` line.
+last_release_tag() {
+  last_tag_on_line v
+}
 
-# Which bump the working tree claims over a baseline tag, for the release type
-# cargo-semver-checks validates against. Compares Cargo.toml's version to the
-# tag rather than guessing from commit markers: a break reaches the branch
-# whether or not its commit carried a `!` marker, so the version is the only
-# honest statement of what this release claims to be.
-#
-# Rust-only, and callers gate on Cargo.toml themselves.
 # Seconds since the epoch for a YYYY-MM-DD date, on GNU and BSD alike. GNU date
 # parses a free-form date with -d; BSD date rejects -d outright and wants -j
 # with an explicit input format. Try GNU first, since a Linux CI runner is the
@@ -228,9 +225,24 @@ print_usage_header() {
   awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${1:-$0}"
 }
 
+# Semver helpers -------------------------------------------------------------
+
+# Which bump a version claims over a baseline tag's version, for the release
+# type cargo-semver-checks validates against: the release manifest's version by
+# default, or the version given second, which is how a workspace member on its
+# own tag line is read. Compares versions rather than guessing from commit
+# markers: a break reaches the branch whether or not its commit carried a `!`
+# marker, so the version is the only honest statement of what a release claims
+# to be.
+#
+# Rust-only, and callers gate on Cargo.toml themselves.
 semver_release_type() {
   local baseline="${1#v}" current
-  current=$(project_version)
+  if [[ $# -ge 2 ]]; then
+    current=$2
+  else
+    current=$(project_version)
+  fi
   # An unresolved version must not reach the comparison below. Empty, it
   # differs from every baseline major and returns `major`, which is the one
   # answer that lets cargo-semver-checks accept any break at all: the gate

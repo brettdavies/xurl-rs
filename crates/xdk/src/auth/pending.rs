@@ -38,6 +38,22 @@ pub struct PendingOAuth2State {
     /// Unix epoch seconds when the authorization was initiated. Used by
     /// [`load`] to enforce the 15-minute freshness window.
     pub created_at: u64,
+    /// The scopes the authorize URL requested. Empty in a file written
+    /// before the field existed, which requested every scope.
+    #[serde(default)]
+    pub scopes: Vec<String>,
+}
+
+impl PendingOAuth2State {
+    /// The scopes step 1 requested, reading an absent list as every scope.
+    #[must_use]
+    pub fn requested_scopes(&self) -> Vec<&str> {
+        if self.scopes.is_empty() {
+            super::oauth2::get_oauth2_scopes()
+        } else {
+            self.scopes.iter().map(String::as_str).collect()
+        }
+    }
 }
 
 /// Returns the pending-state path that sits beside a token store: `<store>.pending`.
@@ -83,7 +99,8 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
             "PendingStatePermissions: pending state path is a symlink (refusing to write through it)",
         ));
     }
-    let data = serde_yaml::to_string(state).map_err(|e| Error::Auth(e.to_string()))?;
+    let data =
+        serde_yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
 }
@@ -159,7 +176,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         Err(e) => return Err(e.into()),
     };
     let state: PendingOAuth2State =
-        serde_yaml::from_str(&data).map_err(|e| Error::Auth(e.to_string()))?;
+        serde_yaml::from_str(&data).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
 
     // TTL check.
     let now = SystemTime::now()

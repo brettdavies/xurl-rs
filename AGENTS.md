@@ -28,7 +28,7 @@ xr follow @jack
 
 # JSON output for parsing
 xr whoami --output json
-xr search "from:jack" --output json | jaq -r '.data[].id'
+xr search "from:jack" --output json | jaq -r '.data[]?.id'
 
 # JSONL — one record per line on streaming endpoints
 xr -s /2/tweets/search/stream --output jsonl | jaq -c '.data.id'
@@ -73,8 +73,21 @@ xr --output json whoami 2>&1 >/dev/null # the failure itself, carrying next_step
 ```
 
 Branch on `next_step.action`: `register-app` means nothing is registered, so run its `template` with real values;
-`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
-names it in the message.
+`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file exists and could not
+be loaded. It carries `docs`, the README section on recovering the file, and its `command` is the `xr auth status` that
+names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
+step carries `docs` alone.
+
+Three actions answer failures that are not about credentials. `show-help` rides on reasons `invalid-args` and
+`unknown-command` (exit 2): `command` is the `xr <command> --help` the message closes on, the help of the nearest
+command when the word was mistyped. `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media
+processing reached its deadline with the job still running. The upload is intact, the envelope names it in `media_id`,
+and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry`
+rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the
+seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries
+`docs` and no command, because the request to send again is the caller's own. A 429 that names no reset carries neither
+key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
+`--rate-limit-max-wait` (60 seconds unless set).
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -101,9 +114,12 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, the offending value when there is one, and a
-`next_step` object `{action, command | template, docs}`. `action` is a closed set; `command` is runnable verbatim by a
-non-TTY caller, while `template` carries angle-bracket placeholders only the caller can fill. Prefer additive envelope
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
+reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
+under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
+not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
+`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
+can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
 changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
@@ -138,9 +154,12 @@ never the tests.
 - **Clap command.** A variant in `crates/xurl-cli/src/cli/mod.rs` with its `after_help`, through a
   `crates/xurl-cli/src/cli/family_help.rs` declaration when the family has several verbs.
   `crates/xurl-cli/tests/golden_tests.rs` demands a `help-<command>.golden` fixture for every command.
-- **Dispatch arm.** An arm in `crates/xurl-cli/src/cli/commands/mod.rs`; a verb that resolves a handle or acts on a post
-  from the caller's account goes through `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`. The dry-run
-  golden fixtures pin the envelope.
+- **Dispatch arm.** An arm in the group's module beside `crates/xurl-cli/src/cli/commands/mod.rs` (posts, reads,
+  engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
+  that file. A verb that resolves a handle or acts on a post from the caller's account goes through
+  `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
+  `list_for_user`. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
+  and the dry-run golden fixtures pin the envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that
@@ -182,10 +201,11 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   (`shortcuts.rs`), media upload (`media.rs`), and typed responses (`response/`).
 - `crates/xdk/src/auth/`: OAuth1 (HMAC-SHA1 per RFC 5849), OAuth2 PKCE (interactive + headless via callback handler),
   Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
-- `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` is the handler layer; subdir files split media, schema,
-  streaming, and `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns
-  `AppStatusEntry`, while `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes
-  the exit-code contract.
+- `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` routes each command to its group and holds what the
+  groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
+  broadcasts, media), the tooling commands (schema, skill, validate, examples), streaming, and `commands/auth/`, where
+  `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while `types.rs` holds the
+  bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `crates/xdk/src/config/`: env-var-based configuration.
 - `crates/xdk/src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
 - `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
@@ -277,9 +297,10 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Four CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, and the agent-native audit with the release binary's size ceiling. Run them yourself when a change touches
-the CLI surface, the library API, or the release profile.
+Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit with the release binary's size ceiling, and `Go parity`, the differential suite
+against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary. Run them
+yourself when a change touches the CLI surface, the library API, or the release profile.
 
 ## Releasing
 

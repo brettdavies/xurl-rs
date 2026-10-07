@@ -521,10 +521,14 @@ pub struct UsageCreditsData {
 /// carries both spellings, the current one is kept and the legacy one
 /// dropped.
 ///
+/// X answers a list with no results as `meta` with a `result_count` of zero
+/// and no `data` key; a list type decodes that with an empty `data`.
+///
 /// # Errors
 ///
-/// Returns `Error::Json` if the Value is an empty object or cannot
-/// be deserialized into the target type.
+/// Returns `Error::Json` if the Value is an empty object, a string (the
+/// transport's form for a body that was not JSON), or cannot be deserialized
+/// into the target type.
 pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
     value: Value,
 ) -> crate::error::Result<ApiResponse<T>> {
@@ -536,9 +540,14 @@ pub fn deserialize_response<T: Default + serde::de::DeserializeOwned>(
 /// under the names the spec uses now.
 pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate::error::Result<T> {
     if value.as_object().is_some_and(|m| m.is_empty()) {
-        return Err(crate::error::Error::Json(
-            "empty response body — expected JSON with a \"data\" field".to_string(),
+        return Err(crate::error::Error::json(
+            "empty response body — expected JSON with a \"data\" field",
         ));
+    }
+    if let Value::String(body) = &value {
+        return Err(crate::error::Error::json(format!(
+            "response body is not a JSON object — expected JSON with a \"data\" field, got: {body}"
+        )));
     }
     // X API v2 returns errors-only 200 responses with no `data` field
     // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
@@ -551,7 +560,29 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate:
         return Err(crate::error::Error::validation(value.to_string()));
     }
     super::vocabulary::normalize(&mut value);
+    if is_page_with_no_results(&value) {
+        // Only a list type takes the empty array; a single item falls
+        // through and reports the missing key.
+        let mut page = value.clone();
+        page["data"] = Value::Array(Vec::new());
+        if let Ok(decoded) = serde_json::from_value(page) {
+            return Ok(decoded);
+        }
+    }
     Ok(serde_json::from_value(value)?)
+}
+
+/// Whether `value` is X's answer for a list with no results: `meta` counting
+/// zero and no `data` key.
+fn is_page_with_no_results(value: &Value) -> bool {
+    value.as_object().is_some_and(|body| {
+        !body.contains_key("data")
+            && body
+                .get("meta")
+                .and_then(|meta| meta.get("result_count"))
+                .and_then(Value::as_u64)
+                == Some(0)
+    })
 }
 
 #[cfg(test)]
@@ -1147,6 +1178,30 @@ mod tests {
         let json = json!({"errors": [{"message": "forbidden"}]});
         let result = serde_json::from_value::<ApiResponse<Post>>(json);
         assert!(result.is_err(), "Should fail: no data field");
+    }
+
+    #[test]
+    fn a_page_with_no_results_decodes_as_an_empty_list() {
+        let page: ApiResponse<Vec<Post>> =
+            deserialize_response(json!({"meta": {"result_count": 0}})).expect("an empty page");
+        assert!(page.data.is_empty());
+        assert_eq!(page.meta.expect("meta").result_count, Some(0));
+    }
+
+    #[test]
+    fn a_single_item_without_data_is_still_an_error() {
+        let err = deserialize_response::<Post>(json!({"meta": {"result_count": 0}}))
+            .expect_err("a post has no empty form")
+            .to_string();
+        assert!(err.contains("missing field `data`"), "got: {err}");
+    }
+
+    #[test]
+    fn a_list_without_data_that_counts_results_is_still_an_error() {
+        let err = deserialize_response::<Vec<Post>>(json!({"meta": {"result_count": 3}}))
+            .expect_err("three results and no data is not an empty page")
+            .to_string();
+        assert!(err.contains("missing field `data`"), "got: {err}");
     }
 
     #[test]

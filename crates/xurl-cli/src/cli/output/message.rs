@@ -10,20 +10,22 @@ use xdk::error::{AuthMismatch, Error, MismatchShape};
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
     match error {
-        Error::Http(msg) => format!("HTTP Error: {msg}"),
-        Error::Io(msg) => format!("IO Error: {msg}"),
+        Error::Http { message, .. } => format!("HTTP Error: {message}"),
+        Error::Io { message, .. } => format!("IO Error: {message}"),
         Error::InvalidMethod(method) => format!("Invalid Method: Invalid HTTP method: {method}"),
-        Error::Api { .. } | Error::Validation(_) => error.to_string(),
-        Error::InvalidUrl(url) => format!("Invalid URL: {url}"),
+        Error::Api { .. } | Error::Validation(_) | Error::ProcessingTimeout { .. } => {
+            error.to_string()
+        }
+        Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {
             format!(
                 "Invalid path parameter {name:?}: value {value:?} contains a reserved character"
             )
         }
         Error::Internal(msg) => format!("Internal error: {msg}"),
-        Error::Json(msg) => format!("JSON Error: {msg}"),
-        Error::Auth(msg) => format!("Auth Error: {msg}"),
-        Error::TokenStore(msg) => format!("Token Store Error: {msg}"),
+        Error::Json { message, .. } => format!("JSON Error: {message}"),
+        Error::Auth { message, .. } => format!("Auth Error: {message}"),
+        Error::TokenStore { message, .. } => format!("Token Store Error: {message}"),
         Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch),
         // `Error` is `#[non_exhaustive]`; a variant this build has not seen
         // prints its own fragment rather than failing to compile downstream.
@@ -142,7 +144,7 @@ mod tests {
                 "Token Store Error: app \"nosuchapp\" not found",
             ),
             (
-                Error::Json("failed to parse media ID from init response".into()),
+                Error::json("failed to parse media ID from init response"),
                 "JSON Error: failed to parse media ID from init response",
             ),
             (
@@ -157,15 +159,12 @@ mod tests {
                 "Invalid path parameter \"id\": value \"1/2\" contains a reserved character",
             ),
             (
-                Error::Http("connection refused".into()),
+                Error::http("connection refused"),
                 "HTTP Error: connection refused",
             ),
+            (Error::io("file not found"), "IO Error: file not found"),
             (
-                Error::Io("file not found".into()),
-                "IO Error: file not found",
-            ),
-            (
-                Error::InvalidUrl("ftp://example".into()),
+                Error::invalid_url("ftp://example"),
                 "Invalid URL: ftp://example",
             ),
             (
