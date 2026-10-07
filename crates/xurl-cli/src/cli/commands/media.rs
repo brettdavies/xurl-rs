@@ -103,18 +103,16 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
         &client,
     )
     .await?;
-    if flags.verbose {
+    // A structured answer is one document, so INIT's goes only to a human
+    // who asked for verbose text.
+    if flags.verbose && !out.format.is_structured() {
         out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
     }
-    out.print_response(stdout, &serde_json::to_value(&outcome.finalize)?);
     // The upload completed at FINALIZE; a processing failure after it
     // still leaves the media id on stdout for the caller to act on.
-    match outcome.processing {
-        Some(Ok(processing)) => {
-            out.print_response(stdout, &serde_json::to_value(&processing)?);
-        }
-        Some(Err(err)) => return Err(err),
-        None => {}
+    out.print_response(stdout, &serde_json::to_value(outcome.response())?);
+    if let Some(Err(err)) = outcome.processing {
+        return Err(err);
     }
     out.status(
         stderr,

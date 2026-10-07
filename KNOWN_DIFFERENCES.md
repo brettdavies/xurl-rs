@@ -119,3 +119,26 @@ The Rust version always ends the wait:
 `media upload` still waits by default and `media status` still reads the status once unless `--wait` is given. The
 timeout leaves the upload intact: its envelope carries `media_id` and a `resume-wait` step whose `command`, `xr media
 status <media_id> --wait=<secs>`, waits again for twice as long.
+
+## A waited `media upload` answers one document (intentional improvement)
+
+Go `xurl` prints the FINALIZE response and, when it waited, the final status response after it (`api/media.go`,
+`ExecuteMediaUpload`): two JSON documents on stdout, so a caller that parses the output once fails on the second and
+`.data.id` reads twice.
+
+The Rust version prints one document. It is FINALIZE's, with `processing_info` replaced by the final status's, or
+removed when that status carries none, and with any other field only the status carried added:
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "7_1880028106020515840",
+    "expires_after_secs": 86400,
+    "processing_info": { "state": "succeeded", "progress_percent": 100 }
+  }
+}
+```
+
+An upload that did not wait prints FINALIZE's document unchanged, and so does one whose wait failed or timed out, with
+the error on stderr. Under `--verbose`, INIT's response is printed ahead of it in text output only.
