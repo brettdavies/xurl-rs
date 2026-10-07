@@ -1,7 +1,7 @@
 args: ["read", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6405
+stdout_len: 6320
 stderr_len: 0
 --- stdout ---
 Read a post
@@ -35,7 +35,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at exit 2
 
           Possible values:
           - text:   Default: colored, human-readable

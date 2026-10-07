@@ -852,9 +852,8 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
-    /// yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml,
-    /// xml) are not supported — xurl emits a JSON envelope with reason
-    /// `invalid-args` if requested.
+    /// yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at
+    /// exit 2.
     #[arg(
         long,
         global = true,
@@ -1135,7 +1134,8 @@ pub enum Commands {
     Search {
         /// Search query
         query: String,
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1252,7 +1252,7 @@ pub enum Commands {
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (5-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
