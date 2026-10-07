@@ -69,13 +69,15 @@ impl StoreLock {
             opts.mode(0o600);
         }
         let file = opts.open(&path).map_err(|e| {
-            Error::Io(format!(
+            Error::io(format!(
                 "cannot open the store lock {}: {e}",
                 path.display()
             ))
+            .with_source(e)
         })?;
-        file.lock()
-            .map_err(|e| Error::Io(format!("cannot lock {}: {e}", path.display())))?;
+        file.lock().map_err(|e| {
+            Error::io(format!("cannot lock {}: {e}", path.display())).with_source(e)
+        })?;
         let key = fs::canonicalize(&path).unwrap_or(key);
         HELD.with(|held| held.borrow_mut().push(key.clone()));
         Ok(Self::Owner { file, key })
@@ -141,13 +143,15 @@ impl RefreshLock {
             opts.mode(0o600);
         }
         let file = opts.open(&path).map_err(|e| {
-            Error::Io(format!(
+            Error::io(format!(
                 "cannot open the refresh lock {}: {e}",
                 path.display()
             ))
+            .with_source(e)
         })?;
-        file.lock()
-            .map_err(|e| Error::Io(format!("cannot lock {}: {e}", path.display())))?;
+        file.lock().map_err(|e| {
+            Error::io(format!("cannot lock {}: {e}", path.display())).with_source(e)
+        })?;
         Ok(Self { file })
     }
 

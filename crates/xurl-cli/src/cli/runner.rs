@@ -363,8 +363,8 @@ where
 fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
     matches!(
         error,
-        xdk::error::Error::Auth(msg)
-            if msg == xdk::error::NO_AUTH_METHOD || msg == xdk::error::NO_OAUTH2_TOKEN
+        xdk::error::Error::Auth { message, .. }
+            if message == xdk::error::NO_AUTH_METHOD || message == xdk::error::NO_OAUTH2_TOKEN
     )
 }
 

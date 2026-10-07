@@ -8,7 +8,7 @@ use xdk::error::{
 
 #[test]
 fn test_xurl_error_http_is_not_api() {
-    let err = Error::Http("connection refused".to_string());
+    let err = Error::http("connection refused");
     assert!(!err.is_api(), "Http error should not be is_api()");
 }
 
@@ -45,13 +45,13 @@ fn test_xurl_error_auth_is_not_api() {
 
 #[test]
 fn test_xurl_error_io_is_not_api() {
-    let err = Error::Io("file not found".to_string());
+    let err = Error::io("file not found");
     assert!(!err.is_api());
 }
 
 #[test]
 fn test_xurl_error_json_is_not_api() {
-    let err = Error::Json("invalid json".to_string());
+    let err = Error::json("invalid json");
     assert!(!err.is_api());
 }
 
@@ -63,7 +63,7 @@ fn test_xurl_error_token_store_is_not_api() {
 
 #[test]
 fn test_xurl_error_display_http() {
-    let err = Error::Http("connection refused".to_string());
+    let err = Error::http("connection refused");
     assert_eq!(format!("{err}"), "connection refused");
 }
 
@@ -102,13 +102,13 @@ fn test_xurl_error_display_auth() {
 
 #[test]
 fn test_xurl_error_display_io() {
-    let err = Error::Io("file not found".to_string());
+    let err = Error::io("file not found");
     assert_eq!(format!("{err}"), "file not found");
 }
 
 #[test]
 fn test_xurl_error_display_json() {
-    let err = Error::Json("unexpected token".to_string());
+    let err = Error::json("unexpected token");
     assert_eq!(format!("{err}"), "unexpected token");
 }
 
@@ -128,8 +128,8 @@ fn test_xurl_error_display_token_store() {
 /// reads the format strings rather than the data they carry.
 fn one_of_each_variant() -> Vec<Error> {
     vec![
-        Error::Http("connection refused".into()),
-        Error::Io("permission denied".into()),
+        Error::http("connection refused"),
+        Error::io("permission denied"),
         Error::InvalidMethod("bad method".into()),
         Error::api(500, "server error"),
         Error::validation("missing field"),
@@ -139,7 +139,7 @@ fn one_of_each_variant() -> Vec<Error> {
             value: "1/2".into(),
         },
         Error::Internal("missing {id}".into()),
-        Error::Json("expected value".into()),
+        Error::json("expected value"),
         Error::auth("token expired"),
         Error::token_store("corrupt yaml"),
         mismatch(Some("oauth1"), None, None),
@@ -218,14 +218,14 @@ async fn test_xurl_error_from_reqwest() {
     let result = reqwest::Client::new().get("not-a-url").send().await;
     let reqwest_err = result.expect_err("a relative URL is not sendable");
     let xurl_err: Error = reqwest_err.into();
-    assert!(matches!(xurl_err, Error::Http(_)));
+    assert!(matches!(xurl_err, Error::Http { .. }));
 }
 
 #[test]
 fn test_xurl_error_from_io() {
     let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "gone");
     let xurl_err: Error = io_err.into();
-    assert!(matches!(xurl_err, Error::Io(_)));
+    assert!(matches!(xurl_err, Error::Io { .. }));
     assert!(format!("{xurl_err}").contains("gone"));
 }
 
@@ -233,7 +233,7 @@ fn test_xurl_error_from_io() {
 fn test_xurl_error_from_serde_json() {
     let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
     let xurl_err: Error = json_err.into();
-    assert!(matches!(xurl_err, Error::Json(_)));
+    assert!(matches!(xurl_err, Error::Json { .. }));
 }
 
 // ── docs_url tests ─────────────────────────────────────────────────
@@ -268,9 +268,9 @@ fn errors_without_a_documented_recovery_carry_no_pointer() {
     let undocumented = [
         Error::api(500, "server error"),
         Error::api(403, "plain forbidden"),
-        Error::Http("connection refused".into()),
-        Error::Io("permission denied".into()),
-        Error::Json("expected value".into()),
+        Error::http("connection refused"),
+        Error::io("permission denied"),
+        Error::json("expected value"),
         Error::validation("missing field"),
         Error::token_store("corrupt yaml"),
         Error::InvalidMethod("bad method".into()),
@@ -355,7 +355,7 @@ fn test_exit_code_token_store() {
 #[test]
 fn test_exit_code_io() {
     assert_eq!(
-        exit_code_for_error(&Error::Io("timeout".into())),
+        exit_code_for_error(&Error::io("timeout")),
         EXIT_NETWORK_ERROR
     );
 }
@@ -370,7 +370,7 @@ fn test_exit_code_http_is_network_error_whatever_the_message_says() {
         "401 Unauthorized",
     ] {
         assert_eq!(
-            exit_code_for_error(&Error::Http(message.into())),
+            exit_code_for_error(&Error::http(message)),
             EXIT_NETWORK_ERROR,
             "{message}"
         );
@@ -380,7 +380,7 @@ fn test_exit_code_http_is_network_error_whatever_the_message_says() {
 #[test]
 fn test_exit_code_json() {
     assert_eq!(
-        exit_code_for_error(&Error::Json("expected value".into())),
+        exit_code_for_error(&Error::json("expected value")),
         EXIT_GENERAL_ERROR
     );
 }
@@ -396,7 +396,7 @@ fn test_exit_code_invalid_method() {
 #[test]
 fn test_exit_code_http_generic() {
     assert_eq!(
-        exit_code_for_error(&Error::Http("connection refused".into())),
+        exit_code_for_error(&Error::http("connection refused")),
         EXIT_NETWORK_ERROR
     );
 }
@@ -408,4 +408,88 @@ fn test_exit_code_http_generic() {
 fn test_exit_usage_error_is_ex_usage() {
     assert_eq!(EXIT_USAGE_ERROR, 2);
     assert_eq!(EXIT_USAGE_ERROR, EXIT_AUTH_MISMATCH);
+}
+
+// ── source() chains ────────────────────────────────────────────────
+
+/// The lower-level failure an error wraps, read the way an embedder would.
+fn source_of(err: &Error) -> &(dyn std::error::Error + 'static) {
+    std::error::Error::source(err).unwrap_or_else(|| panic!("{err:?} exposes no source"))
+}
+
+#[test]
+fn an_io_failure_is_reachable_through_source() {
+    let err: Error = std::io::Error::new(std::io::ErrorKind::NotFound, "no such file").into();
+
+    let io = source_of(&err)
+        .downcast_ref::<std::io::Error>()
+        .expect("the source is the io::Error");
+    assert_eq!(io.kind(), std::io::ErrorKind::NotFound);
+    assert_eq!(err.to_string(), "no such file");
+    assert_eq!(err.kind(), "io");
+    assert_eq!(err.exit_code(), EXIT_NETWORK_ERROR);
+}
+
+#[tokio::test]
+async fn a_transport_failure_is_reachable_through_source() {
+    // A relative URL cannot be sent, so this fails before any connection.
+    let reqwest_err = reqwest::Client::new()
+        .get("not-a-url")
+        .send()
+        .await
+        .expect_err("a relative URL is not sendable");
+    let display = reqwest_err.to_string();
+
+    let err: Error = reqwest_err.into();
+
+    assert!(
+        source_of(&err).downcast_ref::<reqwest::Error>().is_some(),
+        "the source is the reqwest::Error"
+    );
+    assert_eq!(err.to_string(), display);
+    assert_eq!(err.kind(), "network-error");
+    assert_eq!(err.exit_code(), EXIT_NETWORK_ERROR);
+}
+
+#[test]
+fn a_json_failure_is_reachable_through_source() {
+    let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
+    let display = json_err.to_string();
+
+    let err: Error = json_err.into();
+
+    assert!(
+        source_of(&err)
+            .downcast_ref::<serde_json::Error>()
+            .is_some(),
+        "the source is the serde_json::Error"
+    );
+    assert_eq!(err.to_string(), display);
+    assert_eq!(err.kind(), "serialization");
+    assert_eq!(err.exit_code(), EXIT_GENERAL_ERROR);
+}
+
+/// An error built from a message alone has nothing underneath it.
+#[test]
+fn an_error_with_no_lower_level_failure_has_no_source() {
+    for err in [
+        Error::auth("token expired"),
+        Error::token_store("corrupt yaml"),
+        Error::validation("bad input"),
+        Error::api(500, "server error"),
+    ] {
+        assert!(
+            std::error::Error::source(&err).is_none(),
+            "{err:?} has no source"
+        );
+    }
+}
+
+/// Holding a cause does not cost the error its unwind safety: a `Result`
+/// carrying one still crosses `catch_unwind`.
+#[test]
+fn an_error_is_unwind_safe() {
+    fn unwind_safe<T: std::panic::UnwindSafe + std::panic::RefUnwindSafe>() {}
+    unwind_safe::<Error>();
+    unwind_safe::<xdk::api::MediaUploadOutcome>();
 }

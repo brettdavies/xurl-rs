@@ -127,3 +127,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 # Covers `Error::Api::reset_at`: a 429 carries the reset its own response
 # named, so a pattern that names every field of the variant gains `..`.
 enum_struct_variant_field_added = { lint-level = "deny", required-update = "minor" }
+# Covers `Error::Http`, `Io`, `Json`, `Auth`, and `TokenStore`: each wraps a
+# lower-level failure and keeps it as `source`, so the tuple variant holding
+# a message became a struct variant holding `message` and `source`.
+enum_tuple_variant_changed_kind = { lint-level = "deny", required-update = "minor" }

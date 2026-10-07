@@ -347,7 +347,7 @@ where
     let _ = ready_rx.await;
     tokio::task::spawn_blocking(on_bound)
         .await
-        .map_err(|e| Error::auth_with_cause("OnBoundJoinError", &e))?;
+        .map_err(|e| Error::auth_with_cause("OnBoundJoinError", &e).with_source(e))?;
 
     let result = tokio::select! {
         biased;

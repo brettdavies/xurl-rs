@@ -134,7 +134,7 @@ impl Client {
         if !options.file_field.is_empty() && !options.file_path.is_empty() {
             let part = multipart::Part::file(&options.file_path)
                 .await
-                .map_err(|e| Error::Io(format!("error opening file: {e}")))?;
+                .map_err(|e| Error::io(format!("error opening file: {e}")).with_source(e))?;
             form = form.part(options.file_field.clone(), part);
         } else if !options.file_field.is_empty() && !options.file_data.is_empty() {
             let part = multipart::Part::bytes(options.file_data.clone())
@@ -398,7 +398,7 @@ impl Stream for StreamLines {
                 Poll::Ready(Some(Ok(chunk))) => self.buf.extend_from_slice(&chunk),
                 Poll::Ready(Some(Err(e))) => {
                     self.done = true;
-                    return Poll::Ready(Some(Err(Error::Io(e.to_string()))));
+                    return Poll::Ready(Some(Err(Error::io(e.to_string()).with_source(e))));
                 }
             }
         }

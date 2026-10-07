@@ -202,6 +202,7 @@ pub(super) async fn oauth2(
                             "Failed to read redirect URL from stdin",
                             &e,
                         )
+                        .with_source(e)
                     })?;
                     let trimmed = line.trim().to_string();
                     if trimmed.is_empty() {

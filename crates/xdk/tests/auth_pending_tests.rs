@@ -182,9 +182,12 @@ fn load_corrupt_yaml_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should be a deserialization error, not a panic
+    assert_eq!(err.kind(), "auth-required", "got: {err:?}");
     assert!(
-        matches!(err, xdk::Error::Auth(_)),
-        "Expected auth/parse error, got: {err:?}"
+        std::error::Error::source(&err)
+            .and_then(|source| source.downcast_ref::<serde_yaml::Error>())
+            .is_some(),
+        "the YAML error is the auth error's source: {err:?}"
     );
 }
 
@@ -203,7 +206,7 @@ fn load_valid_yaml_missing_fields_returns_error() {
 
     let err = pending::load(&path).unwrap_err();
     // Should fail deserialization, not panic
-    assert!(matches!(err, xdk::Error::Auth(_)), "got: {err:?}");
+    assert!(matches!(err, xdk::Error::Auth { .. }), "got: {err:?}");
 }
 
 #[test]

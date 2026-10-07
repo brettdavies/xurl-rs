@@ -307,9 +307,9 @@ impl Client {
         user_agent: String,
         rate_limit_max_wait: Option<Duration>,
     ) -> Result<Self> {
-        let http = reqwest::Client::builder()
-            .build()
-            .map_err(|e| Error::Http(format!("cannot build the HTTP client: {e}")))?;
+        let http = reqwest::Client::builder().build().map_err(|e| {
+            Error::http(format!("cannot build the HTTP client: {e}")).with_source(e)
+        })?;
 
         Ok(Self {
             inner: Arc::new(Inner {
