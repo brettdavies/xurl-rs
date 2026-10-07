@@ -96,14 +96,85 @@ fn test_output_json_formats_print_a_json_object(#[case] format: &str) {
     assert_eq!(parsed["version"], VERSION);
 }
 
-#[test]
-fn test_output_ndjson_prints_one_line() {
-    let stdout = version_in("ndjson");
+/// JSON Lines is one record per line, under either of its names and for a
+/// command that is not a stream as much as for one that is.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_line_formats_print_one_line(#[case] format: &str) {
+    let stdout = version_in(format);
     assert_eq!(
         stdout.lines().count(),
         1,
-        "--output ndjson prints one record per line: {stdout}"
+        "--output {format} prints one record per line: {stdout}"
     );
+}
+
+/// The same holds for every document `xr` prints under a line format: a
+/// dry-run envelope on stdout and an error envelope on stderr.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+fn test_output_line_formats_print_envelopes_on_one_line(#[case] format: &str) {
+    let dry_run = common::xr()
+        .args(["--output", format, "post", "hi", "--dry-run"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&dry_run.stdout);
+    assert_eq!(dry_run.status.code(), Some(0), "{stdout}");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "a dry-run envelope is one line: {stdout}"
+    );
+    let envelope: serde_json::Value = serde_json::from_str(&stdout).expect("a JSON line");
+    assert_eq!(envelope["status"], "dry_run");
+
+    let failure = common::xr()
+        .args(["--output", format, "whoam"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&failure.stderr);
+    assert_eq!(failure.status.code(), Some(2), "{stderr}");
+    assert_eq!(
+        stderr.lines().count(),
+        1,
+        "an error envelope is one line: {stderr}"
+    );
+    let envelope: serde_json::Value = serde_json::from_str(&stderr).expect("a JSON line");
+    assert_eq!(envelope["reason"], "unknown-command");
+}
+
+/// And for an API document: the response to a request prints as one line.
+#[rstest]
+#[case::jsonl("jsonl")]
+#[case::ndjson("ndjson")]
+#[tokio::test]
+async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] format: &str) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string(r#"{"data":[{"id":"1","text":"hi"}],"meta":{"result_count":1}}"#),
+        )
+        .mount(&server)
+        .await;
+
+    let (code, stdout, stderr) = run_against(
+        &server,
+        &[],
+        &["--output", format, "--auth", "app", "search", "hi"],
+    );
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "an API document is one line: {stdout}"
+    );
+    let document: serde_json::Value = serde_json::from_str(&stdout).expect("a JSON line");
+    assert_eq!(document["data"][0]["id"], "1");
 }
 
 #[test]
