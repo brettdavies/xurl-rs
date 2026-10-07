@@ -77,8 +77,10 @@ seed_smoke_store() {
   prod_cid=$(read_1p "X App - Bird (prod)" oauth2_client_id)
   prod_csec=$(read_1p "X App - Bird (prod)" oauth2_client_secret)
 
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret "$dev_csec" >/dev/null
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
+  # Every secret reaches xr through a `-file` flag fed by a process
+  # substitution, so no process's arguments carry it; `printf` is a builtin.
+  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
+  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
 
   local dev_bearer prod_bearer dev_ck dev_cs dev_at dev_ts
   dev_bearer=$(read_1p "X App - Bird (dev)" credential)
@@ -88,11 +90,11 @@ seed_smoke_store() {
   dev_at=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN")
   dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token "$dev_bearer" --app bird_dev >/dev/null
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token "$prod_bearer" --app bird_prod >/dev/null
+  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$dev_bearer") --app bird_dev >/dev/null
+  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$prod_bearer") --app bird_prod >/dev/null
   XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth oauth1 \
-    --consumer-key "$dev_ck" --consumer-secret "$dev_cs" \
-    --access-token "$dev_at" --token-secret "$dev_ts" \
+    --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") \
+    --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") \
     --app bird_dev >/dev/null
 
   local dev_at2 dev_rt2 exp
@@ -439,11 +441,11 @@ gate_multi_app() {
   dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
   local first second after
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret "$dev_csec" >/dev/null
+  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
   first=$(yq '.default_app' "$fresh/.xurl")
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret "$prod_csec" >/dev/null
+  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
   second=$(yq '.default_app' "$fresh/.xurl")
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_dev >/dev/null
+  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_dev >/dev/null
   after=$(yq '.default_app' "$fresh/.xurl")
   if [[ "$first" == "bird_dev" && "$second" == "bird_dev" && "$after" == "bird_dev" ]]; then
     gate_pass "First-registered app is the default and sign-in leaves it (add→$first, add→$second, sign-in→$after)"
@@ -452,7 +454,7 @@ gate_multi_app() {
   fi
 
   # Promotion idempotence
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret "$dev_cs" --access-token "$dev_at" --token-secret "$dev_ts" --app bird_prod >/dev/null
+  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_prod >/dev/null
   after=$(yq '.default_app' "$fresh/.xurl")
   if [[ "$after" == "bird_dev" ]]; then
     gate_pass "Promotion idempotence (second sign-in did not overwrite default)"
