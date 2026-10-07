@@ -1,7 +1,7 @@
 args: ["auth", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5793
+stdout_len: 5868
 stderr_len: 0
 --- stdout ---
 Authentication management
@@ -144,8 +144,8 @@ Examples:
     xr auth oauth2
   Headless OAuth2 (servers, containers):
     xr auth oauth2 --no-browser --step 1
-  Bearer token for read-only / search:
-    xr auth app --bearer-token "$TOKEN"
+  Bearer token for read-only / search, piped so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
   Show current auth state, machine-readable:
     xr auth status --output json
 

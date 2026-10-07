@@ -1699,8 +1699,11 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--consumer-key=[Consumer key]:CONSUMER_KEY:_default' \
 '--consumer-secret=[Consumer secret]:CONSUMER_SECRET:_default' \
+'--consumer-secret-file=[File holding the consumer secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--access-token=[Access token]:ACCESS_TOKEN:_default' \
+'--access-token-file=[File holding the access token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--token-secret=[Token secret]:TOKEN_SECRET:_default' \
+'--token-secret-file=[File holding the token secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -1734,6 +1737,7 @@ never\:"Never emit ANSI color escapes"))' \
 (app)
 _arguments "${_arguments_options[@]}" : \
 '--bearer-token=[Bearer token]:BEARER_TOKEN:_default' \
+'--bearer-token-file=[File holding the bearer token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -1877,6 +1881,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'--client-secret-file=[File holding the \`OAuth2\` client secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1913,6 +1918,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'(--client-secret)--client-secret-file=[File holding the \`OAuth2\` client secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \

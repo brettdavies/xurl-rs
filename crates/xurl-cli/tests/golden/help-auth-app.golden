@@ -1,16 +1,19 @@
 args: ["auth", "app", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5466
+stdout_len: 5763
 stderr_len: 0
 --- stdout ---
 Configure app-auth (bearer token)
 
-Usage: xr auth app [OPTIONS] --bearer-token <BEARER_TOKEN>
+Usage: xr auth app [OPTIONS] <--bearer-token <BEARER_TOKEN>|--bearer-token-file <PATH>>
 
 Options:
       --bearer-token <BEARER_TOKEN>
           Bearer token
+
+      --bearer-token-file <PATH>
+          File holding the bearer token; '-' reads it from stdin
 
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
@@ -133,10 +136,12 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Set the bearer token from an env var:
-    xr auth app --bearer-token "$XURL_BEARER_TOKEN"
-  Same, JSON envelope:
-    xr auth app --bearer-token "$XURL_BEARER_TOKEN" --output json
+  Store the bearer token, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
+  Same from an env var, JSON envelope:
+    printenv XURL_BEARER_TOKEN | xr auth app --bearer-token-file - --output json
+  Read it from a file:
+    xr auth app --bearer-token-file bearer-token.txt
   Test the configured bearer:
     xr auth status --output json
 

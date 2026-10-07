@@ -33,6 +33,11 @@ pub struct NextStep {
     pub docs: Option<String>,
 }
 
+/// The registration invocation, with a placeholder for each value only the
+/// caller has. `<secret-command>` is whatever prints the client secret.
+pub(crate) const REGISTER_APP_TEMPLATE: &str =
+    "<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -";
+
 impl NextStep {
     /// The help page that answers a mistyped command, run as given.
     #[must_use]
@@ -45,16 +50,14 @@ impl NextStep {
         }
     }
 
-    /// Registration, which needs values only the caller has.
+    /// Registration, which needs values only the caller has. The secret is
+    /// piped in, so filling the template puts no secret in argv.
     #[must_use]
     pub fn register_app() -> Self {
         Self {
             action: NextAction::RegisterApp,
             command: None,
-            template: Some(
-                "xr auth apps add <name> --client-id <client-id> --client-secret <client-secret>"
-                    .to_string(),
-            ),
+            template: Some(REGISTER_APP_TEMPLATE.to_string()),
             docs: None,
         }
     }
@@ -304,7 +307,12 @@ mod tests {
         let step = NextStep::register_app();
         assert_eq!(step.action, NextAction::RegisterApp);
         assert!(step.command.is_none(), "never both");
-        assert!(step.template.as_deref().unwrap().contains("<client-id>"));
+        let template = step.template.as_deref().unwrap();
+        assert!(template.contains("<client-id>"));
+        assert!(
+            template.ends_with("--client-secret-file -"),
+            "the secret is piped, never an argument: {template}"
+        );
     }
 
     #[test]

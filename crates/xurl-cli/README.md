@@ -33,9 +33,9 @@ Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases)
 cargo install --locked xurl-rs
 ```
 
-`--locked` builds with the dependency versions the release was tested against. Without it, cargo resolves the
-newest compatible versions at install time, and with cc 1.6.0 that breaks the aws-lc-sys build whenever `CFLAGS`
-carries an optimization flag such as `-O2` ([aws/aws-lc-rs#1252](https://github.com/aws/aws-lc-rs/issues/1252)).
+`--locked` builds with the dependency versions the release was tested against. Without it, cargo resolves the newest
+compatible versions at install time, and with cc 1.6.0 that breaks the aws-lc-sys build whenever `CFLAGS` carries an
+optimization flag such as `-O2` ([aws/aws-lc-rs#1252](https://github.com/aws/aws-lc-rs/issues/1252)).
 
 ### From Source
 
@@ -57,8 +57,8 @@ is free; the calls it makes are not.
 ## Quick Start
 
 ```bash
-# Set up OAuth2 (browser-based, 30 seconds)
-xr auth apps add myapp --client-id YOUR_ID --client-secret YOUR_SECRET
+# Set up OAuth2 (browser-based, 30 seconds). The secret is piped from a vault, so it never reaches argv.
+op read 'op://<vault>/<item>/client_secret' | xr auth apps add myapp --client-id YOUR_ID --client-secret-file -
 xr auth oauth2
 
 # Post
@@ -187,10 +187,16 @@ xr media subtitles remove 1234567890 --language en
 
 ## Authentication
 
+Every secret flag (`--client-secret`, `--consumer-secret`, `--access-token`, `--token-secret`, `--bearer-token`) has a
+`--<name>-file` twin that reads the value from a file, or from stdin when the path is `-`. A secret passed that way
+never appears in the process's arguments or in shell history, and its one trailing line ending is dropped. Stdin carries
+one value, so a command that takes several secrets reads at most one from `-` and the rest from files. `-` is refused
+when stdin is a terminal: pipe the secret in, or pass a path.
+
 ### OAuth2 (Recommended)
 
 ```bash
-xr auth apps add myapp --client-id ID --client-secret SECRET
+op read 'op://<vault>/<item>/client_secret' | xr auth apps add myapp --client-id ID --client-secret-file -
 xr auth oauth2                                 # Opens browser
 xr auth oauth2 alice                           # Skip /2/users/me; save under "alice"
 xr auth oauth2 --app myapp alice               # Same, against a specific app
@@ -203,24 +209,24 @@ without `/me`.
 ### OAuth1
 
 ```bash
-xr auth oauth1 \
+op read 'op://<vault>/<item>/token_secret' | xr auth oauth1 \
   --consumer-key CK \
-  --consumer-secret CS \
-  --access-token AT \
-  --token-secret TS
+  --consumer-secret-file consumer-secret.txt \
+  --access-token-file access-token.txt \
+  --token-secret-file -
 ```
 
 ### Bearer Token (App-Only)
 
 ```bash
-xr auth app --bearer-token YOUR_TOKEN
+op read 'op://<vault>/<item>/bearer_token' | xr auth app --bearer-token-file -
 ```
 
 ### Multi-App Management
 
 ```bash
-xr auth apps add prod --client-id ... --client-secret ...
-xr auth apps add dev --client-id ... --client-secret ...
+xr auth apps add prod --client-id ... --client-secret-file ...
+xr auth apps add dev --client-id ... --client-secret-file ...
 xr auth apps list
 xr auth default prod                           # Set default
 xr --app dev whoami                             # Per-request override
@@ -231,14 +237,14 @@ Register an app with a custom OAuth2 callback URL via `--redirect-uri`:
 ```bash
 xr auth apps add prod \
   --client-id ID \
-  --client-secret SECRET \
+  --client-secret-file client-secret.txt \
   --redirect-uri http://localhost:8080/callback
 ```
 
 Update credentials or the stored redirect URI on an existing app:
 
 ```bash
-xr auth apps update prod --client-id NEW_ID --client-secret NEW_SECRET
+xr auth apps update prod --client-id NEW_ID --client-secret-file client-secret.txt
 xr auth apps update prod --redirect-uri http://localhost:8080/callback
 ```
 
@@ -366,7 +372,7 @@ on a machine with nothing registered:
   "message": "Auth Error: NoAuthMethod: no authentication method available",
   "next_step": {
     "action": "register-app",
-    "template": "xr auth apps add <name> --client-id <client-id> --client-secret <client-secret>"
+    "template": "<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -"
   }
 }
 ```

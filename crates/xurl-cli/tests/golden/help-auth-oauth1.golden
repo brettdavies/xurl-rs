@@ -1,12 +1,12 @@
 args: ["auth", "oauth1", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5831
+stdout_len: 6498
 stderr_len: 0
 --- stdout ---
 Configure `OAuth1` authentication
 
-Usage: xr auth oauth1 [OPTIONS] --consumer-key <CONSUMER_KEY> --consumer-secret <CONSUMER_SECRET> --access-token <ACCESS_TOKEN> --token-secret <TOKEN_SECRET>
+Usage: xr auth oauth1 [OPTIONS] --consumer-key <CONSUMER_KEY> <--consumer-secret <CONSUMER_SECRET>|--consumer-secret-file <PATH>> <--access-token <ACCESS_TOKEN>|--access-token-file <PATH>> <--token-secret <TOKEN_SECRET>|--token-secret-file <PATH>>
 
 Options:
       --consumer-key <CONSUMER_KEY>
@@ -15,8 +15,14 @@ Options:
       --consumer-secret <CONSUMER_SECRET>
           Consumer secret
 
+      --consumer-secret-file <PATH>
+          File holding the consumer secret; '-' reads it from stdin
+
       --access-token <ACCESS_TOKEN>
           Access token
+
+      --access-token-file <PATH>
+          File holding the access token; '-' reads it from stdin
 
       --token-secret <TOKEN_SECRET>
           Token secret
@@ -27,6 +33,9 @@ Options:
           [env: XURL_VERBOSE=]
           [default: false]
           [possible values: true, false]
+
+      --token-secret-file <PATH>
+          File holding the token secret; '-' reads it from stdin
 
       --app <APP>
           Use a specific registered app (overrides default)
@@ -142,13 +151,16 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Configure OAuth1 from app + user credentials:
-    xr auth oauth1 \
-      --consumer-key CK --consumer-secret CS \
-      --access-token AT --token-secret TS
-  Same, with JSON envelope for scripted setup:
-    xr auth oauth1 --consumer-key CK --consumer-secret CS \
-      --access-token AT --token-secret TS --output json
+  Configure OAuth1 with one secret piped from a vault and the others read
+  from files, so none reaches argv (stdin carries one value):
+    op read 'op://<vault>/<item>/token_secret' | xr auth oauth1 --consumer-key CK \
+      --consumer-secret-file consumer-secret.txt \
+      --access-token-file access-token.txt --token-secret-file -
+  Every secret from a file, with JSON envelope for scripted setup:
+    xr auth oauth1 --consumer-key CK \
+      --consumer-secret-file consumer-secret.txt \
+      --access-token-file access-token.txt \
+      --token-secret-file token-secret.txt --output json
 
 --- stderr ---
 

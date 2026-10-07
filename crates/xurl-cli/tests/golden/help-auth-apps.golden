@@ -1,7 +1,7 @@
 args: ["auth", "apps", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5823
+stdout_len: 5959
 stderr_len: 0
 --- stdout ---
 Manage registered X API apps
@@ -138,12 +138,12 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Register a new app:
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
   List registered apps (JSON):
     xr auth apps list --output json
-  Update credentials for an existing app:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the secret of an existing app from a file:
+    xr auth apps update my-app --client-secret-file client-secret.txt
   Inspect or set the stored OAuth2 redirect URI:
     xr auth apps redirect-uri get my-app --output json
 

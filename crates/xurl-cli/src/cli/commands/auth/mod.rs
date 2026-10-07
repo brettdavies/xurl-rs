@@ -6,6 +6,7 @@ use serde::Serialize;
 use super::{Gate, gate_destructive};
 use crate::cli::AuthCommands;
 use crate::cli::failure::CommandResult;
+use crate::cli::hints::REGISTER_APP_TEMPLATE;
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::config::{self, ResolveSource};
@@ -13,10 +14,12 @@ use xdk::error::Error;
 use xdk::store::TokenStore;
 
 mod apps;
+mod secret;
 mod session;
 mod signin;
 mod types;
 
+use secret::SecretArg;
 use types::BearerSource;
 pub(crate) use types::{RedirectUriGetResponse, RedirectUriSetResponse};
 
@@ -141,18 +144,43 @@ pub(super) async fn run_auth_command(
         AuthCommands::Oauth1 {
             consumer_key,
             consumer_secret,
+            consumer_secret_file,
             access_token,
+            access_token_file,
             token_secret,
+            token_secret_file,
         } => signin::oauth1(
             signin::Oauth1Args {
                 consumer_key,
-                consumer_secret,
-                access_token,
-                token_secret,
+                consumer_secret: SecretArg {
+                    file_flag: "--consumer-secret-file",
+                    value: consumer_secret,
+                    file: consumer_secret_file,
+                },
+                access_token: SecretArg {
+                    file_flag: "--access-token-file",
+                    value: access_token,
+                    file: access_token_file,
+                },
+                token_secret: SecretArg {
+                    file_flag: "--token-secret-file",
+                    value: token_secret,
+                    file: token_secret_file,
+                },
             },
             ctx,
         ),
-        AuthCommands::App { bearer_token } => signin::bearer(bearer_token, ctx),
+        AuthCommands::App {
+            bearer_token,
+            bearer_token_file,
+        } => signin::bearer(
+            SecretArg {
+                file_flag: "--bearer-token-file",
+                value: bearer_token,
+                file: bearer_token_file,
+            },
+            ctx,
+        ),
         AuthCommands::Status => session::status(&auth, out, stdout),
         AuthCommands::Clear {
             all,
@@ -216,7 +244,7 @@ fn print_no_apps_registered(
     }
     out.print_message(
         stdout,
-        "No apps registered. Run: xr auth apps add NAME --client-id ID --client-secret SECRET",
+        &format!("No apps registered. Run: {REGISTER_APP_TEMPLATE}"),
     );
     if auth.env_bearer_token_present() {
         out.print_message(

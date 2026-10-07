@@ -1,7 +1,7 @@
 args: ["auth", "apps", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5816
+stdout_len: 6053
 stderr_len: 0
 --- stdout ---
 Update credentials for an existing app
@@ -18,6 +18,9 @@ Options:
 
       --client-secret <CLIENT_SECRET>
           `OAuth2` client secret
+
+      --client-secret-file <PATH>
+          File holding the `OAuth2` client secret; '-' reads it from stdin
 
       --redirect-uri <REDIRECT_URI>
           `OAuth2` redirect URI (https or http on loopback); empty string clears
@@ -143,14 +146,14 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Rotate the client secret:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the client secret, piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps update my-app --client-secret-file -
   Update the redirect URI:
     xr auth apps update my-app --redirect-uri https://localhost:8443/callback
   Clear the stored redirect URI (pass empty string):
     xr auth apps update my-app --redirect-uri ""
-  Same, JSON envelope:
-    xr auth apps update my-app --client-secret NEW --output json
+  Rotate from a file, JSON envelope:
+    xr auth apps update my-app --client-secret-file client-secret.txt --output json
 
 --- stderr ---
 

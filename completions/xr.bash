@@ -800,13 +800,17 @@ _xr() {
             return 0
             ;;
         xr__subcmd__auth__subcmd__app)
-            opts="-v -q -h --bearer-token --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            opts="-v -q -h --bearer-token --bearer-token-file --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --bearer-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --bearer-token-file)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -952,7 +956,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__auth__subcmd__apps__subcmd__add)
-            opts="-v -q -h --client-id --client-secret --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            opts="-v -q -h --client-id --client-secret --client-secret-file --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -963,6 +967,10 @@ _xr() {
                     return 0
                     ;;
                 --client-secret)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --client-secret-file)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1590,7 +1598,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__auth__subcmd__apps__subcmd__update)
-            opts="-v -q -h --client-id --client-secret --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            opts="-v -q -h --client-id --client-secret --client-secret-file --redirect-uri --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1601,6 +1609,10 @@ _xr() {
                     return 0
                     ;;
                 --client-secret)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --client-secret-file)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -2052,7 +2064,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__auth__subcmd__oauth1)
-            opts="-v -q -h --consumer-key --consumer-secret --access-token --token-secret --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
+            opts="-v -q -h --consumer-key --consumer-secret --consumer-secret-file --access-token --access-token-file --token-secret --token-secret-file --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2066,11 +2078,23 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --consumer-secret-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --access-token)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --access-token-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --token-secret)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --token-secret-file)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
