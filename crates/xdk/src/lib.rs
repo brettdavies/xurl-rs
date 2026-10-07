@@ -15,7 +15,7 @@
 #[cfg(not(any(feature = "rustls", feature = "native-tls")))]
 compile_error!(
     "xdk-rs needs a TLS backend: enable the `rustls` feature (on by default) or `native-tls`, \
-     for example `xdk-rs = { version = \"0.1\", default-features = false, features = [\"native-tls\"] }`"
+     for example `cargo add xdk-rs --no-default-features --features native-tls`"
 );
 
 pub mod api;
