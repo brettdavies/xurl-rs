@@ -338,6 +338,160 @@ async fn an_upload_told_not_to_wait_returns_after_finalize(#[case] wait: &str) {
     assert_eq!(status_calls(&server).await, 0);
 }
 
+// ── A waited upload answers one document ───────────────────────────────
+
+/// Mounts INIT, APPEND, and a FINALIZE answering `finalize` for media `777`.
+async fn mount_upload(server: &MockServer, finalize: serde_json::Value) {
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/initialize"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "777", "media_key": "7_777", "expires_after_secs": 86400}
+        })))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/777/append"))
+        .respond_with(ResponseTemplate::new(204))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/777/finalize"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({ "data": finalize })),
+        )
+        .mount(server)
+        .await;
+}
+
+/// Every JSON document on `stdout`, in order.
+fn documents(stdout: &[u8]) -> Vec<serde_json::Value> {
+    serde_json::Deserializer::from_slice(stdout)
+        .into_iter::<serde_json::Value>()
+        .collect::<Result<_, _>>()
+        .expect("stdout holds only JSON documents")
+}
+
+/// The answer to a waited upload is FINALIZE's document carrying the final
+/// processing state, so a caller parses stdout once and reads the media id
+/// and the state from the same object. `--verbose` adds nothing to stdout
+/// under a structured format.
+#[rstest::rstest]
+#[case::plain(&[])]
+#[case::verbose(&["--verbose"])]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_waited_upload_prints_one_document_with_the_final_state(#[case] extra: &[&str]) {
+    let server = MockServer::start().await;
+    mount_upload(
+        &server,
+        serde_json::json!({
+            "id": "777",
+            "expires_after_secs": 86400,
+            "processing_info": {"state": "pending", "check_after_secs": 1}
+        }),
+    )
+    .await;
+    status_mock(serde_json::json!({
+        "id": "777",
+        "media_key": "7_777",
+        "processing_info": {"state": "succeeded", "progress_percent": 100}
+    }))
+    .mount(&server)
+    .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let video = tmp.path().join("clip.mp4");
+    std::fs::write(&video, b"not really a video").expect("write clip");
+
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(extra);
+    args.extend_from_slice(&["media", "upload", video.to_str().expect("utf-8 path")]);
+    let output = run_xr(&server, oauth2_store(&tmp), &args).await;
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let documents = documents(&output.stdout);
+    assert_eq!(
+        documents.len(),
+        1,
+        "one document, not one per phase: {}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let data = &documents[0]["data"];
+    assert_eq!(data["id"], "777");
+    assert_eq!(
+        data["expires_after_secs"], 86400,
+        "FINALIZE's own field stays"
+    );
+    assert_eq!(
+        data["media_key"], "7_777",
+        "a field only the status carried is kept"
+    );
+    assert_eq!(
+        data["processing_info"],
+        serde_json::json!({"state": "succeeded", "progress_percent": 100}),
+        "the final state replaces the pending one FINALIZE reported"
+    );
+}
+
+/// X drops `processing_info` from the status of media it has finished with.
+/// The pending state FINALIZE reported is then stale, and the one document
+/// carries none.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_finished_status_without_processing_info_clears_the_pending_state() {
+    let server = MockServer::start().await;
+    mount_upload(
+        &server,
+        serde_json::json!({
+            "id": "777",
+            "expires_after_secs": 86400,
+            "processing_info": {"state": "pending", "check_after_secs": 1}
+        }),
+    )
+    .await;
+    status_mock(serde_json::json!({"id": "777", "media_key": "7_777"}))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let video = tmp.path().join("clip.mp4");
+    std::fs::write(&video, b"not really a video").expect("write clip");
+
+    let output = run_xr(
+        &server,
+        oauth2_store(&tmp),
+        &[
+            "--output",
+            "json",
+            "media",
+            "upload",
+            video.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let documents = documents(&output.stdout);
+    assert_eq!(
+        documents.len(),
+        1,
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    assert_eq!(documents[0]["data"]["id"], "777");
+    assert_eq!(
+        documents[0]["data"].get("processing_info"),
+        None,
+        "no state is reported once X reports none"
+    );
+}
+
 /// `--wait` takes its value after `=`. A value after a space is a stray
 /// argument, and the error says how to write it.
 #[tokio::test(flavor = "multi_thread")]
