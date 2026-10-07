@@ -3,7 +3,8 @@
 //! raised on the dispatch future itself.
 //!
 //! The renderer writes to the process's own stderr, so the assertion spawns
-//! the built binary rather than driving the runner in-process.
+//! the built binary rather than driving the runner in-process. The same
+//! spawned-binary seam shows what two `xr` processes do to one store.
 
 mod common;
 
@@ -88,6 +89,65 @@ async fn a_refresh_whose_username_lookup_fails_warns_on_stderr() {
             "warning: refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
         ),
         "the refresh warning must reach stderr: {stderr:?}"
+    );
+}
+
+/// Two `xr` processes that find the same expired login refresh it once. A
+/// refresh token is single-use, so the second process waits on the store's
+/// refresh lock and sends its request with the pair the first one saved.
+#[tokio::test(flavor = "multi_thread")]
+async fn two_processes_refresh_one_login_once() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(std::time::Duration::from_millis(500))
+                .set_body_json(serde_json::json!({
+                    "access_token": "new-at",
+                    "refresh_token": "new-rt",
+                    "expires_in": 7200
+                })),
+        )
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "1", "name": "Alice", "username": "alice"}
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/recent"))
+        .and(header("Authorization", "Bearer new-at"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": [{"id": "1", "text": "hi"}]})),
+        )
+        .expect(2)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = expired_oauth2_store(&tmp);
+
+    let ((first_code, first_stderr), (second_code, second_stderr)) = tokio::join!(
+        run(store.clone(), server.uri(), &["search", "hi"]),
+        run(store, server.uri(), &["search", "hi"]),
+    );
+
+    assert_eq!(first_code, 0, "stderr: {first_stderr}");
+    assert_eq!(second_code, 0, "stderr: {second_stderr}");
+    let refreshes = server
+        .received_requests()
+        .await
+        .expect("request recording is on")
+        .iter()
+        .filter(|request| request.url.path() == "/2/oauth2/token")
+        .count();
+    assert_eq!(
+        refreshes, 1,
+        "the two processes spent the refresh token once"
     );
 }
 

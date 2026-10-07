@@ -14,7 +14,7 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{Error, Result};
-use crate::store::OAuth2Token;
+use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
 /// The scope that makes X issue a refresh token. Every sign-in requests it:
@@ -562,10 +562,18 @@ pub(crate) async fn refresh_grant(
 ///   with a `tracing` warning (the persisted store state is the load-bearing
 ///   observable).
 ///
+/// A refresh token is single-use, so an expired login is refreshed under
+/// the store's refresh lock (`<store>.refresh.lock`), held from before the
+/// stored token is re-read until the new pair is saved. A second process
+/// holding the same expired login waits there, then finds the pair the first
+/// saved and returns it without a request of its own. A login that has not
+/// expired returns without taking the lock.
+///
 /// # Errors
 ///
-/// Returns an error when no cached token is found or the refresh-token POST
-/// itself fails. A `fetch_username` failure is warned, not returned.
+/// Returns an error when no cached token is found, the refresh lock cannot
+/// be taken, or the refresh-token POST itself fails. A `fetch_username`
+/// failure is warned, not returned.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -575,6 +583,15 @@ pub async fn refresh_oauth2_token(
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
 
     // Token is still valid
+    if !is_expired(&oauth2) {
+        return Ok(oauth2.access_token.clone());
+    }
+
+    let _refresh_lock =
+        RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
+    auth.token_store.reload();
+    let oauth2 = stored_oauth2_token(auth, username)
+        .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     if !is_expired(&oauth2) {
         return Ok(oauth2.access_token.clone());
     }
