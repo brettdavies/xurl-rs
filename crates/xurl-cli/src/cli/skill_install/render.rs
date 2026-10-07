@@ -9,7 +9,7 @@ use super::{ACTION_UPDATE, InstallEnvelope, InstallMultiEnvelope, STATUS_DRY_RUN
 
 /// Render a single install envelope per the active output format.
 ///
-/// Json/Jsonl pretty-print JSON. Ndjson emits one compact JSON line. Yaml
+/// Json pretty-prints JSON. Jsonl and Ndjson emit one compact JSON line. Yaml
 /// emits a YAML document. Csv/Tsv fall back to one compact JSON line because
 /// the envelope is nested by construction. Text mode emits the legacy
 /// human-readable summary, plus a note line when the envelope names a copy at
@@ -60,9 +60,9 @@ pub(super) fn render_multi(env: &InstallMultiEnvelope, format: &OutputFormat) ->
 /// Best-effort serializer for any of the structured formats.
 pub(super) fn render_structured<T: serde::Serialize>(env: &T, format: &OutputFormat) -> String {
     match format {
-        OutputFormat::Json | OutputFormat::Jsonl => serde_json::to_string_pretty(env)
+        OutputFormat::Json => serde_json::to_string_pretty(env)
             .unwrap_or_else(|_| "{\"status\":\"error\"}".to_string()),
-        OutputFormat::Ndjson | OutputFormat::Csv | OutputFormat::Tsv => {
+        OutputFormat::Jsonl | OutputFormat::Ndjson | OutputFormat::Csv | OutputFormat::Tsv => {
             serde_json::to_string(env).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
         }
         OutputFormat::Yaml => serde_yaml::to_string(env)

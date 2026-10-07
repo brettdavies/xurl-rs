@@ -18,13 +18,8 @@ cargo add xdk-rs
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-Those two commands leave this in `Cargo.toml`. `#[tokio::main]` needs both tokio features:
-
-```toml
-[dependencies]
-xdk-rs = "0.1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-```
+Those two commands add both dependencies to `Cargo.toml` at their current versions. `#[tokio::main]` needs both tokio
+features.
 
 A complete program: the app-only bearer token from the [X developer portal](https://developer.x.com/en/portal/dashboard)
 in `XURL_BEARER_TOKEN`, one search, the text printed.
@@ -101,9 +96,15 @@ async fn main() -> xdk::Result<()> {
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error
 answers four questions: `kind()` names its category as a stable string, `exit_code()` maps it to the process exit code
 the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (sign in,
-register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. A 429
-carries no next action; `Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent response
-that reported one, which is what a retry loop waits on.
+register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. An
+error that wraps a lower-level failure keeps it: `std::error::Error::source()` returns the `reqwest`, `std::io`,
+`serde_json`, or `serde_yaml` error underneath, so a caller can walk the chain or downcast to it.
+
+A 429 carries the reset its own response named, as seconds since the Unix epoch in the `reset_at` field of `Error::Api`,
+and `NextAction::WaitAndRetry` with it; a 429 that named none carries neither. `ClientBuilder::wait_on_rate_limit` makes
+the client wait for that reset and send the request once more, when the wait fits the bound it is given.
+`Client::last_rate_limit()` returns the `x-rate-limit-*` window from the most recent response that reported one, which
+is what a loop pacing its own requests reads.
 
 ```rust,no_run
 use xdk::api::Client;
@@ -137,9 +138,8 @@ it deserializes into the same types a live call would, and every response carrie
 and `user_client()` return clients pointed at it, `stub` overrides a route or rehearses a failure, and `requests()`
 lists what arrived. Enable it in a test profile only, so a release build pulls none of its dependencies:
 
-```toml
-[dev-dependencies]
-xdk-rs = { version = "0.1", features = ["testing"] }
+```bash
+cargo add xdk-rs --dev --features testing
 ```
 
 The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no X
@@ -208,13 +208,21 @@ DEBUG xdk::vocabulary: legacy="edit_history_tweet_ids" normalized="edit_history_
 - `rustls` (default): TLS through [rustls](https://docs.rs/rustls) with the platform's certificate verifier; no system
   TLS library is linked.
 - `native-tls`: TLS through the operating system's library (OpenSSL on Linux, Secure Transport on macOS, SChannel on
-  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off: `xdk-rs = { version =
-  "0.1", default-features = false, features = ["native-tls"] }`. With both backends enabled, reqwest picks `native-tls`.
+  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off: `cargo add xdk-rs
+  --no-default-features --features native-tls`. With both backends enabled, reqwest picks `native-tls`.
 - `testing`: an in-process mock of the API seeded from the crate's fixtures, for tests that must not spend credits; see
   [Testing](#testing).
 
 A build with neither TLS feature fails at compile time with a message naming both, rather than at the first `https`
 request.
+
+## Stability
+
+The crate follows [SemVer 2.0.0](https://semver.org/). Its contract is the public Rust API, which `cargo semver-checks`
+reads on every pull request, and the behavior the rustdoc documents. Items marked `#[doc(hidden)]` are outside it.
+
+A break ships only in a release that moves the breaking position, and its changelog entry carries a before/after
+snippet. [Versioning](#versioning) has the rules.
 
 ## Versioning
 

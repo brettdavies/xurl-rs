@@ -4,6 +4,7 @@
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use bytes::Bytes;
 use futures_core::Stream;
@@ -23,10 +24,16 @@ pub const WIRE_TARGET: &str = "xdk::wire";
 impl Client {
     /// Sends a regular API request and returns the JSON response.
     ///
+    /// A success body that is not JSON is returned as a JSON string holding
+    /// it, and an empty one as an empty object. A client told to wait on
+    /// rate limits (`Config::rate_limit_max_wait`,
+    /// [`ClientBuilder::wait_on_rate_limit`](super::ClientBuilder::wait_on_rate_limit))
+    /// sleeps through a 429's reset and sends the request once more.
+    ///
     /// # Errors
     ///
-    /// Returns an error if the HTTP method is invalid, the request fails,
-    /// or the API returns an error status (>= 400).
+    /// Returns an error if the HTTP method is invalid, the request or the
+    /// read of its body fails, or the API returns an error status (>= 400).
     pub async fn send_request(&self, options: &RequestOptions) -> Result<serde_json::Value> {
         self.send_request_with(options, self.request_timeout())
             .await
@@ -39,16 +46,33 @@ impl Client {
         options: &RequestOptions,
         timeout: std::time::Duration,
     ) -> Result<serde_json::Value> {
+        match self.send_request_once(options, timeout).await {
+            Err(error) => match self.rate_limit_pause(&error) {
+                Some(pause) => {
+                    tokio::time::sleep(pause).await;
+                    self.send_request_once(options, timeout).await
+                }
+                None => Err(error),
+            },
+            sent => sent,
+        }
+    }
+
+    /// One attempt at [`Self::send_request_with`].
+    async fn send_request_once(
+        &self,
+        options: &RequestOptions,
+        timeout: std::time::Duration,
+    ) -> Result<serde_json::Value> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        // Auth-matrix validation lives inside `get_auth_header` (called
-        // below) so each request performs one matrix lookup, not two. The
-        // explicit-auth branch there rejects with
+        // Auth-matrix validation lives inside `get_auth_header`, reached
+        // through `with_headers`, so each request performs one matrix
+        // lookup, not two. The explicit-auth branch there rejects with
         // `Error::AuthMethodMismatch` before any header is produced;
         // `no_auth: true` short-circuits past the call site entirely.
         let url = self.build_url(&options.target)?;
 
-        // Build the request
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
             .map_err(|_| Error::InvalidMethod(method.to_string()))?;
 
@@ -56,97 +80,49 @@ impl Client {
 
         // Add body for POST/PUT/PATCH/DELETE; the spec gives some DELETE
         // endpoints a required body (`/2/media/subtitles`, `/2/connections`).
-        // Content-Type is the client's auto-detect unless the caller already
-        // supplied one; the body itself is always attached regardless.
-        let would_set_content_type =
+        let sends_body =
             !options.data.is_empty() && matches!(method, "POST" | "PUT" | "PATCH" | "DELETE");
-        if would_set_content_type {
-            if !user_supplied_header(&options.headers, "Content-Type") {
-                let content_type =
-                    if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
-                        "application/json"
-                    } else {
-                        "application/x-www-form-urlencoded"
-                    };
-                builder = builder.header("Content-Type", content_type);
-            }
-            builder = builder.body(options.data.clone());
+        if sends_body {
+            builder = with_body(builder, options);
         }
-
-        // Add custom headers
-        for header in &options.headers {
-            if let Some((key, value)) = header.split_once(':') {
-                builder = builder.header(key.trim(), value.trim());
-            }
-        }
-
-        // Add auth header (skip if no_auth is set, or if the caller already
-        // supplied an `Authorization` header in `options.headers`). When auth
-        // resolution fails (e.g., TokenNotFound for the resolved app),
-        // propagate the error so the user sees the real problem instead of
-        // letting the request go out unauthenticated and surfacing as a
-        // confusing 401 from upstream.
-        if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
-            let auth_header = self.get_auth_header(options).await?;
-            builder = builder.header("Authorization", auth_header);
-        }
-
-        // Add common headers (skip when the caller already supplied them).
-        if !user_supplied_header(&options.headers, "User-Agent") {
-            builder = builder.header("User-Agent", self.inner.user_agent.as_str());
-        }
-
-        if options.trace && !user_supplied_header(&options.headers, "X-B3-Flags") {
-            builder = builder.header("X-B3-Flags", "1");
-        }
-
-        note_header_overrides(
-            &options.headers,
-            would_set_content_type,
-            !options.no_auth,
-            options.trace,
-        );
+        let builder = self.with_headers(builder, options, sends_body).await?;
         trace_request(method, &url);
 
         let resp = builder.send().await?;
         self.record_rate_limit(resp.headers());
         trace_response(resp.status(), resp.headers());
-
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-
-        let json: serde_json::Value = if body.is_empty() {
-            serde_json::json!({})
-        } else if let Ok(v) = serde_json::from_str(&body) {
-            v
-        } else {
-            if status.as_u16() >= 400 {
-                return Err(Error::api(status.as_u16(), format!("HTTP error: {status}")));
-            }
-            serde_json::json!({})
-        };
-
-        if status.as_u16() >= 400 {
-            return Err(Error::api(status.as_u16(), json.to_string()));
-        }
-
-        Ok(json)
+        read_response(resp).await
     }
 
     /// Sends a multipart request (used for media upload chunks).
     ///
+    /// The body and the rate-limit wait follow [`Self::send_request`].
+    ///
     /// # Errors
     ///
     /// Returns an error if the HTTP method is invalid, file I/O fails,
-    /// the request fails, or the API returns an error status (>= 400).
+    /// the request or the read of its body fails, or the API returns an
+    /// error status (>= 400).
     pub async fn send_multipart_request(
         &self,
         options: &MultipartOptions,
     ) -> Result<serde_json::Value> {
+        match self.send_multipart_once(options).await {
+            Err(error) => match self.rate_limit_pause(&error) {
+                Some(pause) => {
+                    tokio::time::sleep(pause).await;
+                    self.send_multipart_once(options).await
+                }
+                None => Err(error),
+            },
+            sent => sent,
+        }
+    }
+
+    /// One attempt at [`Self::send_multipart_request`].
+    async fn send_multipart_once(&self, options: &MultipartOptions) -> Result<serde_json::Value> {
         let method = options.request.method.to_uppercase();
         let method = if method.is_empty() { "POST" } else { &method };
-        // Auth-matrix validation lives inside `get_auth_header` (called
-        // below). `no_auth: true` short-circuits past the call site.
         let url = self.build_url(&options.request.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -158,7 +134,7 @@ impl Client {
         if !options.file_field.is_empty() && !options.file_path.is_empty() {
             let part = multipart::Part::file(&options.file_path)
                 .await
-                .map_err(|e| Error::Io(format!("error opening file: {e}")))?;
+                .map_err(|e| Error::io(format!("error opening file: {e}")).with_source(e))?;
             form = form.part(options.file_field.clone(), part);
         } else if !options.file_field.is_empty() && !options.file_data.is_empty() {
             let part = multipart::Part::bytes(options.file_data.clone())
@@ -171,64 +147,19 @@ impl Client {
             form = form.text(key.clone(), value.clone());
         }
 
-        let mut builder = self
+        let builder = self
             .http()
             .request(req_method, &url)
             .timeout(self.request_timeout())
             .multipart(form);
-
-        // Add custom headers
-        for header in &options.request.headers {
-            if let Some((key, value)) = header.split_once(':') {
-                builder = builder.header(key.trim(), value.trim());
-            }
-        }
-
-        // Add auth header (skip if no_auth is set, or if the caller already
-        // supplied an `Authorization` header). Propagate auth errors rather
-        // than silently sending the request unauthenticated; see the matching
-        // propagation site in `send_request` for the rationale.
-        if !options.request.no_auth
-            && !user_supplied_header(&options.request.headers, "Authorization")
-        {
-            let auth_header = self.get_auth_header(&options.request).await?;
-            builder = builder.header("Authorization", auth_header);
-        }
-
-        if !user_supplied_header(&options.request.headers, "User-Agent") {
-            builder = builder.header("User-Agent", self.inner.user_agent.as_str());
-        }
-
-        if options.request.trace && !user_supplied_header(&options.request.headers, "X-B3-Flags") {
-            builder = builder.header("X-B3-Flags", "1");
-        }
-
         // Multipart's Content-Type is owned by `reqwest`'s multipart builder
-        // (it carries the boundary), so the override note skips Content-Type.
-        note_header_overrides(
-            &options.request.headers,
-            false,
-            !options.request.no_auth,
-            options.request.trace,
-        );
+        // (it carries the boundary), so the client never sets one here.
+        let builder = self.with_headers(builder, &options.request, false).await?;
         trace_request(method, &url);
 
         let resp = builder.send().await?;
         self.record_rate_limit(resp.headers());
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-
-        let json: serde_json::Value = if body.is_empty() {
-            serde_json::json!({})
-        } else {
-            serde_json::from_str(&body).unwrap_or(serde_json::json!({}))
-        };
-
-        if status.as_u16() >= 400 {
-            return Err(Error::api(status.as_u16(), json.to_string()));
-        }
-
-        Ok(json)
+        read_response(resp).await
     }
 
     /// Opens a streaming request and returns its lines as they arrive.
@@ -244,10 +175,9 @@ impl Client {
     pub async fn stream_request(&self, options: &RequestOptions) -> Result<StreamLines> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
-        // Auth-matrix validation lives inside `get_auth_header` (called
-        // below). Streaming honours the same fail-fast rule: an explicit
-        // `--auth X` against an endpoint that doesn't accept `X` rejects
-        // via `get_auth_header` before `builder.send()` opens any socket.
+        // Streaming honours the same fail-fast rule as the other two paths:
+        // an explicit `--auth X` against an endpoint that doesn't accept `X`
+        // rejects in `with_headers` before `builder.send()` opens any socket.
         let url = self.build_url(&options.target)?;
 
         let req_method = reqwest::Method::from_bytes(method.as_bytes())
@@ -255,20 +185,43 @@ impl Client {
 
         let mut builder = self.http().request(req_method, &url);
 
-        let would_set_content_type = !options.data.is_empty();
-        if would_set_content_type {
-            if !user_supplied_header(&options.headers, "Content-Type") {
-                let content_type =
-                    if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
-                        "application/json"
-                    } else {
-                        "application/x-www-form-urlencoded"
-                    };
-                builder = builder.header("Content-Type", content_type);
-            }
-            builder = builder.body(options.data.clone());
+        let sends_body = !options.data.is_empty();
+        if sends_body {
+            builder = with_body(builder, options);
+        }
+        let builder = self.with_headers(builder, options, sends_body).await?;
+        trace_request(method, &url);
+
+        let resp = builder.send().await?;
+        self.record_rate_limit(resp.headers());
+        trace_response(resp.status(), resp.headers());
+
+        if resp.status().as_u16() >= 400 {
+            return Err(api_error(resp).await?);
         }
 
+        Ok(StreamLines {
+            body: Box::pin(resp.bytes_stream()),
+            buf: Vec::new(),
+            done: false,
+        })
+    }
+
+    /// Adds the headers every request path sends: the caller's own, then
+    /// `Authorization`, `User-Agent`, and (when tracing) `X-B3-Flags`, each
+    /// left out when the caller already supplied it.
+    ///
+    /// An auth failure (a mismatch, or no token for the resolved app) is
+    /// returned rather than sending the request unauthenticated, which would
+    /// surface as a confusing 401 from upstream. `sets_content_type` says
+    /// whether the caller of this function set a `Content-Type` of its own,
+    /// so the override note covers it.
+    async fn with_headers(
+        &self,
+        mut builder: reqwest::RequestBuilder,
+        options: &RequestOptions,
+        sets_content_type: bool,
+    ) -> Result<reqwest::RequestBuilder> {
         for header in &options.headers {
             if let Some((key, value)) = header.split_once(':') {
                 builder = builder.header(key.trim(), value.trim());
@@ -290,31 +243,92 @@ impl Client {
 
         note_header_overrides(
             &options.headers,
-            would_set_content_type,
+            sets_content_type,
             !options.no_auth,
             options.trace,
         );
-        trace_request(method, &url);
-
-        let resp = builder.send().await?;
-        self.record_rate_limit(resp.headers());
-        trace_response(resp.status(), resp.headers());
-
-        let resp_status = resp.status();
-        if resp_status.as_u16() >= 400 {
-            let body = resp.text().await.unwrap_or_default();
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-                return Err(Error::api(resp_status.as_u16(), json.to_string()));
-            }
-            return Err(Error::api(resp_status.as_u16(), body));
-        }
-
-        Ok(StreamLines {
-            body: Box::pin(resp.bytes_stream()),
-            buf: Vec::new(),
-            done: false,
-        })
+        Ok(builder)
     }
+
+    /// How long to sleep before sending a rate-limited request once more:
+    /// the time left until the reset the 429 itself named, when this client
+    /// waits on rate limits and that time fits its bound.
+    fn rate_limit_pause(&self, error: &Error) -> Option<Duration> {
+        let max_wait = self.inner.rate_limit_max_wait?;
+        let Error::Api {
+            status: 429,
+            reset_at: Some(reset_at),
+            ..
+        } = error
+        else {
+            return None;
+        };
+        let reset = UNIX_EPOCH + Duration::from_secs(*reset_at);
+        let wait = reset.duration_since(SystemTime::now()).unwrap_or_default();
+        (wait <= max_wait).then_some(wait)
+    }
+}
+
+/// Attaches the request body, with the `Content-Type` its shape implies
+/// unless the caller supplied one.
+fn with_body(
+    mut builder: reqwest::RequestBuilder,
+    options: &RequestOptions,
+) -> reqwest::RequestBuilder {
+    if !user_supplied_header(&options.headers, "Content-Type") {
+        let content_type = if serde_json::from_str::<serde_json::Value>(&options.data).is_ok() {
+            "application/json"
+        } else {
+            "application/x-www-form-urlencoded"
+        };
+        builder = builder.header("Content-Type", content_type);
+    }
+    builder.body(options.data.clone())
+}
+
+/// Reads a finished response into the value or the error the caller gets.
+///
+/// Nothing received is discarded. A success body that is JSON is that value;
+/// one that is not is a JSON string holding it, which raw mode prints as text
+/// and a typed call refuses to decode; an empty one is an empty object, since
+/// X answers several writes with no body at all.
+async fn read_response(resp: reqwest::Response) -> Result<serde_json::Value> {
+    if resp.status().as_u16() >= 400 {
+        return Err(api_error(resp).await?);
+    }
+    let body = resp.text().await?;
+    if body.is_empty() {
+        return Ok(serde_json::json!({}));
+    }
+    Ok(serde_json::from_str(&body).unwrap_or(serde_json::Value::String(body)))
+}
+
+/// The [`Error::Api`] an error response becomes.
+///
+/// A JSON body is carried in its compact form and any other body as sent, so
+/// an HTML error page reaches the message. A 429 carries the reset its own
+/// headers name, never the window an earlier response reported.
+///
+/// # Errors
+///
+/// Returns the transport error when the body cannot be read.
+async fn api_error(resp: reqwest::Response) -> Result<Error> {
+    let status = resp.status().as_u16();
+    let reset_at = (status == 429)
+        .then(|| super::RateLimit::from_headers(resp.headers()))
+        .flatten()
+        .and_then(|window| window.reset_at);
+    let body = resp.text().await?;
+    let body = match serde_json::from_str::<serde_json::Value>(&body) {
+        Ok(json) => json.to_string(),
+        Err(_) if body.is_empty() => "{}".to_string(),
+        Err(_) => body,
+    };
+    Ok(Error::Api {
+        status,
+        body,
+        reset_at,
+    })
 }
 
 type ByteStream = Pin<Box<dyn Stream<Item = reqwest::Result<Bytes>> + Send>>;
@@ -384,7 +398,7 @@ impl Stream for StreamLines {
                 Poll::Ready(Some(Ok(chunk))) => self.buf.extend_from_slice(&chunk),
                 Poll::Ready(Some(Err(e))) => {
                     self.done = true;
-                    return Poll::Ready(Some(Err(Error::Io(e.to_string()))));
+                    return Poll::Ready(Some(Err(Error::io(e.to_string()).with_source(e))));
                 }
             }
         }

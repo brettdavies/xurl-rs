@@ -3,7 +3,7 @@
 //! every such fixture is the shape the vendored spec gives the endpoint it
 //! answers.
 //!
-//! When the X API adds fields, unknown fields land silently in `extra` (R8).
+//! When the X API adds fields, unknown fields land silently in `extra`.
 //! When the X API changes a field type or removes a required field, these
 //! tests fail with a clear message naming the type and field. When the spec
 //! changes a field's type inside a schema that still exists, the fixture

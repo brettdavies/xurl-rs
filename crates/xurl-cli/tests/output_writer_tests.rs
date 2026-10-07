@@ -1,7 +1,7 @@
-//! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`
-//! (U1 of the library-CLI-entrypoint plan).
+//! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`.
 
 use xdk::Error;
+use xurl::cli::envelope::Reason;
 use xurl::cli::output::{OutputConfig, OutputFormat};
 
 /// Compile-time assertion: `OutputConfig` must remain a `Send + Sync` config
@@ -173,9 +173,7 @@ fn print_response_no_ansi_in_json_format() {
 
 #[test]
 fn print_response_text_no_color_writes_pretty_json() {
-    // Text + no_color must go through the writer (the colorized text path
-    // still calls into format.rs's println!-based functions per the U1/U2
-    // boundary; U2 fixes that).
+    // Text + no_color must go through the writer.
     let cfg = OutputConfig {
         format: OutputFormat::Text,
         quiet: false,
@@ -251,9 +249,9 @@ fn print_error_emits_structured_json_when_format_is_json() {
     assert!(parsed["message"].as_str().unwrap().contains("bad token"));
 }
 
-/// R10: `AuthMethodMismatch` JSON envelope folds in `endpoint`, `method`,
-/// `requested`, `supported`, and `message`. The U6 explicit-mismatch shape
-/// MUST omit `available_in_app` (U7's empty-intersection shape adds it).
+/// `AuthMethodMismatch` JSON envelope folds in `endpoint`, `method`,
+/// `requested`, `supported`, and `message`. The explicit-mismatch shape
+/// omits `available_in_app`; the empty-intersection shape adds it.
 #[test]
 fn print_error_auth_method_mismatch_envelope_shape_r10() {
     let cfg = OutputConfig {
@@ -319,10 +317,9 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
     );
 }
 
-/// U7 forward-compat: the empty-intersection shape (`requested = None`,
+/// The empty-intersection shape (`requested = None`,
 /// `available_in_app = Some([...])`) must produce a `requested: null` JSON
-/// value and include the `available_in_app` array. U6 commits to this
-/// envelope shape so U7 doesn't have to rewrite the serializer.
+/// value and include the `available_in_app` array.
 #[test]
 fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
     let cfg = OutputConfig {
@@ -382,7 +379,7 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
     assert!(!err_buf.is_empty());
 }
 
-// U8: verbose/warning/progress contract — naked stdio elsewhere is barred,
+// Verbose/warning/progress contract — naked stdio elsewhere is barred,
 // so these are the only legal channels for diagnostics.
 
 #[test]
@@ -404,7 +401,7 @@ fn verbose_writes_under_text_when_verbose_flag_on() {
 
 #[test]
 fn verbose_suppressed_under_json_even_when_verbose_on() {
-    // U8 requirement: agents parsing structured output must not see verbose
+    // Agents parsing structured output must not see verbose
     // request/response prefixes on stderr.
     let cfg = OutputConfig {
         format: OutputFormat::Json,
@@ -478,8 +475,7 @@ fn warning_writes_under_text() {
 #[test]
 fn warning_suppressed_under_json() {
     // Per agent-native semantic-fields-over-stderr-warnings: warnings under
-    // JSON modes are not emitted on stderr (envelope promotion is the future
-    // home for them — plan U8 deferred).
+    // JSON modes are not emitted on stderr.
     let cfg = OutputConfig {
         format: OutputFormat::Json,
         quiet: false,
@@ -523,7 +519,7 @@ fn output_config_default_is_text_no_verbose() {
     assert!(!cfg.use_color);
 }
 
-// ── U13: csv / tsv / yaml / ndjson format coverage ──────────────────
+// ── csv / tsv / yaml / ndjson format coverage ──────────────────
 
 fn fmt_cfg(format: OutputFormat) -> OutputConfig {
     OutputConfig {
@@ -676,7 +672,7 @@ fn warning_suppressed_under_yaml_and_csv() {
 fn print_error_under_yaml_emits_yaml_envelope() {
     let cfg = fmt_cfg(OutputFormat::Yaml);
     let mut buf: Vec<u8> = Vec::new();
-    cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    cfg.print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
     let s = String::from_utf8(buf).unwrap();
     assert!(s.contains("status: error"), "got: {s}");
     assert!(s.contains("reason: no-tty"), "got: {s}");
@@ -751,7 +747,10 @@ fn assert_round_trips(emitted: &str, expected_reason: &str) {
     );
     let body: xurl::cli::envelope::ErrorBody = serde_json::from_value(value)
         .unwrap_or_else(|e| panic!("undeclared key in the envelope ({e}): {emitted}"));
-    assert_eq!(body.reason, expected_reason);
+    assert_eq!(
+        serde_json::to_value(body.reason).expect("a reason serializes"),
+        expected_reason
+    );
 }
 
 fn json_config() -> OutputConfig {
@@ -787,7 +786,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
 
     // 3. A reason-and-message envelope through `print_error_envelope`.
     let mut buf: Vec<u8> = Vec::new();
-    json_config().print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    json_config().print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
     assert_round_trips(&String::from_utf8_lossy(&buf), "no-tty");
 
     // 4. Confirmation-required, whose verb context is declared too.
@@ -805,7 +804,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
     // 5. A hint-bearing envelope: `next_step` must round-trip too. The CLI
     // builds this shape for the sign-in refusal.
     let mut body = xurl::cli::envelope::ErrorBody::default();
-    body.reason = "client-credentials-missing".to_string();
+    body.reason = Reason::ClientCredentialsMissing;
     body.exit_code = 2;
     body.message = Some("no app carries client credentials.".to_string());
     body.app = Some("blank".to_string());

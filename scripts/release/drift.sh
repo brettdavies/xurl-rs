@@ -34,7 +34,9 @@
 #      touched that base does not already contain. A file base has moved
 #      further on its own is not drift: head's change (anchor to head) is
 #      checked against base's copy, first by three-way merge and then line by
-#      line (every added line present, every removed line gone). Lockfiles
+#      line (every added line present, every removed line gone). In a
+#      package.json, a dependency entry counts as present when base declares
+#      it in the same section at the same or a newer lower bound. Lockfiles
 #      are handled by gate 3.
 #   2. .github/ paths head carries that base does not contain. A path
 #      base holds and head does not is what the release delivers, not
@@ -42,7 +44,10 @@
 #   3. For each lockfile head carries (package-lock.json, bun.lock,
 #      Cargo.lock): every
 #      package head resolves newer than base, one line per package name so
-#      nested copies and hoisting moves never show. The count of base-newer
+#      nested copies and hoisting moves never show. Only resolved versions
+#      compare; a file:, workspace:, link: or git spec is left out. A copy
+#      head nests under a package base no longer carries is not counted,
+#      since base dropped what pulled it in. The count of base-newer
 #      packages (routine updates awaiting release) is reported for context.
 #
 # Exit codes:
@@ -261,7 +266,7 @@ classify_file_at() {
   set -e
   if [[ $status -eq 0 && "$merged" == "$(<"$tmp/base")" ]]; then
     echo contained
-  elif lines_contained "$tmp/anchor" "$tmp/head" "$tmp/base"; then
+  elif lines_contained "$tmp/anchor" "$tmp/head" "$tmp/base" "$path"; then
     echo contained
   else
     echo differs
@@ -288,16 +293,75 @@ diff_side() {
 
 # Returns 0 when every content line ADDED between ANCHOR_FILE and HEAD_FILE
 # is present in BASE_FILE and every content line REMOVED is absent from it.
+# When PATH names a package.json, the three copies are first rewritten in place
+# by qualify_dependency_entries, and an added dependency entry base does not
+# hold verbatim still counts as present when dependency_covered finds base's
+# range at or past it, since a range base has bumped since still carries it.
 lines_contained() {
-  local anchor_file="$1" head_file="$2" base_file="$3" line
+  local anchor_file="$1" head_file="$2" base_file="$3" path="${4:-}" manifest=0 line
+  if [[ "${path##*/}" == package.json ]]; then
+    manifest=1
+    qualify_dependency_entries "$anchor_file" "$head_file" "$base_file"
+  fi
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
-    grep -qxF -- "$line" "$base_file" || return 1
+    grep -qxF -- "$line" "$base_file" && continue
+    [[ $manifest -eq 1 ]] && dependency_covered "$line" "$base_file" && continue
+    return 1
   done < <(diff_side + "$anchor_file" "$head_file")
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:][:punct:]]*$ ]] && continue
     grep -qxF -- "$line" "$base_file" && return 1
   done < <(diff_side - "$anchor_file" "$head_file")
+  return 0
+}
+
+# Rewrites each entry of a package.json dependency section (dependencies,
+# devDependencies, peerDependencies, optionalDependencies) in FILE... in place
+# as "<section><TAB><name><TAB><range>". The line check then compares an entry
+# within its own section and ignores its indentation and trailing comma, so a
+# removed range that another section repeats still counts as gone. Expects one
+# entry per line, as npm and bun write the file; other lines are left as is.
+qualify_dependency_entries() {
+  # shellcheck disable=SC2016  # perl variables, not shell expansions
+  perl -i -ne '
+    if (/^\s*"(dependencies|devDependencies|peerDependencies|optionalDependencies)"\s*:\s*\{\s*$/) { $s = $1 }
+    elsif (defined $s && /^\s*\}/) { undef $s }
+    elsif (defined $s && /^\s*"([^"]+)"\s*:\s*"([^"]*)"\s*,?\s*$/) { $_ = "$s\t$1\t$2\n" }
+    print;
+    undef $s if eof;
+  ' "$@"
+}
+
+# Returns 0 when BASE_FILE covers the qualified dependency LINE: base declares
+# the same package in the same section at a range whose lower bound is the same
+# as or newer than the line's. Only a bare version or one led by ^, ~, >=, or =
+# has a lower bound here; any other range (a URL, a tag, a workspace or
+# compound range) is never covered.
+dependency_covered() {
+  local line="$1" base_file="$2" section name range want base_range
+  local entry=$'^(dependencies|devDependencies|peerDependencies|optionalDependencies)\t([^\t]+)\t(.+)$'
+  local floor='^(\^|~|>=|=)?([0-9]+(\.[0-9]+)*)$'
+  [[ "$line" =~ $entry ]] || return 1
+  section="${BASH_REMATCH[1]}" name="${BASH_REMATCH[2]}" range="${BASH_REMATCH[3]}"
+  [[ "$range" =~ $floor ]] || return 1
+  want="${BASH_REMATCH[2]}"
+  base_range=$(awk -F'\t' -v s="$section" -v n="$name" '$1 == s && $2 == n { print $3; exit }' "$base_file")
+  [[ "$base_range" =~ $floor ]] || return 1
+  version_at_least "${BASH_REMATCH[2]}" "$want"
+}
+
+# Returns 0 when dotted version A is the same as or newer than dotted version
+# B, comparing component by component as numbers (a missing component is 0).
+version_at_least() {
+  local -a a b
+  local i
+  IFS=. read -ra a <<<"$1"
+  IFS=. read -ra b <<<"$2"
+  for ((i = 0; i < ${#a[@]} || i < ${#b[@]}; i++)); do
+    ((10#${a[i]:-0} > 10#${b[i]:-0})) && return 0
+    ((10#${a[i]:-0} < 10#${b[i]:-0})) && return 1
+  done
   return 0
 }
 
@@ -362,20 +426,21 @@ gate_github_dir() {
 
 # Gate 3: lockfile resolution ------------------------------------------------
 
-# Prints "name version scope" per package for the lockfile PATH at REF,
-# keeping only the highest version per name. scope is dev/runtime for npm
-# and crate for Cargo.
-lockfile_versions() {
+# Prints "key name version scope" per package entry in the lockfile PATH at
+# REF. key is the entry's lockfile path (npm's `node_modules/a/node_modules/b`,
+# Bun's `a/b`, a crate's name), which places a nested copy under the package
+# that pulled it in. scope is dev/runtime for npm and crate for Cargo.
+lockfile_entries() {
   local ref="$1" path="$2"
   case "$path" in
     *package-lock.json)
       git show "$ref:$path" | "$JQ_BIN" -r '.packages | to_entries[]
         | select(.key | contains("node_modules/"))
         | select(.value.version != null)
-        | "\(.key | sub(".*node_modules/"; "")) \(.value.version) \(if .value.dev then "dev" else "runtime" end)"'
+        | "\(.key) \(.key | sub(".*node_modules/"; "")) \(.value.version) \(if .value.dev then "dev" else "runtime" end)"'
       ;;
     *bun.lock)
-      # Each entry is `name: ["name@version", ...]`; the first element carries
+      # Each entry is `key: ["name@version", ...]`; the first element carries
       # the resolved version. Everything is "dev" or "runtime" by workspace
       # section, which the entry does not record, so scope is unknown.
       # Bun writes trailing commas, which jq and jaq reject; strip them
@@ -384,14 +449,39 @@ lockfile_versions() {
       git show "$ref:$path" | perl -0pe 's/,(\s*[}\]])/$1/g' | "$JQ_BIN" -r '.packages | to_entries[]
         | select(.value[0] | type == "string")
         | (.value[0] | capture("^(?<name>@?[^@]+)@(?<ver>[^@]+)$")) as $m
-        | "\($m.name) \($m.ver) pkg"'
+        | "\(.key) \($m.name) \($m.ver) pkg"'
       ;;
     *Cargo.lock)
       git show "$ref:$path" | awk -F'"' '
         /^name = /    { name = $2 }
-        /^version = / { if (name != "") { print name " " $2 " crate"; name = "" } }'
+        /^version = / { if (name != "") { print name " " name " " $2 " crate"; name = "" } }'
       ;;
-  esac | sort -k1,1 -k2,2V | awk '{ last[$1] = $0 } END { for (k in last) print last[k] }' | sort -k1,1
+  esac
+}
+
+# Prints "name version scope" per package for the lockfile PATH at REF,
+# keeping only the highest resolved version per name. A spec that is not a
+# version (file:, workspace:, link:, a git URL) has no order against a
+# registry version and is left out. With PARENT_REF, a nested entry counts
+# only when its parent's key exists in PARENT_REF's lockfile: a copy pulled in
+# by a package that side no longer carries is nothing it could have received.
+lockfile_versions() {
+  local ref="$1" path="$2" parent_ref="${3:-}" tmp
+  tmp=$(mktemp -d)
+  : >"$tmp/keys"
+  [[ -n "$parent_ref" ]] && lockfile_entries "$parent_ref" "$path" | cut -d' ' -f1 >"$tmp/keys"
+  lockfile_entries "$ref" "$path" >"$tmp/entries"
+  awk -v filter="${parent_ref:+1}" '
+    FILENAME == ARGV[1] { have[$1] = 1; next }
+    $3 !~ /^[0-9]/ { next }
+    filter && length($1) > length($2) && substr($1, length($1) - length($2)) == "/" $2 {
+      parent = substr($1, 1, length($1) - length($2) - 1)
+      sub(/\/?node_modules$/, "", parent)
+      if (parent != "" && !(parent in have)) next
+    }
+    { print $2, $3, $4 }' "$tmp/keys" "$tmp/entries" \
+    | sort -k1,1 -k2,2V | awk '{ last[$1] = $0 } END { for (k in last) print last[k] }' | sort -k1,1
+  rm -rf "$tmp"
 }
 
 # Runs the resolution comparison for one lockfile path.
@@ -416,7 +506,7 @@ compare_lockfile() {
     else
       base_newer=$((base_newer + 1))
     fi
-  done < <(join <(lockfile_versions "$BASE_REF" "$path") <(lockfile_versions "$HEAD_REF" "$path"))
+  done < <(join <(lockfile_versions "$BASE_REF" "$path") <(lockfile_versions "$HEAD_REF" "$path" "$BASE_REF"))
   if [[ $head_newer -eq 0 && $base_newer -eq 0 ]] \
     && [[ -z "$(lockfile_versions "$HEAD_REF" "$path" 2>/dev/null | head -1)" ]]; then
     gate_fail "$path" "parsed zero packages on $HEAD_REF; the lockfile format is not understood"

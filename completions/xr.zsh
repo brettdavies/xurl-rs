@@ -29,23 +29,25 @@ _xr() {
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -79,23 +81,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -118,23 +122,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -157,23 +163,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -196,23 +204,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -235,23 +245,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -267,31 +279,33 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (search)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -313,23 +327,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -350,23 +366,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -390,23 +408,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -429,23 +449,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -466,23 +488,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -504,23 +528,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -542,23 +568,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -580,23 +608,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -618,23 +648,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -656,23 +688,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -696,23 +730,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -727,31 +763,33 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (likes)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -772,23 +810,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -810,23 +850,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -851,23 +893,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -891,23 +935,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -928,23 +974,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -966,23 +1014,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1006,23 +1056,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1043,23 +1095,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1081,23 +1135,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1121,23 +1177,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1158,23 +1216,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1203,23 +1263,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1268,23 +1330,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1309,23 +1373,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1343,23 +1409,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1383,23 +1451,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1426,23 +1496,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1463,23 +1535,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1501,23 +1575,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1624,23 +1700,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1664,26 +1742,29 @@ _arguments "${_arguments_options[@]}" : \
 '--no-browser=[Enable manual two-step flow for headless machines (SSH, containers)]::NO_BROWSER:(true false)' \
 '--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
 '--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
+'*--scopes=[Request only these comma-separated scopes, plus offline.access (default\: every scope)]:SCOPES:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1699,28 +1780,33 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--consumer-key=[Consumer key]:CONSUMER_KEY:_default' \
 '--consumer-secret=[Consumer secret]:CONSUMER_SECRET:_default' \
+'--consumer-secret-file=[File holding the consumer secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--access-token=[Access token]:ACCESS_TOKEN:_default' \
+'--access-token-file=[File holding the access token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--token-secret=[Token secret]:TOKEN_SECRET:_default' \
+'--token-secret-file=[File holding the token secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1734,26 +1820,29 @@ never\:"Never emit ANSI color escapes"))' \
 (app)
 _arguments "${_arguments_options[@]}" : \
 '--bearer-token=[Bearer token]:BEARER_TOKEN:_default' \
+'--bearer-token-file=[File holding the bearer token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1769,23 +1858,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1802,23 +1893,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1838,23 +1931,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1877,27 +1972,30 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'--client-secret-file=[File holding the \`OAuth2\` client secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1913,27 +2011,30 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--client-id=[\`OAuth2\` client ID]:CLIENT_ID:_default' \
 '--client-secret=[\`OAuth2\` client secret]:CLIENT_SECRET:_default' \
+'(--client-secret)--client-secret-file=[File holding the \`OAuth2\` client secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1950,23 +2051,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1984,23 +2087,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2016,23 +2121,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2056,23 +2163,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2089,23 +2198,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2219,23 +2330,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2357,23 +2470,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2396,6 +2511,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--media-type=[Media type (e.g., video/mp4)]:MEDIA_TYPE:_default' \
 '--category=[Media category (e.g., \`amplify_video\`)]:CATEGORY:_default' \
+'--wait=[Wait for X to finish processing the upload before returning]::SECS:_default' \
 '--auth=[Authentication type]:AUTH_TYPE:_default' \
 '-u+[Username]:USERNAME:_default' \
 '--username=[Username]:USERNAME:_default' \
@@ -2404,27 +2520,28 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'--wait[Wait for media processing to complete]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2440,33 +2557,35 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type]:AUTH_TYPE:_default' \
 '-u+[Username]:USERNAME:_default' \
 '--username=[Username]:USERNAME:_default' \
+'-w+[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
+'--wait=[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-w[Wait for processing]' \
-'--wait[Wait for processing]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2485,23 +2604,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2521,23 +2642,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2567,23 +2690,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2608,23 +2733,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2735,23 +2862,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2775,22 +2904,24 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2809,22 +2940,24 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2875,23 +3008,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2911,23 +3046,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2944,23 +3081,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2976,23 +3115,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3009,23 +3150,25 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (\`.yml\`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason \`invalid-args\` if requested]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
 '--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \

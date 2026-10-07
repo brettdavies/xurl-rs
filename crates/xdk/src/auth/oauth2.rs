@@ -14,10 +14,15 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{Error, Result};
-use crate::store::OAuth2Token;
+use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
-/// `OAuth2` scopes the client requests.
+/// The scope that makes X issue a refresh token. Every sign-in requests it:
+/// without one the login ends when the access token does, within hours.
+pub const OFFLINE_ACCESS: &str = "offline.access";
+
+/// Every `OAuth2` scope a sign-in can request, and the set it requests when
+/// the caller names none.
 #[must_use]
 pub fn get_oauth2_scopes() -> Vec<&'static str> {
     vec![
@@ -51,6 +56,39 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
     ]
 }
 
+/// Narrows a sign-in to `requested`, in the order [`get_oauth2_scopes`] lists
+/// them, with [`OFFLINE_ACCESS`] added.
+///
+/// # Errors
+///
+/// Returns a validation error naming the valid scopes when `requested`
+/// carries a name outside [`get_oauth2_scopes`].
+pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'static str>> {
+    let known = get_oauth2_scopes();
+    let unknown: Vec<&str> = requested
+        .iter()
+        .map(AsRef::as_ref)
+        .filter(|name| !known.contains(name))
+        .collect();
+    if !unknown.is_empty() {
+        return Err(Error::validation(format!(
+            "unknown OAuth2 scope {}. Valid scopes: {}",
+            unknown
+                .iter()
+                .map(|name| format!("{name:?}"))
+                .collect::<Vec<_>>()
+                .join(", "),
+            known.join(", ")
+        )));
+    }
+    Ok(known
+        .into_iter()
+        .filter(|scope| {
+            *scope == OFFLINE_ACCESS || requested.iter().any(|name| name.as_ref() == *scope)
+        })
+        .collect())
+}
+
 /// Generates a PKCE code verifier and its S256 challenge.
 #[must_use]
 pub fn generate_code_verifier_and_challenge() -> (String, String) {
@@ -68,9 +106,9 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
 ///
 /// Returns an error if the base authorization URL cannot be parsed.
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
-    let scopes = get_oauth2_scopes().join(" ");
-    let mut auth_url =
-        Url::parse(auth.auth_url()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let scopes = auth.oauth2_scopes().join(" ");
+    let mut auth_url = Url::parse(auth.auth_url())
+        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")
@@ -126,13 +164,13 @@ pub(crate) async fn exchange_code_for_token(
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
 
     let status = token_resp.status();
     let token_data: serde_json::Value = token_resp
         .json()
         .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e))?;
+        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
 
     if !status.is_success() {
         let api_error = token_data["error"].as_str().unwrap_or("unknown");
@@ -242,8 +280,8 @@ where
     // Parse the resolved redirect URI; the listener binds host, port, and path
     // from it. Validation already accepted https or http+loopback at write and
     // resolve time, so a parse failure here is a programmer error.
-    let redirect_parsed =
-        Url::parse(auth.redirect_uri()).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let redirect_parsed = Url::parse(auth.redirect_uri())
+        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
 
     // The opener runs on the listener's bind-success hook. A failed open
     // cancels the listener immediately rather than waiting out the callback
@@ -307,6 +345,11 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         client_id: auth.client_id().to_string(),
         app_name: auth.app_name().to_string(),
         created_at: now,
+        scopes: auth
+            .oauth2_scopes()
+            .iter()
+            .map(ToString::to_string)
+            .collect(),
     };
 
     pending::save(&pending_state, pending_path)?;
@@ -320,14 +363,19 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
 /// and client ID, extracts the authorization code from `redirect_url`,
 /// exchanges it for an access token, and saves the token to the store.
 ///
+/// The scope set is the one step 1 saved: the consent the redirect URL
+/// answers was given for it. A scope set chosen on `auth` since then
+/// ([`Auth::with_oauth2_scopes`]) must name the same scopes.
+///
 /// The pending state file is deleted only on success — on any error the
 /// file is preserved so the user can retry.
 ///
 /// # Errors
 ///
 /// Returns an error if the pending state is missing/expired/invalid,
-/// the client ID doesn't match, the state parameter doesn't match,
-/// the redirect URL is missing the code, or the token exchange fails.
+/// the client ID or the chosen scope set doesn't match, the state
+/// parameter doesn't match, the redirect URL is missing the code, or the
+/// token exchange fails.
 pub async fn run_remote_step2(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -348,9 +396,22 @@ pub async fn run_remote_step2(
         )));
     }
 
+    if let Some(chosen) = auth.chosen_oauth2_scopes() {
+        let saved = pending_state.requested_scopes();
+        if chosen != saved {
+            return Err(Error::auth(format!(
+                "ScopeMismatch: step 1 requested the scopes {}, but this step names {}. \
+                 Drop the scope choice from step 2, or re-run step 1 with it",
+                saved.join(" "),
+                chosen.join(" ")
+            )));
+        }
+    }
+
     // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url).map_err(|e| {
         Error::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
+            .with_source(e)
     })?;
 
     let params: std::collections::HashMap<String, String> = parsed
@@ -462,12 +523,12 @@ pub(crate) async fn refresh_grant(
         .basic_auth(client_id, Some(client_secret))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
 
     let token_data: serde_json::Value = token_resp
         .json()
         .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e))?;
+        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
 
     let access_token = token_data["access_token"]
         .as_str()
@@ -502,10 +563,18 @@ pub(crate) async fn refresh_grant(
 ///   with a `tracing` warning (the persisted store state is the load-bearing
 ///   observable).
 ///
+/// A refresh token is single-use, so an expired login is refreshed under
+/// the store's refresh lock (`<store>.refresh.lock`), held from before the
+/// stored token is re-read until the new pair is saved. A second process
+/// holding the same expired login waits there, then finds the pair the first
+/// saved and returns it without a request of its own. A login that has not
+/// expired returns without taking the lock.
+///
 /// # Errors
 ///
-/// Returns an error when no cached token is found or the refresh-token POST
-/// itself fails. A `fetch_username` failure is warned, not returned.
+/// Returns an error when no cached token is found, the refresh lock cannot
+/// be taken, or the refresh-token POST itself fails. A `fetch_username`
+/// failure is warned, not returned.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -515,6 +584,15 @@ pub async fn refresh_oauth2_token(
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
 
     // Token is still valid
+    if !is_expired(&oauth2) {
+        return Ok(oauth2.access_token.clone());
+    }
+
+    let _refresh_lock =
+        RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
+    auth.token_store.reload();
+    let oauth2 = stored_oauth2_token(auth, username)
+        .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     if !is_expired(&oauth2) {
         return Ok(oauth2.access_token.clone());
     }

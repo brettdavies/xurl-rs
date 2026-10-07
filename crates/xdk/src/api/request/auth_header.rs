@@ -8,7 +8,7 @@ use crate::api::auth_matrix::WireScheme;
 use crate::error::{AuthMismatch, Error, Result};
 
 use super::render_template_template;
-use super::source::CredentialSource;
+use super::source::{CredentialSource, SchemeFacts};
 use super::{Client, RequestOptions, RequestTarget};
 
 /// What scheme selection decided for one request: a header computed from
@@ -99,146 +99,170 @@ impl Client {
         credentials: &CredentialSource,
         options: &RequestOptions,
     ) -> Result<Selection> {
-        let auth_type = &options.auth_type;
         let method_raw = options.method.to_uppercase();
         let method = if method_raw.is_empty() {
             "GET"
         } else {
             method_raw.as_str()
         };
-
         // One matrix lookup for the entire decision: the explicit-auth
-        // validation below and the auto-detect intersection further down
-        // both consume it.
-        let endpoint_schemes = match &options.target {
-            RequestTarget::Template { path, .. } => {
-                crate::api::auth_matrix::supported_auth(method, path).map(|s| (path.clone(), s))
-            }
-            RequestTarget::RawUrl(_) => None,
-        };
-
-        if !auth_type.is_empty() {
-            // Validate the explicit-auth request against the matrix entry
-            // when present. Matrix-miss is permissive per the unknown-
-            // endpoint rule. Empty wire list (currently unreachable) would
-            // collapse to permissive too — the matrix only emits entries
-            // for endpoints that declare a `security:` list.
-            if let Some((path, schemes)) = &endpoint_schemes {
-                let supported_static = crate::api::auth_matrix::schemes_to_wire_list(schemes);
-                let requested_norm = auth_type.to_ascii_lowercase();
-                if !supported_static.contains(&requested_norm.as_str()) {
-                    let supported: Vec<String> =
-                        supported_static.iter().map(|s| (*s).to_string()).collect();
-                    let rendered_url = render_template_template(&options.target).ok();
-                    return Err(Error::from(AuthMismatch {
-                        endpoint: path.clone(),
-                        rendered_url,
-                        method: method.to_string(),
-                        requested: Some(requested_norm),
-                        supported,
-                        available_in_app: None,
-                        app: credentials.active_app(),
-                        other_apps_with_creds: None,
-                    }));
-                }
-            }
-            let url = self.build_url(&options.target)?;
-            return match auth_type.to_lowercase().as_str() {
-                "oauth1" => credentials
-                    .oauth1_header(method, &url)
-                    .map(Selection::Header),
-                "oauth2" => Ok(Selection::OAuth2 {
-                    username: options.username.clone(),
-                }),
-                "app" => credentials.bearer_header().map(Selection::Header),
-                _ => Err(Error::auth(format!("invalid auth type: {auth_type}"))),
-            };
+        // validation and the auto-detect intersection both consume it.
+        let endpoint = Endpoint::of(&options.target, method);
+        if options.auth_type.is_empty() {
+            self.detect_scheme(credentials, options, method, endpoint.as_ref())
+        } else {
+            self.explicit_scheme(credentials, options, method, endpoint.as_ref())
         }
+    }
 
-        // Auto-detect: walk the preference order and take the first scheme
-        // the credentials can serve, optionally intersected with the
-        // endpoint's accepted set.
-        let facts = credentials.scheme_facts();
-        let endpoint_supported_static: Option<Vec<&'static str>> = endpoint_schemes
-            .as_ref()
-            .map(|(_, schemes)| crate::api::auth_matrix::schemes_to_wire_list(schemes));
-        let selected_scheme = WireScheme::ALL_BY_PREFERENCE.into_iter().find(|m| {
-            let in_hand = facts.available.contains(m);
-            let in_endpoint = endpoint_supported_static
-                .as_ref()
-                .is_none_or(|sup| sup.contains(&m.as_wire()));
-            in_hand && in_endpoint
-        });
-
-        let Some(selected_scheme) = selected_scheme else {
-            // Empty intersection (or nothing at hand at all). The matrix-hit
-            // branches construct the typed envelope; the matrix-miss branch
-            // falls back to the generic auth error because no endpoint
-            // context is in scope.
-            if let Some((path, _)) = &endpoint_schemes {
-                let rendered_url = render_template_template(&options.target).ok();
-                let endpoint_supported = endpoint_supported_static
-                    .as_ref()
-                    .map(|sup| sup.iter().map(|s| (*s).to_string()).collect::<Vec<_>>())
-                    .unwrap_or_default();
-                let available_in_app: Vec<String> = facts
-                    .available
-                    .iter()
-                    .map(|s| s.as_wire().to_string())
-                    .collect();
-                if facts.stored.is_empty() {
-                    // The active app stores nothing. When other apps in the
-                    // store hold credentials, surface a wrong-app envelope
-                    // (exit 2) instead of generic auth-required (exit 77):
-                    // the user signed in, just not against the app they
-                    // invoked. An env bearer is still reported in
-                    // `available_in_app` so the envelope stays truthful, but
-                    // it never hides the wrong-app hint.
-                    let other_apps =
-                        credentials.other_apps_with_creds(facts.app.as_deref().unwrap_or_default());
-                    if !other_apps.is_empty() {
-                        return Err(Error::from(AuthMismatch {
-                            endpoint: path.clone(),
-                            rendered_url,
-                            method: method.to_string(),
-                            requested: None,
-                            supported: endpoint_supported,
-                            available_in_app: Some(available_in_app),
-                            app: facts.app,
-                            other_apps_with_creds: Some(other_apps),
-                        }));
-                    }
-                    if facts.available.is_empty() {
-                        return Err(Error::auth(crate::error::NO_AUTH_METHOD));
-                    }
-                }
+    /// The scheme the caller named, refused when the matrix knows the
+    /// endpoint and the endpoint does not accept it. An endpoint the matrix
+    /// does not know is permissive.
+    fn explicit_scheme(
+        &self,
+        credentials: &CredentialSource,
+        options: &RequestOptions,
+        method: &str,
+        endpoint: Option<&Endpoint<'_>>,
+    ) -> Result<Selection> {
+        let auth_type = &options.auth_type;
+        if let Some(endpoint) = endpoint {
+            let requested = auth_type.to_ascii_lowercase();
+            if !endpoint.accepts(&requested) {
                 return Err(Error::from(AuthMismatch {
-                    endpoint: path.clone(),
-                    rendered_url,
-                    method: method.to_string(),
-                    requested: None,
-                    supported: endpoint_supported,
-                    available_in_app: Some(available_in_app),
-                    app: facts.app,
-                    other_apps_with_creds: None,
+                    requested: Some(requested),
+                    ..endpoint.mismatch(credentials.active_app())
                 }));
             }
-            return Err(Error::auth(crate::error::NO_AUTH_METHOD));
-        };
-
-        // Dispatching on the typed [`WireScheme`] makes adding a new variant
-        // a compile error.
-        match selected_scheme {
-            WireScheme::OAuth2 => Ok(Selection::OAuth2 {
+        }
+        let url = self.build_url(&options.target)?;
+        match auth_type.to_lowercase().as_str() {
+            "oauth1" => credentials
+                .oauth1_header(method, &url)
+                .map(Selection::Header),
+            "oauth2" => Ok(Selection::OAuth2 {
                 username: options.username.clone(),
             }),
-            WireScheme::OAuth1 => {
+            "app" => credentials.bearer_header().map(Selection::Header),
+            _ => Err(Error::auth(format!("invalid auth type: {auth_type}"))),
+        }
+    }
+
+    /// The first scheme in preference order the credentials can serve and
+    /// the endpoint accepts. An endpoint the matrix does not know accepts
+    /// every scheme.
+    fn detect_scheme(
+        &self,
+        credentials: &CredentialSource,
+        options: &RequestOptions,
+        method: &str,
+        endpoint: Option<&Endpoint<'_>>,
+    ) -> Result<Selection> {
+        let facts = credentials.scheme_facts();
+        let selected = WireScheme::ALL_BY_PREFERENCE.into_iter().find(|scheme| {
+            facts.available.contains(scheme)
+                && endpoint.is_none_or(|endpoint| endpoint.accepts(scheme.as_wire()))
+        });
+        // Dispatching on the typed [`WireScheme`] makes adding a new variant
+        // a compile error.
+        match selected {
+            None => Err(no_scheme(credentials, facts, endpoint)),
+            Some(WireScheme::OAuth2) => Ok(Selection::OAuth2 {
+                username: options.username.clone(),
+            }),
+            Some(WireScheme::OAuth1) => {
                 let url = self.build_url(&options.target)?;
                 credentials
                     .oauth1_header(method, &url)
                     .map(Selection::Header)
             }
-            WireScheme::App => credentials.bearer_header().map(Selection::Header),
+            Some(WireScheme::App) => credentials.bearer_header().map(Selection::Header),
         }
     }
+}
+
+/// A request's endpoint as the auth matrix knows it: its path template, its
+/// method, and the schemes it accepts in their wire spelling.
+struct Endpoint<'a> {
+    path: &'a str,
+    method: &'a str,
+    target: &'a RequestTarget,
+    schemes: Vec<&'static str>,
+}
+
+impl<'a> Endpoint<'a> {
+    /// The matrix entry for `target`, or `None` for a raw URL and for a
+    /// template the matrix does not list.
+    fn of(target: &'a RequestTarget, method: &'a str) -> Option<Self> {
+        let RequestTarget::Template { path, .. } = target else {
+            return None;
+        };
+        let schemes = crate::api::auth_matrix::supported_auth(method, path)?;
+        Some(Self {
+            path,
+            method,
+            target,
+            schemes: crate::api::auth_matrix::schemes_to_wire_list(schemes),
+        })
+    }
+
+    fn accepts(&self, scheme: &str) -> bool {
+        self.schemes.contains(&scheme)
+    }
+
+    /// The mismatch for this endpoint under `app`, with the fields every
+    /// rejection shares. A rejection path sets what it alone knows:
+    /// `requested`, `available_in_app`, or `other_apps_with_creds`.
+    fn mismatch(&self, app: Option<String>) -> AuthMismatch {
+        AuthMismatch {
+            endpoint: self.path.to_string(),
+            rendered_url: render_template_template(self.target).ok(),
+            method: self.method.to_string(),
+            requested: None,
+            supported: self.schemes.iter().map(|s| (*s).to_string()).collect(),
+            available_in_app: None,
+            app,
+            other_apps_with_creds: None,
+        }
+    }
+}
+
+/// The error for a request no credential at hand can serve.
+///
+/// An endpoint the matrix knows gets the typed mismatch; one it does not
+/// know gets the generic auth error, because there is no endpoint to name.
+fn no_scheme(
+    credentials: &CredentialSource,
+    facts: SchemeFacts,
+    endpoint: Option<&Endpoint<'_>>,
+) -> Error {
+    let Some(endpoint) = endpoint else {
+        return Error::auth(crate::error::NO_AUTH_METHOD);
+    };
+    let mut other_apps_with_creds = None;
+    if facts.stored.is_empty() {
+        // The active app stores nothing. When other apps in the store hold
+        // credentials, surface a wrong-app envelope (exit 2) instead of
+        // generic auth-required (exit 77): the user signed in, just not
+        // against the app they invoked. An env bearer is still reported in
+        // `available_in_app` so the envelope stays truthful, but it never
+        // hides the wrong-app hint.
+        let other_apps =
+            credentials.other_apps_with_creds(facts.app.as_deref().unwrap_or_default());
+        if !other_apps.is_empty() {
+            other_apps_with_creds = Some(other_apps);
+        } else if facts.available.is_empty() {
+            return Error::auth(crate::error::NO_AUTH_METHOD);
+        }
+    }
+    let available_in_app = facts
+        .available
+        .iter()
+        .map(|scheme| scheme.as_wire().to_string())
+        .collect();
+    Error::from(AuthMismatch {
+        available_in_app: Some(available_in_app),
+        other_apps_with_creds,
+        ..endpoint.mismatch(facts.app)
+    })
 }

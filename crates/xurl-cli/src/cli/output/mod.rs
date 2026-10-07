@@ -15,6 +15,7 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
+mod rfc3339;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -24,7 +25,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
-use crate::cli::envelope::ErrorBody;
+use crate::cli::envelope::{ErrorBody, Reason};
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -40,6 +41,7 @@ pub enum OutputFormat {
     /// Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name.
     Ndjson,
     /// YAML document (best-effort serialization of the JSON shape).
+    #[value(alias = "yml")]
     Yaml,
     /// Comma-separated values (best-effort flattening of the top-level shape).
     Csv,
@@ -198,24 +200,51 @@ impl OutputConfig {
         !self.no_interactive && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
     }
 
-    /// Emits a canonical error envelope with an explicit kebab-case `reason`.
+    /// Emits a canonical error envelope with an explicit `reason`.
     ///
     /// Mirrors [`Self::print_error`] but lets the caller pin the `reason`
-    /// (e.g. `"no-tty"`) rather than reading it from `Error::kind()`.
+    /// (e.g. [`Reason::NoTty`]) rather than reading it from `Error::kind()`.
     /// Under text mode falls back to a plain "Error: …" line.
     pub fn print_error_envelope(
         &self,
         err: &mut dyn Write,
-        reason: &str,
+        reason: Reason,
         exit_code: i32,
         message: &str,
     ) {
         self.emit_error_envelope(
             err,
             ErrorBody {
-                reason: reason.to_string(),
+                reason,
                 exit_code,
                 message: Some(message.to_string()),
+                ..ErrorBody::default()
+            },
+        );
+    }
+
+    /// Emits a usage error for `command`: the `invalid-args` envelope, closing
+    /// on that command's help.
+    ///
+    /// The pointer in the message and the `show-help` step are built from the
+    /// one `command`, so the line a person reads and the step an agent runs
+    /// cannot name different pages. `separator` sits between `message` and the
+    /// pointer.
+    pub(crate) fn print_invalid_args(
+        &self,
+        err: &mut dyn Write,
+        message: &str,
+        separator: &str,
+        command: &str,
+    ) {
+        let help = format!("{command} --help");
+        self.emit_error_envelope(
+            err,
+            ErrorBody {
+                reason: Reason::InvalidArgs,
+                exit_code: xdk::error::EXIT_USAGE_ERROR,
+                message: Some(format!("{message}{separator}Try '{help}'.")),
+                next_step: Some(crate::cli::hints::NextStep::show_help(help)),
                 ..ErrorBody::default()
             },
         );
@@ -235,13 +264,9 @@ impl OutputConfig {
         hint: &crate::cli::hints::Hint,
     ) {
         if self.format.is_structured() {
-            let display = message::render(error);
             let body = ErrorBody {
-                reason: error.kind().to_string(),
-                exit_code,
-                message: Some(display),
                 next_step: Some(hint.next_step.clone()),
-                ..ErrorBody::default()
+                ..error_body(error, exit_code)
             };
             self.emit_error_envelope(err, body);
             return;
@@ -261,7 +286,7 @@ impl OutputConfig {
     ///   print_error ─┐
     ///   print_error_envelope ─┤
     ///   print_confirmation_required ─┼─> ErrorBody ─> text "Error:" line
-    ///   emit_invalid_args_envelope ─┘                 or structured document
+    ///   print_invalid_args ─┘                         or structured document
     /// ```
     ///
     /// Building the typed [`ErrorBody`] here is what keeps the generated
@@ -303,12 +328,12 @@ impl OutputConfig {
     /// closed downstream pipe doesn't abort the program — the SIGPIPE
     /// restoration in `main` handles the more general case.
     ///
-    /// Under `--raw`, JSON output is emitted compactly (one line, no
-    /// whitespace) rather than pretty-printed.
+    /// Json pretty-prints, and is one compact line under `--raw`. Jsonl and
+    /// Ndjson are one compact line always: a record per line is the format.
     pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl | OutputFormat::Ndjson => {
-                let body = if self.raw || matches!(self.format, OutputFormat::Ndjson) {
+                let body = if self.raw || self.format != OutputFormat::Json {
                     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
                 } else {
                     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
@@ -349,42 +374,7 @@ impl OutputConfig {
     /// emit a JSON line carrying the envelope (delimited formats are not a good
     /// fit for nested error metadata).
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
-        let display = message::render(error);
-        let mut body = ErrorBody {
-            reason: error.kind().to_string(),
-            exit_code,
-            message: Some(display),
-            ..ErrorBody::default()
-        };
-        // `AuthMethodMismatch` carries structured fields: the envelope folds
-        // `endpoint` (template), `rendered_url` (substituted), `method`,
-        // `requested`, `supported`, `available_in_app`, `app`, and
-        // `other_apps_with_creds` alongside the standard `message`. Agents
-        // pattern-match on these without re-parsing the human message.
-        if let Error::AuthMethodMismatch(mismatch) = error {
-            let xdk::error::AuthMismatch {
-                endpoint,
-                rendered_url,
-                method,
-                requested,
-                supported,
-                available_in_app,
-                app,
-                other_apps_with_creds,
-            } = &**mismatch;
-            body.endpoint = Some(endpoint.clone());
-            body.rendered_url = rendered_url.clone();
-            body.method = Some(method.clone());
-            body.requested = Some(match requested {
-                Some(s) => Value::String(s.clone()),
-                None => Value::Null,
-            });
-            body.supported = Some(supported.clone());
-            body.available_in_app = available_in_app.clone();
-            body.app = app.clone();
-            body.other_apps_with_creds = other_apps_with_creds.clone();
-        }
-        self.emit_error_envelope(err, body);
+        self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
     /// Emits a canonical success envelope under structured modes.
@@ -458,7 +448,7 @@ impl OutputConfig {
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
         let body = ErrorBody {
-            reason: "confirmation-required".to_string(),
+            reason: Reason::ConfirmationRequired,
             exit_code,
             message: None,
             command: get_str("command"),
@@ -568,13 +558,13 @@ impl OutputConfig {
 
     /// Renders `value` to `w` in the active structured format.
     ///
-    /// Json/Jsonl pretty-print (compact under `--raw`); Ndjson always emits a
-    /// single line; Yaml emits a YAML document; Csv/Tsv fall back to one line
-    /// of JSON because nested envelope metadata isn't a good fit for a
-    /// flat delimited table.
+    /// Json pretty-prints (compact under `--raw`); Jsonl and Ndjson always
+    /// emit a single line; Yaml emits a YAML document; Csv/Tsv fall back to
+    /// one line of JSON because nested envelope metadata isn't a good fit
+    /// for a flat delimited table.
     fn write_structured(&self, w: &mut dyn Write, value: &Value) {
         match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
+            OutputFormat::Json => {
                 let body = if self.raw {
                     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
                 } else {
@@ -582,7 +572,7 @@ impl OutputConfig {
                 };
                 let _ = writeln!(w, "{body}");
             }
-            OutputFormat::Ndjson => {
+            OutputFormat::Jsonl | OutputFormat::Ndjson => {
                 let body = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = writeln!(w, "{body}");
             }
@@ -617,6 +607,75 @@ impl OutputConfig {
             let _ = writeln!(err, "\x1b[31mError: {display}\x1b[0m");
         }
     }
+}
+
+/// The envelope body for a library error: its `reason`, the message `xr`
+/// prints for it, and the facts the variant carries as fields of their own,
+/// so an agent reads them without parsing the message.
+fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
+    let mut body = ErrorBody {
+        reason: reason_of(error),
+        exit_code,
+        message: Some(message::render(error)),
+        ..ErrorBody::default()
+    };
+    match error {
+        Error::AuthMethodMismatch(mismatch) => {
+            let xdk::error::AuthMismatch {
+                endpoint,
+                rendered_url,
+                method,
+                requested,
+                supported,
+                available_in_app,
+                app,
+                other_apps_with_creds,
+            } = &**mismatch;
+            body.endpoint = Some(endpoint.clone());
+            body.rendered_url = rendered_url.clone();
+            body.method = Some(method.clone());
+            body.requested = Some(match requested {
+                Some(s) => Value::String(s.clone()),
+                None => Value::Null,
+            });
+            body.supported = Some(supported.clone());
+            body.available_in_app = available_in_app.clone();
+            body.app = app.clone();
+            body.other_apps_with_creds = other_apps_with_creds.clone();
+        }
+        Error::ProcessingTimeout { media_id, .. } => {
+            body.media_id = Some(media_id.clone());
+        }
+        Error::Api {
+            status: 429,
+            reset_at: Some(reset_at),
+            ..
+        } => {
+            let (retry_after_secs, retry_at) = retry_times(*reset_at);
+            body.retry_after_secs = Some(retry_after_secs);
+            body.retry_at = Some(retry_at);
+        }
+        _ => {}
+    }
+    body
+}
+
+/// The reason for a library error: its `kind()`, which the set spells the
+/// same way. `tests/golden_tests.rs` reads every kind the library declares
+/// and fails for one the set does not hold, so no released build takes the
+/// `internal` fallback.
+fn reason_of(error: &Error) -> Reason {
+    Reason::from_kind(error.kind()).unwrap_or(Reason::Internal)
+}
+
+/// The two forms of a rate limit's reset: the seconds left until it, zero
+/// once it has passed, and the moment itself as an RFC 3339 UTC timestamp.
+pub(crate) fn retry_times(reset_at: u64) -> (u64, String) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    (reset_at.saturating_sub(now), rfc3339::utc_rfc3339(reset_at))
 }
 
 impl Default for OutputConfig {
@@ -669,8 +728,8 @@ mod tests {
 
     #[test]
     fn test_xurl_error_kind_mapping() {
-        assert_eq!(Error::Auth("test".into()).kind(), "auth-required");
-        assert_eq!(Error::Http("test".into()).kind(), "network-error");
+        assert_eq!(Error::auth("test").kind(), "auth-required");
+        assert_eq!(Error::http("test").kind(), "network-error");
         assert_eq!(Error::api(400, "test").kind(), "invalid-request");
         assert_eq!(Error::api(422, "test").kind(), "invalid-request");
         assert_eq!(Error::api(401, "x").kind(), "auth-required");
@@ -681,8 +740,8 @@ mod tests {
         assert_eq!(Error::api(500, "x").kind(), "server-error");
         assert_eq!(Error::api(503, "x").kind(), "server-error");
         assert_eq!(Error::validation("test").kind(), "validation");
-        assert_eq!(Error::Io("test".into()).kind(), "io");
-        assert_eq!(Error::Json("test".into()).kind(), "serialization");
+        assert_eq!(Error::io("test").kind(), "io");
+        assert_eq!(Error::json("test").kind(), "serialization");
         assert_eq!(Error::InvalidMethod("X".into()).kind(), "invalid-method");
         assert_eq!(Error::token_store("x").kind(), "token-store");
     }
@@ -714,7 +773,7 @@ mod tests {
     fn test_print_error_envelope_json_shape() {
         let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
         let mut buf: Vec<u8> = Vec::new();
-        cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+        cfg.print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
         let s = String::from_utf8(buf).expect("utf8");
         let v: serde_json::Value = serde_json::from_str(s.trim()).expect("valid json");
         assert_eq!(v["status"], "error");

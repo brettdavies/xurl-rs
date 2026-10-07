@@ -10,7 +10,7 @@ pub mod shortcuts;
 
 pub use endpoints::is_streaming_endpoint;
 #[allow(unused_imports)]
-pub use media::{MEDIA_TARGET, MediaUploadOutcome, execute_media_status};
+pub use media::{DEFAULT_PROCESSING_WAIT, MEDIA_TARGET, MediaUploadOutcome, execute_media_status};
 pub use media_upload::MediaUpload;
 // Media plumbing the binary drives by hand: `xr <URL>` services an append
 // request from the raw path, and `xr media upload` runs the phases with its

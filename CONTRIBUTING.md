@@ -36,15 +36,16 @@ skipping every Rust job on a docs-only PR while lint still runs. The scoping fai
 everything, and running the hook by hand sweeps the whole repo. Every step that is skipped says so on its own line, so
 a skip never reads as a pass.
 
-Four CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, or a release build:
-completions freshness (`./scripts/generate-completions.sh --check`), the package check (`cargo publish --dry-run
---workspace`), the public-API semver gate (`cargo semver-checks` against the last `xdk-rs-v*` tag), and the agent-native
-audit with the release binary's size ceiling (`anc audit` on `target/release/xr`). The feature matrix's `--all-features`
-and `--features testing` test runs and its `rustls`-alone cell are CI-only too. Run those yourself when a change touches
-the CLI surface, the library API, the feature set, or the release profile. The live-API checks stay manual by design:
-`cargo test -- --ignored` runs the TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke;
-`crates/xurl-cli/tests/conformance/` compares against the Go `xurl` only when that binary is on `PATH`; and
-`benches/benchmark.sh` times `xr` against the Go `xurl` with hyperfine.
+Five CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, a release build, or a
+second binary: completions freshness (`./scripts/generate-completions.sh --check`), the package check (`cargo publish
+--dry-run --workspace`), the public-API semver gate (`cargo semver-checks` against the last `xdk-rs-v*` tag), the
+agent-native audit with the release binary's size ceiling (`anc audit` on `target/release/xr`), and `Go parity` (`cargo
+test -p xurl-rs --test conformance_runner` with `XURL_ORIGINAL_BIN` naming Go `xurl` at the commit CI pins; without the
+variable the suite skips). The feature matrix's `--all-features` and `--features testing` test runs and its
+`rustls`-alone cell are CI-only too. Run those yourself when a change touches the CLI surface, the library API, the
+feature set, or the release profile. The live-API checks stay manual by design: `cargo test -- --ignored` runs the TLS
+handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and `benches/benchmark.sh` times `xr` against
+the Go `xurl` with hyperfine.
 
 ## Branch and PR flow
 
@@ -72,9 +73,11 @@ likely cause, and the file to edit, so a red test is the recipe's next step rath
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, the offending value when there is one, and a
-`next_step` object `{action, command | template, docs}`, where `command` is runnable verbatim by a non-TTY caller and
-`template` carries angle-bracket placeholders only the caller can fill. Prefer additive envelope changes: add keys
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
+reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`, where
+`command` is runnable verbatim by a non-TTY caller and `template` carries angle-bracket placeholders only the caller can
+fill. The CLI README's "Which Errors Carry a Step" names the reasons that carry one and the ones that do not; a new
+error picks an existing action where one fits before it ships without a step. Prefer additive envelope changes: add keys
 rather than renaming or retyping existing ones, and regenerate `schema/output.schema.json` when the envelope changes.
 
 ## Filing issues

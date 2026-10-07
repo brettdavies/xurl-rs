@@ -227,9 +227,9 @@ const FALSE_LITERALS: [&str; 6] = ["n", "no", "f", "false", "off", "0"];
 /// The output format the caller named before clap parsed anything.
 ///
 /// Read from the unparsed argv, because the clap error path runs before `Cli`
-/// exists. `text` and any spelling outside the set return `None`, which keeps
-/// clap's own rendering. The last format named wins, matching how clap
-/// resolves a repeated flag.
+/// exists. `text` returns `None`, which keeps clap's own rendering, and a
+/// spelling that names no format returns JSON (see [`rendering_format`]). The
+/// last format named wins, matching how clap resolves a repeated flag.
 pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
     let mut found = None;
     let mut iter = args.iter().peekable();
@@ -242,19 +242,32 @@ pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
         } else if s == "--output"
             && let Some(next) = iter.peek()
         {
-            found = structured_format(&next.to_string_lossy()).or(found);
+            found = rendering_format(&next.to_string_lossy()).or(found);
         } else if let Some(rest) = s.strip_prefix("--output=") {
-            found = structured_format(rest).or(found);
+            found = rendering_format(rest).or(found);
         }
     }
     found
 }
 
+/// The format a usage error takes for the spelling the caller gave
+/// `--output` or `XURL_OUTPUT`.
+///
+/// A spelling that names a structured format renders in it. One that names
+/// none (`toml`, `xml`) still asked for structure, so it renders as JSON, the
+/// format every structured caller reads. `text` in any case, and no value at
+/// all, asked for none and return `None`.
+pub(crate) fn rendering_format(value: &str) -> Option<OutputFormat> {
+    structured_format(value).or_else(|| {
+        (!value.is_empty() && !value.eq_ignore_ascii_case("text")).then_some(OutputFormat::Json)
+    })
+}
+
 /// The structured format a spelling names, if any.
 ///
-/// `yml` is here and absent from the value enum: a caller that spells YAML
-/// that way gets the usage error rendered as YAML rather than as text.
-pub(crate) fn structured_format(value: &str) -> Option<OutputFormat> {
+/// The spellings are the value enum's, `yml` included, so a usage error is
+/// rendered in the format the caller named however they spelled it.
+fn structured_format(value: &str) -> Option<OutputFormat> {
     match value.to_ascii_lowercase().as_str() {
         "json" => Some(OutputFormat::Json),
         "jsonl" => Some(OutputFormat::Jsonl),

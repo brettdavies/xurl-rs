@@ -75,6 +75,25 @@ step() {
   fi
 }
 
+# ── Git environment ───────────────────────────────────────────────────────
+
+# without_git_repo_env <command>...: run a command, or a function from this
+# library, in a subshell without git's repository variables.
+#
+# Git exports GIT_DIR into a hook started from a linked worktree, and
+# GIT_INDEX_FILE into pre-commit. A tool that runs git in another directory
+# under them acts on this repository instead: it commits onto the branch,
+# resets it, or resolves the wrong top level. Pre-push clears them at its top,
+# because git starts a hook at the worktree root and discovery finds the same
+# repository. Pre-commit keeps them and wraps its tools here, because its
+# staged set has to come from the temporary index of `commit -a` and
+# `commit <paths>`.
+without_git_repo_env() (
+  unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+    GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_NAMESPACE
+  "$@"
+)
+
 # ── File selection ────────────────────────────────────────────────────────
 
 # Staged paths matching the given pathspecs. ACMR only: a deletion cannot fail

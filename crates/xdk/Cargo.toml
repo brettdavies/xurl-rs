@@ -1,6 +1,6 @@
 [package]
 name = "xdk-rs"
-version = "0.1.4"
+version = "0.2.0"
 description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, bearer tokens, media upload, streaming. xdk is X's SDK name; this is an independent project, not affiliated with X Corp."
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]
@@ -21,8 +21,9 @@ exclude = ["tests/", "!tests/fixtures/openapi/example_responses.json"]
 # xdk-rs` reads these and passes them to git-cliff, so the workspace keeps one
 # cliff.toml and each member states its own scope here.
 [package.metadata.changelog]
-# The heading in a PR body that addresses this member. A PR touching both crates
-# describes the binary under `## Changelog` and the library under this one.
+# The heading in a PR body that addresses this member. Every crate is named in
+# its own heading, so a PR touching both crates describes the binary under
+# `## Changelog (xurl-rs)` and the library under this one.
 heading = "Changelog (xdk-rs)"
 tag_prefix = "xdk-rs-v"
 changelog = "crates/xdk/CHANGELOG.md"
@@ -108,9 +109,27 @@ phf_codegen = "0.14"
 tempfile.workspace = true
 wiremock.workspace = true
 rstest.workspace = true
+proptest.workspace = true
 serial_test.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 # The README's subscriber example for `api::VOCABULARY_TARGET` compiles as a
 # doctest against it.
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
+
+# Breaking library-API changes shipping in a minor by decision. `required-update`
+# reclassifies a break rather than silencing it: the gate CI runs
+# (`release-type: minor`) passes, while a patch-level probe
+# (`cargo semver-checks --release-type patch`) still names every break. Each
+# entry is scoped to one release and is self-clearing: once the tag moves the
+# baseline past the change, the lint stops firing and the entry must be
+# deleted. A standing entry understates the next break of the same kind.
+[package.metadata.cargo-semver-checks.lints]
+# Covers `Error::Api::reset_at`: a 429 carries the reset its own response
+# named, so a pattern that names every field of the variant gains `..`.
+enum_struct_variant_field_added = { lint-level = "deny", required-update = "minor" }
+# Covers `Error::Http`, `Io`, `Json`, `Auth`, `TokenStore`, and `InvalidUrl`:
+# each wraps a lower-level failure and keeps it as `source`, so the tuple
+# variant holding a message became a struct variant holding `message` and
+# `source`.
+enum_tuple_variant_changed_kind = { lint-level = "deny", required-update = "minor" }

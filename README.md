@@ -55,7 +55,7 @@ docs.rs landing page, where it is compiled as a doctest.
 
 `xr` calls the X API from a shell or an agent: curl-style raw requests, shortcut commands over the common endpoints,
 every auth flow, chunked media upload, streaming, seven output formats, and a typed error envelope with structured exit
-codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install xurl-rs`.
+codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install --locked xurl-rs`.
 
 - [Install](crates/xurl-cli/README.md#install), [Quick start](crates/xurl-cli/README.md#quick-start), and the
   [command reference](crates/xurl-cli/README.md#commands)
@@ -96,6 +96,20 @@ The working recipe in the X developer console:
 5. Move the app to the `Production` environment.
 
 Without that enrollment step, `/2/*` reads can fail even when the OAuth callback and tokens are valid.
+
+## Stability
+
+Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently.
+
+- **`xr`:** the contract is what a script or an agent depends on: command names, flags, environment variables, exit
+  codes, every structured output shape with its `reason` and `next_step.action` sets, and the `~/.xurl` store format.
+  Text output and help text are not contract. A break ships only in a major, and each major's breaks are written up
+  with before-and-after invocations under [`docs/migrating`](docs/migrating).
+- **`xdk-rs`:** the contract is the public Rust API and the behavior its rustdoc documents. The crate is `0.x`, so a
+  break moves the middle number (`0.1.x` to `0.2.0`), and every breaking changelog entry carries a before/after
+  snippet.
+
+[`RELEASES.md` § Versioning](RELEASES.md#versioning) is the full policy.
 
 ## Contributing
 

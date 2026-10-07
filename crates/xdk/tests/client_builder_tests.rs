@@ -335,7 +335,9 @@ async fn a_failing_hook_fails_the_request_and_keeps_the_new_token() {
         .await
         .expect_err("the triggering request fails");
     match &err {
-        Error::TokenStore(message) => assert!(message.contains("disk full"), "{message}"),
+        Error::TokenStore { message, .. } => {
+            assert!(message.contains("disk full"), "{message}");
+        }
         other => panic!("expected Error::TokenStore, got {other:?}"),
     }
 
@@ -365,7 +367,7 @@ async fn an_expired_token_without_a_refresh_token_is_an_auth_error() {
         .unwrap();
 
     let err = client.get_me().send().await.expect_err("nothing to send");
-    assert!(matches!(err, Error::Auth(_)), "{err:?}");
+    assert!(matches!(err, Error::Auth { .. }), "{err:?}");
 }
 
 #[tokio::test]
@@ -527,7 +529,7 @@ async fn a_call_timeout_overrides_the_client_bound() {
         .send()
         .await
         .expect_err("the per-call bound fires first");
-    assert!(matches!(err, Error::Http(_)), "{err:?}");
+    assert!(matches!(err, Error::Http { .. }), "{err:?}");
 }
 
 // ── Review follow-ups: hook scoping, unauthenticated calls, cursor breadth ──

@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use hmac::{Hmac, KeyInit, Mac};
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use sha1::Sha1;
 use url::Url;
 
@@ -45,7 +46,8 @@ pub fn build_oauth1_header_with_nonce_ts(
     fixed_nonce: Option<&str>,
     fixed_timestamp: Option<&str>,
 ) -> Result<String> {
-    let parsed_url = Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let parsed_url = Url::parse(url_str)
+        .map_err(|e| Error::invalid_url(format!("{url_str}: {e}")).with_source(e))?;
 
     let mut params = BTreeMap::new();
 
@@ -107,13 +109,29 @@ fn generate_signature(
     consumer_secret: &str,
     token_secret: &str,
 ) -> Result<String> {
-    let parsed_url = Url::parse(url_str).map_err(|e| Error::auth_with_cause("InvalidURL", &e))?;
+    let parsed_url = Url::parse(url_str)
+        .map_err(|e| Error::invalid_url(format!("{url_str}: {e}")).with_source(e))?;
+    let signature_base_string = signature_base_string(method, &parsed_url, params);
 
+    let signing_key = format!("{}&{}", encode(consumer_secret), encode(token_secret));
+
+    let mut mac = HmacSha1::new_from_slice(signing_key.as_bytes())
+        .map_err(|e| Error::auth_with_cause("SignatureGenerationError", &e).with_source(e))?;
+    mac.update(signature_base_string.as_bytes());
+    let result = mac.finalize();
+
+    Ok(BASE64_STANDARD.encode(result.into_bytes()))
+}
+
+/// The signature base string of RFC 5849 section 3.4.1: the method, the URL
+/// without its query, and the sorted parameters, each percent-encoded and
+/// joined by `&`.
+fn signature_base_string(method: &str, url: &Url, params: &BTreeMap<String, String>) -> String {
     let base_url = format!(
         "{}://{}{}",
-        parsed_url.scheme(),
-        parsed_url.host_str().unwrap_or(""),
-        parsed_url.path()
+        url.scheme(),
+        url.host_str().unwrap_or(""),
+        url.path()
     );
 
     let param_pairs: Vec<String> = params
@@ -122,21 +140,12 @@ fn generate_signature(
         .collect();
     let param_string = param_pairs.join("&");
 
-    let signature_base_string = format!(
+    format!(
         "{}&{}&{}",
         method.to_uppercase(),
         encode(&base_url),
         encode(&param_string)
-    );
-
-    let signing_key = format!("{}&{}", encode(consumer_secret), encode(token_secret));
-
-    let mut mac = HmacSha1::new_from_slice(signing_key.as_bytes())
-        .map_err(|e| Error::auth_with_cause("SignatureGenerationError", &e))?;
-    mac.update(signature_base_string.as_bytes());
-    let result = mac.finalize();
-
-    Ok(BASE64_STANDARD.encode(result.into_bytes()))
+    )
 }
 
 /// Generates a random nonce.
@@ -156,9 +165,66 @@ pub fn generate_timestamp() -> String {
         .to_string()
 }
 
-/// Percent-encodes a string (matching Go's `url.QueryEscape`).
+/// Every byte RFC 5849 section 3.6 encodes: all but the RFC 3986 unreserved
+/// set, `A-Z a-z 0-9 - . _ ~`.
+const ENCODED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
+
+/// Percent-encodes a string as RFC 5849 section 3.6 requires, with uppercase
+/// hex.
+///
+/// X recomputes a signature from the request with this encoding, so a query
+/// encoder's output (`+` for a space, `%7E` for `~`, a bare `*`) signs a
+/// string X does not build and the request fails verification.
 #[must_use]
 pub fn encode(s: &str) -> String {
-    // url::form_urlencoded::byte_serialize matches Go's url.QueryEscape
-    url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
+    utf8_percent_encode(s, ENCODED).to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use percent_encoding::percent_decode_str;
+    use proptest::prelude::*;
+
+    use super::*;
+
+    fn decode(encoded: &str) -> String {
+        percent_decode_str(encoded)
+            .decode_utf8()
+            .expect("the encoder writes UTF-8")
+            .into_owned()
+    }
+
+    proptest! {
+        /// The base string carries the parameters without loss: its third
+        /// part decodes to the sorted `key=value` pairs, and each side of a
+        /// pair decodes to the string that went in. A separator that reached
+        /// the base string unencoded would split a pair in the wrong place.
+        #[test]
+        fn the_base_string_decodes_to_the_parameters_that_built_it(
+            params in prop::collection::btree_map("\\PC{0,12}", "\\PC{0,24}", 0..8),
+        ) {
+            let url = Url::parse("https://api.x.com/2/tweets/search/recent").unwrap();
+            let base = signature_base_string("get", &url, &params);
+
+            let parts: Vec<&str> = base.split('&').collect();
+            prop_assert_eq!(parts.len(), 3, "method, URL, and parameters: {}", base);
+            prop_assert_eq!(parts[0], "GET");
+            prop_assert_eq!(decode(parts[1]), "https://api.x.com/2/tweets/search/recent");
+
+            let pairs = decode(parts[2]);
+            let decoded: BTreeMap<String, String> = pairs
+                .split('&')
+                .filter(|pair| !pair.is_empty())
+                .map(|pair| {
+                    let (key, value) = pair.split_once('=').expect("each pair has one separator");
+                    (decode(key), decode(value))
+                })
+                .collect();
+            prop_assert_eq!(decoded, params);
+        }
+    }
 }

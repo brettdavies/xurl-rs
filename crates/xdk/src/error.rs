@@ -30,6 +30,12 @@ pub enum NextAction {
     // library error returns it.
     #[doc(hidden)]
     ShowHelp,
+    /// Media was still processing when the wait's deadline passed; wait on
+    /// the same media id again.
+    ResumeWait,
+    /// X rate limited the request and said when the window resets; send it
+    /// again once that time has passed.
+    WaitAndRetry,
 }
 
 /// The enrollment recipe for an app X refuses.
@@ -50,12 +56,21 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
     haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
 }
 
+/// A lower-level failure an [`Error`] wraps, as
+/// [`std::error::Error::source`] returns it.
+pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
+
 /// The library's error type.
 ///
 /// The enum is `#[non_exhaustive]`: variants are added as the X API grows,
 /// so a downstream match keeps a wildcard arm. In-crate, [`Self::kind`] and
 /// [`Self::exit_code`] match every variant by name, so a new variant is
 /// classified before it ships.
+///
+/// A variant that wraps a lower-level failure keeps it: `source()` returns
+/// the `reqwest`, `std::io`, `serde_json`, or `serde_yaml` error underneath,
+/// so a caller can walk the chain or downcast to it. `Display` stays the
+/// message alone.
 ///
 /// # Example
 ///
@@ -65,9 +80,9 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 /// # let result: Result<(), Error> = Err(Error::validation("missing field"));
 /// match result {
 ///     Ok(()) => println!("ok"),
-///     Err(Error::Api { status, body }) => eprintln!("api {status}: {body}"),
+///     Err(Error::Api { status, body, .. }) => eprintln!("api {status}: {body}"),
 ///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
-///     Err(Error::InvalidUrl(url)) => eprintln!("bad URL: {url}"),
+///     Err(Error::InvalidUrl { message, .. }) => eprintln!("bad URL: {message}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
 /// }
 /// # Ok(()) }
@@ -76,12 +91,24 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
 #[non_exhaustive]
 pub enum Error {
     /// HTTP transport / request construction error.
-    #[error("{0}")]
-    Http(String),
+    #[error("{message}")]
+    Http {
+        /// What failed.
+        message: String,
+        /// The failure underneath, typically a `reqwest::Error`.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// File / IO error.
-    #[error("{0}")]
-    Io(String),
+    #[error("{message}")]
+    Io {
+        /// What failed.
+        message: String,
+        /// The failure underneath, typically a `std::io::Error`.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// Invalid HTTP method supplied.
     #[error("invalid HTTP method: {0}")]
@@ -94,17 +121,31 @@ pub enum Error {
         status: u16,
         /// Raw response body (typically JSON).
         body: String,
+        /// When the rate-limit window resets, as seconds since the Unix
+        /// epoch: the `x-rate-limit-reset` header of this response. `None`
+        /// when the response named no reset, which is every response but a
+        /// 429 and some 429s too. It is never the window an earlier response
+        /// reported, so a caller that waits on it waits on what X said about
+        /// this request.
+        reset_at: Option<u64>,
     },
 
     /// Non-HTTP validation or logic error (e.g., missing fields, errors-only 200 responses).
     #[error("{0}")]
     Validation(String),
 
-    /// Raw URL supplied with an unsupported scheme. Only `http://` and
-    /// `https://` are accepted; file/ftp/etc are rejected before any
-    /// network or filesystem activity.
-    #[error("invalid URL: {0}")]
-    InvalidUrl(String),
+    /// A URL that cannot be requested: a raw URL with a scheme other than
+    /// `http://` or `https://`, or one that does not parse. Both are
+    /// rejected before any network or filesystem activity.
+    #[error("invalid URL: {message}")]
+    InvalidUrl {
+        /// What is wrong with the URL, naming it.
+        message: String,
+        /// The parse failure underneath, a `url::ParseError`, when the URL
+        /// did not parse.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// Path-parameter value contained a character that would break URL
     /// semantics (`/`, `?`, `#`, or `%`). Surfaces real IDs that contain
@@ -124,16 +165,46 @@ pub enum Error {
     Internal(String),
 
     /// JSON serialization / deserialization error.
-    #[error("{0}")]
-    Json(String),
+    #[error("{message}")]
+    Json {
+        /// What failed.
+        message: String,
+        /// The failure underneath, typically a `serde_json::Error`.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// Authentication error with sub-type context.
-    #[error("{0}")]
-    Auth(String),
+    #[error("{message}")]
+    Auth {
+        /// What failed.
+        message: String,
+        /// The failure underneath, when a lower-level error caused it.
+        #[source]
+        source: Option<Source>,
+    },
 
     /// Token store persistence / lookup error.
-    #[error("{0}")]
-    TokenStore(String),
+    #[error("{message}")]
+    TokenStore {
+        /// What failed.
+        message: String,
+        /// The failure underneath, when a lower-level error caused it.
+        #[source]
+        source: Option<Source>,
+    },
+
+    /// A wait on media processing reached its deadline with the job still
+    /// running. The upload itself is intact: X keeps a media id valid for 24
+    /// hours, so another wait on [`Self::ProcessingTimeout::media_id`] picks
+    /// the job up where this one left it.
+    #[error("media {media_id} was still processing when the {}-second wait ended", waited.as_secs())]
+    ProcessingTimeout {
+        /// The media id whose processing had not finished.
+        media_id: String,
+        /// The deadline the wait ran to.
+        waited: std::time::Duration,
+    },
 
     /// Auth method mismatch: the caller asked for, or auto-detect resolved,
     /// a scheme the endpoint's matrix entry does not accept. The payload is
@@ -144,6 +215,13 @@ pub enum Error {
 }
 
 crate::assert_send_sync!(Error);
+
+// A boxed `dyn Error` carries no unwind-safety auto traits, so wrapping a
+// cause would silently take them from `Error` and from every type holding
+// one. The cause is only ever read, through `source()`, so a panic cannot
+// leave it half-written; `anyhow::Error` makes the same two impls.
+impl std::panic::UnwindSafe for Error {}
+impl std::panic::RefUnwindSafe for Error {}
 
 /// What an [`Error::AuthMethodMismatch`] describes.
 ///
@@ -295,6 +373,7 @@ impl Error {
         Self::Api {
             status,
             body: body.into(),
+            reset_at: None,
         }
     }
 
@@ -303,25 +382,82 @@ impl Error {
         Self::Validation(body.into())
     }
 
+    /// Create a transport error from a message alone.
+    pub fn http(message: impl Into<String>) -> Self {
+        Self::Http {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    /// Create a file / IO error from a message alone.
+    pub fn io(message: impl Into<String>) -> Self {
+        Self::Io {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    /// Create a serialization error from a message alone.
+    pub fn json(message: impl Into<String>) -> Self {
+        Self::Json {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    /// Create an invalid-URL error from a message naming the URL.
+    pub fn invalid_url(message: impl Into<String>) -> Self {
+        Self::InvalidUrl {
+            message: message.into(),
+            source: None,
+        }
+    }
+
     /// Create an auth error with a descriptive message.
     pub fn auth(message: impl Into<String>) -> Self {
-        Self::Auth(message.into())
+        Self::Auth {
+            message: message.into(),
+            source: None,
+        }
     }
 
     /// Create an auth error with a message and underlying cause.
     pub fn auth_with_cause(message: &str, cause: &dyn std::fmt::Display) -> Self {
-        Self::Auth(format!("{message} (cause: {cause})"))
+        Self::auth(format!("{message} (cause: {cause})"))
     }
 
     /// Create a token store error.
     pub fn token_store(message: impl Into<String>) -> Self {
-        Self::TokenStore(message.into())
+        Self::TokenStore {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    /// Attaches the lower-level failure this error was built from, so
+    /// [`std::error::Error::source`] returns it. A variant that carries no
+    /// source is returned unchanged.
+    #[must_use]
+    pub fn with_source(mut self, cause: impl Into<Source>) -> Self {
+        if let Self::Http { source, .. }
+        | Self::Io { source, .. }
+        | Self::Json { source, .. }
+        | Self::Auth { source, .. }
+        | Self::TokenStore { source, .. }
+        | Self::InvalidUrl { source, .. } = &mut self
+        {
+            *source = Some(cause.into());
+        }
+        self
     }
 
     /// The recovery step this error carries, when the library can name one.
     ///
     /// A 403 that says X refused the app is `EnrollApp`; a bare 403 on X's
-    /// Pay-per-use enrollment failure is unactionable without it. Every
+    /// Pay-per-use enrollment failure is unactionable without it. A
+    /// processing timeout is `ResumeWait`, and a 429 that named its reset is
+    /// `WaitAndRetry`; a 429 that named none has no time to wait for. Every
     /// other error is `None` here: the steps that depend on a credential
     /// store are the binary's to choose.
     ///
@@ -332,20 +468,26 @@ impl Error {
     #[must_use]
     pub fn next_action(&self) -> Option<NextAction> {
         match self {
-            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
                 Some(NextAction::EnrollApp)
             }
+            Self::Api {
+                status: 429,
+                reset_at: Some(_),
+                ..
+            } => Some(NextAction::WaitAndRetry),
+            Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Api { .. }
-            | Self::Http(_)
-            | Self::Io(_)
+            | Self::Http { .. }
+            | Self::Io { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
-            | Self::Json(_)
-            | Self::Auth(_)
-            | Self::TokenStore(_) => None,
+            | Self::Json { .. }
+            | Self::Auth { .. }
+            | Self::TokenStore { .. } => None,
             // The stored-credential recovery steps are the binary's: it knows
             // which apps hold what and names the invocation.
             Self::AuthMethodMismatch(_) => None,
@@ -361,23 +503,24 @@ impl Error {
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
         match self {
-            Self::Api { status, body } if refuses_enrollment(*status, body) => {
+            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
                 Some(ENROLLMENT_DOCS)
             }
-            Self::Api { status: 401, .. } | Self::Auth(_) | Self::AuthMethodMismatch(_) => {
+            Self::Api { status: 401, .. } | Self::Auth { .. } | Self::AuthMethodMismatch(_) => {
                 Some(AUTHENTICATION_DOCS)
             }
             Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
             Self::Api { .. }
-            | Self::Http(_)
-            | Self::Io(_)
+            | Self::Http { .. }
+            | Self::Io { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
-            | Self::Json(_)
-            | Self::TokenStore(_) => None,
+            | Self::Json { .. }
+            | Self::TokenStore { .. }
+            | Self::ProcessingTimeout { .. } => None,
         }
     }
 
@@ -418,11 +561,12 @@ impl Error {
     /// | `InvalidPathParam`     | `invalid-path-param` |
     /// | `Internal`             | `internal`       |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
+    /// | `ProcessingTimeout`    | `processing-timeout` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
-            Self::Auth(_) => "auth-required",
-            Self::TokenStore(_) => "token-store",
+            Self::Auth { .. } => "auth-required",
+            Self::TokenStore { .. } => "token-store",
             Self::Api { status: 401, .. } => "auth-required",
             Self::Api { status: 403, .. } => "forbidden",
             Self::Api { status: 404, .. } => "not-found",
@@ -434,15 +578,16 @@ impl Error {
                 status: 500..=599, ..
             } => "server-error",
             Self::Api { .. } => "api-error",
-            Self::Http(_) => "network-error",
-            Self::Io(_) => "io",
-            Self::Json(_) => "serialization",
+            Self::Http { .. } => "network-error",
+            Self::Io { .. } => "io",
+            Self::Json { .. } => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
             Self::AuthMethodMismatch(_) => "auth-method-mismatch",
             Self::Validation(_) => "validation",
-            Self::InvalidUrl(_) => "invalid-url",
+            Self::InvalidUrl { .. } => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
+            Self::ProcessingTimeout { .. } => "processing-timeout",
         }
     }
 
@@ -456,18 +601,19 @@ impl Error {
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
-            Self::Auth(_) | Self::TokenStore(_) => EXIT_AUTH_REQUIRED,
+            Self::Auth { .. } | Self::TokenStore { .. } => EXIT_AUTH_REQUIRED,
             Self::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
             Self::Api { .. } => EXIT_GENERAL_ERROR,
-            Self::Http(_) | Self::Io(_) => EXIT_NETWORK_ERROR,
-            Self::Json(_)
+            Self::Http { .. } | Self::Io { .. } => EXIT_NETWORK_ERROR,
+            Self::Json { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
-            | Self::InvalidUrl(_)
+            | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
-            | Self::Internal(_) => EXIT_GENERAL_ERROR,
+            | Self::Internal(_)
+            | Self::ProcessingTimeout { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }
     }
@@ -475,31 +621,32 @@ impl Error {
 
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
-        Self::Http(err.to_string())
+        Self::http(err.to_string()).with_source(err)
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
-        Self::Io(err.to_string())
+        Self::io(err.to_string()).with_source(err)
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
-        Self::Json(err.to_string())
+        Self::json(err.to_string()).with_source(err)
     }
 }
 
+// The token store and a `.twurlrc` import are the library's only YAML.
 impl From<serde_yaml::Error> for Error {
     fn from(err: serde_yaml::Error) -> Self {
-        Self::Json(err.to_string())
+        Self::token_store(err.to_string()).with_source(err)
     }
 }
 
 impl From<url::ParseError> for Error {
     fn from(err: url::ParseError) -> Self {
-        Self::Http(err.to_string())
+        Self::invalid_url(err.to_string()).with_source(err)
     }
 }
 
@@ -573,9 +720,9 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// A filesystem or connection failure the library reports as
-/// [`Error::Io`]. An API response with any other status and a transport
-/// failure both exit `EXIT_GENERAL_ERROR`.
+/// A transport or filesystem failure: [`Error::Http`] and [`Error::Io`]. An
+/// API response whose status has no code of its own exits
+/// [`EXIT_GENERAL_ERROR`].
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

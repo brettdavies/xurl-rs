@@ -12,6 +12,7 @@ Usage:
     generate-changelog.py --print-tag [--tag TAG] [repo-path]
     generate-changelog.py --from-dev-prs [--dev-branch dev] [--tag vX.Y.Z] [repo-path]
     generate-changelog.py --crate NAME --tag NAME-vX.Y.Z [repo-path]
+    generate-changelog.py --audit-sections [--crate NAME] [--tag TAG] [repo-path]
 
 Options:
     --tag vX.Y.Z   Override version tag (default: extracted from branch name).
@@ -22,6 +23,11 @@ Options:
                    overlay-built release branch, whose single commit carries no
                    per-PR history. No git-cliff run.
     --dev-branch   Integration branch --from-dev-prs reads (default: dev).
+    --audit-sections
+                   List the PRs --from-dev-prs would read whose entry would
+                   fall back to their title because the body never offered the
+                   changelog section; exit 1 when any does. A section left
+                   empty is an answer and passes. Writes nothing.
     --crate NAME   Generate a workspace member's own changelog. The member's
                    [package.metadata.changelog] table in its Cargo.toml names
                    the PR-body heading that addresses it, its tag prefix, its
@@ -61,7 +67,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
-from datetime import date
+from datetime import datetime, timezone
 from fnmatch import fnmatch
 import json
 import os
@@ -94,8 +100,8 @@ SEMVER_BRANCH_RE = re.compile(r"^release/v(\d+\.\d+\.\d+)")
 CALVER_BRANCH_RE = re.compile(r"^release/(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?)")
 
 
-def detect_tag_from_branch() -> str:
-    """Read the version tag off a release branch name.
+def release_branch_tag() -> tuple[str, str | None]:
+    """The current branch, and the tag its release-branch name carries or None.
 
     `release/vX.Y.Z` yields `vX.Y.Z`; a CalVer branch `release/YYYY.MM.DD`
     (optionally `.N`) yields the bare date, since CalVer repos tag without
@@ -104,12 +110,16 @@ def detect_tag_from_branch() -> str:
     proc = run(["git", "branch", "--show-current"])
     branch = proc.stdout.strip() if proc.returncode == 0 else ""
     semver = SEMVER_BRANCH_RE.match(branch)
-    calver = CALVER_BRANCH_RE.match(branch)
     if semver:
-        tag = f"v{semver.group(1)}"
-    elif calver:
-        tag = calver.group(1)
-    else:
+        return branch, f"v{semver.group(1)}"
+    calver = CALVER_BRANCH_RE.match(branch)
+    return branch, calver.group(1) if calver else None
+
+
+def detect_tag_from_branch() -> str:
+    """Read the version tag off a release branch name, or fail naming --tag."""
+    branch, tag = release_branch_tag()
+    if tag is None:
         fail(
             f"could not detect version from branch '{branch}'\n"
             "Use a release/vX.Y.Z or release/YYYY.MM.DD branch, or pass --tag"
@@ -507,6 +517,38 @@ def extract_flat_changes(body: str) -> list[str]:
     return bullets
 
 
+def classify_body(body: str, title: str, heading: str = r"^## Changelog\s*$"):
+    """How a PR body answers for the changelog under HEADING.
+
+    ("authored", sections) when the section carries bullets, ("flat", bullets)
+    for a `## Changes` list, ("declared", None) when the body offers the
+    section and leaves it empty, ("title", group) when the title stands in as
+    the entry, and ("none", None) when nothing lands. collect_entries writes
+    from it and --audit-sections reports from it, so the audit names exactly
+    the PRs whose title would reach the notes.
+    """
+    sections = extract_changelog_sections(body, heading)
+    if sections and any(bullets for bullets in sections.values()):
+        return "authored", sections
+    flat = extract_flat_changes(body)
+    if flat:
+        return "flat", flat
+    # An author who filled in the template and left the section empty has
+    # already answered the question, so the title is not a better answer
+    # than the one given. The scoped types the fallback skips cover only
+    # the type prefix, and internal work also ships as fix(ci), fix(hooks)
+    # and fix(release), whose titles read as raw conventional commits
+    # beside authored bullets.
+    if declares_empty_changelog(body, heading):
+        return "declared", None
+    # No changelog content in the body: the PR title is the bullet, so a
+    # shipped change is never silently absent from the section. Types the
+    # cliff.toml policy skips (chore, ci, build, style, test) stay out here
+    # too; a PR of those types that matters carries its own ## Changelog.
+    group = group_for_title(title) if title else None
+    return ("title", group) if group else ("none", None)
+
+
 def collect_entries(
     owner: str,
     repo: str,
@@ -535,12 +577,12 @@ def collect_entries(
             if author
             else ""
         )
-
-        sections = extract_changelog_sections(body, heading)
-        if sections and any(bullets for bullets in sections.values()):
+        title = (pr.get("title") or "").strip()
+        kind, found = classify_body(body, title, heading)
+        if kind == "authored":
             if answered is not None:
                 answered.add(num)
-            for category, bullets in sections.items():
+            for category, bullets in found.items():
                 if not bullets:
                     continue
                 aggregated.setdefault(category, [])
@@ -548,37 +590,15 @@ def collect_entries(
                     aggregated[category].append(
                         with_attribution(bullet, attrib) if index == 0 else bullet
                     )
-            continue
-
-        flat = extract_flat_changes(body)
-        if flat:
+        elif kind == "flat":
             aggregated.setdefault("Changed", [])
-            for index, bullet in enumerate(flat):
+            for index, bullet in enumerate(found):
                 aggregated["Changed"].append(
                     with_attribution(bullet, attrib) if index == 0 else bullet
                 )
-            continue
-
-        # An author who filled in the template and left the section empty has
-        # already answered the question, so the title is not a better answer
-        # than the one given. The scoped types the fallback skips cover only
-        # the type prefix, and internal work also ships as fix(ci), fix(hooks)
-        # and fix(release), whose titles read as raw conventional commits
-        # beside authored bullets.
-        if declares_empty_changelog(body, heading):
-            continue
-
-        # No changelog content in the body: the PR title is the bullet, so a
-        # shipped change is never silently absent from the section. Types the
-        # cliff.toml policy skips (chore, ci, build, style, test) stay out here
-        # too; a PR of those types that matters carries its own ## Changelog.
-        title = (pr.get("title") or "").strip()
-        if not title:
-            continue
-        group = group_for_title(title)
-        if group:
-            aggregated.setdefault(group, [])
-            aggregated[group].append(f"- {title}{attrib}")
+        elif kind == "title":
+            aggregated.setdefault(found, [])
+            aggregated[found].append(f"- {title}{attrib}")
     return aggregated
 
 
@@ -712,7 +732,11 @@ def seed_version_section(changelog: Path, version: str) -> None:
     content = changelog.read_text() if changelog.exists() else header
     if re.search(rf"^## \[{re.escape(version)}\]", content, re.MULTILINE):
         return
-    section = f"## [{version}] - {date.today().isoformat()}\n\n"
+    # UTC, because cliff.toml renders its own header from `{{ timestamp | date() }}`
+    # in UTC. A local date here makes the two generation modes stamp different days
+    # for one release whenever the operator's offset crosses midnight.
+    stamp = datetime.now(timezone.utc).date().isoformat()
+    section = f"## [{version}] - {stamp}\n\n"
     first = re.search(r"^## \[", content, re.MULTILINE)
     if first:
         content = content[: first.start()] + section + content[first.start():]
@@ -804,6 +828,87 @@ def report_dry_run(original: str, regenerated: str) -> int:
     return 1
 
 
+def member_pr_numbers(
+    owner: str, repo: str, pr_nums: list[int], crate_config: dict
+) -> tuple[list[int], int]:
+    """The PRs among PR_NUMS that belong to the member, and how many by their block.
+
+    The release branch carries no member history, so membership comes from the
+    files each PR changed rather than from git-cliff. A body that addresses the
+    member directly counts whatever it touched: the author's own block is a
+    better answer than the paths, which miss a change made while the member's
+    code lived elsewhere.
+    """
+    include = crate_config["include_paths"]
+    exclude = crate_config["exclude_paths"]
+    if not include:
+        return pr_nums, 0
+    heading_re = rf"^## {re.escape(crate_config['heading'])}\s*$"
+    kept: list[int] = []
+    by_block = 0
+    for n in pr_nums:
+        pr = fetch_pr(owner, repo, n)
+        body = (pr or {}).get("body") or ""
+        if slice_below(body, heading_re) is not None:
+            kept.append(n)
+            by_block += 1
+        elif pr_touches_member(owner, repo, n, include, exclude):
+            kept.append(n)
+    return kept, by_block
+
+
+def audit_sections_mode(
+    args, cliff_toml: Path, prefix: str = "", crate_config: dict | None = None
+) -> int:
+    """Name the PRs whose changelog entry would be their title for want of a section.
+
+    The PRs are the ones --from-dev-prs reads for the same changelog: the
+    integration branch's history since the previous release on this tag line,
+    so a stacked PR is among them, narrowed to the member's own for --crate. A
+    body is judged by classify_body, the rule collect_entries writes from.
+    """
+    owner, repo_name = read_remote_github(cliff_toml)
+    if not (owner and repo_name):
+        fail("--audit-sections needs [remote.github] owner/repo in cliff.toml")
+    if not have("gh"):
+        fail("--audit-sections needs the gh CLI")
+    ensure_github_token()
+
+    tag = args.tag or release_branch_tag()[1]
+    prev = previous_tag(tag or "", prefix)
+    pr_nums = merged_pr_numbers(args.dev_branch, prev)
+    prefetch_prs(owner, repo_name, pr_nums)
+    label = crate_config["heading"] if crate_config else "Changelog"
+    heading = rf"^## {re.escape(label)}\s*$"
+    if crate_config and pr_nums:
+        pr_nums, _ = member_pr_numbers(owner, repo_name, pr_nums, crate_config)
+
+    counts = {"authored": 0, "flat": 0, "declared": 0, "none": 0}
+    findings: list[str] = []
+    for num in pr_nums:
+        pr = fetch_pr(owner, repo_name, num)
+        if not pr:
+            findings.append(f"#{num}: GitHub did not return it, so its section is unchecked")
+            continue
+        title = (pr.get("title") or "").strip()
+        kind, _ = classify_body(pr.get("body") or "", title, heading)
+        if kind == "title":
+            findings.append(f"#{num} {title}: no '## {label}' section, so the title becomes its entry")
+        else:
+            counts[kind] += 1
+
+    window = f"since {prev}" if prev else "in its whole history"
+    print(
+        f"{len(pr_nums)} PR(s) merged into {args.dev_branch} {window}: "
+        f"{counts['authored'] + counts['flat']} with entries, "
+        f"{counts['declared']} left '## {label}' empty on purpose, "
+        f"{counts['none']} need none, {len(findings)} without the section"
+    )
+    for finding in findings:
+        print(f"  {finding}")
+    return 1 if findings else 0
+
+
 def from_dev_prs_mode(
     args,
     cliff_toml: Path,
@@ -841,27 +946,9 @@ def from_dev_prs_mode(
         ]
         prefetch_prs(owner, repo_name, pr_nums)
         if crate_config and pr_nums:
-            # The release branch carries no member history, so membership comes
-            # from the files each PR changed rather than from git-cliff. A body
-            # that addresses the member directly counts whatever it touched:
-            # the author's own block is a better answer than the paths, which
-            # miss a change made while the member's code lived elsewhere.
-            include = crate_config["include_paths"]
-            exclude = crate_config["exclude_paths"]
-            heading_re = rf"^## {re.escape(crate_config['heading'])}\s*$"
-            if include:
-                total = len(pr_nums)
-                kept: list[int] = []
-                by_block = 0
-                for n in pr_nums:
-                    pr = fetch_pr(owner, repo_name, n)
-                    body = (pr or {}).get("body") or ""
-                    if slice_below(body, heading_re) is not None:
-                        kept.append(n)
-                        by_block += 1
-                    elif pr_touches_member(owner, repo_name, n, include, exclude):
-                        kept.append(n)
-                pr_nums = kept
+            total = len(pr_nums)
+            pr_nums, by_block = member_pr_numbers(owner, repo_name, pr_nums, crate_config)
+            if crate_config["include_paths"]:
                 print(
                     f"{len(pr_nums)} of {total} PRs belong to {args.crate} "
                     f"({by_block} by their own changelog block)",
@@ -931,6 +1018,15 @@ def main() -> int:
         ),
     )
     parser.add_argument("--dev-branch", default="dev")
+    parser.add_argument(
+        "--audit-sections",
+        action="store_true",
+        help=(
+            "List the PRs --from-dev-prs would read whose entry would fall back to "
+            "their title because the body never offered the changelog section; exit 1 "
+            "when any does. A section left empty passes. Writes nothing."
+        ),
+    )
     parser.add_argument("--tag")
     parser.add_argument(
         "--crate",
@@ -958,7 +1054,7 @@ def main() -> int:
         prefix = crate_config["tag_prefix"]
         # A release branch names the binary's tag, so only a member on some
         # other tag line has to be told which one is being cut.
-        if not args.tag and not args.check and prefix != "v":
+        if not args.tag and not (args.check or args.audit_sections) and prefix != "v":
             fail(f"--crate needs --tag {prefix}X.Y.Z")
 
     if not cliff_toml.exists():
@@ -970,6 +1066,9 @@ def main() -> int:
 
     if args.check:
         return check_mode(changelog)
+
+    if args.audit_sections:
+        return audit_sections_mode(args, cliff_toml, prefix, crate_config)
 
     if args.print_tag:
         print(args.tag or detect_tag_from_branch())

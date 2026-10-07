@@ -113,3 +113,283 @@ async fn upload_media_rejects_an_unknown_extension_before_any_request() {
     assert!(err.to_string().contains("media_type"), "{err}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+// ── A wait on media processing always ends ─────────────────────────────
+
+use std::time::Duration;
+
+use wiremock::matchers::query_param;
+use xdk::Error;
+use xdk::api::execute_media_status;
+use xdk::error::NextAction;
+
+/// The STATUS endpoint for media `m1`, answering `data`.
+fn status_mock(data: serde_json::Value) -> Mock {
+    Mock::given(method("GET"))
+        .and(path("/2/media/upload"))
+        .and(query_param("command", "STATUS"))
+        .and(query_param("media_id", "m1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({ "data": data })))
+}
+
+fn in_progress() -> serde_json::Value {
+    serde_json::json!({
+        "id": "m1",
+        "processing_info": {"state": "in_progress", "check_after_secs": 1, "progress_percent": 10}
+    })
+}
+
+async fn status_calls(server: &MockServer) -> usize {
+    server
+        .received_requests()
+        .await
+        .expect("requests recorded")
+        .iter()
+        .filter(|request| request.method == wiremock::http::Method::GET)
+        .count()
+}
+
+#[tokio::test]
+async fn a_status_without_processing_info_ends_the_wait_after_one_call() {
+    let server = MockServer::start().await;
+    status_mock(serde_json::json!({"id": "m1", "media_key": "3_m1"}))
+        .mount(&server)
+        .await;
+    let client = user_client(server.uri());
+
+    let status = tokio::time::timeout(
+        Duration::from_secs(5),
+        execute_media_status(
+            "m1",
+            "",
+            "",
+            Some(Duration::from_secs(30)),
+            false,
+            &[],
+            &client,
+        ),
+    )
+    .await
+    .expect("the wait ends without a deadline's help")
+    .expect("the status reads");
+
+    assert!(status.data.processing_info.is_none());
+    assert_eq!(status_calls(&server).await, 1);
+}
+
+#[tokio::test]
+async fn a_wait_past_its_deadline_is_a_processing_timeout_carrying_the_id_and_the_wait() {
+    let server = MockServer::start().await;
+    status_mock(in_progress()).mount(&server).await;
+    let client = user_client(server.uri());
+
+    let error = execute_media_status(
+        "m1",
+        "",
+        "",
+        Some(Duration::from_secs(2)),
+        false,
+        &[],
+        &client,
+    )
+    .await
+    .expect_err("the job never finishes");
+
+    let Error::ProcessingTimeout { media_id, waited } = &error else {
+        panic!("expected a processing timeout, got {error:?}");
+    };
+    assert_eq!(media_id, "m1");
+    assert_eq!(*waited, Duration::from_secs(2));
+    assert_eq!(error.kind(), "processing-timeout");
+    assert_eq!(error.exit_code(), 1);
+    assert_eq!(error.next_action(), Some(NextAction::ResumeWait));
+    let calls = status_calls(&server).await;
+    assert!(
+        (1..=3).contains(&calls),
+        "a two-second deadline at one check a second allows at most three status calls, saw {calls}"
+    );
+}
+
+#[tokio::test]
+async fn a_failed_job_is_a_validation_error_not_a_timeout() {
+    let server = MockServer::start().await;
+    status_mock(serde_json::json!({"id": "m1", "processing_info": {"state": "failed"}}))
+        .mount(&server)
+        .await;
+    let client = user_client(server.uri());
+
+    let error = execute_media_status(
+        "m1",
+        "",
+        "",
+        Some(Duration::from_secs(30)),
+        false,
+        &[],
+        &client,
+    )
+    .await
+    .expect_err("processing failed");
+
+    assert!(error.is_validation(), "got {error:?}");
+    assert_eq!(error.to_string(), "media processing failed");
+}
+
+#[tokio::test]
+async fn a_status_read_without_a_wait_returns_the_job_as_it_stands() {
+    let server = MockServer::start().await;
+    status_mock(in_progress()).mount(&server).await;
+    let client = user_client(server.uri());
+
+    let status = execute_media_status("m1", "", "", None, false, &[], &client)
+        .await
+        .expect("the status reads");
+
+    assert_eq!(
+        status
+            .data
+            .processing_info
+            .as_ref()
+            .map(|info| info.state.as_str()),
+        Some("in_progress")
+    );
+    assert_eq!(status_calls(&server).await, 1);
+}
+
+/// An upload whose video outlasts the deadline still completed at FINALIZE:
+/// the outcome carries the media id and the timeout beside it.
+#[tokio::test]
+async fn an_upload_reports_a_processing_timeout_beside_its_media_id() {
+    let server = MockServer::start().await;
+    mount_phases(&server, "m1").await;
+    status_mock(in_progress()).mount(&server).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let file = tmp.path().join("clip.mp4");
+    std::fs::write(&file, b"not really a video").expect("write");
+
+    let outcome = user_client(server.uri())
+        .upload_media(&file)
+        .processing_deadline(Duration::from_secs(1))
+        .send()
+        .await
+        .expect("the upload itself completes");
+
+    assert_eq!(outcome.media_id(), "m1");
+    assert!(
+        matches!(
+            &outcome.processing,
+            Some(Err(Error::ProcessingTimeout { media_id, waited }))
+                if media_id == "m1" && *waited == Duration::from_secs(1)
+        ),
+        "got {:?}",
+        outcome.processing
+    );
+}
+
+// ── The upload's one answer ────────────────────────────────────────────
+
+/// Mounts the phases for a video whose FINALIZE answers `finalize`.
+async fn mount_phases_finalizing(server: &MockServer, finalize: serde_json::Value) {
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/initialize"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "m1", "expires_after_secs": 86400}
+        })))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/m1/append"))
+        .respond_with(ResponseTemplate::new(204))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/m1/finalize"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({ "data": finalize })),
+        )
+        .mount(server)
+        .await;
+}
+
+fn pending_finalize() -> serde_json::Value {
+    serde_json::json!({
+        "id": "m1",
+        "expires_after_secs": 86400,
+        "processing_info": {"state": "pending", "check_after_secs": 1}
+    })
+}
+
+/// Uploads a video against `server` with a one-second deadline.
+async fn upload_a_video(server: &MockServer) -> xdk::api::MediaUploadOutcome {
+    let tmp = TempDir::new().expect("tempdir");
+    let file = tmp.path().join("clip.mp4");
+    std::fs::write(&file, b"not really a video").expect("write");
+    user_client(server.uri())
+        .upload_media(&file)
+        .processing_deadline(Duration::from_secs(1))
+        .send()
+        .await
+        .expect("the upload itself completes")
+}
+
+/// After a wait, the one response is FINALIZE's with the final state in
+/// place of the pending one, and with the media key only the status named.
+#[tokio::test]
+async fn the_response_is_finalize_carrying_the_final_processing_state() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(serde_json::json!({
+        "id": "m1",
+        "media_key": "7_m1",
+        "processing_info": {"state": "succeeded", "progress_percent": 100}
+    }))
+    .mount(&server)
+    .await;
+
+    let response = upload_a_video(&server).await.response();
+
+    assert_eq!(response.data.id, "m1");
+    assert_eq!(response.data.expires_after_secs, Some(86400));
+    assert_eq!(response.data.media_key.as_deref(), Some("7_m1"));
+    let info = response.data.processing_info.expect("the final state");
+    assert_eq!(info.state, "succeeded");
+    assert_eq!(info.progress_percent, Some(100));
+    assert_eq!(
+        info.check_after_secs, None,
+        "nothing of the pending state is left"
+    );
+}
+
+/// X drops `processing_info` from media it has finished with, so the
+/// pending state FINALIZE reported is not carried into the response.
+#[tokio::test]
+async fn the_response_drops_a_pending_state_the_final_status_does_not_report() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(serde_json::json!({"id": "m1", "media_key": "7_m1"}))
+        .mount(&server)
+        .await;
+
+    let response = upload_a_video(&server).await.response();
+
+    assert_eq!(response.data.id, "m1");
+    assert!(response.data.processing_info.is_none());
+}
+
+/// A wait that did not complete leaves FINALIZE's response as it was, with
+/// the state X last reported there.
+#[tokio::test]
+async fn the_response_is_finalize_unchanged_when_the_wait_did_not_complete() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(in_progress()).mount(&server).await;
+
+    let outcome = upload_a_video(&server).await;
+
+    assert!(matches!(outcome.processing, Some(Err(_))));
+    let info = outcome
+        .response()
+        .data
+        .processing_info
+        .expect("FINALIZE's own state");
+    assert_eq!(info.state, "pending");
+}

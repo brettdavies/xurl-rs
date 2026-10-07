@@ -1,7 +1,7 @@
 args: ["auth", "apps", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5823
+stdout_len: 6647
 stderr_len: 0
 --- stdout ---
 Manage registered X API apps
@@ -30,7 +30,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
 
           Possible values:
           - text:   Default: colored, human-readable
@@ -55,7 +55,7 @@ Options:
           [env: XURL_JSONL=]
 
       --raw[=<RAW>]
-          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
           
           [env: XURL_RAW=]
           [default: false]
@@ -86,6 +86,21 @@ Options:
           [env: XURL_TIMEOUT=]
           [default: 30]
 
+      --wait-on-rate-limit[=<WAIT_ON_RATE_LIMIT>]
+          Wait out a rate limit and retry once, instead of failing with `rate-limited`
+          
+          Applies when X answers 429 and that response names its reset, and the wait fits `--rate-limit-max-wait`. A longer wait, or a 429 that names no reset, fails at once as it does without this flag, and the second response is final whatever it is.
+          
+          [env: XURL_WAIT_ON_RATE_LIMIT=]
+          [default: false]
+          [possible values: true, false]
+
+      --rate-limit-max-wait <SECS>
+          Longest `--wait-on-rate-limit` waits before its retry, in seconds
+          
+          [env: XURL_RATE_LIMIT_MAX_WAIT=]
+          [default: 60]
+
       --color <COLOR>
           Colorize output: auto (TTY-aware), always, or never
 
@@ -98,7 +113,7 @@ Options:
           [default: auto]
 
       --dry-run[=<DRY_RUN>]
-          Validate inputs and skip the API call (U7).
+          Validate inputs and skip the API call.
           
           Honored by every write op; emits a canonical dry-run envelope on stdout under `--output json` / `--output jsonl`, or a "Would …" line under `--output text`. Read ops ignore it.
           
@@ -107,7 +122,7 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100 (U7).
+          Global result-set limit, clamped to 1..=100.
           
           Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
           
@@ -138,12 +153,12 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Register a new app:
-    xr auth apps add my-app --client-id ID --client-secret SECRET
+  Register a new app, with the secret piped from a vault so it never reaches argv:
+    op read 'op://<vault>/<item>/client_secret' | xr auth apps add my-app --client-id ID --client-secret-file -
   List registered apps (JSON):
     xr auth apps list --output json
-  Update credentials for an existing app:
-    xr auth apps update my-app --client-secret NEW
+  Rotate the secret of an existing app from a file:
+    xr auth apps update my-app --client-secret-file client-secret.txt
   Inspect or set the stored OAuth2 redirect URI:
     xr auth apps redirect-uri get my-app --output json
 

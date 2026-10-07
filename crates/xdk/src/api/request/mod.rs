@@ -219,6 +219,9 @@ struct Inner {
     timeout: Duration,
     user_agent: String,
     rate_limit: std::sync::Mutex<Option<RateLimit>>,
+    /// The longest a rate limit is waited out before one retry; `None`
+    /// never waits.
+    rate_limit_max_wait: Option<Duration>,
 }
 
 crate::assert_send_sync!(Client);
@@ -269,6 +272,7 @@ impl Client {
             CredentialSource::Store(auth),
             Duration::from_secs(config.http_timeout_secs),
             user_agent.into(),
+            config.rate_limit_max_wait,
         )
     }
 
@@ -290,6 +294,7 @@ impl Client {
             CredentialSource::Store(auth),
             Duration::from_secs(timeout_secs),
             DEFAULT_USER_AGENT.to_string(),
+            config.rate_limit_max_wait,
         )
     }
 
@@ -300,10 +305,11 @@ impl Client {
         credentials: CredentialSource,
         timeout: Duration,
         user_agent: String,
+        rate_limit_max_wait: Option<Duration>,
     ) -> Result<Self> {
-        let http = reqwest::Client::builder()
-            .build()
-            .map_err(|e| Error::Http(format!("cannot build the HTTP client: {e}")))?;
+        let http = reqwest::Client::builder().build().map_err(|e| {
+            Error::http(format!("cannot build the HTTP client: {e}")).with_source(e)
+        })?;
 
         Ok(Self {
             inner: Arc::new(Inner {
@@ -313,6 +319,7 @@ impl Client {
                 timeout,
                 user_agent,
                 rate_limit: std::sync::Mutex::new(None),
+                rate_limit_max_wait,
             }),
         })
     }

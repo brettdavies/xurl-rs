@@ -417,6 +417,7 @@ async fn step2_expired_pending_returns_ttl_error() {
         client_id: "test-client-id".to_string(),
         app_name: String::new(),
         created_at: 0, // epoch = 1970, definitely expired
+        scopes: Vec::new(),
     };
     pending::save(&old_state, &pending_path).unwrap();
 
@@ -667,7 +668,7 @@ async fn step2_token_exchange_200_but_no_access_token() {
 
 #[tokio::test]
 async fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() {
-    // KTD7: token exchange succeeds + /2/users/me fails + empty caller ->
+    // Token exchange succeeds + /2/users/me fails + empty caller ->
     // token persists in the unnamed slot, run_remote_step2 reaches the
     // normal pending::delete success branch, and the access token surfaces
     // to the caller as Ok.
@@ -732,7 +733,7 @@ async fn step2_username_resolution_failure_saves_unnamed_and_consumes_pending() 
 
 #[tokio::test]
 async fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
-    // KTD7: when the CLI threads a `USERNAME` positional through to
+    // When the CLI threads a `USERNAME` positional through to
     // exchange_code_for_token, the function saves under that username and
     // never consults /2/users/me.
     let ts = TestServer::new().await;
@@ -789,7 +790,7 @@ async fn exchange_code_for_token_nonempty_username_skips_me_and_saves_named() {
 
 #[tokio::test]
 async fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
-    // KTD7: empty caller + /me Ok -> token saved under the discovered name;
+    // Empty caller + /me Ok -> token saved under the discovered name;
     // unnamed slot untouched.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
@@ -849,7 +850,7 @@ async fn test_exchange_code_for_token_empty_username_me_ok_saves_named() {
 
 #[tokio::test]
 async fn test_exchange_code_for_token_empty_username_me_failure_saves_unnamed() {
-    // KTD7: empty caller + /me Err -> token saved in the unnamed slot,
+    // Empty caller + /me Err -> token saved in the unnamed slot,
     // named map untouched, function returns Ok with the access token.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
@@ -921,8 +922,8 @@ fn register_app_at(store: &std::path::Path) {
 
 #[test]
 fn cli_no_browser_without_step_auto_engages_step1() {
-    // U9: `--no-browser` (no `--step`) now auto-promotes to step 1 — emits
-    // the authorize URL and exits 0 rather than rejecting at usage time.
+    // `--no-browser` without `--step` promotes to step 1: it emits the
+    // authorize URL and exits 0 rather than rejecting at usage time.
     // The exact envelope shape is covered by the JSON-mode tests in
     // `cli_tests.rs`; this test asserts the exit code only so it survives
     // text-mode rendering changes. `XURL_TOKEN_STORE` points the child at a
@@ -1043,7 +1044,7 @@ fn cli_step1_with_auth_url_rejected() {
     );
 }
 
-// ── Refresh resilience + get_oauth2_header precedence (U2) ────────────
+// ── Refresh resilience + get_oauth2_header precedence ────────────
 
 /// Seeds the test auth's token store with an `OAuth2` token under `username`
 /// with `expiration_time = 0` so the next `refresh_oauth2_token` call fires
@@ -1056,7 +1057,7 @@ fn seed_expired_named_oauth2(auth: &mut Auth, username: &str) {
 
 #[tokio::test]
 async fn refresh_with_caller_supplied_username_skips_fetch_username() {
-    // KTD2: non-empty caller username -> save under that name, never call /me.
+    // Non-empty caller username -> save under that name, never call /me.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
@@ -1099,7 +1100,7 @@ async fn refresh_with_caller_supplied_username_skips_fetch_username() {
 
 #[tokio::test]
 async fn refresh_with_empty_caller_and_me_ok_saves_named() {
-    // KTD2: empty caller + /me Ok -> save under discovered username.
+    // Empty caller + /me Ok -> save under discovered username.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
@@ -1148,7 +1149,7 @@ async fn refresh_with_empty_caller_and_me_ok_saves_named() {
 
 #[tokio::test]
 async fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
-    // KTD2: empty caller + /me Err -> save into unnamed slot, return Ok.
+    // Empty caller + /me Err -> save into unnamed slot, return Ok.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
@@ -1203,7 +1204,7 @@ async fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
 
 #[tokio::test]
 async fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
-    // KTD5: named caller never falls through to the unnamed slot.
+    // Named caller never falls through to the unnamed slot.
     // We seed ONLY the unnamed slot and a fresh-token mock so any successful
     // return would have to come from either named-by-name (miss),
     // get_first_oauth2_token_for_app (miss; named map is empty AND default_user
@@ -1250,7 +1251,7 @@ async fn get_oauth2_header_named_caller_never_uses_unnamed_slot() {
 
 #[tokio::test]
 async fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_token_not_unnamed() {
-    // KTD5: empty caller + default_user + unnamed populated -> default_user wins.
+    // Empty caller + default_user + unnamed populated -> default_user wins.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
@@ -1275,7 +1276,7 @@ async fn get_oauth2_header_empty_caller_with_default_user_returns_default_user_t
 
 #[tokio::test]
 async fn get_oauth2_header_empty_caller_no_named_uses_unnamed() {
-    // KTD5: empty caller + no named token + no default_user + unnamed populated
+    // Empty caller + no named token + no default_user + unnamed populated
     // -> return the unnamed slot's Bearer.
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();

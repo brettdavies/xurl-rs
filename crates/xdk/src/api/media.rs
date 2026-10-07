@@ -22,6 +22,17 @@ pub const MEDIA_ENDPOINT: &str = MEDIA_UPLOAD.path;
 /// line and `DEBUG` for per-chunk and per-poll progress.
 pub const MEDIA_TARGET: &str = "xdk::media";
 
+/// How long a wait on media processing runs when the caller names no
+/// deadline.
+///
+/// X sets no cap on processing time, so a wait without a deadline can poll a
+/// stuck job, one paid status call a second, for as long as the caller lives.
+/// Sixty seconds covers an ordinary video and returns inside an agent's
+/// default tool-call budget. X keeps a media id valid for 24 hours, so a
+/// longer job is resumed rather than lost: wait on the same id again, as
+/// `xr media status <id> --wait=<secs>` does.
+pub const DEFAULT_PROCESSING_WAIT: Duration = Duration::from_secs(60);
+
 /// What a completed upload returned, phase by phase.
 #[derive(Debug)]
 pub struct MediaUploadOutcome {
@@ -43,14 +54,50 @@ impl MediaUploadOutcome {
     pub fn media_id(&self) -> &str {
         &self.init.data.id
     }
+
+    /// The upload's answer as one response: FINALIZE's, carrying the final
+    /// processing state when a wait completed.
+    ///
+    /// With the final STATUS response in [`Self::processing`], its
+    /// `processing_info` replaces FINALIZE's, and clears it when the status
+    /// has none: X drops the field from media it has finished with, which
+    /// leaves FINALIZE's pending state stale. Any other field only the
+    /// status carried is added. Without a completed wait this is FINALIZE's
+    /// response unchanged.
+    #[must_use]
+    pub fn response(&self) -> ApiResponse<MediaUploadResponse> {
+        let mut response = self.finalize.clone();
+        if let Some(Ok(status)) = &self.processing {
+            let data = &mut response.data;
+            data.processing_info
+                .clone_from(&status.data.processing_info);
+            if data.media_key.is_none() {
+                data.media_key.clone_from(&status.data.media_key);
+            }
+            if data.expires_after_secs.is_none() {
+                data.expires_after_secs = status.data.expires_after_secs;
+            }
+            for (key, value) in &status.data.extra {
+                data.extra
+                    .entry(key.clone())
+                    .or_insert_with(|| value.clone());
+            }
+        }
+        response
+    }
 }
 
 /// Handles the full media upload lifecycle.
 ///
+/// `wait_for_processing` is the deadline processing is awaited to, for a
+/// video and for any upload whose FINALIZE answer reports processing still
+/// under way; `None` returns after FINALIZE.
+///
 /// # Errors
 ///
-/// Returns an error if the file cannot be read, any upload phase (INIT, APPEND,
-/// FINALIZE) fails, or media processing times out.
+/// Returns an error if the file cannot be read or any upload phase (INIT,
+/// APPEND, FINALIZE) fails. A processing failure or timeout after FINALIZE is
+/// reported in [`MediaUploadOutcome::processing`], not here.
 #[doc(hidden)]
 #[allow(clippy::too_many_arguments)]
 pub async fn execute_media_upload(
@@ -60,15 +107,15 @@ pub async fn execute_media_upload(
     auth_type: &str,
     username: &str,
     trace: bool,
-    wait_for_processing: bool,
+    wait_for_processing: Option<Duration>,
     headers: &[String],
     client: &Client,
 ) -> Result<MediaUploadOutcome> {
     let metadata = std::fs::metadata(file_path)
-        .map_err(|e| Error::Io(format!("error accessing file: {e}")))?;
+        .map_err(|e| Error::io(format!("error accessing file: {e}")).with_source(e))?;
 
     if !metadata.is_file() {
-        return Err(Error::Io(format!("{file_path} is not a regular file")));
+        return Err(Error::io(format!("{file_path} is not a regular file")));
     }
 
     let file_size = metadata.len();
@@ -103,9 +150,7 @@ pub async fn execute_media_upload(
         deserialize_response(client.send_request(&init_opts).await?)?;
     let media_id = init_response.data.id.clone();
     if media_id.is_empty() {
-        return Err(Error::Json(
-            "failed to parse media ID from init response".to_string(),
-        ));
+        return Err(Error::json("failed to parse media ID from init response"));
     }
 
     // APPEND — upload in 4MB chunks
@@ -126,11 +171,12 @@ pub async fn execute_media_upload(
     let finalize_response: ApiResponse<MediaUploadResponse> =
         deserialize_response(client.send_request(&finalize_opts).await?)?;
 
-    let processing = if wait_for_processing && media_category.contains("video") {
-        tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
-        Some(wait_for_media_processing(&media_id, &base_opts, client).await)
-    } else {
-        None
+    let processing = match wait_for_processing {
+        Some(deadline) if needs_processing(media_category, &finalize_response.data) => {
+            tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
+            Some(wait_for_media_processing(&media_id, &base_opts, client, deadline).await)
+        }
+        _ => None,
     };
 
     Ok(MediaUploadOutcome {
@@ -138,6 +184,20 @@ pub async fn execute_media_upload(
         finalize: finalize_response,
         processing,
     })
+}
+
+/// Whether X still has work to do on an upload after FINALIZE.
+///
+/// A video category always does. For anything else X says so itself: its
+/// FINALIZE answer carries a `processing_info` that has not reached a final
+/// state, which is how an animated GIF reports. An answer with none, or with
+/// one already final, is media ready to use.
+fn needs_processing(media_category: &str, finalize: &MediaUploadResponse) -> bool {
+    media_category.contains("video")
+        || finalize
+            .processing_info
+            .as_ref()
+            .is_some_and(|info| !matches!(info.state.as_str(), "succeeded" | "failed"))
 }
 
 /// Uploads file data in 4 MB chunks via APPEND requests.
@@ -207,16 +267,23 @@ async fn upload_chunks(
     Ok(())
 }
 
-/// Checks or waits for media upload status.
+/// Reads a media upload's status, or waits on its processing.
+///
+/// `wait` is the deadline to wait to, [`DEFAULT_PROCESSING_WAIT`] being the
+/// usual one; `None` reads the status once. A wait ends when the status
+/// carries no processing information, when processing succeeds or fails, or
+/// when the next check would fall past the deadline.
 ///
 /// # Errors
 ///
-/// Returns an error if the status request fails or processing times out.
+/// Returns an error if a status request fails, [`Error::Validation`] if
+/// processing failed, and [`Error::ProcessingTimeout`] if the deadline
+/// passed with the job still running.
 pub async fn execute_media_status(
     media_id: &str,
     auth_type: &str,
     username: &str,
-    wait: bool,
+    wait: Option<Duration>,
     trace: bool,
     headers: &[String],
     client: &Client,
@@ -229,10 +296,9 @@ pub async fn execute_media_status(
         ..Default::default()
     };
 
-    if wait {
-        wait_for_media_processing(media_id, &base_opts, client).await
-    } else {
-        check_media_status(media_id, &base_opts, client).await
+    match wait {
+        Some(deadline) => wait_for_media_processing(media_id, &base_opts, client, deadline).await,
+        None => check_media_status(media_id, &base_opts, client).await,
     }
 }
 
@@ -257,48 +323,50 @@ async fn check_media_status(
     deserialize_response(client.send_request(&opts).await?)
 }
 
-/// Polls media processing status until completion.
+/// Polls media processing status until it finishes or `deadline` passes.
+///
+/// A status with no `processing_info` is a finished one: X attaches it only
+/// while there is processing to report, so an image, or a video already
+/// done, has nothing to wait for. The wait stops before a sleep that would
+/// carry it past the deadline, so it never overruns by a whole interval.
 async fn wait_for_media_processing(
     media_id: &str,
     base_opts: &RequestOptions,
     client: &Client,
+    deadline: Duration,
 ) -> Result<ApiResponse<MediaUploadResponse>> {
+    let started = tokio::time::Instant::now();
     loop {
         let response = check_media_status(media_id, base_opts, client).await?;
 
-        let state = response
-            .data
-            .processing_info
-            .as_ref()
-            .map_or("", |p| p.state.as_str());
-
-        if state == "succeeded" {
-            tracing::info!(target: MEDIA_TARGET, "Media processing complete!");
+        let Some(info) = response.data.processing_info.as_ref() else {
             return Ok(response);
-        } else if state == "failed" {
-            return Err(Error::validation("media processing failed"));
+        };
+        match info.state.as_str() {
+            "succeeded" => {
+                tracing::info!(target: MEDIA_TARGET, "Media processing complete!");
+                return Ok(response);
+            }
+            "failed" => return Err(Error::validation("media processing failed")),
+            _ => {}
         }
 
-        let check_after = response
-            .data
-            .processing_info
-            .as_ref()
-            .and_then(|p| p.check_after_secs)
-            .unwrap_or(1)
-            .max(1);
+        let check_after = Duration::from_secs(info.check_after_secs.unwrap_or(1).max(1));
+        if started.elapsed() + check_after > deadline {
+            return Err(Error::ProcessingTimeout {
+                media_id: media_id.to_string(),
+                waited: deadline,
+            });
+        }
 
-        let pct = response
-            .data
-            .processing_info
-            .as_ref()
-            .and_then(|p| p.progress_percent)
-            .unwrap_or(0);
+        let pct = info.progress_percent.unwrap_or(0);
         tracing::debug!(
             target: MEDIA_TARGET,
-            "Media processing in progress ({pct}%), checking again in {check_after} seconds..."
+            "Media processing in progress ({pct}%), checking again in {} seconds...",
+            check_after.as_secs()
         );
 
-        tokio::time::sleep(Duration::from_secs(check_after)).await;
+        tokio::time::sleep(check_after).await;
     }
 }
 

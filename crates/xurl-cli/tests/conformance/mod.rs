@@ -7,8 +7,8 @@
 //! Test cases are defined declaratively in `test_cases.toml`.
 
 use std::collections::HashMap;
-use std::env;
-use std::process::{Command, Output};
+use std::path::{Path, PathBuf};
+use std::process::Output;
 
 use serde::Deserialize;
 
@@ -78,26 +78,24 @@ pub struct TestResult {
 // ── Differential runner ────────────────────────────────────────────────────
 
 pub struct DifferentialRunner {
-    original_bin: String,
+    original_bin: PathBuf,
     port_bin: String,
+    /// The home directory the original runs against, removed with the runner.
+    original_home: tempfile::TempDir,
 }
 
 impl DifferentialRunner {
-    pub fn new() -> Self {
-        let original_bin = env::var("XURL_ORIGINAL_BIN").unwrap_or_else(|_| "xurl".to_string());
-        let port_bin =
-            env::var("XURL_PORT_BIN").unwrap_or_else(|_| crate::common::xr_bin().to_string());
-
-        Self {
-            original_bin,
-            port_bin,
-        }
+    /// A runner comparing the Go original at `original` with the built `xr`.
+    pub fn new(original: &Path) -> Self {
+        Self::new_with_bins(original, crate::common::xr_bin())
     }
 
-    pub fn new_with_bins(original: &str, port: &str) -> Self {
+    /// A runner comparing the program at `original` with the one at `port`.
+    pub fn new_with_bins(original: &Path, port: &str) -> Self {
         Self {
-            original_bin: original.to_string(),
+            original_bin: original.to_path_buf(),
             port_bin: port.to_string(),
+            original_home: tempfile::TempDir::new().expect("scratch home for the original"),
         }
     }
 
@@ -119,8 +117,11 @@ impl DifferentialRunner {
             };
         }
 
-        let original_output = self.run_command(&self.original_bin, case);
-        let port_output = self.run_command(&self.port_bin, case);
+        let original_output = self.run_command(
+            crate::common::original_std_at(&self.original_bin, self.original_home.path()),
+            case,
+        );
+        let port_output = self.run_command(crate::common::xr_std_at(&self.port_bin), case);
 
         let orig_exit = original_output.status.code();
         let port_exit = port_output.status.code();
@@ -203,12 +204,7 @@ impl DifferentialRunner {
         }
     }
 
-    fn run_command(&self, bin: &str, case: &TestCase) -> Output {
-        let mut cmd = if bin == self.port_bin {
-            crate::common::xr_std_at(bin)
-        } else {
-            Command::new(bin)
-        };
+    fn run_command(&self, mut cmd: std::process::Command, case: &TestCase) -> Output {
         cmd.args(&case.args);
 
         for (key, value) in &case.env {
@@ -218,7 +214,7 @@ impl DifferentialRunner {
         let _timeout = case.timeout_secs.unwrap_or(30);
         // Note: actual timeout enforcement would use timeout(1) or similar
         cmd.output()
-            .unwrap_or_else(|e| panic!("Failed to run {bin}: {e}"))
+            .unwrap_or_else(|e| panic!("Failed to run {:?}: {e}", cmd.get_program()))
     }
 
     fn normalize_output(&self, output: &[u8], normalizations: &[String]) -> Vec<u8> {
@@ -367,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_differential_runner_creation() {
-        let runner = DifferentialRunner::new_with_bins("/usr/bin/echo", "/usr/bin/echo");
+        let runner = DifferentialRunner::new_with_bins(Path::new("/usr/bin/echo"), "/usr/bin/echo");
         let case = TestCase {
             name: "echo-test".to_string(),
             args: vec!["hello".to_string()],

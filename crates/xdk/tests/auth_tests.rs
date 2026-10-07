@@ -175,7 +175,7 @@ fn test_generate_timestamp() {
 
 #[rstest]
 #[case("abc", "abc")]
-#[case("a b c", "a+b+c")]
+#[case("a b c", "a%20b%20c")]
 #[case("a+b+c", "a%2Bb%2Bc")]
 #[case("a/b/c", "a%2Fb%2Fc")]
 #[case("a?b=c", "a%3Fb%3Dc")]
@@ -358,7 +358,7 @@ fn test_timestamp_is_recent() {
 
 #[rstest]
 #[case("", "")]
-#[case("hello world", "hello+world")]
+#[case("hello world", "hello%20world")]
 #[case("100%", "100%25")]
 fn test_encode_edge_cases(#[case] input: &str, #[case] expected: &str) {
     let result = encode(input);
@@ -395,7 +395,7 @@ fn test_oauth1_header_format() {
     assert!(header.contains("oauth_version"));
 }
 
-// ── Explicit store-path injection (U3) ─────────────────────────────────────
+// ── Explicit store-path injection ─────────────────────────────────────
 //
 // `Auth::new_with_store_path` honours an explicit `TempDir` path so library
 // tests need no `HOME` / `XDG_CONFIG_HOME` env-var mutation. Parallel-safe.
@@ -433,7 +433,7 @@ fn test_new_with_store_path_honors_explicit_path() {
     assert_eq!(reopened_header, "Bearer explicit-path-bearer");
 }
 
-// ── U3: redirect URI single-source-of-truth on owned Config ───────────────
+// ── Redirect URI single-source-of-truth on owned Config ───────────────
 //
 // `Auth::new_with_store_path` runs the three-level resolver (env > app-stored
 // > built-in default) and writes the resolved value back into the owned
@@ -567,9 +567,8 @@ fn test_with_app_name_env_override_survives_app_switch() {
     // Env wins for the default app.
     assert_eq!(auth.redirect_uri(), "https://envvar.example.com/cb");
 
-    // Env still wins after switching apps — KTD3 forbids the credential's
-    // "preserve if non-empty" pattern; the resolver itself enforces env
-    // precedence each time.
+    // Env still wins after switching apps: the resolver applies env
+    // precedence on every read, with no "preserve if non-empty" shortcut.
     auth.with_app_name("beta");
     let still_env_after_switch = auth.redirect_uri().to_string();
 
@@ -1121,4 +1120,263 @@ async fn refresh_without_a_rotated_token_keeps_the_stored_refresh_token() {
         saved.refresh_token, "alice-refresh",
         "an omitted refresh_token keeps the stored one"
     );
+}
+
+// ── OAuth2 scope selection ─────────────────────────────────────────────────
+
+/// The `scope` parameter of the authorize URL a sign-in with `auth` opens.
+fn authorize_scope(auth: &Auth, tmp: &TempDir) -> String {
+    let authorize_url = auth
+        .remote_oauth2_step1(&tmp.path().join(".xurl.pending"))
+        .expect("step 1 builds the URL");
+    url::Url::parse(&authorize_url)
+        .expect("the authorize URL parses")
+        .query_pairs()
+        .find(|(key, _)| key == "scope")
+        .map(|(_, value)| value.into_owned())
+        .expect("the URL carries a scope")
+}
+
+#[test]
+fn test_a_sign_in_requests_every_scope_by_default() {
+    let (token_store, tmp) = create_temp_token_store();
+    let auth = auth_for(&test_config(), token_store);
+
+    assert_eq!(
+        authorize_scope(&auth, &tmp),
+        "tweet.read users.read bookmark.read follows.read list.read block.read mute.read \
+         like.read users.email dm.read broadcast.read tweet.write tweet.moderate.write \
+         follows.write bookmark.write block.write mute.write like.write list.write media.write \
+         dm.write broadcast.write offline.access space.read"
+    );
+}
+
+#[rstest]
+#[case::a_subset(&["tweet.read", "users.read"], "tweet.read users.read offline.access")]
+#[case::offline_access_named(&["offline.access", "tweet.read"], "tweet.read offline.access")]
+#[case::a_scope_named_twice(&["dm.read", "dm.read"], "dm.read offline.access")]
+fn test_a_narrowed_sign_in_requests_the_named_scopes_and_offline_access(
+    #[case] requested: &[&str],
+    #[case] scope: &str,
+) {
+    let (token_store, tmp) = create_temp_token_store();
+    let mut auth = auth_for(&test_config(), token_store);
+    auth.with_oauth2_scopes(requested).expect("known scopes");
+
+    assert_eq!(authorize_scope(&auth, &tmp), scope);
+}
+
+#[test]
+fn test_an_unknown_scope_is_rejected_naming_the_valid_ones() {
+    let (token_store, _tmp) = create_temp_token_store();
+    let mut auth = auth_for(&test_config(), token_store);
+
+    let error = auth
+        .with_oauth2_scopes(&["tweet.read", "tweet.reed"])
+        .expect_err("tweet.reed is not a scope");
+
+    assert_eq!(error.kind(), "validation");
+    let message = error.to_string();
+    assert!(message.contains("tweet.reed"), "{message}");
+    for valid in get_oauth2_scopes() {
+        assert!(message.contains(valid), "{valid} is listed: {message}");
+    }
+}
+
+// ── One refresh across processes ───────────────────────────────────────────
+
+/// Each `Auth` below loads the same store file on its own, which is what two
+/// `xr` processes do; the sidecar lock is an OS lock, so two handles in one
+/// process contend for it exactly as two processes would.
+mod refresh_across_processes {
+    use std::path::{Path, PathBuf};
+    use std::time::Duration;
+
+    use tempfile::TempDir;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use xdk::auth::Auth;
+    use xdk::store::TokenStore;
+
+    use super::{http, test_config};
+
+    const TOKEN_PATH: &str = "/2/oauth2/token";
+
+    fn now_secs() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_secs()
+    }
+
+    /// Writes a store holding alice's login, expiring at `expiration_time`.
+    fn seed_login(store_path: &Path, expiration_time: u64) {
+        let mut store = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+        store
+            .add_app("myapp", "test-client-id", "test-client-secret")
+            .expect("add_app");
+        store
+            .save_oauth2_token_for_app(
+                "myapp",
+                "alice",
+                "stale-access-token",
+                "refresh-1",
+                expiration_time,
+            )
+            .expect("save the login");
+    }
+
+    /// An `Auth` that loads the store at `store_path` and refreshes at `server`.
+    fn auth_on(server: &MockServer, store_path: &Path) -> Auth {
+        let mut cfg = test_config();
+        cfg.token_url = format!("{}{TOKEN_PATH}", server.uri());
+        Auth::new_with_store_path(&cfg, store_path)
+    }
+
+    /// The token endpoint answering with a new pair after `delay`, long
+    /// enough for a second refresher to arrive while the first is in flight.
+    fn new_pair_after(delay: Duration) -> Mock {
+        Mock::given(method("POST"))
+            .and(path(TOKEN_PATH))
+            .respond_with(ResponseTemplate::new(200).set_delay(delay).set_body_json(
+                serde_json::json!({
+                    "access_token": "fresh-access-token",
+                    "refresh_token": "refresh-2",
+                    "expires_in": 7200,
+                }),
+            ))
+    }
+
+    async fn refreshes_received(server: &MockServer) -> usize {
+        server
+            .received_requests()
+            .await
+            .expect("request recording is on")
+            .iter()
+            .filter(|request| request.url.path() == TOKEN_PATH)
+            .count()
+    }
+
+    fn refresh_lock_path(store_path: &Path) -> PathBuf {
+        let mut os = store_path.as_os_str().to_os_string();
+        os.push(".refresh.lock");
+        PathBuf::from(os)
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn two_refreshers_spend_the_refresh_token_once() {
+        let server = MockServer::start().await;
+        new_pair_after(Duration::from_millis(300))
+            .mount(&server)
+            .await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store_path = tmp.path().join(".xurl");
+        seed_login(&store_path, now_secs() - 10);
+        let mut first = auth_on(&server, &store_path);
+        let mut second = auth_on(&server, &store_path);
+        let http = http();
+
+        let (first_token, second_token) = tokio::join!(
+            first.refresh_oauth2_token(&http, "alice"),
+            second.refresh_oauth2_token(&http, "alice"),
+        );
+
+        assert_eq!(first_token.expect("first refresh"), "fresh-access-token");
+        assert_eq!(second_token.expect("second refresh"), "fresh-access-token");
+        assert_eq!(
+            refreshes_received(&server).await,
+            1,
+            "the refresh token is single-use, so the second refresher takes the pair the first saved"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn the_refresh_lock_is_held_while_the_token_request_is_in_flight() {
+        let server = MockServer::start().await;
+        new_pair_after(Duration::from_millis(500))
+            .mount(&server)
+            .await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store_path = tmp.path().join(".xurl");
+        seed_login(&store_path, now_secs() - 10);
+        let mut auth = auth_on(&server, &store_path);
+
+        let refresh =
+            tokio::spawn(async move { auth.refresh_oauth2_token(&http(), "alice").await });
+        while refreshes_received(&server).await == 0 {
+            assert!(
+                !refresh.is_finished(),
+                "the refresh ended before its request arrived"
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+
+        let sidecar = std::fs::File::open(refresh_lock_path(&store_path))
+            .expect("the refresh lock sits beside the store while a refresh runs");
+        assert!(
+            matches!(sidecar.try_lock(), Err(std::fs::TryLockError::WouldBlock)),
+            "a second refresher cannot take the lock during the token request"
+        );
+        refresh
+            .await
+            .expect("the refresh task joins")
+            .expect("the refresh succeeds");
+        sidecar
+            .try_lock()
+            .expect("the lock is free once the refresh has returned");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_failed_refresh_releases_the_lock_for_the_next_caller() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(TOKEN_PATH))
+            .respond_with(
+                ResponseTemplate::new(400)
+                    .set_body_json(serde_json::json!({"error": "temporarily_unavailable"})),
+            )
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        new_pair_after(Duration::ZERO).mount(&server).await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store_path = tmp.path().join(".xurl");
+        seed_login(&store_path, now_secs() - 10);
+        let http = http();
+
+        auth_on(&server, &store_path)
+            .refresh_oauth2_token(&http, "alice")
+            .await
+            .expect_err("the token endpoint refused the first refresh");
+
+        let sidecar = std::fs::File::open(refresh_lock_path(&store_path))
+            .expect("the failed refresh took the lock");
+        sidecar.try_lock().expect("and released it when it failed");
+        sidecar.unlock().expect("unlock");
+        let token = auth_on(&server, &store_path)
+            .refresh_oauth2_token(&http, "alice")
+            .await
+            .expect("the next caller refreshes");
+        assert_eq!(token, "fresh-access-token");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn an_unexpired_login_returns_without_the_refresh_lock() {
+        let server = MockServer::start().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store_path = tmp.path().join(".xurl");
+        seed_login(&store_path, now_secs() + 3600);
+
+        let token = auth_on(&server, &store_path)
+            .refresh_oauth2_token(&http(), "alice")
+            .await
+            .expect("the stored token is still good");
+
+        assert_eq!(token, "stale-access-token");
+        assert_eq!(refreshes_received(&server).await, 0);
+        assert!(
+            !refresh_lock_path(&store_path).exists(),
+            "a login that needs no refresh never opens the refresh lock"
+        );
+    }
 }

@@ -22,7 +22,7 @@ The Go version maps HTTP errors to exit codes by string-matching the error messa
 contains "404"). This fails for API responses where the JSON body doesn't contain the literal status code string,
 causing 404 responses to return `EXIT_GENERAL_ERROR` (1) instead of `EXIT_NOT_FOUND` (4).
 
-The Rust version uses structured pattern matching on `XurlError::Api { status, .. }`, which correctly maps HTTP status
+The Rust version uses structured pattern matching on `xdk::Error::Api { status, .. }`, which correctly maps HTTP status
 codes to exit codes regardless of response body content. This means some edge-case exit codes differ:
 
 | Scenario                                      | Go exit code | Rust exit code     | Rust is more correct |
@@ -76,3 +76,74 @@ build fails if a spec refresh leaves none marked. That set covers Go's eight plu
 | `/2/users/compliance/stream`  | Buffered        | Streamed          |
 
 `-s` still forces streaming on any path in both.
+
+## OAuth1 signatures use RFC 5849 percent-encoding (intentional improvement)
+
+Go `xurl` percent-encodes OAuth1 parameters with `url.QueryEscape` (`auth/auth.go`), a query-string encoder: a space
+becomes `+`, `~` becomes `%7E`, and `*` stays bare. RFC 5849 section 3.6 leaves only the RFC 3986 unreserved characters
+bare (letters, digits, `-`, `.`, `_`, `~`) and writes every other byte as `%XX`. X documents the RFC's encoding for the
+signature it recomputes, so an OAuth1 request whose query or body value carries one of those characters signs a string
+that differs from the one X builds.
+
+The Rust version encodes the signature base string, the signing key, and the `Authorization` header parameters as the
+RFC says. It reproduces the `oauth_signature` of X's published example,
+[Creating a signature](https://docs.x.com/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature), whose
+`status` value contains spaces, a `+`, a comma, and a `!`:
+
+| Value | Go `encode` | Rust `encode` |
+| ----- | ----------- | ------------- |
+| `a b` | `a+b`       | `a%20b`       |
+| `~`   | `%7E`       | `~`           |
+| `*`   | `*`         | `%2A`         |
+
+A request with none of those characters in a signed value produces the same signature in both.
+
+## A wait on media processing has a deadline (intentional improvement)
+
+Go `xurl` waits on media processing in a loop with no deadline (`api/media.go`, `WaitForProcessing`): it polls until the
+status reads `succeeded` or `failed`. A status that carries no `processing_info`, which is what an image reports, reads
+as neither, so that wait never ends, and a job X never finishes is polled for as long as the process lives. Its `--wait`
+is a boolean flag.
+
+The Rust version always ends the wait:
+
+| Situation                           | Go behavior                     | Rust behavior                                            |
+| ----------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| Status carries no `processing_info` | Polls once a second without end | Returns the status after one call                        |
+| Job still running                   | Polls without a deadline        | Exit 1, reason `processing-timeout`, at the deadline     |
+| `--wait`, `--wait=true`             | Waits                           | Waits up to 60 seconds                                   |
+| `--wait=<SECS>`                     | Accepts only `0` or `1`         | Waits up to that many seconds; `0` does not wait         |
+| `--wait=false`                      | Does not wait                   | Does not wait                                            |
+| `--wait 60` (value after a space)   | Not the flag's value            | Exit 2, with a tip pointing at `--wait=60`               |
+
+Which uploads are waited for differs too. Go `xurl` decides by category alone: one whose name contains `video` or
+`gif` (`mediaNeedsProcessing`). The Rust version waits for a video category, and for any other upload whose FINALIZE
+answer carries a `processing_info` that is not yet final, which is the signal X documents for media that needs
+processing. A GIF that X reports as ready at FINALIZE therefore costs no status call, where Go polls it.
+
+`media upload` still waits by default and `media status` still reads the status once unless `--wait` is given. The
+timeout leaves the upload intact: its envelope carries `media_id` and a `resume-wait` step whose `command`, `xr media
+status <media_id> --wait=<secs>`, waits again for twice as long.
+
+## A waited `media upload` answers one document (intentional improvement)
+
+Go `xurl` prints the FINALIZE response and, when it waited, the final status response after it (`api/media.go`,
+`ExecuteMediaUpload`): two JSON documents on stdout, so a caller that parses the output once fails on the second and
+`.data.id` reads twice.
+
+The Rust version prints one document. It is FINALIZE's, with `processing_info` replaced by the final status's, or
+removed when that status carries none, and with any other field only the status carried added:
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "7_1880028106020515840",
+    "expires_after_secs": 86400,
+    "processing_info": { "state": "succeeded", "progress_percent": 100 }
+  }
+}
+```
+
+An upload that did not wait prints FINALIZE's document unchanged, and so does one whose wait failed or timed out, with
+the error on stderr. Under `--verbose`, INIT's response is printed ahead of it in text output only.
