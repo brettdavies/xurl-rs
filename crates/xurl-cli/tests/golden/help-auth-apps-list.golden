@@ -1,7 +1,7 @@
 args: ["auth", "apps", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5968
+stdout_len: 6014
 stderr_len: 0
 --- stdout ---
 List registered apps
@@ -22,7 +22,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
 
           Possible values:
           - text:   Default: colored, human-readable

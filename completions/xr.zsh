@@ -29,7 +29,7 @@ _xr() {
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -81,7 +81,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -122,7 +122,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -163,7 +163,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -204,7 +204,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -245,7 +245,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -287,7 +287,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -327,7 +327,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -366,7 +366,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -408,7 +408,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -449,7 +449,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -488,7 +488,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -528,7 +528,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -568,7 +568,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -608,7 +608,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -648,7 +648,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -688,7 +688,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -730,7 +730,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -771,7 +771,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -810,7 +810,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -850,7 +850,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -893,7 +893,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -935,7 +935,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -974,7 +974,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1014,7 +1014,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1056,7 +1056,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1095,7 +1095,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1135,7 +1135,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1177,7 +1177,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1216,7 +1216,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1263,7 +1263,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1330,7 +1330,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1373,7 +1373,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1409,7 +1409,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1451,7 +1451,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1496,7 +1496,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1535,7 +1535,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1575,7 +1575,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1700,7 +1700,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1746,7 +1746,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1788,7 +1788,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1824,7 +1824,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1858,7 +1858,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1893,7 +1893,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1931,7 +1931,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1977,7 +1977,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2016,7 +2016,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2051,7 +2051,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2087,7 +2087,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2121,7 +2121,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2163,7 +2163,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2198,7 +2198,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2330,7 +2330,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2470,7 +2470,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2520,7 +2520,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2564,7 +2564,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2604,7 +2604,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2642,7 +2642,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2690,7 +2690,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2733,7 +2733,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2862,7 +2862,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2904,7 +2904,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2940,7 +2940,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3008,7 +3008,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3046,7 +3046,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3081,7 +3081,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3115,7 +3115,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3150,7 +3150,7 @@ _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"

@@ -852,8 +852,8 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
-    /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage
-    /// error at exit 2.
+    /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused
+    /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
     #[arg(
         long,
         global = true,

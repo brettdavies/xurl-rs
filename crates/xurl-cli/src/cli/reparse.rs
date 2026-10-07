@@ -12,7 +12,7 @@ use clap::error::{ContextKind, ErrorKind};
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
 use crate::cli::classify::{
-    ROOT_COMMAND, color_intent, context_string, raw_intent, structured_format, structured_intent,
+    ROOT_COMMAND, color_intent, context_string, raw_intent, rendering_format, structured_intent,
     usage_command,
 };
 use crate::cli::output::OutputFormat;
@@ -116,7 +116,7 @@ pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<O
                 None
             }
         })
-        .or_else(|| output.and_then(structured_format))
+        .or_else(|| output.and_then(rendering_format))
 }
 
 /// The correction for a value given after a space to a flag that takes it
