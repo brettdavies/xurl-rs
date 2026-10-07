@@ -421,6 +421,40 @@ impl TokenStore {
         self.apps.keys().cloned().collect()
     }
 
+    /// Sets the default application and that app's default `OAuth2` user in
+    /// one write.
+    ///
+    /// Both names are checked before anything is saved, so a user the app
+    /// does not hold leaves the default app where it was, and an app that is
+    /// not registered leaves every default user where it was.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the app is not found, the username is not found
+    /// in that app, or the store cannot be saved.
+    pub fn set_default_app_and_user(&mut self, name: &str, username: &str) -> Result<()> {
+        self.require_user_in_app(name, username)?;
+        self.update(|store| {
+            store.require_user_in_app(name, username)?;
+            store.default_app = name.to_string();
+            if let Some(app) = store.apps.get_mut(name) {
+                app.default_user = username.to_string();
+            }
+            Ok(())
+        })
+    }
+
+    /// The not-found error for `name`, or for `username` in the app of that
+    /// name. Unlike [`Self::resolve_app`], an unregistered name is an error
+    /// here and never the default app.
+    fn require_user_in_app(&self, name: &str, username: &str) -> Result<()> {
+        self.require_app(name)?;
+        match self.apps.get(name) {
+            Some(app) => Self::require_user(app, username),
+            None => Ok(()),
+        }
+    }
+
     /// Returns an app by name.
     #[must_use]
     pub fn get_app(&self, name: &str) -> Option<&App> {

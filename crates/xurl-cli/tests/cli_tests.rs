@@ -3409,12 +3409,8 @@ async fn test_auth_default_named_app_sets_default_app_and_user() {
         "auth default myapp alice failed; stderr: {stderr2}"
     );
     assert!(
-        stdout2.contains("Default app set to \"myapp\""),
-        "expected the app line; got: {stdout2}"
-    );
-    assert!(
-        stdout2.contains("Default user set to \"alice\""),
-        "expected the user line; got: {stdout2}"
+        stdout2.contains("Default app set to \"myapp\" and default user to \"alice\""),
+        "expected one line naming the app and the user; got: {stdout2}"
     );
 
     let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
