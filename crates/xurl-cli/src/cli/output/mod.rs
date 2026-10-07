@@ -223,6 +223,33 @@ impl OutputConfig {
         );
     }
 
+    /// Emits a usage error for `command`: the `invalid-args` envelope, closing
+    /// on that command's help.
+    ///
+    /// The pointer in the message and the `show-help` step are built from the
+    /// one `command`, so the line a person reads and the step an agent runs
+    /// cannot name different pages. `separator` sits between `message` and the
+    /// pointer.
+    pub(crate) fn print_invalid_args(
+        &self,
+        err: &mut dyn Write,
+        message: &str,
+        separator: &str,
+        command: &str,
+    ) {
+        let help = format!("{command} --help");
+        self.emit_error_envelope(
+            err,
+            ErrorBody {
+                reason: Reason::InvalidArgs,
+                exit_code: xdk::error::EXIT_USAGE_ERROR,
+                message: Some(format!("{message}{separator}Try '{help}'.")),
+                next_step: Some(crate::cli::hints::NextStep::show_help(help)),
+                ..ErrorBody::default()
+            },
+        );
+    }
+
     /// Prints an error with a recovery hint attached.
     ///
     /// Text mode puts the hint lines after the error line, outside the color
@@ -259,7 +286,7 @@ impl OutputConfig {
     ///   print_error ─┐
     ///   print_error_envelope ─┤
     ///   print_confirmation_required ─┼─> ErrorBody ─> text "Error:" line
-    ///   emit_invalid_args_envelope ─┘                 or structured document
+    ///   print_invalid_args ─┘                         or structured document
     /// ```
     ///
     /// Building the typed [`ErrorBody`] here is what keeps the generated

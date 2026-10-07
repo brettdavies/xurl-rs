@@ -47,7 +47,7 @@
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nExactly one of [`Self::command`] and [`Self::template`] is present,\nexcept for [`NextAction::EnrollApp`] and [`NextAction::WaitAndRetry`],\nwhich carry only `docs`:\na command is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in.",
+      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in. A\nstep with neither carries `docs` alone, because its recovery is not an\n`xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],\nand [`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store.",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",

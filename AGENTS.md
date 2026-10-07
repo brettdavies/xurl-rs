@@ -73,16 +73,20 @@ xr --output json whoami 2>&1 >/dev/null # the failure itself, carrying next_step
 ```
 
 Branch on `next_step.action`: `register-app` means nothing is registered, so run its `template` with real values;
-`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file could not be read and
-names it in the message.
+`sign-in` and `select-app` carry a `command` to run verbatim; `inspect-store` means the store file exists and could not
+be loaded. It carries `docs`, the README section on recovering the file, and its `command` is the `xr auth status` that
+names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
+step carries `docs` alone.
 
-Two actions answer failures that are not about credentials. `resume-wait` rides on reason `processing-timeout` (exit
-1): a wait on media processing reached its deadline with the job still running. The upload is intact, the envelope names
-it in `media_id`, and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long.
-`wait-and-retry` rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries
-`retry_after_secs`, the seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339
-UTC; the step carries `docs` and no command, because the request to send again is the caller's own. A 429 that names no
-reset carries neither key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
+Three actions answer failures that are not about credentials. `show-help` rides on reasons `invalid-args` and
+`unknown-command` (exit 2): `command` is the `xr <command> --help` the message closes on, the help of the nearest
+command when the word was mistyped. `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media
+processing reached its deadline with the job still running. The upload is intact, the envelope names it in `media_id`,
+and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry`
+rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the
+seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries
+`docs` and no command, because the request to send again is the caller's own. A 429 that names no reset carries neither
+key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
 `--rate-limit-max-wait` (60 seconds unless set).
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
@@ -110,11 +114,13 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. One
-whose failure has a step the caller can take also carries a `next_step` object `{action, command | template, docs}`.
-`action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket
-placeholders only the caller can fill. Prefer additive envelope changes: add keys rather than renaming or retyping
-existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
+reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
+under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
+not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
+`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
+can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
+changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
 

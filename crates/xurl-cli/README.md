@@ -442,8 +442,9 @@ xr --wait-on-rate-limit --rate-limit-max-wait 900 search "rustlang" # Wait up to
 
 ### Recovering From an Auth Failure
 
-A structured error whose failure has a step the caller can take carries a `next_step` object an agent can act on
-without parsing prose. Exit 77 looks like this on a machine with nothing registered:
+A structured error that has a step the caller can take carries a `next_step` object an agent can act on without
+parsing prose; [Which Errors Carry a Step](#which-errors-carry-a-step) lists them. Exit 77 looks like this on a machine
+with nothing registered:
 
 ```json
 {
@@ -458,13 +459,33 @@ without parsing prose. Exit 77 looks like this on a machine with nothing registe
 }
 ```
 
-`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`,
-`resume-wait`, which a `processing-timeout` envelope carries, `wait-and-retry`, which a `rate-limited` envelope carries,
-and `show-help`, which an `unknown-command` envelope carries with the help of the nearest command (`xr auth status
---help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat a value you do
-not recognize as your default branch. A step carries either a `command`, runnable verbatim, or a `template` with
-angle-bracket placeholders only the caller can fill; `enroll-app` and `wait-and-retry` carry `docs` alone. Text mode
-prints the same advice as prose instead; the two need not match word for word.
+`action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, `resume-wait`,
+`wait-and-retry`, and `show-help`, which carries the help to read: `xr post --help` for a usage error under `post`, and
+the help of the nearest command for a mistyped one (`xr auth status --help` for `xr auth statsu`). `reason` is closed
+too. A newer release can add to either set, so treat a value you do not recognize as your default branch. A step carries
+a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill, and never
+both. One whose recovery is not an `xr` invocation carries `docs` alone: `enroll-app`, `wait-and-retry`, and
+`inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need not
+match word for word.
+
+### Which Errors Carry a Step
+
+| `reason`                     | `next_step.action`                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401    |
+| `client-credentials-missing` | `register-app` or `select-app`                                                            |
+| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold |
+| `invalid-args`               | `show-help`                                                                               |
+| `unknown-command`            | `show-help`                                                                               |
+| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                      |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                             |
+| `processing-timeout`         | `resume-wait`                                                                             |
+
+Every other reason carries no step, and its `message` is what there is to read: `auth-method-mismatch`, `not-found`,
+`invalid-request`, `server-error`, `api-error`, `network-error`, `invalid-method`, `invalid-url`, `invalid-path-param`,
+`validation`, `serialization`, `io`, `internal`, `confirmation-required`, `no-tty`, `unsupported-pagination`,
+`invalid-json`, `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`, `destination-not-empty`,
+`destination-is-file`, `git-not-found`, `git-clone-failed`, `not-installed`, and `remove-failed`.
 
 ### NO_COLOR Support
 
@@ -540,6 +561,23 @@ If OAuth succeeds but reads like `xr whoami` fail with an error body containing 
 `client-not-enrolled`, the app needs X's enrollment step, which is a developer-console setting rather than anything in
 `xr`. The recipe is in the repository README under
 [X Platform Enrollment](https://github.com/brettdavies/xurl-rs#x-platform-enrollment).
+
+### Token Store Could Not Be Read
+
+`xr` keeps every credential in one YAML file, `~/.xurl` unless `XURL_TOKEN_STORE` names another path. When that path
+exists and cannot be loaded, a command that manages the store exits 77 with reason `token-store`, a command that needs a
+credential exits 77 with reason `auth-required`, and both carry `next_step.action` `inspect-store`. `xr auth status`
+names the path in its message. `xr` writes nothing to a store it could not load, so the file stays as it was found.
+
+What makes a store unloadable:
+
+- **It is not a store.** The file is not YAML `xr` can read: a hand edit, or a file another tool put there.
+- **It cannot be opened.** Its permissions deny the user running `xr`.
+- **It is a directory.** Go `xurl` 1.3.4 moves `~/.xurl` to `~/.xurl/auth.yml` when it runs, which leaves a directory
+  where `xr` expects the file.
+
+To recover, repair the file, or move it aside and register again (`xr auth apps add`, then `xr auth oauth2`). To run
+`xr` beside a tool that owns `~/.xurl`, set `XURL_TOKEN_STORE` to a path of `xr`'s own.
 
 ## Relationship to xurl
 
