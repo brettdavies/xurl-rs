@@ -240,14 +240,48 @@ fn test_output_delimited_formats_print_a_header_and_a_row(
     assert_eq!(rows[1][..2], ["xr", VERSION]);
 }
 
+/// A format `xr` does not print is a usage error at exit 2. The caller asked
+/// for a structured format, so the error is the JSON envelope, whether the
+/// format came from the flag in either spelling or from `XURL_OUTPUT`.
+#[rstest]
+#[case::flag(&["--output", "toml", "version"], None, "toml")]
+#[case::flag_equals(&["--output=xml", "version"], None, "xml")]
+#[case::env(&["version"], Some("toml"), "toml")]
+fn test_output_unsupported_format_is_a_json_envelope(
+    #[case] args: &[&str],
+    #[case] env: Option<&str>,
+    #[case] format: &str,
+) {
+    let mut command = common::xr();
+    command.args(args);
+    if let Some(value) = env {
+        command.env("XURL_OUTPUT", value);
+    }
+    let output = command.output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(2), "{stderr}");
+    assert!(output.stdout.is_empty(), "nothing on stdout");
+    let envelope: serde_json::Value = serde_json::from_str(&stderr)
+        .unwrap_or_else(|e| panic!("stderr must be a JSON envelope ({e}): {stderr}"));
+    assert_eq!(envelope["status"], "error");
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["exit_code"], 2);
+    let message = envelope["message"].as_str().expect("message");
+    assert!(
+        message.contains(&format!("invalid value '{format}'")),
+        "{message}"
+    );
+}
+
+/// A miscased `text` asks for no structure, so its usage error stays text.
 #[test]
-fn test_output_invalid_value_fails() {
+fn test_output_miscased_text_keeps_the_text_error() {
     common::xr()
-        .args(["--output", "xml", "version"])
+        .args(["--output", "Text", "version"])
         .assert()
         .code(2)
         .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains("invalid value 'xml'"));
+        .stderr(predicate::str::starts_with("Error: invalid value 'Text'"));
 }
 
 #[test]
