@@ -888,8 +888,8 @@ pub struct Cli {
     )]
     pub jsonl: bool,
 
-    /// Emit unstyled, compact output. Strips ANSI in text mode; compact (no
-    /// pretty-printing) JSON in json/jsonl modes.
+    /// Emit unstyled, compact output. Strips ANSI in text mode; prints
+    /// `json` output on one line, as `jsonl` and `ndjson` always are.
     #[arg(
         long,
         global = true,

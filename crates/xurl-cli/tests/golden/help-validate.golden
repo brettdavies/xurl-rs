@@ -1,7 +1,7 @@
 args: ["validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7047
+stdout_len: 7062
 stderr_len: 0
 --- stdout ---
 Validate a JSON document against a bundled response schema.
@@ -56,7 +56,7 @@ Options:
           [env: XURL_JSONL=]
 
       --raw[=<RAW>]
-          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
           
           [env: XURL_RAW=]
           [default: false]

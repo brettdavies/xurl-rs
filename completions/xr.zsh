@@ -36,7 +36,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -88,7 +88,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -129,7 +129,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -170,7 +170,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -211,7 +211,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -252,7 +252,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -294,7 +294,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -334,7 +334,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -373,7 +373,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -415,7 +415,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -456,7 +456,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -495,7 +495,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -535,7 +535,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -575,7 +575,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -615,7 +615,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -655,7 +655,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -695,7 +695,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -737,7 +737,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -778,7 +778,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -817,7 +817,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -857,7 +857,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -900,7 +900,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -942,7 +942,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -981,7 +981,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1021,7 +1021,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1063,7 +1063,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1102,7 +1102,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1142,7 +1142,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1184,7 +1184,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1223,7 +1223,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1270,7 +1270,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1337,7 +1337,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1380,7 +1380,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1416,7 +1416,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1458,7 +1458,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1503,7 +1503,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1542,7 +1542,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1582,7 +1582,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1707,7 +1707,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1753,7 +1753,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1795,7 +1795,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1831,7 +1831,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1865,7 +1865,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1900,7 +1900,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1938,7 +1938,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -1984,7 +1984,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2023,7 +2023,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2058,7 +2058,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2094,7 +2094,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2128,7 +2128,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2170,7 +2170,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2205,7 +2205,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2337,7 +2337,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2477,7 +2477,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2527,7 +2527,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2571,7 +2571,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2611,7 +2611,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2649,7 +2649,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2697,7 +2697,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2740,7 +2740,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2869,7 +2869,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2911,7 +2911,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -2947,7 +2947,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -3015,7 +3015,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -3053,7 +3053,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -3088,7 +3088,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -3122,7 +3122,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
@@ -3157,7 +3157,7 @@ ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different 
 yaml\:"YAML document (best-effort serialization of the JSON shape)"
 csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
 tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes]::RAW:(true false)' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
 '-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
 '--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
