@@ -774,6 +774,22 @@ configuration:
     assert!(xurl_path.exists(), ".xurl file was not created");
 }
 
+/// A `.twurlrc` that is not YAML is a store-import failure, reported as one.
+#[test]
+fn test_twurlrc_that_is_not_yaml_is_a_token_store_error() {
+    let tmp = TempDir::new().expect("tempdir");
+    let twurl_path = tmp.path().join(".twurlrc");
+    std::fs::write(&twurl_path, "{{{ not yaml").expect("write .twurlrc");
+    let mut store =
+        TokenStore::new_with_path(tmp.path().join(".xurl").to_str().expect("utf-8 path"));
+
+    let err = store
+        .import_from_twurlrc(&twurl_path)
+        .expect_err("the file does not parse");
+
+    assert_eq!(err.kind(), "token-store", "got: {err:?}");
+}
+
 #[test]
 fn test_twurlrc_auto_import() {
     let tmp = TempDir::new().unwrap();

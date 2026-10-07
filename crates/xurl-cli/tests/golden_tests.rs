@@ -53,12 +53,6 @@ const UNTRIGGERABLE: &[(&str, &str)] = &[
          across platforms; `wiring_tests.rs` pins the reason against a refused port",
     ),
     (
-        "invalid-url",
-        "raw mode rejects a URL that is neither http(s) nor an absolute path as \
-         `validation` before a raw-URL target exists, so the scheme allowlist \
-         that raises this never runs from argv",
-    ),
-    (
         "internal",
         "raised only when a shortcut's path template names a parameter the \
          shortcut did not bind, or when a raw-URL target is asked for its \
@@ -452,6 +446,10 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             ],
         )),
         reason_case("invalid-path-param", &["--output", "json", "read", "1/2"]),
+        bearer(reason_case(
+            "invalid-url",
+            &["--output", "json", "--auth", "app", "http://[bad"],
+        )),
         reason_case("validation", &["--output", "json", "relative/path"]),
         Case {
             store: Store::OAuth2,

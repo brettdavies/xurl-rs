@@ -16,7 +16,7 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Api { .. } | Error::Validation(_) | Error::ProcessingTimeout { .. } => {
             error.to_string()
         }
-        Error::InvalidUrl(url) => format!("Invalid URL: {url}"),
+        Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {
             format!(
                 "Invalid path parameter {name:?}: value {value:?} contains a reserved character"
@@ -164,7 +164,7 @@ mod tests {
             ),
             (Error::io("file not found"), "IO Error: file not found"),
             (
-                Error::InvalidUrl("ftp://example".into()),
+                Error::invalid_url("ftp://example"),
                 "Invalid URL: ftp://example",
             ),
             (

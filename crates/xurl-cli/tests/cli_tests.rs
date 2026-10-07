@@ -5963,3 +5963,74 @@ mod rate_limit_and_body_handling {
         assert_eq!(searches(&ts).await, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A malformed URL is an invalid URL, on every path
+// ═══════════════════════════════════════════════════════════════════════════
+
+mod malformed_urls {
+    use tempfile::TempDir;
+
+    use super::{CliMockServer, api_env, api_env_with_bearer, populate_oauth1_store, run_at_with};
+
+    /// A URL with a valid scheme that no parser accepts: the bracket opens an
+    /// IPv6 host and never closes.
+    const MALFORMED: &str = "http://[bad";
+
+    fn envelope(stderr: &str) -> serde_json::Value {
+        serde_json::from_str(stderr.trim())
+            .unwrap_or_else(|e| panic!("stderr is not a JSON envelope ({e}): {stderr}"))
+    }
+
+    async fn requests(ts: &CliMockServer) -> usize {
+        ts.server
+            .received_requests()
+            .await
+            .expect("request recording is on")
+            .len()
+    }
+
+    #[tokio::test]
+    async fn a_malformed_raw_url_is_invalid_url_before_any_request() {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+
+        let (code, _stdout, stderr) = run_at_with(
+            &store,
+            &api_env_with_bearer(ts.uri(), "env-bearer"),
+            &["xr", "--output", "json", "--auth", "app", MALFORMED],
+        )
+        .await;
+
+        assert_eq!(code, 1, "stderr: {stderr}");
+        let v = envelope(&stderr);
+        assert_eq!(v["reason"], "invalid-url", "got: {v}");
+        assert!(
+            v["message"].as_str().expect("message").contains(MALFORMED),
+            "the message names the URL: {v}"
+        );
+        assert_eq!(requests(&ts).await, 0);
+    }
+
+    /// OAuth1 parses the URL to sign it. The failure is the URL's, not the
+    /// credential's.
+    #[tokio::test]
+    async fn a_malformed_raw_url_under_oauth1_is_invalid_url_not_auth_required() {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+
+        let (code, _stdout, stderr) = run_at_with(
+            &store,
+            &api_env(ts.uri()),
+            &["xr", "--output", "json", "--auth", "oauth1", MALFORMED],
+        )
+        .await;
+
+        assert_eq!(code, 1, "stderr: {stderr}");
+        assert_eq!(envelope(&stderr)["reason"], "invalid-url", "got: {stderr}");
+        assert_eq!(requests(&ts).await, 0);
+    }
+}
