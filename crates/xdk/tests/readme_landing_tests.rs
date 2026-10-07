@@ -26,3 +26,30 @@ fn the_repository_readme_carries_the_library_landing_program_verbatim() {
         "the root README's landing program drifted from the doctested copy in crates/xdk/README.md"
     );
 }
+
+/// A dependency line that pins `xdk-rs` to a version goes stale the first
+/// time the breaking position moves: the snippet keeps resolving the old
+/// line while the examples beside it use the new API. The READMEs add the
+/// crate with `cargo add`, which names no version.
+#[test]
+fn no_readme_pins_an_xdk_rs_version() {
+    let root = Path::new(env!("CARGO_WORKSPACE_DIR"));
+    for readme in [
+        "README.md",
+        "crates/xdk/README.md",
+        "crates/xurl-cli/README.md",
+    ] {
+        let text = std::fs::read_to_string(root.join(readme)).expect("a README");
+        let pinned: Vec<&str> = text
+            .lines()
+            .filter(|line| {
+                let line = line.replace(' ', "");
+                line.contains("xdk-rs=\"") || line.contains("xdk-rs={version=")
+            })
+            .collect();
+        assert!(
+            pinned.is_empty(),
+            "{readme} pins an xdk-rs version; show `cargo add xdk-rs` with its flags instead: {pinned:#?}"
+        );
+    }
+}
