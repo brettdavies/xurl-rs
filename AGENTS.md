@@ -117,10 +117,10 @@ carries prose and a help pointer, structured output carries stable fields to bra
 kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
 reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
 under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
-not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set; `command`
-is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller can fill.
-A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope changes:
-add keys rather than renaming or retyping existing ones.
+not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
+`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
+can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
+changes: add keys rather than renaming or retyping existing ones.
 
 ## Shortcut commands
 
