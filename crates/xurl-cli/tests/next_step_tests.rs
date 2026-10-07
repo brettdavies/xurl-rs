@@ -17,7 +17,7 @@ use xdk::store::TokenStore;
 use xurl::cli;
 
 /// The page the `inspect-store` step names.
-const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#the-token-store-could-not-be-read";
+const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
 
 async fn run_at(store: &Path, args: &[&str]) -> (i32, String, String) {
     let mut stdout: Vec<u8> = Vec::new();
@@ -190,4 +190,123 @@ fn the_page_inspect_store_names_is_in_the_readme() {
         .filter_map(|line| line.strip_prefix("### "))
         .any(|heading| heading.to_lowercase().replace(' ', "-") == anchor);
     assert!(found, "{file} has no heading that anchors to #{anchor}");
+}
+
+// ── The README places every reason ─────────────────────────────────────
+
+/// The reasons the README's "Which Errors Carry a Step" section gives a row
+/// in its table, and the ones it lists as carrying no step.
+fn readme_reasons() -> (Vec<String>, Vec<String>) {
+    let readme =
+        std::fs::read_to_string(common::workspace_root().join("crates/xurl-cli/README.md"))
+            .expect("the README");
+    let section = readme
+        .split_once("### Which Errors Carry a Step\n")
+        .expect("the section")
+        .1;
+    let section = section
+        .split_once("\n### ")
+        .map_or(section, |(body, _)| body);
+    let name = regex::Regex::new(r"`([a-z-]+)`").unwrap();
+    let with_step = section
+        .lines()
+        .filter(|line| line.starts_with("| `") && !line.starts_with("| `reason`"))
+        .filter_map(|line| name.captures(line))
+        .map(|found| found[1].to_string())
+        .collect();
+    let listed = section
+        .split_once("Every other reason carries no step")
+        .and_then(|(_, rest)| rest.split_once(':'))
+        .expect("the list of reasons with no step")
+        .1;
+    let listed = listed.split_once("\n\n").map_or(listed, |(list, _)| list);
+    let without_step = name
+        .captures_iter(listed)
+        .map(|found| found[1].to_string())
+        .collect();
+    (with_step, without_step)
+}
+
+/// Every name in the closed set of reasons, read from the type's own schema.
+fn every_reason() -> Vec<String> {
+    fn collect(node: &serde_json::Value, found: &mut Vec<String>) {
+        match node {
+            serde_json::Value::Object(map) => {
+                for (key, value) in map {
+                    match (key.as_str(), value) {
+                        ("const", serde_json::Value::String(name)) => found.push(name.clone()),
+                        ("enum", serde_json::Value::Array(names)) => found.extend(
+                            names
+                                .iter()
+                                .filter_map(|name| name.as_str().map(str::to_string)),
+                        ),
+                        _ => collect(value, found),
+                    }
+                }
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|item| collect(item, found)),
+            _ => {}
+        }
+    }
+    let schema =
+        serde_json::to_value(schemars::schema_for!(cli::envelope::Reason)).expect("schema");
+    let mut found = Vec::new();
+    collect(&schema, &mut found);
+    found
+}
+
+/// The reasons some fixture shows carrying a step.
+fn reasons_a_fixture_shows_with_a_step() -> Vec<String> {
+    let golden = common::workspace_root().join("crates/xurl-cli/tests/golden");
+    let reason = regex::Regex::new(r#""reason": "([a-z-]+)""#).unwrap();
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(&golden).expect("the fixtures") {
+        let text = std::fs::read_to_string(entry.expect("a fixture").path()).unwrap_or_default();
+        if text.contains("\"next_step\"")
+            && let Some(name) = reason.captures(&text)
+        {
+            found.push(name[1].to_string());
+        }
+    }
+    found
+}
+
+/// The README places every reason in its table or in its list of reasons with
+/// no step, never in both, names no reason that does not exist, and gives a
+/// row to each reason a fixture shows carrying a step.
+#[test]
+fn the_readme_places_every_reason_with_or_without_a_step() {
+    let (with_step, without_step) = readme_reasons();
+    let reasons = every_reason();
+    assert!(reasons.len() > 30, "the closed set: {reasons:?}");
+
+    let mut misplaced = Vec::new();
+    for reason in &reasons {
+        let in_table = with_step.contains(reason);
+        let in_list = without_step.contains(reason);
+        if in_table == in_list {
+            misplaced.push(format!(
+                "{reason}: in the table {in_table}, in the list {in_list}"
+            ));
+        }
+    }
+    for named in with_step.iter().chain(&without_step) {
+        if !reasons.contains(named) {
+            misplaced.push(format!(
+                "{named}: named in the README and no reason has that name"
+            ));
+        }
+    }
+    for reason in reasons_a_fixture_shows_with_a_step() {
+        if !with_step.contains(&reason) {
+            misplaced.push(format!(
+                "{reason}: a fixture carries a step and the table has no row"
+            ));
+        }
+    }
+    assert!(
+        misplaced.is_empty(),
+        "crates/xurl-cli/README.md, \"Which Errors Carry a Step\", disagrees with the reasons:\n{}",
+        misplaced.join("\n")
+    );
 }

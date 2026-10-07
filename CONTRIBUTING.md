@@ -73,11 +73,12 @@ likely cause, and the file to edit, so a red test is the recipe's next step rath
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. One
-whose failure has a step the caller can take also carries a `next_step` object `{action, command | template, docs}`,
-where `command` is runnable verbatim by a non-TTY caller and `template` carries angle-bracket placeholders only the
-caller can fill. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones, and
-regenerate `schema/output.schema.json` when the envelope changes.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
+reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`, where
+`command` is runnable verbatim by a non-TTY caller and `template` carries angle-bracket placeholders only the caller can
+fill. The CLI README's "Which Errors Carry a Step" names the reasons that carry one and the ones that do not; a new
+error picks an existing action where one fits before it ships without a step. Prefer additive envelope changes: add keys
+rather than renaming or retyping existing ones, and regenerate `schema/output.schema.json` when the envelope changes.
 
 ## Filing issues
 

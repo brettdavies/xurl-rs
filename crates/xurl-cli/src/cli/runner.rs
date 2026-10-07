@@ -50,8 +50,7 @@ use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS, EXIT_USAGE_ERROR};
 ///
 /// Help text answers a person; an agent that asked for a machine-readable
 /// format gets the usage error instead.
-const NO_COMMAND_MESSAGE: &str =
-    "No command given. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.";
+const NO_COMMAND_MESSAGE: &str = "No command given. Usage: xr [OPTIONS] [URL] [COMMAND].";
 
 /// How clap closes a failure, naming no command.
 const CLAP_HELP_FOOTER: &str = "For more information, try '--help'.";
@@ -272,12 +271,7 @@ where
     match classify(&cli) {
         Classified::Help => {
             return if out.format.is_structured() {
-                out.print_error_envelope(
-                    stderr,
-                    Reason::InvalidArgs,
-                    EXIT_USAGE_ERROR,
-                    NO_COMMAND_MESSAGE,
-                );
+                out.print_invalid_args(stderr, NO_COMMAND_MESSAGE, " ", ROOT_COMMAND);
                 EXIT_USAGE_ERROR
             } else {
                 let _ = write!(stdout, "{}", Cli::command().render_help());
@@ -344,7 +338,8 @@ where
                     .collect();
                 let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
                 out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = crate::cli::hints::enrollment_hint(&e)
+            } else if let Some(hint) = crate::cli::hints::unloadable_store_hint(&snapshot, &e)
+                .or_else(|| crate::cli::hints::enrollment_hint(&e))
                 .or_else(|| crate::cli::hints::resume_wait_hint(&e))
                 .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
             {
@@ -495,12 +490,7 @@ fn render_invalid_args(
         },
         None => body.to_string(),
     };
-    out.print_error_envelope(
-        stderr,
-        Reason::InvalidArgs,
-        EXIT_USAGE_ERROR,
-        &format!("{body}\n\nTry '{command} --help'."),
-    );
+    out.print_invalid_args(stderr, &body, "\n\n", &command);
     EXIT_USAGE_ERROR
 }
 

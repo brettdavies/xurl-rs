@@ -13,11 +13,13 @@ use xdk::store::snapshot::StoreSnapshot;
 
 /// The `next_step` object carried by an error envelope.
 ///
-/// Exactly one of [`Self::command`] and [`Self::template`] is present,
-/// except for [`NextAction::EnrollApp`] and [`NextAction::WaitAndRetry`],
-/// which carry only `docs`:
-/// a command is a verbatim invocation safe for a non-TTY caller, while a
-/// template carries angle-bracket placeholders the caller must fill in.
+/// At most one of [`Self::command`] and [`Self::template`] is present: a
+/// command is a verbatim invocation safe for a non-TTY caller, while a
+/// template carries angle-bracket placeholders the caller must fill in. A
+/// step with neither carries `docs` alone, because its recovery is not an
+/// `xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],
+/// and [`NextAction::InspectStore`] when the command that failed is the one
+/// that reports on the store.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -39,8 +41,12 @@ pub struct NextStep {
 pub(crate) const REGISTER_APP_TEMPLATE: &str =
     "<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -";
 
+/// The README section on a token store that could not be loaded.
+pub(crate) const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+
 impl NextStep {
-    /// The help page that answers a mistyped command, run as given.
+    /// The help page that answers a mistyped command or a usage error, run
+    /// as given.
     #[must_use]
     pub fn show_help(command: String) -> Self {
         Self {
@@ -98,14 +104,25 @@ impl NextStep {
         }
     }
 
-    /// Look at a store file that could not be loaded.
+    /// Look at a store file that could not be loaded, starting from the
+    /// command that reports on it and names its path.
     #[must_use]
     pub fn inspect_store() -> Self {
         Self {
-            action: NextAction::InspectStore,
             command: Some("xr auth status".to_string()),
+            ..Self::inspect_store_page()
+        }
+    }
+
+    /// [`Self::inspect_store`] for a failure that already names the path: no
+    /// `xr` invocation says more, so the step is the page alone.
+    #[must_use]
+    pub fn inspect_store_page() -> Self {
+        Self {
+            action: NextAction::InspectStore,
+            command: None,
             template: None,
-            docs: None,
+            docs: Some(STORE_DOCS.to_string()),
         }
     }
 
@@ -186,7 +203,7 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         return Hint {
             text_lines: vec![
                 format!("The token store could not be read: {}", snapshot.store_path),
-                "Inspect or move that file, then retry.".to_string(),
+                format!("Inspect or move that file, then retry. See: {STORE_DOCS}"),
             ],
             next_step,
         };
@@ -238,6 +255,23 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         text_lines: vec![format!("Register an app first. Run: {template}")],
         next_step,
     }
+}
+
+/// Builds the hint for a store command that failed on a file it could not
+/// load.
+///
+/// The load state decides, not the error's wording: `token-store` is also the
+/// reason for a name the store does not hold, where the file loaded and there
+/// is nothing to inspect.
+#[must_use]
+pub fn unloadable_store_hint(snapshot: &StoreSnapshot, error: &Error) -> Option<Hint> {
+    if !(matches!(error, Error::TokenStore { .. }) && snapshot.load_failed()) {
+        return None;
+    }
+    Some(Hint {
+        text_lines: vec![format!("See: {STORE_DOCS}")],
+        next_step: NextStep::inspect_store_page(),
+    })
 }
 
 /// Builds the enrollment hint when `error` is X refusing the app.
@@ -413,6 +447,11 @@ mod tests {
             NextStep::inspect_store().command.as_deref(),
             Some("xr auth status")
         );
+        assert_eq!(NextStep::inspect_store().docs.as_deref(), Some(STORE_DOCS));
+        let page = NextStep::inspect_store_page();
+        assert_eq!(page.action, NextAction::InspectStore);
+        assert!(page.command.is_none() && page.template.is_none());
+        assert_eq!(page.docs.as_deref(), Some(STORE_DOCS));
         let step = NextStep::select_app("xr auth oauth2 --app work".to_string());
         assert_eq!(step.action, NextAction::SelectApp);
         assert_eq!(step.command.as_deref(), Some("xr auth oauth2 --app work"));

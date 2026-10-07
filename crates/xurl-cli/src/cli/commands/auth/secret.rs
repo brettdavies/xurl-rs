@@ -3,7 +3,6 @@
 
 use std::io::{IsTerminal, Read, Write};
 
-use crate::cli::envelope::Reason;
 use crate::cli::failure::Failure;
 use crate::cli::output::OutputConfig;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
@@ -41,12 +40,7 @@ impl SecretError {
     ) -> Failure {
         match self {
             Self::Usage(message) => {
-                out.print_error_envelope(
-                    stderr,
-                    Reason::InvalidArgs,
-                    EXIT_USAGE_ERROR,
-                    &format!("{message}\n\nTry '{command} --help'."),
-                );
+                out.print_invalid_args(stderr, &message, "\n\n", command);
                 Failure::Emitted {
                     exit_code: EXIT_USAGE_ERROR,
                 }
