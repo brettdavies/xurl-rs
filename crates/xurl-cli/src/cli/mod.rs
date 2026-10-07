@@ -852,8 +852,8 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
-    /// yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at
-    /// exit 2.
+    /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage
+    /// error at exit 2.
     #[arg(
         long,
         global = true,

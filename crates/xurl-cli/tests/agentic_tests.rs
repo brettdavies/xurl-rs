@@ -96,6 +96,39 @@ fn test_output_json_formats_print_a_json_object(#[case] format: &str) {
     assert_eq!(parsed["version"], VERSION);
 }
 
+/// `yml` is `yaml` under its other common spelling, from the flag and from
+/// `XURL_OUTPUT`.
+#[test]
+fn test_output_yml_is_yaml() {
+    let yaml = version_in("yaml");
+    assert!(yaml.starts_with("name: xr\n"), "{yaml}");
+
+    let from_flag = common::xr()
+        .args(["--output", "yml", "version"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        from_flag.status.code(),
+        Some(0),
+        "--output yml: {}",
+        String::from_utf8_lossy(&from_flag.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&from_flag.stdout), yaml);
+
+    let from_env = common::xr()
+        .env("XURL_OUTPUT", "yml")
+        .arg("version")
+        .output()
+        .unwrap();
+    assert_eq!(
+        from_env.status.code(),
+        Some(0),
+        "XURL_OUTPUT=yml: {}",
+        String::from_utf8_lossy(&from_env.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&from_env.stdout), yaml);
+}
+
 /// JSON Lines is one record per line, under either of its names and for a
 /// command that is not a stream as much as for one that is.
 #[rstest]

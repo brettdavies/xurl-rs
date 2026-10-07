@@ -41,6 +41,7 @@ pub enum OutputFormat {
     /// Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name.
     Ndjson,
     /// YAML document (best-effort serialization of the JSON shape).
+    #[value(alias = "yml")]
     Yaml,
     /// Comma-separated values (best-effort flattening of the top-level shape).
     Csv,

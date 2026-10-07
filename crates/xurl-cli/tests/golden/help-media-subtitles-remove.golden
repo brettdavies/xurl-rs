@@ -1,7 +1,7 @@
 args: ["media", "subtitles", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6550
+stdout_len: 6559
 stderr_len: 0
 --- stdout ---
 Remove a subtitle track from an uploaded video
@@ -44,7 +44,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at exit 2
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2
 
           Possible values:
           - text:   Default: colored, human-readable
