@@ -35,10 +35,10 @@ and writes nothing, and the dispatcher never passes it any of them.
 
 Help is the contract an agent reads before it builds an invocation. A page listing flags the command discards overstates
 the accepted surface, and the cost lands on exactly the reader this CLI is built for. It also buries the two or three
-flags that matter under roughly sixteen that do not.
+flags that matter under eighteen global ones.
 
-**The scope lives in prose and a hand-kept table.** The `--limit` and `--cursor` doc comments at
-`crates/xurl-cli/src/cli/mod.rs:958` and `:967` name the ten commands that page, and `PAGING_COMMANDS` in
+**The scope lives in prose and a hand-kept table.** The `--limit` and `--cursor` doc comments on `Cli` in
+`crates/xurl-cli/src/cli/mod.rs` name the ten commands that page, and `PAGING_COMMANDS` in
 `crates/xurl-cli/tests/cli_tests.rs` pins that list twice: `every_paging_command_sends_the_limit_and_cursor` checks the
 requests, and `the_limit_and_cursor_help_name_exactly_the_commands_that_page` checks the prose (#243, which corrected a
 `--cursor` comment that had omitted `muted` and `blocked`). The parser still declares all five flags global, so the help
@@ -49,12 +49,13 @@ pages contradict the prose. Moving the scope into the parser makes it the one st
 - **R1.** A command's `-h` and `--help` list `--limit`, `--cursor`, `--page`, `--after`, or `--dry-run` only when the
   dispatcher passes that command the corresponding value.
 - **R2.** Presentation and process flags stay available on every command and in every help page: `--output`, `--json`,
-  `--jsonl`, `--raw`, `--no-pager`, `--quiet`, `--color`, `--verbose`, `--no-interactive`, `--timeout`, `--app`.
+  `--jsonl`, `--raw`, `--no-pager`, `--quiet`, `--color`, `--verbose`, `--no-interactive`, `--timeout`,
+  `--wait-on-rate-limit`, `--rate-limit-max-wait`, `--app`.
 - **R3.** Every command that reads one of the five today still reads it, with identical behavior. This unit changes
   where a flag is declared, never what it does.
 - **R4.** `--page` keeps answering with the `unsupported-pagination` envelope on the commands that accept it, rather
   than becoming an unrecognized argument there.
-- **R5.** `anc audit . --principle 6`, run from the workspace root, keeps `p6-must-global-flags` at `Pass`.
+- **R5.** `anc audit . --principle 6 --bin xr`, run from the workspace root, keeps `p6-must-global-flags` at `Pass`.
 - **R6.** Passing a scoped flag to a command that does not declare it is a clap usage error at exit 2, rendered through
   the existing `invalid-args` path in both text and structured output.
 
@@ -90,24 +91,25 @@ that make that kind of request and becomes per-command. The line is mechanical, 
 without debate.
 
 This is what keeps R5 satisfiable. `p6-must-global-flags` checks that the agentic flags are reachable everywhere; those
-are exactly the tier that does not move. De-globalizing all sixteen would have put that audit at risk for no gain, since
-`--output` on `whoami` is not a lie.
+are exactly the tier that does not move. De-globalizing all eighteen would have put that audit at risk for no gain,
+since `--output` on `whoami` is not a lie.
 
 **KTD2. Two `clap::Args` groups, not five per-command flags.** `PagingFlags` carries `limit`, `cursor`, `page`, and
 `after`; `DryRunFlag` carries `dry_run`. Commands flatten one, both, or neither. The four paging flags always travel
 together, because `--page` and `--after` are documented aliases of `--cursor` and their `conflicts_with` relationships
 only make sense inside one group.
 
-`CommonFlags` at `crates/xurl-cli/src/cli/mod.rs:1623` is the existing precedent: a small `clap::Args` flattened into
-the variants that want it. This extends a pattern rather than introducing one.
+`CommonFlags` in `crates/xurl-cli/src/cli/mod.rs` is the existing precedent: a small `clap::Args` flattened into the
+variants that want it. This extends a pattern rather than introducing one.
 
 **KTD3. Derive the consumption map; do not hand-enumerate it.** The map below is today's snapshot, read from the
 dispatcher. Re-derive it at implementation time and treat any disagreement as a stop condition, because a hand-copied
-list is exactly how `--cursor`'s doc comment went stale. `run_subcommand` destructures `GlobalFlags` and threads each
-field into its arms, so the map is recoverable by reading which arms receive `cursor_opt`, `global_limit`, and
-`dry_run`.
+list is exactly how `--cursor`'s doc comment went stale. `run_subcommand` routes each command to its group's module and
+hands it a `Run`, whose `flags` field is the `GlobalFlags`. The map is recoverable by reading which functions read
+`flags.cursor`, `flags.global_limit`, and `flags.dry_run`: `list_for_user` and the `search` and `dms` arms for paging;
+the `act_*` helpers, the `posts` and `dm` arms, and the `auth` and `media` subtrees for dry-run.
 
-Snapshot at `f9df2b1`, 40 arms in `run_subcommand`; clap's generated `help` subcommand is not an arm:
+Snapshot at `76d52e3`, 40 command variants; clap's generated `help` subcommand is not one:
 
 | Group         | Commands                                                                                                                                                                                              | Count |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
@@ -120,14 +122,15 @@ which of the five it declares, and compare against a committed table. A command 
 flattening `PagingFlags`, or flattens it without using it, fails. This is the permanent fix that makes the prose-drift
 class of bug impossible rather than merely corrected once.
 
-**KTD5. `GlobalFlags` loses the three fields it no longer sources from `Cli`.** `commands/mod.rs:228-250` reads
-`cli.dry_run`, `cli.limit`, `cli.page`, `cli.cursor`, and `cli.after` before dispatch. Those reads move to the command
-arms, which already destructure their own variant fields. The `--page` rejection at `mod.rs:234-243` moves with them, so
-R4 holds per-command rather than globally.
+**KTD5. `GlobalFlags` loses the three fields it no longer sources from `Cli`.** `commands::run` in
+`crates/xurl-cli/src/cli/commands/mod.rs` reads `cli.dry_run`, `cli.limit`, `cli.page`, `cli.cursor`, and `cli.after`
+when it builds `GlobalFlags`, before dispatch. Those reads move to the command arms, which already destructure their own
+variant fields. The `--page` rejection just above that construction moves with them, so R4 holds per-command rather than
+globally.
 
 ### Risks
 
-- **Golden churn is the review surface.** 67 of the 121 fixtures in `crates/xurl-cli/tests/golden/` are help pages. A
+- **Golden churn is the review surface.** 67 of the 126 fixtures in `crates/xurl-cli/tests/golden/` are help pages. A
   large diff is expected and correct; a diff touching a page for a command in the "Neither" row that should have lost
   nothing is the signal to stop.
 - **Completions regenerate.** `./scripts/generate-completions.sh --check` gates them and will fail until regenerated.
@@ -157,11 +160,14 @@ preserving every attribute except `global = true`: the env bindings, `value_name
 
 **Goal.** R3, R4, KTD5.
 
-**Files.** `crates/xurl-cli/src/cli/commands/mod.rs`, the `auth` and `media` subtrees.
+**Files.** `crates/xurl-cli/src/cli/commands/mod.rs` (`GlobalFlags`, `list_for_user`, and the `act_*` helpers), the
+group modules beside it (`posts.rs`, `reads.rs`, `engagement.rs`, `graph.rs`, `dms.rs`, `broadcasts.rs`), and the `auth`
+and `media` subtrees.
 
 **Approach.** Drop `dry_run`, `global_limit`, and `cursor` from `GlobalFlags`. Each arm reads its own flattened group
-and builds `cursor_opt` locally. Move the `--page` rejection into the paging arms. `AuthGlobalFlags` keeps `dry_run`,
-sourced from the `auth` variant's own flatten.
+and resolves the cursor from it; the eight paged lists do so through `list_for_user`, and the write verbs through the
+`act_*` helpers. Move the `--page` rejection into the paging arms. `AuthGlobalFlags` keeps `dry_run`, sourced from the
+`auth` variant's own flatten.
 
 **Test scenarios.** Every existing paging and dry-run test passes unchanged. `xr search --page 2` still emits
 `unsupported-pagination`.
@@ -190,7 +196,7 @@ names it.
 changed page belongs to a command that lost a flag, and no page for a "Neither" command gains one. Correct `--cursor`'s
 doc comment, which now names the group rather than a list of ten command names that would drift again.
 
-**Verification.** `anc audit . --principle 6` reports `p6-must-global-flags` as `Pass`.
+**Verification.** `anc audit . --principle 6 --bin xr` reports `p6-must-global-flags` as `Pass`.
 
 ## Verification Contract
 
@@ -199,11 +205,11 @@ doc comment, which now names the group rather than a list of ten command names t
 | Format                | `cargo fmt -- --check`                      | No diff                                          |
 | Lint                  | `cargo clippy --all-targets -- -D warnings` | Clean                                            |
 | Tests                 | `cargo test`                                | All pass, including the U3 guard                 |
-| Golden                | `cargo test --test golden_tests`            | Only pages for commands that lost a flag changed |
+| Golden                | `cargo test -p xurl-rs --test golden_tests` | Only pages for commands that lost a flag changed |
 | Completions freshness | `./scripts/generate-completions.sh --check` | Fresh after regeneration                         |
-| Agent-readiness       | `anc audit . --principle 6`                 | `p6-must-global-flags` is `Pass`                 |
+| Agent-readiness       | `anc audit . --principle 6 --bin xr`        | `p6-must-global-flags` is `Pass`                 |
 | Output discipline     | `bash scripts/lint-stdio.sh`                | Clean                                            |
-| Schema freshness      | `cargo test --test schema_tests`            | Drift test passes                                |
+| Schema freshness      | `cargo test -p xurl-rs --test schema_tests` | Drift test passes                                |
 
 ## Definition of Done
 
@@ -217,14 +223,27 @@ doc comment, which now names the group rather than a list of ten command names t
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `f9df2b1`, 2026-09-30)
+(against `xurl-rs` `origin/dev` @ `76d52e3`, 2026-10-07)
 
-| Unit | State     | Note                                                                                                 |
-| ---- | --------- | ---------------------------------------------------------------------------------------------------- |
-| U1   | not-built | All five request-shaping flags are still `global = true` on `Cli`; no group exists.                  |
-| U2   | not-built | `commands/mod.rs` still reads `cli.dry_run`, `cli.limit`, `cli.page`, `cli.cursor`, and `cli.after`. |
-| U3   | not-built | No clap-tree guard; #243's `PAGING_COMMANDS` checks requests and prose, not declaration.             |
-| U4   | not-built | Golden help pages still list every global flag.                                                      |
+| Unit | State     | Note                                                                                               |
+| ---- | --------- | -------------------------------------------------------------------------------------------------- |
+| U1   | not-built | All five request-shaping flags are still `global = true` on `Cli`; no group exists.                |
+| U2   | not-built | `commands::run` still reads `cli.dry_run`, `cli.limit`, `cli.page`, `cli.cursor`, and `cli.after`. |
+| U3   | not-built | No clap-tree guard; `PAGING_COMMANDS` checks requests and prose, not declaration.                  |
+| U4   | not-built | Golden help pages still list every global flag.                                                    |
 
-The KTD3 map was re-derived from `run_subcommand` at the baseline and matches, with `read` in the "Neither" row.
-`p6-must-global-flags` is `pass` under `anc` 0.5.0 at the baseline.
+The KTD3 map was re-derived at the baseline from the group modules and matches, row for row.
+
+Four facts in the current tree bear on the units:
+
+- `Cli` declares eighteen global flags. `--wait-on-rate-limit` and `--rate-limit-max-wait` shape how the process
+  retries, as `--timeout` shapes how long it waits, so by KTD1's line they stay global, and R2 lists them.
+- `skill install` and `skill update` declare a `--dry-run` of their own and read that one, not the global, so `skill`
+  sits in the "Neither" row. They keep it when the global one goes; a U3 walk that descends into subcommands has to
+  expect it there.
+- `anc` is pinned to 0.6.0 in CI. From the workspace root it refuses `anc audit .` as `binary-ambiguous` once both `xr`
+  and `xdk-consumer-check` are built, so the gate names `--bin xr`. That invocation reports `p6-must-global-flags` as
+  `pass` at the baseline. CI's own invocation, `anc audit --command target/release/xr`, does not report the row.
+- The pricing plan (`docs/plans/2026-09-03-1310-feat-pricing-cost-estimates-doctor-plan.md`) makes every read shortcut
+  honor `--dry-run` in its U3. Whichever plan lands second accounts for the other: after that unit, `DryRunFlag` belongs
+  on the read commands too, and only the tooling commands sit in the "Neither" row.

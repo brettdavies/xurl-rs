@@ -2,6 +2,8 @@
 title: Release Cut Script Wiring - Plan
 type: feat
 date: 2026-10-02
+status: completed
+implementation: U1-U5 merged to agent-skills main 2026-10-04 as #124-#128; U7 and U6 merged to dev 2026-10-04 as #262 and #263
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -104,9 +106,6 @@ write, and every backport reports a failed check instead of comparing the change
 
 #### Deferred to Follow-Up Work
 
-- The template's `changelog-sections` preflight gate fails a deliberately empty `## Changelog` block, which the
-  generator treats as "nothing for this crate", and finds PRs with `gh pr list --base`, which misses stacked PRs.
-  Reconcile it with the generator before xurl-rs adopts it.
 - The template's `semver` preflight gate: xurl-rs runs the semver check in CI, so a local counterpart can wait.
 - A documented flow for a library-only release. The member anchor already handles one if it happens.
 
@@ -445,6 +444,42 @@ flowchart TB
 - No throwaway branch from the rehearsal remains locally or on the remote.
 - Abandoned attempts are removed from the diff, not left commented out.
 - Per unit: its Verification bullets were run and their results quoted in its PR body.
+
+---
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `76d52e3` and `agent-skills` `origin/main` @ `59c4561`, 2026-10-07)
+
+All seven units landed on 2026-10-04, and T1 through T6 are checked against the template's suite. R4 holds at the
+baseline: `scripts/release/_lib.sh`, `cut-release-branch.sh`, `postflight.sh`, `scripts/sync-dev-after-release.sh`, and
+`scripts/generate-changelog.py` are byte-identical to the template, as is `scripts/release/guarded-paths.sh`.
+`scripts/release/preflight.sh` stays a per-repo skeleton (R5).
+
+| Unit | State  | PR                | Commit    | Note                                                                                                    |
+| ---- | ------ | ----------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| U1   | landed | agent-skills #124 | `996c0d2` | —                                                                                                       |
+| U2   | landed | agent-skills #125 | `5d83972` | Adds `changelog_crate_args`, the KTD6 helper. A failed check prints the recovery, not the commit steps. |
+| U3   | landed | agent-skills #126 | `856214b` | `generate-changelog-workspace.bats` renders real git-cliff output for both run shapes.                  |
+| U4   | landed | agent-skills #127 | `224d52f` | The backport's regen check calls `changelog_crate_args`, as the cut script does.                        |
+| U5   | landed | agent-skills #128 | `a705de0` | `release_members` is the one member list postflight `tags` and preflight mechanics both read.           |
+| U7   | landed | #262              | `ce879a4` | Landed first; the KTD8 rehearsal staged identical trees from the script and the manual overlay.         |
+| U6   | landed | #263              | `7bea2e7` | —                                                                                                       |
+
+Two later changes moved the same files past this plan's end state:
+
+- **#273** (`71b2eb5`) re-vendored the scripts from the template at `9b55d8d` (agent-skills #142 and #143): a cut that
+  fails at any step after it branches prints the way back, postflight resolves a library tag's crate from the member's
+  declared `tag_prefix`, and the generator gains `--audit-sections`.
+- **#274** (`bbb0c9f`) took the template's current text into the four `RELEASES*.md` runbooks and added the template's
+  `changelog-sections` gate to `preflight.sh`. That gate runs `generate-changelog.py --audit-sections`, which accepts a
+  section left empty on purpose and reads stacked PRs, so the deferred reconciliation of that gate is done.
+
+### Remaining work
+
+- The template's `semver` preflight gate is not adopted. `preflight.sh`'s own `api-contract` gate runs
+  `cargo semver-checks` on `xdk-rs`, and CI's `Public API semver` check is the required one.
+- `RELEASES.md` documents no library-only release.
 
 ---
 
@@ -802,17 +837,17 @@ stack, then U6.
 
 Synthesized from this review's findings. Each task derives from a specific finding above.
 
-- [ ] **T1 (P2, human: ~1h / CC: ~10min)** — cut script — print the recovery instead of the next steps after a failed
+- [x] **T1 (P2, human: ~1h / CC: ~10min)** — cut script — print the recovery instead of the next steps after a failed
   check
   - Surfaced by: Architecture — A1, `scripts/release/cut-release-branch.sh:313-323`
   - Files: `github-repo-setup/templates/scripts/release/cut-release-branch.sh`,
     `github-repo-setup/tests/cut-release-branch.bats`, `github-repo-setup/templates/RELEASES.md`, `RELEASES.md`
   - Verify: the failure and success cases in `cut-release-branch.bats` fail against the old ending and pass after
-- [ ] **T2 (P2, human: ~2h / CC: ~15min)** — runbook — land U7 first, rehearsed on xurl-rs's current scripts
+- [x] **T2 (P2, human: ~2h / CC: ~15min)** — runbook — land U7 first, rehearsed on xurl-rs's current scripts
   - Surfaced by: Scope Challenge — S1, U7 `Dependencies: U6`
   - Files: `RELEASES.md`, `RELEASES-PREFLIGHT.md`, `RELEASES-RATIONALE.md`
   - Verify: KTD8 rehearsal staged-tree comparison; U6 re-runs `cut-release-branch.sh --dry-run`
-- [ ] **T3 (P3, human: ~1h / CC: ~10min)** — `_lib.sh` — one member-list helper for postflight `tags` and preflight
+- [x] **T3 (P3, human: ~1h / CC: ~10min)** — `_lib.sh` — one member-list helper for postflight `tags` and preflight
   mechanics
   - Surfaced by: Code Quality — Q1, `postflight.sh:631-654` vs `generate-changelog.py:230`
   - Files: `github-repo-setup/templates/scripts/release/_lib.sh`,
@@ -820,17 +855,17 @@ Synthesized from this review's findings. Each task derives from a specific findi
     `github-repo-setup/templates/scripts/release/preflight.sh`, `github-repo-setup/tests/lib.bats`,
     `github-repo-setup/tests/postflight-tags.bats`
   - Verify: helper cases and the custom-prefix case fail before and pass after
-- [ ] **T4 (P2, human: ~3h / CC: ~25min)** — generator tests — render real git-cliff output for single-package and
+- [x] **T4 (P2, human: ~3h / CC: ~25min)** — generator tests — render real git-cliff output for single-package and
   member runs
   - Surfaced by: Tests — T3, `generate-changelog.bats:99`
   - Files: `github-repo-setup/tests/generate-changelog-workspace.bats`
   - Verify: single-package render equals the pre-change template's; member render holds only its paths
-- [ ] **T5 (P2, human: ~1h / CC: ~10min)** — generator tests — `--dry-run --crate` restores the member changelog and
+- [x] **T5 (P2, human: ~1h / CC: ~10min)** — generator tests — `--dry-run --crate` restores the member changelog and
   reports drift
   - Surfaced by: Tests — T1, `sync-dev-after-release.bats:496-507` stubs the generator
   - Files: `github-repo-setup/tests/generate-changelog-workspace.bats`
   - Verify: current file exits 0 unchanged; stale file exits 1 and is restored
-- [ ] **T6 (P3, human: ~30min / CC: ~5min)** — lib tests — pin the KTD6 `--crate` helper's contract
+- [x] **T6 (P3, human: ~30min / CC: ~5min)** — lib tests — pin the KTD6 `--crate` helper's contract
   - Surfaced by: Tests — T2
   - Files: `github-repo-setup/tests/lib.bats`
   - Verify: workspace returns `--crate <package>`; single package and unknown name return nothing

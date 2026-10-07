@@ -1,6 +1,6 @@
 ---
 title: "feat: Bring xurl-rs to 100% on the agent-native CLI spec (anc audit)"
-status: complete
+status: completed
 date: 2026-06-02
 type: feat
 origin: goal-driven invocation (no upstream brainstorm)

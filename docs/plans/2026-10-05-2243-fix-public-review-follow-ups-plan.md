@@ -2,6 +2,8 @@
 title: Public Review Follow-ups - Plan
 type: fix
 date: 2026-10-05
+status: completed
+implementation: U1-U17, U20, and U21 merged to dev 2026-10-07 as #275-#293, with brettdavies/.github#78 (U21) and xurl-rs-skill #36, #37, and #39 (U18, U19, U22); released in xr 4.3.0 and xdk-rs 0.2.0 on 2026-10-07
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -148,7 +150,6 @@ The work therefore starts from evidence rather than from the review's text.
 
 #### Deferred to Follow-Up Work
 
-- Cutting the `xr` minor and `xdk-rs` 0.2.0 releases, which follow `RELEASES.md` once these PRs merge.
 - Turning on attestations in each other Rust repo's release caller (bird, agentnative-cli), one input per repo once U21
   lands.
 
@@ -1229,16 +1230,81 @@ released `xr`.
   bound on `media upload`'s default wait changes `--wait`'s documented meaning and ships in the minor under Changed, by
   the blast-radius rule used for 3.2.0 (the upload survives for 24 hours, `--wait=N` restores a longer wait, and the
   envelope carries a `resume-wait` command). The next `xr` release is a minor.
-- The `xdk-rs` changes accumulate for one 0.2.0, with a before/after snippet in each breaking PR's `## Changelog
-  (xdk-rs)` block.
+- The `xdk-rs` changes accumulate for one 0.2.0, with a before/after snippet in each breaking PR's
+  `## Changelog (xdk-rs)` block.
 - No fixture moved unless its unit says the content moved.
 - No abandoned-attempt code, debug output, or stray files remain in any diff.
-- The local TODO.md marks each item with its outcome and points here; the file stays uncommitted.
+- Every ledger item's outcome is recorded in the Reconciliation below. The local TODO.md keeps only what is still open
+  and stays uncommitted.
 - Brett has applied the updated rulesets, and `gh api` shows the audit, MSRV, and parity checks required on `dev` and
   `main`.
 - After Brett publishes the `xr` minor, U22's xurl-rs-skill PR pins that release and its contract job passes, and U21's
   `gh attestation verify --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml` passes on one of that
   release's archives.
+
+---
+
+## Reconciliation
+
+(against `xurl-rs` `origin/dev` @ `76d52e3`, 2026-10-07)
+
+All 22 units landed. The nineteen xurl-rs units merged to `dev` on 2026-10-07 as #275 to #293 and released that day in
+`xr` 4.3.0 and `xdk-rs` 0.2.0 (release PR #307, `835abc0`; backport #308, `80e2398`). U21's shared-workflow half merged
+as brettdavies/.github#78 on 2026-10-06, and U18, U19, and U22 merged to xurl-rs-skill's `dev` on 2026-10-07. Every Fix
+row of the triage ledger points at a unit in this table, and T21 is closed as not actionable by code. All eleven review
+tasks are checked against the tree.
+
+| Unit | State  | PR                           | Commit    | Note                                                                                                                                                                            |
+| ---- | ------ | ---------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1   | landed | #275                         | `44bc9f8` | No row was fixable in `xr`. The floor is 98 under `anc` 0.6.0, and the comment above the job names the two `warn` rows and the two `skip` rows.                                 |
+| U2   | landed | #276                         | `94f386c` | The resolver is `crates/xurl-cli/src/cli/commands/auth/secret.rs`. Each flag and its twin form one required clap group.                                                         |
+| U3   | landed | #277                         | `b819521` | The scope set is a property of `Auth` (`with_oauth2_scopes`), not an argument of the authorize-URL builder. Step 2 refuses a different set with `ScopeMismatch`.                |
+| U4   | landed | #278                         | `0cb5dea` | Both rulesets are applied and require `Agent-native audit` and `MSRV`.                                                                                                          |
+| U5   | landed | #279                         | `d7c751a` | —                                                                                                                                                                               |
+| U6   | landed | #280                         | `979f9a8` | The one live OAuth1 search returned 200. It also surfaced the empty-page decode defect that #303 fixes.                                                                         |
+| U7   | landed | #281                         | `160a0d2` | The `--wait 60` tip fires for any flag that takes its value only after `=`.                                                                                                     |
+| U8   | landed | #282                         | `1518e27` | The reset rides on a new `reset_at` field of `Error::Api`. The formatter is `crates/xurl-cli/src/cli/output/rfc3339.rs`.                                                        |
+| U9   | landed | #283                         | `66a1cd5` | Pinned to `18dcb447` (v1.3.4), and both rulesets require `Go parity`. The harness runs the original under a scratch home. 31 cases pass and 5 skip.                             |
+| U10  | landed | #284                         | `3f16f06` | Five variants carry a source.                                                                                                                                                   |
+| U11  | landed | #285                         | `971d179` | `InvalidUrl` is the sixth variant with a source.                                                                                                                                |
+| U12  | landed | #286                         | `c66bd8c` | 24 tests replaced or removed. `no_test_passes_the_help_flag_itself` keeps `--help` behind one helper.                                                                           |
+| U13  | landed | #287                         | `d87bf0f` | —                                                                                                                                                                               |
+| U14  | landed | #288                         | `26c4b98` | Groups: posts, reads, engagement, graph, DMs, usage, and broadcasts, beside `auth` and `media`. The runner still dispatches the tooling commands before it loads configuration. |
+| U15  | landed | #289                         | `ef10f8c` | `Endpoint::mismatch`, with `explicit_scheme`, `detect_scheme`, and `no_scheme` as the three steps.                                                                              |
+| U16  | landed | #290                         | `13d9863` | The envelope property found a `null` lost on read-back in `requested` and `oauth2_username`, fixed in the same PR.                                                              |
+| U17  | landed | #291                         | `aa20573` | Two citations were clap doc comments, so `(U7)` also left the `--dry-run` and `--limit` help and the completions.                                                               |
+| U18  | landed | xurl-rs-skill #36            | `0ca9243` | `contract` is a required check on that repository's `main`.                                                                                                                     |
+| U19  | landed | xurl-rs-skill #37            | `d227f4f` | —                                                                                                                                                                               |
+| U20  | landed | #292                         | `8189511` | No cadence line: the Open Question stands. The test is `crates/xdk/tests/readme_stability_tests.rs`.                                                                            |
+| U21  | landed | brettdavies/.github#78, #293 | `384ac19` | Wider than KTD14: `sbom` and `attest` sign the build output before anything publishes, and `verify-attestations` checks every published file before the Homebrew dispatch.      |
+| U22  | landed | xurl-rs-skill #39            | `ecdcf40` | Verified against the `v4.3.0` release binary: 274 contract checks pass.                                                                                                         |
+
+The work surfaced defects the ledger did not hold. Each merged to `dev` ahead of the release and shipped in it:
+
+| PR   | Commit    | Change                                                                                                                           |
+| ---- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| #295 | `34ac313` | The release runbooks record what the Homebrew formula takes from a release.                                                      |
+| #296 | `4e2f680` | A waited `media upload` answers one document.                                                                                    |
+| #297 | `c89fddb` | `media upload` waits for any upload X reports as still processing.                                                               |
+| #299 | `41b13c4` | `auth default <app> <user>` answers one document and saves both names in one write.                                              |
+| #300 | `558f6ac` | `--output jsonl` prints one record per line.                                                                                     |
+| #301 | `a15484d` | The shipping documents say what the binary does.                                                                                 |
+| #303 | `746c114` | A page with no results decodes as an empty list.                                                                                 |
+| #304 | `0d1aa53` | `yml` is an alias of `yaml`.                                                                                                     |
+| #305 | `4a4d639` | An unsupported `--output` value answers a JSON envelope.                                                                         |
+| #306 | `04f5c56` | A usage error carries `show-help`, an unloadable store carries `inspect-store`, and the README lists which reasons carry a step. |
+
+In brettdavies/homebrew-tap, #140, #141, and #143 sign the bottles and teach the bump workflow a formula that installs
+the release's prebuilt archives, and #142 converts the xurl-rs formula to one.
+
+### Remaining work
+
+- **The skill bundle's release.** xurl-rs-skill #39 is on that repository's `dev`. Its `main`, which `xr skill install`
+  clones, is v0.5.0 and documents `xr` 4.2.0, so KTD16's surface reaches an installing agent only once that release is
+  cut.
+- **The skill's evals.** Evals 02, 04, and 06 were edited for 4.3.0 and not re-run; each needs a fresh agent session.
+- **Major-version cadence.** The Open Question is undecided.
+- **Attestations in the other Rust callers.** Neither bird's nor agentnative-cli's release caller sets `attest`.
 
 ---
 
@@ -1719,25 +1785,25 @@ stacked series with no worktrees. The phase order in High-Level Technical Design
 Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or Codex;
 checkbox as you ship.
 
-- [ ] **T1 (P2, human: ~10 min / CC: ~2 min)** — U21 — run verification with `--signer-workflow`
+- [x] **T1 (P2, human: ~10 min / CC: ~2 min)** — U21 — run verification with `--signer-workflow`
   - Surfaced by: Scope Challenge — C1, R1 (D2)
   - Files: `RELEASES-POSTFLIGHT.md`, `dot-github:.github/workflows/rust-release.yml`
   - Verify: `gh attestation verify <archive> --repo brettdavies/xurl-rs --signer-workflow
     brettdavies/.github/.github/workflows/rust-release.yml` exits 0 on the first attested release
-- [ ] **T2 (P2, human: ~20 min / CC: ~3 min)** — U7 — exit 1 on the media-wait timeout
+- [x] **T2 (P2, human: ~20 min / CC: ~3 min)** — U7 — exit 1 on the media-wait timeout
   - Surfaced by: Architecture — A1, R2 (D3)
   - Files: `crates/xdk/src/error.rs`, `crates/xdk/src/api/media.rs`
   - Verify: the U7 timeout test asserts the new `reason` and exit 1
-- [ ] **T3 (P2, human: ~1 h / CC: ~10 min)** — U8 — read the reset from the 429 itself; no header, no retry
+- [x] **T3 (P2, human: ~1 h / CC: ~10 min)** — U8 — read the reset from the 429 itself; no header, no retry
   - Surfaced by: Architecture — A2, R3 (D4)
   - Files: `crates/xdk/src/api/request/transport.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/output/`
   - Verify: the header-less 429 test passes after a response that carried a reset
-- [ ] **T4 (P2, human: ~30 min / CC: ~5 min)** — U7, U8, U12 — stub responses with wiremock in the test files
+- [x] **T4 (P2, human: ~30 min / CC: ~5 min)** — U7, U8, U12 — stub responses with wiremock in the test files
   - Surfaced by: Tests — T1, R4 (D5)
   - Files: `crates/xdk/tests/api_tests.rs`, `crates/xdk/tests/media_upload_tests.rs`,
     `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/agentic_tests.rs`
   - Verify: `cargo test --workspace` compiles and passes with no `testing` feature
-- [ ] **T5 (P2, human: ~15 min / CC: ~3 min)** — U7 — default the deadline to 60 s with the resume doc comment
+- [x] **T5 (P2, human: ~15 min / CC: ~3 min)** — U7 — default the deadline to 60 s with the resume doc comment
   - Surfaced by: Performance — P1, R5 (D6)
   - Files: `crates/xdk/src/api/media.rs`, `crates/xurl-cli/src/cli/mod.rs`
   - Verify: `xr media status --help` shows the 60 s default; the doc comment names the resume command
@@ -1955,26 +2021,26 @@ released `xr` against this target.
 
 ### DX implementation tasks
 
-- [ ] **T1 (P2, human: ~1 h / CC: ~10 min)** — U2 — make the vault pipe the golden path
+- [x] **T1 (P2, human: ~1 h / CC: ~10 min)** — U2 — make the vault pipe the golden path
   - Surfaced by: Step 0D and Pass 4 — D5, D7, D15
   - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/hints.rs`,
     `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xurl-cli/README.md`
   - Verify: help, `xr examples` and the register-app golden fixtures show `--client-secret-file -`
-- [ ] **T2 (P2, human: ~30 min / CC: ~5 min)** — U2 — refuse `-` on a terminal
+- [x] **T2 (P2, human: ~30 min / CC: ~5 min)** — U2 — refuse `-` on a terminal
   - Surfaced by: Step 0F Hello World — D8
   - Files: `crates/xurl-cli/src/cli/commands/auth/`
   - Verify: the terminal test exits invalid-args without reading
-- [ ] **T3 (P2, human: ~2 h / CC: ~20 min)** — U7 — one `--wait[=<SECS>]` flag, 60 s default, resume-wait next step
+- [x] **T3 (P2, human: ~2 h / CC: ~20 min)** — U7 — one `--wait[=<SECS>]` flag, 60 s default, resume-wait next step
   - Surfaced by: Step 0F Debug and 0G — D11, D12, D13, D14
   - Files: `crates/xdk/src/api/media.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/mod.rs`,
     `crates/xurl-cli/src/cli/hints.rs`, `AGENTS.md`
   - Verify: the U7 test scenarios, including `--wait=0`, `--wait 60`, and the resume-wait command
-- [ ] **T4 (P2, human: ~2 h / CC: ~20 min)** — U8 — wait-and-retry with retry_after_secs and retry_at
+- [x] **T4 (P2, human: ~2 h / CC: ~20 min)** — U8 — wait-and-retry with retry_after_secs and retry_at
   - Surfaced by: Step 0F Real Usage and Pass 3 — D9, D10, D16, D17
   - Files: `crates/xdk/src/api/request/transport.rs`, `crates/xdk/src/error.rs`, `crates/xurl-cli/src/cli/hints.rs`,
     `crates/xurl-cli/src/cli/output/`, `AGENTS.md`
   - Verify: the U8 429 scenarios with and without a reset header
-- [ ] **T5 (P3, human: ~10 min / CC: ~2 min)** — U21 — attestation check in the CLI README
+- [x] **T5 (P3, human: ~10 min / CC: ~2 min)** — U21 — attestation check in the CLI README
   - Surfaced by: Step 0F Install (routine)
   - Files: `crates/xurl-cli/README.md`
   - Verify: the README's command matches U21's postflight item
@@ -2082,7 +2148,7 @@ COVERAGE: 6/6 new paths planned  |  GAPS: 0
 
 Second-pass implementation task:
 
-- [ ] **T6 (P2, human: ~1 h / CC: ~10 min)** — U8 — UTC epoch-to-RFC-3339 formatter for `retry_at`
+- [x] **T6 (P2, human: ~1 h / CC: ~10 min)** — U8 — UTC epoch-to-RFC-3339 formatter for `retry_at`
   - Surfaced by: Architecture — F1, R6 (D7)
   - Files: `crates/xurl-cli/src/cli/output/`
   - Verify: the four-row table test passes, and the 429 test reads `retry_at` from the header's epoch

@@ -3,7 +3,7 @@ title: X API Pricing, Cost Estimates, and Doctor - Plan
 type: feat
 date: 2026-09-03
 status: not-started
-implementation: none of U1-U8 is built; the file paths predate the two-crate workspace and need re-mapping before execution (see Reconciliation)
+implementation: none of U1-U8 is built
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
@@ -35,10 +35,10 @@ execution: code
 
 ### Summary
 
-Vendor X's pay-per-usage price list into the crate as a structured table with provenance, map every shortcut endpoint to
-a price category, and expose it through a library module, an `xr pricing` command, cost estimates on every shortcut
-response, and a new `xr doctor` command. Doctor reports provenance, store health, auth state, an ownership verdict built
-from a declared owner plus identity match, owned-read eligibility, credit balance, and project usage.
+Vendor X's pay-per-usage price list into the `xdk-rs` library as a structured table with provenance, map every shortcut
+endpoint to a price category, and expose it through a library module, an `xr pricing` command, cost estimates on every
+shortcut response, and a new `xr doctor` command. Doctor reports provenance, store health, auth state, an ownership
+verdict built from a declared owner plus identity match, owned-read eligibility, credit balance, and project usage.
 
 ### Problem Frame
 
@@ -86,8 +86,8 @@ validating tokens.
 
 **Pricing data**
 
-- R1. The crate vendors X's published pay-per-usage price list as a structured table with provenance: source URL, fetch
-  date, and a content hash of the canonical page extract.
+- R1. The library crate vendors X's published pay-per-usage price list as a structured table with provenance: source
+  URL, fetch date, and a content hash of the canonical page extract.
 - R2. The vendored table covers every priced category on the published page: per-resource read rates, per-request write
   rates, the owned-read rate with its endpoint list, webhook event rates, the deduplication rule, and the monthly
   post-read cap.
@@ -256,14 +256,15 @@ validating tokens.
 - Apps and console docs: `https://docs.x.com/resources/fundamentals/developer-apps.md`,
   `https://docs.x.com/fundamentals/developer-portal.md` (Access Token & Secret are for the owner's own account; team
   roles are enterprise-only).
-- Vendored spec `vendor/x-api-openapi.json` (2.168): `GET /2/account` schema and scope, `/2/usage/tweets` bearer-only
-  security, `UsageDailyClientAppUsage`.
+- Vendored spec `crates/xdk/vendor/x-api-openapi.json` (2.168): `GET /2/account` schema and scope, `/2/usage/tweets`
+  bearer-only security, `UsageDailyClientAppUsage`.
 - Live probes on 2026-09-03 against the operator's two apps: `/2/account` 403 `client-not-enrolled` with
   `developer.read`; `/2/usage/credits` 404 under bearer and OAuth2; `/2/usage/tweets` 403 under OAuth2 user context;
   response header set on `/2/usage/tweets`.
 - Rendered OAuth2 consent page for the test app (no developer identity shown).
-- Existing pipeline to mirror: `build.rs` (`emit_auth_matrix`, `emit_build_info`), `vendor/spec-metadata.json`,
-  `scripts/refresh-x-openapi.sh`, `scripts/normalize-x-openapi.sh`, `.github/workflows/spec-drift.yml`.
+- Existing pipeline to mirror: `crates/xdk/build.rs` (`emit_auth_matrix`, `emit_build_info`),
+  `crates/xdk/vendor/spec-metadata.json`, `scripts/refresh-x-openapi.sh`, `scripts/normalize-x-openapi.sh`,
+  `.github/workflows/spec-drift.yml`.
 - bird's current cost model at `~/dev/bird/src/cost.rs` and its `doctor` command (downstream consumer).
 - Solutions corpus under `docs/solutions/`:
   `integration-issues/nondeterministic-upstream-scope-serialization-defeats-byte-drift-gate.md`,
@@ -281,27 +282,28 @@ validating tokens.
 
 ### Key Technical Decisions
 
-- KTD1. **Snapshot layout under `vendor/pricing/`.** Three files with their own README: `x-api-pricing.json` (the
-  structured table and endpoint map, hand-transcribed, the build input), `pricing-page.canonical.md` (the extracted
+- KTD1. **Snapshot layout under `crates/xdk/vendor/pricing/`.** Three files with their own README: `x-api-pricing.json`
+  (the structured table and endpoint map, hand-transcribed, the build input), `pricing-page.canonical.md` (the extracted
   table rows, the drift oracle), and `pricing-metadata.json` (the sidecar with the same key shape as
-  `vendor/spec-metadata.json`). A separate directory avoids the spec refresh script's wholesale rewrite of
-  `vendor/README.md`, and a JSON build input avoids the CI `paths-ignore` rule that skips pushes touching only markdown.
+  `crates/xdk/vendor/spec-metadata.json`). A separate directory avoids the spec refresh script's wholesale rewrite of
+  `crates/xdk/vendor/README.md`, and a JSON build input avoids the CI `paths-ignore` rule that skips pushes touching
+  only markdown.
 - KTD2. **Canonical form is the page's markdown table rows, whitespace-collapsed.** One script produces it at refresh
   time and in CI, so both sides of the drift comparison go through the same normalizer. Byte comparison is rejected: the
   page embeds asset URLs with per-deploy cache keys, and the spec-drift gate has already shown how a byte oracle reads
   permanent false drift.
-- KTD3. **Build-time codegen for the table and endpoint map**, mirroring `emit_auth_matrix` in `build.rs`: read the
-  JSON, emit a generated module, panic when a shortcut template has no category or when a mapped template is absent from
-  the spec. Snapshot date and hash reach `src/lib.rs` as consts the way the spec consts do. A test cross-checks every
-  JSON rate against the canonical rows so a transcription error cannot ship.
+- KTD3. **Build-time codegen for the table and endpoint map**, mirroring `emit_auth_matrix` in `crates/xdk/build.rs`:
+  read the JSON, emit a generated module, panic when a shortcut template has no category or when a mapped template is
+  absent from the spec. Snapshot date and hash reach `crates/xdk/src/lib.rs` as consts the way the spec consts do. A
+  test cross-checks every JSON rate against the canonical rows so a transcription error cannot ship.
 - KTD4. **Estimates attach through a CLI-side output type**, not the wire type. Shortcut handlers today serialize
   `ApiResponse<T>` verbatim; the new type flattens the response and adds an optional `cost_estimate`, and `xr schema`
   plus `xr validate` register it so the documented shape stays true. Adding the field to `ApiResponse<T>` is rejected
   because bird deserializes X's body into that type; injecting at print time is rejected because the schema would lie.
-- KTD5. **A per-run call record on `ApiClient`.** `send_request` appends the method, template path, and per-type
-  resource counts for every template-targeted call; handlers read the records after the primary call to sum the
-  id-resolution read with the main read (R9). Raw targets are not recorded. The record lives on the client, which is
-  constructed once per CLI invocation, so it is per-run state and not a ledger; library callers read it too.
+- KTD5. **A per-run call record on `Client`.** `send_request` appends the method, template path, and per-type resource
+  counts for every template-targeted call; handlers read the records after the primary call to sum the id-resolution
+  read with the main read (R9). Raw targets are not recorded. The record lives on the client, which is constructed once
+  per CLI invocation, so it is per-run state and not a ledger; library callers read it too.
 - KTD6. **Ownership model.** (session-settled: user-directed — chosen over `GET /2/account` corroboration behind a new
   default scope: the live probe returned 403 `client-not-enrolled`, so the scope would force a re-authorization for a
   check that cannot succeed; and over declaration-only: the identity comparison costs nothing beyond reads doctor
@@ -312,12 +314,13 @@ validating tokens.
   is argument validation plus a non-empty intersection of the app's available auth methods with the endpoint's accepted
   methods from the auth matrix; the id resolver never runs under dry-run, so self-targeted commands know the path id is
   the authenticated user and username-targeted commands report eligibility as possible.
-- KTD8. **Doctor architecture.** A library module under `src/doctor/` owns a read-only store probe (exists, readable,
-  parses, permission bits, without seeding a default app the way store construction does), an auth-availability
-  pre-check per endpoint, the check runner, and the typed report; `src/cli/commands/doctor.rs` renders it. Live checks
-  go through the normal client path, so an expired OAuth2 token refreshes and the rotated token is saved, which the
-  report states; a missing cached token skips the check rather than falling into the browser flow. The report prints
-  through the success envelope and exits 0 whenever it exists (R22); a strict exit mode is deferred.
+- KTD8. **Doctor architecture.** A library module under `crates/xdk/src/doctor/` owns a read-only store probe (exists,
+  readable, parses, permission bits, without seeding a default app the way store construction does), an
+  auth-availability pre-check per endpoint, the check runner, and the typed report;
+  `crates/xurl-cli/src/cli/commands/doctor.rs` renders it. Live checks go through the normal client path, so an expired
+  OAuth2 token refreshes and the rotated token is saved, which the report states; a missing cached token skips the check
+  rather than falling into the browser flow. The report prints through the success envelope and exits 0 whenever it
+  exists (R22); a strict exit mode is deferred.
 - KTD9. **Check semantics.** Status and reason codes are closed enums serialized as strings: HTTP 404 on credits is
   skipped `not-available`; a user-context-only endpoint with no user token, or the bearer-only usage endpoint with no
   bearer, is skipped `no-user-token` or `no-bearer` decided offline from the auth intersection; HTTP 401/403 is degraded
@@ -326,13 +329,13 @@ validating tokens.
 - KTD10. **Staleness threshold.** The pricing snapshot reports its age in days and a `stale` flag when the refresh date
   is more than 90 days old; the threshold is one named constant in the pricing module.
 - KTD11. **Separate drift workflow.** `.github/workflows/pricing-drift.yml` on a daily schedule with `workflow_dispatch`
-  and a `pull_request` trigger scoped to `vendor/pricing/**`, its own branch (`pricing-refresh`), title prefix, and body
-  marker, so it never collides with the spec refresh PR's one-open-PR logic. The runbook directs the agent to
-  re-transcribe the JSON from the new canonical rows, run the cross-check test, regenerate derived artifacts, and
-  rewrite the body to the PR template. A scheduled workflow runs from the default branch, so the check is inert until a
-  release ships it; `workflow_dispatch` against `dev` is the interim lever, as it was for spec drift.
+  and a `pull_request` trigger scoped to `crates/xdk/vendor/pricing/**`, its own branch (`pricing-refresh`), title
+  prefix, and body marker, so it never collides with the spec refresh PR's one-open-PR logic. The runbook directs the
+  agent to re-transcribe the JSON from the new canonical rows, run the cross-check test, regenerate derived artifacts,
+  and rewrite the body to the PR template. A scheduled workflow runs from the default branch, so the check is inert
+  until a release ships it; `workflow_dispatch` against `dev` is the interim lever, as it was for spec drift.
 - KTD12. **Layering with bird.** Pricing data, the endpoint map, eligibility, and stateless estimation are X API
-  compatibility data and live in `xurl`; bird keeps the persistent usage ledger, cache-hit zeroing, and its display.
+  compatibility data and live in `xdk`; bird keeps the persistent usage ledger, cache-hit zeroing, and its display.
   AGENTS.md records this split so a later cleanup does not move cost estimation back to bird.
 - KTD13. **Included objects count at their own rate** (R7): users in `includes.users` at the user-read rate, posts in
   `includes.tweets` at the post-read rate, media, places, and polls not at all. This is the conservative upper bound the
@@ -342,9 +345,10 @@ validating tokens.
   and tsv treat the estimate like `includes` and `meta`, which already flatten to a JSON-string column; `--raw` keeps
   the field because it controls compaction, not content.
 - KTD15. **File placement.** Every touched CLI file is already past the 200-line refactor trigger, so new code lands in
-  new modules: `src/pricing/` split by concern (types, generated table access, eligibility, estimation), `src/doctor/`
-  split by concern (store probe, checks, report), `src/cli/commands/pricing.rs` and `src/cli/commands/doctor.rs` for
-  handlers, and the new `after_help` constants beside their handlers instead of in `src/cli/mod.rs`.
+  new modules: `crates/xdk/src/pricing/` split by concern (types, generated table access, eligibility, estimation),
+  `crates/xdk/src/doctor/` split by concern (store probe, checks, report), `crates/xurl-cli/src/cli/commands/pricing.rs`
+  and `crates/xurl-cli/src/cli/commands/doctor.rs` for handlers, and the new `after_help` constants beside their
+  handlers instead of in `crates/xurl-cli/src/cli/mod.rs`.
 
 ### High-Level Technical Design
 
@@ -353,11 +357,11 @@ Pricing data flow, from the published page to every consumer:
 ```mermaid
 flowchart TB
   page[docs.x.com pricing page] --> norm[normalize script: table rows only]
-  norm --> canon[vendor/pricing/pricing-page.canonical.md]
-  norm --> meta[vendor/pricing/pricing-metadata.json]
-  canon -.transcribed by hand, cross-checked by test.-> json[vendor/pricing/x-api-pricing.json]
+  norm --> canon[crates/xdk/vendor/pricing/pricing-page.canonical.md]
+  norm --> meta[crates/xdk/vendor/pricing/pricing-metadata.json]
+  canon -.transcribed by hand, cross-checked by test.-> json[crates/xdk/vendor/pricing/x-api-pricing.json]
   json --> build[build.rs codegen: table + endpoint map]
-  build --> module[xurl::pricing]
+  build --> module[xdk::pricing]
   module --> est[shortcut estimates]
   module --> cmd[xr pricing]
   module --> doc[xr doctor]
@@ -371,8 +375,8 @@ How one shortcut invocation produces its estimate (KTD4, KTD5, KTD7):
 ```mermaid
 sequenceDiagram
   participant H as shortcut handler
-  participant C as ApiClient
-  participant P as xurl::pricing
+  participant C as Client
+  participant P as xdk::pricing
   participant O as output
   H->>H: dry-run? then pre-flight estimate from requested count, no calls
   H->>C: resolve user id (/2/users/me or /by/username)
@@ -392,7 +396,7 @@ flowchart TB
   offline -->|yes| skipO[skipped: offline]
   offline -->|no| cred{credential for endpoint present?}
   cred -->|no| skipC[skipped: no-bearer or no-user-token]
-  cred -->|yes| call[call through ApiClient]
+  cred -->|yes| call[call through Client]
   call --> resp{result}
   resp -->|2xx| ok[ok]
   resp -->|404| skipN[skipped: not-available]
@@ -417,10 +421,10 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   changes. bird parses `xr` stdout in its subprocess mode; the field is additive and bird's deserialization ignores
   unknown keys, but the bird integration check belongs in the U4 verification.
 - **Dry-run contract.** The root flag's documentation says read operations ignore it; after U3 that sentence is false
-  and must change in `src/cli/mod.rs`, README, AGENTS.md, and the skill bundle.
+  and must change in `crates/xurl-cli/src/cli/mod.rs`, README, AGENTS.md, and the skill bundle.
 - **Token store schema.** One optional per-app field; older writers' files read unchanged; nothing writes on load.
-- **Build.** `build.rs` gains a second codegen source; a transcription gap fails every build, which is the intended
-  tripwire.
+- **Build.** `crates/xdk/build.rs` gains a second codegen source; a transcription gap fails every build, which is the
+  intended tripwire.
 - **Spend.** Doctor's default run spends at most two user reads for the active app, deduplicated within the UTC day;
   `--offline` spends nothing.
 - **Agent surface.** New commands, the estimate field, and the doctor report need `xr schema` entries, examples,
@@ -442,12 +446,12 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 
 ### Documentation / Operational Notes
 
-- README: new "Pricing and cost estimates" and "Doctor" sections under Commands; dry-run sentence corrected; the
-  enrollment recipe stays.
+- CLI README (`crates/xurl-cli/README.md`): new "Pricing and cost estimates" and "Doctor" sections under Commands;
+  dry-run sentence corrected; the enrollment recipe stays.
 - AGENTS.md: new commands in the running list, the layering note (KTD12), a "Pricing refresh PRs" invocation paragraph
   beside the spec-refresh one, and the vendored pricing table in the architecture list.
 - CONCEPTS.md: vendored pricing table, pricing drift, cost estimate, declared owner, owned read.
-- `src/cli/commands/examples.rs`: a "Cost and diagnostics" block.
+- `crates/xurl-cli/src/cli/commands/examples.rs`: a "Cost and diagnostics" block.
 - Skill bundle (`brettdavies/xurl-rs-skill`): follow-up after release.
 
 ---
@@ -460,15 +464,17 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   a provenance sidecar, with a script that refreshes all three.
 - **Requirements:** R1, R2, R4
 - **Dependencies:** none
-- **Files:** `vendor/pricing/x-api-pricing.json`, `vendor/pricing/pricing-page.canonical.md`,
-  `vendor/pricing/pricing-metadata.json`, `vendor/pricing/README.md`, `scripts/normalize-x-pricing.sh`,
-  `scripts/refresh-x-pricing.sh`, `scripts/hooks/pre-push` (shellcheck already covers `scripts/`)
+- **Files:** `crates/xdk/vendor/pricing/x-api-pricing.json`, `crates/xdk/vendor/pricing/pricing-page.canonical.md`,
+  `crates/xdk/vendor/pricing/pricing-metadata.json`, `crates/xdk/vendor/pricing/README.md`,
+  `scripts/normalize-x-pricing.sh`, `scripts/refresh-x-pricing.sh`, `scripts/hooks/pre-push` (shellcheck already covers
+  `scripts/`)
 - **Approach:**
   1. The normalizer reads a page file and prints only markdown table rows with collapsed whitespace and trailing
      whitespace removed (KTD2).
   2. The refresh script fetches the page with the same retry shape as `scripts/refresh-x-openapi.sh`, runs the
      normalizer, refuses to write when the extract has no rows, writes the canonical file and the sidecar (source URL,
-     refreshed date, sha256 of the canonical bytes), and rewrites `vendor/pricing/README.md` from its own heredoc.
+     refreshed date, sha256 of the canonical bytes), and rewrites `crates/xdk/vendor/pricing/README.md` from its own
+     heredoc.
   3. A `--check` mode compares the live canonical extract to the committed one and exits nonzero on divergence, for
      local use and for the workflow in U8.
   4. The JSON table is transcribed by hand from the canonical rows: categories with unit type (per resource, per
@@ -476,11 +482,13 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
      endpoint map from `METHOD /template/path` to category with `unpriced` and `enterprise-only` values for templates
      the page does not price.
 - **Patterns to follow:** `scripts/refresh-x-openapi.sh` (fetch, sidecar, README heredoc),
-  `scripts/normalize-x-openapi.sh` (single normalizer used on both sides), `vendor/spec-metadata.json` (sidecar keys).
+  `scripts/normalize-x-openapi.sh` (single normalizer used on both sides), `crates/xdk/vendor/spec-metadata.json`
+  (sidecar keys).
 - **Test scenarios:**
   - Two fixture pages that differ only in asset URLs, blank lines, and column padding normalize to byte-identical
     output.
-  - A fixture page with no table rows makes the refresh script exit nonzero and leave `vendor/pricing/` unchanged.
+  - A fixture page with no table rows makes the refresh script exit nonzero and leave `crates/xdk/vendor/pricing/`
+    unchanged.
   - `--check` exits 0 against a fixture identical to the committed canonical file and nonzero against one with a changed
     rate.
   - The sidecar's sha256 equals the sha256 of the committed canonical file (asserted by the Rust cross-check test in
@@ -490,18 +498,18 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 
 ### U2. Pricing module and build-time table generation
 
-- **Goal:** `xurl::pricing` answers price, eligibility, and estimate questions from the vendored table, and the build
+- **Goal:** `xdk::pricing` answers price, eligibility, and estimate questions from the vendored table, and the build
   fails when a shortcut template lacks a category.
 - **Requirements:** R3, R5, R6, R7
 - **Dependencies:** U1
-- **Files:** `build.rs`, `src/pricing/mod.rs`, `src/pricing/types.rs`, `src/pricing/table.rs`,
-  `src/pricing/eligibility.rs`, `src/pricing/estimate.rs`, `src/lib.rs`, `Cargo.toml` (build-dependency for hashing only
-  if the sidecar hash is checked at build rather than in a test), `tests/pricing_coverage.rs`,
-  `tests/pricing_snapshot_tests.rs`
+- **Files:** `crates/xdk/build.rs`, `crates/xdk/src/pricing/mod.rs`, `crates/xdk/src/pricing/types.rs`,
+  `crates/xdk/src/pricing/table.rs`, `crates/xdk/src/pricing/eligibility.rs`, `crates/xdk/src/pricing/estimate.rs`,
+  `crates/xdk/src/lib.rs`, `crates/xdk/Cargo.toml` (build-dependency for hashing only if the sidecar hash is checked at
+  build rather than in a test), `crates/xdk/tests/pricing_coverage.rs`, `crates/xdk/tests/pricing_snapshot_tests.rs`
 - **Approach:**
-  1. `build.rs` reads `vendor/pricing/x-api-pricing.json`, emits a generated module with the category table and the
-     endpoint map keyed on the same `METHOD\0/path` strings the auth matrix uses, and panics when any
-     `SHORTCUT_TEMPLATES` entry lacks a mapping or a mapped template is absent from the spec (KTD3).
+  1. `crates/xdk/build.rs` reads `crates/xdk/vendor/pricing/x-api-pricing.json`, emits a generated module with the
+     category table and the endpoint map keyed on the same `METHOD\0/path` strings the auth matrix uses, and panics when
+     any `SHORTCUT_TEMPLATES` entry lacks a mapping or a mapped template is absent from the spec (KTD3).
   2. Types: price category with unit type and rate, price entry for a template, owned-read rule, snapshot provenance
      (source, date, sha, age, stale), cost estimate per R6 with closed enums for basis and eligibility, all deriving
      `Serialize`, `Deserialize`, `JsonSchema`, and `Send + Sync` by construction.
@@ -509,9 +517,9 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
      owner, and returns eligible, not eligible with a reason, or possible (R11, R14).
   4. Estimation has two entry points: pre-flight from a template and requested count, and post-response from call
      records carrying per-type counts of `data` and `includes` (KTD5, KTD13); both return the same estimate type.
-  5. `src/lib.rs` exposes the module and the snapshot consts the same way it exposes the spec consts.
-- **Patterns to follow:** `build.rs` `emit_auth_matrix` and `emit_build_info`; `src/api/auth_matrix.rs` runtime wrapper
-  over generated code; `tests/auth_matrix_coverage.rs`;
+  5. `crates/xdk/src/lib.rs` exposes the module and the snapshot consts the same way it exposes the spec consts.
+- **Patterns to follow:** `crates/xdk/build.rs` `emit_auth_matrix` and `emit_build_info`;
+  `crates/xdk/src/api/auth_matrix.rs` runtime wrapper over generated code; `crates/xdk/tests/auth_matrix_coverage.rs`;
   `docs/solutions/best-practices/rust-library-ergonomics-api-design.md` for the public shape.
 - **Test scenarios:**
   - Every `SHORTCUT_TEMPLATES` entry resolves to a price entry; the failure message names the missing template.
@@ -537,8 +545,9 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 - **Goal:** Every read shortcut honors `--dry-run` without a network call and reports offline preconditions.
 - **Requirements:** R12, R13, R14
 - **Dependencies:** U2
-- **Files:** `src/cli/commands/mod.rs` (read arms), `src/cli/mod.rs` (dry-run flag documentation), `tests/cli_tests.rs`,
-  `README.md`, `AGENTS.md`
+- **Files:** the read arms in `crates/xurl-cli/src/cli/commands/` (`reads.rs`, `engagement.rs`, `graph.rs`, `dms.rs`,
+  `usage.rs`, `broadcasts.rs`) and `list_for_user` in `mod.rs` beside them, `crates/xurl-cli/src/cli/mod.rs` (dry-run
+  flag documentation), `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/README.md`, `AGENTS.md`
 - **Approach:**
   1. Each read arm computes its dry-run context (command, target, requested count) and calls the shared dry-run helper
      before any client call, the way write arms do.
@@ -548,16 +557,16 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   3. The dry-run context carries the pre-flight estimate from U2, with eligibility possible for username-targeted reads
      and decided for self-targeted ones.
   4. Correct the flag documentation that says read operations ignore dry-run.
-- **Patterns to follow:** `dry_run_or_validate` and the write arms in `src/cli/commands/mod.rs`;
-  `OutputConfig::print_dry_run`.
+- **Patterns to follow:** `dry_run_or_validate` in `crates/xurl-cli/src/cli/commands/mod.rs` and the write arms in
+  `posts.rs` beside it; `OutputConfig::print_dry_run`.
 - **Test scenarios:**
   - Each read shortcut under `--dry-run --output json` against a mock server that fails on any request produces a
     dry-run envelope and the mock records zero requests.
   - `whoami --dry-run` with a bearer-only store reports `would_succeed: false` with the auth-mismatch reason (AE4).
   - `search "x" -n 100 --dry-run` reports a pre-flight estimate of 100 post reads with basis upper bound.
   - `timeline --dry-run` marks owned-read as not applicable (AE3).
-  - `bookmarks --dry-run` with a declared owner equal to the stored OAuth2 username reports eligible; with `--username
-    other` reports possible.
+  - `bookmarks --dry-run` with a declared owner equal to the stored OAuth2 username reports eligible; with
+    `--username other` reports possible.
   - Text-mode dry-run prints the estimate line; `--quiet` suppresses it.
 - **Verification:** No read shortcut reaches the network under dry-run in the suite; the root help and README describe
   dry-run as covering every shortcut.
@@ -568,20 +577,21 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   schemas match.
 - **Requirements:** R8, R9, R10, R11
 - **Dependencies:** U2, U3
-- **Files:** `src/api/request.rs` (call record), `src/api/mod.rs`, `src/cli/commands/mod.rs` (output type at the typed
-  print path), `src/cli/commands/schema.rs`, `src/cli/commands/validate.rs`, `src/output.rs` (text estimate line),
-  `schema/responses/*.schema.json` (regenerated), `tests/schema_tests.rs` (row counts), `tests/api_tests.rs`,
-  `tests/cli_tests.rs`
+- **Files:** `crates/xdk/src/api/request/mod.rs` and `crates/xdk/src/api/request/transport.rs` (call record),
+  `crates/xdk/src/api/mod.rs`, `crates/xurl-cli/src/cli/commands/mod.rs` (output type at the typed print path),
+  `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/src/cli/commands/validate.rs`,
+  `crates/xurl-cli/src/cli/output/` (text estimate line), `schema/responses/*.schema.json` (regenerated),
+  `crates/xurl-cli/tests/schema_tests.rs`, `crates/xdk/tests/api_tests.rs`, `crates/xurl-cli/tests/cli_tests.rs`
 - **Approach:**
-  1. `ApiClient` keeps a per-run vector of call records appended in `send_request` for template targets, with per-type
+  1. `Client` keeps a per-run vector of call records appended in `send_request` for template targets, with per-type
      counts taken from `data` and `includes` (KTD5); a method drains or reads them.
   2. The typed print path wraps the response in the CLI output type from KTD4 with `cost_estimate` computed from the
      records, the resolved auth scheme, the declared owner, and the authenticated username the store already holds.
-  3. Register the output type in `SCHEMA_ENTRIES` and the validate catalog, regenerate `schema/responses/`, and update
-     the hardcoded row counts.
+  3. Register the output type in `SCHEMA_ENTRIES` and the validate catalog, and regenerate `schema/responses/`.
   4. Text output appends one estimate line through the message path (KTD14).
 - **Patterns to follow:** `print_typed` and `OutputConfig::print_response`; `scripts/generate-response-schemas.sh`; the
-  schema drift guard in `tests/schema_tests.rs`; bird's counting heuristics in `~/dev/bird/src/cost.rs` as test cases.
+  schema drift guard in `crates/xurl-cli/tests/schema_tests.rs`; bird's counting heuristics in `~/dev/bird/src/cost.rs`
+  as test cases.
 - **Test scenarios:**
   - `bookmarks -n 20 --output json` against a mock returning 20 posts and 5 included users, with a declared owner
     matching the OAuth2 username, yields an estimate of 20 owned reads plus 5 user reads plus 1 user read for id
@@ -605,16 +615,18 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 - **Goal:** Humans and agents look up the vendored table and any shortcut's price entry offline.
 - **Requirements:** R15
 - **Dependencies:** U2
-- **Files:** `src/cli/mod.rs` (variant), `src/cli/commands/pricing.rs` (handler and help constant), `src/cli/runner.rs`
-  (tier-1 dispatch, needs no auth), `src/cli/commands/schema.rs`, `src/cli/commands/examples.rs`, `tests/cli_tests.rs`,
-  `tests/completion_tests.rs`, `tests/schema_tests.rs` (row counts), `schema/responses/` (regenerated), `README.md`
+- **Files:** `crates/xurl-cli/src/cli/mod.rs` (variant), `crates/xurl-cli/src/cli/commands/pricing.rs` (handler and help
+  constant), `crates/xurl-cli/src/cli/runner.rs` (tier-1 dispatch, needs no auth),
+  `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/src/cli/commands/examples.rs`,
+  `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/completion_tests.rs`,
+  `crates/xurl-cli/tests/schema_tests.rs`, `schema/responses/` (regenerated), `crates/xurl-cli/README.md`
 - **Approach:**
   1. `xr pricing` prints the table with provenance (source, date, age, stale); `xr pricing <name>` accepts a shortcut
      command name or a `METHOD /template` string and prints the entry with its owned-read rule and unit type.
   2. Structured output uses the success envelope with the pricing types from U2; text output renders a table.
   3. Unknown names return the invalid-args error envelope with the closest matches.
-- **Patterns to follow:** `xr examples` registration commit (variant, help constant, runner dispatch, tests); `xr schema
-  --list` text and JSON shapes.
+- **Patterns to follow:** `xr examples` registration commit (variant, help constant, runner dispatch, tests);
+  `xr schema --list` text and JSON shapes.
 - **Test scenarios:**
   - `xr pricing --output json` lists every category and the provenance block.
   - `xr pricing bookmarks` shows the owned-read rule; `xr pricing timeline` shows the standard post-read rate and no
@@ -629,9 +641,11 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 - **Goal:** An operator declares and clears an app's owner, and status output shows it without exposing credentials.
 - **Requirements:** R16, R17
 - **Dependencies:** none
-- **Files:** `src/store/types.rs`, `src/store/mod.rs`, `src/store/migration.rs` (struct literal), `src/cli/mod.rs`
-  (`--owner` on app update), `src/cli/commands/auth.rs` (update handler, status rendering, status entry field),
-  `tests/store_tests.rs`, `tests/cli_tests.rs`
+- **Files:** `crates/xdk/src/store/types.rs`, `crates/xdk/src/store/mod.rs`, `crates/xdk/src/store/migration.rs` (struct
+  literal), `crates/xurl-cli/src/cli/mod.rs` (`--owner` on app update), `crates/xurl-cli/src/cli/commands/auth/apps.rs`
+  (update handler), `crates/xurl-cli/src/cli/commands/auth/mod.rs` (status entry field),
+  `crates/xurl-cli/src/cli/commands/auth/session.rs` (status rendering), `crates/xurl-cli/tests/store_tests.rs`,
+  `crates/xurl-cli/tests/cli_tests.rs`
 - **Approach:**
   1. Add an optional owner field on the app type with the `redirect_uri` serde shape; construction and load never
      populate it (KTD6).
@@ -657,12 +671,15 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   balance, and project usage, with typed statuses and disclosed spend.
 - **Requirements:** R18, R19, R20, R21, R22, R23
 - **Dependencies:** U2, U4, U6
-- **Files:** `src/doctor/mod.rs`, `src/doctor/store_probe.rs`, `src/doctor/checks.rs`, `src/doctor/report.rs`,
-  `src/cli/mod.rs` (variant with `--offline`), `src/cli/commands/doctor.rs` (handler, text rendering, help constant),
-  `src/cli/commands/mod.rs` (tier-2 dispatch beside `Commands::Auth`), `src/cli/commands/schema.rs`,
-  `src/cli/commands/validate.rs`, `src/cli/commands/examples.rs`, `tests/cli_tests.rs`, `tests/live_smoke.rs`,
-  `tests/store_isolation_guard.rs` (allowlist entry for the live test), `tests/completion_tests.rs`,
-  `tests/schema_tests.rs`, `schema/responses/` (regenerated)
+- **Files:** `crates/xdk/src/doctor/mod.rs`, `crates/xdk/src/doctor/store_probe.rs`, `crates/xdk/src/doctor/checks.rs`,
+  `crates/xdk/src/doctor/report.rs`, `crates/xurl-cli/src/cli/mod.rs` (variant with `--offline`),
+  `crates/xurl-cli/src/cli/commands/doctor.rs` (handler, text rendering, help constant),
+  `crates/xurl-cli/src/cli/commands/mod.rs` (the routing line in `run_subcommand`, beside `Commands::Auth`),
+  `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/src/cli/commands/validate.rs`,
+  `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xurl-cli/tests/cli_tests.rs`,
+  `crates/xdk/tests/live_smoke.rs`, `crates/xurl-cli/tests/store_isolation_guard.rs` (allowlist entry for the live
+  test), `crates/xurl-cli/tests/completion_tests.rs`, `crates/xurl-cli/tests/schema_tests.rs`, `schema/responses/`
+  (regenerated)
 - **Approach:**
   1. Store probe: a read-only inspection of the store path that reports existence, readability, parse result, and
      permission bits without constructing a store or seeding a default app (KTD8).
@@ -680,7 +697,7 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 - **Execution note:** Build the check runner against wiremock fixtures for each status branch before wiring the live
   section; the degrade paths are the product here.
 - **Patterns to follow:** `AppStatusEntry` and its secret-exclusion test; `run_with_overrides` with a mock base URL in
-  `tests/cli_tests.rs`; `tests/live_smoke.rs` gating;
+  `crates/xurl-cli/tests/cli_tests.rs`; `crates/xdk/tests/live_smoke.rs` gating;
   `docs/solutions/best-practices/cli-default-inversion-api-first-local-flag-20260327.md` for HTTP-degrade versus
   transport-fail.
 - **Test scenarios:**
@@ -709,12 +726,12 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   surface is documented.
 - **Requirements:** R24, R25
 - **Dependencies:** U1, U5, U7
-- **Files:** `.github/workflows/pricing-drift.yml`, `AGENTS.md`, `CONCEPTS.md`, `README.md`,
-  `src/cli/commands/examples.rs`, `vendor/pricing/README.md`
+- **Files:** `.github/workflows/pricing-drift.yml`, `AGENTS.md`, `CONCEPTS.md`, `crates/xurl-cli/README.md`,
+  `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xdk/vendor/pricing/README.md`
 - **Approach:**
   1. Copy the spec-drift workflow's fetch-with-retry, canonical compare, one-open-PR dedupe, `createCommitOnBranch`
-     commit, and marker-owned body, with the pricing branch, title prefix, marker, and `vendor/pricing/**` PR paths
-     (KTD11); the compare step is `scripts/refresh-x-pricing.sh --check`.
+     commit, and marker-owned body, with the pricing branch, title prefix, marker, and `crates/xdk/vendor/pricing/**` PR
+     paths (KTD11); the compare step is `scripts/refresh-x-pricing.sh --check`.
   2. Runbook steps: run the refresh script, re-transcribe `x-api-pricing.json` from the new canonical rows, run the
      cross-check and coverage tests, regenerate response schemas if types changed, update README rate mentions, rewrite
      the body to the PR template; decision authority mirrors the spec runbook (rate changes are applied; new categories
@@ -728,7 +745,7 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
   - `actionlint` passes on the workflow.
   - `workflow_dispatch` against a branch whose canonical file is edited opens a PR with the marker and runbook; a second
     dispatch updates the same PR; an unchanged page produces no PR.
-  - The PR trigger fires on a change under `vendor/pricing/` and posts the compare result.
+  - The PR trigger fires on a change under `crates/xdk/vendor/pricing/` and posts the compare result.
 - **Verification:** One dispatch run observed end to end on `dev` after merge; README and AGENTS.md read consistently
   with `xr --help` output; CONCEPTS.md entries follow the existing format.
 
@@ -736,22 +753,22 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 
 ## Verification Contract
 
-| Gate               | Command                                                                      | Applies to                        | Done signal                                                                            |
-| ------------------ | ---------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
-| Format             | `cargo fmt --check`                                                          | all units                         | clean                                                                                  |
-| Lint               | `cargo clippy --all-targets -- -D warnings`                                  | all units                         | clean                                                                                  |
-| Tests              | `cargo test`                                                                 | all units                         | green, including new `tests/pricing_coverage.rs` and `tests/pricing_snapshot_tests.rs` |
-| Supply chain       | `cargo deny check`                                                           | U2 if a build-dependency is added | clean                                                                                  |
-| Schema drift       | `scripts/generate-response-schemas.sh` then `cargo test --test schema_tests` | U4, U5, U7                        | committed schemas byte-match                                                           |
-| Completions        | `scripts/generate-completions.sh --check`                                    | U5, U7                            | clean                                                                                  |
-| Stdout discipline  | `scripts/lint-stdio.sh`                                                      | U4, U5, U7                        | clean                                                                                  |
-| Env-var help guard | `cargo test --test agentic_tests`                                            | U7 (no new env var expected)      | green                                                                                  |
-| Store isolation    | `cargo test --test store_isolation_guard`                                    | U6, U7                            | green, live test allowlisted with reason                                               |
-| Shell              | `shellcheck scripts/*.sh` (via `scripts/hooks/pre-push`)                     | U1, U8                            | clean                                                                                  |
-| Workflow           | `actionlint .github/workflows/pricing-drift.yml`                             | U8                                | clean                                                                                  |
-| Pricing refresh    | `scripts/refresh-x-pricing.sh --check`                                       | U1, U8                            | exit 0 against the live page                                                           |
-| Live smoke         | `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`                | U7, release preflight only        | doctor identity check ok; spends at most two deduplicated user reads                   |
-| Full mirror        | `scripts/hooks/pre-push`                                                     | before each push                  | green                                                                                  |
+| Gate               | Command                                                                                 | Applies to                        | Done signal                                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Format             | `cargo fmt --check`                                                                     | all units                         | clean                                                                                                        |
+| Lint               | `cargo clippy --all-targets -- -D warnings`                                             | all units                         | clean                                                                                                        |
+| Tests              | `cargo test`                                                                            | all units                         | green, including new `crates/xdk/tests/pricing_coverage.rs` and `crates/xdk/tests/pricing_snapshot_tests.rs` |
+| Supply chain       | `cargo deny check`                                                                      | U2 if a build-dependency is added | clean                                                                                                        |
+| Schema drift       | `scripts/generate-response-schemas.sh` then `cargo test -p xurl-rs --test schema_tests` | U4, U5, U7                        | committed schemas byte-match                                                                                 |
+| Completions        | `scripts/generate-completions.sh --check`                                               | U5, U7                            | clean                                                                                                        |
+| Stdout discipline  | `scripts/lint-stdio.sh`                                                                 | U4, U5, U7                        | clean                                                                                                        |
+| Env-var help guard | `cargo test -p xurl-rs --test agentic_tests`                                            | U7 (no new env var expected)      | green                                                                                                        |
+| Store isolation    | `cargo test -p xurl-rs --test store_isolation_guard`                                    | U6, U7                            | green, live test allowlisted with reason                                                                     |
+| Shell              | `shellcheck scripts/*.sh` (via `scripts/hooks/pre-push`)                                | U1, U8                            | clean                                                                                                        |
+| Workflow           | `actionlint .github/workflows/pricing-drift.yml`                                        | U8                                | clean                                                                                                        |
+| Pricing refresh    | `scripts/refresh-x-pricing.sh --check`                                                  | U1, U8                            | exit 0 against the live page                                                                                 |
+| Live smoke         | `XURL_LIVE_SMOKE=1 cargo test -p xdk-rs --test live_smoke -- --ignored`                 | U7, release preflight only        | doctor identity check ok; spends at most two deduplicated user reads                                         |
+| Full mirror        | `scripts/hooks/pre-push`                                                                | before each push                  | green                                                                                                        |
 
 ---
 
@@ -785,42 +802,35 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `f9df2b1`, 2026-09-30)
+(against `xurl-rs` `origin/dev` @ `76d52e3`, 2026-10-07)
 
-| Unit | State     | Note                                                                                      |
-| ---- | --------- | ----------------------------------------------------------------------------------------- |
-| U1   | not-built | No `vendor/pricing/` directory and no `refresh-x-pricing.sh` or `normalize-x-pricing.sh`. |
-| U2   | not-built | No pricing module in either crate; `build.rs` emits no price table.                       |
-| U3   | not-built | The `--dry-run` doc comment on `Cli` still says "Read ops ignore it".                     |
-| U4   | not-built | No `cost_estimate` field on any output type or schema.                                    |
-| U5   | not-built | No `pricing` command variant.                                                             |
-| U6   | not-built | The store's app type has no owner field; `auth apps update` takes no `--owner`.           |
-| U7   | not-built | No `doctor` command variant or module.                                                    |
-| U8   | not-built | No `pricing-drift.yml` workflow; README, AGENTS.md, and CONCEPTS.md name neither command. |
+| Unit | State     | Note                                                                                                 |
+| ---- | --------- | ---------------------------------------------------------------------------------------------------- |
+| U1   | not-built | No `crates/xdk/vendor/pricing/` directory and no `refresh-x-pricing.sh` or `normalize-x-pricing.sh`. |
+| U2   | not-built | No pricing module in either crate; `crates/xdk/build.rs` emits no price table.                       |
+| U3   | not-built | The `--dry-run` doc comment on `Cli` still says "Read ops ignore it".                                |
+| U4   | not-built | No `cost_estimate` field on any output type or schema.                                               |
+| U5   | not-built | No `pricing` command variant.                                                                        |
+| U6   | not-built | The store's app type has no owner field; `auth apps update` takes no `--owner`.                      |
+| U7   | not-built | No `doctor` command variant or module.                                                               |
+| U8   | not-built | No `pricing-drift.yml` workflow; the READMEs, AGENTS.md, and CONCEPTS.md name neither command.       |
 
-### Before execution
+The units name the two-crate workspace. `AGENTS.md` § "Where a change goes" decides which side each piece lands on: the
+snapshot, the pricing module, the call record, the declared owner, and doctor's store probe, check runner, and typed
+report are library; the commands, the output type, and every rendered line are CLI.
 
-The units name the single-crate layout. The workspace now has two members, and AGENTS.md § "Where a change goes"
-decides which side each piece lands on. Re-map the paths before starting U1:
+Six facts in the current tree bear on the units:
 
-| Plan path                                                                                                    | Current home                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `vendor/pricing/`                                                                                            | `crates/xdk/vendor/pricing/`, beside the vendored spec                                                         |
-| `build.rs`                                                                                                   | `crates/xdk/build.rs`; generator helpers go in `crates/xdk/codegen/`                                           |
-| `src/pricing/`, `xurl::pricing`                                                                              | `crates/xdk/src/pricing/`, `xdk::pricing`; constants exported in `crates/xdk/src/lib.rs`                       |
-| `src/api/request.rs` (call records)                                                                          | `crates/xdk/src/api/request/` (`call.rs`, `transport.rs`)                                                      |
-| `src/store/`                                                                                                 | `crates/xdk/src/store/`                                                                                        |
-| `src/doctor/`                                                                                                | Store probe and live checks in `crates/xdk` (they read the store and call X); report text in `crates/xurl-cli` |
-| `src/cli/**`, `src/output.rs`                                                                                | `crates/xurl-cli/src/cli/**`, `crates/xurl-cli/src/cli/output/`                                                |
-| `src/cli/commands/auth.rs`                                                                                   | `crates/xurl-cli/src/cli/commands/auth/` (`apps.rs` holds `auth apps update`)                                  |
-| `tests/pricing_*.rs`, `tests/api_tests.rs`, `tests/live_smoke.rs`                                            | `crates/xdk/tests/`                                                                                            |
-| `tests/cli_tests.rs`, `schema_tests.rs`, `completion_tests.rs`, `store_tests.rs`, `store_isolation_guard.rs` | `crates/xurl-cli/tests/`                                                                                       |
-
-Three facts in the current tree bear on the units:
-
-- U5 and U7 each add a command, so each one follows the AGENTS.md § "Adding a command family" recipe. Its walks check
+- U5 and U7 each add a command, so each one follows the `AGENTS.md` § "Adding a command family" recipe. Its walks check
   the golden help fixture, the schema registry, the validate alias, the examples page, and completions, which covers
   more than the units' file lists name.
 - `Client::get_usage_credits` and `xr usage credits` call `GET /2/usage/credits`. U7's credit-balance check calls that
   shortcut and does not add a second request path.
-- The vendored spec is 2.169. The plan's Sources section cites 2.168.
+- The vendored spec is 2.169. The Sources section cites 2.168, the version the research read.
+- Eight of the paged read commands (`timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`,
+  `blocked`) run through `list_for_user`, so U3's dry-run path for them is one seam.
+- With `--wait-on-rate-limit`, `send_request_with` sends a request a second time after a 429, so one call can be two
+  sends. KTD5's record counts the call once.
+- The scope-help plan (`docs/plans/2026-09-20-0924-refactor-scope-help-to-consumed-flags-plan.md`) moves `--dry-run` off
+  the global flags and onto the commands that honor it. Whichever plan lands second accounts for the other: U3 makes
+  every read shortcut one of those commands.
