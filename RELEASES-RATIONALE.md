@@ -376,6 +376,13 @@ desktop platforms and on Linux CI runners, including Alpine and other glibc-free
 `release-matrix-check.yml` builds the same seven rows on every push to a `release/*` branch so a broken row surfaces
 before the tag.
 
+Four of the archives are also what Homebrew installs. `Formula/xurl-rs.rb` in `brettdavies/homebrew-tap` names
+`xurl-rs-aarch64-apple-darwin.tar.gz`, `xurl-rs-x86_64-apple-darwin.tar.gz`, `xurl-rs-aarch64-unknown-linux-musl.tar.gz`,
+and `xurl-rs-x86_64-unknown-linux-musl.tar.gz`, and installs the `xr` at the top of each archive's single directory.
+The musl builds are the Linux ones because they are static and run against any glibc, Homebrew's included. An archive
+name, the place of `xr` inside it, and those four targets are therefore a contract with the formula: change one and the
+tap's bump for the next release fails, so the formula changes in the same step.
+
 The Windows row uses `x86_64-pc-windows-msvc` (MSVC ABI) rather than GNU because the X API uses TLS with a vendored
 rustls and rustls-platform-verifier; the MSVC ABI is the path of least resistance for that stack on Windows. CI also
 runs a separate `ci / Windows check` job on every PR (not just at release) so MSVC build failures surface immediately,
