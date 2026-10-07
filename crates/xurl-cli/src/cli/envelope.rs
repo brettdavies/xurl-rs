@@ -156,7 +156,7 @@ impl Reason {
 /// verb-local fields the `validate` and `skill` commands carry are declared
 /// here too, because the generated schema closes the object and a key it
 /// does not name would make that schema wrong about what callers receive.
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[non_exhaustive]
 pub struct ErrorBody {
@@ -214,7 +214,11 @@ pub struct ErrorBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
     /// Auth scheme the caller asked for; `null` when auto-detect ran.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub requested: Option<Value>,
     /// Auth schemes the endpoint accepts.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -255,7 +259,11 @@ pub struct ErrorBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth1: Option<bool>,
     /// The `OAuth2` user `auth clear` targeted; `null` when unset.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub oauth2_username: Option<Value>,
     /// Whether `auth clear` targeted the bearer token.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -285,6 +293,16 @@ pub struct ErrorBody {
     /// Whether a dry-run skill verb would have succeeded.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub would_succeed: Option<bool>,
+}
+
+/// Reads a key that is present as `Some`, `null` included. Serde's own
+/// reading of an `Option` turns a present `null` into `None`, which would
+/// drop a key the envelope documents `null` as a value of.
+fn present<'de, D>(deserializer: D) -> Result<Option<Value>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Value::deserialize(deserializer).map(Some)
 }
 
 impl ErrorBody {

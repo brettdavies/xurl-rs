@@ -111,26 +111,7 @@ fn generate_signature(
 ) -> Result<String> {
     let parsed_url = Url::parse(url_str)
         .map_err(|e| Error::invalid_url(format!("{url_str}: {e}")).with_source(e))?;
-
-    let base_url = format!(
-        "{}://{}{}",
-        parsed_url.scheme(),
-        parsed_url.host_str().unwrap_or(""),
-        parsed_url.path()
-    );
-
-    let param_pairs: Vec<String> = params
-        .iter()
-        .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
-        .collect();
-    let param_string = param_pairs.join("&");
-
-    let signature_base_string = format!(
-        "{}&{}&{}",
-        method.to_uppercase(),
-        encode(&base_url),
-        encode(&param_string)
-    );
+    let signature_base_string = signature_base_string(method, &parsed_url, params);
 
     let signing_key = format!("{}&{}", encode(consumer_secret), encode(token_secret));
 
@@ -140,6 +121,31 @@ fn generate_signature(
     let result = mac.finalize();
 
     Ok(BASE64_STANDARD.encode(result.into_bytes()))
+}
+
+/// The signature base string of RFC 5849 section 3.4.1: the method, the URL
+/// without its query, and the sorted parameters, each percent-encoded and
+/// joined by `&`.
+fn signature_base_string(method: &str, url: &Url, params: &BTreeMap<String, String>) -> String {
+    let base_url = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap_or(""),
+        url.path()
+    );
+
+    let param_pairs: Vec<String> = params
+        .iter()
+        .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
+        .collect();
+    let param_string = param_pairs.join("&");
+
+    format!(
+        "{}&{}&{}",
+        method.to_uppercase(),
+        encode(&base_url),
+        encode(&param_string)
+    )
 }
 
 /// Generates a random nonce.
@@ -176,4 +182,49 @@ const ENCODED: &AsciiSet = &NON_ALPHANUMERIC
 #[must_use]
 pub fn encode(s: &str) -> String {
     utf8_percent_encode(s, ENCODED).to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use percent_encoding::percent_decode_str;
+    use proptest::prelude::*;
+
+    use super::*;
+
+    fn decode(encoded: &str) -> String {
+        percent_decode_str(encoded)
+            .decode_utf8()
+            .expect("the encoder writes UTF-8")
+            .into_owned()
+    }
+
+    proptest! {
+        /// The base string carries the parameters without loss: its third
+        /// part decodes to the sorted `key=value` pairs, and each side of a
+        /// pair decodes to the string that went in. A separator that reached
+        /// the base string unencoded would split a pair in the wrong place.
+        #[test]
+        fn the_base_string_decodes_to_the_parameters_that_built_it(
+            params in prop::collection::btree_map("\\PC{0,12}", "\\PC{0,24}", 0..8),
+        ) {
+            let url = Url::parse("https://api.x.com/2/tweets/search/recent").unwrap();
+            let base = signature_base_string("get", &url, &params);
+
+            let parts: Vec<&str> = base.split('&').collect();
+            prop_assert_eq!(parts.len(), 3, "method, URL, and parameters: {}", base);
+            prop_assert_eq!(parts[0], "GET");
+            prop_assert_eq!(decode(parts[1]), "https://api.x.com/2/tweets/search/recent");
+
+            let pairs = decode(parts[2]);
+            let decoded: BTreeMap<String, String> = pairs
+                .split('&')
+                .filter(|pair| !pair.is_empty())
+                .map(|pair| {
+                    let (key, value) = pair.split_once('=').expect("each pair has one separator");
+                    (decode(key), decode(value))
+                })
+                .collect();
+            prop_assert_eq!(decoded, params);
+        }
+    }
 }

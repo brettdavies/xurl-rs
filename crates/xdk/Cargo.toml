@@ -109,6 +109,7 @@ phf_codegen = "0.14"
 tempfile.workspace = true
 wiremock.workspace = true
 rstest.workspace = true
+proptest.workspace = true
 serial_test.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
