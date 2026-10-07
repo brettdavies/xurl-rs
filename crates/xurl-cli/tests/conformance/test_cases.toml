@@ -46,6 +46,7 @@ args = []
 compare = ["exit_code"]
 expect_failure = true
 tags = ["basic", "error"]
+skip_reason = "Known difference: a bare `xr` prints the root help at exit 0, where Go exits 1 with `No URL provided` (KNOWN_DIFFERENCES.md, a bare word is a command, not an endpoint)"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Subcommand help tests — exit_code only (Go cobra vs Rust clap format)

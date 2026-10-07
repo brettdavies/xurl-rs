@@ -82,6 +82,9 @@
             "context": "Features (testing)"
           },
           {
+            "context": "Go parity"
+          },
+          {
             "context": "MSRV"
           },
           {
