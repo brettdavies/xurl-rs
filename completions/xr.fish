@@ -33,7 +33,7 @@ complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request an
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s F -l file -d 'File to upload (for multipart requests)' -r
 complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -113,7 +113,7 @@ complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -150,7 +150,7 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -186,7 +186,7 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -222,7 +222,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -259,7 +259,7 @@ complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -296,7 +296,7 @@ complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -332,7 +332,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -368,7 +368,7 @@ complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -405,7 +405,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -442,7 +442,7 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -478,7 +478,7 @@ complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -514,7 +514,7 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -550,7 +550,7 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -586,7 +586,7 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -622,7 +622,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -658,7 +658,7 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -695,7 +695,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -732,7 +732,7 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -768,7 +768,7 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -804,7 +804,7 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OA
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -842,7 +842,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -880,7 +880,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`O
 complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -916,7 +916,7 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2
 complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -952,7 +952,7 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAut
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -989,7 +989,7 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1025,7 +1025,7 @@ complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth
 complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1061,7 +1061,7 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAu
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1098,7 +1098,7 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAu
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1134,7 +1134,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1172,7 +1172,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1210,7 +1210,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` 
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1247,7 +1247,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2`
 complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1281,7 +1281,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1316,7 +1316,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_su
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1355,7 +1355,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1401,7 +1401,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1441,7 +1441,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1476,7 +1476,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1509,7 +1509,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1543,7 +1543,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1580,7 +1580,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1619,7 +1619,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1660,7 +1660,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1704,7 +1704,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1742,7 +1742,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1778,7 +1778,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1812,7 +1812,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1853,7 +1853,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1889,7 +1889,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1922,7 +1922,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1958,7 +1958,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1994,7 +1994,7 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -s h -l help -d 'Print hel
 complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2027,7 +2027,7 @@ complete -c xr -n "__fish_xr_using_subcommand completions" -s h -l help -d 'Prin
 complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2060,7 +2060,7 @@ complete -c xr -n "__fish_xr_using_subcommand version" -s h -l help -d 'Print he
 complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2094,7 +2094,7 @@ complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema nam
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is a usage error at exit 2' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'

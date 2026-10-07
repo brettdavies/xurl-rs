@@ -102,8 +102,9 @@ where
 /// When the un-parsed argv (or `XURL_OUTPUT`) names a structured format,
 /// parse-error stderr is the canonical envelope
 /// `{"status":"error","reason":"invalid-args","exit_code":2,"message":"..."}`
-/// rendered in that format. Otherwise it is the `Error:` line every error
-/// takes, closing on the failing command's help. An unrecognized subcommand,
+/// rendered in that format, and in JSON when it names a format `xr` does not
+/// print. Otherwise it is the `Error:` line every error takes, closing on the
+/// failing command's help. An unrecognized subcommand,
 /// and a bare word that names no command, both render as `unknown-command` at
 /// the same exit code, with or without a help or version flag, and a bare
 /// invocation prints the root help at exit 0.
