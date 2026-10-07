@@ -11,11 +11,12 @@
 # working cross toolchain per target; a change of that shape reaches this
 # workflow before it reaches a tag.
 #
-# The full matrix runs in roughly five minutes, and the two long poles are
-# Windows and the cross rows, so tightening the trigger further would buy
-# little.
+# The matrix and its build steps live in the shared workflow this calls, beside
+# the release workflow whose matrix they mirror. The full matrix runs in roughly
+# five minutes, and the two long poles are Windows and the cross rows, so
+# tightening the trigger further would buy little.
 #
-# Every row is hard-fail here, and the release workflow runs with
+# Every row is hard-fail there, and the release workflow runs with
 # `linux_musl_required: true`, so its musl rows are hard-fail too. A red musl
 # row in this check means the release would fail on the same row.
 name: Release matrix check
@@ -45,73 +46,6 @@ concurrency:
   group: release-matrix-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CARGO_TERM_COLOR: always
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  build:
-    name: Build ${{ matrix.target }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-22.04
-            target: aarch64-unknown-linux-gnu
-            cross: true
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-musl
-            cross: true
-          - os: ubuntu-22.04
-            target: aarch64-unknown-linux-musl
-            cross: true
-          - os: macos-14
-            target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          targets: ${{ matrix.target }}
-
-      # dtolnay/rust-toolchain honors rust-toolchain.toml's channel but installs
-      # only the host default target, so the matrix target is re-added
-      # explicitly. Skipped for cross rows, whose docker image carries its own
-      # pre-configured toolchain.
-      - name: Ensure target installed
-        if: matrix.cross != true
-        run: rustup target add ${{ matrix.target }}
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          key: release-matrix-${{ matrix.target }}
-
-      - name: Install cross
-        if: matrix.cross
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-          cargo binstall cross --version 0.2.5 --no-confirm --force
-
-      - name: Build release
-        shell: bash
-        env:
-          TARGET: ${{ matrix.target }}
-          USE_CROSS: ${{ matrix.cross }}
-        run: |
-          BUILD_CMD="cargo"
-          if [ "$USE_CROSS" = "true" ]; then
-            BUILD_CMD="cross"
-          fi
-          $BUILD_CMD build --release --locked --target "$TARGET"
+  check:
+    uses: brettdavies/.github/.github/workflows/rust-release-matrix-check.yml@main

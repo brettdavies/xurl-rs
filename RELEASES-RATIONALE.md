@@ -374,7 +374,8 @@ network CLI against a hosted API (X / Twitter); the binaries are consumed by int
 desktop platforms and on Linux CI runners, including Alpine and other glibc-free hosts, which the musl rows serve.
 `release.yml` passes `linux_musl_required: true`, so a musl build failure blocks the release, and
 `release-matrix-check.yml` builds the same seven rows on every push to a `release/*` branch so a broken row surfaces
-before the tag.
+before the tag. It calls `rust-release-matrix-check.yml` in `brettdavies/.github`, where the matrix sits beside the
+release workflow's and a lint check holds the two equal, so this repository keeps no target list of its own.
 
 Four of the archives are also what Homebrew installs. `Formula/xurl-rs.rb` in `brettdavies/homebrew-tap` names
 `xurl-rs-aarch64-apple-darwin.tar.gz`, `xurl-rs-x86_64-apple-darwin.tar.gz`, `xurl-rs-aarch64-unknown-linux-musl.tar.gz`,
