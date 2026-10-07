@@ -2511,7 +2511,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--media-type=[Media type (e.g., video/mp4)]:MEDIA_TYPE:_default' \
 '--category=[Media category (e.g., \`amplify_video\`)]:CATEGORY:_default' \
-'--wait=[Wait for X to finish processing a video before returning]::SECS:_default' \
+'--wait=[Wait for X to finish processing the upload before returning]::SECS:_default' \
 '--auth=[Authentication type]:AUTH_TYPE:_default' \
 '-u+[Username]:USERNAME:_default' \
 '--username=[Username]:USERNAME:_default' \

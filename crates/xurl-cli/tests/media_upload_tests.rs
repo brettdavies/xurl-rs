@@ -492,6 +492,92 @@ async fn a_finished_status_without_processing_info_clears_the_pending_state() {
     );
 }
 
+// ── The wait follows what X reports, not only the category ─────────────
+
+/// Uploads a GIF whose FINALIZE answers `finalize`, with a STATUS that
+/// reports success, and returns the run with the number of status calls.
+async fn upload_a_gif(finalize: serde_json::Value) -> (std::process::Output, usize) {
+    let server = MockServer::start().await;
+    mount_upload(&server, finalize).await;
+    status_mock(serde_json::json!({
+        "id": "777",
+        "processing_info": {"state": "succeeded", "progress_percent": 100}
+    }))
+    .mount(&server)
+    .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let gif = tmp.path().join("loop.gif");
+    std::fs::write(&gif, b"not really a gif").expect("write gif");
+
+    let output = run_xr(
+        &server,
+        oauth2_store(&tmp),
+        &[
+            "--output",
+            "json",
+            "media",
+            "upload",
+            gif.to_str().expect("utf-8 path"),
+            "--media-type",
+            "image/gif",
+            "--category",
+            "tweet_gif",
+        ],
+    )
+    .await;
+    let calls = status_calls(&server).await;
+    (output, calls)
+}
+
+/// X says an upload needs processing by putting an unfinished
+/// `processing_info` on FINALIZE's answer. A GIF that carries one is waited
+/// for, though its category is not a video one.
+#[rstest::rstest]
+#[case::pending("pending")]
+#[case::in_progress("in_progress")]
+#[tokio::test(flavor = "multi_thread")]
+async fn an_upload_x_reports_as_processing_is_waited_for(#[case] state: &str) {
+    let (output, status_calls) = upload_a_gif(serde_json::json!({
+        "id": "777",
+        "processing_info": {"state": state, "check_after_secs": 1}
+    }))
+    .await;
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(status_calls, 1, "the status is read until it is final");
+    let documents = documents(&output.stdout);
+    assert_eq!(
+        documents[0]["data"]["processing_info"]["state"], "succeeded",
+        "the answer carries the final state"
+    );
+}
+
+/// Without that signal, or with one already final, a GIF is ready at
+/// FINALIZE and no status is read.
+#[rstest::rstest]
+#[case::no_processing_info(serde_json::json!({"id": "777"}))]
+#[case::already_succeeded(serde_json::json!({
+    "id": "777",
+    "processing_info": {"state": "succeeded"}
+}))]
+#[tokio::test(flavor = "multi_thread")]
+async fn an_upload_x_reports_as_ready_is_not_waited_for(#[case] finalize: serde_json::Value) {
+    let (output, status_calls) = upload_a_gif(finalize).await;
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(status_calls, 0, "nothing to wait for");
+}
+
 /// `--wait` takes its value after `=`. A value after a space is a stray
 /// argument, and the error says how to write it.
 #[tokio::test(flavor = "multi_thread")]

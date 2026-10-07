@@ -1754,7 +1754,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;media;upload'= {
             cand --media-type 'Media type (e.g., video/mp4)'
             cand --category 'Media category (e.g., `amplify_video`)'
-            cand --wait 'Wait for X to finish processing a video before returning'
+            cand --wait 'Wait for X to finish processing the upload before returning'
             cand --auth 'Authentication type'
             cand -u 'Username'
             cand --username 'Username'

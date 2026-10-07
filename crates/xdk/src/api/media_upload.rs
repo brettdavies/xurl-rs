@@ -94,14 +94,16 @@ impl MediaUpload {
         self
     }
 
-    /// Whether to poll STATUS until X finishes processing a video before
-    /// returning; on by default. Images and GIFs are never awaited.
+    /// Whether to poll STATUS until X finishes processing the upload before
+    /// returning; on by default. A video is always awaited, and so is any
+    /// other upload whose FINALIZE answer reports processing still under
+    /// way, such as an animated GIF. An upload X reports as ready is not.
     pub fn wait_for_processing(mut self, wait: bool) -> Self {
         self.wait_for_processing = wait;
         self
     }
 
-    /// How long the wait on a video's processing runs before it gives up;
+    /// How long the wait on processing runs before it gives up;
     /// [`DEFAULT_PROCESSING_WAIT`] unless set. A wait that reaches it puts
     /// [`Error::ProcessingTimeout`] in [`MediaUploadOutcome::processing`],
     /// with the media id still valid.

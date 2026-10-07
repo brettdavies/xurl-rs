@@ -1854,7 +1854,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;media;upload' {
             [CompletionResult]::new('--media-type', '--media-type', [CompletionResultType]::ParameterName, 'Media type (e.g., video/mp4)')
             [CompletionResult]::new('--category', '--category', [CompletionResultType]::ParameterName, 'Media category (e.g., `amplify_video`)')
-            [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for X to finish processing a video before returning')
+            [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for X to finish processing the upload before returning')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username')

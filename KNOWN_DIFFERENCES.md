@@ -116,6 +116,11 @@ The Rust version always ends the wait:
 | `--wait=false`                      | Does not wait                   | Does not wait                                            |
 | `--wait 60` (value after a space)   | Not the flag's value            | Exit 2, with a tip pointing at `--wait=60`               |
 
+Which uploads are waited for differs too. Go `xurl` decides by category alone: one whose name contains `video` or
+`gif` (`mediaNeedsProcessing`). The Rust version waits for a video category, and for any other upload whose FINALIZE
+answer carries a `processing_info` that is not yet final, which is the signal X documents for media that needs
+processing. A GIF that X reports as ready at FINALIZE therefore costs no status call, where Go polls it.
+
 `media upload` still waits by default and `media status` still reads the status once unless `--wait` is given. The
 timeout leaves the upload intact: its envelope carries `media_id` and a `resume-wait` step whose `command`, `xr media
 status <media_id> --wait=<secs>`, waits again for twice as long.
