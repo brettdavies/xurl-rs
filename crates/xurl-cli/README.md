@@ -453,6 +453,35 @@ prints the same advice as prose instead; the two need not match word for word.
 NO_COLOR=1 xr whoami                           # Disable color (no-color.org)
 ```
 
+## Stability
+
+`xr` follows [SemVer 2.0.0](https://semver.org/). Its public API is the machine contract a script or an agent depends
+on:
+
+- **Invocation:** command names and aliases, flags, positional forms, and every environment variable `xr --help` lists.
+- **Exit codes:** the table under [Structured Exit Codes](#structured-exit-codes).
+- **Structured output:** every shape `--output json|jsonl|ndjson|yaml|csv|tsv` prints, meaning the success responses
+  `xr schema` describes and the error envelope, including its `reason` and `next_step.action` sets.
+- **Stored state:** the `~/.xurl` token store format.
+
+Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording, and raw-mode response bodies are not
+contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which scripts parse. A script that
+needs any other stable output reads a structured format.
+
+How a change arrives:
+
+- **Patch:** fixes only, including behavior brought back to the documented contract.
+- **Minor:** anything new that breaks nothing, such as a command, a flag, an environment variable, or an output field,
+  and also a deprecation or a raised minimum Rust version. `reason` and `next_step.action` are closed sets that gain
+  members in minors, so treat a value you do not recognize as your default branch.
+- **Major:** anything in the contract removed, renamed, or retyped, or its documented meaning changed. A name that has
+  to change is added in a minor and deprecated there, then removed in a major that batches removals. Each major's
+  breaks are written up with before-and-after invocations under
+  [`docs/migrating`](https://github.com/brettdavies/xurl-rs/tree/main/docs/migrating).
+
+[`RELEASES.md` § Versioning](https://github.com/brettdavies/xurl-rs/blob/main/RELEASES.md#versioning) is the full
+policy.
+
 ## Shell Completions
 
 ```bash
