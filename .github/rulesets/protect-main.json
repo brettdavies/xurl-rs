@@ -49,6 +49,9 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           {
+            "context": "Agent-native audit"
+          },
+          {
             "context": "Completions freshness"
           },
           {
@@ -77,6 +80,9 @@
           },
           {
             "context": "Features (testing)"
+          },
+          {
+            "context": "MSRV"
           },
           {
             "context": "Output discipline"
