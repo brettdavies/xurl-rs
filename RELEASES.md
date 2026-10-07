@@ -353,6 +353,12 @@ Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/re
 | `verify-attestations` | Download every published file and verify it against its attestation with `gh attestation verify --signer-workflow`. A failure withholds the Homebrew dispatch (gate).                                                                                                                                                                                                                       |
 | `homebrew`            | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                                                                                                                                                                           |
 
+The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
+`apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
+checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release
+reach Homebrew. The tap then builds bottles from those archives, signs them in its own `publish.yml`, and uploads them
+to this repo's release assets.
+
 After the homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to
 this repo, which idempotently flips `make_latest: true`.
 

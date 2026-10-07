@@ -91,6 +91,10 @@ Run immediately after the tag push triggers `release.yml`.
   --version` reports the new tag. Drive on a throwaway prefix (`HOMEBREW_PREFIX=/tmp/brew-postflight-X brew ...`).
   Confirms the homebrew-tap end of the cross-repo dispatch chain landed cleanly and the published bottle SHA matches the
   formula.
+- [ ] **Every Homebrew bottle verifies against its attestation.** `brew verify --os=all --arch=all
+  brettdavies/tap/xurl-rs` reports `has a valid attestation` for each bottle. The tap signs the bottles in its
+  `publish.yml`; this is the check Homebrew runs for a user who sets `HOMEBREW_VERIFY_ATTESTATIONS`, and a failure means
+  that user cannot install the formula.
 - [ ] **`cargo binstall xurl-rs`** (without `--version`) resolves to the new tag and installs the matching prebuilt
   binary. Confirms the GitHub Release asset layout (binary + completions + licenses, expected archive naming) matches
   binstall's asset-resolution rules. Drive on a clean container.
