@@ -232,7 +232,8 @@ Every secret flag (`--client-secret`, `--consumer-secret`, `--access-token`, `--
 `--<name>-file` twin that reads the value from a file, or from stdin when the path is `-`. A secret passed that way
 never appears in the process's arguments or in shell history, and its one trailing line ending is dropped. Stdin carries
 one value, so a command that takes several secrets reads at most one from `-` and the rest from files. `-` is refused
-when stdin is a terminal: pipe the secret in, or pass a path.
+when stdin is a terminal: pipe the secret in, or pass a path. A file or a pipe that holds nothing is refused too, at
+exit 2: that is what a vault command prints when it fails, and nothing is stored.
 
 ### OAuth2 (Recommended)
 
