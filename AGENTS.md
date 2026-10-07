@@ -54,12 +54,12 @@ enough. Read those rather than parsing the message.
 
 Four auth modes, selected by what's available in the token store and the environment.
 
-| Path               | When used                                                                                           | Surface                                                 |
-| ------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| OAuth1 (HMAC-SHA1) | User tokens stored in `~/.xurl` via `xr auth oauth1` (consumer key + secret, access token + secret) | v2 user-context endpoints whose spec entry lists OAuth1 |
-| OAuth2 PKCE        | User-scoped flow via `xr auth oauth2` (browser-driven) or `xr auth oauth2 --no-browser`             | All v2 user-scoped endpoints                            |
-| OAuth2 headless    | `xr auth oauth2 --no-browser`: copy-paste the URL flow on a graphical-display-less host             | Same as OAuth2 PKCE                                     |
-| Bearer (app-only)  | `XURL_BEARER_TOKEN=…` in env, or stored via `xr auth app --bearer-token`                            | v2 read-only endpoints + search                         |
+| Path               | When used                                                                                                    | Surface                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| OAuth1 (HMAC-SHA1) | User tokens stored in `~/.xurl/auth.yml` via `xr auth oauth1` (consumer key + secret, access token + secret) | v2 user-context endpoints whose spec entry lists OAuth1 |
+| OAuth2 PKCE        | User-scoped flow via `xr auth oauth2` (browser-driven) or `xr auth oauth2 --no-browser`                      | All v2 user-scoped endpoints                            |
+| OAuth2 headless    | `xr auth oauth2 --no-browser`: copy-paste the URL flow on a graphical-display-less host                      | Same as OAuth2 PKCE                                     |
+| Bearer (app-only)  | `XURL_BEARER_TOKEN=…` in env, or stored via `xr auth app --bearer-token`                                     | v2 read-only endpoints + search                         |
 
 The CLI picks per request: if a Bearer is set and the endpoint accepts app-auth, it's used; otherwise the stored
 user-scoped tokens for the active app drive the call. Multi-app is supported in the token store; `xr auth status`
@@ -94,7 +94,10 @@ string, sorted parameter list). PKCE is the standard `code_verifier`/`code_chall
 
 ## Token store
 
-YAML at `~/.xurl`. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
+YAML at `~/.xurl/auth.yml`, the file Go `xurl` 1.3.0 and later use. `crates/xdk/src/store/layout.rs` owns the path. A
+library constructor opens the store wherever it sits and moves nothing (`locate_store`). `xr` moves a single-file store
+at `~/.xurl` into the directory on the first command that opens it (`adopt_directory_layout`), and `Diagnostics` prints
+the move in text output. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
 
@@ -207,7 +210,8 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while `types.rs` holds the
   bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `crates/xdk/src/config/`: env-var-based configuration.
-- `crates/xdk/src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
+- `crates/xdk/src/store/`: YAML token store at `~/.xurl/auth.yml`; multi-app, with `migration.rs` for transparent
+  upgrades.
 - `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
   serializer.
 - `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`.
@@ -228,9 +232,8 @@ The line between the crates holds on four rules; a change that crosses one belon
    `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`,
    `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts' config- and base-directory
    variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in
-   `crates/xurl-cli/src/cli/env.rs`.
-   Binding the loopback OAuth2 callback listener and reading or writing `~/.xurl` are network and file I/O, and belong
-   to the library.
+   `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener and reading or writing
+   `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
    `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
    `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can
@@ -281,16 +284,20 @@ scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, e
                               # actionlint; docs.rs nightly build and cargo-hack powerset when installed)
 ```
 
+A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
+released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual
+run unless the move is intended.
+
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
 (`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
 `crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
-`TokenStore::new()`, `TokenStore::with_credentials(`, `default_store_path()`, `default_pending_path()`, any `dirs::`
-call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable (`USERPROFILE`, `TMPDIR`,
-`CARGO_HOME`, `RUSTUP_HOME`, an `XDG_` directory), clears or bulk-sets a child's environment, or spawns the `xr` binary
-outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path or the
-test's own temp store); a test that must touch the real path goes on its allowlist with the reason. A companion guard in
-`crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either crate reads and fails when `xr
---help` does not advertise one.
+`TokenStore::new()`, `TokenStore::with_credentials(`, `Client::from_env(`, `default_store_path()`,
+`default_pending_path()`, any `dirs::` call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable
+(`USERPROFILE`, `TMPDIR`, `CARGO_HOME`, `RUSTUP_HOME`, an `XDG_` directory), clears or bulk-sets a child's environment,
+or spawns the `xr` binary outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an
+unwritable scratch path or the test's own temp store); a test that must touch the real path goes on its allowlist with
+the reason. A companion guard in `crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either
+crate reads and fails when `xr --help` does not advertise one.
 
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
 format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run

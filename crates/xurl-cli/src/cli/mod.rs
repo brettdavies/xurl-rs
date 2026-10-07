@@ -80,7 +80,7 @@ ENVIRONMENT VARIABLES:
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
-  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl/auth.yml (OAuth2 pending state sits beside it)
   XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
 ",
     include_str!(concat!(env!("OUT_DIR"), "/skill_env_help.txt")),

@@ -1,6 +1,6 @@
 //! Token and app type definitions for the multi-app credential store.
 //!
-//! These types form the on-disk YAML schema for `~/.xurl` and the in-memory
+//! These types form the on-disk YAML schema for `~/.xurl/auth.yml` and the in-memory
 //! shape that [`crate::store::TokenStore`] exposes to library consumers.
 //! `App` groups one set of X API client credentials with the user / bearer
 //! tokens authorized against them; `Token` is the polymorphic envelope that
@@ -234,7 +234,7 @@ impl App {
 
 // ── On-disk YAML structure ───────────────────────────────────────────
 
-/// Serialised YAML layout of `~/.xurl`.
+/// Serialised YAML layout of `~/.xurl/auth.yml`.
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct StoreFile {
     pub apps: BTreeMap<String, App>,

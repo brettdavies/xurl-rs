@@ -98,7 +98,7 @@ Both crates follow [SemVer 2.0.0](https://semver.org/). A release's version come
 - **Structured output:** every shape `--output json|jsonl|ndjson|yaml|csv|tsv` prints, meaning the success responses in
   `schema/responses/` and `xr schema`, and the error envelope in `schema/output.schema.json`, including its `reason` and
   `next_step.action` sets.
-- **Stored state:** the `~/.xurl` token store format.
+- **Stored state:** the `~/.xurl/auth.yml` token store format.
 
 Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording, and raw-mode response bodies (X's
 bytes, passed through) are not contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which

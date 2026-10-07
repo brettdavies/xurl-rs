@@ -86,7 +86,7 @@ impl TokenStore {
             // file cannot interleave its copy with this one.
             if let Err(e) = self.save_locked() {
                 tracing::warn!(
-                    target: "xdk::store",
+                    target: super::STORE_TARGET,
                     "legacy token store migrated in memory but not saved: {e}"
                 );
             }

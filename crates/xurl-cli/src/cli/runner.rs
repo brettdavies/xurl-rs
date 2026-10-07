@@ -72,7 +72,8 @@ pub async fn run_argv() -> i32 {
 /// Runs the `xr` CLI with caller-supplied args + writers.
 ///
 /// Resolves the token-store path from `XURL_TOKEN_STORE`, falling back to
-/// [`Config::default_store_path`], and delegates to [`run_with_overrides`].
+/// [`Config::default_store_path`] (`~/.xurl/auth.yml`), and delegates to
+/// [`run_with_overrides`].
 pub async fn run<I, S>(args: I, stdout: &mut dyn Write, stderr: &mut dyn Write) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -298,9 +299,12 @@ where
     cfg.http_timeout_secs = cli.timeout;
     // Store loading and redirect-URI resolution warn through `tracing` too,
     // and they run before the dispatch future the renderer below is attached
-    // to, so the same renderer covers them for the duration of this call.
+    // to, so the same renderer covers them for the duration of this call. A
+    // single-file store is moved into its directory here, on the first
+    // command that opens it, and the renderer prints the move.
     let auth = tracing::subscriber::with_default(Diagnostics::new(out.clone()), || {
-        Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides)
+        let store_path = xdk::store::adopt_directory_layout(store_path);
+        Auth::new_with_store_path_and_overrides(&cfg, &store_path, overrides)
     });
 
     // Taken before `Auth` moves into dispatch: the recovery hint is chosen at

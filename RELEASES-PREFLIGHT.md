@@ -14,8 +14,8 @@ checklist covers what CI structurally can't:
   real endpoints, so API-contract regressions land silently until a user hits them.
 - Distribution paths that only exercise on real artifacts (cross-compile binaries, `cargo install` from a clean machine,
   `cargo-binstall` against a published GitHub Release, `brew install` once the Homebrew dispatch finishes).
-- Token-store correctness on a fresh machine (the YAML at `~/.xurl` is not exercised by the in-repo tests in the same
-  way it is on first run).
+- Token-store correctness on a fresh machine (the YAML at `~/.xurl/auth.yml` is not exercised by the in-repo tests in
+  the same way it is on first run).
 - TLS stack correctness on Windows (the rustls + rustls-platform-verifier path differs from the dynamic-linker stack on
   Linux/macOS and CI's `ci / Windows check` only covers compile-time correctness).
 
@@ -367,7 +367,8 @@ test`.
   still works without the project's toolchain.
 - [ ] `cargo install xurl-rs --version <new>` from a clean environment resolves and runs once the crates.io publish
   completes (post-tag check, see below).
-- [ ] Token-store roundtrip on a fresh machine: `xr auth` produces a `~/.xurl` YAML, subsequent `xr` invocations
+- [ ] Token-store roundtrip on a fresh machine: `xr auth` produces a `~/.xurl/auth.yml` YAML, subsequent `xr`
+      invocations
   authenticate from it without re-prompting, and `xr auth status` correctly identifies multi-app entries.
 
 ### Release mechanics sanity

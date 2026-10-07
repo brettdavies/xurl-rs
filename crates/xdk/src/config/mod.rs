@@ -143,7 +143,7 @@ pub struct EnvOverrides {
     /// Consumed by the skill installer rather than by [`Config`].
     pub home: Option<String>,
     /// `XURL_TOKEN_STORE` — path of the token-store file the binary uses in
-    /// place of `~/.xurl`. The OAuth2 pending state sits beside it.
+    /// place of `~/.xurl/auth.yml`. The OAuth2 pending state sits beside it.
     ///
     /// Consumed by the CLI runner rather than by [`Config`]; the
     /// explicit-path entrypoints ignore it.
@@ -289,16 +289,15 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Returns the legacy default token-store path: `~/.xurl`.
+    /// Returns the default token-store path: `~/.xurl/auth.yml`.
     ///
-    /// Falls back to `./.xurl` when the home directory cannot be resolved.
-    /// This is the canonical legacy path resolver — the binary uses it when `XURL_TOKEN_STORE` is unset; tests
-    /// pass explicit tempdir paths to `Auth::new_with_store_path` instead.
+    /// Falls back to `./.xurl/auth.yml` when the home directory cannot be
+    /// resolved. The binary uses it when `XURL_TOKEN_STORE` is unset; tests pass
+    /// explicit tempdir paths to `Auth::new_with_store_path` instead. Same as
+    /// [`crate::store::default_store_path`].
     #[must_use]
     pub fn default_store_path() -> std::path::PathBuf {
-        dirs::home_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join(".xurl")
+        crate::store::default_store_path()
     }
 
     /// Validates an `OAuth2` redirect URI.

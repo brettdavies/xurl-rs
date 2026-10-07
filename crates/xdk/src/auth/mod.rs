@@ -88,13 +88,17 @@ impl std::fmt::Debug for Auth {
 }
 
 impl Auth {
-    /// Creates a new `Auth` object using the legacy `~/.xurl` token-store path.
+    /// Creates a new `Auth` object using the default token-store path,
+    /// `~/.xurl/auth.yml`.
     ///
     /// Shim over [`Auth::new_with_store_path`] resolving to
-    /// [`Config::default_store_path`]. Credentials are resolved: env vars -> active app.
+    /// [`Config::default_store_path`]. A single-file store still at `~/.xurl`
+    /// is opened where it is ([`locate_store`](crate::store::locate_store));
+    /// nothing is moved. Credentials are resolved: env vars -> active app.
     #[must_use]
     pub fn new(cfg: &Config) -> Self {
-        Self::new_with_store_path(cfg, &Config::default_store_path())
+        let store_path = crate::store::locate_store(&Config::default_store_path());
+        Self::new_with_store_path(cfg, &store_path)
     }
 
     /// Creates a new `Auth` object backed by an explicit token-store path.

@@ -5,7 +5,7 @@
 //! the PKCE code verifier, state nonce, and associated metadata so the callback
 //! handler can resume the exchange even if the originating process has exited.
 //!
-//! The pending file lives at `~/.xurl.pending` by default and is created with
+//! The pending file lives at `~/.xurl/auth.yml.pending` by default and is created with
 //! `0o600` permissions on Unix. A 15-minute TTL guards against stale state.
 
 use std::fs;
@@ -68,7 +68,8 @@ pub fn pending_path_for_store(store_path: &Path) -> PathBuf {
     PathBuf::from(os)
 }
 
-/// Returns the default path for the pending-state file (`~/.xurl.pending`).
+/// Returns the default path for the pending-state file
+/// (`~/.xurl/auth.yml.pending`).
 ///
 /// # Errors
 ///
@@ -76,7 +77,11 @@ pub fn pending_path_for_store(store_path: &Path) -> PathBuf {
 /// containers or CI environments without `HOME` set).
 pub fn default_pending_path() -> Result<PathBuf> {
     dirs::home_dir()
-        .map(|h| pending_path_for_store(&h.join(".xurl")))
+        .map(|_| {
+            pending_path_for_store(&crate::store::locate_store(
+                &crate::store::default_store_path(),
+            ))
+        })
         .ok_or_else(|| {
             Error::auth(
                 "could not determine home directory for pending state file. \
@@ -101,6 +106,7 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
     }
     let data =
         serde_yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
+    crate::store::ensure_store_dir(path)?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
 }

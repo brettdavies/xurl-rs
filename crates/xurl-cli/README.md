@@ -320,8 +320,15 @@ instead of the credential-less default.
 
 ### Token Store Location
 
-Credentials live in `~/.xurl`. Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending
-state (`<path>.pending`) follows it. The variable applies to the binary only: a program using `xdk` passes the path to
+Credentials live in `~/.xurl/auth.yml`, the file Go `xurl` 1.3.0 and later use, so the two tools share one store.
+
+A store kept as a single file at `~/.xurl`, which is where `xr` 4.3.0 and earlier and Go `xurl` before 1.3.0 put it, is
+moved into that directory by the first command that opens it. In text output the command reports the move on stderr
+(`Migrated <old path> to <new path>`). The move is one-way, and `xr` 4.3.0 and earlier cannot read the directory, so
+upgrade every copy of `xr` that shares the store. A `~/.xurl` that is a symbolic link to a file is used where it points.
+
+Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending state (`<path>.pending`)
+follows it. The variable applies to the binary only: a program using `xdk` passes the path to
 `Auth::new_with_store_path` and builds its client with `Client::new`.
 
 ## Agent-Native Features
@@ -503,7 +510,7 @@ on:
 - **Exit codes:** the table under [Structured Exit Codes](#structured-exit-codes).
 - **Structured output:** every shape `--output json|jsonl|ndjson|yaml|csv|tsv` prints, meaning the success responses
   `xr schema` describes and the error envelope, including its `reason` and `next_step.action` sets.
-- **Stored state:** the `~/.xurl` token store format.
+- **Stored state:** the `~/.xurl/auth.yml` token store format.
 
 Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording, and raw-mode response bodies are not
 contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which scripts parse. A script that
@@ -550,7 +557,7 @@ Upgrading from a 3.x library dependency:
 [`docs/migrating/v4.0.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.0.0.md).
 
 The X API client behind `xr` is its own crate, `xdk-rs`: credentials in code, one typed call per endpoint, and the same
-`~/.xurl` token store this tool writes. See
+`~/.xurl/auth.yml` token store this tool writes. See
 [crates/xdk/README.md](https://github.com/brettdavies/xurl-rs/blob/main/crates/xdk/README.md) and
 [docs.rs](https://docs.rs/xdk-rs).
 
@@ -565,20 +572,21 @@ If OAuth succeeds but reads like `xr whoami` fail with an error body containing 
 
 ### Token Store Could Not Be Read
 
-`xr` keeps every credential in one YAML file, `~/.xurl` unless `XURL_TOKEN_STORE` names another path. When that path
-exists and cannot be loaded, a command that manages the store exits 77 with reason `token-store`, a command that needs a
-credential exits 77 with reason `auth-required`, and both carry `next_step.action` `inspect-store`. `xr auth status`
-names the path in its message. `xr` writes nothing to a store it could not load, so the file stays as it was found.
+`xr` keeps every credential in one YAML file, `~/.xurl/auth.yml` unless `XURL_TOKEN_STORE` names another path. When that
+path exists and cannot be loaded, a command that manages the store exits 77 with reason `token-store`, a command that
+needs a credential exits 77 with reason `auth-required`, and both carry `next_step.action` `inspect-store`. `xr auth
+status` names the path in its message. `xr` writes nothing to a store it could not load, so the file stays as it was
+found.
 
 What makes a store unloadable:
 
 - **It is not a store.** The file is not YAML `xr` can read: a hand edit, or a file another tool put there.
 - **It cannot be opened.** Its permissions deny the user running `xr`.
-- **It is a directory.** Go `xurl` 1.3.4 moves `~/.xurl` to `~/.xurl/auth.yml` when it runs, which leaves a directory
-  where `xr` expects the file.
+- **It is a directory.** `XURL_TOKEN_STORE` names a directory, such as `~/.xurl` itself. Point it at the file inside,
+  or unset it.
 
-To recover, repair the file, or move it aside and register again (`xr auth apps add`, then `xr auth oauth2`). To run
-`xr` beside a tool that owns `~/.xurl`, set `XURL_TOKEN_STORE` to a path of `xr`'s own.
+To recover, repair the file, or move it aside and register again (`xr auth apps add`, then `xr auth oauth2`). To keep
+`xr`'s credentials apart from Go `xurl`'s, set `XURL_TOKEN_STORE` to a path of `xr`'s own.
 
 ## Relationship to xurl
 
