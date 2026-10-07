@@ -1,5 +1,4 @@
-//! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`
-//! (U1 of the library-CLI-entrypoint plan).
+//! Verifies `OutputConfig` print methods write to the supplied `&mut dyn Write`.
 
 use xdk::Error;
 use xurl::cli::envelope::Reason;
@@ -174,9 +173,7 @@ fn print_response_no_ansi_in_json_format() {
 
 #[test]
 fn print_response_text_no_color_writes_pretty_json() {
-    // Text + no_color must go through the writer (the colorized text path
-    // still calls into format.rs's println!-based functions per the U1/U2
-    // boundary; U2 fixes that).
+    // Text + no_color must go through the writer.
     let cfg = OutputConfig {
         format: OutputFormat::Text,
         quiet: false,
@@ -252,9 +249,9 @@ fn print_error_emits_structured_json_when_format_is_json() {
     assert!(parsed["message"].as_str().unwrap().contains("bad token"));
 }
 
-/// R10: `AuthMethodMismatch` JSON envelope folds in `endpoint`, `method`,
-/// `requested`, `supported`, and `message`. The U6 explicit-mismatch shape
-/// MUST omit `available_in_app` (U7's empty-intersection shape adds it).
+/// `AuthMethodMismatch` JSON envelope folds in `endpoint`, `method`,
+/// `requested`, `supported`, and `message`. The explicit-mismatch shape
+/// omits `available_in_app`; the empty-intersection shape adds it.
 #[test]
 fn print_error_auth_method_mismatch_envelope_shape_r10() {
     let cfg = OutputConfig {
@@ -320,10 +317,9 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
     );
 }
 
-/// U7 forward-compat: the empty-intersection shape (`requested = None`,
+/// The empty-intersection shape (`requested = None`,
 /// `available_in_app = Some([...])`) must produce a `requested: null` JSON
-/// value and include the `available_in_app` array. U6 commits to this
-/// envelope shape so U7 doesn't have to rewrite the serializer.
+/// value and include the `available_in_app` array.
 #[test]
 fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
     let cfg = OutputConfig {
@@ -383,7 +379,7 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
     assert!(!err_buf.is_empty());
 }
 
-// U8: verbose/warning/progress contract — naked stdio elsewhere is barred,
+// Verbose/warning/progress contract — naked stdio elsewhere is barred,
 // so these are the only legal channels for diagnostics.
 
 #[test]
@@ -405,7 +401,7 @@ fn verbose_writes_under_text_when_verbose_flag_on() {
 
 #[test]
 fn verbose_suppressed_under_json_even_when_verbose_on() {
-    // U8 requirement: agents parsing structured output must not see verbose
+    // Agents parsing structured output must not see verbose
     // request/response prefixes on stderr.
     let cfg = OutputConfig {
         format: OutputFormat::Json,
@@ -479,8 +475,7 @@ fn warning_writes_under_text() {
 #[test]
 fn warning_suppressed_under_json() {
     // Per agent-native semantic-fields-over-stderr-warnings: warnings under
-    // JSON modes are not emitted on stderr (envelope promotion is the future
-    // home for them — plan U8 deferred).
+    // JSON modes are not emitted on stderr.
     let cfg = OutputConfig {
         format: OutputFormat::Json,
         quiet: false,
@@ -524,7 +519,7 @@ fn output_config_default_is_text_no_verbose() {
     assert!(!cfg.use_color);
 }
 
-// ── U13: csv / tsv / yaml / ndjson format coverage ──────────────────
+// ── csv / tsv / yaml / ndjson format coverage ──────────────────
 
 fn fmt_cfg(format: OutputFormat) -> OutputConfig {
     OutputConfig {

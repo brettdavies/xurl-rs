@@ -1,4 +1,4 @@
-//! Binary-contract subprocess tests (U6 / R22).
+//! Binary-contract subprocess tests.
 //!
 //! Pins the `xr` binary's exit-code contract and stdout/stderr stream split
 //! so `src/main.rs` cannot silently drift from the library mapping in

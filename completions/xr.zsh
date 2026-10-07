@@ -46,8 +46,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -98,8 +98,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -139,8 +139,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -180,8 +180,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -221,8 +221,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -262,8 +262,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -304,8 +304,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -344,8 +344,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -383,8 +383,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -425,8 +425,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -466,8 +466,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -505,8 +505,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -545,8 +545,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -585,8 +585,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -625,8 +625,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -665,8 +665,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -705,8 +705,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -747,8 +747,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -788,8 +788,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -827,8 +827,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -867,8 +867,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -910,8 +910,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -952,8 +952,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -991,8 +991,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1031,8 +1031,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1073,8 +1073,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1112,8 +1112,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1152,8 +1152,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1194,8 +1194,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1233,8 +1233,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1280,8 +1280,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1347,8 +1347,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1390,8 +1390,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1426,8 +1426,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1468,8 +1468,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1513,8 +1513,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1552,8 +1552,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1592,8 +1592,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1717,8 +1717,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1763,8 +1763,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1805,8 +1805,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1841,8 +1841,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1875,8 +1875,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1910,8 +1910,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1948,8 +1948,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -1994,8 +1994,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2033,8 +2033,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2068,8 +2068,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2104,8 +2104,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2138,8 +2138,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2180,8 +2180,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2215,8 +2215,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2347,8 +2347,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2487,8 +2487,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2537,8 +2537,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2581,8 +2581,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2621,8 +2621,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2659,8 +2659,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2707,8 +2707,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2750,8 +2750,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2879,8 +2879,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2921,7 +2921,7 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -2957,7 +2957,7 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3025,8 +3025,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3063,8 +3063,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3098,8 +3098,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3132,8 +3132,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
@@ -3167,8 +3167,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Validate inputs and skip the API call (U7)]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100 (U7)]:LIMIT:_default' \
+'--dry-run=[Validate inputs and skip the API call]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \

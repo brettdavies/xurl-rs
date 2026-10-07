@@ -1326,7 +1326,7 @@ fn promote_default_app_is_uninitialized_signal() {
     );
 }
 
-// ── Load state and registration promotion (U10) ────────────────────────────
+// ── Load state and registration promotion ────────────────────────────
 
 #[test]
 fn unreadable_store_path_records_the_failure_and_refuses_saves() {

@@ -47,7 +47,7 @@ impl TestServer {
     }
 
     /// Returns the number of requests this mock server has received across
-    /// all registered mocks. Used by the U6 enforcement tests to assert
+    /// all registered mocks. The auth-enforcement tests read it to assert
     /// that fail-fast validation rejects before any network I/O happens.
     async fn received_request_count(&self) -> usize {
         self.server
@@ -227,7 +227,7 @@ fn create_mock_auth_with_oauth2(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-/// Fixture with all three credentials stored on the default app. Under U7's
+/// Fixture with all three credentials stored on the default app. Under
 /// endpoint-aware auto-detect, callers exercising a non-auth-centric
 /// concern (request shape, error mapping, response parsing) can opt into
 /// this fixture and stay agnostic about which scheme the matrix picks for
@@ -293,11 +293,8 @@ fn create_mock_auth_with_all_methods(base_url: &str) -> (Auth, TempDir) {
     (auth, tmp)
 }
 
-/// Builds a `RequestTarget::Template` from a path with no params or query.
-///
-/// Keeps the test-side ergonomics close to the pre-U4 `endpoint:
-/// "/2/foo".to_string()` shorthand without rewriting every literal at
-/// each call site.
+/// Builds a `RequestTarget::Template` from a path with no params or query,
+/// so a call site spells only the path.
 fn target_path(path: &str) -> RequestTarget {
     RequestTarget::Template {
         path: path.to_string(),
@@ -1353,10 +1350,9 @@ async fn test_get_usage_api_error_429() {
 
 #[tokio::test]
 async fn test_get_usage_with_bearer() {
-    // `/2/usage/tweets` is Bearer-only per the OpenAPI spec; previous tests
-    // that drove OAuth1/OAuth2 against this endpoint passed because no
-    // matrix validation existed. The intersection check (U7) now rejects
-    // those configurations, so the surviving coverage uses Bearer.
+    // `/2/usage/tweets` is Bearer-only per the OpenAPI spec, and the
+    // intersection check rejects OAuth1 and OAuth2 against it, so this
+    // coverage uses Bearer.
     let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
@@ -1378,9 +1374,8 @@ async fn test_get_usage_with_bearer() {
 #[tokio::test]
 async fn test_get_usage_rejects_oauth_only_app() {
     // /2/usage/tweets accepts only Bearer per the spec. An app that only
-    // holds OAuth1 credentials hits the empty-intersection path (U7) and
-    // surfaces AuthMethodMismatch rather than the prior silent OAuth1
-    // attempt.
+    // holds OAuth1 credentials hits the empty-intersection path and
+    // surfaces AuthMethodMismatch rather than attempting OAuth1.
     let ts = TestServer::new().await;
     ts.mount(
         Mock::given(method("GET"))
@@ -2557,7 +2552,7 @@ async fn auth_error_propagates_rather_than_silently_unauthenticated_request() {
     //
     // Target `/2/tweets/search/recent` (Bearer-accepting per the spec
     // matrix) rather than `get_me`'s `/2/users/me` (OAuth1/OAuth2 only),
-    // so the U6 fail-fast validator yields and the auth-resolution layer
+    // so the fail-fast validator yields and the auth-resolution layer
     // is the one that surfaces the missing-credential error.
     let cfg = create_test_config(ts.uri());
     let (auth, _tmp) = create_mock_auth_no_tokens(ts.uri());
@@ -2608,7 +2603,7 @@ async fn auth_error_propagates_for_oauth2_path_with_no_token() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// U6 auth-enforcement integration tests (AE1, AE2, AE5)
+// Auth-enforcement integration tests
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // These exercise the fail-fast validator wired into `send_request` /
@@ -2618,11 +2613,11 @@ async fn auth_error_propagates_for_oauth2_path_with_no_token() {
 // network I/O. The wiremock server is set up to log all traffic so we can
 // assert "zero requests received" for the reject case.
 
-/// AE1 — explicit mismatch.
+/// Explicit mismatch.
 ///
 /// Bearer-only app, `--auth app`, `POST /2/media/upload`. The validator
 /// must short-circuit with `Error::AuthMethodMismatch` carrying the
-/// U6 explicit-mismatch shape (`requested = Some("app")`,
+/// explicit-mismatch shape (`requested = Some("app")`,
 /// `available_in_app = None`), and wiremock must observe zero requests.
 #[tokio::test]
 async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
@@ -2678,7 +2673,7 @@ async fn u6_ae1_explicit_mismatch_app_against_media_upload() {
     );
 }
 
-/// AE2 — pass-through with an explicit `--auth` value the endpoint accepts.
+/// Pass-through with an explicit `--auth` value the endpoint accepts.
 ///
 /// OAuth1 creds + `--auth oauth1` + `POST /2/media/upload`. The validator
 /// must yield, the request must reach wiremock, and the mocked 200
@@ -2716,13 +2711,13 @@ async fn u6_ae2_passthrough_oauth1_against_media_upload() {
     );
 }
 
-/// AE1 mirror for the multipart send path.
+/// The explicit mismatch on the multipart send path.
 ///
 /// `send_multipart_request` shares the same fail-fast validator wiring as
 /// `send_request`. Bearer-only app + `--auth app` against `/2/media/upload`
 /// must surface `AuthMethodMismatch` before the multipart body is built and
-/// wiremock receives zero traffic. Pre-merge insurance against a future
-/// edit that drops the gate from one of the three send paths.
+/// wiremock receives zero traffic, so an edit that drops the gate from one
+/// of the three send paths fails here.
 #[tokio::test]
 async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     use std::collections::HashMap;
@@ -2780,7 +2775,7 @@ async fn u6_ae1_explicit_mismatch_app_against_multipart_upload() {
     );
 }
 
-/// AE1 mirror for the streaming send path.
+/// The explicit mismatch on the streaming send path.
 ///
 /// `Client::stream_request` wires the same fail-fast validator as
 /// `send_request`. Bearer-only app + `--auth app` against a streaming
@@ -2886,7 +2881,7 @@ async fn u7_streaming_propagates_auth_resolution_errors() {
     );
 }
 
-/// AE5 — raw mode bypasses the matrix.
+/// Raw mode bypasses the matrix.
 ///
 /// `xr <URL> --auth app` against `/2/media/upload` via `RequestTarget::RawUrl`
 /// must NOT reject even though the same `(method, path)` would reject under a
@@ -2915,7 +2910,7 @@ async fn u6_ae5_raw_url_skips_validation() {
             ..Default::default()
         })
         .await
-        .expect("raw mode must skip auth-matrix validation per R18");
+        .expect("raw mode must skip auth-matrix validation");
 
     assert_eq!(resp["data"]["id"], "raw_bypass");
     assert_eq!(
@@ -2925,7 +2920,7 @@ async fn u6_ae5_raw_url_skips_validation() {
     );
 }
 
-/// AE3 — auto-detect against an OAuth1-only app at an OAuth1+OAuth2 endpoint.
+/// Auto-detect against an OAuth1-only app at an OAuth1+OAuth2 endpoint.
 /// Intersection yields {OAuth1}; the request must dispatch on OAuth1 without
 /// prompting and reach the wiremock.
 #[tokio::test]
@@ -2954,15 +2949,15 @@ async fn u7_ae3_auto_detect_oauth1_only_app() {
             ..Default::default()
         })
         .await
-        .expect("AE3: OAuth1 must be auto-selected for an OAuth1+OAuth2 endpoint");
+        .expect("OAuth1 must be auto-selected for an OAuth1+OAuth2 endpoint");
 
     assert_eq!(resp["data"]["id"], "ae3");
     assert_eq!(ts.received_request_count().await, 1);
 }
 
-/// AE4 — auto-detect against a Bearer-only app at an OAuth1+OAuth2 endpoint.
+/// Auto-detect against a Bearer-only app at an OAuth1+OAuth2 endpoint.
 /// Intersection is empty; the request must fail with the typed envelope
-/// shape (R8) carrying `requested: None`, `available_in_app: Some(["app"])`,
+/// shape carrying `requested: None`, `available_in_app: Some(["app"])`,
 /// and the endpoint's supported set.
 #[tokio::test]
 async fn u7_ae4_auto_detect_empty_intersection_envelope() {
@@ -3012,16 +3007,16 @@ async fn u7_ae4_auto_detect_empty_intersection_envelope() {
                 "envelope must carry the active app name"
             );
         }
-        other => panic!("AE4: expected AuthMethodMismatch, got {other:?}"),
+        other => panic!("expected AuthMethodMismatch, got {other:?}"),
     }
     assert_eq!(
         ts.received_request_count().await,
         0,
-        "AE4: validator must refuse before HTTP — wiremock receives nothing"
+        "the validator must refuse before HTTP, so wiremock receives nothing"
     );
 }
 
-/// AE6 — auto-detect against an app holding both OAuth1 and OAuth2 at an
+/// Auto-detect against an app holding both OAuth1 and OAuth2 at an
 /// endpoint accepting both. OAuth2 wins per the locked preference order.
 /// Verified by mounting two distinct mocks that match on the Authorization
 /// header prefix and asserting the OAuth2-shaped header lands.
@@ -3054,12 +3049,12 @@ async fn u7_ae6_auto_detect_oauth2_preference_when_both_stored() {
             ..Default::default()
         })
         .await
-        .expect("AE6: OAuth2 must win the preference when both schemes are stored");
+        .expect("OAuth2 must win the preference when both schemes are stored");
 
     assert_eq!(resp["data"]["id"], "ae6_oauth2");
 }
 
-/// U7 semantic guard — an app with zero stored credentials surfaces
+/// An app with zero stored credentials surfaces
 /// `AuthRequired` (exit 77, "log in first"), not `AuthMethodMismatch`
 /// (exit 2, "wrong credential"). The empty-intersection branch fires only
 /// when the user has SOMETHING stored that happens not to overlap.
