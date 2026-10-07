@@ -223,18 +223,8 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
         return Ok(());
     }
     if let Some(app_name) = app_name {
-        auth.token_store.set_default_app(&app_name)?;
-        out.print_ok_message(
-            stdout,
-            &format!("\x1b[32mDefault app set to {app_name:?}\x1b[0m"),
-        );
-        if let Some(user) = username {
-            auth.token_store.set_default_user(&app_name, &user)?;
-            out.print_message(
-                stdout,
-                &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
-            );
-        }
+        save_default(auth, &app_name, username.as_deref())?;
+        out.print_ok_message(stdout, &default_set_message(&app_name, username.as_deref()));
     } else {
         // Interactive picker — gate on `--no-interactive` AND on
         // TTY-ness of stdin/stderr (the dialoguer transports). Without
@@ -264,29 +254,45 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
             None => return Ok(()),
         };
 
-        auth.token_store.set_default_app(&app_choice)?;
-        out.print_ok_message(
-            stdout,
-            &format!("\x1b[32mDefault app set to {app_choice:?}\x1b[0m"),
-        );
-
         // Defensive TTY re-check before the second dialoguer prompt
         // (the user picker). The outer gate already guarantees this in
         // the current flow; the explicit check keeps the invariant
         // local to the call site so future refactors can't drop it.
         let users = auth.token_store.get_oauth2_usernames_for_app(&app_choice);
-        if !users.is_empty()
-            && out.is_interactive_terminal()
-            && let Ok(Some(user)) = prompt_select("Select default OAuth2 user", &users)
-        {
-            auth.token_store.set_default_user(&app_choice, &user)?;
-            out.print_message(
-                stdout,
-                &format!("\x1b[32mDefault user set to {user:?}\x1b[0m"),
-            );
-        }
+        let user_choice = if !users.is_empty() && out.is_interactive_terminal() {
+            prompt_select("Select default OAuth2 user", &users)
+                .ok()
+                .flatten()
+        } else {
+            None
+        };
+        save_default(auth, &app_choice, user_choice.as_deref())?;
+        out.print_ok_message(
+            stdout,
+            &default_set_message(&app_choice, user_choice.as_deref()),
+        );
     }
     Ok(())
+}
+
+/// Saves the default app, with its default user when one was named, as one
+/// change to the store.
+fn save_default(auth: &mut Auth, app: &str, user: Option<&str>) -> Result<()> {
+    match user {
+        Some(user) => auth.token_store.set_default_app_and_user(app, user),
+        None => auth.token_store.set_default_app(app),
+    }
+}
+
+/// The success message for `auth default`: one for the whole change, so a
+/// structured caller reads one document whether or not a user was set.
+fn default_set_message(app: &str, user: Option<&str>) -> String {
+    match user {
+        Some(user) => {
+            format!("\x1b[32mDefault app set to {app:?} and default user to {user:?}\x1b[0m")
+        }
+        None => format!("\x1b[32mDefault app set to {app:?}\x1b[0m"),
+    }
 }
 
 /// Lists `items` on stderr with numeric indices and prompts the user to pick
