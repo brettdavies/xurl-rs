@@ -10,9 +10,8 @@
 //! Enable the feature in a test profile only, so a release build pulls none
 //! of the mock's dependencies:
 //!
-//! ```toml
-//! [dev-dependencies]
-//! xdk-rs = { version = "0.1", features = ["testing"] }
+//! ```sh
+//! cargo add xdk-rs --dev --features testing
 //! ```
 //!
 //! ```rust,no_run

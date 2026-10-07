@@ -193,8 +193,10 @@ pub struct ErrorBody {
     /// `wait-and-retry`. A newer release can add an action, so treat one you
     /// do not recognize as your default branch. A step carries either a
     /// `command`, runnable verbatim by a non-TTY caller, or a `template` whose
-    /// angle-bracket placeholders only the caller can fill, never both;
-    /// `enroll-app` and `wait-and-retry` carry neither, only `docs`.
+    /// angle-bracket placeholders only the caller can fill, never both. One
+    /// whose recovery is not an `xr` invocation carries neither, only `docs`:
+    /// `enroll-app`, `wait-and-retry`, and `inspect-store` when a store
+    /// command is what failed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
