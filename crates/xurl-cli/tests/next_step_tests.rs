@@ -98,6 +98,10 @@ async fn a_usage_error_carries_the_help_to_read(#[case] args: &[&str], #[case] h
 #[case::status(&["xr", "--output", "json", "auth", "status"])]
 #[case::apps_list(&["xr", "--output", "json", "auth", "apps", "list"])]
 #[case::apps_add(&["xr", "--output", "json", "auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file"])]
+#[case::clear_all(&["xr", "--output", "json", "auth", "clear", "--all", "--force"])]
+#[case::clear_oauth1(&["xr", "--output", "json", "auth", "clear", "--oauth1", "--force"])]
+#[case::clear_bearer(&["xr", "--output", "json", "auth", "clear", "--bearer", "--force"])]
+#[case::clear_oauth2(&["xr", "--output", "json", "auth", "clear", "--oauth2-username", "alice", "--force"])]
 #[tokio::test]
 async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
@@ -109,8 +113,15 @@ async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[
     if args.last() == Some(&"--client-secret-file") {
         args.push(secret.to_str().expect("utf-8 path"));
     }
-    let (code, _stdout, stderr) = run_at(&store, &args).await;
+    let before = std::fs::read(&store).expect("read the broken store");
+    let (code, stdout, stderr) = run_at(&store, &args).await;
     assert_eq!(code, 77, "args {args:?}; stderr: {stderr}");
+    assert_eq!(stdout, "", "args {args:?}: nothing is reported as done");
+    assert_eq!(
+        std::fs::read(&store).expect("read the broken store"),
+        before,
+        "args {args:?}: the file is left as it was"
+    );
     let v = envelope(&stderr);
     assert_eq!(v["reason"], "token-store", "args {args:?}: {v}");
     assert_eq!(

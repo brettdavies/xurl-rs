@@ -291,7 +291,12 @@ impl TokenStore {
 
     /// Applies `clear` to the app a clear should act on, under the lock, and
     /// does nothing when that app does not exist.
+    ///
+    /// A store that could not be loaded holds no apps in memory whatever its
+    /// file holds, so it is refused before the lookup can report nothing to
+    /// clear.
     fn clear_in_app(&mut self, app_name: &str, clear: impl FnOnce(&mut super::App)) -> Result<()> {
+        self.refuse_if_load_failed()?;
         if self.existing_app_name(app_name).is_none() {
             return Ok(());
         }
