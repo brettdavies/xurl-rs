@@ -2660,14 +2660,16 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
+/// A post's length limit belongs to the account: a Premium account posts
+/// past 280 characters, and X counts a URL as 23. A long body is not refused
+/// before X sees it.
 #[tokio::test]
-async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
+async fn test_post_over_280_characters_passes_the_dry_run() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     populate_bearer_store(&store);
 
-    // 281 chars: one past the 280-char limit.
-    let too_long: String = std::iter::repeat_n('x', 281).collect();
+    let long: String = std::iter::repeat_n('x', 281).collect();
     let (code, stdout, _stderr) = run_at(
         &store,
         &[
@@ -2676,7 +2678,7 @@ async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
             "--output",
             "json",
             "post",
-            &too_long,
+            &long,
             "--auth",
             "app",
         ],
@@ -2686,8 +2688,8 @@ async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run");
-    assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
-    assert_eq!(v["reason"], "body-too-long");
+    assert_eq!(v["would_succeed"], serde_json::Value::Bool(true), "{v}");
+    assert!(v.get("reason").is_none(), "{v}");
 }
 
 /// X answers `POST /2/tweets` in its legacy vocabulary; `--output json`
