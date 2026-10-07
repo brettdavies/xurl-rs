@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde::Serialize;
 
-use super::{Gate, gate_destructive};
+use super::{Gate, GlobalFlags, Run, gate_destructive};
 use crate::cli::AuthCommands;
 use crate::cli::failure::CommandResult;
 use crate::cli::hints::REGISTER_APP_TEMPLATE;
@@ -36,6 +36,18 @@ pub(super) struct AuthGlobalFlags {
     pub(super) dry_run: bool,
     pub(super) quiet: bool,
     pub(super) app_explicit: bool,
+}
+
+impl From<&GlobalFlags> for AuthGlobalFlags {
+    fn from(flags: &GlobalFlags) -> Self {
+        Self {
+            no_interactive: flags.no_interactive,
+            verbose: flags.verbose,
+            dry_run: flags.dry_run,
+            quiet: flags.quiet,
+            app_explicit: flags.app_explicit,
+        }
+    }
 }
 
 /// Per-app status/list entry rendered under `--output json`.
@@ -96,15 +108,16 @@ struct AuthCtx<'a> {
     stderr: &'a mut dyn Write,
 }
 
-pub(super) async fn run_auth_command(
-    cmd: AuthCommands,
-    mut auth: Auth,
-    cfg: &config::Config,
-    flags: AuthGlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> CommandResult<()> {
+pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
+    let Run {
+        cfg,
+        mut auth,
+        flags,
+        out,
+        stdout,
+        stderr,
+    } = run;
+    let flags = AuthGlobalFlags::from(&flags);
     // Sign-in is the one auth command that talks to X, so it builds the
     // client that owns the HTTP connection and the credential lock.
     let cmd = match cmd {
@@ -141,8 +154,15 @@ pub(super) async fn run_auth_command(
         stdout,
         stderr,
     };
+    store_command(cmd, ctx)
+}
+
+/// The auth commands that only read or write the credential store.
+fn store_command(cmd: AuthCommands, ctx: AuthCtx<'_>) -> CommandResult<()> {
     match cmd {
-        AuthCommands::Oauth2 { .. } => unreachable!("sign-in returned above"),
+        AuthCommands::Oauth2 { .. } => {
+            unreachable!("sign-in is dispatched before the store commands")
+        }
         AuthCommands::Oauth1 {
             consumer_key,
             consumer_secret,
@@ -183,7 +203,7 @@ pub(super) async fn run_auth_command(
             },
             ctx,
         ),
-        AuthCommands::Status => session::status(&auth, out, stdout),
+        AuthCommands::Status => session::status(ctx.auth, ctx.out, ctx.stdout),
         AuthCommands::Clear {
             all,
             oauth1,

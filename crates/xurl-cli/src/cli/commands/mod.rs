@@ -1,11 +1,18 @@
 //! Command execution — dispatches CLI commands to API functions.
 
 mod auth;
+mod broadcasts;
+mod dms;
+mod engagement;
 pub mod examples;
+mod graph;
 mod media;
+mod posts;
+mod reads;
 pub mod schema;
 pub mod skill;
 mod streaming;
+mod usage;
 pub mod validate;
 
 use std::io::{IsTerminal, Write};
@@ -17,9 +24,7 @@ use serde_json::json;
 use crate::cli::envelope::Reason;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
-use crate::cli::{
-    BroadcastsCommands, Cli, Commands, CommonFlags, ModeratorsCommands, UsageCommands,
-};
+use crate::cli::{Cli, Commands, CommonFlags};
 use xdk::api::shortcuts;
 use xdk::api::{self, Call, Client, RequestOptions, RequestTarget};
 use xdk::auth::Auth;
@@ -218,7 +223,7 @@ pub(crate) async fn run(
     // `Config.app_name` is always `"default"` in normal runtime paths and
     // therefore cannot distinguish "user passed --app default" from "user
     // passed nothing"; the boolean derived here threads through to
-    // `run_auth_command` so the credential-less-default warning gates
+    // the auth commands so the credential-less-default warning gates
     // correctly.
     let app_explicit = cli.app.is_some();
 
@@ -226,12 +231,6 @@ pub(crate) async fn run(
     if let Some(ref app_name) = cli.app {
         auth.with_app_name(app_name);
     }
-
-    let no_interactive = cli.no_interactive;
-    let verbose = cli.verbose;
-    let dry_run = cli.dry_run;
-    let global_limit = cli.limit;
-    let quiet = cli.quiet;
 
     // Resolve cursor from --cursor or --after. --page is rejected upstream
     // because the X API does not offer offset-style pagination.
@@ -246,32 +245,31 @@ pub(crate) async fn run(
             exit_code: EXIT_GENERAL_ERROR,
         });
     }
-    let cursor = cli
-        .cursor
-        .clone()
-        .or_else(|| cli.after.clone())
-        .unwrap_or_default();
+    let flags = GlobalFlags {
+        no_interactive: cli.no_interactive,
+        verbose: cli.verbose,
+        dry_run: cli.dry_run,
+        global_limit: cli.limit,
+        quiet: cli.quiet,
+        app_explicit,
+        cursor: cli
+            .cursor
+            .clone()
+            .or_else(|| cli.after.clone())
+            .filter(|token| !token.is_empty()),
+    };
 
     match cli.command {
         Some(cmd) => {
-            run_subcommand(
-                cmd,
-                &cfg,
+            let run = Run {
+                cfg: &cfg,
                 auth,
-                GlobalFlags {
-                    no_interactive,
-                    verbose,
-                    dry_run,
-                    global_limit,
-                    quiet,
-                    app_explicit,
-                    cursor,
-                },
+                flags,
                 out,
                 stdout,
                 stderr,
-            )
-            .await
+            };
+            run_subcommand(cmd, run).await
         }
         None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr)
             .await
@@ -279,10 +277,7 @@ pub(crate) async fn run(
     }
 }
 
-/// Bundle of the global flags every subcommand needs.
-///
-/// Avoids a 12-arg `run_subcommand` signature by collapsing the cross-cutting
-/// agentic flags into one record.
+/// The global flags every subcommand needs.
 #[derive(Debug, Clone)]
 struct GlobalFlags {
     no_interactive: bool,
@@ -291,10 +286,20 @@ struct GlobalFlags {
     global_limit: Option<i32>,
     quiet: bool,
     app_explicit: bool,
-    /// Resolved cursor / `pagination_token` from `--cursor` / `--after`.
-    /// Empty string when neither flag was supplied. Threaded into
-    /// every list call's pagination token.
-    cursor: String,
+    /// The `pagination_token` from `--cursor` or `--after`, sent with every
+    /// list call; `None` when neither flag gave one.
+    cursor: Option<String>,
+}
+
+/// What a command runs with: the configuration and credentials the run
+/// resolved, its global flags, and where its output goes.
+struct Run<'a> {
+    cfg: &'a Config,
+    auth: Auth,
+    flags: GlobalFlags,
+    out: &'a OutputConfig,
+    stdout: &'a mut dyn Write,
+    stderr: &'a mut dyn Write,
 }
 
 /// Runs raw curl-style mode.
@@ -374,672 +379,52 @@ async fn run_raw_mode(
     }
 }
 
-/// Runs a subcommand.
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-async fn run_subcommand(
-    cmd: Commands,
-    cfg: &Config,
-    auth: Auth,
-    flags: GlobalFlags,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> CommandResult<()> {
-    let GlobalFlags {
-        no_interactive,
-        verbose,
-        dry_run,
-        global_limit,
-        quiet,
-        app_explicit,
-        cursor,
-    } = flags;
-    let cursor_opt = if cursor.is_empty() {
-        None
-    } else {
-        Some(cursor.as_str())
-    };
+/// Routes a subcommand to the group that owns it. Each group's module
+/// matches the variants its line names here.
+async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
-        // ── Posting ──────────────────────────────────────────────────
-        Commands::Post {
-            text,
-            media_ids,
-            common,
-        } => {
-            let ctx = json!({
-                "command": "post",
-                "body": text,
-                "media_ids": media_ids,
-            });
-            let body = text.clone();
-            let attachments = media_ids.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_body(&body)?;
-                shortcuts::validate_media_attachments(&attachments)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.create_post(&text, &media_ids), &common, None)
-                .send()
-                .await?;
-            // NOTE: All match arms below follow this same pattern — auth is moved
-            // into Client::new(). The compiler ensures only one arm executes.
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Reply {
-            post_id,
-            text,
-            media_ids,
-            common,
-        } => {
-            let ctx = json!({
-                "command": "reply",
-                "post_id": post_id,
-                "body": text,
-                "media_ids": media_ids,
-            });
-            let body = text.clone();
-            let pid = post_id.clone();
-            let attachments = media_ids.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)?;
-                shortcuts::validate_post_body(&body)?;
-                shortcuts::validate_media_attachments(&attachments)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(
-                client.reply_to_post(&post_id, &text, &media_ids),
-                &common,
-                None,
-            )
-            .send()
-            .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Quote {
-            post_id,
-            text,
-            common,
-        } => {
-            let ctx = json!({
-                "command": "quote",
-                "post_id": post_id,
-                "body": text,
-            });
-            let body = text.clone();
-            let pid = post_id.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)?;
-                shortcuts::validate_post_body(&body)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.quote_post(&post_id, &text), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Delete {
-            post_id,
-            force,
-            common,
-        } => {
-            let ctx = json!({"command": "delete", "post_id": post_id});
-            let pid = post_id.clone();
-            // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
-            // destructive op in interactive mode does not leak a dry-run
-            // envelope. Dry-run still composes with --force.
-            match gate_destructive(
-                force,
-                no_interactive,
-                quiet,
-                &format!("Delete post {post_id}?"),
-            )? {
-                Gate::Proceed => {}
-                Gate::Declined => return Ok(()),
-                Gate::ConfirmationRequired => {
-                    out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                    return Err(Failure::Emitted {
-                        exit_code: EXIT_GENERAL_ERROR,
-                    });
-                }
-            }
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_post_id(&pid)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.delete_post(&post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Reading ──────────────────────────────────────────────────
-        Commands::Read { post_id, common } => {
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.read_post(&post_id), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Search {
-            query,
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.search_posts(&query, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── User Info ────────────────────────────────────────────────
-        Commands::Whoami { common } => {
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.get_me(), &common, None).send().await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::User {
-            target_username,
-            common,
-        } => {
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.lookup_user(&target_username), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Timeline & Mentions ──────────────────────────────────────
-        Commands::Timeline {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_timeline(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Mentions {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_mentions(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Engagement ───────────────────────────────────────────────
-        Commands::Like { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "like",
-                &post_id,
-                &common,
-                Client::like_post,
-            )
-            .await?;
-        }
-        Commands::Unlike { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unlike",
-                &post_id,
-                &common,
-                Client::unlike_post,
-            )
-            .await?;
-        }
-        Commands::Repost { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "repost",
-                &post_id,
-                &common,
-                Client::repost,
-            )
-            .await?;
-        }
-        Commands::Unrepost { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unrepost",
-                &post_id,
-                &common,
-                Client::unrepost,
-            )
-            .await?;
-        }
-        Commands::Bookmark { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "bookmark",
-                &post_id,
-                &common,
-                Client::bookmark,
-            )
-            .await?;
-        }
-        Commands::Unbookmark { post_id, common } => {
-            act_from_me_on_post(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unbookmark",
-                &post_id,
-                &common,
-                Client::unbookmark,
-            )
-            .await?;
-        }
-        Commands::Bookmarks {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_bookmarks(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Likes {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_liked_posts(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Social Graph ─────────────────────────────────────────────
-        Commands::Follow {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "follow",
-                &target_username,
-                &common,
-                Client::follow_user,
-            )
-            .await?;
-        }
-        Commands::Unfollow {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unfollow",
-                &target_username,
-                &common,
-                Client::unfollow_user,
-            )
-            .await?;
-        }
-        Commands::Following {
-            max_results,
-            of,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = if let Some(ref target) = of {
-                resolve_user_id(&client, target, &common).await?
-            } else {
-                resolve_my_user_id(&client, &common).await?
-            };
-            let response = with_flags(client.get_following(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Followers {
-            max_results,
-            of,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = if let Some(ref target) = of {
-                resolve_user_id(&client, target, &common).await?
-            } else {
-                resolve_my_user_id(&client, &common).await?
-            };
-            let response = with_flags(client.get_followers(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Mute {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "mute",
-                &target_username,
-                &common,
-                Client::mute_user,
-            )
-            .await?;
-        }
-        Commands::Unmute {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unmute",
-                &target_username,
-                &common,
-                Client::unmute_user,
-            )
-            .await?;
-        }
-        Commands::Muted {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_muted(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Block {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "block",
-                &target_username,
-                &common,
-                Client::block_user,
-            )
-            .await?;
-        }
-        Commands::Unblock {
-            target_username,
-            common,
-        } => {
-            act_from_me_on_user(
-                Exec {
-                    out,
-                    stdout,
-                    dry_run,
-                    cfg,
-                    auth,
-                },
-                "unblock",
-                &target_username,
-                &common,
-                Client::unblock_user,
-            )
-            .await?;
-        }
-        Commands::Blocked {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let user_id = resolve_my_user_id(&client, &common).await?;
-            let response = with_flags(client.get_blocked(&user_id, n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Usage ─────────────────────────────────────────────────────
-        Commands::Usage { target, common } => match target {
-            Some(UsageCommands::Credits { common }) => {
-                let client = make_client(cfg, auth)?;
-                let response = with_flags(client.get_usage_credits(), &common, None)
-                    .send()
-                    .await?;
-                print_typed(out, stdout, &response)?;
-            }
-            None => {
-                let client = make_client(cfg, auth)?;
-                let response = with_flags(client.get_usage(), &common, None).send().await?;
-                print_typed(out, stdout, &response)?;
-            }
-        },
-
-        // ── Direct Messages ──────────────────────────────────────────
-        Commands::Dm {
-            target_username,
-            text,
-            common,
-        } => {
-            let ctx = json!({
-                "command": "dm",
-                "target_username": target_username,
-                "body": text,
-            });
-            let body = text.clone();
-            let user = target_username.clone();
-            let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
-                shortcuts::validate_target_username(&user)?;
-                shortcuts::validate_dm_body(&body)
-            })?;
-            if !proceed {
-                return Ok(());
-            }
-            let client = make_client(cfg, auth)?;
-            let target_id = resolve_user_id(&client, &target_username, &common).await?;
-            let response = with_flags(client.send_dm(&target_id, &text), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-        Commands::Dms {
-            max_results,
-            common,
-        } => {
-            let n = effective_limit(max_results, global_limit);
-            let client = make_client(cfg, auth)?;
-            let response = with_flags(client.get_dm_events(n), &common, cursor_opt)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
-        }
-
-        // ── Broadcasts ───────────────────────────────────────────────
-        Commands::Broadcasts { target } => match target {
-            BroadcastsCommands::Moderators { action } => match action {
-                ModeratorsCommands::List { common } => {
-                    let client = make_client(cfg, auth)?;
-                    let response = with_flags(client.get_chat_moderators(), &common, None)
-                        .send()
-                        .await?;
-                    print_typed(out, stdout, &response)?;
-                }
-                ModeratorsCommands::Add {
-                    target_username,
-                    common,
-                } => {
-                    act_on_user(
-                        Exec {
-                            out,
-                            stdout,
-                            dry_run,
-                            cfg,
-                            auth,
-                        },
-                        "broadcasts-moderators-add",
-                        &target_username,
-                        &common,
-                        Client::add_chat_moderator,
-                    )
-                    .await?;
-                }
-                ModeratorsCommands::Remove {
-                    target_username,
-                    common,
-                } => {
-                    act_on_user(
-                        Exec {
-                            out,
-                            stdout,
-                            dry_run,
-                            cfg,
-                            auth,
-                        },
-                        "broadcasts-moderators-remove",
-                        &target_username,
-                        &common,
-                        Client::remove_chat_moderator,
-                    )
-                    .await?;
-                }
-            },
-        },
-
-        // ── Auth ─────────────────────────────────────────────────────
-        Commands::Auth { command } => {
-            return auth::run_auth_command(
-                command,
-                auth,
-                cfg,
-                auth::AuthGlobalFlags {
-                    no_interactive,
-                    verbose,
-                    dry_run,
-                    quiet,
-                    app_explicit,
-                },
-                out,
-                stdout,
-                stderr,
-            )
-            .await;
-        }
-
-        // ── Media ────────────────────────────────────────────────────
-        Commands::Media { command } => {
-            return media::run_media_command(
-                command, cfg, auth, verbose, dry_run, out, stdout, stderr,
-            )
-            .await
-            .map_err(Failure::from);
-        }
-
-        // ── Meta (handled before config init in main) ───────────────
-        Commands::Schema { .. } => {
-            unreachable!("schema is handled before config init in main()")
-        }
-        Commands::Completions { .. } => {
-            unreachable!("completions is handled before config init in main()")
-        }
-        Commands::Version => {
-            unreachable!("version is handled before config init in main()")
-        }
-        Commands::Skill { .. } => {
-            unreachable!("skill is handled before config init in main()")
-        }
-        Commands::Examples => {
-            unreachable!("examples is handled before config init in main()")
-        }
-        Commands::Validate { .. } => {
-            unreachable!("validate is handled before config init in runner")
+        Commands::Post { .. }
+        | Commands::Reply { .. }
+        | Commands::Quote { .. }
+        | Commands::Delete { .. } => posts::run(cmd, run).await,
+        Commands::Read { .. }
+        | Commands::Search { .. }
+        | Commands::Whoami { .. }
+        | Commands::User { .. }
+        | Commands::Timeline { .. }
+        | Commands::Mentions { .. } => reads::run(cmd, run).await,
+        Commands::Like { .. }
+        | Commands::Unlike { .. }
+        | Commands::Repost { .. }
+        | Commands::Unrepost { .. }
+        | Commands::Bookmark { .. }
+        | Commands::Unbookmark { .. }
+        | Commands::Bookmarks { .. }
+        | Commands::Likes { .. } => engagement::run(cmd, run).await,
+        Commands::Follow { .. }
+        | Commands::Unfollow { .. }
+        | Commands::Following { .. }
+        | Commands::Followers { .. }
+        | Commands::Mute { .. }
+        | Commands::Unmute { .. }
+        | Commands::Muted { .. }
+        | Commands::Block { .. }
+        | Commands::Unblock { .. }
+        | Commands::Blocked { .. } => graph::run(cmd, run).await,
+        Commands::Dm { .. } | Commands::Dms { .. } => dms::run(cmd, run).await,
+        Commands::Usage { target, common } => usage::run(target, &common, run).await,
+        Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::Auth { command } => auth::run(command, run).await,
+        Commands::Media { command } => media::run(command, run).await,
+        Commands::Schema { .. }
+        | Commands::Completions { .. }
+        | Commands::Version
+        | Commands::Skill { .. }
+        | Commands::Examples
+        | Commands::Validate { .. } => {
+            unreachable!("the runner handles the tooling commands before it loads configuration")
         }
     }
-    Ok(())
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -1093,20 +478,45 @@ async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<Str
     Ok(id)
 }
 
-/// What every write verb needs before it can call a shortcut.
-struct Exec<'a> {
-    out: &'a OutputConfig,
-    stdout: &'a mut dyn Write,
-    dry_run: bool,
-    cfg: &'a Config,
-    auth: Auth,
+/// A paged read of a list that belongs to one user: resolve the user (the
+/// handle `of` names, or the caller), call one shortcut with that id and the
+/// page size, and print the typed response.
+async fn list_for_user<T>(
+    run: Run<'_>,
+    max_results: Option<i32>,
+    of: Option<&str>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str, i32) -> Call<api::ApiResponse<T>>,
+) -> Result<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let n = effective_limit(max_results, flags.global_limit);
+    let client = make_client(cfg, auth)?;
+    let user_id = match of {
+        Some(target) => resolve_user_id(&client, target, common).await?,
+        None => resolve_my_user_id(&client, common).await?,
+    };
+    let call = shortcut(&client, &user_id, n);
+    let response = with_flags(call, common, flags.cursor.as_deref())
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)
 }
 
 /// A verb that acts on another user from the caller's account: gate on the
 /// handle, resolve the caller's id and the target's, call one shortcut with
 /// both, and print the typed response.
 async fn act_from_me_on_user<T>(
-    exec: Exec<'_>,
+    run: Run<'_>,
     command: &str,
     target_username: &str,
     common: &CommonFlags,
@@ -1115,15 +525,16 @@ async fn act_from_me_on_user<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
-    let Exec {
-        out,
-        stdout,
-        dry_run,
+    let Run {
         cfg,
         auth,
-    } = exec;
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
         shortcuts::validate_target_username(target_username)
     })?;
     if !proceed {
@@ -1141,7 +552,7 @@ where
 /// A verb that acts on another user without naming the caller: gate on the
 /// handle, resolve it, call one shortcut, and print the typed response.
 async fn act_on_user<T>(
-    exec: Exec<'_>,
+    run: Run<'_>,
     command: &str,
     target_username: &str,
     common: &CommonFlags,
@@ -1150,15 +561,16 @@ async fn act_on_user<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
-    let Exec {
-        out,
-        stdout,
-        dry_run,
+    let Run {
         cfg,
         auth,
-    } = exec;
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
         shortcuts::validate_target_username(target_username)
     })?;
     if !proceed {
@@ -1176,7 +588,7 @@ where
 /// id, resolve the caller's id, call one shortcut, and print the typed
 /// response.
 async fn act_from_me_on_post<T>(
-    exec: Exec<'_>,
+    run: Run<'_>,
     command: &str,
     post_id: &str,
     common: &CommonFlags,
@@ -1185,15 +597,16 @@ async fn act_from_me_on_post<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
-    let Exec {
-        out,
-        stdout,
-        dry_run,
+    let Run {
         cfg,
         auth,
-    } = exec;
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
     let ctx = json!({"command": command, "post_id": post_id});
-    let proceed = dry_run_or_validate(out, stdout, dry_run, ctx, || {
+    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
         shortcuts::validate_post_id(post_id)
     })?;
     if !proceed {
