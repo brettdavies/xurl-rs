@@ -252,8 +252,8 @@ pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
 
 /// The structured format a spelling names, if any.
 ///
-/// `yml` is here and absent from the value enum: a caller that spells YAML
-/// that way gets the usage error rendered as YAML rather than as text.
+/// The spellings are the value enum's, `yml` included, so a usage error is
+/// rendered in the format the caller named however they spelled it.
 pub(crate) fn structured_format(value: &str) -> Option<OutputFormat> {
     match value.to_ascii_lowercase().as_str() {
         "json" => Some(OutputFormat::Json),

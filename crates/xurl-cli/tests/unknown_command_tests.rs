@@ -797,8 +797,8 @@ async fn invalid_args_renders_in_every_format(#[case] format: &str) {
     assert_invalid_args(&stderr, format);
 }
 
-/// `yml` names the YAML rendering on the parse-error path, where the value
-/// never reaches clap's own parser.
+/// `yml` names the YAML rendering on the parse-error path too, where the
+/// value never reaches clap's own parser.
 #[tokio::test]
 async fn the_yml_spelling_still_picks_the_yaml_rendering() {
     let (code, _stdout, stderr) = run_with_output_env(&["xr", "--frobnicate"], "yml").await;

@@ -103,7 +103,7 @@ written back. Multiple apps are stored under the same file with a per-app block.
 - `text` (default): human-readable tables / formatted responses
 - `json`: pretty-printed JSON envelope
 - `jsonl` (alias `ndjson`): one JSON record per line; ideal for streaming + pipeline composition with `jaq`
-- `yaml`, `csv`, `tsv`: tabular and config-friendly renderings of the same envelope
+- `yaml` (alias `yml`), `csv`, `tsv`: tabular and config-friendly renderings of the same envelope
 
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
