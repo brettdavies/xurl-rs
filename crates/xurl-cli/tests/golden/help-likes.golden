@@ -1,7 +1,7 @@
 args: ["likes", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6320
+stdout_len: 6363
 stderr_len: 0
 --- stdout ---
 List your liked posts
@@ -10,7 +10,7 @@ Usage: xr likes [OPTIONS]
 
 Options:
   -n, --max-results <MAX_RESULTS>
-          Number of results (5-100). Overrides global `--limit` when set
+          Number of results (5-100; a lower value is raised to 5, X's minimum). Overrides global `--limit` when set
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

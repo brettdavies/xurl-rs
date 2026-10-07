@@ -368,8 +368,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;mentions'= {
-            cand -n 'Number of results (5-100). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (5-100). Overrides global `--limit` when set'
+            cand -n 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
             cand --username '`OAuth2` username to act as'
@@ -604,8 +604,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;likes'= {
-            cand -n 'Number of results (5-100). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (5-100). Overrides global `--limit` when set'
+            cand -n 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` username to act as'
             cand --username '`OAuth2` username to act as'
