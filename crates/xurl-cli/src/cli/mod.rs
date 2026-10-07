@@ -192,8 +192,8 @@ Examples:
     xr search \"rustlang\" -n 25 --output json
   Demonstrate env-var precedence (XURL_OUTPUT == --output):
     XURL_OUTPUT=json xr search \"rustlang\"
-  Stream-friendly JSONL piped to jaq:
-    xr search \"rustlang\" --output jsonl | jaq '.id'
+  The id of each result, one per line:
+    xr search \"rustlang\" --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr whoami` examples — paired text + JSON.
@@ -225,8 +225,8 @@ Examples:
     xr timeline
   Home timeline (50 results, JSON envelope):
     xr timeline -n 50 --output json
-  Stream-friendly JSONL piped to jaq:
-    xr timeline -n 100 --output jsonl | jaq '.id'
+  The id of each post, one per line:
+    xr timeline -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr mentions` examples — paired text + JSON.
@@ -236,8 +236,8 @@ Examples:
     xr mentions
   Last 25, JSON envelope:
     xr mentions -n 25 --output json
-  JSONL pipeline:
-    xr mentions -n 100 --output jsonl | jaq '.id'
+  The id of each mention, one per line:
+    xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr like` examples — paired text + JSON.
@@ -302,8 +302,8 @@ Examples:
     xr bookmarks
   100 results, JSON envelope:
     xr bookmarks -n 100 --output json
-  JSONL piped to jaq:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+  The id of each bookmark, one per line:
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr likes` examples — paired text + JSON, JSONL pipeline.
@@ -313,8 +313,8 @@ Examples:
     xr likes
   100 results, JSON envelope:
     xr likes -n 100 --output json
-  JSONL piped to jaq:
-    xr likes -n 100 --output jsonl | jaq '.id'
+  The id of each liked post, one per line:
+    xr likes -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr follow` examples — paired text + JSON.
@@ -442,8 +442,8 @@ Examples:
     xr dms
   50 results, JSON envelope:
     xr dms -n 50 --output json
-  JSONL piped to jaq:
-    xr dms -n 100 --output jsonl | jaq '.id'
+  The id of each event, one per line:
+    xr dms -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr auth` parent help — points to subcommands.
@@ -852,9 +852,8 @@ pub struct Cli {
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
-    /// yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml,
-    /// xml) are not supported — xurl emits a JSON envelope with reason
-    /// `invalid-args` if requested.
+    /// yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at
+    /// exit 2.
     #[arg(
         long,
         global = true,
@@ -1135,7 +1134,8 @@ pub enum Commands {
     Search {
         /// Search query
         query: String,
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1252,7 +1252,7 @@ pub enum Commands {
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results (5-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.

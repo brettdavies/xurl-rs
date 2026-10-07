@@ -22,7 +22,7 @@ The Go version maps HTTP errors to exit codes by string-matching the error messa
 contains "404"). This fails for API responses where the JSON body doesn't contain the literal status code string,
 causing 404 responses to return `EXIT_GENERAL_ERROR` (1) instead of `EXIT_NOT_FOUND` (4).
 
-The Rust version uses structured pattern matching on `XurlError::Api { status, .. }`, which correctly maps HTTP status
+The Rust version uses structured pattern matching on `xdk::Error::Api { status, .. }`, which correctly maps HTTP status
 codes to exit codes regardless of response body content. This means some edge-case exit codes differ:
 
 | Scenario                                      | Go exit code | Rust exit code     | Rust is more correct |

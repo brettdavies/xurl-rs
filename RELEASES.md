@@ -665,7 +665,7 @@ Subsequent releases use the OIDC flow built into `release.yml` and `release-lib.
 | ---------------- | -------------------------------------------------------------------------------- |
 | Homebrew         | `brew install brettdavies/tap/xurl-rs`                                           |
 | Pre-built binary | Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) |
-| Rust crate       | `cargo install xurl-rs` (binary) or `xdk-rs = "..."` in `Cargo.toml` (library)   |
+| Rust crate       | `cargo install --locked xurl-rs` (binary) or `cargo add xdk-rs` (library)        |
 | Fast binary      | `cargo binstall xurl-rs`                                                         |
 | From source      | `git clone && cargo build --release`                                             |
 

@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6310
+stdout_len: 6225
 stderr_len: 0
 --- stdout ---
 Show the effective redirect URI, its source, and the stored value
@@ -26,7 +26,7 @@ Options:
           [env: XURL_APP=]
 
       --output <OUTPUT>
-          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (`.yml`), csv, tsv. Formats not in the value enum (e.g. toml, xml) are not supported — xurl emits a JSON envelope with reason `invalid-args` if requested
+          Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml, csv, tsv. Any other value (toml, xml, yml) is a usage error at exit 2
 
           Possible values:
           - text:   Default: colored, human-readable

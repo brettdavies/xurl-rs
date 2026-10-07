@@ -890,12 +890,9 @@ fn secret_on_argv(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// An example is what an agent or a person copies, and whatever follows a
-/// secret flag lands in argv, where any process listing shows it. So the
-/// examples page, the examples of every help page, and the docs that ship with
-/// the tool all show the `--<name>-file` form instead.
-#[test]
-fn no_example_passes_a_secret_on_the_command_line() {
+/// Every example a reader copies, with where it is shown: the examples page,
+/// the examples under each help page, and the docs that ship with the tool.
+fn shown_examples() -> Vec<(String, String)> {
     let mut shown: Vec<(String, String)> = vec![
         ("xr examples".to_string(), page(&["examples".to_string()])),
         ("xr --help".to_string(), help(&[])),
@@ -919,19 +916,57 @@ fn no_example_passes_a_secret_on_the_command_line() {
         let text = std::fs::read_to_string(common::workspace_root().join(doc)).unwrap();
         shown.push((doc.to_string(), text));
     }
+    shown
+}
 
-    let offending: Vec<String> = shown
+/// The shown lines `find` picks out, each prefixed with its source.
+fn offending_examples(find: fn(&str) -> Vec<String>) -> Vec<String> {
+    shown_examples()
         .iter()
         .flat_map(|(source, text)| {
-            secret_on_argv(text)
+            find(text)
                 .into_iter()
                 .map(move |line| format!("{source}: {line}"))
         })
-        .collect();
+        .collect()
+}
+
+/// An example is what an agent or a person copies, and whatever follows a
+/// secret flag lands in argv, where any process listing shows it. So the
+/// examples page, the examples of every help page, and the docs that ship with
+/// the tool all show the `--<name>-file` form instead.
+#[test]
+fn no_example_passes_a_secret_on_the_command_line() {
+    let offending = offending_examples(secret_on_argv);
     assert!(
         offending.is_empty(),
         "these examples put a secret in argv; show `--<name>-file -` with the secret piped in, \
          or `--<name>-file PATH`:\n{}",
+        offending.join("\n")
+    );
+}
+
+// ── No example reads a record's field off the top of a document ───────
+
+/// The lines of `text` that pipe `xr` into a `jaq` filter starting at a
+/// top-level `.id`.
+fn top_level_id_filter(text: &str) -> Vec<String> {
+    let filter = regex::Regex::new(r"\bxr\b.*\|\s*jaq\s+(-\w+\s+)*'\.id\b").unwrap();
+    text.lines()
+        .filter(|line| filter.is_match(line))
+        .map(|line| line.trim().to_string())
+        .collect()
+}
+
+/// A list command answers X's document, whose records sit under `data` in
+/// every output format, so a filter that starts at `.id` prints `null`.
+#[test]
+fn no_example_reads_a_list_record_at_the_top_level() {
+    let offending = offending_examples(top_level_id_filter);
+    assert!(
+        offending.is_empty(),
+        "these examples filter `.id` off the top of a document that keeps its records under \
+         `data`, so they print `null`; show `--output json | jaq -r '.data[]?.id'`:\n{}",
         offending.join("\n")
     );
 }

@@ -28,7 +28,7 @@ xr follow @jack
 
 # JSON output for parsing
 xr whoami --output json
-xr search "from:jack" --output json | jaq -r '.data[].id'
+xr search "from:jack" --output json | jaq -r '.data[]?.id'
 
 # JSONL — one record per line on streaming endpoints
 xr -s /2/tweets/search/stream --output jsonl | jaq -c '.data.id'
@@ -103,17 +103,18 @@ written back. Multiple apps are stored under the same file with a per-app block.
 - `text` (default): human-readable tables / formatted responses
 - `json`: pretty-printed JSON envelope
 - `jsonl` (alias `ndjson`): one JSON record per line; ideal for streaming + pipeline composition with `jaq`
-- `yaml` (alias `yml`), `csv`, `tsv`: tabular and config-friendly renderings of the same envelope
+- `yaml`, `csv`, `tsv`: tabular and config-friendly renderings of the same envelope
 
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, the offending value when there is one, and a
-`next_step` object `{action, command | template, docs}`. `action` is a closed set; `command` is runnable verbatim by a
-non-TTY caller, while `template` carries angle-bracket placeholders only the caller can fill. Prefer additive envelope
-changes: add keys rather than renaming or retyping existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. One
+whose failure has a step the caller can take also carries a `next_step` object `{action, command | template, docs}`.
+`action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket
+placeholders only the caller can fill. Prefer additive envelope changes: add keys rather than renaming or retyping
+existing ones.
 
 ## Shortcut commands
 
@@ -290,9 +291,10 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Four CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, and the agent-native audit with the release binary's size ceiling. Run them yourself when a change touches
-the CLI surface, the library API, or the release profile.
+Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit with the release binary's size ceiling, and `Go parity`, the differential suite
+against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary. Run them
+yourself when a change touches the CLI surface, the library API, or the release profile.
 
 ## Releasing
 

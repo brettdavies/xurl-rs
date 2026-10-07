@@ -21,7 +21,9 @@ brew install xurl-rs
 ```
 
 The formula links `xurl-rs` as an alias, so the formula name runs too. The documentation and the shell completions use
-`xr`.
+`xr`. It installs the pre-built archive this repository's release publishes for your platform. From 4.3.0 the tap signs
+the bottles it builds from those archives, and `brew verify brettdavies/tap/xurl-rs` checks one against that
+attestation.
 
 ### Pre-built Binary
 
@@ -105,7 +107,7 @@ xr delete 1585341984679469056                  # Delete
 
 ```bash
 xr read 1585341984679469056                    # Read a post
-xr search "golang" -n 20                       # Search (1-100 results)
+xr search "golang" -n 20                       # Search (10-100 results)
 xr whoami                                      # Your profile
 xr user @elonmusk                              # Look up user
 xr timeline                                    # Home timeline
@@ -199,10 +201,16 @@ xr media subtitles remove 1234567890 --language en
 ```
 
 `--wait` takes its value after `=`: bare or `true` waits up to 60 seconds, a number that many seconds, and `false` or `0`
-not at all. `media upload` waits by default and `media status` does not. A wait ends when X reports the job finished or
-failed, or when the status carries no processing information, as an image's does. A wait that reaches its deadline
-exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a media id for 24 hours, so the
-envelope carries the id and the command that resumes the wait for twice as long:
+not at all. `media status` does not wait unless asked. `media upload` waits by default, for a video and for any other
+upload X reports as still processing when it is finalized, such as an animated GIF; an upload X reports as ready
+returns at once. A wait ends when X reports the job finished or failed, or when the status carries no processing
+information, as an image's does.
+
+An upload answers one JSON document: FINALIZE's response, with `data.processing_info` holding the final state when the
+upload waited for one.
+
+A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
+media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
 
 ```json
 {
@@ -347,7 +355,7 @@ xr schema --all                                # All schemas for MCP tool defini
 
 ```bash
 xr --output json whoami                        # Raw JSON, no color
-xr --output jsonl search "topic"               # JSON Lines for streaming
+xr --output jsonl search "topic"               # The document on one line
 export XURL_OUTPUT=json                          # Default to JSON
 ```
 
@@ -363,7 +371,8 @@ zero-app special case. Per-app fields:
   the stored value so precedence is auditable.
 - `oauth2_users`: array of usernames with OAuth2 tokens stored under this app.
 - `oauth1`: boolean: OAuth1 credentials are stored for this app.
-- `bearer`: boolean: a bearer token is stored for this app.
+- `bearer`: boolean: a bearer token is available for this app, stored on it or supplied by `XURL_BEARER_TOKEN`.
+- `bearer_source`: only present when `bearer` is `true`: `store` or `env`.
 - `default`: boolean: this is the default app.
 - `oauth2_unnamed`: only present when `true`; indicates an unnamed-user OAuth2 token is stored after a refresh where
   `/2/users/me` failed and no username was supplied.
@@ -395,7 +404,7 @@ xr whoami --no-interactive                     # Error instead of prompt
 | 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth` |
 | 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry      |
 | 4    | Not found                                                   | Resource doesn't exist                                        |
-| 5    | Network error                                               | Check connectivity                                            |
+| 5    | Network error, or a local file that could not be read       | Check connectivity, or the path; `reason` says which          |
 | 77   | Auth required                                               | See Authentication; agents: read `next_step`                  |
 
 ### Rate Limits
@@ -433,8 +442,8 @@ xr --wait-on-rate-limit --rate-limit-max-wait 900 search "rustlang" # Wait up to
 
 ### Recovering From an Auth Failure
 
-Every structured error carries a `next_step` object an agent can act on without parsing prose. Exit 77 looks like this
-on a machine with nothing registered:
+A structured error whose failure has a step the caller can take carries a `next_step` object an agent can act on
+without parsing prose. Exit 77 looks like this on a machine with nothing registered:
 
 ```json
 {
