@@ -1,7 +1,7 @@
 args: ["likes", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6234
+stdout_len: 6265
 stderr_len: 0
 --- stdout ---
 List your liked posts
@@ -161,8 +161,8 @@ Examples:
     xr likes
   100 results, JSON envelope:
     xr likes -n 100 --output json
-  JSONL piped to jaq:
-    xr likes -n 100 --output jsonl | jaq '.id'
+  The id of each liked post, one per line:
+    xr likes -n 100 --output json | jaq -r '.data[]?.id'
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["mentions", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6233
+stdout_len: 6265
 stderr_len: 0
 --- stdout ---
 Show your recent mentions
@@ -161,8 +161,8 @@ Examples:
     xr mentions
   Last 25, JSON envelope:
     xr mentions -n 25 --output json
-  JSONL pipeline:
-    xr mentions -n 100 --output jsonl | jaq '.id'
+  The id of each mention, one per line:
+    xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 
 --- stderr ---
 

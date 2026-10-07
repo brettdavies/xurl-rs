@@ -28,7 +28,7 @@ xr follow @jack
 
 # JSON output for parsing
 xr whoami --output json
-xr search "from:jack" --output json | jaq -r '.data[].id'
+xr search "from:jack" --output json | jaq -r '.data[]?.id'
 
 # JSONL — one record per line on streaming endpoints
 xr -s /2/tweets/search/stream --output jsonl | jaq -c '.data.id'

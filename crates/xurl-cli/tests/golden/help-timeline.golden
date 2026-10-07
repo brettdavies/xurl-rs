@@ -1,7 +1,7 @@
 args: ["timeline", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6279
+stdout_len: 6288
 stderr_len: 0
 --- stdout ---
 Show your home timeline
@@ -161,8 +161,8 @@ Examples:
     xr timeline
   Home timeline (50 results, JSON envelope):
     xr timeline -n 50 --output json
-  Stream-friendly JSONL piped to jaq:
-    xr timeline -n 100 --output jsonl | jaq '.id'
+  The id of each post, one per line:
+    xr timeline -n 100 --output json | jaq -r '.data[]?.id'
 
 --- stderr ---
 

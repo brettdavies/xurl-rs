@@ -91,7 +91,7 @@ INSPECT YOUR ACCOUNT:
     xr mentions -n 50 --output json
 
   Your bookmarks and liked posts:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
     xr likes -n 100 --output jsonl
 
   Users you have muted or blocked:

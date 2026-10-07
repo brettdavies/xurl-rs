@@ -355,7 +355,7 @@ xr schema --all                                # All schemas for MCP tool defini
 
 ```bash
 xr --output json whoami                        # Raw JSON, no color
-xr --output jsonl search "topic"               # JSON Lines for streaming
+xr --output jsonl search "topic"               # The document on one line
 export XURL_OUTPUT=json                          # Default to JSON
 ```
 

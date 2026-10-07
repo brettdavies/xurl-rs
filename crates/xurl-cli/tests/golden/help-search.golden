@@ -1,7 +1,7 @@
 args: ["search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6486
+stdout_len: 6497
 stderr_len: 0
 --- stdout ---
 Search recent posts
@@ -167,8 +167,8 @@ Examples:
     xr search "rustlang" -n 25 --output json
   Demonstrate env-var precedence (XURL_OUTPUT == --output):
     XURL_OUTPUT=json xr search "rustlang"
-  Stream-friendly JSONL piped to jaq:
-    xr search "rustlang" --output jsonl | jaq '.id'
+  The id of each result, one per line:
+    xr search "rustlang" --output json | jaq -r '.data[]?.id'
 
 --- stderr ---
 

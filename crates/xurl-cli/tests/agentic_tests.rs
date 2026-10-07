@@ -966,7 +966,7 @@ fn no_example_reads_a_list_record_at_the_top_level() {
     assert!(
         offending.is_empty(),
         "these examples filter `.id` off the top of a document that keeps its records under \
-         `data`, so they print `null`; show `--output json | jaq -r '.data[].id'`:\n{}",
+         `data`, so they print `null`; show `--output json | jaq -r '.data[]?.id'`:\n{}",
         offending.join("\n")
     );
 }

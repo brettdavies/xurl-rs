@@ -192,8 +192,8 @@ Examples:
     xr search \"rustlang\" -n 25 --output json
   Demonstrate env-var precedence (XURL_OUTPUT == --output):
     XURL_OUTPUT=json xr search \"rustlang\"
-  Stream-friendly JSONL piped to jaq:
-    xr search \"rustlang\" --output jsonl | jaq '.id'
+  The id of each result, one per line:
+    xr search \"rustlang\" --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr whoami` examples — paired text + JSON.
@@ -225,8 +225,8 @@ Examples:
     xr timeline
   Home timeline (50 results, JSON envelope):
     xr timeline -n 50 --output json
-  Stream-friendly JSONL piped to jaq:
-    xr timeline -n 100 --output jsonl | jaq '.id'
+  The id of each post, one per line:
+    xr timeline -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr mentions` examples — paired text + JSON.
@@ -236,8 +236,8 @@ Examples:
     xr mentions
   Last 25, JSON envelope:
     xr mentions -n 25 --output json
-  JSONL pipeline:
-    xr mentions -n 100 --output jsonl | jaq '.id'
+  The id of each mention, one per line:
+    xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr like` examples — paired text + JSON.
@@ -302,8 +302,8 @@ Examples:
     xr bookmarks
   100 results, JSON envelope:
     xr bookmarks -n 100 --output json
-  JSONL piped to jaq:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+  The id of each bookmark, one per line:
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr likes` examples — paired text + JSON, JSONL pipeline.
@@ -313,8 +313,8 @@ Examples:
     xr likes
   100 results, JSON envelope:
     xr likes -n 100 --output json
-  JSONL piped to jaq:
-    xr likes -n 100 --output jsonl | jaq '.id'
+  The id of each liked post, one per line:
+    xr likes -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr follow` examples — paired text + JSON.
@@ -442,8 +442,8 @@ Examples:
     xr dms
   50 results, JSON envelope:
     xr dms -n 50 --output json
-  JSONL piped to jaq:
-    xr dms -n 100 --output jsonl | jaq '.id'
+  The id of each event, one per line:
+    xr dms -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr auth` parent help — points to subcommands.

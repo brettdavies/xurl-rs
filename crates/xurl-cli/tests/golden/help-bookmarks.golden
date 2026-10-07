@@ -1,7 +1,7 @@
 args: ["bookmarks", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6246
+stdout_len: 6275
 stderr_len: 0
 --- stdout ---
 List your bookmarks
@@ -161,8 +161,8 @@ Examples:
     xr bookmarks
   100 results, JSON envelope:
     xr bookmarks -n 100 --output json
-  JSONL piped to jaq:
-    xr bookmarks -n 100 --output jsonl | jaq '.id'
+  The id of each bookmark, one per line:
+    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
 
 --- stderr ---
 
