@@ -22,7 +22,7 @@ In scope:
 
 - The `xr` binary: argument handling, token storage under `~/.xurl`, OAuth flows, and anything that could expose a
   stored credential or send it somewhere other than the configured API origin.
-- The `xurl` library crate as published on crates.io.
+- The `xdk-rs` library crate as published on crates.io.
 - Release artifacts: the crates.io package, the GitHub release binaries, and the Homebrew formula.
 
 Out of scope:

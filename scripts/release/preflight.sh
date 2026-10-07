@@ -307,7 +307,7 @@ gate_smoke() {
   # Typed wire vocabulary
   if out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev \
     cargo test --test live_smoke -- --ignored 2>&1); then
-    gate_pass "Typed wire vocabulary (one post read + one user read deserialize into the 3.x types)"
+    gate_pass "Typed wire vocabulary (one post read + one user read deserialize into the library's typed structs)"
   else
     gate_fail "Typed wire vocabulary" "$(printf '%s\n' "$out" | grep -m1 -E 'panicked|error' || printf '%s' "$out" | tail -n 3)"
   fi
@@ -322,8 +322,10 @@ gate_smoke() {
     gate_fail "Media upload" "no media_id"
   fi
 
-  # Output formats: known v2.0.0 behavior on non-streaming endpoints
-  gate_pass "Output formats (text/json/jsonl on non-streaming = pretty JSON; streaming requires elevated access; known behavior)"
+  # Nothing here reads a stream: the streaming endpoints need elevated access.
+  # The mocked suite holds the formats on a document (json indented, jsonl on
+  # one line).
+  gate_skip "Output formats on a stream" "streaming requires elevated access; the mocked suite covers the formats on a document"
 
   # Error envelopes: xr exits non-zero by design here; `|| true` keeps `set -e` happy
   local envelope
