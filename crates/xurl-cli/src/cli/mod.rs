@@ -543,6 +543,10 @@ Examples:
     echo 'https://localhost/callback?code=...&state=...' | xr auth oauth2 --no-browser --step 2 --auth-url - --output json
   Label the saved token with a specific username (skips /2/users/me):
     xr auth oauth2 alice --output json
+  Sign in with only the scopes a task needs (offline.access is always added):
+    xr auth oauth2 --scopes tweet.read,users.read
+  Same, headless:
+    xr auth oauth2 --no-browser --step 1 --scopes tweet.read,users.read --output json
 ";
 
 /// `xr auth oauth1` — non-interactive OAuth1 setup.
@@ -1681,6 +1685,15 @@ pub enum AuthCommands {
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]
         auth_url: Option<String>,
+        /// Request only these comma-separated scopes, plus offline.access (default: every scope)
+        ///
+        /// A sign-in asks for every scope `xr` can use unless this names a
+        /// subset. `offline.access` is always added, because without a refresh
+        /// token the login ends within hours. A name X does not define is
+        /// rejected with the list of valid ones. Step 2 of the headless flow
+        /// takes the scopes step 1 saved, so the flag belongs on step 1.
+        #[arg(long, value_name = "SCOPES", value_delimiter = ',')]
+        scopes: Option<Vec<String>>,
         /// Username to label the saved token (bypasses `/2/users/me` lookup when supplied)
         #[arg(value_name = "USERNAME")]
         username: Option<String>,

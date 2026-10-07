@@ -16,19 +16,20 @@ use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
-/// manual step to run, the redirect URL that step 2 exchanges, and the
-/// username label for the saved token.
+/// manual step to run, the redirect URL that step 2 exchanges, the scopes to
+/// request instead of every one, and the username label for the saved token.
 pub(super) struct Oauth2Args {
     pub(super) no_browser: bool,
     pub(super) step: Option<u8>,
     pub(super) auth_url: Option<String>,
+    pub(super) scopes: Option<Vec<String>>,
     pub(super) username: Option<String>,
 }
 
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn oauth2(
     args: Oauth2Args,
-    auth: Auth,
+    mut auth: Auth,
     cfg: &Config,
     flags: AuthGlobalFlags,
     out: &OutputConfig,
@@ -39,6 +40,7 @@ pub(super) async fn oauth2(
         no_browser,
         step,
         auth_url,
+        scopes,
         username,
     } = args;
     let AuthGlobalFlags {
@@ -46,6 +48,9 @@ pub(super) async fn oauth2(
         app_explicit,
         ..
     } = flags;
+    if let Some(scopes) = scopes {
+        auth.with_oauth2_scopes(&scopes)?;
+    }
     if dry_run {
         let ctx = json!({
             "command": "auth-oauth2",

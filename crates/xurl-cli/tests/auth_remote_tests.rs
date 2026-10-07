@@ -417,6 +417,7 @@ async fn step2_expired_pending_returns_ttl_error() {
         client_id: "test-client-id".to_string(),
         app_name: String::new(),
         created_at: 0, // epoch = 1970, definitely expired
+        scopes: Vec::new(),
     };
     pending::save(&old_state, &pending_path).unwrap();
 

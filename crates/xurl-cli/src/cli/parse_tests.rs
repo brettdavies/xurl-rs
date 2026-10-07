@@ -30,6 +30,7 @@ fn oauth2_positional_username_binds() {
             step,
             auth_url,
             username,
+            ..
         } => {
             assert!(no_browser, "--no-browser should be set");
             assert_eq!(step, Some(1));

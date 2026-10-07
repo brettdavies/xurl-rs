@@ -112,6 +112,7 @@ pub(super) async fn run_auth_command(
             no_browser,
             step,
             auth_url,
+            scopes,
             username,
         } => {
             return signin::oauth2(
@@ -119,6 +120,7 @@ pub(super) async fn run_auth_command(
                     no_browser,
                     step,
                     auth_url,
+                    scopes,
                     username,
                 },
                 auth,

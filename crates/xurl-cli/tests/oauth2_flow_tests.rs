@@ -21,6 +21,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use tempfile::TempDir;
+use url::Url;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -297,6 +298,7 @@ fn seed_pending_for_app(store_path: &std::path::Path, app_name: &str) -> std::pa
         client_id: "test-client-id".to_string(),
         app_name: app_name.to_string(),
         created_at,
+        scopes: Vec::new(),
     };
     xdk::auth::pending::save(&state, &path).expect("seed pending state");
     path
@@ -603,4 +605,189 @@ async fn step2_saves_the_token_on_the_app_the_runtime_context_names() {
         !pending.exists(),
         "a completed exchange deletes the pending state"
     );
+}
+
+// ── `--scopes` narrows what a sign-in requests ──────────────────────────
+
+/// Overrides for step 1, which builds a URL and reaches no network.
+fn step1_overrides() -> xdk::config::EnvOverrides {
+    xdk::config::EnvOverrides {
+        client_id: Some("test-client-id".to_string()),
+        client_secret: Some("test-client-secret".to_string()),
+        ..xdk::config::EnvOverrides::default()
+    }
+}
+
+/// Runs headless step 1 with `extra` flags and returns the authorize URL.
+async fn step1_url(store: &std::path::Path, extra: &[&str]) -> Url {
+    let mut args = vec![
+        "xr",
+        "--output",
+        "json",
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "1",
+    ];
+    args.extend_from_slice(extra);
+    let (code, stdout, stderr) = run_cli(store, &step1_overrides(), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    Url::parse(v["auth_url"].as_str().expect("auth_url")).expect("the authorize URL parses")
+}
+
+fn query_param(url: &Url, name: &str) -> String {
+    url.query_pairs()
+        .find(|(key, _)| key == name)
+        .map(|(_, value)| value.into_owned())
+        .unwrap_or_else(|| panic!("{url} carries no {name}"))
+}
+
+#[tokio::test]
+async fn step1_requests_only_the_named_scopes_and_offline_access() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let url = step1_url(&store, &["--scopes", "tweet.read,users.read"]).await;
+
+    assert_eq!(
+        query_param(&url, "scope"),
+        "tweet.read users.read offline.access"
+    );
+}
+
+#[tokio::test]
+async fn step1_requests_every_scope_without_the_flag() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let url = step1_url(&store, &[]).await;
+
+    assert_eq!(query_param(&url, "scope").split(' ').count(), 24);
+}
+
+#[tokio::test]
+async fn an_unknown_scope_is_rejected_before_anything_is_written() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &step1_overrides(),
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+            "--scopes",
+            "tweet.reed",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed: {stdout}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "validation", "got: {v}");
+    let message = v["message"].as_str().expect("message");
+    assert!(message.contains("tweet.reed"), "{message}");
+    assert!(
+        message.contains("tweet.read") && message.contains("offline.access"),
+        "the valid scopes are listed: {message}"
+    );
+    assert!(
+        !xdk::auth::pending::pending_path_for_store(&store).exists(),
+        "no pending state is written"
+    );
+}
+
+/// Step 2 takes the scope set from what step 1 saved, so the two steps cannot
+/// describe different sign-ins: no flag is needed, and a flag that names a
+/// different set is refused before the code is spent.
+#[tokio::test]
+async fn step2_reuses_the_scopes_step1_saved() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let url = step1_url(&store, &["--scopes", "tweet.read,users.read"]).await;
+    let pending_path = xdk::auth::pending::pending_path_for_store(&store);
+    let pending = xdk::auth::pending::load(&pending_path).expect("step 1 saved its state");
+    assert_eq!(
+        pending.scopes,
+        ["tweet.read", "users.read", "offline.access"]
+    );
+
+    let redirect = format!(
+        "http://localhost:8080/callback?code=AUTHCODE&state={}",
+        urlencode(&query_param(&url, "state"))
+    );
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+            "--scopes",
+            "dm.read",
+            "alice",
+        ],
+    )
+    .await;
+    assert_eq!(
+        code, 77,
+        "a different scope set is refused; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("dm.read") && stderr.contains("tweet.read"),
+        "the refusal names both sets: {stderr}"
+    );
+    assert!(
+        pending_path.exists(),
+        "the pending state survives a refusal"
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+            "alice",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+/// Percent-encodes a query value the way a browser's address bar shows it.
+fn urlencode(value: &str) -> String {
+    url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
 }
