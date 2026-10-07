@@ -76,3 +76,24 @@ build fails if a spec refresh leaves none marked. That set covers Go's eight plu
 | `/2/users/compliance/stream`  | Buffered        | Streamed          |
 
 `-s` still forces streaming on any path in both.
+
+## OAuth1 signatures use RFC 5849 percent-encoding (intentional improvement)
+
+Go `xurl` percent-encodes OAuth1 parameters with `url.QueryEscape` (`auth/auth.go`), a query-string encoder: a space
+becomes `+`, `~` becomes `%7E`, and `*` stays bare. RFC 5849 section 3.6 leaves only the RFC 3986 unreserved characters
+bare (letters, digits, `-`, `.`, `_`, `~`) and writes every other byte as `%XX`. X documents the RFC's encoding for the
+signature it recomputes, so an OAuth1 request whose query or body value carries one of those characters signs a string
+that differs from the one X builds.
+
+The Rust version encodes the signature base string, the signing key, and the `Authorization` header parameters as the
+RFC says. It reproduces the `oauth_signature` of X's published example,
+[Creating a signature](https://docs.x.com/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature), whose
+`status` value contains spaces, a `+`, a comma, and a `!`:
+
+| Value | Go `encode` | Rust `encode` |
+| ----- | ----------- | ------------- |
+| `a b` | `a+b`       | `a%20b`       |
+| `~`   | `%7E`       | `~`           |
+| `*`   | `*`         | `%2A`         |
+
+A request with none of those characters in a signed value produces the same signature in both.

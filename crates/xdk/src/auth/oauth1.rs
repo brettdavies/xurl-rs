@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use hmac::{Hmac, KeyInit, Mac};
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use sha1::Sha1;
 use url::Url;
 
@@ -156,9 +157,21 @@ pub fn generate_timestamp() -> String {
         .to_string()
 }
 
-/// Percent-encodes a string (matching Go's `url.QueryEscape`).
+/// Every byte RFC 5849 section 3.6 encodes: all but the RFC 3986 unreserved
+/// set, `A-Z a-z 0-9 - . _ ~`.
+const ENCODED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
+
+/// Percent-encodes a string as RFC 5849 section 3.6 requires, with uppercase
+/// hex.
+///
+/// X recomputes a signature from the request with this encoding, so a query
+/// encoder's output (`+` for a space, `%7E` for `~`, a bare `*`) signs a
+/// string X does not build and the request fails verification.
 #[must_use]
 pub fn encode(s: &str) -> String {
-    // url::form_urlencoded::byte_serialize matches Go's url.QueryEscape
-    url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
+    utf8_percent_encode(s, ENCODED).to_string()
 }
