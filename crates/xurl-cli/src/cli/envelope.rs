@@ -54,13 +54,103 @@ pub enum Envelope {
     Error(Box<ErrorBody>),
 }
 
+/// The closed set of `reason` values, spelled in kebab-case on the wire.
+///
+/// A reason the library reports keeps the spelling of `xdk::Error::kind()`;
+/// [`Reason::from_kind`] is where the two meet.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum Reason {
+    /// No usable credential, or the API answered 401.
+    AuthRequired,
+    /// The endpoint does not accept the auth scheme the request would use.
+    AuthMethodMismatch,
+    /// The app holds no client credentials to sign in with.
+    ClientCredentialsMissing,
+    /// The API answered 429.
+    RateLimited,
+    /// The API answered 404.
+    NotFound,
+    /// The API answered 403.
+    Forbidden,
+    /// The API answered 400 or 422.
+    InvalidRequest,
+    /// The API answered with a 5xx status.
+    ServerError,
+    /// The API answered with any other error status.
+    ApiError,
+    /// The request got no response.
+    NetworkError,
+    /// The arguments did not parse.
+    InvalidArgs,
+    /// The first word names no command.
+    UnknownCommand,
+    /// The HTTP method is not one `xr` sends.
+    InvalidMethod,
+    /// The URL has a scheme other than `http` or `https`, or did not parse.
+    InvalidUrl,
+    /// A path parameter holds a character that would break the URL.
+    InvalidPathParam,
+    /// A value was refused without an HTTP error, before or after the request.
+    Validation,
+    /// A body could not be read or written as JSON.
+    Serialization,
+    /// A file or stream could not be read or written.
+    Io,
+    /// The token store could not be read or written.
+    TokenStore,
+    /// An invariant inside `xr` or the library did not hold.
+    #[default]
+    Internal,
+    /// Media was still processing when the wait ended.
+    ProcessingTimeout,
+    /// A destructive command ran under `--no-interactive` without `--force`.
+    ConfirmationRequired,
+    /// The command has to prompt and no terminal is attached.
+    NoTty,
+    /// `--page` asked for offset pagination, which the X API does not offer.
+    UnsupportedPagination,
+    /// `validate` was given input that is not JSON.
+    InvalidJson,
+    /// `validate` was given a schema name it does not know.
+    UnknownSchema,
+    /// `validate` found the document does not match its schema.
+    ValidationFailed,
+    /// `skill install` was given neither a host nor `--all`.
+    MissingHost,
+    /// A skill destination names the home directory and none is set.
+    HomeNotSet,
+    /// The skill destination already holds files.
+    DestinationNotEmpty,
+    /// The skill destination exists and is not a directory.
+    DestinationIsFile,
+    /// `git` was not found on `PATH`.
+    GitNotFound,
+    /// `git clone` exited with a non-zero status.
+    GitCloneFailed,
+    /// `skill update --all` passed over a host with nothing installed.
+    NotInstalled,
+    /// `skill update` could not remove the copy it was replacing.
+    RemoveFailed,
+}
+
+impl Reason {
+    /// The reason spelled as the library spells `kind`, the value of
+    /// `xdk::Error::kind()`; `None` for a kind this set does not hold.
+    #[must_use]
+    pub fn from_kind(kind: &str) -> Option<Self> {
+        let kind: serde::de::value::StrDeserializer<'_, serde::de::value::Error> =
+            serde::de::IntoDeserializer::into_deserializer(kind);
+        Self::deserialize(kind).ok()
+    }
+}
+
 /// Every field an error envelope can carry, beside the `status` tag.
 ///
 /// The emitter in [`crate::cli::output`] constructs this value and serializes it,
 /// which is what lets the generated schema describe exactly what agents see.
 /// Optional fields are skipped when absent, so a consumer feature-detects by
-/// key presence. `reason` is a typed kebab-case identifier from the closed
-/// set documented in this module.
+/// key presence. `reason` is one of the closed set [`Reason`] declares.
 ///
 /// The declaration is the whole error surface, not one emitter's: the
 /// verb-local fields the `validate` and `skill` commands carry are declared
@@ -85,7 +175,10 @@ pub struct ErrorBody {
     /// `not-installed`, and `remove-failed`. The set is closed, and a newer
     /// release can add to it: treat a value you do not recognize as your
     /// default branch.
-    pub reason: String,
+    // The schema keeps a plain string: a closed list there would make this
+    // release's schema reject a reason a later release adds.
+    #[schemars(with = "String")]
+    pub reason: Reason,
     /// Structured exit code per the sysexits-inspired matrix in
     /// `xurl::error`.
     pub exit_code: i32,

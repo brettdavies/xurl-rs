@@ -9,6 +9,7 @@ use super::{
     AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, env_bearer_app, gate_destructive,
     print_no_apps_registered,
 };
+use crate::cli::envelope::Reason;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
@@ -244,7 +245,7 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
         if !out.is_interactive_terminal() {
             out.print_error_envelope(
                 stderr,
-                "no-tty",
+                Reason::NoTty,
                 EXIT_GENERAL_ERROR,
                 "no default app set; pass --app or run 'xr auth default <name>' interactively",
             );

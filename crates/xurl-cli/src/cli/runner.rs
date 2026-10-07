@@ -32,7 +32,7 @@ use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
     suggestion_for_rejected,
 };
-use crate::cli::envelope::ErrorBody;
+use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
@@ -273,7 +273,7 @@ where
             return if out.format.is_structured() {
                 out.print_error_envelope(
                     stderr,
-                    "invalid-args",
+                    Reason::InvalidArgs,
                     EXIT_USAGE_ERROR,
                     NO_COMMAND_MESSAGE,
                 );
@@ -496,7 +496,7 @@ fn render_invalid_args(
     };
     out.print_error_envelope(
         stderr,
-        "invalid-args",
+        Reason::InvalidArgs,
         EXIT_USAGE_ERROR,
         &format!("{body}\n\nTry '{command} --help'."),
     );
@@ -548,7 +548,7 @@ fn render_unknown_command(
     out.emit_error_envelope(
         stderr,
         ErrorBody {
-            reason: "unknown-command".to_string(),
+            reason: Reason::UnknownCommand,
             exit_code: EXIT_USAGE_ERROR,
             message: Some(message),
             command: Some(word.to_string()),

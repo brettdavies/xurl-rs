@@ -25,7 +25,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
-use crate::cli::envelope::ErrorBody;
+use crate::cli::envelope::{ErrorBody, Reason};
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -199,22 +199,22 @@ impl OutputConfig {
         !self.no_interactive && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
     }
 
-    /// Emits a canonical error envelope with an explicit kebab-case `reason`.
+    /// Emits a canonical error envelope with an explicit `reason`.
     ///
     /// Mirrors [`Self::print_error`] but lets the caller pin the `reason`
-    /// (e.g. `"no-tty"`) rather than reading it from `Error::kind()`.
+    /// (e.g. [`Reason::NoTty`]) rather than reading it from `Error::kind()`.
     /// Under text mode falls back to a plain "Error: …" line.
     pub fn print_error_envelope(
         &self,
         err: &mut dyn Write,
-        reason: &str,
+        reason: Reason,
         exit_code: i32,
         message: &str,
     ) {
         self.emit_error_envelope(
             err,
             ErrorBody {
-                reason: reason.to_string(),
+                reason,
                 exit_code,
                 message: Some(message.to_string()),
                 ..ErrorBody::default()
@@ -420,7 +420,7 @@ impl OutputConfig {
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
         let body = ErrorBody {
-            reason: "confirmation-required".to_string(),
+            reason: Reason::ConfirmationRequired,
             exit_code,
             message: None,
             command: get_str("command"),
@@ -586,7 +586,7 @@ impl OutputConfig {
 /// so an agent reads them without parsing the message.
 fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
     let mut body = ErrorBody {
-        reason: error.kind().to_string(),
+        reason: reason_of(error),
         exit_code,
         message: Some(message::render(error)),
         ..ErrorBody::default()
@@ -630,6 +630,14 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         _ => {}
     }
     body
+}
+
+/// The reason for a library error: its `kind()`, which the set spells the
+/// same way. `tests/golden_tests.rs` reads every kind the library declares
+/// and fails for one the set does not hold, so no released build takes the
+/// `internal` fallback.
+fn reason_of(error: &Error) -> Reason {
+    Reason::from_kind(error.kind()).unwrap_or(Reason::Internal)
 }
 
 /// The two forms of a rate limit's reset: the seconds left until it, zero
@@ -737,7 +745,7 @@ mod tests {
     fn test_print_error_envelope_json_shape() {
         let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
         let mut buf: Vec<u8> = Vec::new();
-        cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+        cfg.print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
         let s = String::from_utf8(buf).expect("utf8");
         let v: serde_json::Value = serde_json::from_str(s.trim()).expect("valid json");
         assert_eq!(v["status"], "error");

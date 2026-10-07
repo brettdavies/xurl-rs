@@ -2,6 +2,7 @@
 //! (U1 of the library-CLI-entrypoint plan).
 
 use xdk::Error;
+use xurl::cli::envelope::Reason;
 use xurl::cli::output::{OutputConfig, OutputFormat};
 
 /// Compile-time assertion: `OutputConfig` must remain a `Send + Sync` config
@@ -676,7 +677,7 @@ fn warning_suppressed_under_yaml_and_csv() {
 fn print_error_under_yaml_emits_yaml_envelope() {
     let cfg = fmt_cfg(OutputFormat::Yaml);
     let mut buf: Vec<u8> = Vec::new();
-    cfg.print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    cfg.print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
     let s = String::from_utf8(buf).unwrap();
     assert!(s.contains("status: error"), "got: {s}");
     assert!(s.contains("reason: no-tty"), "got: {s}");
@@ -751,7 +752,10 @@ fn assert_round_trips(emitted: &str, expected_reason: &str) {
     );
     let body: xurl::cli::envelope::ErrorBody = serde_json::from_value(value)
         .unwrap_or_else(|e| panic!("undeclared key in the envelope ({e}): {emitted}"));
-    assert_eq!(body.reason, expected_reason);
+    assert_eq!(
+        serde_json::to_value(body.reason).expect("a reason serializes"),
+        expected_reason
+    );
 }
 
 fn json_config() -> OutputConfig {
@@ -787,7 +791,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
 
     // 3. A reason-and-message envelope through `print_error_envelope`.
     let mut buf: Vec<u8> = Vec::new();
-    json_config().print_error_envelope(&mut buf, "no-tty", 1, "stdin is not a terminal");
+    json_config().print_error_envelope(&mut buf, Reason::NoTty, 1, "stdin is not a terminal");
     assert_round_trips(&String::from_utf8_lossy(&buf), "no-tty");
 
     // 4. Confirmation-required, whose verb context is declared too.
@@ -805,7 +809,7 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
     // 5. A hint-bearing envelope: `next_step` must round-trip too. The CLI
     // builds this shape for the sign-in refusal.
     let mut body = xurl::cli::envelope::ErrorBody::default();
-    body.reason = "client-credentials-missing".to_string();
+    body.reason = Reason::ClientCredentialsMissing;
     body.exit_code = 2;
     body.message = Some("no app carries client credentials.".to_string());
     body.app = Some("blank".to_string());

@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::secret::{self, SecretArg};
 use super::{AuthCtx, AuthGlobalFlags};
-use crate::cli::envelope::ErrorBody;
+use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
@@ -383,7 +383,7 @@ fn client_credentials_missing(
     };
 
     Some(ErrorBody {
-        reason: "client-credentials-missing".to_string(),
+        reason: Reason::ClientCredentialsMissing,
         exit_code: EXIT_USAGE_ERROR,
         message: Some(message),
         app: (!target.is_empty()).then(|| target.to_string()),
