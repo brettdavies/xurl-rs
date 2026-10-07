@@ -271,13 +271,13 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **Media upload** (automatable): `xrs media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg --media-type
   image/jpeg --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`.
   **Gotcha:** defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg
-  --category tweet_image` or the API returns `invalid-args`. Small images return no `processing_info` (set immediately)
-  — `state` is `n/a`, presence of `media_id` is the success signal.
+  --category tweet_image` or X rejects the upload (`xr` reports an HTTP 400 as `invalid-request`). Small images return
+  no `processing_info` (set immediately) — `state` is `n/a`, presence of `media_id` is the success signal.
 - [ ] **Output formats** (partially automatable): `--output text`, `--output json`, `--output jsonl` for one
-  non-streaming endpoint (e.g. `xr search`). **Known behavior:** for non-streaming endpoints, `text` and `jsonl` both
-  produce the same pretty-printed JSON as `json`. The jsonl-per-line semantic is only meaningful on streaming endpoints
-  (`/2/tweets/search/stream`, `/2/tweets/sample/stream`, `/2/tweets/firehose/*`), which require elevated X API access
-  and aren't exercisable on a dev account.
+  non-streaming endpoint (e.g. `xr search`). **Known behavior:** `json` prints the document indented, `jsonl` prints the
+  same document on one line, and `text` prints the indented document when stdout is not a terminal. One line per record
+  is what a streaming endpoint adds (`/2/tweets/search/stream`, `/2/tweets/sample/stream`, `/2/tweets/firehose/*`), and
+  those require elevated X API access and aren't exercisable on a dev account.
 - [ ] **Error paths** (automatable): three envelope shapes plus an upstream propagation. All produce structured JSON
   under `--output json`:
 - **`auth-method-mismatch` (exit 2)**: `xrs whoami --auth app --app bird_dev`; Bearer rejected at `/2/users/me`.

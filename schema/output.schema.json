@@ -30,7 +30,7 @@
         },
         {
           "const": "show-help",
-          "description": "The word named no command; read the help of the nearest one.",
+          "description": "The invocation was not one the tool takes, a word that names no\ncommand or a usage error; read the help it names.",
           "type": "string"
         },
         {
@@ -255,7 +255,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both;\n`enroll-app` and `wait-and-retry` carry neither, only `docs`."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both. One\nwhose recovery is not an `xr` invocation carries neither, only `docs`:\n`enroll-app`, `wait-and-retry`, and `inspect-store` when a store\ncommand is what failed."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",

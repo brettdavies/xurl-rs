@@ -24,10 +24,12 @@ pub enum NextAction {
     InspectStore,
     /// X refused the app; enroll it in the developer portal.
     EnrollApp,
-    /// The word named no command; read the help of the nearest one.
-    // `xr` reaches this alone: its unknown-command envelope carries it
-    // (`crates/xurl-cli/src/cli/runner.rs`, `render_unknown_command`), and no
-    // library error returns it.
+    /// The invocation was not one the tool takes, a word that names no
+    /// command or a usage error; read the help it names.
+    // `xr` reaches this alone: its unknown-command envelope
+    // (`crates/xurl-cli/src/cli/runner.rs`, `render_unknown_command`) and its
+    // usage-error envelope (`crates/xurl-cli/src/cli/output/mod.rs`,
+    // `print_invalid_args`) carry it, and no library error returns it.
     #[doc(hidden)]
     ShowHelp,
     /// Media was still processing when the wait's deadline passed; wait on
