@@ -40,7 +40,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_needs_command" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_needs_command" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -120,7 +120,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand post" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand post" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -157,7 +157,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand reply" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -193,7 +193,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand quote" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -229,7 +229,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand delete" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -266,7 +266,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand read" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand read" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -303,7 +303,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand search" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand search" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -339,7 +339,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -375,7 +375,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand user" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand user" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -412,7 +412,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -449,7 +449,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -485,7 +485,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand like" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand like" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -521,7 +521,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -557,7 +557,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand repost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -593,7 +593,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -629,7 +629,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -665,7 +665,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -702,7 +702,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -739,7 +739,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand likes" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -775,7 +775,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand follow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -811,7 +811,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -849,7 +849,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand following" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand following" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -887,7 +887,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand followers" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -923,7 +923,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -959,7 +959,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -996,7 +996,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand muted" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1032,7 +1032,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand block" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand block" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1068,7 +1068,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1105,7 +1105,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1141,7 +1141,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1179,7 +1179,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1217,7 +1217,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dm" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1254,7 +1254,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dms" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1288,7 +1288,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1323,7 +1323,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1362,7 +1362,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1408,7 +1408,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1448,7 +1448,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1483,7 +1483,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1516,7 +1516,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1550,7 +1550,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1587,7 +1587,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1626,7 +1626,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1667,7 +1667,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1711,7 +1711,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1749,7 +1749,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1785,7 +1785,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1819,7 +1819,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1860,7 +1860,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1896,7 +1896,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1929,7 +1929,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -1965,7 +1965,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand schema" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -2001,7 +2001,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand completions" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -2034,7 +2034,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand version" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand version" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -2067,7 +2067,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand examples" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
@@ -2101,7 +2101,7 @@ ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different na
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand validate" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"

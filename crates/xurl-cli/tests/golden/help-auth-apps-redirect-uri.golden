@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6404
+stdout_len: 6419
 stderr_len: 0
 --- stdout ---
 Inspect or set the stored `OAuth2` redirect URI for an app
@@ -52,7 +52,7 @@ Options:
           [env: XURL_JSONL=]
 
       --raw[=<RAW>]
-          Emit unstyled, compact output. Strips ANSI in text mode; compact (no pretty-printing) JSON in json/jsonl modes
+          Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
           
           [env: XURL_RAW=]
           [default: false]

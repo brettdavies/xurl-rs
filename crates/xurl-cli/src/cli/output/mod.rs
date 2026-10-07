@@ -300,12 +300,12 @@ impl OutputConfig {
     /// closed downstream pipe doesn't abort the program — the SIGPIPE
     /// restoration in `main` handles the more general case.
     ///
-    /// Under `--raw`, JSON output is emitted compactly (one line, no
-    /// whitespace) rather than pretty-printed.
+    /// Json pretty-prints, and is one compact line under `--raw`. Jsonl and
+    /// Ndjson are one compact line always: a record per line is the format.
     pub fn print_response(&self, out: &mut dyn Write, value: &serde_json::Value) {
         match self.format {
             OutputFormat::Json | OutputFormat::Jsonl | OutputFormat::Ndjson => {
-                let body = if self.raw || matches!(self.format, OutputFormat::Ndjson) {
+                let body = if self.raw || self.format != OutputFormat::Json {
                     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
                 } else {
                     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
@@ -530,13 +530,13 @@ impl OutputConfig {
 
     /// Renders `value` to `w` in the active structured format.
     ///
-    /// Json/Jsonl pretty-print (compact under `--raw`); Ndjson always emits a
-    /// single line; Yaml emits a YAML document; Csv/Tsv fall back to one line
-    /// of JSON because nested envelope metadata isn't a good fit for a
-    /// flat delimited table.
+    /// Json pretty-prints (compact under `--raw`); Jsonl and Ndjson always
+    /// emit a single line; Yaml emits a YAML document; Csv/Tsv fall back to
+    /// one line of JSON because nested envelope metadata isn't a good fit
+    /// for a flat delimited table.
     fn write_structured(&self, w: &mut dyn Write, value: &Value) {
         match self.format {
-            OutputFormat::Json | OutputFormat::Jsonl => {
+            OutputFormat::Json => {
                 let body = if self.raw {
                     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
                 } else {
@@ -544,7 +544,7 @@ impl OutputConfig {
                 };
                 let _ = writeln!(w, "{body}");
             }
-            OutputFormat::Ndjson => {
+            OutputFormat::Jsonl | OutputFormat::Ndjson => {
                 let body = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = writeln!(w, "{body}");
             }
