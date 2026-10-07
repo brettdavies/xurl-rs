@@ -284,3 +284,112 @@ async fn an_upload_reports_a_processing_timeout_beside_its_media_id() {
         outcome.processing
     );
 }
+
+// ── The upload's one answer ────────────────────────────────────────────
+
+/// Mounts the phases for a video whose FINALIZE answers `finalize`.
+async fn mount_phases_finalizing(server: &MockServer, finalize: serde_json::Value) {
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/initialize"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "m1", "expires_after_secs": 86400}
+        })))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/m1/append"))
+        .respond_with(ResponseTemplate::new(204))
+        .mount(server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/media/upload/m1/finalize"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({ "data": finalize })),
+        )
+        .mount(server)
+        .await;
+}
+
+fn pending_finalize() -> serde_json::Value {
+    serde_json::json!({
+        "id": "m1",
+        "expires_after_secs": 86400,
+        "processing_info": {"state": "pending", "check_after_secs": 1}
+    })
+}
+
+/// Uploads a video against `server` with a one-second deadline.
+async fn upload_a_video(server: &MockServer) -> xdk::api::MediaUploadOutcome {
+    let tmp = TempDir::new().expect("tempdir");
+    let file = tmp.path().join("clip.mp4");
+    std::fs::write(&file, b"not really a video").expect("write");
+    user_client(server.uri())
+        .upload_media(&file)
+        .processing_deadline(Duration::from_secs(1))
+        .send()
+        .await
+        .expect("the upload itself completes")
+}
+
+/// After a wait, the one response is FINALIZE's with the final state in
+/// place of the pending one, and with the media key only the status named.
+#[tokio::test]
+async fn the_response_is_finalize_carrying_the_final_processing_state() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(serde_json::json!({
+        "id": "m1",
+        "media_key": "7_m1",
+        "processing_info": {"state": "succeeded", "progress_percent": 100}
+    }))
+    .mount(&server)
+    .await;
+
+    let response = upload_a_video(&server).await.response();
+
+    assert_eq!(response.data.id, "m1");
+    assert_eq!(response.data.expires_after_secs, Some(86400));
+    assert_eq!(response.data.media_key.as_deref(), Some("7_m1"));
+    let info = response.data.processing_info.expect("the final state");
+    assert_eq!(info.state, "succeeded");
+    assert_eq!(info.progress_percent, Some(100));
+    assert_eq!(
+        info.check_after_secs, None,
+        "nothing of the pending state is left"
+    );
+}
+
+/// X drops `processing_info` from media it has finished with, so the
+/// pending state FINALIZE reported is not carried into the response.
+#[tokio::test]
+async fn the_response_drops_a_pending_state_the_final_status_does_not_report() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(serde_json::json!({"id": "m1", "media_key": "7_m1"}))
+        .mount(&server)
+        .await;
+
+    let response = upload_a_video(&server).await.response();
+
+    assert_eq!(response.data.id, "m1");
+    assert!(response.data.processing_info.is_none());
+}
+
+/// A wait that did not complete leaves FINALIZE's response as it was, with
+/// the state X last reported there.
+#[tokio::test]
+async fn the_response_is_finalize_unchanged_when_the_wait_did_not_complete() {
+    let server = MockServer::start().await;
+    mount_phases_finalizing(&server, pending_finalize()).await;
+    status_mock(in_progress()).mount(&server).await;
+
+    let outcome = upload_a_video(&server).await;
+
+    assert!(matches!(outcome.processing, Some(Err(_))));
+    let info = outcome
+        .response()
+        .data
+        .processing_info
+        .expect("FINALIZE's own state");
+    assert_eq!(info.state, "pending");
+}

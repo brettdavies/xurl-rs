@@ -54,6 +54,37 @@ impl MediaUploadOutcome {
     pub fn media_id(&self) -> &str {
         &self.init.data.id
     }
+
+    /// The upload's answer as one response: FINALIZE's, carrying the final
+    /// processing state when a wait completed.
+    ///
+    /// With the final STATUS response in [`Self::processing`], its
+    /// `processing_info` replaces FINALIZE's, and clears it when the status
+    /// has none: X drops the field from media it has finished with, which
+    /// leaves FINALIZE's pending state stale. Any other field only the
+    /// status carried is added. Without a completed wait this is FINALIZE's
+    /// response unchanged.
+    #[must_use]
+    pub fn response(&self) -> ApiResponse<MediaUploadResponse> {
+        let mut response = self.finalize.clone();
+        if let Some(Ok(status)) = &self.processing {
+            let data = &mut response.data;
+            data.processing_info
+                .clone_from(&status.data.processing_info);
+            if data.media_key.is_none() {
+                data.media_key.clone_from(&status.data.media_key);
+            }
+            if data.expires_after_secs.is_none() {
+                data.expires_after_secs = status.data.expires_after_secs;
+            }
+            for (key, value) in &status.data.extra {
+                data.extra
+                    .entry(key.clone())
+                    .or_insert_with(|| value.clone());
+            }
+        }
+        response
+    }
 }
 
 /// Handles the full media upload lifecycle.

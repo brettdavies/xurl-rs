@@ -108,19 +108,10 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
     if flags.verbose && !out.format.is_structured() {
         out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
     }
-    let mut answer = serde_json::to_value(&outcome.finalize)?;
-    let failure = match outcome.processing {
-        Some(Ok(status)) => {
-            carry_final_status(&mut answer, &serde_json::to_value(&status)?);
-            None
-        }
-        Some(Err(err)) => Some(err),
-        None => None,
-    };
     // The upload completed at FINALIZE; a processing failure after it
     // still leaves the media id on stdout for the caller to act on.
-    out.print_response(stdout, &answer);
-    if let Some(err) = failure {
+    out.print_response(stdout, &serde_json::to_value(outcome.response())?);
+    if let Some(Err(err)) = outcome.processing {
         return Err(err);
     }
     out.status(
@@ -131,28 +122,6 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
         ),
     );
     Ok(())
-}
-
-/// Folds the final STATUS answer into FINALIZE's, so a waited upload answers
-/// one document. The status's `processing_info` replaces FINALIZE's, and
-/// clears it when the status has none: X drops the field from media it has
-/// finished with, which leaves FINALIZE's pending state stale. Any other
-/// field only the status carried is added.
-fn carry_final_status(answer: &mut serde_json::Value, status: &serde_json::Value) {
-    let (Some(data), Some(final_data)) = (
-        answer
-            .get_mut("data")
-            .and_then(serde_json::Value::as_object_mut),
-        status.get("data").and_then(serde_json::Value::as_object),
-    ) else {
-        return;
-    };
-    data.remove("processing_info");
-    for (key, value) in final_data {
-        if key == "processing_info" || !data.contains_key(key) {
-            data.insert(key.clone(), value.clone());
-        }
-    }
 }
 
 async fn status(
