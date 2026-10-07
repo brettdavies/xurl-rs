@@ -8,10 +8,12 @@
 
 use std::ffi::OsString;
 
+use clap::error::{ContextKind, ErrorKind};
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
 use crate::cli::classify::{
-    ROOT_COMMAND, color_intent, raw_intent, structured_format, structured_intent, usage_command,
+    ROOT_COMMAND, color_intent, context_string, raw_intent, structured_format, structured_intent,
+    usage_command,
 };
 use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice};
@@ -115,6 +117,59 @@ pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<O
             }
         })
         .or_else(|| output.and_then(structured_format))
+}
+
+/// The correction for a value given after a space to a flag that takes it
+/// only after `=`.
+///
+/// Such a flag stands alone without a value, so clap reads `--wait 60` as the
+/// bare flag and a stray `60`, and its message names only the stray word.
+/// When the word before the one clap rejected is a flag `command` declares
+/// that way, this is the line that shows the spelling that works.
+pub(crate) fn equals_form_hint(
+    error: &clap::Error,
+    args: &[OsString],
+    command: &str,
+) -> Option<String> {
+    if error.kind() != ErrorKind::UnknownArgument {
+        return None;
+    }
+    let stray = context_string(error, ContextKind::InvalidArg)?;
+    let words: Vec<String> = args
+        .iter()
+        .map(|arg| arg.to_string_lossy().into_owned())
+        .collect();
+    let flag = words
+        .windows(2)
+        .find(|pair| pair[1] == stray && takes_value_after_equals(command, &pair[0]))
+        .map(|pair| pair[0].as_str())?;
+    Some(format!(
+        "'{flag}' takes its value after '=': {flag}={stray}"
+    ))
+}
+
+/// Whether `flag`, as typed (`--wait`, `-w`), is declared `require_equals` on
+/// `command` or on a command above it.
+fn takes_value_after_equals(command: &str, flag: &str) -> bool {
+    let root = Cli::command();
+    let mut scopes = vec![&root];
+    for name in command.split_whitespace().skip(1) {
+        match scopes.last().and_then(|scope| scope.find_subcommand(name)) {
+            Some(sub) => scopes.push(sub),
+            None => break,
+        }
+    }
+    scopes
+        .iter()
+        .flat_map(|scope| scope.get_arguments())
+        .filter(|arg| arg.is_require_equals_set())
+        .any(|arg| {
+            arg.get_long()
+                .is_some_and(|long| flag == format!("--{long}"))
+                || arg
+                    .get_short()
+                    .is_some_and(|short| flag == format!("-{short}"))
+        })
 }
 
 /// The command whose help a parse failure points at: the one clap's usage

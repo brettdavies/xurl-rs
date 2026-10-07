@@ -714,12 +714,14 @@ const MEDIA_UPLOAD_HELP: &str = "\
 Examples:
   Upload an image (text):
     xr media upload ./photo.png --media-type image/png --category tweet_image
-  Upload a video and wait for processing (JSON envelope):
+  Upload a video and wait for processing, up to 60 seconds (JSON envelope):
     xr media upload ./clip.mp4 --wait --output json
+  Wait up to five minutes for a long video:
+    xr media upload ./clip.mp4 --wait=300 --output json
   Upload using a specific auth method:
     xr media upload ./photo.png --auth oauth2 --output json
   Skip waiting (returns immediately after FINALIZE):
-    xr media upload ./clip.mp4 --wait false --output json
+    xr media upload ./clip.mp4 --wait=false --output json
 ";
 
 /// `xr media status` examples.
@@ -729,8 +731,10 @@ Examples:
     xr media status 1585341984679469056
   Check status (JSON envelope):
     xr media status 1585341984679469056 --output json
-  Poll until processing completes:
+  Poll until processing completes, up to 60 seconds:
     xr media status 1585341984679469056 --wait --output json
+  Resume a wait that timed out, for up to two minutes:
+    xr media status 1585341984679469056 --wait=120 --output json
 ";
 
 /// `xr media alt-text` examples.
@@ -1869,6 +1873,24 @@ pub enum RedirectUriCommands {
     },
 }
 
+/// How long a media command waits for X to finish processing: `None` does
+/// not wait.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessingWait(pub Option<std::time::Duration>);
+
+/// Reads a `--wait` value: `true` is the default deadline, `false` or `0` is
+/// no wait, and a number is that many seconds.
+fn parse_processing_wait(value: &str) -> Result<ProcessingWait, String> {
+    match value {
+        "true" => Ok(ProcessingWait(Some(xdk::api::DEFAULT_PROCESSING_WAIT))),
+        "false" | "0" => Ok(ProcessingWait(None)),
+        secs => secs
+            .parse::<u64>()
+            .map(|secs| ProcessingWait(Some(std::time::Duration::from_secs(secs))))
+            .map_err(|_| "expected a number of seconds, 'true', or 'false'".to_string()),
+    }
+}
+
 /// Media subcommands.
 #[derive(Subcommand, Debug)]
 pub enum MediaCommands {
@@ -1883,9 +1905,23 @@ pub enum MediaCommands {
         /// Media category (e.g., `amplify_video`)
         #[arg(long = "category", default_value = "amplify_video")]
         category: String,
-        /// Wait for media processing to complete
-        #[arg(long = "wait", default_value = "true")]
-        wait: bool,
+        /// Wait for X to finish processing a video before returning
+        ///
+        /// On by default, for up to 60 seconds. `--wait=<SECS>` waits that
+        /// long, and `--wait=false` or `--wait=0` returns after FINALIZE. The
+        /// value follows `=`. A wait that reaches its deadline exits 1 with
+        /// reason `processing-timeout`; the upload itself is intact, and the
+        /// error names the `xr media status` command that resumes the wait.
+        #[arg(
+            long = "wait",
+            value_name = "SECS",
+            num_args = 0..=1,
+            require_equals = true,
+            default_value = "true",
+            default_missing_value = "true",
+            value_parser = parse_processing_wait,
+        )]
+        wait: ProcessingWait,
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
@@ -1910,9 +1946,24 @@ pub enum MediaCommands {
         /// Username
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
-        /// Wait for processing
-        #[arg(short = 'w', long = "wait")]
-        wait: bool,
+        /// Wait for X to finish processing instead of reading the status once
+        ///
+        /// Bare `--wait` or `--wait=true` waits up to 60 seconds, and
+        /// `--wait=<SECS>` that long; `--wait=false` or `--wait=0` reads the
+        /// status once, which is the default. The value follows `=`. A wait
+        /// that reaches its deadline exits 1 with reason `processing-timeout`
+        /// and names the command that resumes it for twice as long.
+        #[arg(
+            short = 'w',
+            long = "wait",
+            value_name = "SECS",
+            num_args = 0..=1,
+            require_equals = true,
+            default_value = "false",
+            default_missing_value = "true",
+            value_parser = parse_processing_wait,
+        )]
+        wait: ProcessingWait,
         /// Trace header
         #[arg(short = 't', long = "trace")]
         trace: bool,

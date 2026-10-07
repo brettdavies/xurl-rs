@@ -5382,6 +5382,14 @@ _xr() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --wait)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -w)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --header)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -5791,6 +5799,10 @@ _xr() {
                     return 0
                     ;;
                 --category)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --wait)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

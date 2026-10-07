@@ -231,9 +231,17 @@ async fn a_media_processing_poll_sleeps_without_blocking_other_tasks() {
         })
     };
 
-    let response = xdk::api::execute_media_status("m1", "", "", true, false, &[], &client)
-        .await
-        .expect("processing completes");
+    let response = xdk::api::execute_media_status(
+        "m1",
+        "",
+        "",
+        Some(xdk::api::DEFAULT_PROCESSING_WAIT),
+        false,
+        &[],
+        &client,
+    )
+    .await
+    .expect("processing completes");
     ticker.abort();
 
     assert_eq!(

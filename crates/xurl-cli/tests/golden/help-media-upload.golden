@@ -1,7 +1,7 @@
 args: ["media", "upload", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6086
+stdout_len: 6617
 stderr_len: 0
 --- stdout ---
 Upload media file
@@ -23,8 +23,12 @@ Options:
           
           [default: amplify_video]
 
-      --wait
-          Wait for media processing to complete
+      --wait[=<SECS>]
+          Wait for X to finish processing a video before returning
+          
+          On by default, for up to 60 seconds. `--wait=<SECS>` waits that long, and `--wait=false` or `--wait=0` returns after FINALIZE. The value follows `=`. A wait that reaches its deadline exits 1 with reason `processing-timeout`; the upload itself is intact, and the error names the `xr media status` command that resumes the wait.
+          
+          [default: true]
 
       --auth <AUTH_TYPE>
           Authentication type
@@ -161,12 +165,14 @@ Options:
 Examples:
   Upload an image (text):
     xr media upload ./photo.png --media-type image/png --category tweet_image
-  Upload a video and wait for processing (JSON envelope):
+  Upload a video and wait for processing, up to 60 seconds (JSON envelope):
     xr media upload ./clip.mp4 --wait --output json
+  Wait up to five minutes for a long video:
+    xr media upload ./clip.mp4 --wait=300 --output json
   Upload using a specific auth method:
     xr media upload ./photo.png --auth oauth2 --output json
   Skip waiting (returns immediately after FINALIZE):
-    xr media upload ./clip.mp4 --wait false --output json
+    xr media upload ./clip.mp4 --wait=false --output json
 
 --- stderr ---
 

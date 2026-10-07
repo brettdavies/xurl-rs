@@ -1,7 +1,7 @@
 args: ["media", "status", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 5673
+stdout_len: 6240
 stderr_len: 0
 --- stdout ---
 Check media upload status
@@ -19,8 +19,12 @@ Options:
   -u, --username <USERNAME>
           Username
 
-  -w, --wait
-          Wait for processing
+  -w, --wait[=<SECS>]
+          Wait for X to finish processing instead of reading the status once
+          
+          Bare `--wait` or `--wait=true` waits up to 60 seconds, and `--wait=<SECS>` that long; `--wait=false` or `--wait=0` reads the status once, which is the default. The value follows `=`. A wait that reaches its deadline exits 1 with reason `processing-timeout` and names the command that resumes it for twice as long.
+          
+          [default: false]
 
   -t, --trace
           Trace header
@@ -153,8 +157,10 @@ Examples:
     xr media status 1585341984679469056
   Check status (JSON envelope):
     xr media status 1585341984679469056 --output json
-  Poll until processing completes:
+  Poll until processing completes, up to 60 seconds:
     xr media status 1585341984679469056 --wait --output json
+  Resume a wait that timed out, for up to two minutes:
+    xr media status 1585341984679469056 --wait=120 --output json
 
 --- stderr ---
 

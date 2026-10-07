@@ -3,11 +3,12 @@
 //! run through INIT, APPEND, FINALIZE, and STATUS by [`MediaUpload::send`].
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use crate::api::auth_matrix::WireScheme;
 use crate::error::{Error, Result};
 
-use super::media::{MediaUploadOutcome, execute_media_upload};
+use super::media::{DEFAULT_PROCESSING_WAIT, MediaUploadOutcome, execute_media_upload};
 use super::request::Client;
 
 impl Client {
@@ -30,6 +31,7 @@ impl Client {
             media_type: None,
             category: None,
             wait_for_processing: true,
+            processing_deadline: DEFAULT_PROCESSING_WAIT,
             auth_type: String::new(),
             username: String::new(),
             trace: false,
@@ -46,7 +48,8 @@ impl Client {
 /// `tweet_video`, or `tweet_image`) unless [`MediaUpload::category`] sets
 /// it. A video is awaited through STATUS until X finishes processing it, so
 /// the returned media id is ready to attach to a post; see
-/// [`MediaUpload::wait_for_processing`].
+/// [`MediaUpload::wait_for_processing`] and
+/// [`MediaUpload::processing_deadline`].
 #[must_use = "a MediaUpload does nothing until it is sent"]
 pub struct MediaUpload {
     client: Client,
@@ -54,6 +57,7 @@ pub struct MediaUpload {
     media_type: Option<String>,
     category: Option<String>,
     wait_for_processing: bool,
+    processing_deadline: Duration,
     auth_type: String,
     username: String,
     trace: bool,
@@ -69,6 +73,7 @@ impl std::fmt::Debug for MediaUpload {
             .field("media_type", &self.media_type)
             .field("category", &self.category)
             .field("wait_for_processing", &self.wait_for_processing)
+            .field("processing_deadline", &self.processing_deadline)
             .finish_non_exhaustive()
     }
 }
@@ -93,6 +98,15 @@ impl MediaUpload {
     /// returning; on by default. Images and GIFs are never awaited.
     pub fn wait_for_processing(mut self, wait: bool) -> Self {
         self.wait_for_processing = wait;
+        self
+    }
+
+    /// How long the wait on a video's processing runs before it gives up;
+    /// [`DEFAULT_PROCESSING_WAIT`] unless set. A wait that reaches it puts
+    /// [`Error::ProcessingTimeout`] in [`MediaUploadOutcome::processing`],
+    /// with the media id still valid.
+    pub fn processing_deadline(mut self, deadline: Duration) -> Self {
+        self.processing_deadline = deadline;
         self
     }
 
@@ -131,9 +145,9 @@ impl MediaUpload {
     /// [`Error::Validation`] when no media type was set and none can be
     /// inferred from the file's extension, or when the path is not valid
     /// UTF-8; otherwise everything the upload phases return: [`Error::Io`]
-    /// when the file cannot be read, an [`Error::Api`] for a refused phase,
-    /// and [`Error::Validation`] when processing fails or times out after the
-    /// upload itself completed.
+    /// when the file cannot be read and an [`Error::Api`] for a refused phase.
+    /// A processing failure or timeout after the upload itself completed is
+    /// reported in [`MediaUploadOutcome::processing`].
     pub async fn send(self) -> Result<MediaUploadOutcome> {
         let media_type = match self.media_type {
             Some(media_type) => media_type,
@@ -152,7 +166,7 @@ impl MediaUpload {
             &self.auth_type,
             &self.username,
             self.trace,
-            self.wait_for_processing,
+            self.wait_for_processing.then_some(self.processing_deadline),
             &self.headers,
             &self.client,
         )

@@ -2403,6 +2403,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--media-type=[Media type (e.g., video/mp4)]:MEDIA_TYPE:_default' \
 '--category=[Media category (e.g., \`amplify_video\`)]:CATEGORY:_default' \
+'--wait=[Wait for X to finish processing a video before returning]::SECS:_default' \
 '--auth=[Authentication type]:AUTH_TYPE:_default' \
 '-u+[Username]:USERNAME:_default' \
 '--username=[Username]:USERNAME:_default' \
@@ -2431,7 +2432,6 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'--wait[Wait for media processing to complete]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2447,6 +2447,8 @@ _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type]:AUTH_TYPE:_default' \
 '-u+[Username]:USERNAME:_default' \
 '--username=[Username]:USERNAME:_default' \
+'-w+[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
+'--wait=[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2472,8 +2474,6 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-w[Wait for processing]' \
-'--wait[Wait for processing]' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
