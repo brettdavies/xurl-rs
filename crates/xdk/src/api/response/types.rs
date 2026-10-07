@@ -521,6 +521,9 @@ pub struct UsageCreditsData {
 /// carries both spellings, the current one is kept and the legacy one
 /// dropped.
 ///
+/// X answers a list with no results as `meta` with a `result_count` of zero
+/// and no `data` key; a list type decodes that with an empty `data`.
+///
 /// # Errors
 ///
 /// Returns `Error::Json` if the Value is an empty object, a string (the
@@ -557,7 +560,29 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate:
         return Err(crate::error::Error::validation(value.to_string()));
     }
     super::vocabulary::normalize(&mut value);
+    if is_page_with_no_results(&value) {
+        // Only a list type takes the empty array; a single item falls
+        // through and reports the missing key.
+        let mut page = value.clone();
+        page["data"] = Value::Array(Vec::new());
+        if let Ok(decoded) = serde_json::from_value(page) {
+            return Ok(decoded);
+        }
+    }
     Ok(serde_json::from_value(value)?)
+}
+
+/// Whether `value` is X's answer for a list with no results: `meta` counting
+/// zero and no `data` key.
+fn is_page_with_no_results(value: &Value) -> bool {
+    value.as_object().is_some_and(|body| {
+        !body.contains_key("data")
+            && body
+                .get("meta")
+                .and_then(|meta| meta.get("result_count"))
+                .and_then(Value::as_u64)
+                == Some(0)
+    })
 }
 
 #[cfg(test)]
