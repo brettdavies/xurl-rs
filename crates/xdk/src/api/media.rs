@@ -89,8 +89,9 @@ impl MediaUploadOutcome {
 
 /// Handles the full media upload lifecycle.
 ///
-/// `wait_for_processing` is the deadline a video's processing is awaited to;
-/// `None` returns after FINALIZE.
+/// `wait_for_processing` is the deadline processing is awaited to, for a
+/// video and for any upload whose FINALIZE answer reports processing still
+/// under way; `None` returns after FINALIZE.
 ///
 /// # Errors
 ///
@@ -171,7 +172,7 @@ pub async fn execute_media_upload(
         deserialize_response(client.send_request(&finalize_opts).await?)?;
 
     let processing = match wait_for_processing {
-        Some(deadline) if media_category.contains("video") => {
+        Some(deadline) if needs_processing(media_category, &finalize_response.data) => {
             tracing::info!(target: MEDIA_TARGET, "Waiting for media processing to complete...");
             Some(wait_for_media_processing(&media_id, &base_opts, client, deadline).await)
         }
@@ -183,6 +184,20 @@ pub async fn execute_media_upload(
         finalize: finalize_response,
         processing,
     })
+}
+
+/// Whether X still has work to do on an upload after FINALIZE.
+///
+/// A video category always does. For anything else X says so itself: its
+/// FINALIZE answer carries a `processing_info` that has not reached a final
+/// state, which is how an animated GIF reports. An answer with none, or with
+/// one already final, is media ready to use.
+fn needs_processing(media_category: &str, finalize: &MediaUploadResponse) -> bool {
+    media_category.contains("video")
+        || finalize
+            .processing_info
+            .as_ref()
+            .is_some_and(|info| !matches!(info.state.as_str(), "succeeded" | "failed"))
 }
 
 /// Uploads file data in 4 MB chunks via APPEND requests.

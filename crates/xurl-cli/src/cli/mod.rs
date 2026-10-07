@@ -1935,13 +1935,16 @@ pub enum MediaCommands {
         /// Media category (e.g., `amplify_video`)
         #[arg(long = "category", default_value = "amplify_video")]
         category: String,
-        /// Wait for X to finish processing a video before returning
+        /// Wait for X to finish processing the upload before returning
         ///
-        /// On by default, for up to 60 seconds. `--wait=<SECS>` waits that
-        /// long, and `--wait=false` or `--wait=0` returns after FINALIZE. The
-        /// value follows `=`. A wait that reaches its deadline exits 1 with
-        /// reason `processing-timeout`; the upload itself is intact, and the
-        /// error names the `xr media status` command that resumes the wait.
+        /// On by default, for up to 60 seconds. It applies to a video, and to
+        /// any other upload X reports as still processing when it is
+        /// finalized, such as an animated GIF; an upload X reports as ready
+        /// returns at once. `--wait=<SECS>` waits that long, and
+        /// `--wait=false` or `--wait=0` returns after FINALIZE. The value
+        /// follows `=`. A wait that reaches its deadline exits 1 with reason
+        /// `processing-timeout`; the upload itself is intact, and the error
+        /// names the `xr media status` command that resumes the wait.
         #[arg(
             long = "wait",
             value_name = "SECS",

@@ -1697,7 +1697,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l media-type -d 'Media type (e.g., video/mp4)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l category -d 'Media category (e.g., `amplify_video`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for X to finish processing a video before returning' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for X to finish processing the upload before returning' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l auth -d 'Authentication type' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s u -l username -d 'Username' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
