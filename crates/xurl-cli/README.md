@@ -27,6 +27,16 @@ The formula links `xurl-rs` as an alias, so the formula name runs too. The docum
 
 Download from [GitHub Releases](https://github.com/brettdavies/xurl-rs/releases) for Linux, macOS, and Windows.
 
+Each archive carries a build-provenance attestation and an attested SBOM, signed by the release workflow. To check that
+an archive you downloaded was built by it, from this repository:
+
+```bash
+gh attestation verify xurl-rs-x86_64-unknown-linux-gnu.tar.gz --repo brettdavies/xurl-rs \
+  --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml
+```
+
+Releases up to 4.2.1 carry no attestation; compare those against the release's `sha256sum.txt`.
+
 ### Cargo
 
 ```bash

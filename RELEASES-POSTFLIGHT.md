@@ -94,6 +94,19 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **`cargo binstall xurl-rs`** (without `--version`) resolves to the new tag and installs the matching prebuilt
   binary. Confirms the GitHub Release asset layout (binary + completions + licenses, expected archive naming) matches
   binstall's asset-resolution rules. Drive on a clean container.
+- [ ] **A release archive verifies against its attestation.** `release.yml` verifies every published file in its
+  `verify-attestations` job and withholds the Homebrew dispatch when one fails; this is the same check from outside CI.
+  Download one archive of the release and run the command below. The reusable workflow is the signer, so `--repo` alone
+  fails; the `--signer-workflow` flag names it. Expect `Verification succeeded`. A failure with a green `release.yml`
+  means the attestation jobs were skipped: check that `release.yml` still passes `attest: true` and grants
+  `attestations: write`.
+
+  ```bash
+  gh release download v<X.Y.Z> --repo brettdavies/xurl-rs --pattern 'xurl-rs-x86_64-unknown-linux-gnu.tar.gz'
+  gh attestation verify xurl-rs-x86_64-unknown-linux-gnu.tar.gz --repo brettdavies/xurl-rs \
+    --signer-workflow brettdavies/.github/.github/workflows/rust-release.yml
+  ```
+
 - [ ] **Last-good identifier recorded.** Before the release goes live, note the three identifiers a rollback needs
   somewhere reachable under incident pressure: the previous crate version on crates.io (`cargo search xurl-rs`), the
   previous GitHub Release tag (`gh api repos/brettdavies/xurl-rs/releases/latest --jq .tag_name`), and the formula bump
