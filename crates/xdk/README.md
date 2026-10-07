@@ -18,13 +18,8 @@ cargo add xdk-rs
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-Those two commands leave this in `Cargo.toml`. `#[tokio::main]` needs both tokio features:
-
-```toml
-[dependencies]
-xdk-rs = "0.1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-```
+Those two commands add both dependencies to `Cargo.toml` at their current versions. `#[tokio::main]` needs both tokio
+features.
 
 A complete program: the app-only bearer token from the [X developer portal](https://developer.x.com/en/portal/dashboard)
 in `XURL_BEARER_TOKEN`, one search, the text printed.
@@ -143,9 +138,8 @@ it deserializes into the same types a live call would, and every response carrie
 and `user_client()` return clients pointed at it, `stub` overrides a route or rehearses a failure, and `requests()`
 lists what arrived. Enable it in a test profile only, so a release build pulls none of its dependencies:
 
-```toml
-[dev-dependencies]
-xdk-rs = { version = "0.1", features = ["testing"] }
+```bash
+cargo add xdk-rs --dev --features testing
 ```
 
 The module's docs.rs page carries a complete program, and the `offline_search` example runs one end to end with no X
@@ -214,8 +208,8 @@ DEBUG xdk::vocabulary: legacy="edit_history_tweet_ids" normalized="edit_history_
 - `rustls` (default): TLS through [rustls](https://docs.rs/rustls) with the platform's certificate verifier; no system
   TLS library is linked.
 - `native-tls`: TLS through the operating system's library (OpenSSL on Linux, Secure Transport on macOS, SChannel on
-  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off: `xdk-rs = { version =
-  "0.1", default-features = false, features = ["native-tls"] }`. With both backends enabled, reqwest picks `native-tls`.
+  Windows) via [native-tls](https://docs.rs/native-tls). To use it alone, turn the default off: `cargo add xdk-rs
+  --no-default-features --features native-tls`. With both backends enabled, reqwest picks `native-tls`.
 - `testing`: an in-process mock of the API seeded from the crate's fixtures, for tests that must not spend credits; see
   [Testing](#testing).
 
