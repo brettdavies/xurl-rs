@@ -53,7 +53,7 @@ complete -c xr -n "__fish_xr_needs_command" -l rate-limit-max-wait -d 'Longest `
 complete -c xr -n "__fish_xr_needs_command" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -133,7 +133,7 @@ complete -c xr -n "__fish_xr_using_subcommand post" -l rate-limit-max-wait -d 'L
 complete -c xr -n "__fish_xr_using_subcommand post" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -170,7 +170,7 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -l rate-limit-max-wait -d '
 complete -c xr -n "__fish_xr_using_subcommand reply" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -206,7 +206,7 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -l rate-limit-max-wait -d '
 complete -c xr -n "__fish_xr_using_subcommand quote" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -242,7 +242,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand delete" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -279,7 +279,7 @@ complete -c xr -n "__fish_xr_using_subcommand read" -l rate-limit-max-wait -d 'L
 complete -c xr -n "__fish_xr_using_subcommand read" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -316,7 +316,7 @@ complete -c xr -n "__fish_xr_using_subcommand search" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand search" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -352,7 +352,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -388,7 +388,7 @@ complete -c xr -n "__fish_xr_using_subcommand user" -l rate-limit-max-wait -d 'L
 complete -c xr -n "__fish_xr_using_subcommand user" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -425,7 +425,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -462,7 +462,7 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -498,7 +498,7 @@ complete -c xr -n "__fish_xr_using_subcommand like" -l rate-limit-max-wait -d 'L
 complete -c xr -n "__fish_xr_using_subcommand like" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -534,7 +534,7 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -570,7 +570,7 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand repost" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -606,7 +606,7 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -642,7 +642,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -678,7 +678,7 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l rate-limit-max-wait
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -715,7 +715,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l rate-limit-max-wait 
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -752,7 +752,7 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -l rate-limit-max-wait -d '
 complete -c xr -n "__fish_xr_using_subcommand likes" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -788,7 +788,7 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand follow" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -824,7 +824,7 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -862,7 +862,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -l rate-limit-max-wait 
 complete -c xr -n "__fish_xr_using_subcommand following" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -900,7 +900,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -l rate-limit-max-wait 
 complete -c xr -n "__fish_xr_using_subcommand followers" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -936,7 +936,7 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -l rate-limit-max-wait -d 'L
 complete -c xr -n "__fish_xr_using_subcommand mute" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -972,7 +972,7 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1009,7 +1009,7 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -l rate-limit-max-wait -d '
 complete -c xr -n "__fish_xr_using_subcommand muted" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1045,7 +1045,7 @@ complete -c xr -n "__fish_xr_using_subcommand block" -l rate-limit-max-wait -d '
 complete -c xr -n "__fish_xr_using_subcommand block" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1081,7 +1081,7 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -l rate-limit-max-wait -d
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1118,7 +1118,7 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -l rate-limit-max-wait -d
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1154,7 +1154,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1192,7 +1192,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1230,7 +1230,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -l rate-limit-max-wait -d 'Lon
 complete -c xr -n "__fish_xr_using_subcommand dm" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1267,7 +1267,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l rate-limit-max-wait -d 'Lo
 complete -c xr -n "__fish_xr_using_subcommand dms" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1301,7 +1301,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_su
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from moderators help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1336,7 +1336,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1375,7 +1375,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1421,7 +1421,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1461,7 +1461,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1496,7 +1496,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1529,7 +1529,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1563,7 +1563,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1600,7 +1600,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1639,7 +1639,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1680,7 +1680,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1724,7 +1724,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1762,7 +1762,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1798,7 +1798,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1832,7 +1832,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1873,7 +1873,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -1978,7 +1978,7 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -l rate-limit-max-wait -d 
 complete -c xr -n "__fish_xr_using_subcommand schema" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -2014,7 +2014,7 @@ complete -c xr -n "__fish_xr_using_subcommand completions" -l rate-limit-max-wai
 complete -c xr -n "__fish_xr_using_subcommand completions" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -2047,7 +2047,7 @@ complete -c xr -n "__fish_xr_using_subcommand version" -l rate-limit-max-wait -d
 complete -c xr -n "__fish_xr_using_subcommand version" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -2080,7 +2080,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand examples" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
@@ -2114,7 +2114,7 @@ complete -c xr -n "__fish_xr_using_subcommand validate" -l rate-limit-max-wait -
 complete -c xr -n "__fish_xr_using_subcommand validate" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Validate inputs and skip the API call' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r

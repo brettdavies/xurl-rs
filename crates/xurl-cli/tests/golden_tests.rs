@@ -577,8 +577,14 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
     ]
 }
 
-/// The dry-run refusals a shortcut's validator raises before any request.
+/// What `--dry-run` answers: the refusals a shortcut's validator raises
+/// before any request, and the credential report of a command whose inputs
+/// pass.
 fn dry_run_cases() -> Vec<Case> {
+    let signed_in = |c: Case| Case {
+        store: Store::OAuth2,
+        ..c
+    };
     let long_body = "x".repeat(281);
     let long_alt_text = "x".repeat(1001);
     let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
@@ -591,10 +597,40 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-empty-body",
             &["--output", "json", "--dry-run", "post", ""],
         ),
-        case(
+        signed_in(case(
             "dry-run-long-body",
             &["--output", "json", "--dry-run", "post", &long_body],
+        )),
+        case(
+            "dry-run-no-credential",
+            &["--output", "json", "--dry-run", "post", "hi"],
         ),
+        signed_in(case(
+            "dry-run-scheme-not-accepted",
+            &["--output", "json", "--dry-run", "usage"],
+        )),
+        signed_in(case(
+            "dry-run-delete-unconfirmed",
+            &["--output", "json", "--dry-run", "delete", "1234567890"],
+        )),
+        signed_in(case(
+            "dry-run-read",
+            &["--output", "json", "--dry-run", "timeline", "-n", "5"],
+        )),
+        signed_in(case(
+            "dry-run-raw-request",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "-X",
+                "POST",
+                "/2/tweets",
+                "-d",
+                r#"{"text":"hi"}"#,
+            ],
+        )),
+        signed_in(case("dry-run-text", &["--dry-run", "whoami"])),
         Case {
             name: "dry-run-too-many-attachments".to_string(),
             args: too_many,

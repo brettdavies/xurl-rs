@@ -1,0 +1,18 @@
+args: ["--dry-run", "whoami"]
+store: oauth2
+exit_code: 0
+stdout_len: 139
+stderr_len: 0
+--- stdout ---
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "command": "whoami"
+}
+
+--- stderr ---
+

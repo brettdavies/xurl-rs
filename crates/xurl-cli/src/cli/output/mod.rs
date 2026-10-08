@@ -429,6 +429,34 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
+    /// Emits the dry-run envelope of a command the credentials at hand
+    /// cannot serve: `would_succeed: false`, the exit code the real run
+    /// would end on, and the keys its error envelope would carry.
+    pub(crate) fn print_dry_run_refusal(&self, out: &mut dyn Write, ctx: &Value, error: &Error) {
+        // A dry run looks no id up, so a path it rendered would carry a
+        // stand-in. Without one the message names the endpoint's template.
+        let templated;
+        let error = match error {
+            Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
+                templated = Error::from(xdk::error::AuthMismatch {
+                    rendered_url: None,
+                    ..(**mismatch).clone()
+                });
+                &templated
+            }
+            other => other,
+        };
+        let exit_code = error.exit_code();
+        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        if let Value::Object(body) = error_body(error, exit_code).into_value() {
+            merged.extend(
+                body.into_iter()
+                    .filter(|(key, _)| key != "status" && key != "exit_code"),
+            );
+        }
+        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
+    }
+
     /// Prints a canonical confirmation-required error envelope.
     ///
     /// Emitted when a destructive op was invoked under `--no-interactive`

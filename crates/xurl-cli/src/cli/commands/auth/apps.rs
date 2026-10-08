@@ -8,7 +8,7 @@ use serde_json::json;
 use super::secret::{self, SecretArg, SecretError};
 use super::{
     AuthCtx, Gate, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
-    env_bearer_app, gate_destructive, print_no_apps_registered,
+    destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
@@ -153,9 +153,11 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
         stderr,
     } = ctx;
     let ctx = json!({"command": "app-remove", "name": name});
-    // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
-    // destructive op in interactive mode does not leak a dry-run
-    // envelope.
+    if flags.dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        out.print_dry_run(stdout, true, 0, &ctx);
+        return Ok(());
+    }
     match gate_destructive(
         force,
         flags.no_interactive,
@@ -170,10 +172,6 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
                 exit_code: EXIT_GENERAL_ERROR,
             });
         }
-    }
-    if flags.dry_run {
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
     }
     auth.token_store.remove_app(name)?;
     out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
