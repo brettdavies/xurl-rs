@@ -49,7 +49,7 @@ pub struct Config {
     /// `match` on the enum variant.
     pub(crate) redirect_uri_from_env: bool,
     /// Per-request HTTP timeout in seconds for all reqwest-backed paths
-    /// (API client, OAuth2 token exchange/refresh, `fetch_username`).
+    /// (API client, OAuth2 token exchange/refresh, the `/2/users/me` lookup).
     ///
     /// Sourced from `--timeout` / `XURL_TIMEOUT` via the CLI runner;
     /// `Config::new()` defaults to [`crate::api::DEFAULT_TIMEOUT_SECS`].

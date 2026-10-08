@@ -63,22 +63,95 @@ impl TokenStore {
         refresh_token: &str,
         expiration_time: u64,
     ) -> Result<()> {
+        let token = OAuth2Token {
+            access_token: access_token.to_string(),
+            refresh_token: refresh_token.to_string(),
+            expiration_time,
+            user_id: None,
+        };
+        self.put_oauth2_token(app_name, Some(username), token, false)
+    }
+
+    /// Stores `token` in the named app: under `name`, or in the unnamed slot
+    /// when there is none. `drop_unnamed` empties the unnamed slot in the
+    /// same write, for a token that just left it for a name.
+    pub(crate) fn put_oauth2_token(
+        &mut self,
+        app_name: &str,
+        name: Option<&str>,
+        token: OAuth2Token,
+        drop_unnamed: bool,
+    ) -> Result<()> {
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
-            app.oauth2_tokens.insert(
-                username.to_string(),
-                Token {
-                    token_type: TokenType::Oauth2,
-                    bearer: None,
-                    oauth2: Some(OAuth2Token {
-                        access_token: access_token.to_string(),
-                        refresh_token: refresh_token.to_string(),
-                        expiration_time,
-                    }),
-                    oauth1: None,
-                },
-            );
+            let token = Token {
+                token_type: TokenType::Oauth2,
+                bearer: None,
+                oauth2: Some(token),
+                oauth1: None,
+            };
+            match name {
+                Some(name) => {
+                    app.oauth2_tokens.insert(name.to_string(), token);
+                    if drop_unnamed {
+                        app.unnamed_oauth2_token = None;
+                    }
+                }
+                None => app.unnamed_oauth2_token = Some(token),
+            }
             Ok(())
+        })
+    }
+
+    /// Records `user_id` as the account the `OAuth2` token stored under
+    /// `username` belongs to, returning whether the store changed. An empty
+    /// `username` is the unnamed slot.
+    ///
+    /// The id is a fact about the token beside it, so the caller passes one
+    /// only when `/2/users/me` answered under that token.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn set_oauth2_user_id_for_app(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        user_id: &str,
+    ) -> Result<bool> {
+        fn slot<'a>(
+            store: &'a mut TokenStore,
+            app_name: &str,
+            username: &str,
+        ) -> Option<&'a mut OAuth2Token> {
+            let app = store.resolve_app_mut(app_name);
+            let token = if username.is_empty() {
+                app.unnamed_oauth2_token.as_mut()
+            } else {
+                app.oauth2_tokens.get_mut(username)
+            };
+            token.and_then(|token| token.oauth2.as_mut())
+        }
+        let current = if username.is_empty() {
+            self.get_oauth2_token_unnamed_for_app(app_name)
+        } else {
+            self.get_oauth2_token_for_app(app_name, username)
+        }
+        .and_then(|token| token.oauth2.as_ref());
+        match current {
+            None => return Ok(false),
+            Some(token) if token.user_id.as_deref() == Some(user_id) => return Ok(false),
+            Some(_) => {}
+        }
+        if user_id.is_empty() {
+            return Ok(false);
+        }
+        self.update(|store| match slot(store, app_name, username) {
+            Some(token) => {
+                token.user_id = Some(user_id.to_string());
+                Ok(true)
+            }
+            None => Ok(false),
         })
     }
 
@@ -98,19 +171,46 @@ impl TokenStore {
         refresh_token: &str,
         expiration_time: u64,
     ) -> Result<()> {
+        let token = OAuth2Token {
+            access_token: access_token.to_string(),
+            refresh_token: refresh_token.to_string(),
+            expiration_time,
+            user_id: None,
+        };
+        self.put_oauth2_token(app_name, None, token, false)
+    }
+
+    /// Stores the named app's unnamed `OAuth2` token under `username` and
+    /// empties the unnamed slot, returning whether a token moved.
+    ///
+    /// Nothing moves when the slot is empty, or when a token is already
+    /// stored under `username`: that one is the newer, written by a refresh
+    /// that learned the name, so both are left as they are.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn name_unnamed_oauth2_token_for_app(
+        &mut self,
+        app_name: &str,
+        username: &str,
+    ) -> Result<bool> {
+        let movable = |store: &Self| {
+            let app = store.resolve_app(app_name);
+            app.unnamed_oauth2_token.is_some() && !app.oauth2_tokens.contains_key(username)
+        };
+        if username.is_empty() || !movable(self) {
+            return Ok(false);
+        }
         self.update(|store| {
+            if !movable(store) {
+                return Ok(false);
+            }
             let app = store.resolve_app_mut(app_name);
-            app.unnamed_oauth2_token = Some(Token {
-                token_type: TokenType::Oauth2,
-                bearer: None,
-                oauth2: Some(OAuth2Token {
-                    access_token: access_token.to_string(),
-                    refresh_token: refresh_token.to_string(),
-                    expiration_time,
-                }),
-                oauth1: None,
-            });
-            Ok(())
+            if let Some(token) = app.unnamed_oauth2_token.take() {
+                app.oauth2_tokens.insert(username.to_string(), token);
+            }
+            Ok(true)
         })
     }
 
@@ -159,9 +259,46 @@ impl TokenStore {
                     token_secret: token_secret.to_string(),
                     consumer_key: consumer_key.to_string(),
                     consumer_secret: consumer_secret.to_string(),
+                    user_id: None,
                 }),
             });
             Ok(())
+        })
+    }
+
+    /// Records `user_id` as the account the named app's `OAuth1` access pair
+    /// belongs to, returning whether the store changed. As with
+    /// [`Self::set_oauth2_user_id_for_app`], the caller passes an id only
+    /// when `/2/users/me` answered under that pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn set_oauth1_user_id_for_app(&mut self, app_name: &str, user_id: &str) -> Result<bool> {
+        let current = self
+            .get_oauth1_tokens_for_app(app_name)
+            .and_then(|token| token.oauth1.as_ref());
+        match current {
+            None => return Ok(false),
+            Some(token) if token.user_id.as_deref() == Some(user_id) => return Ok(false),
+            Some(_) => {}
+        }
+        if user_id.is_empty() {
+            return Ok(false);
+        }
+        self.update(|store| {
+            let token = store
+                .resolve_app_mut(app_name)
+                .oauth1_token
+                .as_mut()
+                .and_then(|token| token.oauth1.as_mut());
+            match token {
+                Some(token) => {
+                    token.user_id = Some(user_id.to_string());
+                    Ok(true)
+                }
+                None => Ok(false),
+            }
         })
     }
 
@@ -189,14 +326,25 @@ impl TokenStore {
     /// Gets the default user's token, or the first `OAuth2` token from the named app.
     #[must_use]
     pub fn get_first_oauth2_token_for_app(&self, app_name: &str) -> Option<&Token> {
+        self.first_oauth2_user_for_app(app_name)
+            .map(|(_, token)| token)
+    }
+
+    /// The user a request with no username is sent as, and that user's
+    /// token: the default user when one is set and still holds a token,
+    /// else the first `OAuth2` user of the named app.
+    #[must_use]
+    pub fn first_oauth2_user_for_app(&self, app_name: &str) -> Option<(&str, &Token)> {
         let app = self.resolve_app(app_name);
-        // Prefer the default user if one is set and still has a token
         if !app.default_user.is_empty()
-            && let Some(token) = app.oauth2_tokens.get(&app.default_user)
+            && let Some((username, token)) = app.oauth2_tokens.get_key_value(&app.default_user)
         {
-            return Some(token);
+            return Some((username.as_str(), token));
         }
-        app.oauth2_tokens.values().next()
+        app.oauth2_tokens
+            .iter()
+            .next()
+            .map(|(username, token)| (username.as_str(), token))
     }
 
     /// Gets the unnamed (`/me`-failed salvage) `OAuth2` token from the named app.

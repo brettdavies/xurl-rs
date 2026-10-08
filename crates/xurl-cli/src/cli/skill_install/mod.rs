@@ -49,6 +49,7 @@
 use std::io::Write;
 
 use crate::cli::envelope::Reason;
+use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 
 mod destination;
@@ -148,6 +149,34 @@ pub struct InstallEnvelope {
     /// install` leaves it in place.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legacy_install_dir: Option<String>,
+    /// What to do about [`Self::reason`]; `None` on success.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<NextStep>,
+}
+
+impl InstallEnvelope {
+    /// Fills [`Self::next_step`] from the failure this envelope reports.
+    ///
+    /// A destination that already holds files is `skill update`'s to
+    /// replace, and a host with nothing installed is `skill install`'s to
+    /// fill, so those two name the sibling verb. A clone that failed is
+    /// tried again. The rest are the machine's state, which no `xr` command
+    /// changes.
+    fn with_next_step(mut self) -> Self {
+        let host = self.host;
+        self.next_step = self.reason.and_then(|reason| match reason {
+            "destination-not-empty" => {
+                Some(NextStep::run_command(format!("xr skill update {host}")))
+            }
+            REASON_NOT_INSTALLED => Some(NextStep::run_command(format!("xr skill install {host}"))),
+            "git-clone-failed" => Some(NextStep::retry(None)),
+            "home-not-set" | "destination-is-file" | "git-not-found" | "remove-failed" => {
+                Some(NextStep::fix_input(None))
+            }
+            _ => None,
+        });
+        self
+    }
 }
 
 /// Multi-host envelope for `--all` invocations.
@@ -187,7 +216,7 @@ pub fn compute_install_envelope(
     envelope.legacy_install_dir = skill_env
         .legacy_copy(host)
         .map(|path| path.display().to_string());
-    envelope
+    envelope.with_next_step()
 }
 
 fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -212,6 +241,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
                 legacy_install_dir: None,
+                next_step: None,
             };
         }
         Err(_) => unreachable!("expand_tilde_with only emits MissingHome"),
@@ -240,6 +270,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 exit_code: Some(1),
                 reason: Some(e.reason()),
                 legacy_install_dir: None,
+                next_step: None,
             };
         }
         Err(_) => unreachable!("check_destination only emits DestIsFile / DestNotEmpty"),
@@ -259,6 +290,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            next_step: None,
         };
     }
 
@@ -276,6 +308,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            next_step: None,
         },
         Err(InstallError::GitCloneFailed { code }) => InstallEnvelope {
             action: ACTION_INSTALL,
@@ -288,6 +321,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(code),
             reason: Some(InstallError::GitCloneFailed { code }.reason()),
             legacy_install_dir: None,
+            next_step: None,
         },
         Err(InstallError::GitNotFound) => InstallEnvelope {
             action: ACTION_INSTALL,
@@ -300,6 +334,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(1),
             reason: Some(InstallError::GitNotFound.reason()),
             legacy_install_dir: None,
+            next_step: None,
         },
         Err(_) => unreachable!("spawn_git_clone only emits GitCloneFailed / GitNotFound"),
     }
@@ -389,6 +424,7 @@ fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32
             "exit_code": 2,
             "message": "missing target host; pass <host> or --all",
             "known_hosts": KNOWN_HOSTS,
+            "next_step": NextStep::show_help("xr skill install --help".to_string()),
         });
         let _ = writeln!(stdout, "{}", render_structured(&json, &out.format));
     } else {

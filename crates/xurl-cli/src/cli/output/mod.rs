@@ -280,6 +280,29 @@ impl OutputConfig {
         }
     }
 
+    /// Prints an argument the command refused, with the help that answers
+    /// it. `reason` names the refusal when it has a name apart from the
+    /// error's kind.
+    pub(crate) fn print_refusal(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        reason: Option<Reason>,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        let exit_code = error.exit_code();
+        if !self.format.is_structured() {
+            self.print_error_with_hint(err, error, exit_code, hint);
+            return;
+        }
+        let mut body = error_body(error, exit_code);
+        body.next_step = Some(hint.next_step.clone());
+        if let Some(reason) = reason {
+            body.reason = reason;
+        }
+        self.emit_error_envelope(err, body);
+    }
+
     /// The one path every error envelope takes.
     ///
     /// ```text
@@ -429,6 +452,34 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
+    /// Emits the dry-run envelope of a command the credentials at hand
+    /// cannot serve: `would_succeed: false`, the exit code the real run
+    /// would end on, and the keys its error envelope would carry.
+    pub(crate) fn print_dry_run_refusal(&self, out: &mut dyn Write, ctx: &Value, error: &Error) {
+        // A dry run looks no id up, so a path it rendered would carry a
+        // stand-in. Without one the message names the endpoint's template.
+        let templated;
+        let error = match error {
+            Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
+                templated = Error::from(xdk::error::AuthMismatch {
+                    rendered_url: None,
+                    ..(**mismatch).clone()
+                });
+                &templated
+            }
+            other => other,
+        };
+        let exit_code = error.exit_code();
+        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        if let Value::Object(body) = error_body(error, exit_code).into_value() {
+            merged.extend(
+                body.into_iter()
+                    .filter(|(key, _)| key != "status" && key != "exit_code"),
+            );
+        }
+        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
+    }
+
     /// Prints a canonical confirmation-required error envelope.
     ///
     /// Emitted when a destructive op was invoked under `--no-interactive`
@@ -440,6 +491,7 @@ impl OutputConfig {
         err: &mut dyn Write,
         ctx: &serde_json::Value,
         exit_code: i32,
+        next_step: crate::cli::hints::NextStep,
     ) {
         let map = match ctx {
             serde_json::Value::Object(m) => m.clone(),
@@ -458,6 +510,7 @@ impl OutputConfig {
             oauth1: get_bool("oauth1"),
             oauth2_username: map.get("oauth2_username").cloned(),
             bearer: get_bool("bearer"),
+            next_step: Some(next_step),
             ..ErrorBody::default()
         };
         if self.format.is_structured() {

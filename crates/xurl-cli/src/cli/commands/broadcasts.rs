@@ -1,6 +1,8 @@
 //! The `broadcasts` family: the caller's broadcast chat moderators.
 
-use super::{Run, act_on_user, make_client, print_typed, with_flags};
+use serde_json::json;
+
+use super::{DryRun, Run, act_on_user, make_client, send_or_report, with_flags};
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands};
 use xdk::api::Client;
@@ -12,15 +14,17 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
                 let Run {
                     cfg,
                     auth,
+                    flags,
                     out,
                     stdout,
                     ..
                 } = run;
+                let dry_run = flags
+                    .dry_run
+                    .then(|| DryRun::new(json!({"command": "broadcasts-moderators-list"})));
                 let client = make_client(cfg, auth)?;
-                let response = with_flags(client.get_chat_moderators(), &common, None)
-                    .send()
-                    .await?;
-                print_typed(out, stdout, &response)?;
+                let call = with_flags(client.get_chat_moderators(), &common, None);
+                send_or_report(out, stdout, dry_run, call).await?;
             }
             ModeratorsCommands::Add {
                 target_username,

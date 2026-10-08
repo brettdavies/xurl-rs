@@ -55,6 +55,11 @@ pub struct OAuth1Token {
     pub consumer_key: String,
     /// `OAuth1` consumer secret, paired with [`Self::consumer_key`].
     pub consumer_secret: String,
+    /// The id of the X account the access pair belongs to, as
+    /// `/2/users/me` answered under it; `None` until such an answer has been
+    /// stored. Storing a new access pair starts again without one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 }
 
 /// `OAuth2` PKCE access + refresh token pair with expiration.
@@ -69,6 +74,12 @@ pub struct OAuth2Token {
     pub refresh_token: String,
     /// Unix epoch second at which [`Self::access_token`] expires.
     pub expiration_time: u64,
+    /// The id of the X account the token belongs to, as `/2/users/me`
+    /// answered under this token. It is written only beside the token it was
+    /// asked with, so it cannot name another account; `None` until such an
+    /// answer has been stored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 }
 
 /// Token-type discriminator carried alongside [`Token`].
@@ -162,6 +173,7 @@ impl std::fmt::Debug for OAuth1Token {
             .field("token_secret", &REDACTED)
             .field("consumer_key", &self.consumer_key)
             .field("consumer_secret", &REDACTED)
+            .field("user_id", &self.user_id)
             .finish()
     }
 }
@@ -172,6 +184,7 @@ impl std::fmt::Debug for OAuth2Token {
             .field("access_token", &REDACTED)
             .field("refresh_token", &REDACTED)
             .field("expiration_time", &self.expiration_time)
+            .field("user_id", &self.user_id)
             .finish()
     }
 }

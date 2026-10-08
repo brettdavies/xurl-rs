@@ -2,13 +2,17 @@ args: ["--output", "json", "--auth", "app", "search", "q500"]
 store: bearer-env
 exit_code: 1
 stdout_len: 0
-stderr_len: 139
+stderr_len: 262
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 1,
   "message": "{\"status\":500,\"title\":\"Internal Server Error\"}",
+  "next_step": {
+    "action": "retry",
+    "docs": "https://docs.x.com/x-api/fundamentals/response-codes-and-errors"
+  },
   "reason": "server-error",
   "status": "error"
 }

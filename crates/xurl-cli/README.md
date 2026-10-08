@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/xurl-rs.svg)](https://crates.io/crates/xurl-rs)
 [![CI](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml)
+[![agent-native](https://anc.dev/badge/xr.svg)](https://anc.dev/score/xr)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
 A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Agent-native.
@@ -327,6 +328,13 @@ moved into that directory by the first command that opens it. In text output the
 (`Migrated <old path> to <new path>`). The move is one-way, and `xr` 4.3.0 and earlier cannot read the directory, so
 upgrade every copy of `xr` that shares the store. A `~/.xurl` that is a symbolic link to a file is used where it points.
 
+Beside each login the store keeps the id of the X account it belongs to. `xr` writes it from `/2/users/me` answered
+under that login: at sign-in, at the refresh of a login that has none, on `xr whoami`, and on the first command that
+needs it. A command that acts as you (`like`, `follow`, `timeline`, `bookmarks`, and the rest of them) then reads the id
+from the store, where it asked X on every run. The id sits beside the credential it was asked with and goes when that
+credential is replaced, so it cannot name another account. A login stored without a username gets its name the same way.
+Someone else's handle is looked up every time, because a handle can pass to another account.
+
 Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending state (`<path>.pending`)
 follows it. The variable applies to the binary only: a program using `xdk` passes the path to
 `Auth::new_with_store_path` and builds its client with `Client::new`.
@@ -382,8 +390,9 @@ zero-app special case. Per-app fields:
 - `bearer`: boolean: a bearer token is available for this app, stored on it or supplied by `XURL_BEARER_TOKEN`.
 - `bearer_source`: only present when `bearer` is `true`: `store` or `env`.
 - `default`: boolean: this is the default app.
-- `oauth2_unnamed`: only present when `true`; indicates an unnamed-user OAuth2 token is stored after a refresh where
-  `/2/users/me` failed and no username was supplied.
+- `oauth2_unnamed`: only present when `true`; an OAuth2 login is stored without a username, because `/2/users/me` failed
+  at the sign-in or refresh that stored it. `xr whoami`, or the next command that asks X who you are, stores it under
+  the username X answers with.
 
 ```bash
 xr --output json auth status | jq '.apps[] | select(.default) | .name'
@@ -402,6 +411,46 @@ xr -q search "topic"                           # Short form
 xr whoami --no-interactive                     # Error instead of prompt
 # Exit code 77 with reason `auth-required` when no credentials are stored
 ```
+
+### Dry Runs
+
+`--dry-run` sends nothing and stores nothing, whichever command it is on: a write, a read, or a raw request with any
+method. It checks the inputs and the stored credentials offline, and answers at exit 0.
+
+```bash
+xr --output json --dry-run post "Hello"
+```
+
+```json
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "body": "Hello",
+  "command": "post",
+  "exit_code": 0,
+  "media_ids": [],
+  "status": "dry_run",
+  "would_succeed": true
+}
+```
+
+- `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
+  send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
+  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) apart from `next_step`: the
+  real run stops at the same point with nothing sent, and its envelope names the step.
+- `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
+  OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
+  belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
+  the credential is not checked, since nothing is sent to find out.
+- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
+  prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+
+A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
+answers as it always does. Text output prints the context without `status`, `would_succeed`, and `exit_code`.
 
 ### Structured Exit Codes
 
@@ -468,32 +517,66 @@ with nothing registered:
 ```
 
 `action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, `resume-wait`,
-`wait-and-retry`, and `show-help`, which carries the help to read: `xr post --help` for a usage error under `post`, and
-the help of the nearest command for a mistyped one (`xr auth status --help` for `xr auth statsu`). `reason` is closed
-too. A newer release can add to either set, so treat a value you do not recognize as your default branch. A step carries
-a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill, and never
-both. One whose recovery is not an `xr` invocation carries `docs` alone: `enroll-app`, `wait-and-retry`, and
-`inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need not
-match word for word.
+`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`, `run-command`, and `show-help`, which carries the
+help to read: `xr post --help` for a usage error under `post`, and the help of the nearest command for a mistyped one
+(`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat
+a value you do not recognize as your default branch. A step carries a `command`, runnable verbatim, or a `template` the
+caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
+fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
+carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
+and `inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need
+not match word for word.
 
 ### Which Errors Carry a Step
 
-| `reason`                     | `next_step.action`                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401    |
-| `client-credentials-missing` | `register-app` or `select-app`                                                            |
-| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold |
-| `invalid-args`               | `show-help`                                                                               |
-| `unknown-command`            | `show-help`                                                                               |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                      |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                             |
-| `processing-timeout`         | `resume-wait`                                                                             |
+| `reason`                     | `next_step.action`                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401                   |
+| `client-credentials-missing` | `register-app` or `select-app`                                                                           |
+| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise |
+| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                     |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                            |
+| `processing-timeout`         | `resume-wait`                                                                                            |
+| `invalid-args`               | `show-help`                                                                                              |
+| `unknown-command`            | `show-help`                                                                                              |
+| `invalid-method`             | `show-help`                                                                                              |
+| `invalid-url`                | `show-help`                                                                                              |
+| `invalid-path-param`         | `show-help`                                                                                              |
+| `unsupported-pagination`     | `show-help`                                                                                              |
+| `invalid-json`               | `show-help`                                                                                              |
+| `unknown-schema`             | `show-help`                                                                                              |
+| `missing-host`               | `show-help`                                                                                              |
+| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                          |
+| `no-tty`                     | `select-app`, as a template that takes the app's name                                                    |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                             |
+| `network-error`              | `retry`                                                                                                  |
+| `server-error`               | `retry`                                                                                                  |
+| `git-clone-failed`           | `retry`                                                                                                  |
+| `not-found`                  | `fix-input`                                                                                              |
+| `invalid-request`            | `fix-input`                                                                                              |
+| `validation-failed`          | `fix-input`                                                                                              |
+| `io`                         | `fix-input`                                                                                              |
+| `home-not-set`               | `fix-input`                                                                                              |
+| `destination-is-file`        | `fix-input`                                                                                              |
+| `remove-failed`              | `fix-input`                                                                                              |
+| `git-not-found`              | `fix-input`                                                                                              |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                  |
+| `not-installed`              | `run-command`: `xr skill install <host>`                                                                 |
+| `internal`                   | `report-issue`                                                                                           |
+| `serialization`              | `report-issue`                                                                                           |
+| `api-error`                  | `report-issue`                                                                                           |
 
-Every other reason carries no step, and its `message` is what there is to read: `auth-method-mismatch`, `not-found`,
-`invalid-request`, `server-error`, `api-error`, `network-error`, `invalid-method`, `invalid-url`, `invalid-path-param`,
-`validation`, `serialization`, `io`, `internal`, `confirmation-required`, `no-tty`, `unsupported-pagination`,
-`invalid-json`, `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`, `destination-not-empty`,
-`destination-is-file`, `git-not-found`, `git-clone-failed`, `not-installed`, and `remove-failed`.
+Every reason has a row. The five actions that are not about credentials or help read as follows.
+
+- `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
+- `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
+  `xr` command repairs it. `docs` names X's page on response codes for a 400, a 404, or a 422.
+- `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
+- `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
+  the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
+  accident.
+- `run-command`: one other command repairs this, and `command` is that invocation.
 
 ### NO_COLOR Support
 

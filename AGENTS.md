@@ -78,16 +78,25 @@ be loaded. It carries `docs`, the README section on recovering the file, and its
 names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
 step carries `docs` alone.
 
-Three actions answer failures that are not about credentials. `show-help` rides on reasons `invalid-args` and
-`unknown-command` (exit 2): `command` is the `xr <command> --help` the message closes on, the help of the nearest
-command when the word was mistyped. `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media
-processing reached its deadline with the job still running. The upload is intact, the envelope names it in `media_id`,
-and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry`
-rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the
-seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries
-`docs` and no command, because the request to send again is the caller's own. A 429 that names no reset carries neither
-key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
-`--rate-limit-max-wait` (60 seconds unless set).
+Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
+`invalid-args` and `unknown-command` (exit 2) and the refusals that exit 1 (`validation`, `invalid-url`,
+`invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`, `missing-host`):
+`command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
+`resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
+<media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry` rides on reason `rate-limited` (exit 3)
+when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
+passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
+send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
+does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+
+`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
+(`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
+invocation fails again until its input or the state it read changes. `report-issue` (`internal`, `serialization`,
+`api-error`) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
+invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
+deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
+`not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -100,6 +109,14 @@ at `~/.xurl` into the directory on the first command that opens it (`adopt_direc
 the move in text output. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
+
+Each OAuth2 login and each OAuth1 access pair carries `user_id`, the id of the account it belongs to. It is written only
+from `/2/users/me` answered under that credential (at sign-in, at the refresh of a login that lacks it, by `xr whoami`,
+and by the first command that resolves the caller's id), and a credential that replaces another starts without one, so
+the id cannot name another account. `resolve_my_user_id` in `crates/xurl-cli/src/cli/commands/mod.rs` reads it through
+`Call::auth_preflight` and sends the lookup only when it is absent. A refresh replaces the token where it is stored: the
+key is the caller's label for the login, which `xr auth oauth2 NAME` lets them choose. Another user's handle is never
+cached, since a handle can pass to another account.
 
 `xr auth status` is the operator-facing surface. Programmatic access uses `xdk::store::TokenStore`.
 
@@ -117,13 +134,23 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
-reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
-not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
-`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
-can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
-changes: add keys rather than renaming or retyping existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+`crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
+fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
+caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation that
+destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step. Prefer
+additive envelope changes: add keys rather than renaming or retyping existing ones.
+
+`--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
+`{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
+invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
+would end on, and a credential refusal carries the keys of its error envelope. `auth` names the credential the request
+would go out under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read
+offline: an expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The
+flag outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that
+would stop to ask.
 
 ## Shortcut commands
 
@@ -161,8 +188,11 @@ never the tests.
   engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
   `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
-  `list_for_user`. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
-  and the dry-run golden fixtures pin the envelope.
+  `list_for_user`. A verb that sends one request hands its call to `send_or_report`. Each of those answers `--dry-run`
+  with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's
+  arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request
+  or changes stored state under `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run
+  golden fixtures pin the envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that

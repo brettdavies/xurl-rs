@@ -20,6 +20,20 @@ const SUGGESTION_THRESHOLD: f64 = 0.7;
 /// The name every hint gives the binary, however it was invoked.
 pub(crate) const ROOT_COMMAND: &str = "xr";
 
+/// The help invocation of the command `args` names: `xr --help` for a raw
+/// request, `xr media alt-text --help` for a subcommand.
+pub(crate) fn invoked_help<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> String {
+    let mut path = vec![ROOT_COMMAND.to_string()];
+    if let Ok(matches) = Cli::command().try_get_matches_from(args.iter().map(AsRef::as_ref)) {
+        let mut current = &matches;
+        while let Some((name, sub)) = current.subcommand() {
+            path.push(name.to_string());
+            current = sub;
+        }
+    }
+    format!("{} --help", path.join(" "))
+}
+
 /// What an invocation is asking for, once clap has parsed it.
 pub(crate) enum Classified {
     /// Nothing to run: the root help answers it.

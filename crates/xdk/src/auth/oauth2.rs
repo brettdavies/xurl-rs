@@ -126,23 +126,21 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
 /// parse response, resolve the storage key, compute expiration, and save to
-/// the token store. The storage-key resolution mirrors
-/// [`refresh_oauth2_token`]'s three-branch shape:
+/// the token store. The storage key is resolved in three branches:
 ///
-/// - caller supplied non-empty `username` -> save under that username, skip
-///   `fetch_username` entirely;
-/// - caller supplied empty `username` and `fetch_username` succeeds -> save
-///   under the discovered name;
-/// - caller supplied empty `username` and `fetch_username` fails -> save into
-///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
-///   with a `tracing` warning so the access token isn't discarded
-///   along with the lookup failure.
+/// - caller supplied non-empty `username` -> save under that name, with no
+///   `/2/users/me` lookup;
+/// - caller supplied empty `username` and the lookup succeeds -> save under
+///   the username X answered with, with the account's id beside the token;
+/// - caller supplied empty `username` and the lookup fails -> save into the
+///   active app's unnamed (`/me`-failed salvage) slot and warn with a
+///   `tracing` warning, so the access token isn't discarded along with the
+///   lookup failure.
 ///
 /// # Errors
 ///
 /// Returns an error if the token-exchange request fails or the response is
-/// missing an access token. A `fetch_username` failure is warned, not
+/// missing an access token. A failed `/2/users/me` lookup is warned, not
 /// returned.
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
@@ -196,15 +194,21 @@ pub(crate) async fn exchange_code_for_token(
 
     let app_name = auth.app_name().to_string();
 
+    let mut token = OAuth2Token {
+        access_token: access_token.clone(),
+        refresh_token,
+        expiration_time,
+        user_id: None,
+    };
     if username.is_empty() {
-        match auth.fetch_username(http, &access_token).await {
-            Ok(discovered) => {
-                auth.token_store.save_oauth2_token_for_app(
+        match auth.fetch_identity(http, &access_token).await {
+            Ok(identity) => {
+                token.user_id = identity.user_id;
+                auth.token_store.put_oauth2_token(
                     &app_name,
-                    &discovered,
-                    &access_token,
-                    &refresh_token,
-                    expiration_time,
+                    Some(&identity.username),
+                    token,
+                    false,
                 )?;
             }
             Err(_) => {
@@ -212,22 +216,13 @@ pub(crate) async fn exchange_code_for_token(
                     target: "xdk::auth",
                     "token exchange succeeded but /2/users/me lookup failed; token stored under unnamed slot"
                 );
-                auth.token_store.save_oauth2_token_unnamed_for_app(
-                    &app_name,
-                    &access_token,
-                    &refresh_token,
-                    expiration_time,
-                )?;
+                auth.token_store
+                    .put_oauth2_token(&app_name, None, token, false)?;
             }
         }
     } else {
-        auth.token_store.save_oauth2_token_for_app(
-            &app_name,
-            username,
-            &access_token,
-            &refresh_token,
-            expiration_time,
-        )?;
+        auth.token_store
+            .put_oauth2_token(&app_name, Some(username), token, false)?;
     }
 
     // First-signed-in-app auto-default: if the user authenticated against a
@@ -459,16 +454,27 @@ pub async fn run_remote_step2(
 /// the active app, so a `--app NAME` invocation reads NAME's tokens rather
 /// than whichever app happens to be the default.
 pub(crate) fn stored_oauth2_token(auth: &Auth, username: &str) -> Option<OAuth2Token> {
-    let app_name = auth.app_name().to_string();
-    let token = if username.is_empty() {
-        auth.token_store
-            .get_first_oauth2_token_for_app(&app_name)
-            .or_else(|| auth.token_store.get_oauth2_token_unnamed_for_app(&app_name))
+    stored_oauth2_user(auth, username).map(|(_, token)| token)
+}
+
+/// [`stored_oauth2_token`] with the name the token is stored under, which is
+/// `None` for the unnamed slot.
+pub(crate) fn stored_oauth2_user(
+    auth: &Auth,
+    username: &str,
+) -> Option<(Option<String>, OAuth2Token)> {
+    let app_name = auth.app_name();
+    let store = &auth.token_store;
+    let (stored_as, token) = if username.is_empty() {
+        match store.first_oauth2_user_for_app(app_name) {
+            Some((name, token)) => (Some(name.to_string()), token),
+            None => (None, store.get_oauth2_token_unnamed_for_app(app_name)?),
+        }
     } else {
-        auth.token_store
-            .get_oauth2_token_for_app(&app_name, username)
+        let token = store.get_oauth2_token_for_app(app_name, username)?;
+        (Some(username.to_string()), token)
     };
-    token.and_then(|t| t.oauth2.clone())
+    token.oauth2.clone().map(|token| (stored_as, token))
 }
 
 /// Whether the stored expiry has passed.
@@ -550,18 +556,19 @@ pub(crate) async fn refresh_grant(
 /// Refreshes an `OAuth2` token if expired.
 ///
 /// The refresh-token POST result is the sole source of truth for "is the
-/// refresh successful". The refreshed access token is persisted in
-/// all three success branches:
+/// refresh successful". The new pair is minted from the stored one, so it
+/// replaces it where that one is stored, and keeps the account id stored
+/// beside it:
 ///
-/// - caller supplied non-empty `username` -> save under that username, skip
-///   `fetch_username` entirely;
-/// - caller supplied empty `username` and `fetch_username` succeeds -> save
-///   under the discovered name;
-/// - caller supplied empty `username` and `fetch_username` fails -> save into
-///   the active app's unnamed (`/me`-failed salvage) slot via
-///   [`crate::store::TokenStore::save_oauth2_token_unnamed_for_app`] and warn
-///   with a `tracing` warning (the persisted store state is the load-bearing
-///   observable).
+/// - a login stored under a name stays under that name, which is the
+///   caller's label for it and need not be the username X knows;
+/// - a login stored without a name is stored under the username X answers
+///   with, and the unnamed slot is emptied; when that lookup fails it stays
+///   in the unnamed slot, with a `tracing` warning.
+///
+/// `/2/users/me` is asked only for what the store lacks of the account: a
+/// name, or its id. A caller that supplies `username`, and a login that
+/// holds both, send the grant and nothing else.
 ///
 /// A refresh token is single-use, so an expired login is refreshed under
 /// the store's refresh lock (`<store>.refresh.lock`), held from before the
@@ -573,8 +580,8 @@ pub(crate) async fn refresh_grant(
 /// # Errors
 ///
 /// Returns an error when no cached token is found, the refresh lock cannot
-/// be taken, or the refresh-token POST itself fails. A `fetch_username`
-/// failure is warned, not returned.
+/// be taken, or the refresh-token POST itself fails. A failed `/2/users/me`
+/// lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -591,7 +598,7 @@ pub async fn refresh_oauth2_token(
     let _refresh_lock =
         RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
     auth.token_store.reload();
-    let oauth2 = stored_oauth2_token(auth, username)
+    let (stored_as, oauth2) = stored_oauth2_user(auth, username)
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     if !is_expired(&oauth2) {
         return Ok(oauth2.access_token.clone());
@@ -613,39 +620,51 @@ pub async fn refresh_oauth2_token(
         .unwrap_or_else(|| oauth2.refresh_token.clone());
 
     let app_name = auth.app_name().to_string();
-
-    if username.is_empty() {
-        match auth.fetch_username(http, &new_access_token).await {
-            Ok(discovered) => {
-                auth.token_store.save_oauth2_token_for_app(
+    // The new pair replaces the one it was minted from, where that one is
+    // stored, and keeps the account id stored with it: a refresh never
+    // changes whose token it is.
+    let mut token = OAuth2Token {
+        access_token: new_access_token.clone(),
+        refresh_token: new_refresh_token,
+        expiration_time,
+        user_id: oauth2.user_id.clone(),
+    };
+    // The lookup is for what the store does not hold of the account: its
+    // id, or a name for a login stored without one. A login that has both
+    // has nothing to ask X for: the id is the account's for good, and the
+    // name is the key the caller selects the login by.
+    let complete = stored_as.is_some() && token.user_id.is_some();
+    if username.is_empty() && complete {
+        auth.token_store
+            .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
+    } else if username.is_empty() {
+        match auth.fetch_identity(http, &new_access_token).await {
+            Ok(identity) => {
+                if identity.user_id.is_some() {
+                    token.user_id = identity.user_id;
+                }
+                let name = stored_as.as_deref().unwrap_or(&identity.username);
+                auth.token_store.put_oauth2_token(
                     &app_name,
-                    &discovered,
-                    &new_access_token,
-                    &new_refresh_token,
-                    expiration_time,
+                    Some(name),
+                    token,
+                    stored_as.is_none(),
                 )?;
             }
             Err(_) => {
-                tracing::warn!(
-                    target: "xdk::auth",
-                    "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
-                );
-                auth.token_store.save_oauth2_token_unnamed_for_app(
-                    &app_name,
-                    &new_access_token,
-                    &new_refresh_token,
-                    expiration_time,
-                )?;
+                if stored_as.is_none() {
+                    tracing::warn!(
+                        target: "xdk::auth",
+                        "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+                    );
+                }
+                auth.token_store
+                    .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
             }
         }
     } else {
-        auth.token_store.save_oauth2_token_for_app(
-            &app_name,
-            username,
-            &new_access_token,
-            &new_refresh_token,
-            expiration_time,
-        )?;
+        auth.token_store
+            .put_oauth2_token(&app_name, Some(username), token, false)?;
     }
 
     Ok(new_access_token)

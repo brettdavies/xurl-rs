@@ -982,11 +982,20 @@ pub struct Cli {
     )]
     pub color: ColorChoice,
 
-    /// Validate inputs and skip the API call.
+    /// Check inputs and credentials offline, and send nothing.
     ///
-    /// Honored by every write op; emits a canonical dry-run envelope on
-    /// stdout under `--output json` / `--output jsonl`, or a "Would …" line
-    /// under `--output text`. Read ops ignore it.
+    /// No request is sent and nothing stored changes, whichever command the
+    /// flag is on: a write, a read, or a raw request with any method. The
+    /// answer says whether the inputs are valid and whether a stored
+    /// credential serves each request the command would send:
+    /// `would_succeed`, with `reason` when it is false. `auth` names the
+    /// app and the scheme the request would go out under, and for an
+    /// `OAuth2` login the user and whether the token has expired. Whether X
+    /// still accepts that credential is not checked. The flag outranks
+    /// `--force` and the confirmation a destructive command asks for, and
+    /// `confirmation_required` marks a run that would stop to ask. A
+    /// structured `--output` prints the dry-run envelope on stdout; text
+    /// output prints the same context without the envelope's own keys.
     #[arg(
         long = "dry-run",
         global = true,
@@ -1061,6 +1070,7 @@ pub struct Cli {
     pub command: Option<Commands>,
 
     /// URL for raw mode (positional, only when no subcommand)
+    #[arg(value_hint = clap::ValueHint::Url)]
     pub url: Option<String>,
 }
 

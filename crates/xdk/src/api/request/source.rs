@@ -3,12 +3,24 @@
 //! code.
 
 use crate::api::auth_matrix::WireScheme;
-use crate::auth::{Auth, DirectCredentials};
+use crate::auth::{Auth, DirectCredentials, oauth2};
 use crate::error::Result;
 
 pub(crate) enum CredentialSource {
     Store(Auth),
     Direct(DirectCredentials),
+}
+
+/// The `OAuth2` token a request would be sent with, as far as the
+/// credentials at hand say without a refresh.
+pub(crate) struct OAuth2State {
+    /// The name the token is stored under; `None` for a token stored
+    /// without one and for a client built from credentials.
+    pub(crate) username: Option<String>,
+    /// Whether the access token has passed its expiry.
+    pub(crate) expired: bool,
+    /// The account id stored with the token, when one is.
+    pub(crate) user_id: Option<String>,
 }
 
 /// What scheme selection reads off the credentials at hand.
@@ -118,6 +130,52 @@ impl CredentialSource {
         }
     }
 
+    /// The app whose stored credential a request under `scheme` is sent
+    /// with: the active app. `None` for a bearer token the environment
+    /// supplied, which outranks every stored one and belongs to no stored
+    /// app, and for a client built from credentials.
+    pub(crate) fn credential_app(&self, scheme: WireScheme) -> Option<String> {
+        match self {
+            Self::Direct(_) => None,
+            Self::Store(auth) if scheme == WireScheme::App && auth.env_bearer_token_present() => {
+                None
+            }
+            Self::Store(_) => self.active_app().filter(|name| !name.is_empty()),
+        }
+    }
+
+    /// The account id stored with the active app's `OAuth1` access pair,
+    /// when one is.
+    pub(crate) fn oauth1_user_id(&self) -> Option<String> {
+        match self {
+            Self::Store(auth) => auth
+                .token_store
+                .get_oauth1_tokens_for_app(auth.app_name())
+                .and_then(|token| token.oauth1.as_ref())
+                .and_then(|token| token.user_id.clone()),
+            Self::Direct(_) => None,
+        }
+    }
+
+    /// The token an `OAuth2` request for `username` would use, or `None`
+    /// when the credentials hold none for it.
+    pub(crate) fn oauth2_state(&self, username: &str) -> Option<OAuth2State> {
+        match self {
+            Self::Store(auth) => {
+                oauth2::stored_oauth2_user(auth, username).map(|(username, token)| OAuth2State {
+                    username,
+                    expired: oauth2::is_expired(&token),
+                    user_id: token.user_id,
+                })
+            }
+            Self::Direct(direct) => direct.oauth2_expired().map(|expired| OAuth2State {
+                username: None,
+                expired,
+                user_id: None,
+            }),
+        }
+    }
+
     pub(crate) async fn refresh_oauth2_token(
         &mut self,
         http: &reqwest::Client,
@@ -130,13 +188,18 @@ impl CredentialSource {
     }
 }
 
-/// Schemes the active app stores, in preference order.
+/// Schemes the active app stores, in preference order. An `OAuth2` token
+/// stored without a name counts: a request that names no user is sent with
+/// it when the app holds no named one.
 fn stored_in_app(auth: &Auth, app_name: &str) -> Vec<WireScheme> {
     let store = &auth.token_store;
     WireScheme::ALL_BY_PREFERENCE
         .into_iter()
         .filter(|scheme| match scheme {
-            WireScheme::OAuth2 => store.get_first_oauth2_token_for_app(app_name).is_some(),
+            WireScheme::OAuth2 => {
+                store.get_first_oauth2_token_for_app(app_name).is_some()
+                    || store.get_oauth2_token_unnamed_for_app(app_name).is_some()
+            }
             WireScheme::OAuth1 => store.get_oauth1_tokens_for_app(app_name).is_some(),
             WireScheme::App => store.get_bearer_token_for_app(app_name).is_some(),
         })

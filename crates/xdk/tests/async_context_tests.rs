@@ -50,6 +50,7 @@ fn store_with_oauth2(tmp: &TempDir, expiration_time: u64) -> TokenStore {
                 access_token: "stale-access-token".to_string(),
                 refresh_token: "refresh-1".to_string(),
                 expiration_time,
+                user_id: None,
             }),
             oauth1: None,
         },

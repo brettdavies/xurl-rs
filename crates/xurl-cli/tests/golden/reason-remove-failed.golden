@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "update", "claude_code"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 354
+stdout_len: 402
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,10 @@ stderr_len: 0
   "destination_status": "non-empty-dir",
   "status": "error",
   "exit_code": 1,
-  "reason": "remove-failed"
+  "reason": "remove-failed",
+  "next_step": {
+    "action": "fix-input"
+  }
 }
 
 --- stderr ---

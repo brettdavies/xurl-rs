@@ -25,8 +25,9 @@ use crate::cli::envelope::Reason;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, CommonFlags};
+use xdk::api::auth_matrix::WireScheme;
 use xdk::api::shortcuts;
-use xdk::api::{self, Call, Client, RequestOptions, RequestTarget};
+use xdk::api::{self, AuthPreflight, Call, Client, RequestOptions, RequestTarget};
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
@@ -93,7 +94,25 @@ pub(super) enum Gate {
     ConfirmationRequired,
 }
 
+/// The dry-run context of a destructive command: `ctx`, with
+/// `confirmation_required` set when the invocation carries no `--force`.
+///
+/// `--dry-run` is answered before the confirmation gate, since nothing can be
+/// destroyed under it. The key tells the caller that the same invocation
+/// without the flag would stop to ask.
+pub(super) fn destructive_dry_run_context(
+    mut ctx: serde_json::Value,
+    force: bool,
+) -> serde_json::Value {
+    if !force {
+        ctx["confirmation_required"] = json!(true);
+    }
+    ctx
+}
+
 /// Gates a destructive op on `--force` / TTY confirmation.
+///
+/// Callers answer `--dry-run` before they reach this gate.
 ///
 /// Rules:
 /// - `--force` → proceed.
@@ -121,52 +140,118 @@ pub(super) fn gate_destructive(
     }
 }
 
-/// Validation+envelope helper used by every write handler.
+/// The id a dry run puts where the real run would have looked one up.
+/// Scheme selection reads a request's method and path template, never the
+/// id the path carries.
+const UNRESOLVED_ID: &str = "0";
+
+/// One request's credential, read without sending the request.
+type Credential = Result<Option<AuthPreflight>>;
+
+/// A dry run under way: the context its envelope carries, and the reason
+/// its inputs were refused, when they were.
+struct DryRun {
+    ctx: serde_json::Value,
+    invalid: Option<&'static str>,
+}
+
+impl DryRun {
+    /// The dry run of a command with no inputs to check offline.
+    fn new(ctx: serde_json::Value) -> Self {
+        Self { ctx, invalid: None }
+    }
+
+    /// Prints the answer. `would_succeed` is whether the inputs were valid
+    /// and every request the command would send finds a credential.
+    ///
+    /// `credentials` holds one entry per request, in the order the real run
+    /// sends them. The last is the request that does the command's work,
+    /// and its credential is the one the `auth` key reports. Whether X
+    /// still honors that credential is left to a real request.
+    fn answer(
+        self,
+        out: &OutputConfig,
+        stdout: &mut dyn Write,
+        credentials: impl IntoIterator<Item = Credential>,
+    ) {
+        let Self { mut ctx, invalid } = self;
+        if let Some(reason) = invalid {
+            ctx["reason"] = json!(reason);
+            out.print_dry_run(stdout, false, EXIT_GENERAL_ERROR, &ctx);
+            return;
+        }
+        let mut reported = None;
+        for credential in credentials {
+            match credential {
+                Ok(found) => reported = found,
+                Err(error) => {
+                    out.print_dry_run_refusal(stdout, &ctx, &error);
+                    return;
+                }
+            }
+        }
+        if let Some(found) = reported {
+            ctx["auth"] = credential_value(&found);
+        }
+        out.print_dry_run(stdout, true, 0, &ctx);
+    }
+}
+
+/// The `auth` object of a dry-run envelope. `app` is the app whose stored
+/// credential would be sent, absent for a bearer token the environment
+/// supplies. `username` and `token_expired` describe an `OAuth2` login, the
+/// one credential that has either.
+fn credential_value(found: &AuthPreflight) -> serde_json::Value {
+    let mut auth = json!({"scheme": found.scheme.as_wire()});
+    if let Some(app) = &found.app {
+        auth["app"] = json!(app);
+    }
+    if found.scheme == WireScheme::OAuth2 {
+        if let Some(username) = &found.username {
+            auth["username"] = json!(username);
+        }
+        auth["token_expired"] = json!(found.token_expired);
+    }
+    auth
+}
+
+/// Checks a write's inputs: `validator` answers `Ok(())` or a kebab-case
+/// reason.
 ///
-/// `validator` produces `Ok(())` for valid inputs or `Err(reason)` with a
-/// kebab-case reason. When `dry_run` is set the helper emits the canonical
-/// envelope and returns `false` (caller must skip the API call). When
-/// `dry_run` is false the helper returns `Ok(true)` (proceed).
-///
-/// Validation errors surface as either:
-///   - Dry-run envelope with `would_succeed: false` and the kebab-case
-///     reason when `dry_run` is true.
-///   - A `Error::validation` when `dry_run` is false (so the runtime
-///     path still rejects bad input).
+/// A real run with invalid inputs is refused here and one with valid inputs
+/// gets `None`. A dry run gets its [`DryRun`] either way, and carries a
+/// refusal to its answer as `would_succeed: false` with the reason.
 fn dry_run_or_validate(
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
     dry_run: bool,
     ctx: serde_json::Value,
     validator: impl FnOnce() -> std::result::Result<(), &'static str>,
-) -> Result<bool> {
-    let validation = validator();
+) -> CommandResult<Option<DryRun>> {
+    let invalid = validator().err();
     if dry_run {
-        match validation {
-            Ok(()) => out.print_dry_run(stdout, true, 0, &ctx),
-            Err(reason) => {
-                let mut ctx_with_reason = ctx
-                    .as_object()
-                    .cloned()
-                    .unwrap_or_else(serde_json::Map::new);
-                ctx_with_reason.insert(
-                    "reason".to_string(),
-                    serde_json::Value::String(reason.to_string()),
-                );
-                out.print_dry_run(
-                    stdout,
-                    false,
-                    1,
-                    &serde_json::Value::Object(ctx_with_reason),
-                );
-            }
-        }
-        return Ok(false);
+        return Ok(Some(DryRun { ctx, invalid }));
     }
-    if let Err(reason) = validation {
-        return Err(Error::validation(reason.to_string()));
+    match invalid {
+        Some(reason) => Err(Failure::refused(Error::validation(reason.to_string()))),
+        None => Ok(None),
     }
-    Ok(true)
+}
+
+/// Sends `call` and prints its typed response. Under `--dry-run` nothing is
+/// sent, and the answer names the credential the call would go out with.
+async fn send_or_report<T>(
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+    dry_run: Option<DryRun>,
+    call: Call<T>,
+) -> Result<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    if let Some(dry_run) = dry_run {
+        dry_run.answer(out, stdout, [call.auth_preflight().await]);
+        return Ok(());
+    }
+    print_typed(out, stdout, &call.send().await?)
 }
 
 /// Converts a typed response to Value and prints it.
@@ -235,14 +320,11 @@ pub(crate) async fn run(
     // Resolve cursor from --cursor or --after. --page is rejected upstream
     // because the X API does not offer offset-style pagination.
     if cli.page.is_some() {
-        out.print_error_envelope(
-            stderr,
-            Reason::UnsupportedPagination,
-            EXIT_GENERAL_ERROR,
-            "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
-        );
-        return Err(Failure::Emitted {
-            exit_code: EXIT_GENERAL_ERROR,
+        return Err(Failure::Refused {
+            error: Error::validation(
+                "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
+            ),
+            reason: Some(Reason::UnsupportedPagination),
         });
     }
     let flags = GlobalFlags {
@@ -271,9 +353,7 @@ pub(crate) async fn run(
             };
             run_subcommand(cmd, run).await
         }
-        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr)
-            .await
-            .map_err(Failure::from),
+        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr).await,
     }
 }
 
@@ -310,13 +390,13 @@ async fn run_raw_mode(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> Result<()> {
+) -> CommandResult<()> {
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
-        return Err(Error::validation(
-            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.",
-        ));
+        return Err(Failure::refused(Error::validation(
+            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND].",
+        )));
     };
 
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
@@ -333,9 +413,9 @@ async fn run_raw_mode(
     } else if url.starts_with('/') {
         format!("{}{}", cfg.api_base_url, url)
     } else {
-        return Err(Error::validation(format!(
+        return Err(Failure::refused(Error::validation(format!(
             "URL {url:?} must be an absolute http(s) URL or an absolute path starting with `/`."
-        )));
+        ))));
     };
     // Raw mode threads the (now absolute) URL through as a `RawUrl` target.
     // The matrix validator short-circuits for RawUrl; the
@@ -353,6 +433,14 @@ async fn run_raw_mode(
         trace: cli.trace,
     };
 
+    // A raw request is whatever the caller wrote, a write as readily as a
+    // read, so under `--dry-run` none is sent.
+    if cli.dry_run {
+        let ctx = json!({"method": options.method, "url": url});
+        DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
+        return Ok(());
+    }
+
     // Check for media append request
     if api::is_media_append_request(&absolute_url, &media_file) {
         let response = api::handle_media_append_request(&options, &media_file, &client).await?;
@@ -363,7 +451,8 @@ async fn run_raw_mode(
     let should_stream = cli.stream || api::is_streaming_endpoint(&absolute_url);
 
     if should_stream {
-        streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await
+        streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await?;
+        Ok(())
     } else {
         let response = client.send_request(&options).await?;
         // A body that is not JSON arrives as a string holding it. Text mode
@@ -449,29 +538,34 @@ fn with_flags<T: DeserializeOwned>(
     call
 }
 
+/// The request that resolves the caller's id.
+///
+/// With no `--username` it is `/2/users/me`, the default identity for the
+/// active credential. With one it is `/2/users/by/username/<u>`, so the
+/// shortcut works when `/me` is unavailable or when the caller wants to act
+/// under a known handle without consulting `/me`.
+fn my_id_call(client: &Client, common: &CommonFlags) -> Call<api::ApiResponse<api::User>> {
+    let call = match common.username.as_deref().filter(|u| !u.is_empty()) {
+        None => client.get_me(),
+        Some(username) => client.lookup_user(username),
+    };
+    with_flags(call, common, None)
+}
+
 /// Resolves the authenticated user's ID.
 ///
-/// With no `--username`, calls `/2/users/me` (the default identity for the
-/// active credential). With one, calls `/2/users/by/username/<u>` directly,
-/// bypassing `/me` so the shortcut works when `/me` is unavailable or when
-/// the caller wants to act under a known handle without consulting `/me`.
+/// The store holds it beside the login once `/2/users/me` has answered
+/// under that login, and an account's id never changes, so a stored id is
+/// used as it is and no request is sent. Without one the lookup is sent, and
+/// its answer is stored for the next command.
 async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<String> {
-    let id = match common.username.as_deref().filter(|u| !u.is_empty()) {
-        None => {
-            with_flags(client.get_me(), common, None)
-                .send()
-                .await?
-                .data
-                .id
-        }
-        Some(username) => {
-            with_flags(client.lookup_user(username), common, None)
-                .send()
-                .await?
-                .data
-                .id
-        }
-    };
+    let call = my_id_call(client, common);
+    if let Ok(Some(found)) = call.auth_preflight().await
+        && let Some(id) = found.user_id
+    {
+        return Ok(id);
+    }
+    let id = call.send_saving_identity().await?.data.id;
     if id.is_empty() {
         return Err(Error::auth("user ID was empty -- check your auth tokens"));
     }
@@ -483,6 +577,7 @@ async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<Str
 /// page size, and print the typed response.
 async fn list_for_user<T>(
     run: Run<'_>,
+    command: &str,
     max_results: Option<i32>,
     of: Option<&str>,
     common: &CommonFlags,
@@ -501,6 +596,27 @@ where
     } = run;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
+    if flags.dry_run {
+        let mut ctx = json!({"command": command});
+        if let Some(n) = max_results {
+            ctx["max_results"] = json!(n);
+        }
+        if let Some(target) = of {
+            ctx["of"] = json!(target);
+        }
+        let owner = match of {
+            Some(target) => user_id_call(&client, target, common),
+            None => my_id_call(&client, common),
+        };
+        let list = with_flags(
+            shortcut(&client, UNRESOLVED_ID, n),
+            common,
+            flags.cursor.as_deref(),
+        );
+        let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
+        DryRun::new(ctx).answer(out, stdout, credentials);
+        return Ok(());
+    }
     let user_id = match of {
         Some(target) => resolve_user_id(&client, target, common).await?,
         None => resolve_my_user_id(&client, common).await?,
@@ -521,7 +637,7 @@ async fn act_from_me_on_user<T>(
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -534,19 +650,29 @@ where
         ..
     } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         shortcuts::validate_target_username(target_username)
     })?;
-    if !proceed {
+    let client = make_client(cfg, auth)?;
+    if let Some(dry_run) = dry_run {
+        let act = shortcut(&client, UNRESOLVED_ID, UNRESOLVED_ID);
+        let credentials = [
+            my_id_call(&client, common).auth_preflight().await,
+            user_id_call(&client, target_username, common)
+                .auth_preflight()
+                .await,
+            with_flags(act, common, None).auth_preflight().await,
+        ];
+        dry_run.answer(out, stdout, credentials);
         return Ok(());
     }
-    let client = make_client(cfg, auth)?;
     let my_id = resolve_my_user_id(&client, common).await?;
     let target_id = resolve_user_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on another user without naming the caller: gate on the
@@ -557,7 +683,7 @@ async fn act_on_user<T>(
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -570,18 +696,27 @@ where
         ..
     } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         shortcuts::validate_target_username(target_username)
     })?;
-    if !proceed {
+    let client = make_client(cfg, auth)?;
+    if let Some(dry_run) = dry_run {
+        let act = shortcut(&client, UNRESOLVED_ID);
+        let credentials = [
+            user_id_call(&client, target_username, common)
+                .auth_preflight()
+                .await,
+            with_flags(act, common, None).auth_preflight().await,
+        ];
+        dry_run.answer(out, stdout, credentials);
         return Ok(());
     }
-    let client = make_client(cfg, auth)?;
     let target_id = resolve_user_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &target_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on a post from the caller's account: gate on the post
@@ -593,7 +728,7 @@ async fn act_from_me_on_post<T>(
     post_id: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -606,25 +741,37 @@ where
         ..
     } = run;
     let ctx = json!({"command": command, "post_id": post_id});
-    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
-        shortcuts::validate_post_id(post_id)
-    })?;
-    if !proceed {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || shortcuts::validate_post_id(post_id))?;
+    let client = make_client(cfg, auth)?;
+    if let Some(dry_run) = dry_run {
+        let act = shortcut(&client, UNRESOLVED_ID, post_id);
+        let credentials = [
+            my_id_call(&client, common).auth_preflight().await,
+            with_flags(act, common, None).auth_preflight().await,
+        ];
+        dry_run.answer(out, stdout, credentials);
         return Ok(());
     }
-    let client = make_client(cfg, auth)?;
     let my_id = resolve_my_user_id(&client, common).await?;
     let response = with_flags(shortcut(&client, &my_id, post_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
+}
+
+/// The request that resolves a username to a user id.
+fn user_id_call(
+    client: &Client,
+    username: &str,
+    common: &CommonFlags,
+) -> Call<api::ApiResponse<api::User>> {
+    with_flags(client.lookup_user(username), common, None)
 }
 
 /// Resolves a username to a user ID.
 async fn resolve_user_id(client: &Client, username: &str, common: &CommonFlags) -> Result<String> {
-    let resp = with_flags(client.lookup_user(username), common, None)
-        .send()
-        .await?;
+    let resp = user_id_call(client, username, common).send().await?;
     let id = &resp.data.id;
     if id.is_empty() {
         let clean = username.trim_start_matches('@');

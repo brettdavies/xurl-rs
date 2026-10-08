@@ -3,7 +3,7 @@ env: PATH={{SCRATCH}}/no-git
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 348
+stdout_len: 396
 stderr_len: 0
 --- stdout ---
 {
@@ -14,7 +14,10 @@ stderr_len: 0
   "destination_status": "absent",
   "status": "error",
   "exit_code": 1,
-  "reason": "git-not-found"
+  "reason": "git-not-found",
+  "next_step": {
+    "action": "fix-input"
+  }
 }
 
 --- stderr ---

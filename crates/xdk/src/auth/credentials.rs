@@ -145,6 +145,7 @@ impl DirectCredentials {
             token_secret: credential.token_secret.clone(),
             consumer_key: credential.consumer_key.clone(),
             consumer_secret: credential.consumer_secret.clone(),
+            user_id: None,
         };
         oauth1::build_oauth1_header(method, url, &token, None)
     }
@@ -158,6 +159,12 @@ impl DirectCredentials {
 
     pub(crate) fn has_oauth2(&self) -> bool {
         self.oauth2.is_some()
+    }
+
+    /// Whether the `OAuth2` credential has expired; `None` when the client
+    /// holds none.
+    pub(crate) fn oauth2_expired(&self) -> Option<bool> {
+        self.oauth2.as_ref().map(OAuth2Credential::is_expired)
     }
 
     pub(crate) fn unexpired_oauth2_access_token(&self) -> Option<String> {

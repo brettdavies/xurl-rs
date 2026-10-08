@@ -3,7 +3,7 @@
 
 use xdk::error::{
     EXIT_AUTH_MISMATCH, EXIT_AUTH_REQUIRED, EXIT_GENERAL_ERROR, EXIT_NETWORK_ERROR, EXIT_NOT_FOUND,
-    EXIT_RATE_LIMITED, EXIT_USAGE_ERROR, Error, exit_code_for_error,
+    EXIT_RATE_LIMITED, EXIT_USAGE_ERROR, Error, NextAction, exit_code_for_error,
 };
 
 #[test]
@@ -264,13 +264,27 @@ fn credential_failures_point_at_the_authentication_overview() {
 }
 
 #[test]
+fn an_api_refusal_points_at_the_response_code_reference() {
+    let docs = Some("https://docs.x.com/x-api/fundamentals/response-codes-and-errors");
+    for status in [400, 404, 422, 500, 503] {
+        assert_eq!(Error::api(status, "refused").docs_url(), docs, "{status}");
+    }
+}
+
+#[test]
+fn a_fault_of_the_library_points_at_the_issue_tracker() {
+    let docs = Some("https://github.com/brettdavies/xurl-rs/issues");
+    assert_eq!(Error::json("expected value").docs_url(), docs);
+    assert_eq!(Error::Internal("missing {id}".into()).docs_url(), docs);
+    assert_eq!(Error::api(418, "teapot").docs_url(), docs);
+}
+
+#[test]
 fn errors_without_a_documented_recovery_carry_no_pointer() {
     let undocumented = [
-        Error::api(500, "server error"),
         Error::api(403, "plain forbidden"),
         Error::http("connection refused"),
         Error::io("permission denied"),
-        Error::json("expected value"),
         Error::validation("missing field"),
         Error::token_store("corrupt yaml"),
         Error::InvalidMethod("bad method".into()),
@@ -279,10 +293,77 @@ fn errors_without_a_documented_recovery_carry_no_pointer() {
             name: "id".into(),
             value: "1/2".into(),
         },
-        Error::Internal("missing {id}".into()),
     ];
     for err in undocumented {
         assert_eq!(err.docs_url(), None, "{err:?}");
+    }
+}
+
+// ── next_action tests ──────────────────────────────────────────────
+
+/// A failure that is not the request's fault is one to send again.
+#[test]
+fn a_transport_failure_and_a_server_error_are_retried() {
+    assert_eq!(
+        Error::http("connection refused").next_action(),
+        Some(NextAction::Retry)
+    );
+    assert_eq!(
+        Error::api(503, "unavailable").next_action(),
+        Some(NextAction::Retry)
+    );
+}
+
+/// Sending the same input again gets the same refusal, so the input is what
+/// changes.
+#[test]
+fn a_refused_input_is_fixed_before_another_try() {
+    let refused = [
+        Error::api(400, "bad request"),
+        Error::api(404, "not found"),
+        Error::api(422, "unprocessable"),
+        Error::io("permission denied"),
+        Error::validation("missing field"),
+        Error::InvalidMethod("bad method".into()),
+        Error::invalid_url("ftp://example"),
+        Error::InvalidPathParam {
+            name: "id".into(),
+            value: "1/2".into(),
+        },
+    ];
+    for err in refused {
+        assert_eq!(err.next_action(), Some(NextAction::FixInput), "{err:?}");
+    }
+}
+
+/// A status the library has no reading of, a body it could not read, and a
+/// broken invariant are the library's to fix.
+#[test]
+fn a_fault_of_the_library_is_reported() {
+    let faults = [
+        Error::api(418, "teapot"),
+        Error::json("expected value"),
+        Error::Internal("missing {id}".into()),
+    ];
+    for err in faults {
+        assert_eq!(err.next_action(), Some(NextAction::ReportIssue), "{err:?}");
+    }
+}
+
+/// Which stored credential to use, and which app, is known to the caller
+/// that holds the store.
+#[test]
+fn a_credential_failure_leaves_the_step_to_the_caller() {
+    let callers = [
+        Error::auth("token expired"),
+        Error::api(401, "unauthorized"),
+        Error::api(403, "plain forbidden"),
+        Error::api(429, "slow down"),
+        Error::token_store("corrupt yaml"),
+        mismatch(Some("oauth1"), None, None),
+    ];
+    for err in callers {
+        assert_eq!(err.next_action(), None, "{err:?}");
     }
 }
 

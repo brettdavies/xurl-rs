@@ -3,6 +3,7 @@
 [![xdk-rs on crates.io](https://img.shields.io/crates/v/xdk-rs.svg?label=xdk-rs)](https://crates.io/crates/xdk-rs)
 [![xurl-rs on crates.io](https://img.shields.io/crates/v/xurl-rs.svg?label=xurl-rs)](https://crates.io/crates/xurl-rs)
 [![CI](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml)
+[![agent-native](https://anc.dev/badge/xr.svg)](https://anc.dev/score/xr)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
 Two crates for the X (Twitter) API v2, in one repository:

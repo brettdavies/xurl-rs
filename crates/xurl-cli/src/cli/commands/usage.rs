@@ -1,6 +1,8 @@
 //! The `usage` family: the account's API usage, and its credit breakdown.
 
-use super::{Run, make_client, print_typed, with_flags};
+use serde_json::json;
+
+use super::{DryRun, Run, make_client, send_or_report, with_flags};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, UsageCommands};
 
@@ -12,21 +14,25 @@ pub(super) async fn run(
     let Run {
         cfg,
         auth,
+        flags,
         out,
         stdout,
         ..
     } = run;
+    let dry_run = |command: &str| {
+        flags
+            .dry_run
+            .then(|| DryRun::new(json!({"command": command})))
+    };
     let client = make_client(cfg, auth)?;
     match target {
         Some(UsageCommands::Credits { common }) => {
-            let response = with_flags(client.get_usage_credits(), &common, None)
-                .send()
-                .await?;
-            print_typed(out, stdout, &response)?;
+            let call = with_flags(client.get_usage_credits(), &common, None);
+            send_or_report(out, stdout, dry_run("usage-credits"), call).await?;
         }
         None => {
-            let response = with_flags(client.get_usage(), common, None).send().await?;
-            print_typed(out, stdout, &response)?;
+            let call = with_flags(client.get_usage(), common, None);
+            send_or_report(out, stdout, dry_run("usage"), call).await?;
         }
     }
     Ok(())

@@ -27,11 +27,6 @@ use common::{
 /// Every sanctioned process-environment mutation in the integration suite.
 const ALLOWLIST: &[Allowed] = &[
     Allowed {
-        file: "crates/xurl-cli/tests/cli_tests.rs",
-        test: "test_xurl_dry_run_env_var_engages_dry_run",
-        reason: "clap binds --dry-run to XURL_DRY_RUN at parse time; EnvOverrides cannot reach that binding",
-    },
-    Allowed {
         file: "crates/xdk/tests/auth_tests.rs",
         test: "test_redirect_uri_env_wins_via_new_with_store_path",
         reason: "proves the env-reading Auth constructor shim still reads the process",

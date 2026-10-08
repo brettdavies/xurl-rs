@@ -2,9 +2,10 @@ args: ["--auth", "app", "whoami"]
 store: bearer-env
 exit_code: 2
 stdout_len: 0
-stderr_len: 164
+stderr_len: 282
 --- stdout ---
 
 --- stderr ---
 Error: No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2 --app .
+Register an app first. Run: <secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -
 
