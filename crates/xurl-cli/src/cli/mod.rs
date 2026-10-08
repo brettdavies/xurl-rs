@@ -1176,7 +1176,8 @@ pub enum Commands {
     /// Show your recent mentions
     #[command(after_help = MENTIONS_HELP)]
     Mentions {
-        /// Number of results (5-100). Overrides global `--limit` when set.
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1252,7 +1253,8 @@ pub enum Commands {
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (5-100). Overrides global `--limit` when set.
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.

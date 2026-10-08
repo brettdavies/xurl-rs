@@ -441,8 +441,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (mentions)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
@@ -763,8 +763,8 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (likes)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (5-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
 '--username=[\`OAuth2\` username to act as]:USERNAME:_default' \

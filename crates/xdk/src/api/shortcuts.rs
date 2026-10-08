@@ -575,7 +575,11 @@ impl Client {
     }
 
     /// Fetches recent mentions.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
     pub fn get_mentions(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
         self.call(
             endpoints::GET_MENTIONS.method,
             template(
@@ -764,7 +768,11 @@ impl Client {
     }
 
     /// Fetches posts liked by a user.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
     pub fn get_liked_posts(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
         self.call(
             endpoints::GET_LIKED_POSTS.method,
             template(

@@ -381,8 +381,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;mentions' {
-            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
@@ -625,8 +625,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;likes' {
-            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')

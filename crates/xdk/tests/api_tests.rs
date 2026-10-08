@@ -15,7 +15,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use std::collections::HashMap;
 
-use xdk::api::auth_matrix::WireScheme;
+use xdk::api::auth_matrix::{Endpoint, WireScheme, endpoints};
 use xdk::api::{
     self, Client, RequestOptions, RequestTarget, extract_media_id, extract_segment_index,
     is_media_append_request, is_streaming_endpoint,
@@ -23,6 +23,8 @@ use xdk::api::{
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::store::{App, OAuth1Token, OAuth2Token, Token, TokenStore, TokenType};
+
+mod common;
 
 // ── Mock server helper ─────────────────────────────────────────────────
 
@@ -889,6 +891,75 @@ async fn test_search_posts() {
 
     let resp = client.search_posts("golang", 10).send().await.unwrap();
     assert_eq!(resp.meta.as_ref().unwrap().result_count, Some(1));
+}
+
+/// The `max_results` range the vendored spec declares for `endpoint`.
+fn spec_count_range(spec: &serde_json::Value, endpoint: &Endpoint) -> (i64, i64) {
+    let schema = spec["paths"][endpoint.path][endpoint.method.to_lowercase()]["parameters"]
+        .as_array()
+        .and_then(|params| params.iter().find(|param| param["name"] == "max_results"))
+        .map(|param| &param["schema"])
+        .unwrap_or_else(|| panic!("{} declares no max_results", endpoint.path));
+    (
+        schema["minimum"].as_i64().expect("a minimum"),
+        schema["maximum"].as_i64().expect("a maximum"),
+    )
+}
+
+/// X answers 400 to a `max_results` outside the range it documents, so a list
+/// shortcut whose endpoint has a floor above 1 sends the nearest count inside
+/// it. The ranges come from the vendored spec, so a spec refresh that moves
+/// one fails here.
+#[tokio::test]
+async fn a_list_shortcut_sends_a_count_inside_the_range_x_documents() {
+    let spec = common::load_spec();
+    let ts = TestServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path_regex("^/2/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": [], "meta": {"result_count": 0}})),
+            ),
+    )
+    .await;
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let client = Client::new(&cfg, auth).expect("client builds");
+
+    for endpoint in [
+        endpoints::SEARCH_POSTS,
+        endpoints::GET_MENTIONS,
+        endpoints::GET_LIKED_POSTS,
+    ] {
+        let (min, max) = spec_count_range(&spec, &endpoint);
+        for (asked, expected) in [(1, min), (1000, max)] {
+            let call = match endpoint.path {
+                path if path == endpoints::SEARCH_POSTS.path => client.search_posts("q", asked),
+                path if path == endpoints::GET_MENTIONS.path => client.get_mentions("42", asked),
+                _ => client.get_liked_posts("42", asked),
+            };
+            call.send().await.expect("the mock answers every list");
+            let requests = ts
+                .server
+                .received_requests()
+                .await
+                .expect("recording is on");
+            let sent = requests
+                .last()
+                .expect("one request")
+                .url
+                .query_pairs()
+                .find(|(key, _)| key == "max_results")
+                .map(|(_, value)| value.into_owned());
+            assert_eq!(
+                sent,
+                Some(expected.to_string()),
+                "{} asked for {asked}",
+                endpoint.path
+            );
+        }
+    }
 }
 
 /// Threads `Call::pagination_token` through to the

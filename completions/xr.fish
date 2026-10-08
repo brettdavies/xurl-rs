@@ -436,7 +436,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand mentions" -s n -l max-results -d 'Number of results (5-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -726,7 +726,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l json -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (5-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
