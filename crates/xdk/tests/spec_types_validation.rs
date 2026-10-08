@@ -26,8 +26,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    DmEvent, MediaMetadataResult, MediaSubtitlesResult, Post, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookValidation,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, DmEvent, MediaMetadataResult,
+    MediaSubtitlesResult, Post, SubscribedResult, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookValidation,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -195,6 +196,18 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateWebhookReplayJobResponseData",
             serde_json::to_value(schemars::schema_for!(WebhookReplayJob)).unwrap(),
+        ),
+        (
+            "GetAccountActivitySubscriptionCountResponseData",
+            serde_json::to_value(schemars::schema_for!(AccountActivitySubscriptionCount)).unwrap(),
+        ),
+        (
+            "GetAccountActivitySubscriptionsResponseData",
+            serde_json::to_value(schemars::schema_for!(AccountActivitySubscriptions)).unwrap(),
+        ),
+        (
+            "CreateAccountActivitySubscriptionResponseData",
+            serde_json::to_value(schemars::schema_for!(SubscribedResult)).unwrap(),
         ),
     ];
 

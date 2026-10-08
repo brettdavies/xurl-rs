@@ -672,6 +672,19 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-user-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "subscriptions",
+                "remove",
+                "1146654567674912769",
+                "@someone",
+            ],
+        ),
+        case(
             "dry-run-invalid-replay-time",
             &[
                 "--output",

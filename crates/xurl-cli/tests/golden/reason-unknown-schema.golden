@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 860
+stderr_len: 972
 --- stdout ---
 
 --- stderr ---
@@ -33,9 +33,12 @@ stderr_len: 860
     "webhook",
     "webhooks",
     "webhook-validation",
-    "webhook-replay"
+    "webhook-replay",
+    "subscription-count",
+    "subscriptions",
+    "subscribed"
   ],
-  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay or omit --schema for auto-detection",
+  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay, subscription-count, subscriptions, subscribed or omit --schema for auto-detection",
   "next_step": {
     "action": "show-help",
     "command": "xr validate --help"

@@ -1,22 +1,22 @@
-args: ["validate", "--help"]
+args: ["webhooks", "subscriptions", "count", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7759
+stdout_len: 6834
 stderr_len: 0
 --- stdout ---
-Validate a JSON document against a bundled response schema.
+Count the subscriptions the app holds and may hold
 
-Reads JSON from stdin (when no file argument is given or `-` is passed) or from the supplied file, deserializes it into the requested typed response, and emits an `ok` / `validation-failed` envelope. Use `--schema` to pin a specific shape (e.g. `post`, `user`); without it the command auto-detects from the top-level shape.
-
-Usage: xr validate [OPTIONS] [FILE]
-
-Arguments:
-  [FILE]
-          File path to read JSON from. Pass `-` or omit to read from stdin
+Usage: xr webhooks subscriptions count [OPTIONS]
 
 Options:
-      --schema <NAME>
-          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`). Omit for auto-detection
+      --auth <AUTH_TYPE>
+          Authentication type (oauth1, oauth2, app)
+
+  -u, --username <USERNAME>
+          `OAuth2` username to act as
+
+  -t, --trace
+          Add X-B3-Flags trace header
 
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
@@ -154,14 +154,10 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Read JSON from stdin (no file argument):
-    cat post.json | xr validate --output json
-  Same, written as `xr validate -` for explicit stdin:
-    cat post.json | xr validate - --schema post --output json
-  Validate a file against a specific schema:
-    xr validate posts.json --schema posts --output json
-  Validate the canonical xurl error envelope:
-    echo '{"status":"error","reason":"x","exit_code":1,"message":"y"}' | xr validate --schema envelope --output json
+  How many subscriptions the app holds and may hold (text):
+    xr webhooks subscriptions count
+  As a JSON envelope:
+    xr webhooks subscriptions count --output json
 
 --- stderr ---
 

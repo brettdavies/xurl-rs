@@ -1,7 +1,8 @@
-//! `xr webhooks` reaches the webhook management endpoints through the
-//! runner: each verb sends the request the spec gives its endpoint and prints
-//! the typed response, `remove` asks before it deletes, an argument the spec
-//! refuses is refused offline, and `replay` needs a bearer.
+//! `xr webhooks` reaches the webhook management and Account Activity
+//! subscription endpoints through the runner: each verb sends the request the
+//! spec gives its endpoint and prints the typed response, a `remove` asks
+//! before it deletes, an argument the spec refuses is refused offline, and an
+//! endpoint that takes one kind of credential is refused the other.
 
 mod common;
 
@@ -345,5 +346,285 @@ async fn replay_without_a_bearer_is_an_auth_mismatch() {
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "auth-method-mismatch");
     assert_eq!(envelope["supported"], serde_json::json!(["app"]));
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+// ── Account Activity subscriptions ───────────────────────────────────
+
+const USER_ID: &str = "2244994945";
+
+#[tokio::test]
+async fn subscriptions_count_prints_the_apps_counts() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/account_activity/subscriptions/count"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "account_name": "example-app",
+                "provisioned_count": "15",
+                "subscriptions_count_all": "2",
+                "subscriptions_count_direct_messages": "0"
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["webhooks", "subscriptions", "count", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["subscriptions_count_all"], "2");
+}
+
+#[tokio::test]
+async fn subscriptions_list_prints_the_subscribed_users() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/all/list"
+        )))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "application_id": "32371675",
+                "webhook_id": WEBHOOK_ID,
+                "webhook_url": "https://example.com/webhooks/x",
+                "subscriptions": [{"user_id": USER_ID}]
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "subscriptions",
+            "list",
+            WEBHOOK_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["subscriptions"][0]["user_id"], USER_ID);
+}
+
+#[tokio::test]
+async fn subscriptions_add_subscribes_the_signed_in_account() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/all"
+        )))
+        .and(body_json(serde_json::json!({})))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"subscribed": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "subscriptions",
+            "add",
+            WEBHOOK_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["subscribed"], true);
+}
+
+#[tokio::test]
+async fn subscriptions_check_asks_whether_the_signed_in_account_is_subscribed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/all"
+        )))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"subscribed": false}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "subscriptions",
+            "check",
+            WEBHOOK_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["subscribed"], false);
+}
+
+#[tokio::test]
+async fn subscriptions_add_with_only_a_bearer_is_an_auth_mismatch() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_bearer_token_for_app("myapp", "BEARER-TOKEN")
+        .expect("save bearer");
+    ts.set_default_app("myapp").expect("set_default_app");
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "subscriptions",
+            "add",
+            WEBHOOK_ID,
+        ],
+    )
+    .await;
+
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "auth-method-mismatch");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn subscriptions_remove_without_force_asks_first_and_deletes_nothing() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--no-interactive",
+            "--output",
+            "json",
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            USER_ID,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "confirmation-required");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn subscriptions_remove_with_force_unsubscribes_the_user() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/{USER_ID}/all"
+        )))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"subscribed": false}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            USER_ID,
+            "--force",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["subscribed"], false);
+}
+
+#[tokio::test]
+async fn subscriptions_remove_refuses_a_user_id_that_is_not_digits() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            "@someone",
+            "--force",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "validation");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("invalid-user-id")),
+        "{envelope}"
+    );
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
