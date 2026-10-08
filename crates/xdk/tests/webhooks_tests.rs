@@ -315,3 +315,66 @@ fn validate_user_id_holds_the_specs_pattern() {
     assert_eq!(validate_user_id("@someone"), Err("invalid-user-id"));
     assert_eq!(validate_user_id(&"9".repeat(20)), Err("invalid-user-id"));
 }
+
+// ── Filtered-stream links ────────────────────────────────────────────
+
+#[tokio::test]
+async fn create_webhook_stream_link_posts_to_the_webhook() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/2/tweets/search/webhooks/{WEBHOOK_ID}")))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data": {"provisioned": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = app_client(server.uri())
+        .create_webhook_stream_link(WEBHOOK_ID)
+        .send()
+        .await
+        .expect("the stream is linked");
+
+    assert!(result.data.provisioned);
+}
+
+#[tokio::test]
+async fn get_webhook_stream_links_lists_where_the_stream_delivers() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/webhooks"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [{"webhook_id": WEBHOOK_ID, "instance_id": "1", "fields": ["created_at"]}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = app_client(server.uri())
+        .get_webhook_stream_links()
+        .send()
+        .await
+        .expect("links are listed");
+
+    assert_eq!(result.data[0].webhook_id.as_deref(), Some(WEBHOOK_ID));
+}
+
+#[tokio::test]
+async fn delete_webhook_stream_link_deletes_the_link() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path(format!("/2/tweets/search/webhooks/{WEBHOOK_ID}")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {"deleted": true}})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = app_client(server.uri())
+        .delete_webhook_stream_link(WEBHOOK_ID)
+        .send()
+        .await
+        .expect("the link is deleted");
+
+    assert!(result.data.deleted);
+}

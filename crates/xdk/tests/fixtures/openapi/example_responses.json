@@ -342,5 +342,24 @@
     "data": {
       "subscribed": false
     }
+  },
+  "webhook_stream_links": {
+    "data": [
+      {
+        "application_id": "32371675",
+        "business_user_id": "2244994945",
+        "instance_id": "1",
+        "webhook_id": "1146654567674912769",
+        "fields": [
+          "created_at"
+        ],
+        "created_at": "2026-01-15T12:00:00.000Z"
+      }
+    ]
+  },
+  "webhook_stream_link_provisioned": {
+    "data": {
+      "provisioned": true
+    }
   }
 }

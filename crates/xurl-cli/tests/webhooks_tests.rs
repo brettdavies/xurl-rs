@@ -628,3 +628,153 @@ async fn subscriptions_remove_refuses_a_user_id_that_is_not_digits() {
     );
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+// ── Filtered-stream links ────────────────────────────────────────────
+
+#[tokio::test]
+async fn stream_links_list_prints_the_webhooks_the_filtered_stream_delivers_to() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/tweets/search/webhooks"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{
+                "application_id": "32371675",
+                "business_user_id": USER_ID,
+                "instance_id": "1",
+                "webhook_id": WEBHOOK_ID,
+                "fields": ["created_at"],
+                "created_at": "2026-01-15T12:00:00.000Z"
+            }]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["webhooks", "stream-links", "list", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"][0]["webhook_id"], WEBHOOK_ID);
+}
+
+#[tokio::test]
+async fn stream_links_add_links_the_filtered_stream_to_the_webhook() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/2/tweets/search/webhooks/{WEBHOOK_ID}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"provisioned": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "stream-links",
+            "add",
+            WEBHOOK_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["provisioned"], true);
+}
+
+#[tokio::test]
+async fn stream_links_remove_without_force_asks_first_and_deletes_nothing() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--no-interactive",
+            "--output",
+            "json",
+            "webhooks",
+            "stream-links",
+            "remove",
+            WEBHOOK_ID,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "confirmation-required");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn stream_links_remove_with_force_unlinks_the_webhook() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path(format!("/2/tweets/search/webhooks/{WEBHOOK_ID}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"deleted": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "stream-links",
+            "remove",
+            WEBHOOK_ID,
+            "--force",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["data"]["deleted"], true);
+}
+
+#[tokio::test]
+async fn stream_links_need_a_bearer() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["--output", "json", "webhooks", "stream-links", "list"],
+    )
+    .await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "auth-method-mismatch");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}

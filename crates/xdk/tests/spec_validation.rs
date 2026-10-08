@@ -24,8 +24,8 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, Post, RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookValidation,
+    MutingResult, Post, ProvisionedResult, RepostedResult, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -457,6 +457,25 @@ fn spec_account_activity_unsubscribed() {
 }
 
 #[test]
+fn spec_webhook_stream_links() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<WebhookStreamLink>> =
+        serde_json::from_value(examples["webhook_stream_links"].clone()).unwrap();
+    assert_eq!(
+        resp.data[0].webhook_id.as_deref(),
+        Some("1146654567674912769")
+    );
+}
+
+#[test]
+fn spec_webhook_stream_link_provisioned() {
+    let examples = load_examples();
+    let resp: ApiResponse<ProvisionedResult> =
+        serde_json::from_value(examples["webhook_stream_link_provisioned"].clone()).unwrap();
+    assert!(resp.data.provisioned);
+}
+
+#[test]
 fn spec_media_metadata() {
     let examples = load_examples();
     let resp: ApiResponse<MediaMetadataResult> =
@@ -589,6 +608,16 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "account_activity_unsubscribed",
         endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_stream_links",
+        endpoints::GET_WEBHOOK_STREAM_LINKS,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_stream_link_provisioned",
+        endpoints::CREATE_WEBHOOK_STREAM_LINK,
         ReplyKind::Success,
     ),
     (

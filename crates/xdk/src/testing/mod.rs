@@ -324,6 +324,21 @@ const ROUTES: &[Route] = &[
         fixture: "account_activity_unsubscribed",
         status: 200,
     },
+    Route {
+        endpoint: endpoints::GET_WEBHOOK_STREAM_LINKS,
+        fixture: "webhook_stream_links",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK_STREAM_LINK,
+        fixture: "webhook_stream_link_provisioned",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_WEBHOOK_STREAM_LINK,
+        fixture: "action_deleted",
+        status: 200,
+    },
 ];
 
 /// The regex that matches the paths `path` renders to: a `{username}`

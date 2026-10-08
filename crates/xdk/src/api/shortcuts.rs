@@ -16,9 +16,9 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, RepostedResult,
-    SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookValidation,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
+    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -1231,6 +1231,46 @@ impl Client {
                     ("webhook_id".to_string(), webhook_id.to_string()),
                     ("user_id".to_string(), user_id.to_string()),
                 ]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the webhooks the app's filtered stream delivers to.
+    pub fn get_webhook_stream_links(&self) -> Call<ApiResponse<Vec<WebhookStreamLink>>> {
+        self.call(
+            endpoints::GET_WEBHOOK_STREAM_LINKS.method,
+            template(
+                endpoints::GET_WEBHOOK_STREAM_LINKS.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Links the app's filtered stream to a webhook, so each post that
+    /// matches the stream's rules is delivered there. X bills each delivery.
+    pub fn create_webhook_stream_link(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<ProvisionedResult>> {
+        self.call(
+            endpoints::CREATE_WEBHOOK_STREAM_LINK.method,
+            template(
+                endpoints::CREATE_WEBHOOK_STREAM_LINK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Ends delivery of the app's filtered stream to a webhook.
+    pub fn delete_webhook_stream_link(&self, webhook_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_WEBHOOK_STREAM_LINK.method,
+            template(
+                endpoints::DELETE_WEBHOOK_STREAM_LINK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
                 Vec::new(),
             ),
         )
