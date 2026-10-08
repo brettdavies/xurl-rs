@@ -62,7 +62,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '-V[Print version]' \
 '--version[Print version]' \
-'::url -- URL for raw mode (positional, only when no subcommand):_default' \
+'::url -- URL for raw mode (positional, only when no subcommand):_urls' \
 ":: :_xr_commands" \
 "*::: :->xr" \
 && ret=0
