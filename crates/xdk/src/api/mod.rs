@@ -36,7 +36,7 @@ pub use response::types::{
     DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaMetadataResult,
     MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
     PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData, UsageData,
-    User, UserPublicMetrics, deserialize_response,
+    User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookValidation, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
