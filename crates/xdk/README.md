@@ -61,11 +61,11 @@ bearer order. Four paths:
   the hook is where the new pair gets persisted; a hook that returns an error fails the call that triggered the refresh.
 - **OAuth1 HMAC-SHA1**: an `OAuth1Credential` with the consumer pair and the user's access pair, for legacy v1.1
   endpoints and some v2 write paths.
-- **The token store**: `Client::new(&Config, Auth)` or `Client::from_env()` builds a client over the `~/.xurl` store the
-  `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2` with nothing exported; `from_env` also
-  reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, and
-  `XURL_BEARER_TOKEN` when they are set. `TokenStore::refresh_hook_for` is the reference implementation of the refresh
-  hook.
+- **The token store**: `Client::new(&Config, Auth)` or `Client::from_env()` builds a client over the `~/.xurl/auth.yml`
+  store the `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2` with nothing exported;
+  `from_env` also reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`,
+  `INFO_URL`, and `XURL_BEARER_TOKEN` when they are set. `TokenStore::refresh_hook_for` is the reference implementation
+  of the refresh hook.
 
 ```rust,no_run
 use std::time::{Duration, SystemTime};
@@ -246,8 +246,8 @@ CLI takes across its majors are written up under
 
 `xr` ([`xurl-rs`](https://crates.io/crates/xurl-rs)) is the command-line tool built on this crate and an independent
 Rust port of [`xdevplatform/xurl`](https://github.com/xdevplatform/xurl), X's own Go CLI. The two crates share the
-`~/.xurl` token store, so a sign-in done with `xr auth oauth2` is usable from a program through `Client::from_env()`.
-The repository's [README](https://github.com/brettdavies/xurl-rs#readme) routes between the two.
+`~/.xurl/auth.yml` token store, so a sign-in done with `xr auth oauth2` is usable from a program through
+`Client::from_env()`. The repository's [README](https://github.com/brettdavies/xurl-rs#readme) routes between the two.
 
 ## License
 

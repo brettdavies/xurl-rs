@@ -1,4 +1,4 @@
-//! Token persistence layer — multi-app YAML store at `~/.xurl`.
+//! Token persistence layer — multi-app YAML store at `~/.xurl/auth.yml`.
 //!
 //! Supports:
 //! - Multi-app credential and token management
@@ -9,6 +9,7 @@
 
 mod atomic;
 mod hook;
+mod layout;
 mod lock;
 mod migration;
 // Facts the binary renders in `xr auth status` and its hints; not a store API.
@@ -18,6 +19,10 @@ mod tokens;
 pub mod types;
 
 pub(crate) use atomic::write_atomically;
+pub(crate) use layout::ensure_store_dir;
+pub use layout::{
+    AUTH_FILE_NAME, STORE_TARGET, adopt_directory_layout, default_store_path, locate_store,
+};
 pub(crate) use lock::RefreshLock;
 
 use std::collections::BTreeMap;
@@ -33,8 +38,8 @@ use crate::error::{Error, Result};
 
 /// Manages authentication tokens across multiple apps.
 ///
-/// The in-memory shape mirrors the on-disk YAML at `~/.xurl`. Library
-/// consumers construct via [`TokenStore::new`] (legacy default path),
+/// The in-memory shape mirrors the on-disk YAML at `~/.xurl/auth.yml`. Library
+/// consumers construct via [`TokenStore::new`] (the default path),
 /// [`TokenStore::new_with_path`] (explicit path, no auto-import), or
 /// [`TokenStore::with_credentials`] (auto-backfill).
 ///
@@ -85,7 +90,11 @@ impl Default for TokenStore {
 
 #[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl TokenStore {
-    /// Creates a new `TokenStore`, loading from `~/.xurl` (auto-migrating legacy JSON).
+    /// Creates a new `TokenStore`, loading from `~/.xurl/auth.yml` (auto-migrating
+    /// legacy JSON).
+    ///
+    /// A single-file store still at `~/.xurl` is opened where it is; nothing is
+    /// moved. See [`locate_store`] and [`adopt_directory_layout`].
     #[must_use]
     pub fn new() -> Self {
         Self::with_credentials("", "")
@@ -100,7 +109,7 @@ impl TokenStore {
     #[must_use]
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        let file_path = home_dir.join(".xurl");
+        let file_path = locate_store(&default_store_path());
 
         let mut store = TokenStore {
             apps: BTreeMap::new(),
@@ -133,7 +142,7 @@ impl TokenStore {
             if twurlrc_path.exists()
                 && let Err(e) = store.import_from_twurlrc(&twurlrc_path)
             {
-                tracing::warn!(target: "xdk::store", "error importing from .twurlrc: {e}");
+                tracing::warn!(target: STORE_TARGET, "error importing from .twurlrc: {e}");
             }
         }
 
@@ -179,7 +188,7 @@ impl TokenStore {
     #[doc(hidden)]
     pub fn new_with_home(home: &str) -> Self {
         let home_path = PathBuf::from(home);
-        let file_path = home_path.join(".xurl");
+        let file_path = locate_store(&home_path.join(".xurl").join(AUTH_FILE_NAME));
         let mut store = TokenStore {
             apps: BTreeMap::new(),
             default_app: String::new(),
@@ -607,6 +616,7 @@ impl TokenStore {
     /// cannot be loaded, `f` fails, or the save fails. When `f` fails, the
     /// file is left as it was.
     pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
+        self.ensure_dir()?;
         let lock = lock::StoreLock::acquire(&self.file_path)?;
         if lock.is_reentrant() {
             return f(self);
@@ -685,6 +695,7 @@ impl TokenStore {
     ///
     /// Returns an error when the lock cannot be taken or the save fails.
     pub(crate) fn save_locked(&self) -> Result<()> {
+        self.ensure_dir()?;
         let _lock = lock::StoreLock::acquire(&self.file_path)?;
         self.save_to_file()
     }
@@ -711,6 +722,17 @@ impl TokenStore {
             self.load_state,
             LoadState::Unreadable | LoadState::Unparseable
         )
+    }
+
+    /// Creates the store's own directory before a write needs it.
+    fn ensure_dir(&self) -> Result<()> {
+        ensure_store_dir(&self.file_path).map_err(|e| {
+            Error::token_store(format!(
+                "cannot create the directory of {}: {e}",
+                self.file_path.display()
+            ))
+            .with_source(e)
+        })
     }
 
     /// The refusal every write path shares.
