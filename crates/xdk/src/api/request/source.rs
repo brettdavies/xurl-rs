@@ -3,12 +3,22 @@
 //! code.
 
 use crate::api::auth_matrix::WireScheme;
-use crate::auth::{Auth, DirectCredentials};
+use crate::auth::{Auth, DirectCredentials, oauth2};
 use crate::error::Result;
 
 pub(crate) enum CredentialSource {
     Store(Auth),
     Direct(DirectCredentials),
+}
+
+/// The `OAuth2` token a request would be sent with, as far as the
+/// credentials at hand say without a refresh.
+pub(crate) struct OAuth2State {
+    /// The name the token is stored under; `None` for a token stored
+    /// without one and for a client built from credentials.
+    pub(crate) username: Option<String>,
+    /// Whether the access token has passed its expiry.
+    pub(crate) expired: bool,
 }
 
 /// What scheme selection reads off the credentials at hand.
@@ -115,6 +125,37 @@ impl CredentialSource {
         match self {
             Self::Store(auth) => auth.unexpired_oauth2_access_token(username),
             Self::Direct(direct) => direct.unexpired_oauth2_access_token(),
+        }
+    }
+
+    /// The app whose stored credential a request under `scheme` is sent
+    /// with: the active app. `None` for a bearer token the environment
+    /// supplied, which outranks every stored one and belongs to no stored
+    /// app, and for a client built from credentials.
+    pub(crate) fn credential_app(&self, scheme: WireScheme) -> Option<String> {
+        match self {
+            Self::Direct(_) => None,
+            Self::Store(auth) if scheme == WireScheme::App && auth.env_bearer_token_present() => {
+                None
+            }
+            Self::Store(_) => self.active_app().filter(|name| !name.is_empty()),
+        }
+    }
+
+    /// The token an `OAuth2` request for `username` would use, or `None`
+    /// when the credentials hold none for it.
+    pub(crate) fn oauth2_state(&self, username: &str) -> Option<OAuth2State> {
+        match self {
+            Self::Store(auth) => {
+                oauth2::stored_oauth2_user(auth, username).map(|(username, token)| OAuth2State {
+                    username,
+                    expired: oauth2::is_expired(&token),
+                })
+            }
+            Self::Direct(direct) => direct.oauth2_expired().map(|expired| OAuth2State {
+                username: None,
+                expired,
+            }),
         }
     }
 

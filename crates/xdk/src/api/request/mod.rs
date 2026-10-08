@@ -21,6 +21,7 @@ mod source;
 mod transport;
 mod url;
 
+pub use auth_header::AuthPreflight;
 pub use builder::ClientBuilder;
 pub use call::Call;
 pub(crate) use source::CredentialSource;

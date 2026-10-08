@@ -91,6 +91,11 @@ async fn main() -> xdk::Result<()> {
 }
 ```
 
+`Call::auth_preflight()` reports the credential a call would be sent with, without sending it: the scheme, the stored
+OAuth2 user, and whether that user's token has expired. It refreshes nothing, and returns the error a send would stop on
+when no credential fits the endpoint. `Client::auth_preflight(&RequestOptions)` answers the same for a request built by
+hand.
+
 ## Errors and rate limits
 
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error

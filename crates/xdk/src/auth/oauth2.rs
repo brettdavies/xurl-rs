@@ -459,16 +459,27 @@ pub async fn run_remote_step2(
 /// the active app, so a `--app NAME` invocation reads NAME's tokens rather
 /// than whichever app happens to be the default.
 pub(crate) fn stored_oauth2_token(auth: &Auth, username: &str) -> Option<OAuth2Token> {
-    let app_name = auth.app_name().to_string();
-    let token = if username.is_empty() {
-        auth.token_store
-            .get_first_oauth2_token_for_app(&app_name)
-            .or_else(|| auth.token_store.get_oauth2_token_unnamed_for_app(&app_name))
+    stored_oauth2_user(auth, username).map(|(_, token)| token)
+}
+
+/// [`stored_oauth2_token`] with the name the token is stored under, which is
+/// `None` for the unnamed slot.
+pub(crate) fn stored_oauth2_user(
+    auth: &Auth,
+    username: &str,
+) -> Option<(Option<String>, OAuth2Token)> {
+    let app_name = auth.app_name();
+    let store = &auth.token_store;
+    let (stored_as, token) = if username.is_empty() {
+        match store.first_oauth2_user_for_app(app_name) {
+            Some((name, token)) => (Some(name.to_string()), token),
+            None => (None, store.get_oauth2_token_unnamed_for_app(app_name)?),
+        }
     } else {
-        auth.token_store
-            .get_oauth2_token_for_app(&app_name, username)
+        let token = store.get_oauth2_token_for_app(app_name, username)?;
+        (Some(username.to_string()), token)
     };
-    token.and_then(|t| t.oauth2.clone())
+    token.oauth2.clone().map(|token| (stored_as, token))
 }
 
 /// Whether the stored expiry has passed.

@@ -9,13 +9,38 @@ use crate::error::{AuthMismatch, Error, Result};
 
 use super::render_template_template;
 use super::source::{CredentialSource, SchemeFacts};
+use super::transport::attaches_credential;
 use super::{Client, RequestOptions, RequestTarget};
 
 /// What scheme selection decided for one request: a header computed from
 /// the credentials at hand, or an OAuth2 token that may still need a refresh.
 enum Selection {
-    Header(String),
+    Header { scheme: WireScheme, header: String },
     OAuth2 { username: String },
+}
+
+/// The credential a request would be sent with.
+///
+/// [`Client::auth_preflight`] and [`Call::auth_preflight`] read it from the
+/// credentials at hand. Neither sends anything.
+///
+/// [`Call::auth_preflight`]: super::Call::auth_preflight
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct AuthPreflight {
+    /// The scheme the request would go out under.
+    pub scheme: WireScheme,
+    /// The app whose stored credential would be sent. `None` for a bearer
+    /// token the environment supplied, which belongs to no stored app, and
+    /// for a client built from credentials.
+    pub app: Option<String>,
+    /// The name the `OAuth2` token is stored under. `None` under another
+    /// scheme, for a token stored without a name, and for a client built
+    /// from credentials.
+    pub username: Option<String>,
+    /// Whether the `OAuth2` access token has passed its expiry, so that
+    /// sending would refresh it first. `false` under another scheme.
+    pub token_expired: bool,
 }
 
 impl Client {
@@ -31,6 +56,48 @@ impl Client {
         self.get_auth_header(options).await
     }
 
+    /// Reports the credential `options` would be sent with, or `None` for a
+    /// request the client attaches none to: one marked `no_auth`, or one
+    /// carrying an `Authorization` header of the caller's own.
+    ///
+    /// Scheme selection runs exactly as it does for a send, and stops
+    /// there: nothing is sent, and an expired `OAuth2` token is reported in
+    /// [`AuthPreflight::token_expired`] instead of being refreshed. Whether X
+    /// still honors the credential is a question only a request answers.
+    ///
+    /// # Errors
+    ///
+    /// The error a send would stop on before its first request:
+    /// [`Error::AuthMethodMismatch`] when the endpoint accepts no scheme the
+    /// credentials can serve, and [`Error::Auth`] when no credential serves
+    /// the scheme selected.
+    pub async fn auth_preflight(&self, options: &RequestOptions) -> Result<Option<AuthPreflight>> {
+        if !attaches_credential(options) {
+            return Ok(None);
+        }
+        let credentials = self.credentials().await;
+        let preflight = match self.select_scheme(&credentials, options)? {
+            Selection::Header { scheme, .. } => AuthPreflight {
+                scheme,
+                app: credentials.credential_app(scheme),
+                username: None,
+                token_expired: false,
+            },
+            Selection::OAuth2 { username } => {
+                let state = credentials
+                    .oauth2_state(&username)
+                    .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
+                AuthPreflight {
+                    scheme: WireScheme::OAuth2,
+                    app: credentials.credential_app(WireScheme::OAuth2),
+                    username: state.username,
+                    token_expired: state.expired,
+                }
+            }
+        };
+        Ok(Some(preflight))
+    }
+
     /// Gets the authorization header for a request.
     ///
     /// Scheme selection runs under the credential lock and never awaits; an
@@ -42,7 +109,7 @@ impl Client {
             self.select_scheme(&credentials, options)?
         };
         match selected {
-            Selection::Header(header) => Ok(header),
+            Selection::Header { header, .. } => Ok(header),
             Selection::OAuth2 { username } => self.oauth2_bearer(&username).await,
         }
     }
@@ -136,16 +203,33 @@ impl Client {
             }
         }
         let url = self.build_url(&options.target)?;
-        match auth_type.to_lowercase().as_str() {
-            "oauth1" => credentials
-                .oauth1_header(method, &url)
-                .map(Selection::Header),
-            "oauth2" => Ok(Selection::OAuth2 {
-                username: options.username.clone(),
-            }),
-            "app" => credentials.bearer_header().map(Selection::Header),
-            _ => Err(Error::auth(format!("invalid auth type: {auth_type}"))),
+        match WireScheme::from_wire(auth_type) {
+            Some(scheme) => self.selection(credentials, options, method, scheme, || Ok(url)),
+            None => Err(Error::auth(format!("invalid auth type: {auth_type}"))),
         }
+    }
+
+    /// The header for `scheme`, or the `OAuth2` user whose token is read
+    /// once the credential lock is released. `url` is built only for
+    /// `OAuth1`, the one scheme that signs it.
+    fn selection(
+        &self,
+        credentials: &CredentialSource,
+        options: &RequestOptions,
+        method: &str,
+        scheme: WireScheme,
+        url: impl FnOnce() -> Result<String>,
+    ) -> Result<Selection> {
+        let header = match scheme {
+            WireScheme::OAuth2 => {
+                return Ok(Selection::OAuth2 {
+                    username: options.username.clone(),
+                });
+            }
+            WireScheme::OAuth1 => credentials.oauth1_header(method, &url()?)?,
+            WireScheme::App => credentials.bearer_header()?,
+        };
+        Ok(Selection::Header { scheme, header })
     }
 
     /// The first scheme in preference order the credentials can serve and
@@ -163,20 +247,11 @@ impl Client {
             facts.available.contains(scheme)
                 && endpoint.is_none_or(|endpoint| endpoint.accepts(scheme.as_wire()))
         });
-        // Dispatching on the typed [`WireScheme`] makes adding a new variant
-        // a compile error.
         match selected {
             None => Err(no_scheme(credentials, facts, endpoint)),
-            Some(WireScheme::OAuth2) => Ok(Selection::OAuth2 {
-                username: options.username.clone(),
+            Some(scheme) => self.selection(credentials, options, method, scheme, || {
+                self.build_url(&options.target)
             }),
-            Some(WireScheme::OAuth1) => {
-                let url = self.build_url(&options.target)?;
-                credentials
-                    .oauth1_header(method, &url)
-                    .map(Selection::Header)
-            }
-            Some(WireScheme::App) => credentials.bearer_header().map(Selection::Header),
         }
     }
 }
