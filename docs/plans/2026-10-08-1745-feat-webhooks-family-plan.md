@@ -3,7 +3,7 @@ title: Webhooks Command Family - Plan
 type: feat
 date: 2026-10-08
 status: planned
-implementation: not started
+implementation: in progress
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -55,7 +55,8 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 - **R3.** Every verb answers `--dry-run` without sending or binding anything, with the credential its request would go
   out under.
 - **R4.** `xr webhooks listen` binds a local address, answers `GET <path>?crc_token=` with the HMAC-SHA256 response
-  token keyed by the active app's OAuth1 consumer secret, and prints each POST body to stdout as one JSON line.
+  token X documents, keyed by the active app's signing secret (KTD6), and prints each POST body whose signature verifies
+  to stdout as one JSON line.
 - **R5.** `listen` opens no tunnel and makes no request to X. It prints the local URL and says the caller exposes it.
 - **R6.** `listen` is bounded on request: `--max-events <N>` exits 0 after N events, and it exits 0 on SIGINT.
 - **R7.** Every new error carries a `reason` from the closed set and a `next_step`.
@@ -117,16 +118,23 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
   `xdk::webhooks::Receiver` binds the address, answers CRC, and yields each event to its caller; `xr` prints. It is
   built on `tokio::net::TcpListener` the way `crates/xdk/src/auth/callback.rs` is, with `hmac`, `sha2`, and `base64`,
   which `xdk-rs` already depends on. No new dependency.
-- **KTD6. The CRC key is the OAuth1 consumer secret of the active app,** which is what Go `xurl` uses and what X signs
-  with. An app with no OAuth1 credentials refuses `listen` with reason `auth-method-mismatch` and a `next_step` naming
-  `xr auth oauth1`.
+- **KTD6. The signing secret is the app's OAuth2 client secret, or its OAuth1 consumer secret.** X's webhook
+  documentation (`docs.x.com/x-api/webhooks/introduction` and `/quickstart`, read 2026-10-08) says to compute the CRC
+  `response_token` "with the OAuth 2.0 client secret when available, or with the OAuth 1.0 consumer secret for existing
+  OAuth 1.0-only integrations", and never with a bearer token. `listen` takes the active app's client secret when it has
+  one and its consumer secret otherwise; `--secret oauth2|oauth1` names one outright. An app with neither refuses
+  `listen` with reason `auth-method-mismatch` and a `next_step`. Go `xurl` keys the CRC with the consumer secret alone,
+  which `KNOWN_DIFFERENCES.md` records.
 - **KTD7. `listen` binds `127.0.0.1` by default.** `--bind` takes another address. A receiver that listens on every
-  interface by default would expose an unauthenticated port on the caller's network.
-- **KTD8. Event signatures: establish, then decide.** X's documentation describes a signature header on each event POST.
-  U5 first reads that documentation and X's samples. If the header is documented, the receiver verifies it with the same
-  key, drops an event that fails, and reports the drop on `tracing` target `xdk::webhooks`; `KNOWN_DIFFERENCES.md`
-  records that Go prints every POST unverified. If it is not, the receiver matches Go and the README says events are not
-  authenticated.
+  interface by default would expose a port on the caller's network.
+- **KTD8. Events are verified, as X documents.** Each POST carries `X-Twitter-Webhooks-Signature-OAuth2` (keyed by the
+  client secret) or the legacy `X-Twitter-Webhooks-Signature` (keyed by the consumer secret), each
+  `sha256=<base64 HMAC-SHA256>` over the raw body. The receiver checks the OAuth2 header when present and the legacy one
+  otherwise, compares in constant time, answers 401 to a POST whose signature is missing or wrong, and yields only
+  verified events. A refused POST is reported on `tracing` target `xdk::webhooks`. `--allow-unsigned` prints unverified
+  POSTs too, for a local test with `curl`; Go `xurl` prints every POST unverified.
+- **KTD10. `add` holds the URL rules X documents.** The documentation requires HTTPS and forbids a port in the URL.
+  `validate_webhook_url` refuses a URL that breaks either, offline, beside the spec's length bounds.
 - **KTD9. `listen` output is JSONL on stdout in every format.** One event per line, the body as X sent it, with a
   non-JSON body carried as a JSON string. The startup line (the local URL, and that the caller exposes it) goes to
   stderr in text output and is a first `{"status":"listening", ...}` line under a structured format.
@@ -146,7 +154,7 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 
 ## Implementation Units
 
-### U1. Library: the five `/2/webhooks` operations
+### U1. Library: the five `/2/webhooks` operations (#333)
 
 - **Files:** `crates/xdk/build.rs`, `crates/xdk/src/api/shortcuts.rs`, `crates/xdk/src/api/response/types.rs`,
   `crates/xdk/src/testing/mod.rs`, `crates/xdk/tests/fixtures/openapi/example_responses.json`,
@@ -154,7 +162,7 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 - **Test first:** `mock_endpoint_coverage.rs` and `spec_validation.rs` fail for the declared endpoints before the routes
   and fixtures exist.
 
-### U2. CLI: `xr webhooks list | add | validate | remove | replay`
+### U2. CLI: `xr webhooks list | add | validate | remove | replay` (#334)
 
 - **Files:** `crates/xurl-cli/src/cli/mod.rs`, `family_help.rs`, a new `commands/webhooks.rs`, `commands/mod.rs`,
   `commands/schema.rs`, `commands/validate.rs`, `commands/examples.rs`, golden fixtures, generated schemas and
@@ -162,7 +170,7 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 - **Test first:** CLI tests against `MockX` for each verb, the `remove` confirmation refusal, and the `replay` time
   refusal, each seen failing.
 
-### U3. Account Activity subscriptions
+### U3. Account Activity subscriptions (#336)
 
 - **Work:** the five operations through U1's and U2's surfaces, as `xr webhooks subscriptions`.
 - **Test first:** as U2, plus a dry run that shows `add` and `check` need a user login and `list`, `count`, and `remove`
@@ -176,10 +184,11 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 
 - **Files:** a new `crates/xdk/src/webhooks/` module, `crates/xdk/src/lib.rs`, `crates/xdk/src/error.rs` if a new
   variant is needed, `crates/xurl-cli/src/cli/commands/webhooks.rs`.
-- **Work:** KTD5 to KTD9, R4 to R6.
+- **Work:** KTD5 to KTD10, R4 to R6.
 - **Test first:** an in-process test binds the receiver on port 0, sends a CRC `GET` and reads the response token
-  against a value computed by hand from a known secret; sends a POST and reads the event; sends a request to another
-  path and reads a 404. A CLI test runs `listen --max-events 1` as a child process and posts one event.
+  against a value computed by hand from a known secret; sends a signed POST and reads the event; sends a POST with a
+  wrong signature and one with none and reads 401 with nothing yielded; sends a request to another path and reads a
+  404. A CLI test runs `listen --max-events 1` as a child process and posts one signed event.
 
 ### U6. Documents
 
