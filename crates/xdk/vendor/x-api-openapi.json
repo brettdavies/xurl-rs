@@ -935,6 +935,12 @@
         "properties": {
           "data": {
             "properties": {
+              "created_at": {
+                "description": "The time the activity occurred, not when it was delivered.",
+                "example": "2026-10-06T22:20:14.123Z",
+                "format": "date-time",
+                "type": "string"
+              },
               "event_type": {
                 "type": "string"
               },
@@ -16580,8 +16586,15 @@
           "ids": {
             "description": "Rule ids (Snowflake external ids) to delete.",
             "items": {
-              "pattern": "^[0-9]{1,19}$",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "pattern": "^[0-9]{1,19}$"
             },
             "type": "array"
           },
