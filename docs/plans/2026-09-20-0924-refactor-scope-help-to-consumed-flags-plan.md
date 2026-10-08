@@ -223,7 +223,7 @@ doc comment, which now names the group rather than a list of ten command names t
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `76d52e3`, 2026-10-07)
+(against `xurl-rs` `origin/dev` @ `3a4e5ef`, 2026-10-08)
 
 | Unit | State     | Note                                                                                               |
 | ---- | --------- | -------------------------------------------------------------------------------------------------- |
@@ -232,7 +232,11 @@ doc comment, which now names the group rather than a list of ten command names t
 | U3   | not-built | No clap-tree guard; `PAGING_COMMANDS` checks requests and prose, not declaration.                  |
 | U4   | not-built | Golden help pages still list every global flag.                                                    |
 
-The KTD3 map was re-derived at the baseline from the group modules and matches, row for row.
+The KTD3 map's paging columns match the group modules. Its `--dry-run` column does not: #323 made every read command and
+raw mode honor the flag, so `whoami`, `user`, `read`, `usage`, and each paged read belong with the commands that take
+`--dry-run`, and only the tooling commands (`schema`, `skill`, `completions`, `version`, `examples`, `validate`) stay in
+the "Neither" row. The Success Criteria line that `xr whoami --help` lists none of the five is wrong for the same
+reason: it lists `--dry-run`.
 
 Four facts in the current tree bear on the units:
 
@@ -244,6 +248,6 @@ Four facts in the current tree bear on the units:
 - `anc` is pinned to 0.6.0 in CI. From the workspace root it refuses `anc audit .` as `binary-ambiguous` once both `xr`
   and `xdk-consumer-check` are built, so the gate names `--bin xr`. That invocation reports `p6-must-global-flags` as
   `pass` at the baseline. CI's own invocation, `anc audit --command target/release/xr`, does not report the row.
-- The pricing plan (`docs/plans/2026-09-03-1310-feat-pricing-cost-estimates-doctor-plan.md`) makes every read shortcut
-  honor `--dry-run` in its U3. Whichever plan lands second accounts for the other: after that unit, `DryRunFlag` belongs
-  on the read commands too, and only the tooling commands sit in the "Neither" row.
+- `crates/xurl-cli/tests/dry_run_guard.rs` reads the commands that send a request from clap (the ones that take
+  `--auth`) and runs each under `--dry-run`. U3's walk can read the same set to decide where `DryRunFlag` has to be
+  declared, and that guard keeps passing only if the flag still parses on every one of them.

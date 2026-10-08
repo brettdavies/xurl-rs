@@ -802,13 +802,13 @@ Each unit is a separate PR to `dev`; U1 and U2 may share one.
 
 ## Reconciliation
 
-(against `xurl-rs` `origin/dev` @ `76d52e3`, 2026-10-07)
+(against `xurl-rs` `origin/dev` @ `3a4e5ef`, 2026-10-08)
 
 | Unit | State     | Note                                                                                                 |
 | ---- | --------- | ---------------------------------------------------------------------------------------------------- |
 | U1   | not-built | No `crates/xdk/vendor/pricing/` directory and no `refresh-x-pricing.sh` or `normalize-x-pricing.sh`. |
 | U2   | not-built | No pricing module in either crate; `crates/xdk/build.rs` emits no price table.                       |
-| U3   | not-built | The `--dry-run` doc comment on `Cli` still says "Read ops ignore it".                                |
+| U3   | partial   | #323 landed steps 1, 2, and 4 for every read and for raw mode; step 3, the estimate, waits on U2.    |
 | U4   | not-built | No `cost_estimate` field on any output type or schema.                                               |
 | U5   | not-built | No `pricing` command variant.                                                                        |
 | U6   | not-built | The store's app type has no owner field; `auth apps update` takes no `--owner`.                      |
@@ -819,7 +819,7 @@ The units name the two-crate workspace. `AGENTS.md` § "Where a change goes" dec
 snapshot, the pricing module, the call record, the declared owner, and doctor's store probe, check runner, and typed
 report are library; the commands, the output type, and every rendered line are CLI.
 
-Six facts in the current tree bear on the units:
+Seven facts in the current tree bear on the units:
 
 - U5 and U7 each add a command, so each one follows the `AGENTS.md` § "Adding a command family" recipe. Its walks check
   the golden help fixture, the schema registry, the validate alias, the examples page, and completions, which covers
@@ -827,10 +827,17 @@ Six facts in the current tree bear on the units:
 - `Client::get_usage_credits` and `xr usage credits` call `GET /2/usage/credits`. U7's credit-balance check calls that
   shortcut and does not add a second request path.
 - The vendored spec is 2.169. The Sources section cites 2.168, the version the research read.
-- Eight of the paged read commands (`timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`,
-  `blocked`) run through `list_for_user`, so U3's dry-run path for them is one seam.
+- Every read command and raw mode answer `--dry-run` with no request (#323). `would_succeed` already reflects argument
+  validation and an offline credential check, `Call::auth_preflight` (#322), and the envelope carries an `auth` object
+  naming the app and scheme. A command builds its answer in `DryRun::answer` in
+  `crates/xurl-cli/src/cli/commands/mod.rs`, which is where U3's remaining step attaches the estimate.
+  `crates/xurl-cli/tests/dry_run_guard.rs` holds every command to sending nothing.
+- A command that acts as the caller reads the caller's id from the store once `/2/users/me` has answered under that
+  login (#328), so the lookup is one request per login and not one per command. KTD5's call record and U2's estimate
+  count it only when it is sent. The stored `user_id` is also the authenticated user's id that U6's owner comparison
+  needs.
 - With `--wait-on-rate-limit`, `send_request_with` sends a request a second time after a 429, so one call can be two
   sends. KTD5's record counts the call once.
 - The scope-help plan (`docs/plans/2026-09-20-0924-refactor-scope-help-to-consumed-flags-plan.md`) moves `--dry-run` off
-  the global flags and onto the commands that honor it. Whichever plan lands second accounts for the other: U3 makes
-  every read shortcut one of those commands.
+  the global flags and onto the commands that honor it. Since #323 that is every command that sends a request, the reads
+  included.
