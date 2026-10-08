@@ -1363,6 +1363,38 @@ fn unparseable_store_records_the_failure_and_leaves_the_file_alone() {
     assert_eq!(std::fs::read(&path).unwrap(), garbage);
 }
 
+/// A clear is a write. Against a store that could not be loaded it has not
+/// seen what the file holds, so it refuses instead of finding nothing to
+/// clear.
+#[test]
+fn a_clear_on_an_unparseable_store_is_refused() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 neither yaml nor json \x02";
+    std::fs::write(&path, garbage).unwrap();
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    type Clear = fn(&mut TokenStore) -> xdk::Result<()>;
+    let clears: [(&str, Clear); 4] = [
+        ("clear_all", TokenStore::clear_all),
+        ("clear_oauth1_tokens", TokenStore::clear_oauth1_tokens),
+        ("clear_bearer_token", TokenStore::clear_bearer_token),
+        ("clear_oauth2_token", |store| {
+            store.clear_oauth2_token("alice")
+        }),
+    ];
+    for (name, clear) in clears {
+        let err = clear(&mut store).expect_err(name);
+        assert_eq!(err.kind(), "token-store", "{name}: {err}");
+        assert!(
+            err.to_string()
+                .contains(&path.to_string_lossy().to_string()),
+            "{name} names the path; got: {err}"
+        );
+    }
+    assert_eq!(std::fs::read(&path).unwrap(), garbage);
+}
+
 #[test]
 fn empty_store_file_is_fresh_and_saveable() {
     let tmp = TempDir::new().unwrap();
