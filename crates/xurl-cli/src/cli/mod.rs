@@ -1061,6 +1061,7 @@ pub struct Cli {
     pub command: Option<Commands>,
 
     /// URL for raw mode (positional, only when no subcommand)
+    #[arg(value_hint = clap::ValueHint::Url)]
     pub url: Option<String>,
 }
 
