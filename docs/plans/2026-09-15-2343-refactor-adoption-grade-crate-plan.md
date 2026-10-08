@@ -1900,8 +1900,8 @@ Every other T-task in this plan's three task lists is checked.
 
 ### Remaining work
 
-- **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review; the listing plan's Phase 3
-  sets the nudge, forum, and stop dates.
+- **U13, the post-submission checkpoint.** xdevplatform/docs#447 is open and awaiting review. It waits on X's reviewers
+  with no outreach planned, as the listing plan's Remaining work says.
 
 ## Appendix
 

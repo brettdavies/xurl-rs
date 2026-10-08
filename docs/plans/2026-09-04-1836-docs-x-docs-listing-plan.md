@@ -156,7 +156,7 @@ Target `xdevplatform/docs`, fork under `brettdavies`, branch `community-librarie
 | ------- | --------- | -------------------------------------------------------------------------------------------------------- |
 | Phase 1 | landed    | U1-U4 merged; 3.2.0 and 4.0.0 released; the skill-bundle pass landed as `xurl-rs-skill` #13 and #17.     |
 | Phase 2 | in-review | xdevplatform/docs#447 open since 2026-09-22, mergeable, `license/cla` green; no human comment or review. |
-| Phase 3 | not-built | Day 0 post undecided; the Day 10 nudge is not posted; forum 2026-10-12, stop 2026-11-01.                 |
+| Phase 3 | dropped   | Not pursued: no post, no nudge, and no forum post follow #447.                                           |
 
 The page evidence holds: `tools-and-libraries.mdx` has had no commit since 2026-07-25, so "Other tools" still carries
 only its three X-owned rows and Rust is still one bare-link `twitter-v2` row in the `Other` tab. The PR body states no
@@ -164,6 +164,5 @@ only its three X-owned rows and Rust is still one bare-link `twitter-v2` row in 
 
 ### Remaining work
 
-- **The Day 10 nudge.** Its date, 2026-10-02, has passed with #447 silent and no nudge posted. It is the next step.
-- **2026-10-12:** if still silent, post in the developer forum.
-- **2026-11-01:** stop; leave the PR open and the fork branch in place.
+- **None on this side.** #447 waits on X's reviewers. Brett's call is to let it sit: the PR stays open with the fork
+  branch in place, and no nudge or forum post follows it.

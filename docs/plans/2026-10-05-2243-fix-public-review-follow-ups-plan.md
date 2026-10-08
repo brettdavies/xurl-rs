@@ -155,9 +155,8 @@ The work therefore starts from evidence rather than from the review's text.
 
 ### Open Questions
 
-- **Major-version cadence (non-blocking).** The review counted three `xr` majors between 2026-06-05 and 2026-09-18. U20
-  documents the existing versioning policy. Committing to a cadence, such as batching breaking changes into at most one
-  major per quarter, is a product decision for Brett. U20 adds the line once it is decided.
+- None. Major versions follow no cadence: the review counted three `xr` majors between 2026-06-05 and 2026-09-18, U20
+  documents the existing versioning policy, and Brett decided against committing to a schedule.
 
 ---
 
@@ -1120,7 +1119,7 @@ output to it, and keep substring checks only for text output.
 1. Add a short Stability section to each README.
 2. Name what is contract in each crate, per `RELEASES.md` § Versioning.
 3. State how breaks are batched and announced, with migration snippets.
-4. Add the cadence line once the Open Question is answered.
+4. Add no cadence line: majors follow no schedule.
 
 **Test expectation:** a README test asserting each of the three READMEs carries the Stability section. It fails on `dev`
 (KTD1, R2), and `crates/xdk/tests/readme_landing_tests.rs` keeps passing.
@@ -1275,7 +1274,7 @@ tasks are checked against the tree.
 | U17  | landed | #291                         | `aa20573` | Two citations were clap doc comments, so `(U7)` also left the `--dry-run` and `--limit` help and the completions.                                                               |
 | U18  | landed | xurl-rs-skill #36            | `0ca9243` | `contract` is a required check on that repository's `main`.                                                                                                                     |
 | U19  | landed | xurl-rs-skill #37            | `d227f4f` | —                                                                                                                                                                               |
-| U20  | landed | #292                         | `8189511` | No cadence line: the Open Question stands. The test is `crates/xdk/tests/readme_stability_tests.rs`.                                                                            |
+| U20  | landed | #292                         | `8189511` | No cadence line: majors follow no schedule.The test is `crates/xdk/tests/readme_stability_tests.rs`.                                                                            |
 | U21  | landed | brettdavies/.github#78, #293 | `384ac19` | Wider than KTD14: `sbom` and `attest` sign the build output before anything publishes, and `verify-attestations` checks every published file before the Homebrew dispatch.      |
 | U22  | landed | xurl-rs-skill #39            | `ecdcf40` | Verified against the `v4.3.0` release binary: 274 contract checks pass.                                                                                                         |
 
@@ -1295,15 +1294,12 @@ The work surfaced defects the ledger did not hold. Each merged to `dev` ahead of
 | #306 | `04f5c56` | A usage error carries `show-help`, an unloadable store carries `inspect-store`, and the README lists which reasons carry a step. |
 
 In brettdavies/homebrew-tap, #140, #141, and #143 sign the bottles and teach the bump workflow a formula that installs
-the release's prebuilt archives, and #142 converts the xurl-rs formula to one.
+the release's prebuilt archives, and #142 converts the xurl-rs formula to one. In brettdavies/xurl-rs-skill, v0.6.0
+(#40) is the bundle for `xr` 4.3.0, which is what `xr skill install` clones.
 
 ### Remaining work
 
-- **The skill bundle's release.** xurl-rs-skill #39 is on that repository's `dev`. Its `main`, which `xr skill install`
-  clones, is v0.5.0 and documents `xr` 4.2.0, so KTD16's surface reaches an installing agent only once that release is
-  cut.
 - **The skill's evals.** Evals 02, 04, and 06 were edited for 4.3.0 and not re-run; each needs a fresh agent session.
-- **Major-version cadence.** The Open Question is undecided.
 - **Attestations in the other Rust callers.** Neither bird's nor agentnative-cli's release caller sets `attest`.
 
 ---
