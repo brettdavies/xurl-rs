@@ -16,7 +16,7 @@ use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
 use xdk::auth::Auth;
 use xdk::config;
-use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
+use xdk::error::{Error, Result};
 
 pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResult<()> {
     match cmd {
@@ -150,7 +150,7 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
         flags,
         out,
         stdout,
-        stderr,
+        ..
     } = ctx;
     let ctx = json!({"command": "app-remove", "name": name});
     if flags.dry_run {
@@ -166,12 +166,7 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
     )? {
         Gate::Proceed => {}
         Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => {
-            out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-            return Err(Failure::Emitted {
-                exit_code: EXIT_GENERAL_ERROR,
-            });
-        }
+        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
     }
     auth.token_store.remove_app(name)?;
     out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));

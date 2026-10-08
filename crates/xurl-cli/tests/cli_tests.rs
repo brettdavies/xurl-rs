@@ -5332,9 +5332,10 @@ async fn test_hint_reaches_every_structured_format(#[case] format: &str) {
     );
 }
 
-/// An unrelated error carries no hint at all.
+/// An argument `xr` refused carries the help of the command it was given
+/// to, and never a credential step.
 #[tokio::test]
-async fn test_other_errors_carry_no_hint() {
+async fn test_a_refused_argument_carries_the_help_and_no_credential_step() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -5342,9 +5343,11 @@ async fn test_other_errors_carry_no_hint() {
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
-    assert!(
-        v.get("next_step").is_none(),
-        "only the no-credentials error gets a hint; got: {v}"
+    assert_eq!(v["reason"], "validation", "{v}");
+    assert_eq!(
+        v["next_step"],
+        serde_json::json!({"action": "show-help", "command": "xr --help"}),
+        "{v}"
     );
 }
 

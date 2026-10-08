@@ -78,16 +78,25 @@ be loaded. It carries `docs`, the README section on recovering the file, and its
 names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
 step carries `docs` alone.
 
-Three actions answer failures that are not about credentials. `show-help` rides on reasons `invalid-args` and
-`unknown-command` (exit 2): `command` is the `xr <command> --help` the message closes on, the help of the nearest
-command when the word was mistyped. `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media
-processing reached its deadline with the job still running. The upload is intact, the envelope names it in `media_id`,
-and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry`
-rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the
-seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries
-`docs` and no command, because the request to send again is the caller's own. A 429 that names no reset carries neither
-key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
-`--rate-limit-max-wait` (60 seconds unless set).
+Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
+`invalid-args` and `unknown-command` (exit 2) and the refusals that exit 1 (`validation`, `invalid-url`,
+`invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`, `missing-host`):
+`command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
+`resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
+<media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry` rides on reason `rate-limited` (exit 3)
+when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
+passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
+send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
+does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+
+`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
+(`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
+invocation fails again until its input or the state it read changes. `report-issue` (`internal`, `serialization`,
+`api-error`) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
+invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
+deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
+`not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -117,13 +126,14 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
-reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
-not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
-`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
-can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
-changes: add keys rather than renaming or retyping existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+`crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
+fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
+caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation that
+destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step. Prefer
+additive envelope changes: add keys rather than renaming or retyping existing ones.
 
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an

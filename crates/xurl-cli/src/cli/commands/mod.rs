@@ -225,13 +225,13 @@ fn dry_run_or_validate(
     dry_run: bool,
     ctx: serde_json::Value,
     validator: impl FnOnce() -> std::result::Result<(), &'static str>,
-) -> Result<Option<DryRun>> {
+) -> CommandResult<Option<DryRun>> {
     let invalid = validator().err();
     if dry_run {
         return Ok(Some(DryRun { ctx, invalid }));
     }
     match invalid {
-        Some(reason) => Err(Error::validation(reason.to_string())),
+        Some(reason) => Err(Failure::refused(Error::validation(reason.to_string()))),
         None => Ok(None),
     }
 }
@@ -320,14 +320,11 @@ pub(crate) async fn run(
     // Resolve cursor from --cursor or --after. --page is rejected upstream
     // because the X API does not offer offset-style pagination.
     if cli.page.is_some() {
-        out.print_error_envelope(
-            stderr,
-            Reason::UnsupportedPagination,
-            EXIT_GENERAL_ERROR,
-            "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
-        );
-        return Err(Failure::Emitted {
-            exit_code: EXIT_GENERAL_ERROR,
+        return Err(Failure::Refused {
+            error: Error::validation(
+                "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
+            ),
+            reason: Some(Reason::UnsupportedPagination),
         });
     }
     let flags = GlobalFlags {
@@ -356,9 +353,7 @@ pub(crate) async fn run(
             };
             run_subcommand(cmd, run).await
         }
-        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr)
-            .await
-            .map_err(Failure::from),
+        None => run_raw_mode(&cli, &cfg, auth, out, stdout, stderr).await,
     }
 }
 
@@ -395,13 +390,13 @@ async fn run_raw_mode(
     out: &OutputConfig,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> Result<()> {
+) -> CommandResult<()> {
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
-        return Err(Error::validation(
-            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND]. Try 'xr --help'.",
-        ));
+        return Err(Failure::refused(Error::validation(
+            "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND].",
+        )));
     };
 
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
@@ -418,9 +413,9 @@ async fn run_raw_mode(
     } else if url.starts_with('/') {
         format!("{}{}", cfg.api_base_url, url)
     } else {
-        return Err(Error::validation(format!(
+        return Err(Failure::refused(Error::validation(format!(
             "URL {url:?} must be an absolute http(s) URL or an absolute path starting with `/`."
-        )));
+        ))));
     };
     // Raw mode threads the (now absolute) URL through as a `RawUrl` target.
     // The matrix validator short-circuits for RawUrl; the
@@ -456,7 +451,8 @@ async fn run_raw_mode(
     let should_stream = cli.stream || api::is_streaming_endpoint(&absolute_url);
 
     if should_stream {
-        streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await
+        streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await?;
+        Ok(())
     } else {
         let response = client.send_request(&options).await?;
         // A body that is not JSON arrives as a string holding it. Text mode
@@ -630,7 +626,7 @@ async fn act_from_me_on_user<T>(
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -664,7 +660,8 @@ where
     let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on another user without naming the caller: gate on the
@@ -675,7 +672,7 @@ async fn act_on_user<T>(
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -707,7 +704,8 @@ where
     let response = with_flags(shortcut(&client, &target_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on a post from the caller's account: gate on the post
@@ -719,7 +717,7 @@ async fn act_from_me_on_post<T>(
     post_id: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, &str) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -747,7 +745,8 @@ where
     let response = with_flags(shortcut(&client, &my_id, post_id), common, None)
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// The request that resolves a username to a user id.

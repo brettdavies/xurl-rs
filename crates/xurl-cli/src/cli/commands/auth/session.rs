@@ -9,8 +9,9 @@ use super::{
     AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, destructive_dry_run_context,
     env_bearer_app, gate_destructive, print_no_apps_registered,
 };
-use crate::cli::envelope::Reason;
+use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
+use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
@@ -126,7 +127,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         flags,
         out,
         stdout,
-        stderr,
+        ..
     } = ctx;
     let AuthGlobalFlags {
         no_interactive,
@@ -163,12 +164,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         match gate_destructive(force, no_interactive, quiet, &format!("Clear {target}?"))? {
             Gate::Proceed => {}
             Gate::Declined => return Ok(()),
-            Gate::ConfirmationRequired => {
-                out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                return Err(Failure::Emitted {
-                    exit_code: EXIT_GENERAL_ERROR,
-                });
-            }
+            Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
         }
     }
 
@@ -231,11 +227,18 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
         // and hand back only the exit code so the runner skips its
         // generic error path.
         if !out.is_interactive_terminal() {
-            out.print_error_envelope(
+            out.emit_error_envelope(
                 stderr,
-                Reason::NoTty,
-                EXIT_GENERAL_ERROR,
-                "no default app set; pass --app or run 'xr auth default <name>' interactively",
+                ErrorBody {
+                    reason: Reason::NoTty,
+                    exit_code: EXIT_GENERAL_ERROR,
+                    message: Some(
+                        "no default app set; pass --app or run 'xr auth default <name>' interactively"
+                            .to_string(),
+                    ),
+                    next_step: Some(NextStep::name_default_app()),
+                    ..ErrorBody::default()
+                },
             );
             return Err(Failure::Emitted {
                 exit_code: EXIT_GENERAL_ERROR,

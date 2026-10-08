@@ -432,13 +432,14 @@ xr --output json --dry-run post "Hello"
 
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
   send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
-  the keys of its error envelope: `message`, `endpoint`, `supported`, `available_in_app`.
+  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) apart from `next_step`: the
+  real run stops at the same point with nothing sent, and its envelope names the step.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
   the credential is not checked, since nothing is sent to find out.
-- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and
-  the prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
+  prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
 
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
 answers as it always does. Text output prints the context without `status`, `would_succeed`, and `exit_code`.
@@ -508,32 +509,66 @@ with nothing registered:
 ```
 
 `action` comes from a closed set: `register-app`, `sign-in`, `select-app`, `inspect-store`, `enroll-app`, `resume-wait`,
-`wait-and-retry`, and `show-help`, which carries the help to read: `xr post --help` for a usage error under `post`, and
-the help of the nearest command for a mistyped one (`xr auth status --help` for `xr auth statsu`). `reason` is closed
-too. A newer release can add to either set, so treat a value you do not recognize as your default branch. A step carries
-a `command`, runnable verbatim, or a `template` with angle-bracket placeholders only the caller can fill, and never
-both. One whose recovery is not an `xr` invocation carries `docs` alone: `enroll-app`, `wait-and-retry`, and
-`inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need not
-match word for word.
+`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`, `run-command`, and `show-help`, which carries the
+help to read: `xr post --help` for a usage error under `post`, and the help of the nearest command for a mistyped one
+(`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat
+a value you do not recognize as your default branch. A step carries a `command`, runnable verbatim, or a `template` the
+caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
+fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
+carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
+and `inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need
+not match word for word.
 
 ### Which Errors Carry a Step
 
-| `reason`                     | `next_step.action`                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401    |
-| `client-credentials-missing` | `register-app` or `select-app`                                                            |
-| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold |
-| `invalid-args`               | `show-help`                                                                               |
-| `unknown-command`            | `show-help`                                                                               |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                      |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                             |
-| `processing-timeout`         | `resume-wait`                                                                             |
+| `reason`                     | `next_step.action`                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401                   |
+| `client-credentials-missing` | `register-app` or `select-app`                                                                           |
+| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise |
+| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                     |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                            |
+| `processing-timeout`         | `resume-wait`                                                                                            |
+| `invalid-args`               | `show-help`                                                                                              |
+| `unknown-command`            | `show-help`                                                                                              |
+| `invalid-method`             | `show-help`                                                                                              |
+| `invalid-url`                | `show-help`                                                                                              |
+| `invalid-path-param`         | `show-help`                                                                                              |
+| `unsupported-pagination`     | `show-help`                                                                                              |
+| `invalid-json`               | `show-help`                                                                                              |
+| `unknown-schema`             | `show-help`                                                                                              |
+| `missing-host`               | `show-help`                                                                                              |
+| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                          |
+| `no-tty`                     | `select-app`, as a template that takes the app's name                                                    |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                             |
+| `network-error`              | `retry`                                                                                                  |
+| `server-error`               | `retry`                                                                                                  |
+| `git-clone-failed`           | `retry`                                                                                                  |
+| `not-found`                  | `fix-input`                                                                                              |
+| `invalid-request`            | `fix-input`                                                                                              |
+| `validation-failed`          | `fix-input`                                                                                              |
+| `io`                         | `fix-input`                                                                                              |
+| `home-not-set`               | `fix-input`                                                                                              |
+| `destination-is-file`        | `fix-input`                                                                                              |
+| `remove-failed`              | `fix-input`                                                                                              |
+| `git-not-found`              | `fix-input`                                                                                              |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                  |
+| `not-installed`              | `run-command`: `xr skill install <host>`                                                                 |
+| `internal`                   | `report-issue`                                                                                           |
+| `serialization`              | `report-issue`                                                                                           |
+| `api-error`                  | `report-issue`                                                                                           |
 
-Every other reason carries no step, and its `message` is what there is to read: `auth-method-mismatch`, `not-found`,
-`invalid-request`, `server-error`, `api-error`, `network-error`, `invalid-method`, `invalid-url`, `invalid-path-param`,
-`validation`, `serialization`, `io`, `internal`, `confirmation-required`, `no-tty`, `unsupported-pagination`,
-`invalid-json`, `unknown-schema`, `validation-failed`, `missing-host`, `home-not-set`, `destination-not-empty`,
-`destination-is-file`, `git-not-found`, `git-clone-failed`, `not-installed`, and `remove-failed`.
+Every reason has a row. The five actions that are not about credentials or help read as follows.
+
+- `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
+- `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
+  `xr` command repairs it. `docs` names X's page on response codes for a 400, a 404, or a 422.
+- `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
+- `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
+  the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
+  accident.
+- `run-command`: one other command repairs this, and `command` is that invocation.
 
 ### NO_COLOR Support
 

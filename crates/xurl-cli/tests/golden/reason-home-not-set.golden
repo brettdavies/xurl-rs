@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "install", "claude_code", "--dry-run"]
 env: -HOME
 store: empty
 exit_code: 1
-stdout_len: 347
+stdout_len: 395
 stderr_len: 0
 --- stdout ---
 {
@@ -14,7 +14,10 @@ stderr_len: 0
   "status": "error",
   "would_succeed": false,
   "exit_code": 1,
-  "reason": "home-not-set"
+  "reason": "home-not-set",
+  "next_step": {
+    "action": "fix-input"
+  }
 }
 
 --- stderr ---

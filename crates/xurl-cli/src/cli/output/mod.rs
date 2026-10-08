@@ -280,6 +280,29 @@ impl OutputConfig {
         }
     }
 
+    /// Prints an argument the command refused, with the help that answers
+    /// it. `reason` names the refusal when it has a name apart from the
+    /// error's kind.
+    pub(crate) fn print_refusal(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        reason: Option<Reason>,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        let exit_code = error.exit_code();
+        if !self.format.is_structured() {
+            self.print_error_with_hint(err, error, exit_code, hint);
+            return;
+        }
+        let mut body = error_body(error, exit_code);
+        body.next_step = Some(hint.next_step.clone());
+        if let Some(reason) = reason {
+            body.reason = reason;
+        }
+        self.emit_error_envelope(err, body);
+    }
+
     /// The one path every error envelope takes.
     ///
     /// ```text
@@ -468,6 +491,7 @@ impl OutputConfig {
         err: &mut dyn Write,
         ctx: &serde_json::Value,
         exit_code: i32,
+        next_step: crate::cli::hints::NextStep,
     ) {
         let map = match ctx {
             serde_json::Value::Object(m) => m.clone(),
@@ -486,6 +510,7 @@ impl OutputConfig {
             oauth1: get_bool("oauth1"),
             oauth2_username: map.get("oauth2_username").cloned(),
             bearer: get_bool("bearer"),
+            next_step: Some(next_step),
             ..ErrorBody::default()
         };
         if self.format.is_structured() {
