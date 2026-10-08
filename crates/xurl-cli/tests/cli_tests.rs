@@ -5671,6 +5671,75 @@ async fn test_apps_add_names_a_missing_secret_file() {
     assert!(!store.exists(), "nothing is stored");
 }
 
+/// A secret source that holds nothing is refused. An empty value is what a
+/// vault command leaves on stdout when it fails, and storing it would
+/// register an app that cannot sign in.
+#[rstest::rstest]
+#[case::empty_file("")]
+#[case::only_a_line_ending("\n")]
+#[tokio::test]
+async fn test_apps_add_refuses_an_empty_secret_file(#[case] contents: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let secret_file = tmp.path().join("client-secret");
+    std::fs::write(&secret_file, contents).expect("secret file");
+    let secret_path = secret_file.to_str().expect("utf-8 path");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            secret_path,
+        ],
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "invalid-args", "got: {v}");
+    let message = v["message"].as_str().expect("message");
+    assert!(
+        message.contains("--client-secret-file") && message.contains(secret_path),
+        "the message names the flag and the file: {v}"
+    );
+    assert!(!store.exists(), "nothing is stored");
+}
+
+/// The same refusal for a pipe that carried nothing.
+#[test]
+fn test_apps_add_refuses_an_empty_secret_from_stdin() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    common::xr_with_store(&store)
+        .args([
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            "-",
+        ])
+        .write_stdin("")
+        .assert()
+        .code(2)
+        .stderr(predicates::str::contains("\"reason\": \"invalid-args\""))
+        .stderr(predicates::str::contains("stdin"));
+    assert!(!store.exists(), "nothing is stored");
+}
+
 /// The plain flag stores its value as given.
 #[tokio::test]
 async fn test_apps_add_plain_client_secret_is_stored_as_given() {

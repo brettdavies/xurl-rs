@@ -108,28 +108,42 @@ pub(super) fn resolve<const N: usize>(
         })
     });
     match failure {
-        Some(error) => Err(SecretError::Io(error)),
+        Some(error) => Err(error),
         None => Ok(resolved),
     }
 }
 
 /// The secret `arg` names, with a file's one trailing line ending removed.
-fn read(arg: SecretArg, stdin: &mut dyn Read) -> Result<Option<String>, Error> {
+///
+/// A file or a pipe that holds nothing is refused: that is what a vault
+/// command leaves on stdout when it fails, and the empty value would be
+/// stored as the secret.
+fn read(arg: SecretArg, stdin: &mut dyn Read) -> Result<Option<String>, SecretError> {
     let Some(path) = arg.file else {
         return Ok(arg.value);
     };
     let flag = arg.file_flag;
     let contents = if path == STDIN {
         let mut piped = String::new();
-        stdin
-            .read_to_string(&mut piped)
-            .map_err(|e| Error::io(format!("cannot read {flag} from stdin: {e}")).with_source(e))?;
+        stdin.read_to_string(&mut piped).map_err(|e| {
+            SecretError::Io(Error::io(format!("cannot read {flag} from stdin: {e}")).with_source(e))
+        })?;
         piped
     } else {
-        std::fs::read_to_string(&path)
-            .map_err(|e| Error::io(format!("cannot read {flag} {path}: {e}")).with_source(e))?
+        std::fs::read_to_string(&path).map_err(|e| {
+            SecretError::Io(Error::io(format!("cannot read {flag} {path}: {e}")).with_source(e))
+        })?
     };
-    Ok(Some(without_line_ending(contents)))
+    let secret = without_line_ending(contents);
+    if secret.is_empty() {
+        let found = if path == STDIN {
+            "read no secret from stdin: the command piped into it printed nothing"
+        } else {
+            "names a file that holds no secret"
+        };
+        return Err(SecretError::Usage(format!("'{flag} {path}' {found}.")));
+    }
+    Ok(Some(secret))
 }
 
 /// Drops one trailing `\n` or `\r\n`, the line ending an editor or `echo`
@@ -193,6 +207,20 @@ mod tests {
         };
         assert!(message.contains("--consumer-secret-file"), "{message}");
         assert!(message.contains("--token-secret-file"), "{message}");
+    }
+
+    #[test]
+    fn a_pipe_that_carried_nothing_is_refused() {
+        for piped in [&b""[..], &b"\n"[..], &b"\r\n"[..]] {
+            let mut piped = piped;
+            let error = resolve([from_stdin("--client-secret-file")], &mut piped, false)
+                .expect_err("an empty secret is refused");
+            let SecretError::Usage(message) = error else {
+                panic!("expected a usage error, got {error:?}");
+            };
+            assert!(message.contains("'--client-secret-file -'"), "{message}");
+            assert!(message.contains("stdin"), "{message}");
+        }
     }
 
     #[test]
