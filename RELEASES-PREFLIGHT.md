@@ -175,14 +175,16 @@ alias xrs="XURL_TOKEN_STORE=$SMOKE_HOME/.xurl ./target/release/xr"
 #                                   -> "OAuth2 (bird_prod app).X_API_OAUTH2_USER_ACCESS_TOKEN" + REFRESH_TOKEN
 
 # Register two apps (replace stub values with 1P reads via ~/.claude/skills/1password/scripts/read_field.sh).
-xrs auth apps add bird_dev  --client-id "$DEV_CID"  --client-secret "$DEV_CSEC"
-xrs auth apps add bird_prod --client-id "$PROD_CID" --client-secret "$PROD_CSEC"
+# Each secret goes through its `-file` flag from a process substitution, so no process's arguments carry it.
+xrs auth apps add bird_dev  --client-id "$DEV_CID"  --client-secret-file <(printf '%s' "$DEV_CSEC")
+xrs auth apps add bird_prod --client-id "$PROD_CID" --client-secret-file <(printf '%s' "$PROD_CSEC")
 
-# Seed bearer + OAuth1 via CLI (these accept tokens as args).
-xrs auth app    --bearer-token "$DEV_BEARER"  --app bird_dev
-xrs auth app    --bearer-token "$PROD_BEARER" --app bird_prod
-xrs auth oauth1 --consumer-key "$DEV_CK" --consumer-secret "$DEV_CS" \
-                --access-token "$DEV_AT" --token-secret "$DEV_TS" --app bird_dev
+# Seed bearer + OAuth1 the same way.
+xrs auth app    --bearer-token-file <(printf '%s' "$DEV_BEARER")  --app bird_dev
+xrs auth app    --bearer-token-file <(printf '%s' "$PROD_BEARER") --app bird_prod
+xrs auth oauth1 --consumer-key "$DEV_CK" --consumer-secret-file <(printf '%s' "$DEV_CS") \
+                --access-token-file <(printf '%s' "$DEV_AT") --token-secret-file <(printf '%s' "$DEV_TS") \
+                --app bird_dev
 
 # OAuth2 has no CLI sideload flag (PKCE-only). Inject via yq strenv() to avoid argv exposure:
 DEV_AT=$(read_field "OAuth2 (bird_dev app).X_API_OAUTH2_USER_ACCESS_TOKEN") \
@@ -205,9 +207,10 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 
   ```bash
   FRESH=$(mktemp -d -t xr-pkce-XXXXXX)
-  XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr auth apps add bird_dev \
+  read_field 'X App - Bird (dev)' oauth2_client_secret |
+    XURL_TOKEN_STORE=$FRESH/.xurl ./target/release/xr auth apps add bird_dev \
       --client-id "$(read_field 'X App - Bird (dev)' oauth2_client_id)" \
-      --client-secret "$(read_field 'X App - Bird (dev)' oauth2_client_secret)"
+      --client-secret-file -
 
   # Step 1: agent runs, prints the authorize URL to stdout (URL is public — client_id,
   # state, code_challenge, no secrets).
@@ -335,7 +338,7 @@ probes.
   --app bird_dev --output json | jaq -c '{u:.data.username,e:(.exit_code//0)}'` → expect `{"u":"BrettDavies","e":0}`
   (auto-detect picked OAuth1 since OAuth2 is now absent). Restore from the backup before moving on.
 - [ ] **First-registered app becomes the default** (automatable): use a *fresh* tempdir (not `$SMOKE_HOME`).
-  `FRESH=$(mktemp -d); XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_dev --client-id … --client-secret …`. Confirm
+  `FRESH=$(mktemp -d); XURL_TOKEN_STORE=$FRESH/.xurl xr auth apps add bird_dev --client-id … --client-secret-file …`. Confirm
   `yq '.default_app' "$FRESH/.xurl"` is already `"bird_dev"`: `add_app` promotes when the store holds no apps or the
   standing default carries neither a client id nor a token, and registration never materializes a `default` app. Add
   `bird_prod` and confirm the default is unmoved, then run `XURL_TOKEN_STORE=$FRESH/.xurl xr auth oauth1 --app bird_dev
