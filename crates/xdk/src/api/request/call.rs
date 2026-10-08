@@ -6,9 +6,10 @@ use std::time::Duration;
 
 use serde::de::DeserializeOwned;
 
-use crate::api::auth_matrix::WireScheme;
-use crate::api::response::types::decode;
+use crate::api::auth_matrix::{WireScheme, endpoints};
+use crate::api::response::types::{ApiResponse, User, decode};
 use crate::error::{Error, Result};
+use crate::store::STORE_TARGET;
 
 use super::{AuthPreflight, CallOptions, Client, RequestOptions, RequestTarget};
 
@@ -50,6 +51,113 @@ impl<T> std::fmt::Debug for Call<T> {
             .field("paginated", &self.paginated)
             .field("failed", &self.failed)
             .finish_non_exhaustive()
+    }
+}
+
+/// The stored login a `/2/users/me` request goes out with.
+enum StoredLogin {
+    /// An `OAuth2` token in `app`, under `stored_as` or unnamed.
+    OAuth2 {
+        app: String,
+        stored_as: Option<String>,
+    },
+    /// The `OAuth1` access pair of `app`.
+    OAuth1 { app: String },
+}
+
+impl Call<ApiResponse<User>> {
+    /// Sends the call, and stores what the answer says of the login it went
+    /// out with: when this is `GET /2/users/me` under a user credential from
+    /// the store, the account's id is stored beside that credential, and an
+    /// `OAuth2` token stored without a username is stored under the one X
+    /// answered with.
+    ///
+    /// Any other call is sent as [`Call::send`] sends it. A lookup of
+    /// another user says nothing about the stored login, so it stores
+    /// nothing. A store that cannot be written is a warning on `xdk::auth`,
+    /// not a failure: the answer is still X's.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Call::send`] returns.
+    // `xr` is the caller: `whoami`, and the commands that resolve the
+    // caller's id before they act (`crates/xurl-cli/src/cli/commands/`).
+    #[doc(hidden)]
+    pub async fn send_saving_identity(self) -> Result<ApiResponse<User>> {
+        let asks_who_i_am = self.request.method == endpoints::GET_ME.method
+            && matches!(
+                &self.request.target,
+                RequestTarget::Template { path, .. } if path == endpoints::GET_ME.path
+            );
+        let login = if asks_who_i_am {
+            match self.auth_preflight().await {
+                Ok(Some(AuthPreflight {
+                    scheme: WireScheme::OAuth2,
+                    app: Some(app),
+                    username,
+                    ..
+                })) => Some(StoredLogin::OAuth2 {
+                    app,
+                    stored_as: username,
+                }),
+                Ok(Some(AuthPreflight {
+                    scheme: WireScheme::OAuth1,
+                    app: Some(app),
+                    ..
+                })) => Some(StoredLogin::OAuth1 { app }),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let client = self.client.clone();
+        let response = self.send().await?;
+        if let Some(login) = login
+            && let Err(error) = client.store_identity(&login, &response.data).await
+        {
+            tracing::warn!(
+                target: "xdk::auth",
+                "the answer could not be stored with the login: {error}"
+            );
+        }
+        Ok(response)
+    }
+}
+
+impl Client {
+    /// Stores `user` as the account behind `login`.
+    async fn store_identity(&self, login: &StoredLogin, user: &User) -> Result<()> {
+        let mut auth = self.auth().await?;
+        let store = &mut auth.token_store;
+        match login {
+            StoredLogin::OAuth1 { app } => {
+                store.set_oauth1_user_id_for_app(app, &user.id)?;
+            }
+            StoredLogin::OAuth2 {
+                app,
+                stored_as: Some(name),
+            } => {
+                store.set_oauth2_user_id_for_app(app, name, &user.id)?;
+            }
+            StoredLogin::OAuth2 {
+                app,
+                stored_as: None,
+            } => {
+                // A token already stored under the username is the newer
+                // one, written by a refresh that learned the name; the
+                // unnamed one is then not the login this answer is about.
+                if store.name_unnamed_oauth2_token_for_app(app, &user.username)? {
+                    tracing::info!(
+                        target: STORE_TARGET,
+                        kind = "login-named",
+                        name = %user.username,
+                        "stored the unnamed OAuth2 login under its username"
+                    );
+                    store.set_oauth2_user_id_for_app(app, &user.username, &user.id)?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 

@@ -90,6 +90,15 @@ impl Diagnostics {
                     fields.to.as_deref()?
                 ))
             }
+            STORE_TARGET if fields.kind.as_deref() == Some("login-named") => {
+                if self.out.quiet || self.out.format.is_structured() {
+                    return None;
+                }
+                Some(format!(
+                    "Stored the OAuth2 login as @{}",
+                    fields.name.as_deref()?
+                ))
+            }
             _ => None,
         }
     }
@@ -313,6 +322,19 @@ mod tests {
                 Some("\x1b[1;31m< 200 OK\x1b[0m".to_string()),
                 Some("\x1b[1;32m< k\x1b[0m: v".to_string()),
             ]
+        );
+    }
+
+    /// The event's field arrives as `xdk` emits it, through `Display`.
+    #[test]
+    fn a_named_login_is_announced_in_text_output() {
+        let lines = rendered(diagnostics(false, ColorChoice::Never), || {
+            let username = String::from("alice");
+            tracing::info!(target: STORE_TARGET, kind = "login-named", name = %username, "named");
+        });
+        assert_eq!(
+            lines,
+            vec![Some("Stored the OAuth2 login as @alice".to_string())]
         );
     }
 

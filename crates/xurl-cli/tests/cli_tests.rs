@@ -3292,6 +3292,160 @@ async fn test_dry_run_names_no_app_for_a_bearer_from_the_environment() {
     );
 }
 
+/// A store whose one app holds a live `OAuth2` login under `name`, with
+/// `user_id` stored beside it when given.
+fn populate_oauth2_login(store_path: &Path, name: Option<&str>, user_id: Option<&str>) {
+    use xdk::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID", "SECRET").expect("add app");
+    match name {
+        Some(name) => {
+            ts.save_oauth2_token_for_app("myapp", name, "ACCESS", "REFRESH", 4_000_000_000)
+                .expect("save the login");
+            if let Some(id) = user_id {
+                ts.set_oauth2_user_id_for_app("myapp", name, id)
+                    .expect("store the id");
+            }
+        }
+        None => ts
+            .save_oauth2_token_unnamed_for_app("myapp", "ACCESS", "REFRESH", 4_000_000_000)
+            .expect("save the unnamed login"),
+    }
+}
+
+/// Mounts `/2/users/me` answering as `alice`, id 42, expecting `times` calls.
+async fn mock_me_as_alice(ts: &CliMockServer, times: u64) {
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "42", "name": "Alice", "username": "alice"}
+            })))
+            .expect(times),
+    )
+    .await;
+}
+
+/// Mounts the like endpoint for the account with id 42, expecting `times`
+/// calls: the id in the path is the one the command resolved.
+async fn mock_like_as_42(ts: &CliMockServer, times: u64) {
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/42/likes"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"liked": true}})),
+            )
+            .expect(times),
+    )
+    .await;
+}
+
+/// A sign-in whose username lookup failed leaves the login stored without
+/// a name. `xr whoami` is the command that asks who it is, so its answer
+/// stores the login under that username, with the account's id.
+#[tokio::test]
+async fn test_whoami_names_a_login_stored_without_a_username() {
+    use xdk::store::TokenStore;
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, None, None);
+
+    let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &["xr", "whoami"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(stdout.contains("alice"), "stdout: {stdout}");
+    let after = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let login = after
+        .get_oauth2_token_for_app("myapp", "alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the login is stored under the username X answered with");
+    assert_eq!(login.user_id.as_deref(), Some("42"));
+    assert!(after.get_oauth2_token_unnamed_for_app("myapp").is_none());
+}
+
+/// A command that acts as the caller needs the caller's id. With the id
+/// stored beside the login, it goes straight to its own request.
+#[tokio::test]
+async fn test_a_stored_id_spares_the_me_lookup() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    mock_like_as_42(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), Some("42"));
+
+    let (code, _stdout, stderr) =
+        run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+/// Without a stored id the command asks once, and stores the answer, so the
+/// command after it does not ask.
+#[tokio::test]
+async fn test_the_first_me_lookup_is_the_last() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    mock_like_as_42(&ts, 2).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+
+    for _ in 0..2 {
+        let (code, _stdout, stderr) =
+            run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+    }
+}
+
+/// `--username` picks a stored login, and that login's stored id is the
+/// caller's: no lookup of the handle is sent.
+#[tokio::test]
+async fn test_a_stored_id_spares_the_lookup_under_username() {
+    let ts = CliMockServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/work"))
+            .respond_with(ResponseTemplate::new(404))
+            .expect(0),
+    )
+    .await;
+    mock_like_as_42(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("work"), Some("42"));
+
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "like", "1234567890", "--username", "work"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+/// An `OAuth1` access pair has no sign-in or refresh to learn its account
+/// at, so the first command that asks stores the answer beside the pair.
+#[tokio::test]
+async fn test_an_oauth1_login_asks_who_it_is_once() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    mock_like_as_42(&ts, 2).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+
+    for _ in 0..2 {
+        let (code, _stdout, stderr) =
+            run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+    }
+}
+
 /// Invalid inputs are reported before credentials are looked at, so the
 /// reason a caller can fix in the invocation comes first.
 #[tokio::test]

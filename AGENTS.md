@@ -110,6 +110,14 @@ the move in text output. Schema is documented in `crates/xdk/src/store/types.rs`
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
 
+Each OAuth2 login and each OAuth1 access pair carries `user_id`, the id of the account it belongs to. It is written only
+from `/2/users/me` answered under that credential (at sign-in, at the refresh of a login that lacks it, by `xr whoami`,
+and by the first command that resolves the caller's id), and a credential that replaces another starts without one, so
+the id cannot name another account. `resolve_my_user_id` in `crates/xurl-cli/src/cli/commands/mod.rs` reads it through
+`Call::auth_preflight` and sends the lookup only when it is absent. A refresh replaces the token where it is stored: the
+key is the caller's label for the login, which `xr auth oauth2 NAME` lets them choose. Another user's handle is never
+cached, since a handle can pass to another account.
+
 `xr auth status` is the operator-facing surface. Programmatic access uses `xdk::store::TokenStore`.
 
 ## Output formats

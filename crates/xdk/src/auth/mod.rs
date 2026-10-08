@@ -69,6 +69,13 @@ pub struct Auth {
 
 crate::assert_send_sync!(Auth);
 
+/// What `/2/users/me` says of the account a token belongs to.
+pub(crate) struct Identity {
+    pub(crate) username: String,
+    /// Absent when the answer carried no id.
+    pub(crate) user_id: Option<String>,
+}
+
 impl std::fmt::Debug for Auth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Auth")
@@ -458,12 +465,13 @@ impl Auth {
         )
     }
 
-    /// Fetches the username for an access token from the /2/users/me endpoint.
-    pub(crate) async fn fetch_username(
+    /// Asks `/2/users/me` whose `access_token` this is: the account's
+    /// username and its id.
+    pub(crate) async fn fetch_identity(
         &self,
         http: &reqwest::Client,
         access_token: &str,
-    ) -> Result<String> {
+    ) -> Result<Identity> {
         let resp = http
             .get(&self.config.info_url)
             .timeout(std::time::Duration::from_secs(
@@ -479,13 +487,20 @@ impl Auth {
             .await
             .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e).with_source(e))?;
 
-        body.get("data")
-            .and_then(|d| d.get("username"))
-            .and_then(|u| u.as_str())
-            .map(std::string::ToString::to_string)
-            .ok_or_else(|| {
-                Error::auth("UsernameNotFound: username not found when fetching username")
-            })
+        let field = |name: &str| {
+            body.get("data")
+                .and_then(|data| data.get(name))
+                .and_then(serde_json::Value::as_str)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        };
+        let username = field("username").ok_or_else(|| {
+            Error::auth("UsernameNotFound: username not found when fetching username")
+        })?;
+        Ok(Identity {
+            username,
+            user_id: field("id"),
+        })
     }
 
     /// Replaces the token store (used in integration tests).

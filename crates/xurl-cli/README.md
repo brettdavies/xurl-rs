@@ -328,6 +328,13 @@ moved into that directory by the first command that opens it. In text output the
 (`Migrated <old path> to <new path>`). The move is one-way, and `xr` 4.3.0 and earlier cannot read the directory, so
 upgrade every copy of `xr` that shares the store. A `~/.xurl` that is a symbolic link to a file is used where it points.
 
+Beside each login the store keeps the id of the X account it belongs to. `xr` writes it from `/2/users/me` answered
+under that login: at sign-in, at the refresh of a login that has none, on `xr whoami`, and on the first command that
+needs it. A command that acts as you (`like`, `follow`, `timeline`, `bookmarks`, and the rest of them) then reads the id
+from the store, where it asked X on every run. The id sits beside the credential it was asked with and goes when that
+credential is replaced, so it cannot name another account. A login stored without a username gets its name the same way.
+Someone else's handle is looked up every time, because a handle can pass to another account.
+
 Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending state (`<path>.pending`)
 follows it. The variable applies to the binary only: a program using `xdk` passes the path to
 `Auth::new_with_store_path` and builds its client with `Client::new`.
@@ -383,8 +390,9 @@ zero-app special case. Per-app fields:
 - `bearer`: boolean: a bearer token is available for this app, stored on it or supplied by `XURL_BEARER_TOKEN`.
 - `bearer_source`: only present when `bearer` is `true`: `store` or `env`.
 - `default`: boolean: this is the default app.
-- `oauth2_unnamed`: only present when `true`; indicates an unnamed-user OAuth2 token is stored after a refresh where
-  `/2/users/me` failed and no username was supplied.
+- `oauth2_unnamed`: only present when `true`; an OAuth2 login is stored without a username, because `/2/users/me` failed
+  at the sign-in or refresh that stored it. `xr whoami`, or the next command that asks X who you are, stores it under
+  the username X answers with.
 
 ```bash
 xr --output json auth status | jq '.apps[] | select(.default) | .name'

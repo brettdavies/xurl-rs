@@ -553,8 +553,19 @@ fn my_id_call(client: &Client, common: &CommonFlags) -> Call<api::ApiResponse<ap
 }
 
 /// Resolves the authenticated user's ID.
+///
+/// The store holds it beside the login once `/2/users/me` has answered
+/// under that login, and an account's id never changes, so a stored id is
+/// used as it is and no request is sent. Without one the lookup is sent, and
+/// its answer is stored for the next command.
 async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<String> {
-    let id = my_id_call(client, common).send().await?.data.id;
+    let call = my_id_call(client, common);
+    if let Ok(Some(found)) = call.auth_preflight().await
+        && let Some(id) = found.user_id
+    {
+        return Ok(id);
+    }
+    let id = call.send_saving_identity().await?.data.id;
     if id.is_empty() {
         return Err(Error::auth("user ID was empty -- check your auth tokens"));
     }

@@ -148,3 +148,18 @@ removed when that status carries none, and with any other field only the status 
 
 An upload that did not wait prints FINALIZE's document unchanged, and so does one whose wait failed or timed out, with
 the error on stderr. Under `--verbose`, INIT's response is printed ahead of it in text output only.
+
+## The caller's id is asked for once per login (intentional improvement)
+
+A command that acts as the caller (`like`, `follow`, `timeline`, `bookmarks`, and the rest) needs the caller's id in its
+path. Go `xurl` asks `/2/users/me` for it on every run (`cli/shortcuts.go`, `resolveMyUserID`), or
+`/2/users/by/username/<name>` under `--username`. Each is a billed user read.
+
+The Rust version stores the id beside the login the first time `/2/users/me` answers under it: at sign-in, at the
+refresh of a login that has none, on `xr whoami`, or on the first command that needs it. Later commands read it from the
+store and send one request where Go sends two. The field is `user_id` on the OAuth2 token and on the OAuth1 access pair
+in `~/.xurl/auth.yml`. Go `xurl` does not read it, and drops it when it rewrites a login, after which `xr` asks once
+more.
+
+The id is written only from an answer given under that same credential, and a credential that replaces another starts
+without one, so it cannot name a different account. Another user's handle is looked up on every run in both tools.
