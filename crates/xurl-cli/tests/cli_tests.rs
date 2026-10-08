@@ -3395,12 +3395,14 @@ async fn test_auth_default_no_interactive_emits_no_tty_envelope() {
     );
 }
 
-/// `xr auth default` without `--no-interactive` while the test harness's
-/// stdin/stderr are not real TTYs (cargo test) must still skip dialoguer and
-/// emit the `no-tty` envelope. The TTY check is independent of the
-/// `--no-interactive` flag.
-#[tokio::test]
-async fn test_auth_default_non_tty_emits_no_tty_envelope() {
+/// `xr auth default` with no terminal attached answers the `no-tty` envelope
+/// without `--no-interactive`: the terminal check is independent of that flag.
+///
+/// The binary is spawned so its stdin and stderr are pipes whatever terminal
+/// the test runner has. The check reads the process's own handles, which an
+/// in-process run cannot substitute.
+#[test]
+fn test_auth_default_non_tty_emits_no_tty_envelope() {
     use xdk::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3411,9 +3413,11 @@ async fn test_auth_default_non_tty_emits_no_tty_envelope() {
         .expect("add beta");
     drop(ts);
 
-    let (code, _stdout, stderr) =
-        run_at(&store, &["xr", "auth", "default", "--output", "json"]).await;
-    assert_ne!(code, 0, "expected non-zero exit");
+    let assert = common::xr_with_store(&store)
+        .args(["auth", "default", "--output", "json"])
+        .assert()
+        .code(1);
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
     let trimmed = stderr.trim();
     let v: serde_json::Value =
         serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
