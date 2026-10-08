@@ -41,6 +41,11 @@ pub struct AuthPreflight {
     /// Whether the `OAuth2` access token has passed its expiry, so that
     /// sending would refresh it first. `false` under another scheme.
     pub token_expired: bool,
+    /// The id of the account the user credential belongs to, when the
+    /// store holds it beside that credential: `/2/users/me` answered under
+    /// it at sign-in, at a refresh, or since. `None` for an app-only bearer,
+    /// which is no user's.
+    pub user_id: Option<String>,
 }
 
 impl Client {
@@ -82,6 +87,10 @@ impl Client {
                 app: credentials.credential_app(scheme),
                 username: None,
                 token_expired: false,
+                user_id: match scheme {
+                    WireScheme::OAuth1 => credentials.oauth1_user_id(),
+                    WireScheme::OAuth2 | WireScheme::App => None,
+                },
             },
             Selection::OAuth2 { username } => {
                 let state = credentials
@@ -92,6 +101,7 @@ impl Client {
                     app: credentials.credential_app(WireScheme::OAuth2),
                     username: state.username,
                     token_expired: state.expired,
+                    user_id: state.user_id,
                 }
             }
         };

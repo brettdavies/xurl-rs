@@ -133,6 +133,7 @@ impl TokenStore {
                                     .consumer_secret
                                     .clone()
                                     .unwrap_or_default(),
+                                user_id: None,
                             }),
                         });
                     }

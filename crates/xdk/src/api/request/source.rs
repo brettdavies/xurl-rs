@@ -19,6 +19,8 @@ pub(crate) struct OAuth2State {
     pub(crate) username: Option<String>,
     /// Whether the access token has passed its expiry.
     pub(crate) expired: bool,
+    /// The account id stored with the token, when one is.
+    pub(crate) user_id: Option<String>,
 }
 
 /// What scheme selection reads off the credentials at hand.
@@ -142,6 +144,19 @@ impl CredentialSource {
         }
     }
 
+    /// The account id stored with the active app's `OAuth1` access pair,
+    /// when one is.
+    pub(crate) fn oauth1_user_id(&self) -> Option<String> {
+        match self {
+            Self::Store(auth) => auth
+                .token_store
+                .get_oauth1_tokens_for_app(auth.app_name())
+                .and_then(|token| token.oauth1.as_ref())
+                .and_then(|token| token.user_id.clone()),
+            Self::Direct(_) => None,
+        }
+    }
+
     /// The token an `OAuth2` request for `username` would use, or `None`
     /// when the credentials hold none for it.
     pub(crate) fn oauth2_state(&self, username: &str) -> Option<OAuth2State> {
@@ -150,11 +165,13 @@ impl CredentialSource {
                 oauth2::stored_oauth2_user(auth, username).map(|(username, token)| OAuth2State {
                     username,
                     expired: oauth2::is_expired(&token),
+                    user_id: token.user_id,
                 })
             }
             Self::Direct(direct) => direct.oauth2_expired().map(|expired| OAuth2State {
                 username: None,
                 expired,
+                user_id: None,
             }),
         }
     }

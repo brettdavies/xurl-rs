@@ -3,7 +3,10 @@
 
 use serde_json::json;
 
-use super::{DryRun, Run, effective_limit, list_for_user, make_client, send_or_report, with_flags};
+use super::{
+    DryRun, Run, effective_limit, list_for_user, make_client, print_typed, send_or_report,
+    with_flags,
+};
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -69,7 +72,12 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 .then(|| DryRun::new(json!({"command": "whoami"})));
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.get_me(), &common, None);
-            send_or_report(out, stdout, dry_run, call).await?;
+            match dry_run {
+                Some(dry_run) => dry_run.answer(out, stdout, [call.auth_preflight().await]),
+                // The one command a person runs to ask who a login is, so
+                // its answer is where a login stored without a name gets one.
+                None => print_typed(out, stdout, &call.send_saving_identity().await?)?,
+            }
         }
         Commands::User {
             target_username,

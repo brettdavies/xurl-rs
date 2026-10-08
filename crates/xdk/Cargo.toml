@@ -133,3 +133,7 @@ enum_struct_variant_field_added = { lint-level = "deny", required-update = "mino
 # variant holding a message became a struct variant holding `message` and
 # `source`.
 enum_tuple_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
+# Covers `OAuth2Token::user_id` and `OAuth1Token::user_id`: the store keeps the
+# id of the account a credential belongs to beside it, so a literal of either
+# struct names one more field.
+constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }

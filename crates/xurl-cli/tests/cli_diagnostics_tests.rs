@@ -17,12 +17,21 @@ use xdk::store::TokenStore;
 /// A store whose default app holds an already-expired `OAuth2` token for
 /// `alice`, so the first request refreshes before it sends.
 fn expired_oauth2_store(tmp: &TempDir) -> std::path::PathBuf {
+    expired_store(tmp, Some("alice"))
+}
+
+/// [`expired_oauth2_store`] with the token stored under `name`, or without
+/// a username when there is none.
+fn expired_store(tmp: &TempDir, name: Option<&str>) -> std::path::PathBuf {
     let store = tmp.path().join(".xurl");
     let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
     ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
         .expect("add_app");
-    ts.save_oauth2_token_for_app("myapp", "alice", "old-at", "old-rt", 0)
-        .expect("save_oauth2");
+    match name {
+        Some(name) => ts.save_oauth2_token_for_app("myapp", name, "old-at", "old-rt", 0),
+        None => ts.save_oauth2_token_unnamed_for_app("myapp", "old-at", "old-rt", 0),
+    }
+    .expect("save_oauth2");
     ts.set_default_app("myapp").expect("set_default_app");
     let _ = ts.remove_app("default");
     store
@@ -78,8 +87,10 @@ async fn a_refresh_whose_username_lookup_fails_warns_on_stderr() {
         .expect(1)
         .mount(&server)
         .await;
+    // A login stored without a username is the one a failed lookup leaves
+    // unnamed; a named one is refreshed where it is stored.
     let tmp = TempDir::new().expect("tempdir");
-    let store = expired_oauth2_store(&tmp);
+    let store = expired_store(&tmp, None);
 
     let (code, stderr) = run(store, server.uri(), &["search", "hi"]).await;
 
