@@ -149,8 +149,11 @@ async fn a_live_oauth2_token_names_its_user() {
     assert!(!found.token_expired);
 }
 
+/// A sign-in whose `/2/users/me` lookup failed leaves its token stored
+/// without a name. A request that names no user is sent with it, so
+/// auto-detect counts it as the app's `OAuth2` credential.
 #[tokio::test]
-async fn a_token_stored_without_a_name_reports_no_username() {
+async fn a_token_stored_without_a_name_serves_a_request_that_names_no_user() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
     let path = tmp.path().join("auth.yml");
@@ -159,17 +162,22 @@ async fn a_token_stored_without_a_name_reports_no_username() {
             .save_oauth2_token_unnamed_for_app(APP, "ACCESS", "REFRESH", expiry(false))
             .expect("save the unnamed token");
     });
+    let client = client(&path, &server);
 
-    let found = client(&path, &server)
+    let found = client
         .get_me()
-        .auth(WireScheme::OAuth2)
         .auth_preflight()
         .await
         .expect("the unnamed token serves the call")
         .expect("the client attaches a credential");
-
     assert_eq!(found.scheme, WireScheme::OAuth2);
     assert_eq!(found.username, None);
+
+    let header = client
+        .get_auth_header_public(&request("GET", "/2/users/me"))
+        .await
+        .expect("a send finds the unnamed token");
+    assert_eq!(header, "Bearer ACCESS");
 }
 
 #[tokio::test]

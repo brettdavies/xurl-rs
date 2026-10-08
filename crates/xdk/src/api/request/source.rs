@@ -171,13 +171,18 @@ impl CredentialSource {
     }
 }
 
-/// Schemes the active app stores, in preference order.
+/// Schemes the active app stores, in preference order. An `OAuth2` token
+/// stored without a name counts: a request that names no user is sent with
+/// it when the app holds no named one.
 fn stored_in_app(auth: &Auth, app_name: &str) -> Vec<WireScheme> {
     let store = &auth.token_store;
     WireScheme::ALL_BY_PREFERENCE
         .into_iter()
         .filter(|scheme| match scheme {
-            WireScheme::OAuth2 => store.get_first_oauth2_token_for_app(app_name).is_some(),
+            WireScheme::OAuth2 => {
+                store.get_first_oauth2_token_for_app(app_name).is_some()
+                    || store.get_oauth2_token_unnamed_for_app(app_name).is_some()
+            }
             WireScheme::OAuth1 => store.get_oauth1_tokens_for_app(app_name).is_some(),
             WireScheme::App => store.get_bearer_token_for_app(app_name).is_some(),
         })
