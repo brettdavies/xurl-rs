@@ -291,11 +291,12 @@ exist first; that token has since been removed.
 
 ### Why `make_latest: false` then `finalize-release`
 
-The GitHub Release is created visible-but-not-latest (`make_latest: false`) so `cargo-binstall` and `/releases/latest`
-don't 404 during the bottle-build window, but the release isn't yet promoted to "Latest" while bottles upload. After the
-homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to this repo,
-which idempotently flips `make_latest: true`. End result: crate on crates.io, GitHub Release marked latest, Homebrew
-formula updated with bottles, all atomically advertised.
+The GitHub Release is created visible-but-not-latest (`make_latest: false`) so its archives resolve by tag at once,
+which the tap's bump needs, while `cargo-binstall` and `/releases/latest` keep resolving the previous version until
+Homebrew can install the new one. The tap verifies the archives, tests the formula bump on four platforms, and lands it;
+it builds no bottle, so nothing is uploaded back to this repo's release. It then dispatches `finalize-release` back to
+this repo, which idempotently flips `make_latest: true`. End result: crate on crates.io, GitHub Release marked latest,
+Homebrew formula updated, all atomically advertised.
 
 ### Why `xdk-rs` ships on its own tag
 
@@ -311,10 +312,10 @@ The library's tag is namespaced `<crate>-v<version>` so it cannot match the bina
 filter. One tag push then starts exactly one pipeline, which is what keeps the two lines from racing each other for the
 same crate.
 
-Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the bottle window above: a visitor
-resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive. Nothing
-finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever resolves to
-one.
+Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the Homebrew window above: a
+visitor resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive.
+Nothing finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever
+resolves to one.
 
 Order is a hard dependency: the library publishes first, and the binary's `check-version` refuses up front when a
 workspace member it depends on is not yet on crates.io at the declared bound. Without that check the same failure lands

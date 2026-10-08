@@ -89,7 +89,7 @@ between runs and, depending on the trigger, writes a job summary, comments on th
 
 ## Why vendor?
 
-A checked-in spec gives reproducible builds (Homebrew bottle CI, offline builds), an auditable supply chain (the spec is
-greppable from source), and CI that does not need to reach `api.x.com` on every push. Manual refresh is the trade-off we
-accept; the drift-check workflow shortens time-to-notice.
+A checked-in spec gives reproducible builds (a Homebrew `--HEAD` install, offline builds), an auditable supply chain
+(the spec is greppable from source), and CI that does not need to reach `api.x.com` on every push. Manual refresh is the
+trade-off we accept; the drift-check workflow shortens time-to-notice.
 EOF
