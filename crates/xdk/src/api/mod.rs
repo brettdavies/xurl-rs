@@ -13,17 +13,20 @@ pub use endpoints::is_streaming_endpoint;
 pub use media::{DEFAULT_PROCESSING_WAIT, MEDIA_TARGET, MediaUploadOutcome, execute_media_status};
 pub use media_upload::MediaUpload;
 // Media plumbing the binary drives by hand: `xr <URL>` services an append
-// request from the raw path, and `xr media upload` runs the phases with its
-// own flags; an embedder uploads through `Client::upload_media`.
+// request from the raw path, `xr media upload` runs the phases with its own
+// flags, and `xr --dry-run media upload` and `xr --dry-run media status`
+// check what those phases can be checked for unsent; an embedder uploads
+// through `Client::upload_media`.
 #[doc(hidden)]
 #[allow(unused_imports)]
 pub use media::{
     MEDIA_ENDPOINT, execute_media_upload, extract_media_id, extract_segment_index,
-    handle_media_append_request, is_media_append_request,
+    handle_media_append_request, is_media_append_request, media_status_auth_preflight,
+    media_upload_preflight,
 };
 pub use request::{
-    Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions, RequestOptions,
-    RequestTarget, StreamLines, WIRE_TARGET,
+    AuthPreflight, Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions,
+    RequestOptions, RequestTarget, StreamLines, WIRE_TARGET,
 };
 #[allow(unused_imports)]
 pub use request::{DEFAULT_USER_AGENT, RateLimit};

@@ -160,6 +160,12 @@ impl DirectCredentials {
         self.oauth2.is_some()
     }
 
+    /// Whether the `OAuth2` credential has expired; `None` when the client
+    /// holds none.
+    pub(crate) fn oauth2_expired(&self) -> Option<bool> {
+        self.oauth2.as_ref().map(OAuth2Credential::is_expired)
+    }
+
     pub(crate) fn unexpired_oauth2_access_token(&self) -> Option<String> {
         self.oauth2
             .as_ref()

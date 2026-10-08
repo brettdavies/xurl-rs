@@ -189,14 +189,25 @@ impl TokenStore {
     /// Gets the default user's token, or the first `OAuth2` token from the named app.
     #[must_use]
     pub fn get_first_oauth2_token_for_app(&self, app_name: &str) -> Option<&Token> {
+        self.first_oauth2_user_for_app(app_name)
+            .map(|(_, token)| token)
+    }
+
+    /// The user a request with no username is sent as, and that user's
+    /// token: the default user when one is set and still holds a token,
+    /// else the first `OAuth2` user of the named app.
+    #[must_use]
+    pub fn first_oauth2_user_for_app(&self, app_name: &str) -> Option<(&str, &Token)> {
         let app = self.resolve_app(app_name);
-        // Prefer the default user if one is set and still has a token
         if !app.default_user.is_empty()
-            && let Some(token) = app.oauth2_tokens.get(&app.default_user)
+            && let Some((username, token)) = app.oauth2_tokens.get_key_value(&app.default_user)
         {
-            return Some(token);
+            return Some((username.as_str(), token));
         }
-        app.oauth2_tokens.values().next()
+        app.oauth2_tokens
+            .iter()
+            .next()
+            .map(|(username, token)| (username.as_str(), token))
     }
 
     /// Gets the unnamed (`/me`-failed salvage) `OAuth2` token from the named app.

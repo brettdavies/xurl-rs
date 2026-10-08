@@ -10,7 +10,7 @@ use crate::api::auth_matrix::WireScheme;
 use crate::api::response::types::decode;
 use crate::error::{Error, Result};
 
-use super::{CallOptions, Client, RequestOptions, RequestTarget};
+use super::{AuthPreflight, CallOptions, Client, RequestOptions, RequestTarget};
 
 /// A shortcut request that has not been sent.
 ///
@@ -141,6 +141,25 @@ impl<T: DeserializeOwned> Call<T> {
             .headers
             .push(format!("{}: {}", name.into(), value.into()));
         self
+    }
+
+    /// Reports the credential this call would be sent with, without sending
+    /// it: [`Client::auth_preflight`] for the request as built so far.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Client::auth_preflight`] returns, plus the error of a
+    /// request that could not be built.
+    pub async fn auth_preflight(&self) -> Result<Option<AuthPreflight>> {
+        if let Some(error) = &self.failed {
+            // `failed` holds only a body that did not serialize.
+            return Err(Error::json(error.to_string()));
+        }
+        let mut request = self.request.clone();
+        request.auth_type.clone_from(&self.options.auth_type);
+        request.username.clone_from(&self.options.username);
+        request.no_auth = self.options.no_auth;
+        self.client.auth_preflight(&request).await
     }
 
     /// Performs the request and decodes the response.
