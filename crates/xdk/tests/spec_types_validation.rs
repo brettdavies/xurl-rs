@@ -26,7 +26,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    DmEvent, MediaMetadataResult, MediaSubtitlesResult, Post, UsageData, User,
+    DmEvent, MediaMetadataResult, MediaSubtitlesResult, Post, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookValidation,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -182,6 +183,18 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateMediaSubtitlesResponseData",
             serde_json::to_value(schemars::schema_for!(MediaSubtitlesResult)).unwrap(),
+        ),
+        (
+            "WebhookConfig",
+            serde_json::to_value(schemars::schema_for!(Webhook)).unwrap(),
+        ),
+        (
+            "ValidateWebhooksResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookValidation)).unwrap(),
+        ),
+        (
+            "CreateWebhookReplayJobResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookReplayJob)).unwrap(),
         ),
     ];
 

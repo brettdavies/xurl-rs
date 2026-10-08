@@ -274,6 +274,31 @@ const ROUTES: &[Route] = &[
         fixture: "chat_moderators",
         status: 200,
     },
+    Route {
+        endpoint: endpoints::GET_WEBHOOKS,
+        fixture: "webhook_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK,
+        fixture: "webhook_single",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::VALIDATE_WEBHOOK,
+        fixture: "webhook_validated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_WEBHOOK,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK_REPLAY,
+        fixture: "webhook_replay_job",
+        status: 200,
+    },
 ];
 
 /// The regex that matches the paths `path` renders to: a `{username}`

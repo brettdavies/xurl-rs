@@ -151,6 +151,12 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
+    // webhooks
+    ("GET_WEBHOOKS", "GET", "/2/webhooks"),
+    ("CREATE_WEBHOOK", "POST", "/2/webhooks"),
+    ("VALIDATE_WEBHOOK", "PUT", "/2/webhooks/{webhook_id}"),
+    ("DELETE_WEBHOOK", "DELETE", "/2/webhooks/{webhook_id}"),
+    ("CREATE_WEBHOOK_REPLAY", "POST", "/2/webhooks/replay"),
 ];
 
 #[derive(Deserialize)]
