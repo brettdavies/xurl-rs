@@ -8,7 +8,8 @@ use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::api::Client;
 use xdk::api::shortcuts::{
-    WEBHOOK_URL_MAX_CHARS, validate_replay_time, validate_webhook_id, validate_webhook_url,
+    WEBHOOK_URL_MAX_CHARS, validate_replay_time, validate_user_id, validate_webhook_id,
+    validate_webhook_url,
 };
 use xdk::auth::OAuth2Credential;
 
@@ -211,4 +212,106 @@ fn validate_replay_time_takes_twelve_digits() {
         validate_replay_time("2026011512000"),
         Err("invalid-replay-time")
     );
+}
+
+// ── Account Activity subscriptions ───────────────────────────────────
+
+const USER_ID: &str = "2244994945";
+
+#[tokio::test]
+async fn create_account_activity_subscription_posts_an_empty_object_as_the_user() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/all"
+        )))
+        .and(body_json(json!({})))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data": {"subscribed": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = user_client(server.uri())
+        .create_account_activity_subscription(WEBHOOK_ID)
+        .send()
+        .await
+        .expect("the account is subscribed");
+
+    assert!(result.data.subscribed);
+}
+
+#[tokio::test]
+async fn delete_account_activity_subscription_names_the_webhook_and_the_user() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/{USER_ID}/all"
+        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data": {"subscribed": false}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = app_client(server.uri())
+        .delete_account_activity_subscription(WEBHOOK_ID, USER_ID)
+        .send()
+        .await
+        .expect("the subscription ends");
+
+    assert!(!result.data.subscribed);
+}
+
+#[tokio::test]
+async fn get_account_activity_subscriptions_lists_the_subscribed_accounts() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/all/list"
+        )))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": {
+                "application_id": "32371675",
+                "webhook_id": WEBHOOK_ID,
+                "webhook_url": "https://example.com/webhooks/x",
+                "subscriptions": [{"user_id": USER_ID}]
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = app_client(server.uri())
+        .get_account_activity_subscriptions(WEBHOOK_ID)
+        .send()
+        .await
+        .expect("subscriptions are listed");
+
+    let subscriptions = result.data.subscriptions.expect("subscriptions");
+    assert_eq!(subscriptions[0].user_id.as_deref(), Some(USER_ID));
+}
+
+#[tokio::test]
+async fn a_bearer_only_client_is_refused_a_subscription_before_any_request() {
+    let server = MockServer::start().await;
+
+    let err = app_client(server.uri())
+        .create_account_activity_subscription(WEBHOOK_ID)
+        .send()
+        .await
+        .expect_err("subscribing takes a user login");
+
+    assert_eq!(err.kind(), "auth-method-mismatch", "{err}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[test]
+fn validate_user_id_holds_the_specs_pattern() {
+    assert_eq!(validate_user_id(USER_ID), Ok(()));
+    assert_eq!(validate_user_id(""), Err("invalid-user-id"));
+    assert_eq!(validate_user_id("@someone"), Err("invalid-user-id"));
+    assert_eq!(validate_user_id(&"9".repeat(20)), Err("invalid-user-id"));
 }

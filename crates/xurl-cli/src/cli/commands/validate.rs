@@ -16,10 +16,11 @@ use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookValidation,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
+    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, RepostedResult,
+    SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookValidation,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -108,6 +109,9 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<Webhook>>("webhooks"),
     typed_alias::<WebhookValidation>("webhook-validation"),
     typed_alias::<WebhookReplayJob>("webhook-replay"),
+    typed_alias::<AccountActivitySubscriptionCount>("subscription-count"),
+    typed_alias::<AccountActivitySubscriptions>("subscriptions"),
+    typed_alias::<SubscribedResult>("subscribed"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.

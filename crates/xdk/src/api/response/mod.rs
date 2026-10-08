@@ -8,9 +8,10 @@ pub(crate) mod vocabulary;
 
 #[allow(unused_imports)] // Re-exported for library consumers
 pub use types::{
+    AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
-    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookValidation,
-    deserialize_response,
+    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, SubscribedResult,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
+    WebhookValidation, deserialize_response,
 };

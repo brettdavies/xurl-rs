@@ -1,7 +1,7 @@
 args: ["webhooks", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7185
+stdout_len: 7298
 stderr_len: 0
 --- stdout ---
 Webhook registration, validation, and replay
@@ -9,12 +9,13 @@ Webhook registration, validation, and replay
 Usage: xr webhooks [OPTIONS] <COMMAND>
 
 Commands:
-  list      List the webhooks registered for the app
-  add       Register a webhook URL
-  validate  Ask X to send its CRC check to a webhook again
-  remove    Delete a webhook; its subscriptions stop delivering
-  replay    Deliver a past window of events to a webhook again
-  help      Print this message or the help of the given subcommand(s)
+  list           List the webhooks registered for the app
+  add            Register a webhook URL
+  validate       Ask X to send its CRC check to a webhook again
+  remove         Delete a webhook; its subscriptions stop delivering
+  subscriptions  Account Activity subscriptions: whose activity a webhook receives
+  replay         Deliver a past window of events to a webhook again
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose[=<VERBOSE>]
