@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde::Serialize;
 
-use super::{Gate, GlobalFlags, Run, gate_destructive};
+use super::{Gate, GlobalFlags, Run, destructive_dry_run_context, gate_destructive};
 use crate::cli::AuthCommands;
 use crate::cli::failure::CommandResult;
 use crate::cli::hints::REGISTER_APP_TEMPLATE;

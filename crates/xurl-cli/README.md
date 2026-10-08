@@ -404,6 +404,45 @@ xr whoami --no-interactive                     # Error instead of prompt
 # Exit code 77 with reason `auth-required` when no credentials are stored
 ```
 
+### Dry Runs
+
+`--dry-run` sends nothing and stores nothing, whichever command it is on: a write, a read, or a raw request with any
+method. It checks the inputs and the stored credentials offline, and answers at exit 0.
+
+```bash
+xr --output json --dry-run post "Hello"
+```
+
+```json
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "body": "Hello",
+  "command": "post",
+  "exit_code": 0,
+  "media_ids": [],
+  "status": "dry_run",
+  "would_succeed": true
+}
+```
+
+- `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
+  send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
+  the keys of its error envelope: `message`, `endpoint`, `supported`, `available_in_app`.
+- `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
+  OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
+  belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
+  the credential is not checked, since nothing is sent to find out.
+- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and
+  the prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+
+A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
+answers as it always does. Text output prints the context without `status`, `would_succeed`, and `exit_code`.
+
 ### Structured Exit Codes
 
 | Code | Meaning                                                     | Agent Action                                                  |

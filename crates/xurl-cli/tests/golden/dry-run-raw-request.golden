@@ -1,0 +1,22 @@
+args: ["--output", "json", "--dry-run", "-X", "POST", "/2/tweets", "-d", "{\"text\":\"hi\"}"]
+store: oauth2
+exit_code: 0
+stdout_len: 224
+stderr_len: 0
+--- stdout ---
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "exit_code": 0,
+  "method": "POST",
+  "status": "dry_run",
+  "url": "/2/tweets",
+  "would_succeed": true
+}
+
+--- stderr ---
+

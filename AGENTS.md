@@ -125,6 +125,15 @@ not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set o
 can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
 changes: add keys rather than renaming or retyping existing ones.
 
+`--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
+`{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
+invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
+would end on, and a credential refusal carries the keys of its error envelope. `auth` names the credential the request
+would go out under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read
+offline: an expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The
+flag outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that
+would stop to ask.
+
 ## Shortcut commands
 
 `crates/xdk/src/api/shortcuts.rs` ships `pub fn` wrappers over the X API endpoints documented in
@@ -161,8 +170,11 @@ never the tests.
   engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
   `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
-  `list_for_user`. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
-  and the dry-run golden fixtures pin the envelope.
+  `list_for_user`. A verb that sends one request hands its call to `send_or_report`. Each of those answers `--dry-run`
+  with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's
+  arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request
+  or changes stored state under `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run
+  golden fixtures pin the envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that

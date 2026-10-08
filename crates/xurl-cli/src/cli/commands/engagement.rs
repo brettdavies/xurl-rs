@@ -30,11 +30,17 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Bookmarks {
             max_results,
             common,
-        } => list_for_user(run, max_results, None, &common, Client::get_bookmarks).await?,
+        } => {
+            let shortcut = Client::get_bookmarks;
+            list_for_user(run, "bookmarks", max_results, None, &common, shortcut).await?;
+        }
         Commands::Likes {
             max_results,
             common,
-        } => list_for_user(run, max_results, None, &common, Client::get_liked_posts).await?,
+        } => {
+            let shortcut = Client::get_liked_posts;
+            list_for_user(run, "likes", max_results, None, &common, shortcut).await?;
+        }
         _ => unreachable!("run_subcommand routes only the engagement commands here"),
     }
     Ok(())

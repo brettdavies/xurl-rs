@@ -2589,7 +2589,7 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
     let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     // No HTTP must fire.
     ts.mount(
@@ -2611,7 +2611,7 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
             "post",
             "Hello",
             "--auth",
-            "app",
+            "oauth1",
         ],
     )
     .await;
@@ -2625,6 +2625,11 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
     assert_eq!(v["would_succeed"], serde_json::Value::Bool(true));
     assert_eq!(v["exit_code"], 0);
     assert_eq!(v["command"], "post");
+    assert_eq!(
+        v["auth"],
+        serde_json::json!({"app": "myapp", "scheme": "oauth1"}),
+        "{v}"
+    );
     assert_eq!(v["body"], "Hello");
 }
 
@@ -2667,7 +2672,7 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
 async fn test_post_over_280_characters_passes_the_dry_run() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     let long: String = std::iter::repeat_n('x', 281).collect();
     let (code, stdout, _stderr) = run_at(
@@ -2680,7 +2685,7 @@ async fn test_post_over_280_characters_passes_the_dry_run() {
             "post",
             &long,
             "--auth",
-            "app",
+            "oauth1",
         ],
     )
     .await;
@@ -3009,13 +3014,15 @@ async fn test_auth_clear_selector_removes_only_its_own_credential(
     );
 }
 
-#[tokio::test]
-#[serial_test::serial]
+/// clap reads `XURL_DRY_RUN` from the process at parse time, which
+/// `EnvOverrides` does not feed. The binding is proven in a child that holds
+/// the variable, so no test running beside this one sees it.
+#[tokio::test(flavor = "multi_thread")]
 async fn test_xurl_dry_run_env_var_engages_dry_run() {
     let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     // No HTTP must fire.
     ts.mount(
@@ -3026,26 +3033,12 @@ async fn test_xurl_dry_run_env_var_engages_dry_run() {
     )
     .await;
 
-    // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
-    //
-    // `--dry-run` binds to `XURL_DRY_RUN` through clap's `env =` attribute,
-    // which reads the process at parse time and is not fed by `EnvOverrides`.
-    // Injection cannot reach that binding, so proving it works means exporting
-    // the variable. Do not convert this to the flag: the flag path is covered
-    // by `test_post_dry_run_emits_envelope_and_skips_api`, and converting this
-    // one would leave the env binding untested.
-    unsafe {
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
-    let (code, stdout, stderr) = run_at_with(
+    let (code, stdout, stderr) = spawn_with_env(
         &store,
-        &api_env(ts.uri()),
-        &["xr", "--output", "json", "post", "Hi", "--auth", "app"],
-    )
-    .await;
-    unsafe {
-        std::env::remove_var("XURL_DRY_RUN");
-    }
+        ts.uri(),
+        &[("XURL_DRY_RUN", "1")],
+        &["--output", "json", "post", "Hi", "--auth", "oauth1"],
+    );
 
     assert_eq!(
         code, 0,
@@ -3166,9 +3159,15 @@ async fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
     // The two handlers share a body shape with mute/unmute, so a copied
     // `command` value would still emit a well-formed envelope and pass every
     // other gate. Pin the name each one reports.
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
     for (command, target) in [("block", "@spammer"), ("unblock", "@spammer")] {
-        let (code, stdout, stderr) =
-            run_isolated(&["xr", command, target, "--dry-run", "--output", "json"]).await;
+        let (code, stdout, stderr) = run_at(
+            &store,
+            &["xr", command, target, "--dry-run", "--output", "json"],
+        )
+        .await;
         assert_eq!(
             code, 0,
             "expected 0 for `{command}` dry-run; stderr: {stderr}"
@@ -3180,6 +3179,132 @@ async fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
         assert_eq!(v["target_username"], target, "envelope: {v}");
         assert_eq!(v["would_succeed"], true, "envelope: {v}");
     }
+}
+
+/// A dry run looks no user id up, so the endpoint it could not serve is
+/// named by its template, in the message and in `endpoint`, and no path with
+/// a stand-in id reaches the caller.
+#[tokio::test]
+async fn test_dry_run_refused_on_a_credential_names_the_endpoint_template() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "unbookmark",
+            "1234567890",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 2, "{v}");
+    assert_eq!(v["reason"], "auth-method-mismatch", "{v}");
+    assert_eq!(v["endpoint"], "/2/users/{id}/bookmarks/{tweet_id}", "{v}");
+    assert_eq!(v["supported"], serde_json::json!(["oauth2"]), "{v}");
+    assert_eq!(v["available_in_app"], serde_json::json!(["oauth1"]), "{v}");
+    assert!(v.get("rendered_url").is_none(), "{v}");
+    assert!(v.get("auth").is_none(), "{v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(
+        message.contains("DELETE /2/users/{id}/bookmarks/{tweet_id}"),
+        "{message}"
+    );
+}
+
+/// With nothing stored the dry run says what the real run would stop on,
+/// and sends nothing to find out.
+#[tokio::test]
+async fn test_dry_run_with_no_credential_reports_auth_required() {
+    let (code, stdout, stderr) =
+        run_isolated(&["xr", "--dry-run", "--output", "json", "post", "Hello"]).await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 77, "{v}");
+    assert_eq!(v["reason"], "auth-required", "{v}");
+    assert_eq!(v["command"], "post", "{v}");
+    assert_eq!(v["body"], "Hello", "{v}");
+}
+
+/// An upload's file is an input a dry run can check with nothing sent.
+#[tokio::test]
+async fn test_dry_run_reports_an_upload_file_that_is_not_there() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+    let missing = tmp.path().join("no-such-file.png");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "media",
+            "upload",
+            missing.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["reason"], "io", "{v}");
+    assert_eq!(v["exit_code"], 5, "{v}");
+}
+
+/// A bearer token from the environment outranks the stored one and belongs
+/// to no stored app, so the dry run names the scheme and no app.
+#[tokio::test]
+async fn test_dry_run_names_no_app_for_a_bearer_from_the_environment() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+    let args = ["xr", "--dry-run", "--output", "json", "search", "rust"];
+
+    let (_code, stdout, _stderr) = run_at(&store, &args).await;
+    let stored = parse_json(&stdout);
+    assert_eq!(stored["auth"]["scheme"], "app", "{stored}");
+    assert!(stored["auth"]["app"].is_string(), "{stored}");
+
+    let env = api_env_with_bearer("http://127.0.0.1:9", "ENV-BEARER");
+    let (_code, stdout, _stderr) = run_at_with(&store, &env, &args).await;
+    let from_env = parse_json(&stdout);
+    assert_eq!(from_env["would_succeed"], true, "{from_env}");
+    assert_eq!(
+        from_env["auth"],
+        serde_json::json!({"scheme": "app"}),
+        "{from_env}"
+    );
+}
+
+/// Invalid inputs are reported before credentials are looked at, so the
+/// reason a caller can fix in the invocation comes first.
+#[tokio::test]
+async fn test_dry_run_reports_invalid_inputs_before_credentials() {
+    let (code, stdout, stderr) =
+        run_isolated(&["xr", "--dry-run", "--output", "json", "post", ""]).await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 1, "{v}");
+    assert_ne!(v["reason"], "auth-required", "{v}");
+    assert!(v["reason"].is_string(), "{v}");
 }
 
 #[tokio::test]

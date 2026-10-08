@@ -6,8 +6,8 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, env_bearer_app, gate_destructive,
-    print_no_apps_registered,
+    AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, destructive_dry_run_context,
+    env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::cli::envelope::Reason;
 use crate::cli::failure::{CommandResult, Failure};
@@ -142,9 +142,12 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         "bearer": bearer,
     });
 
-    // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
-    // destructive op in interactive mode does not leak a dry-run
-    // envelope. Dry-run still composes with --force.
+    if dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        out.print_dry_run(stdout, true, 0, &ctx);
+        return Ok(());
+    }
+
     let target = if all {
         "all credentials"
     } else if oauth1 {
@@ -167,11 +170,6 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
                 });
             }
         }
-    }
-
-    if dry_run {
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
     }
 
     if all {

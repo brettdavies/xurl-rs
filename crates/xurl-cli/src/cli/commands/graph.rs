@@ -28,7 +28,15 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => {
             let shortcut = Client::get_following;
-            list_for_user(run, max_results, of.as_deref(), &common, shortcut).await?;
+            list_for_user(
+                run,
+                "following",
+                max_results,
+                of.as_deref(),
+                &common,
+                shortcut,
+            )
+            .await?;
         }
         Commands::Followers {
             max_results,
@@ -36,7 +44,15 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => {
             let shortcut = Client::get_followers;
-            list_for_user(run, max_results, of.as_deref(), &common, shortcut).await?;
+            list_for_user(
+                run,
+                "followers",
+                max_results,
+                of.as_deref(),
+                &common,
+                shortcut,
+            )
+            .await?;
         }
         Commands::Mute {
             target_username,
@@ -55,7 +71,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Muted {
             max_results,
             common,
-        } => list_for_user(run, max_results, None, &common, Client::get_muted).await?,
+        } => list_for_user(run, "muted", max_results, None, &common, Client::get_muted).await?,
         Commands::Block {
             target_username,
             common,
@@ -73,7 +89,17 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Blocked {
             max_results,
             common,
-        } => list_for_user(run, max_results, None, &common, Client::get_blocked).await?,
+        } => {
+            list_for_user(
+                run,
+                "blocked",
+                max_results,
+                None,
+                &common,
+                Client::get_blocked,
+            )
+            .await?
+        }
         _ => unreachable!("run_subcommand routes only the social-graph commands here"),
     }
     Ok(())

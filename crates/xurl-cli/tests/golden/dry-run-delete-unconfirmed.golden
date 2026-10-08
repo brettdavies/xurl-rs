@@ -1,0 +1,23 @@
+args: ["--output", "json", "--dry-run", "delete", "1234567890"]
+store: oauth2
+exit_code: 0
+stdout_len: 265
+stderr_len: 0
+--- stdout ---
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "command": "delete",
+  "confirmation_required": true,
+  "exit_code": 0,
+  "post_id": "1234567890",
+  "status": "dry_run",
+  "would_succeed": true
+}
+
+--- stderr ---
+
