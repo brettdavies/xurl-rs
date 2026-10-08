@@ -50,6 +50,10 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ("schema", &["--list"]),
     ("skill install", &["claude_code"]),
     ("skill update", &["claude_code"]),
+    (
+        "webhooks replay",
+        &[SAMPLE, "--from", "202601150000", "--to", "202601151200"],
+    ),
 ];
 
 /// Arguments that let the command at `path` parse and reach the point where

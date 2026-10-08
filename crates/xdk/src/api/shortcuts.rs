@@ -256,6 +256,47 @@ pub fn validate_media_id(input: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
+/// Longest webhook URL X accepts, the spec's `maxLength` on the `url` of a
+/// webhook registration.
+pub const WEBHOOK_URL_MAX_CHARS: usize = 200;
+
+/// Validates a webhook id: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-webhook-id` for anything else, the empty string included.
+pub fn validate_webhook_id(input: &str) -> std::result::Result<(), &'static str> {
+    if input.is_empty() || input.len() > 19 || !input.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-webhook-id");
+    }
+    Ok(())
+}
+
+/// Validates a webhook URL against the spec's length bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`.
+pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> {
+    if url.is_empty() {
+        return Err("empty-webhook-url");
+    }
+    if url.chars().count() > WEBHOOK_URL_MAX_CHARS {
+        return Err("webhook-url-too-long");
+    }
+    Ok(())
+}
+
+/// Validates one bound of a webhook replay window: twelve ASCII digits,
+/// `yyyymmddhhmm` in UTC, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-replay-time` for anything else.
+pub fn validate_replay_time(input: &str) -> std::result::Result<(), &'static str> {
+    if input.len() != 12 || !input.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-replay-time");
+    }
+    Ok(())
+}
+
 /// Validates the alt text for a media id.
 ///
 /// # Errors

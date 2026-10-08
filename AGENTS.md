@@ -236,9 +236,9 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
 - `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` routes each command to its group and holds what the
   groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
-  broadcasts, media), the tooling commands (schema, skill, validate, examples), streaming, and `commands/auth/`, where
-  `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while `types.rs` holds the
-  bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
+  broadcasts, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
+  `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
+  `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `crates/xdk/src/config/`: env-var-based configuration.
 - `crates/xdk/src/store/`: YAML token store at `~/.xurl/auth.yml`; multi-app, with `migration.rs` for transparent
   upgrades.
