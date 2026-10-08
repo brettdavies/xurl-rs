@@ -160,7 +160,10 @@ pub fn resolve_username(input: &str) -> String {
 // API and `Err(reason)` with a kebab-case reason otherwise. Callers compose
 // these into the canonical dry-run envelope without issuing HTTP.
 
-/// X API post body length budget. The platform rejects > 280 chars.
+/// The post length X documents for a standard account.
+#[deprecated(
+    note = "X sets a post's length limit per account, so `validate_post_body` no longer checks it"
+)]
 pub const POST_BODY_MAX_CHARS: usize = 280;
 
 /// X API media attachment cap per post.
@@ -168,14 +171,15 @@ pub const POST_MEDIA_MAX: usize = 4;
 
 /// Validates a post / reply / quote body.
 ///
+/// Length is left to X: the limit belongs to the account (a Premium account
+/// posts past 280 characters) and X counts a URL as 23, so a character count
+/// taken here refuses posts X accepts.
+///
 /// # Errors
-/// Returns the kebab-case reason: `empty-body`, `body-too-long`.
+/// Returns the kebab-case reason `empty-body`.
 pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
     if text.is_empty() {
         return Err("empty-body");
-    }
-    if text.chars().count() > POST_BODY_MAX_CHARS {
-        return Err("body-too-long");
     }
     Ok(())
 }

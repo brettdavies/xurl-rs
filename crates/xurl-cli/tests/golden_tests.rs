@@ -592,7 +592,7 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "post", ""],
         ),
         case(
-            "dry-run-body-too-long",
+            "dry-run-long-body",
             &["--output", "json", "--dry-run", "post", &long_body],
         ),
         Case {
