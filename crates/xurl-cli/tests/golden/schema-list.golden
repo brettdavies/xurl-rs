@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 2446
+stdout_len: 2731
 stderr_len: 0
 --- stdout ---
 auth-apps-list                Vec<AppStatusEntry>
@@ -47,6 +47,11 @@ unrepost                      ApiResponse<RepostedResult>
 usage                         ApiResponse<UsageData>
 usage-credits                 ApiResponse<UsageCreditsData>
 user                          ApiResponse<User>
+webhooks-add                  ApiResponse<Webhook>
+webhooks-list                 ApiResponse<Vec<Webhook>>
+webhooks-remove               ApiResponse<DeletedResult>
+webhooks-replay               ApiResponse<WebhookReplayJob>
+webhooks-validate             ApiResponse<WebhookValidation>
 whoami                        ApiResponse<User>
 envelope                      Envelope
 

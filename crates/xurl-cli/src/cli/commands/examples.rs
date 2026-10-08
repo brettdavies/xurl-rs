@@ -119,6 +119,18 @@ BROADCASTS:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
 
+WEBHOOKS:
+  Which webhooks the app has registered:
+    xr webhooks list --output json
+
+  Register a URL (X sends its CRC check there first), then check it again:
+    xr webhooks add https://example.com/webhooks/x
+    xr webhooks validate 1146654567674912769 --output json
+
+  Replay twelve hours of past events / delete a webhook:
+    xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
+    xr webhooks remove 1146654567674912769 --force --no-interactive --output json
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image

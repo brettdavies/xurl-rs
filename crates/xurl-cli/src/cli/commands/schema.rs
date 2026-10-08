@@ -12,7 +12,8 @@ use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
     DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookValidation,
 };
 use xdk::error::{Error, Result};
 
@@ -60,7 +61,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<FollowingResult>).into(),
     },
     SchemaEntry {
-        commands: &["delete", "media-subtitles-remove"],
+        commands: &["delete", "media-subtitles-remove", "webhooks-remove"],
         type_name: "ApiResponse<DeletedResult>",
         schema: || schema_for!(ApiResponse<DeletedResult>).into(),
     },
@@ -113,6 +114,26 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-moderators-add", "broadcasts-moderators-remove"],
         type_name: "ApiResponse<ChatModeratorsResult>",
         schema: || schema_for!(ApiResponse<ChatModeratorsResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-list"],
+        type_name: "ApiResponse<Vec<Webhook>>",
+        schema: || schema_for!(ApiResponse<Vec<Webhook>>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-add"],
+        type_name: "ApiResponse<Webhook>",
+        schema: || schema_for!(ApiResponse<Webhook>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-validate"],
+        type_name: "ApiResponse<WebhookValidation>",
+        schema: || schema_for!(ApiResponse<WebhookValidation>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-replay"],
+        type_name: "ApiResponse<WebhookReplayJob>",
+        schema: || schema_for!(ApiResponse<WebhookReplayJob>).into(),
     },
     SchemaEntry {
         commands: &["media-alt-text"],
@@ -179,6 +200,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "skill-update",
     "validate",
     "version",
+    "webhooks",
 ];
 
 /// Commands whose `xr schema` name is not their clap path joined with `-`:

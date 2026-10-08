@@ -18,7 +18,8 @@ use crate::cli::output::OutputConfig;
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
     DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookValidation,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -103,6 +104,10 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<ChatModeratorsResult>("moderators"),
     typed_alias::<MediaMetadataResult>("alt-text"),
     typed_alias::<MediaSubtitlesResult>("subtitles"),
+    typed_alias::<Webhook>("webhook"),
+    typed_alias::<Vec<Webhook>>("webhooks"),
+    typed_alias::<WebhookValidation>("webhook-validation"),
+    typed_alias::<WebhookReplayJob>("webhook-replay"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.

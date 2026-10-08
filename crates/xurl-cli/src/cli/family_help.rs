@@ -150,6 +150,74 @@ pub mod broadcasts {
     }
 }
 
+/// The `xr webhooks` family.
+pub mod webhooks {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "webhooks" };
+
+    /// `xr webhooks list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "List the webhooks registered for the app (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr webhooks add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "https://example.com/webhooks/x",
+        text_caption: "Register a URL; X sends its CRC check there first (text)",
+        json_caption: "Register (JSON envelope)",
+    };
+
+    /// `xr webhooks validate`.
+    pub const VALIDATE: Verb = Verb {
+        name: "validate",
+        example_args: "1146654567674912769",
+        text_caption: "Ask X to send its CRC check to a webhook again (text)",
+        json_caption: "Check again (JSON envelope)",
+    };
+
+    /// `xr webhooks remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1146654567674912769 --force --no-interactive",
+        text_caption: "Delete a webhook with no prompt, as a script does (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
+
+    /// `xr webhooks replay`.
+    pub const REPLAY: Verb = Verb {
+        name: "replay",
+        example_args: "1146654567674912769 --from 202601150000 --to 202601151200",
+        text_caption: "Deliver twelve hours of past events again (text)",
+        json_caption: "Replay (JSON envelope)",
+    };
+
+    /// The page under `xr webhooks --help`.
+    #[must_use]
+    pub fn root_page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Which webhooks the app has registered (text)",
+                &[Example::text(&LIST)],
+            ),
+            (
+                "Register a URL, then ask X to check it again, JSON envelope",
+                &[Example::json(&ADD), Example::json(&VALIDATE)],
+            ),
+            (
+                "Replay a window of past events (text)",
+                &[Example::text(&REPLAY)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr media subtitles` family.
 pub mod media_subtitles {
     use super::{Example, Family, Section, Verb};
