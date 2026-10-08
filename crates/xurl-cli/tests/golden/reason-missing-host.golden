@@ -1,7 +1,7 @@
 args: ["--output", "json", "skill", "install"]
 store: empty
 exit_code: 2
-stdout_len: 269
+stdout_len: 359
 stderr_len: 0
 --- stdout ---
 {
@@ -16,6 +16,10 @@ stderr_len: 0
     "opencode"
   ],
   "message": "missing target host; pass <host> or --all",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr skill install --help"
+  },
   "reason": "missing-host",
   "status": "error"
 }

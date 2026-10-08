@@ -12,7 +12,8 @@ use std::path::Path;
 
 use serde::de::DeserializeOwned;
 
-use crate::cli::envelope::Reason;
+use crate::cli::envelope::{ErrorBody, Reason};
+use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
@@ -210,7 +211,16 @@ pub fn run_validate(
     let raw = match read_input(file) {
         Ok(s) => s,
         Err(reason) => {
-            out.print_error_envelope(stderr, Reason::Io, EXIT_GENERAL_ERROR, &reason);
+            out.emit_error_envelope(
+                stderr,
+                ErrorBody {
+                    reason: Reason::Io,
+                    exit_code: EXIT_GENERAL_ERROR,
+                    message: Some(reason),
+                    next_step: Some(NextStep::fix_input(None)),
+                    ..ErrorBody::default()
+                },
+            );
             return EXIT_GENERAL_ERROR;
         }
     };
@@ -223,6 +233,7 @@ pub fn run_validate(
                 "reason": Reason::InvalidJson,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "message": format!("input is not valid JSON: {e}"),
+                "next_step": NextStep::show_help("xr validate --help".to_string()),
             });
             out.print_response(stderr, &payload);
             return EXIT_VALIDATION_FAILED;
@@ -246,6 +257,7 @@ pub fn run_validate(
                 "unknown schema {schema:?}; pass one of {} or omit --schema for auto-detection",
                 known.join(", ")
             ),
+            "next_step": NextStep::show_help("xr validate --help".to_string()),
         });
         out.print_response(stderr, &payload);
         return EXIT_VALIDATION_FAILED;
@@ -269,6 +281,7 @@ pub fn run_validate(
                 "schema": schema,
                 "valid": false,
                 "message": msg,
+                "next_step": NextStep::fix_input(None),
             });
             out.print_response(stderr, &payload);
             EXIT_VALIDATION_FAILED

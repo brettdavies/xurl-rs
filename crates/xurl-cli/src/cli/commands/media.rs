@@ -165,7 +165,12 @@ async fn status(
     Ok(())
 }
 
-async fn alt_text(run: Run<'_>, media_id: &str, text: &str, common: &CommonFlags) -> Result<()> {
+async fn alt_text(
+    run: Run<'_>,
+    media_id: &str,
+    text: &str,
+    common: &CommonFlags,
+) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
@@ -185,10 +190,11 @@ async fn alt_text(run: Run<'_>, media_id: &str, text: &str, common: &CommonFlags
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.set_media_alt_text(media_id, text), common, None);
-    send_or_report(out, stdout, dry_run, call).await
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
 }
 
-async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
+async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
@@ -227,7 +233,8 @@ async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
                 &language,
                 display_name.as_deref(),
             );
-            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await
+            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await?;
+            Ok(())
         }
         SubtitlesCommands::Remove {
             video_id,
@@ -247,7 +254,8 @@ async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
             })?;
             let client = make_client(cfg, auth)?;
             let call = client.remove_media_subtitles(&video_id, category, &language);
-            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await
+            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await?;
+            Ok(())
         }
     }
 }

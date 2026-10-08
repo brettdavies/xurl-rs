@@ -94,6 +94,7 @@ mod tests {
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: Some("/old/xurl-rs".to_string()),
+            next_step: None,
         }
     }
 

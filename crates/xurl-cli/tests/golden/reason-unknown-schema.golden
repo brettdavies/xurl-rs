@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 641
+stderr_len: 726
 --- stdout ---
 
 --- stderr ---
@@ -32,6 +32,10 @@ stderr_len: 641
     "subtitles"
   ],
   "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles or omit --schema for auto-detection",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr validate --help"
+  },
   "reason": "unknown-schema",
   "schema": "bogus",
   "status": "error"

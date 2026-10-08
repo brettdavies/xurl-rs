@@ -11,14 +11,20 @@ use xdk::error::Error;
 pub use xdk::error::NextAction;
 use xdk::store::snapshot::StoreSnapshot;
 
+use crate::cli::classify::ROOT_COMMAND;
+
 /// The `next_step` object carried by an error envelope.
 ///
 /// At most one of [`Self::command`] and [`Self::template`] is present: a
 /// command is a verbatim invocation safe for a non-TTY caller, while a
-/// template carries angle-bracket placeholders the caller must fill in. A
-/// step with neither carries `docs` alone, because its recovery is not an
-/// `xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],
-/// and [`NextAction::InspectStore`] when the command that failed is the one
+/// template is one the caller finishes or decides on before running it. It
+/// carries angle-bracket placeholders to fill in, or, under
+/// [`NextAction::Confirm`], the invocation that destroys once it runs. A
+/// step with neither names an action that is not an `xr` invocation, with
+/// `docs` when a page covers it: [`NextAction::EnrollApp`],
+/// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
+/// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
+/// [`NextAction::InspectStore`] when the command that failed is the one
 /// that reports on the store.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -158,6 +164,82 @@ impl NextStep {
             command: None,
             template: None,
             docs: Some(docs),
+        }
+    }
+
+    /// Send the same request again: nothing about it was wrong. `docs` is
+    /// the page that says what the answer meant, when X sent one.
+    #[must_use]
+    pub fn retry(docs: Option<String>) -> Self {
+        Self {
+            action: NextAction::Retry,
+            command: None,
+            template: None,
+            docs,
+        }
+    }
+
+    /// Change the input or the local state the command read; no `xr`
+    /// command repairs it. `docs` is the page that says what was refused,
+    /// when one exists.
+    #[must_use]
+    pub fn fix_input(docs: Option<String>) -> Self {
+        Self {
+            action: NextAction::FixInput,
+            command: None,
+            template: None,
+            docs,
+        }
+    }
+
+    /// Report a fault of `xr` or of the library at `docs`.
+    #[must_use]
+    pub fn report_issue(docs: String) -> Self {
+        Self {
+            action: NextAction::ReportIssue,
+            command: None,
+            template: None,
+            docs: Some(docs),
+        }
+    }
+
+    /// Run `invocation` again with `--force`. It is a template and not a
+    /// command: running it destroys what the command names, so the caller
+    /// decides.
+    #[must_use]
+    pub fn confirm(invocation: &[String]) -> Self {
+        let mut words: Vec<String> = invocation.iter().map(|arg| shell_word(arg)).collect();
+        if let Some(program) = words.first_mut() {
+            *program = ROOT_COMMAND.to_string();
+        }
+        words.push("--force".to_string());
+        Self {
+            action: NextAction::Confirm,
+            command: None,
+            template: Some(words.join(" ")),
+            docs: None,
+        }
+    }
+
+    /// Run the one other command that repairs this.
+    #[must_use]
+    pub fn run_command(command: String) -> Self {
+        Self {
+            action: NextAction::RunCommand,
+            command: Some(command),
+            template: None,
+            docs: None,
+        }
+    }
+
+    /// Name the app to make the default; only the caller knows which.
+    #[must_use]
+    pub fn name_default_app() -> Self {
+        Self {
+            action: NextAction::SelectApp,
+            command: None,
+            template: Some("xr auth default <app>".to_string()),
+            docs: None,
         }
     }
 
@@ -349,6 +431,86 @@ pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
     })
 }
 
+/// Builds the hint for a scheme mismatch the store can answer.
+///
+/// ```text
+/// the active app stores nothing, another does  -> select-app, rerunning this invocation
+/// the endpoint takes OAuth2, the app has none  -> the step that gets a login: see choose_hint
+/// the caller named the scheme, or neither fits -> none; the message lists what is accepted
+/// ```
+#[must_use]
+pub fn mismatch_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let Error::AuthMethodMismatch(mismatch) = error else {
+        return None;
+    };
+    match mismatch.shape() {
+        xdk::error::MismatchShape::WrongApp { others } => {
+            let app = others.first()?;
+            let command = rerun_with_app(invocation, app);
+            Some(Hint {
+                text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
+                next_step: NextStep::select_app(command),
+            })
+        }
+        xdk::error::MismatchShape::EmptyIntersection { available }
+            if mismatch.supported.iter().any(|scheme| scheme == "oauth2")
+                && !available.iter().any(|scheme| scheme == "oauth2") =>
+        {
+            Some(choose_hint(snapshot, invocation, headless))
+        }
+        _ => None,
+    }
+}
+
+/// Builds the hint for an argument the command refused: the help of the
+/// command the invocation names.
+#[must_use]
+pub fn show_help_hint(help: &str) -> Hint {
+    Hint {
+        text_lines: vec![format!("Try '{help}'.")],
+        next_step: NextStep::show_help(help.to_string()),
+    }
+}
+
+/// Builds the hint for an error whose step the library names and no stored
+/// credential decides.
+///
+/// A method, a URL, or a path value `xr` refused is an argument, so it
+/// takes the help of the command it was given to, as `help` names it.
+#[must_use]
+pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
+    if matches!(
+        error,
+        Error::InvalidMethod(_) | Error::InvalidUrl { .. } | Error::InvalidPathParam { .. }
+    ) {
+        return Some(show_help_hint(help));
+    }
+    let docs = error.docs_url().map(str::to_string);
+    match error.next_action()? {
+        NextAction::Retry => Some(Hint {
+            text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
+            next_step: NextStep::retry(docs),
+        }),
+        NextAction::FixInput => Some(Hint {
+            text_lines: Vec::new(),
+            next_step: NextStep::fix_input(docs),
+        }),
+        NextAction::ReportIssue => {
+            let docs = docs?;
+            Some(Hint {
+                text_lines: vec![format!("This is a fault in xr. Report it: {docs}")],
+                next_step: NextStep::report_issue(docs),
+            })
+        }
+        _ => None,
+    }
+}
+
 /// Pulls the `detail` string out of a JSON error body, when there is one.
 fn detail_line(body: &str) -> Option<String> {
     serde_json::from_str::<serde_json::Value>(body)
@@ -358,19 +520,30 @@ fn detail_line(body: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// Rebuilds this invocation with `--app NAME` inserted after the program.
+/// Rebuilds this invocation to run against `app`: `--app NAME` after the
+/// program, and without the `--app` the caller passed, which clap would
+/// refuse as a second one.
 ///
-/// The rerun has to be runnable as printed, so the app name is quoted by the
-/// same rule registration enforces.
+/// The rerun has to be runnable as printed, so the program is the name every
+/// hint gives the binary and the app name is quoted by the same rule
+/// registration enforces. Nothing after `--` is a flag, so it is kept as it
+/// was.
 fn rerun_with_app(invocation: &[String], app: &str) -> String {
-    let mut parts: Vec<String> = Vec::with_capacity(invocation.len() + 2);
-    let mut rest = invocation.iter();
-    let program = rest.next().map_or("xr", String::as_str);
-    parts.push(program.to_string());
-    parts.push("--app".to_string());
-    parts.push(quote_app_name(app));
-    for arg in rest {
-        parts.push(shell_word(arg));
+    let mut parts = vec![
+        ROOT_COMMAND.to_string(),
+        "--app".to_string(),
+        quote_app_name(app),
+    ];
+    let mut rest = invocation.iter().skip(1);
+    while let Some(arg) = rest.next() {
+        if arg == "--" {
+            parts.push(shell_word(arg));
+            parts.extend(rest.by_ref().map(|arg| shell_word(arg)));
+        } else if arg == "--app" {
+            rest.next();
+        } else if !arg.starts_with("--app=") {
+            parts.push(shell_word(arg));
+        }
     }
     parts.join(" ")
 }
@@ -464,6 +637,192 @@ mod tests {
         assert_eq!(quote_app_name("my app"), "'my app'");
         assert_eq!(quote_app_name(""), "''");
         assert_eq!(quote_app_name("it's"), r"'it'\''s'");
+    }
+
+    fn step(error: &Error) -> Option<NextStep> {
+        general_hint(error, "xr post --help").map(|hint| hint.next_step)
+    }
+
+    #[test]
+    fn a_failure_that_is_not_the_requests_fault_is_retried() {
+        assert_eq!(
+            step(&Error::http("connection refused")),
+            Some(NextStep::retry(None))
+        );
+        let server = step(&Error::api(503, "unavailable")).expect("a step");
+        assert_eq!(server.action, NextAction::Retry);
+        assert!(server.command.is_none() && server.template.is_none());
+        assert!(server.docs.is_some(), "X's page on response codes");
+    }
+
+    #[test]
+    fn a_refused_input_is_fixed_and_carries_no_invocation() {
+        let not_found = step(&Error::api(404, "no such post")).expect("a step");
+        assert_eq!(not_found.action, NextAction::FixInput);
+        assert!(not_found.command.is_none() && not_found.template.is_none());
+        assert!(not_found.docs.is_some(), "X's page on response codes");
+        assert_eq!(
+            step(&Error::io("permission denied")),
+            Some(NextStep::fix_input(None))
+        );
+        assert_eq!(
+            step(&Error::validation("media processing failed")),
+            Some(NextStep::fix_input(None))
+        );
+    }
+
+    #[test]
+    fn a_fault_of_xr_names_the_issue_tracker() {
+        for error in [
+            Error::Internal("missing {id}".into()),
+            Error::json("expected value"),
+            Error::api(418, "teapot"),
+        ] {
+            let step = step(&error).expect("a step");
+            assert_eq!(step.action, NextAction::ReportIssue, "{error:?}");
+            assert_eq!(
+                step.docs.as_deref(),
+                Some("https://github.com/brettdavies/xurl-rs/issues")
+            );
+        }
+    }
+
+    #[test]
+    fn a_refused_method_url_or_path_value_takes_the_commands_help() {
+        for error in [
+            Error::InvalidMethod("FETCH".into()),
+            Error::invalid_url("ftp://example"),
+            Error::InvalidPathParam {
+                name: "id".into(),
+                value: "1/2".into(),
+            },
+        ] {
+            assert_eq!(
+                step(&error),
+                Some(NextStep::show_help("xr post --help".to_string())),
+                "{error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_credential_failure_gets_no_general_step() {
+        assert_eq!(step(&Error::auth("token expired")), None);
+        assert_eq!(step(&Error::api(403, "plain forbidden")), None);
+        assert_eq!(step(&Error::api(429, "slow down")), None);
+    }
+
+    /// The confirming invocation is a template, quoted so it runs as
+    /// printed, and it names the binary however it was started.
+    #[test]
+    fn confirm_is_the_invocation_with_force_and_never_a_command() {
+        let invocation: Vec<String> = ["/usr/local/bin/xr", "auth", "apps", "remove", "my app"]
+            .iter()
+            .map(|arg| (*arg).to_string())
+            .collect();
+        let step = NextStep::confirm(&invocation);
+        assert_eq!(step.action, NextAction::Confirm);
+        assert!(
+            step.command.is_none(),
+            "running it destroys; the caller decides"
+        );
+        assert_eq!(
+            step.template.as_deref(),
+            Some("xr auth apps remove 'my app' --force")
+        );
+    }
+
+    fn mismatch(
+        supported: &[&str],
+        requested: Option<&str>,
+        available: &[&str],
+        others: Option<&[&str]>,
+    ) -> Error {
+        let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
+        Error::from(xdk::error::AuthMismatch {
+            endpoint: "/2/users/me".into(),
+            rendered_url: None,
+            method: "GET".into(),
+            requested: requested.map(str::to_string),
+            supported: strings(supported),
+            available_in_app: Some(strings(available)),
+            app: Some("work".into()),
+            other_apps_with_creds: others.map(strings),
+        })
+    }
+
+    fn snapshot_of(store: &xdk::store::TokenStore) -> StoreSnapshot {
+        StoreSnapshot::new(store, "work", false)
+    }
+
+    #[test]
+    fn a_mismatch_the_store_can_answer_names_the_app_or_the_sign_in() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let mut store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        store
+            .add_app("work", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        let snapshot = snapshot_of(&store);
+        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
+
+        let elsewhere = mismatch(&["oauth2"], None, &[], Some(&["personal"]));
+        let step = mismatch_hint(&snapshot, &elsewhere, &invocation, true).expect("a step");
+        assert_eq!(
+            step.next_step,
+            NextStep::select_app("xr --app personal whoami".to_string())
+        );
+
+        let no_login = mismatch(&["oauth2", "oauth1"], None, &["app"], None);
+        let step = mismatch_hint(&snapshot, &no_login, &invocation, true).expect("a step");
+        assert_eq!(step.next_step, NextStep::sign_in(None, true));
+    }
+
+    #[test]
+    fn a_mismatch_only_the_caller_can_answer_carries_no_step() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        let snapshot = snapshot_of(&store);
+        let invocation: Vec<String> = ["xr", "usage"].iter().map(|a| (*a).to_string()).collect();
+
+        let named = mismatch(&["oauth2"], Some("app"), &["app"], None);
+        assert!(mismatch_hint(&snapshot, &named, &invocation, true).is_none());
+        let bearer_only = mismatch(&["app"], None, &["oauth2"], None);
+        assert!(mismatch_hint(&snapshot, &bearer_only, &invocation, true).is_none());
+        assert!(mismatch_hint(&snapshot, &Error::auth("x"), &invocation, true).is_none());
+    }
+
+    /// A rerun against another app names that app once, under the name
+    /// every hint gives the binary: the `--app` the caller passed is
+    /// dropped in either spelling, since clap refuses the flag twice.
+    #[test]
+    fn a_rerun_replaces_the_app_the_invocation_named() {
+        use clap::Parser as _;
+        let rerun = |args: &[&str]| {
+            let invocation: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
+            rerun_with_app(&invocation, "personal")
+        };
+        assert!(
+            crate::cli::Cli::try_parse_from(["xr", "--app", "a", "--app", "b", "whoami"]).is_err(),
+            "clap takes --app once"
+        );
+        assert_eq!(
+            rerun(&["xr", "--app", "work", "whoami"]),
+            "xr --app personal whoami"
+        );
+        assert_eq!(
+            rerun(&["xr", "--output", "json", "whoami", "--app=work"]),
+            "xr --app personal --output json whoami"
+        );
+        assert_eq!(
+            rerun(&["/usr/local/bin/xr", "whoami"]),
+            "xr --app personal whoami"
+        );
+        assert_eq!(
+            rerun(&["xr", "post", "--", "--app", "is text"]),
+            "xr --app personal post -- --app 'is text'"
+        );
     }
 
     #[test]

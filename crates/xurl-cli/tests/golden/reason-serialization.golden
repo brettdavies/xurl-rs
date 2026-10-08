@@ -2,13 +2,17 @@ args: ["--output", "json", "media", "upload", "upload.bin"]
 store: oauth2
 exit_code: 1
 stdout_len: 0
-stderr_len: 143
+stderr_len: 255
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 1,
   "message": "JSON Error: failed to parse media ID from init response",
+  "next_step": {
+    "action": "report-issue",
+    "docs": "https://github.com/brettdavies/xurl-rs/issues"
+  },
   "reason": "serialization",
   "status": "error"
 }

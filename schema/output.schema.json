@@ -42,12 +42,37 @@
           "const": "wait-and-retry",
           "description": "X rate limited the request and said when the window resets; send it\nagain once that time has passed.",
           "type": "string"
+        },
+        {
+          "const": "retry",
+          "description": "Nothing is wrong with the request; send it again.",
+          "type": "string"
+        },
+        {
+          "const": "fix-input",
+          "description": "The input, or the local state the command read, is what failed, and\nno other command repairs it; change it before another try.",
+          "type": "string"
+        },
+        {
+          "const": "report-issue",
+          "description": "The tool or the library is at fault; report it.",
+          "type": "string"
+        },
+        {
+          "const": "confirm",
+          "description": "The command destroys something and ran without its confirmation;\nrun it again with the flag that confirms it.",
+          "type": "string"
+        },
+        {
+          "const": "run-command",
+          "description": "One other command repairs this; run it.",
+          "type": "string"
         }
       ]
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate carries angle-bracket placeholders the caller must fill in. A\nstep with neither carries `docs` alone, because its recovery is not an\n`xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],\nand [`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store.",
+      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate is one the caller finishes or decides on before running it. It\ncarries angle-bracket placeholders to fill in, or, under\n[`NextAction::Confirm`], the invocation that destroys once it runs. A\nstep with neither names an action that is not an `xr` invocation, with\n`docs` when a page covers it: [`NextAction::EnrollApp`],\n[`NextAction::WaitAndRetry`], [`NextAction::Retry`],\n[`NextAction::FixInput`], [`NextAction::ReportIssue`], and\n[`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store.",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",
@@ -255,7 +280,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template` whose\nangle-bracket placeholders only the caller can fill, never both. One\nwhose recovery is not an `xr` invocation carries neither, only `docs`:\n`enroll-app`, `wait-and-retry`, and `inspect-store` when a store\ncommand is what failed."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill, or, under\n`confirm`, the invocation that destroys once it runs. One whose\nrecovery is not an `xr` invocation carries neither, and `docs` when\na page covers it: `enroll-app`, `wait-and-retry`, `retry`,\n`fix-input`, `report-issue`, and `inspect-store` when a store\ncommand is what failed."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",

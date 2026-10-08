@@ -10,7 +10,6 @@ use super::{
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{Commands, CommonFlags};
 use xdk::api::shortcuts;
-use xdk::error::EXIT_GENERAL_ERROR;
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -136,7 +135,7 @@ async fn delete(
         flags,
         out,
         stdout,
-        stderr,
+        ..
     } = run;
     let ctx = json!({"command": "delete", "post_id": post_id});
     let client = make_client(cfg, auth)?;
@@ -155,12 +154,7 @@ async fn delete(
     )? {
         Gate::Proceed => {}
         Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => {
-            out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-            return Err(Failure::Emitted {
-                exit_code: EXIT_GENERAL_ERROR,
-            });
-        }
+        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
     }
     let dry_run = dry_run_or_validate(false, ctx, || shortcuts::validate_post_id(post_id))?;
     send_or_report(out, stdout, dry_run, call).await?;

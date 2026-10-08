@@ -29,8 +29,8 @@ use clap::{CommandFactory, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
-    Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
-    suggestion_for_rejected,
+    Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, invoked_help,
+    nearest_command, suggestion_for_rejected,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
@@ -222,7 +222,13 @@ where
                 return match crate::cli::commands::examples::run_examples(stdout) {
                     Ok(()) => EXIT_SUCCESS,
                     Err(e) => {
-                        out.print_error(stderr, &e, EXIT_GENERAL_ERROR);
+                        let help = invoked_help(&args_vec);
+                        match crate::cli::hints::general_hint(&e, &help) {
+                            Some(hint) => {
+                                out.print_error_with_hint(stderr, &e, EXIT_GENERAL_ERROR, &hint);
+                            }
+                            None => out.print_error(stderr, &e, EXIT_GENERAL_ERROR),
+                        }
                         EXIT_GENERAL_ERROR
                     }
                 };
@@ -242,8 +248,10 @@ where
                     stdout,
                 ) {
                     Ok(()) => EXIT_SUCCESS,
+                    // What `schema` refuses is the name it was given.
                     Err(e) => {
-                        out.print_error(stderr, &e, EXIT_GENERAL_ERROR);
+                        let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+                        out.print_refusal(stderr, &e, None, &hint);
                         EXIT_GENERAL_ERROR
                     }
                 };
@@ -330,26 +338,46 @@ where
     let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
         .with_subscriber(diagnostics)
         .await;
+    let invocation = || -> Vec<String> {
+        args_vec
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
+    };
     match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,
+        Err(Failure::Refused { error, reason }) => {
+            let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+            out.print_refusal(stderr, &error, reason, &hint);
+            error.exit_code()
+        }
+        Err(Failure::Unconfirmed(ctx)) => {
+            let next_step = NextStep::confirm(&invocation());
+            out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
+            EXIT_GENERAL_ERROR
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            if carries_no_auth_method(&e) {
-                let invocation: Vec<String> = args_vec
-                    .iter()
-                    .map(|a| a.to_string_lossy().into_owned())
-                    .collect();
-                let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
-                out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = crate::cli::hints::unloadable_store_hint(&snapshot, &e)
-                .or_else(|| crate::cli::hints::enrollment_hint(&e))
-                .or_else(|| crate::cli::hints::resume_wait_hint(&e))
-                .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
-            {
-                out.print_error_with_hint(stderr, &e, code, &hint);
+            let hint = if carries_no_auth_method(&e) {
+                Some(crate::cli::hints::choose_hint(
+                    &snapshot,
+                    &invocation(),
+                    structured,
+                ))
             } else {
-                out.print_error(stderr, &e, code);
+                crate::cli::hints::unloadable_store_hint(&snapshot, &e)
+                    .or_else(|| crate::cli::hints::enrollment_hint(&e))
+                    .or_else(|| crate::cli::hints::resume_wait_hint(&e))
+                    .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
+                    .or_else(|| {
+                        crate::cli::hints::mismatch_hint(&snapshot, &e, &invocation(), structured)
+                    })
+                    .or_else(|| crate::cli::hints::general_hint(&e, &invoked_help(&args_vec)))
+            };
+            match hint {
+                Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
+                None => out.print_error(stderr, &e, code),
             }
             code
         }
