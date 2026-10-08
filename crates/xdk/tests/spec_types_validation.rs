@@ -27,8 +27,8 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, DmEvent, MediaMetadataResult,
-    MediaSubtitlesResult, Post, SubscribedResult, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookValidation,
+    MediaSubtitlesResult, Post, ProvisionedResult, SubscribedResult, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -208,6 +208,14 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateAccountActivitySubscriptionResponseData",
             serde_json::to_value(schemars::schema_for!(SubscribedResult)).unwrap(),
+        ),
+        (
+            "GetWebhooksStreamLinksResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookStreamLink)).unwrap(),
+        ),
+        (
+            "CreateWebhooksStreamLinkResponseData",
+            serde_json::to_value(schemars::schema_for!(ProvisionedResult)).unwrap(),
         ),
     ];
 

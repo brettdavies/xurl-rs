@@ -12,9 +12,9 @@ use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, RepostedResult,
-    SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookValidation,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
+    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation,
 };
 use xdk::error::{Error, Result};
 
@@ -62,7 +62,12 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<FollowingResult>).into(),
     },
     SchemaEntry {
-        commands: &["delete", "media-subtitles-remove", "webhooks-remove"],
+        commands: &[
+            "delete",
+            "media-subtitles-remove",
+            "webhooks-remove",
+            "webhooks-stream-links-remove",
+        ],
         type_name: "ApiResponse<DeletedResult>",
         schema: || schema_for!(ApiResponse<DeletedResult>).into(),
     },
@@ -151,6 +156,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<SubscribedResult>).into(),
     },
     SchemaEntry {
+        commands: &["webhooks-stream-links-list"],
+        type_name: "ApiResponse<Vec<WebhookStreamLink>>",
+        schema: || schema_for!(ApiResponse<Vec<WebhookStreamLink>>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-stream-links-add"],
+        type_name: "ApiResponse<ProvisionedResult>",
+        schema: || schema_for!(ApiResponse<ProvisionedResult>).into(),
+    },
+    SchemaEntry {
         commands: &["webhooks-replay"],
         type_name: "ApiResponse<WebhookReplayJob>",
         schema: || schema_for!(ApiResponse<WebhookReplayJob>).into(),
@@ -221,6 +236,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "validate",
     "version",
     "webhooks",
+    "webhooks-stream-links",
     "webhooks-subscriptions",
 ];
 

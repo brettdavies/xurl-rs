@@ -1,5 +1,5 @@
-//! The `webhooks` family: the app's registered webhooks and the Account
-//! Activity subscriptions that deliver to them.
+//! The `webhooks` family: the app's registered webhooks, and the Account
+//! Activity subscriptions and filtered-stream links that deliver to them.
 
 use serde_json::json;
 
@@ -8,7 +8,9 @@ use super::{
     make_client, send_or_report, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::{CommonFlags, WebhookSubscriptionsCommands, WebhooksCommands};
+use crate::cli::{
+    CommonFlags, WebhookStreamLinksCommands, WebhookSubscriptionsCommands, WebhooksCommands,
+};
 use xdk::api::shortcuts;
 
 pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult<()> {
@@ -24,6 +26,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             common,
         } => remove(run, &webhook_id, force, &common).await,
         WebhooksCommands::Subscriptions { action } => subscriptions(action, run).await,
+        WebhooksCommands::StreamLinks { action } => stream_links(action, run).await,
         WebhooksCommands::Replay {
             webhook_id,
             from,
@@ -307,6 +310,94 @@ async fn replay(
         common,
         None,
     );
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
+}
+
+async fn stream_links(action: WebhookStreamLinksCommands, run: Run<'_>) -> CommandResult<()> {
+    match action {
+        WebhookStreamLinksCommands::List { common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let dry_run = flags
+                .dry_run
+                .then(|| DryRun::new(json!({"command": "webhooks-stream-links-list"})));
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(client.get_webhook_stream_links(), &common, None);
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookStreamLinksCommands::Add { webhook_id, common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let ctx = json!({"command": "webhooks-stream-links-add", "webhook_id": webhook_id});
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+                shortcuts::validate_webhook_id(&webhook_id)
+            })?;
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(
+                client.create_webhook_stream_link(&webhook_id),
+                &common,
+                None,
+            );
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookStreamLinksCommands::Remove {
+            webhook_id,
+            force,
+            common,
+        } => unlink_stream(run, &webhook_id, force, &common).await,
+    }
+}
+
+async fn unlink_stream(
+    run: Run<'_>,
+    webhook_id: &str,
+    force: bool,
+    common: &CommonFlags,
+) -> CommandResult<()> {
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let ctx = json!({"command": "webhooks-stream-links-remove", "webhook_id": webhook_id});
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(client.delete_webhook_stream_link(webhook_id), common, None);
+    if flags.dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        let dry_run =
+            dry_run_or_validate(true, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
+        send_or_report(out, stdout, dry_run, call).await?;
+        return Ok(());
+    }
+    match gate_destructive(
+        force,
+        flags.no_interactive,
+        flags.quiet,
+        &format!("Stop delivering the filtered stream to webhook {webhook_id}?"),
+    )? {
+        Gate::Proceed => {}
+        Gate::Declined => return Ok(()),
+        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
+    }
+    let dry_run = dry_run_or_validate(false, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
     send_or_report(out, stdout, dry_run, call).await?;
     Ok(())
 }
