@@ -383,6 +383,53 @@ pub struct ChatModeratorsResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Webhooks ────────────────────────────────────────────────────────
+
+/// A webhook registered with X.
+///
+/// Every field is optional because the spec requires none of them on a
+/// listed webhook; a newly registered one carries all four.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Webhook {
+    /// Webhook identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The URL X delivers events to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Whether the URL answered X's most recent CRC check.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid: Option<bool>,
+    /// When the webhook was registered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The outcome of asking X to send its CRC check to a webhook again.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct WebhookValidation {
+    /// Whether the webhook's URL answered the check.
+    pub valid: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A job that delivers a past window of events to a webhook again.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct WebhookReplayJob {
+    /// Replay job identifier.
+    pub job_id: String,
+    /// When the job was created.
+    pub created_at: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Media ───────────────────────────────────────────────────────────
 
 /// Response from media upload INIT and FINALIZE steps.

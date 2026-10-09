@@ -3,7 +3,7 @@
   "post_single": {
     "data": {
       "id": "1346889436626259968",
-      "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet\u2026 https://t.co/56a0vZUx7i",
+      "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet… https://t.co/56a0vZUx7i",
       "created_at": "2021-01-06T18:40:40.000Z",
       "author_id": "2244994945",
       "conversation_id": "1346889436626259968",
@@ -190,15 +190,24 @@
       "daily_project_usage": {
         "project_id": "2020044302890438656",
         "usage": [
-          {"date": "2026-03-25T00:00:00.000Z", "usage": "299"},
-          {"date": "2026-03-26T00:00:00.000Z", "usage": "100"}
+          {
+            "date": "2026-03-25T00:00:00.000Z",
+            "usage": "299"
+          },
+          {
+            "date": "2026-03-26T00:00:00.000Z",
+            "usage": "100"
+          }
         ]
       },
       "daily_client_app_usage": [
         {
           "client_app_id": "32371675",
           "usage": [
-            {"date": "2026-03-25T00:00:00.000Z", "usage": "299"}
+            {
+              "date": "2026-03-25T00:00:00.000Z",
+              "usage": "299"
+            }
           ],
           "usage_result_count": 1
         }
@@ -271,5 +280,37 @@
     "title": "Recipient Not Messageable",
     "detail": "The recipient does not accept Direct Messages from this account.",
     "status": 403
+  },
+  "webhook_list": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "url": "https://example.com/webhooks/x",
+        "valid": true,
+        "created_at": "2026-01-15T12:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "webhook_single": {
+    "data": {
+      "id": "1146654567674912769",
+      "url": "https://example.com/webhooks/x",
+      "valid": true,
+      "created_at": "2026-01-15T12:00:00.000Z"
+    }
+  },
+  "webhook_validated": {
+    "data": {
+      "valid": true
+    }
+  },
+  "webhook_replay_job": {
+    "data": {
+      "job_id": "1915510368169844736",
+      "created_at": "2026-01-15T12:00:00.000Z"
+    }
   }
 }

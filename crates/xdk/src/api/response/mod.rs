@@ -11,5 +11,6 @@ pub use types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
     Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData,
-    UsageData, User, UserPublicMetrics, deserialize_response,
+    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookValidation,
+    deserialize_response,
 };
