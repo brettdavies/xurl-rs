@@ -495,6 +495,44 @@ pub struct AccountActivitySubscription {
     pub user_id: Option<String>,
 }
 
+/// A link that delivers the app's filtered stream to a webhook.
+///
+/// Every field is optional because the spec requires none.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct WebhookStreamLink {
+    /// The app the link belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub application_id: Option<String>,
+    /// The user the app's stream access belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub business_user_id: Option<String>,
+    /// The stream instance the link delivers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
+    /// The webhook the stream delivers to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_id: Option<String>,
+    /// The fields each delivered post carries.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<Vec<String>>,
+    /// When the link was created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Confirmation that the filtered stream is linked to a webhook.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ProvisionedResult {
+    /// Whether the link is in place.
+    pub provisioned: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Media ───────────────────────────────────────────────────────────
 
 /// Response from media upload INIT and FINALIZE steps.

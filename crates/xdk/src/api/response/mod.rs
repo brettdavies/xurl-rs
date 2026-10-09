@@ -11,7 +11,7 @@ pub use types::{
     AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, Includes, LikedResult, MediaProcessingInfo, MediaUploadResponse, MutingResult,
-    Post, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, SubscribedResult,
-    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
-    WebhookValidation, deserialize_response,
+    Post, PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
+    SubscribedResult, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, deserialize_response,
 };

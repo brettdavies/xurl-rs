@@ -183,6 +183,22 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/account_activity/webhooks/{webhook_id}/subscriptions/{user_id}/all",
     ),
+    // filtered-stream delivery to a webhook
+    (
+        "GET_WEBHOOK_STREAM_LINKS",
+        "GET",
+        "/2/tweets/search/webhooks",
+    ),
+    (
+        "CREATE_WEBHOOK_STREAM_LINK",
+        "POST",
+        "/2/tweets/search/webhooks/{webhook_id}",
+    ),
+    (
+        "DELETE_WEBHOOK_STREAM_LINK",
+        "DELETE",
+        "/2/tweets/search/webhooks/{webhook_id}",
+    ),
 ];
 
 #[derive(Deserialize)]

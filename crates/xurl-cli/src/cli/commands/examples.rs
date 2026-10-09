@@ -138,6 +138,10 @@ WEBHOOKS:
   End a subscription:
     xr webhooks subscriptions remove 1146654567674912769 2244994945 --force --no-interactive --output json
 
+  Deliver the posts your filtered-stream rules match to a webhook, and stop:
+    xr webhooks stream-links add 1146654567674912769
+    xr webhooks stream-links remove 1146654567674912769 --force --no-interactive --output json
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image
