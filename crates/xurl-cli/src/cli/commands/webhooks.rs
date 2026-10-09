@@ -1,4 +1,5 @@
-//! The `webhooks` family: the app's registered webhooks.
+//! The `webhooks` family: the app's registered webhooks and the Account
+//! Activity subscriptions that deliver to them.
 
 use serde_json::json;
 
@@ -7,7 +8,7 @@ use super::{
     make_client, send_or_report, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::{CommonFlags, WebhooksCommands};
+use crate::cli::{CommonFlags, WebhookSubscriptionsCommands, WebhooksCommands};
 use xdk::api::shortcuts;
 
 pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult<()> {
@@ -22,6 +23,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             force,
             common,
         } => remove(run, &webhook_id, force, &common).await,
+        WebhooksCommands::Subscriptions { action } => subscriptions(action, run).await,
         WebhooksCommands::Replay {
             webhook_id,
             from,
@@ -29,6 +31,155 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             common,
         } => replay(run, &webhook_id, &from, &to, &common).await,
     }
+}
+
+async fn subscriptions(action: WebhookSubscriptionsCommands, run: Run<'_>) -> CommandResult<()> {
+    match action {
+        WebhookSubscriptionsCommands::Count { common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let dry_run = flags
+                .dry_run
+                .then(|| DryRun::new(json!({"command": "webhooks-subscriptions-count"})));
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(
+                client.get_account_activity_subscription_count(),
+                &common,
+                None,
+            );
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookSubscriptionsCommands::List { webhook_id, common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let ctx = json!({"command": "webhooks-subscriptions-list", "webhook_id": webhook_id});
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+                shortcuts::validate_webhook_id(&webhook_id)
+            })?;
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(
+                client.get_account_activity_subscriptions(&webhook_id),
+                &common,
+                None,
+            );
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookSubscriptionsCommands::Add { webhook_id, common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let ctx = json!({"command": "webhooks-subscriptions-add", "webhook_id": webhook_id});
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+                shortcuts::validate_webhook_id(&webhook_id)
+            })?;
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(
+                client.create_account_activity_subscription(&webhook_id),
+                &common,
+                None,
+            );
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookSubscriptionsCommands::Check { webhook_id, common } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let ctx = json!({"command": "webhooks-subscriptions-check", "webhook_id": webhook_id});
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+                shortcuts::validate_webhook_id(&webhook_id)
+            })?;
+            let client = make_client(cfg, auth)?;
+            let call = with_flags(
+                client.check_account_activity_subscription(&webhook_id),
+                &common,
+                None,
+            );
+            send_or_report(out, stdout, dry_run, call).await?;
+            Ok(())
+        }
+        WebhookSubscriptionsCommands::Remove {
+            webhook_id,
+            user_id,
+            force,
+            common,
+        } => unsubscribe(run, &webhook_id, &user_id, force, &common).await,
+    }
+}
+
+async fn unsubscribe(
+    run: Run<'_>,
+    webhook_id: &str,
+    user_id: &str,
+    force: bool,
+    common: &CommonFlags,
+) -> CommandResult<()> {
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let ctx = json!({
+        "command": "webhooks-subscriptions-remove",
+        "webhook_id": webhook_id,
+        "user_id": user_id,
+    });
+    let valid = || {
+        shortcuts::validate_webhook_id(webhook_id)?;
+        shortcuts::validate_user_id(user_id)
+    };
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(
+        client.delete_account_activity_subscription(webhook_id, user_id),
+        common,
+        None,
+    );
+    if flags.dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        let dry_run = dry_run_or_validate(true, ctx, valid)?;
+        send_or_report(out, stdout, dry_run, call).await?;
+        return Ok(());
+    }
+    match gate_destructive(
+        force,
+        flags.no_interactive,
+        flags.quiet,
+        &format!("End user {user_id}'s subscription to webhook {webhook_id}?"),
+    )? {
+        Gate::Proceed => {}
+        Gate::Declined => return Ok(()),
+        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
+    }
+    let dry_run = dry_run_or_validate(false, ctx, valid)?;
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
 }
 
 async fn list(run: Run<'_>, common: &CommonFlags) -> CommandResult<()> {

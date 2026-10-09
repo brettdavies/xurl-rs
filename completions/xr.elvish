@@ -1262,6 +1262,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand add 'Register a webhook URL'
             cand validate 'Ask X to send its CRC check to a webhook again'
             cand remove 'Delete a webhook; its subscriptions stop delivering'
+            cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand replay 'Deliver a past window of events to a webhook again'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -1382,6 +1383,202 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
+        &'xr;webhooks;subscriptions'= {
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand count 'Count the subscriptions the app holds and may hold'
+            cand list 'List the accounts whose activity a webhook receives'
+            cand add 'Subscribe your account''s activity to a webhook'
+            cand check 'Say whether your account''s activity is subscribed to a webhook'
+            cand remove 'End an account''s subscription to a webhook'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;webhooks;subscriptions;count'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;webhooks;subscriptions;list'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;webhooks;subscriptions;add'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;webhooks;subscriptions;check'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;webhooks;subscriptions;remove'= {
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` username to act as'
+            cand --username '`OAuth2` username to act as'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --force 'Skip the confirmation prompt; required under `--no-interactive`'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;webhooks;subscriptions;help'= {
+            cand count 'Count the subscriptions the app holds and may hold'
+            cand list 'List the accounts whose activity a webhook receives'
+            cand add 'Subscribe your account''s activity to a webhook'
+            cand check 'Say whether your account''s activity is subscribed to a webhook'
+            cand remove 'End an account''s subscription to a webhook'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;webhooks;subscriptions;help;count'= {
+        }
+        &'xr;webhooks;subscriptions;help;list'= {
+        }
+        &'xr;webhooks;subscriptions;help;add'= {
+        }
+        &'xr;webhooks;subscriptions;help;check'= {
+        }
+        &'xr;webhooks;subscriptions;help;remove'= {
+        }
+        &'xr;webhooks;subscriptions;help;help'= {
+        }
         &'xr;webhooks;replay'= {
             cand --from 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC'
             cand --to 'End of the window: twelve digits, `yyyymmddhhmm` in UTC'
@@ -1418,6 +1615,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand add 'Register a webhook URL'
             cand validate 'Ask X to send its CRC check to a webhook again'
             cand remove 'Delete a webhook; its subscriptions stop delivering'
+            cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand replay 'Deliver a past window of events to a webhook again'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -1428,6 +1626,23 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;webhooks;help;validate'= {
         }
         &'xr;webhooks;help;remove'= {
+        }
+        &'xr;webhooks;help;subscriptions'= {
+            cand count 'Count the subscriptions the app holds and may hold'
+            cand list 'List the accounts whose activity a webhook receives'
+            cand add 'Subscribe your account''s activity to a webhook'
+            cand check 'Say whether your account''s activity is subscribed to a webhook'
+            cand remove 'End an account''s subscription to a webhook'
+        }
+        &'xr;webhooks;help;subscriptions;count'= {
+        }
+        &'xr;webhooks;help;subscriptions;list'= {
+        }
+        &'xr;webhooks;help;subscriptions;add'= {
+        }
+        &'xr;webhooks;help;subscriptions;check'= {
+        }
+        &'xr;webhooks;help;subscriptions;remove'= {
         }
         &'xr;webhooks;help;replay'= {
         }
@@ -2358,7 +2573,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`). Omit for auto-detection'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2510,6 +2725,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand add 'Register a webhook URL'
             cand validate 'Ask X to send its CRC check to a webhook again'
             cand remove 'Delete a webhook; its subscriptions stop delivering'
+            cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand replay 'Deliver a past window of events to a webhook again'
         }
         &'xr;help;webhooks;list'= {
@@ -2519,6 +2735,23 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;webhooks;validate'= {
         }
         &'xr;help;webhooks;remove'= {
+        }
+        &'xr;help;webhooks;subscriptions'= {
+            cand count 'Count the subscriptions the app holds and may hold'
+            cand list 'List the accounts whose activity a webhook receives'
+            cand add 'Subscribe your account''s activity to a webhook'
+            cand check 'Say whether your account''s activity is subscribed to a webhook'
+            cand remove 'End an account''s subscription to a webhook'
+        }
+        &'xr;help;webhooks;subscriptions;count'= {
+        }
+        &'xr;help;webhooks;subscriptions;list'= {
+        }
+        &'xr;help;webhooks;subscriptions;add'= {
+        }
+        &'xr;help;webhooks;subscriptions;check'= {
+        }
+        &'xr;help;webhooks;subscriptions;remove'= {
         }
         &'xr;help;webhooks;replay'= {
         }

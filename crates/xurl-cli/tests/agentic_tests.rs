@@ -819,6 +819,7 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "auth clear",
     "auth apps remove",
     "webhooks remove",
+    "webhooks subscriptions remove",
 ];
 
 /// Each command that confirms a destructive op is on the list above, so a new

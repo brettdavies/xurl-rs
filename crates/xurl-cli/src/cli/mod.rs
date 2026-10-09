@@ -1636,6 +1636,13 @@ pub enum WebhooksCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Account Activity subscriptions: whose activity a webhook receives
+    #[command(after_help = family_help::webhook_subscriptions::page())]
+    Subscriptions {
+        /// `subscriptions` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhookSubscriptionsCommands,
+    },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
     Replay {
@@ -1648,6 +1655,66 @@ pub enum WebhooksCommands {
         /// End of the window: twelve digits, `yyyymmddhhmm` in UTC
         #[arg(long, value_name = "YYYYMMDDHHMM")]
         to: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr webhooks subscriptions` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhookSubscriptionsCommands {
+    /// Count the subscriptions the app holds and may hold
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::COUNT))]
+    Count {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the accounts whose activity a webhook receives
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::LIST))]
+    List {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Subscribe your account's activity to a webhook
+    ///
+    /// X bills each event it then delivers to the webhook.
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::ADD))]
+    Add {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Say whether your account's activity is subscribed to a webhook
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::CHECK))]
+    Check {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// End an account's subscription to a webhook
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Numeric user ID of the subscribed account, as `subscriptions list` prints it
+        #[arg(value_name = "USER_ID")]
+        user_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

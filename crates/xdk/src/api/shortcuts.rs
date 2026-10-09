@@ -14,10 +14,11 @@ use serde::de::DeserializeOwned;
 use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookValidation,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
+    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, RepostedResult,
+    SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookValidation,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -267,6 +268,17 @@ pub const WEBHOOK_URL_MAX_CHARS: usize = 200;
 pub fn validate_webhook_id(input: &str) -> std::result::Result<(), &'static str> {
     if input.is_empty() || input.len() > 19 || !input.bytes().all(|b| b.is_ascii_digit()) {
         return Err("invalid-webhook-id");
+    }
+    Ok(())
+}
+
+/// Validates a user id: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-user-id` for anything else, a handle included.
+pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
+    if input.is_empty() || input.len() > 19 || !input.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-user-id");
     }
     Ok(())
 }
@@ -1141,6 +1153,86 @@ impl Client {
                 from_date: from_date.to_string(),
                 to_date: to_date.to_string(),
             },
+        )
+    }
+
+    /// Counts the Account Activity subscriptions the app holds and may hold.
+    pub fn get_account_activity_subscription_count(
+        &self,
+    ) -> Call<ApiResponse<AccountActivitySubscriptionCount>> {
+        self.call(
+            endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT.method,
+            template(
+                endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the accounts whose activity a webhook receives.
+    pub fn get_account_activity_subscriptions(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<AccountActivitySubscriptions>> {
+        self.call(
+            endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS.method,
+            template(
+                endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Says whether the authenticated account's activity is subscribed to a
+    /// webhook.
+    pub fn check_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.call(
+            endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION.method,
+            template(
+                endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Subscribes the authenticated account's activity to a webhook. X bills
+    /// each event it then delivers.
+    pub fn create_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+            &serde_json::json!({}),
+        )
+    }
+
+    /// Ends the subscription of `user_id`'s activity to a webhook.
+    pub fn delete_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.call(
+            endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION.method,
+            template(
+                endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([
+                    ("webhook_id".to_string(), webhook_id.to_string()),
+                    ("user_id".to_string(), user_id.to_string()),
+                ]),
+                Vec::new(),
+            ),
         )
     }
 

@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "webhooks", "subscriptions", "remove", "1146654567674912769", "@someone"]
+store: empty
+exit_code: 0
+stdout_len: 244
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-subscriptions-remove",
+  "confirmation_required": true,
+  "exit_code": 1,
+  "reason": "invalid-user-id",
+  "status": "dry_run",
+  "user_id": "@someone",
+  "webhook_id": "1146654567674912769",
+  "would_succeed": false
+}
+
+--- stderr ---
+

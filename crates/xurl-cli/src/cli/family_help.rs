@@ -218,6 +218,72 @@ pub mod webhooks {
     }
 }
 
+/// The `xr webhooks subscriptions` family.
+pub mod webhook_subscriptions {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "webhooks subscriptions",
+    };
+
+    /// `xr webhooks subscriptions count`.
+    pub const COUNT: Verb = Verb {
+        name: "count",
+        example_args: "",
+        text_caption: "How many subscriptions the app holds and may hold (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr webhooks subscriptions list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "1146654567674912769",
+        text_caption: "List the accounts a webhook receives activity for (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr webhooks subscriptions add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "1146654567674912769",
+        text_caption: "Subscribe your account's activity to a webhook (text)",
+        json_caption: "Subscribe (JSON envelope)",
+    };
+
+    /// `xr webhooks subscriptions check`.
+    pub const CHECK: Verb = Verb {
+        name: "check",
+        example_args: "1146654567674912769",
+        text_caption: "Is your account subscribed to this webhook (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr webhooks subscriptions remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1146654567674912769 2244994945 --force --no-interactive",
+        text_caption: "End an account's subscription with no prompt, as a script does (text)",
+        json_caption: "Unsubscribe (JSON envelope)",
+    };
+
+    /// The page under `xr webhooks subscriptions --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Subscribe your account, then confirm it (text)",
+                &[Example::text(&ADD), Example::text(&CHECK)],
+            ),
+            (
+                "Who a webhook receives activity for, JSON envelope",
+                &[Example::json(&LIST)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr media subtitles` family.
 pub mod media_subtitles {
     use super::{Example, Family, Section, Verb};
