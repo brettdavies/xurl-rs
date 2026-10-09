@@ -1650,6 +1650,37 @@ pub enum WebhooksCommands {
         #[command(subcommand)]
         action: WebhookStreamLinksCommands,
     },
+    /// Receive webhook deliveries on a local address
+    ///
+    /// Answers X's CRC check and prints each event X delivers, once its
+    /// signature verifies, as one JSON line on stdout. X delivers only to a
+    /// public HTTPS URL with no port, so expose the local address through a
+    /// tunnel or reverse proxy of your own and register that URL with
+    /// `xr webhooks add`. This command opens no tunnel and sends nothing to X.
+    /// It runs until interrupted, or until `--max-events` events have printed.
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LISTEN))]
+    Listen {
+        /// Local port to listen on; 0 takes any free port
+        #[arg(long, short = 'p', default_value_t = 8080)]
+        port: u16,
+        /// Local address to bind
+        #[arg(long, value_name = "ADDRESS", default_value = "127.0.0.1")]
+        bind: std::net::IpAddr,
+        /// Request path to answer on
+        #[arg(long, default_value = xdk::webhooks::DEFAULT_PATH)]
+        path: String,
+        /// Which of the app's secrets X signs with. Unset, the OAuth2 client
+        /// secret when the app has one, else the OAuth1 consumer secret
+        #[arg(long, value_enum)]
+        secret: Option<SigningSecret>,
+        /// Also print a POST that carries no signature, for a local test
+        /// with curl. A POST with a wrong signature is refused either way
+        #[arg(long)]
+        allow_unsigned: bool,
+        /// Exit 0 once this many events have printed
+        #[arg(long, value_name = "N", value_parser = clap::value_parser!(u64).range(1..))]
+        max_events: Option<u64>,
+    },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
     Replay {
@@ -1666,6 +1697,15 @@ pub enum WebhooksCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+}
+
+/// The app secret `xr webhooks listen` answers and verifies with.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SigningSecret {
+    /// The app's `OAuth2` client secret
+    Oauth2,
+    /// The app's `OAuth1` consumer secret (API Secret Key)
+    Oauth1,
 }
 
 /// `xr webhooks subscriptions` verbs.

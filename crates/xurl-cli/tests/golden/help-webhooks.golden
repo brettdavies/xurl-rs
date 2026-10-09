@@ -1,7 +1,7 @@
 args: ["webhooks", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7393
+stdout_len: 7558
 stderr_len: 0
 --- stdout ---
 Webhook registration, validation, and replay
@@ -15,6 +15,7 @@ Commands:
   remove         Delete a webhook; its subscriptions stop delivering
   subscriptions  Account Activity subscriptions: whose activity a webhook receives
   stream-links   Filtered-stream links: deliver the posts your stream rules match to a webhook
+  listen         Receive webhook deliveries on a local address
   replay         Deliver a past window of events to a webhook again
   help           Print this message or the help of the given subcommand(s)
 
@@ -162,6 +163,8 @@ Examples:
     xr webhooks validate 1146654567674912769 --output json
   Replay a window of past events (text):
     xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
+  Receive events on a local port you expose at a public HTTPS URL:
+    xr webhooks listen --port 8080
 
 --- stderr ---
 

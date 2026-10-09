@@ -2382,6 +2382,48 @@ esac
     ;;
 esac
 ;;
+(listen)
+_arguments "${_arguments_options[@]}" : \
+'-p+[Local port to listen on; 0 takes any free port]:PORT:_default' \
+'--port=[Local port to listen on; 0 takes any free port]:PORT:_default' \
+'--bind=[Local address to bind]:ADDRESS:_default' \
+'--path=[Request path to answer on]:PATH:_default' \
+'--secret=[Which of the app'\''s secrets X signs with. Unset, the OAuth2 client secret when the app has one, else the OAuth1 consumer secret]:SECRET:((oauth2\:"The app'\''s \`OAuth2\` client secret"
+oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
+'--max-events=[Exit 0 once this many events have printed]:N:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--allow-unsigned[Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
 (replay)
 _arguments "${_arguments_options[@]}" : \
 '--from=[Start of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
@@ -2515,6 +2557,10 @@ _arguments "${_arguments_options[@]}" : \
         esac
     ;;
 esac
+;;
+(listen)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
 ;;
 (replay)
 _arguments "${_arguments_options[@]}" : \
@@ -4305,6 +4351,10 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(listen)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (replay)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -5426,6 +5476,7 @@ _xr__subcmd__help__subcmd__webhooks_commands() {
 'remove:Delete a webhook; its subscriptions stop delivering' \
 'subscriptions:Account Activity subscriptions\: whose activity a webhook receives' \
 'stream-links:Filtered-stream links\: deliver the posts your stream rules match to a webhook' \
+'listen:Receive webhook deliveries on a local address' \
 'replay:Deliver a past window of events to a webhook again' \
     )
     _describe -t commands 'xr help webhooks commands' commands "$@"
@@ -5439,6 +5490,11 @@ _xr__subcmd__help__subcmd__webhooks__subcmd__add_commands() {
 _xr__subcmd__help__subcmd__webhooks__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr help webhooks list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__webhooks__subcmd__listen_commands] )) ||
+_xr__subcmd__help__subcmd__webhooks__subcmd__listen_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help webhooks listen commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__webhooks__subcmd__remove_commands] )) ||
 _xr__subcmd__help__subcmd__webhooks__subcmd__remove_commands() {
@@ -5831,6 +5887,7 @@ _xr__subcmd__webhooks_commands() {
 'remove:Delete a webhook; its subscriptions stop delivering' \
 'subscriptions:Account Activity subscriptions\: whose activity a webhook receives' \
 'stream-links:Filtered-stream links\: deliver the posts your stream rules match to a webhook' \
+'listen:Receive webhook deliveries on a local address' \
 'replay:Deliver a past window of events to a webhook again' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -5850,6 +5907,7 @@ _xr__subcmd__webhooks__subcmd__help_commands() {
 'remove:Delete a webhook; its subscriptions stop delivering' \
 'subscriptions:Account Activity subscriptions\: whose activity a webhook receives' \
 'stream-links:Filtered-stream links\: deliver the posts your stream rules match to a webhook' \
+'listen:Receive webhook deliveries on a local address' \
 'replay:Deliver a past window of events to a webhook again' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -5869,6 +5927,11 @@ _xr__subcmd__webhooks__subcmd__help__subcmd__help_commands() {
 _xr__subcmd__webhooks__subcmd__help__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr webhooks help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__webhooks__subcmd__help__subcmd__listen_commands] )) ||
+_xr__subcmd__webhooks__subcmd__help__subcmd__listen_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr webhooks help listen commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__webhooks__subcmd__help__subcmd__remove_commands] )) ||
 _xr__subcmd__webhooks__subcmd__help__subcmd__remove_commands() {
@@ -5949,6 +6012,11 @@ _xr__subcmd__webhooks__subcmd__help__subcmd__validate_commands() {
 _xr__subcmd__webhooks__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr webhooks list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__webhooks__subcmd__listen_commands] )) ||
+_xr__subcmd__webhooks__subcmd__listen_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr webhooks listen commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__webhooks__subcmd__remove_commands] )) ||
 _xr__subcmd__webhooks__subcmd__remove_commands() {

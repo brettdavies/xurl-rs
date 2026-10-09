@@ -283,16 +283,36 @@ pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
-/// Validates a webhook URL against the spec's length bounds.
+/// Validates a webhook URL against the spec's length bounds and the two
+/// rules X's webhook documentation gives: the URL uses HTTPS, and it names
+/// no port.
 ///
 /// # Errors
-/// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`.
+/// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`,
+/// `webhook-url-not-https`, `webhook-url-has-port`.
 pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> {
     if url.is_empty() {
         return Err("empty-webhook-url");
     }
     if url.chars().count() > WEBHOOK_URL_MAX_CHARS {
         return Err("webhook-url-too-long");
+    }
+    let Some(rest) = url.strip_prefix("https://") else {
+        return Err("webhook-url-not-https");
+    };
+    if url::Url::parse(url).is_err() {
+        return Err("webhook-url-not-https");
+    }
+    // The authority as written: `Url` drops a port that is the scheme's
+    // default, and X refuses one that is spelled out.
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host_and_port = authority.rsplit('@').next().unwrap_or_default();
+    let has_port = match host_and_port.rsplit_once(']') {
+        Some((_, after_bracket)) => after_bracket.starts_with(':'),
+        None => host_and_port.contains(':'),
+    };
+    if has_port {
+        return Err("webhook-url-has-port");
     }
     Ok(())
 }
