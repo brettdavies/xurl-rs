@@ -227,6 +227,48 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 }
 ```
 
+### Webhooks
+
+```bash
+xr webhooks list                                   # Webhooks the app has registered
+xr webhooks add https://example.com/webhook        # Register a URL; X checks it first
+xr webhooks validate 1146654567674912769           # Ask X to check the URL again
+xr webhooks remove 1146654567674912769             # Delete; asks first (--force skips)
+xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
+xr webhooks subscriptions add 1146654567674912769  # Deliver your account's activity there
+xr webhooks subscriptions list 1146654567674912769 # Whose activity it receives
+xr webhooks stream-links add 1146654567674912769   # Deliver your filtered stream there
+xr webhooks listen --port 8080                     # Receive: answer X's check, print events
+```
+
+A webhook is a public URL X delivers events to, in place of a poll or an open stream. Three things have to be in place,
+in this order:
+
+1. **A receiver X can reach.** `xr webhooks listen` binds `127.0.0.1:8080`, answers X's Challenge-Response Check on
+   `/webhook`, and prints each event as one JSON line on stdout. X delivers only to a public HTTPS URL with no port, so
+   expose that local address through a tunnel or reverse proxy of your own, such as `cloudflared`, the `ngrok` CLI, or
+   Tailscale Funnel. `xr` opens no tunnel.
+2. **The URL registered.** `xr webhooks add <URL>` registers it and prints the webhook's id. X sends its check to the
+   URL before it answers, so the listener has to be up and exposed first. A URL that is not HTTPS, or that names a port,
+   is refused before any request.
+3. **Something subscribed to it.** `xr webhooks subscriptions add <WEBHOOK_ID>` subscribes the signed-in account's
+   activity. `xr webhooks stream-links add <WEBHOOK_ID>` delivers the posts your filtered-stream rules match.
+
+X bills each event it delivers; its pricing page lists the rate per event type.
+
+`listen` prints only what it has verified. X signs its check and every event with the app's OAuth2 client secret, or
+with the OAuth1 consumer secret for an app that has no client secret. `listen` uses the client secret when the app has
+one, and `--secret oauth1` names the consumer secret instead. An event whose signature is wrong or missing is answered
+401 and not printed; `--allow-unsigned` also prints a POST that carries no signature, for a local test with `curl`. It
+runs until interrupted, or exits 0 once `--max-events <N>` events have printed, and under `--output json` its first line
+is `{"status":"listening","url":...}`.
+
+`list`, `add`, `validate`, and `remove` take any stored credential. `replay`, `stream-links`, and `subscriptions count`,
+`list`, and `remove` take a bearer token. `subscriptions add` and `check` act for the signed-in account and take a user
+login. Each `remove` asks before it deletes, and `replay` takes its window as twelve digits, `yyyymmddhhmm` in UTC.
+
+The X Activity API (`/2/activity/...`) has no command; raw mode reaches it.
+
 ## Authentication
 
 Every secret flag (`--client-secret`, `--consumer-secret`, `--access-token`, `--token-secret`, `--bearer-token`) has a
@@ -678,7 +720,8 @@ keeps that tool's shape: curl-style raw requests, the same auth flows, chunked m
 the common endpoints.
 
 Where it goes further is the machine-readable side: seven output formats, a typed error envelope with structured exit
-codes, and `xr schema` for response types. It does not port the webhook and `ngrok` surface.
+codes, and `xr schema` for response types. Its webhook receiver opens no `ngrok` tunnel; the caller brings the public
+URL, and `xr` adds the commands that register and subscribe a webhook.
 
 Where behavior diverges on purpose,
 [`KNOWN_DIFFERENCES.md`](https://github.com/brettdavies/xurl-rs/blob/main/KNOWN_DIFFERENCES.md) names each case and why.

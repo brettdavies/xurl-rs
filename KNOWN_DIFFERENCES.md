@@ -1,20 +1,27 @@
 # Known Differences from Go xurl
 
-## Webhooks (intentionally deferred)
+## Webhooks: no built-in tunnel, verified events, and management commands (intentional difference)
 
-The Go `xurl` includes ~194 lines of webhook/ngrok code (`cli/webhook.go`) that supports:
+Go `xurl` has one webhook command, `xurl webhook start`. It opens an ngrok tunnel itself (prompting for an authtoken or
+reading `NGROK_AUTHTOKEN`), answers X's CRC check, logs each POST body, and prints the public URL for the user to
+register by other means. `xr` has a `webhooks` family, and its receiver differs in four ways.
 
-- Webhook registration and listing
-- Local listener with ngrok tunneling
+- **No tunnel.** `xr webhooks listen` binds a local address and stops there. X delivers only to a public HTTPS URL with
+  no port, and the caller provides it with a tunnel or reverse proxy of their own. Linking a tunnel client into the
+  binary would add a third-party account and a large dependency for one command.
+- **The signing secret X documents.** Go keys the CRC response with the OAuth1 consumer secret and refuses to start
+  without OAuth1 credentials. X's webhook documentation says to use the app's OAuth2 client secret when it has one and
+  the consumer secret otherwise. `listen` follows the documentation; `--secret oauth1` selects Go's behavior.
+- **Events are verified.** Go prints every POST. X signs each event (`X-Twitter-Webhooks-Signature-OAuth2`, or the
+  legacy `X-Twitter-Webhooks-Signature`), and `listen` prints an event only when its signature verifies, answering 401
+  otherwise. `--allow-unsigned` prints a POST with no signature.
+- **Output is JSON Lines on stdout.** Go logs bodies to the terminal with `-q` and `-P` to shape them and `-o` to append
+  them to a file. `listen` writes one event per line to stdout, so a shell redirect or `jaq` does the rest, and
+  `--max-events` bounds the run.
 
-This feature is **intentionally not ported** because:
-
-1. It requires an external `ngrok` binary and account, making it a niche workflow.
-2. The X API Account Activity API (which webhooks serve) has been largely superseded by the v2 filtered stream and
-   compliance endpoints.
-3. It adds a significant dependency surface (ngrok process management, tunnel lifecycle) for a rarely-used feature.
-
-If you need webhook support, continue using the Go `xurl` binary for that workflow.
+The management commands have no Go counterpart: `xr webhooks list`, `add`, `validate`, `remove`, and `replay`,
+`xr webhooks subscriptions` for Account Activity, and `xr webhooks stream-links` for filtered-stream delivery. With Go,
+those endpoints are reached through raw requests.
 
 ## Exit code mapping for HTTP errors (intentional improvement)
 
