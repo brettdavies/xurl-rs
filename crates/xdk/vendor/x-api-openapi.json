@@ -924,6 +924,32 @@
       }
     },
     "schemas": {
+      "AcceptChatMessageRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AcceptChatMessageRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AcceptChatMessageRequestResponseData": {
+        "properties": {
+          "accepted": {
+            "description": "Whether the message request was accepted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "type": "object"
+      },
       "ActivityEventId": {
         "description": "The unique identifier of an Activity event.",
         "example": "1146654567674912769",
@@ -7780,6 +7806,148 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "GetChatMessageRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetChatMessageRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatMessageRequestResponseData": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "description": "The conversation key change events needed to decrypt `message_events`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "has_more_events": {
+            "description": "Whether older message events may exist. Always `true` when `message_events` isn't empty.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "description": "The newest message events, newest first, with end-to-end encrypted contents.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "message_request_state": {
+            "description": "`received` while the other user's request is pending, `sent` while the authenticated user's request is pending, `none` otherwise.",
+            "enum": [
+              "none",
+              "received",
+              "sent"
+            ],
+            "type": "string"
+          },
+          "participant_id": {
+            "description": "The other user in the conversation: the sender when `message_request_state` is `received`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "participant_id"
+        ],
+        "type": "object"
+      },
+      "GetChatMessageRequestsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetChatMessageRequestsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              },
+              "total_count": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatMessageRequestsResponseData": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "description": "The conversation key change events needed to decrypt `message_events`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "encoded_message_create_event": {
+            "description": "The message that previews the request, with end-to-end encrypted contents.",
+            "type": "string"
+          },
+          "has_more_events": {
+            "description": "Whether the conversation has older message events than `message_events`.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "description": "The conversation's latest message events, newest first, with end-to-end encrypted contents.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sender_id": {
+            "description": "The user ID of the user who sent the request.",
+            "type": "string"
+          },
+          "sender_recently_modified_profile": {
+            "description": "Whether the sender recently changed their name or avatar, a possible sign of impersonation.",
+            "type": "boolean"
+          },
+          "social_proof_user_ids": {
+            "description": "IDs of users the authenticated user follows who also follow the sender.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "sender_id"
+        ],
         "type": "object"
       },
       "GetChatModeratorsResponse": {
@@ -17921,7 +18089,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.169"
+    "version": "2.170"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -20480,7 +20648,7 @@
     },
     "/2/chat/conversations/{id}": {
       "delete": {
-        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Deleting a pending message request's conversation deletes the request, like Delete in the X app.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -22941,6 +23109,230 @@
           }
         ],
         "summary": "Download Chat Media",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/message_requests": {
+      "get": {
+        "description": "Retrieves the authenticated user's pending Chat message requests from one inbox. Message contents are end-to-end encrypted. Accepting or deleting requests between pages can skip or repeat requests, and a page can be empty while `next_token` is set.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatMessageRequests",
+        "parameters": [
+          {
+            "description": "Which message request inbox to list: `you_may_know` (the apps' Priority tab) or `low_quality` (the apps' Hidden tab).",
+            "in": "query",
+            "name": "inbox_type",
+            "required": false,
+            "schema": {
+              "default": "you_may_know",
+              "enum": [
+                "you_may_know",
+                "low_quality"
+              ],
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The maximum number of message requests to return.",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The next_token from a previous response, to fetch the next page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "pattern": "^[0-9]{1,10}$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatMessageRequestsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat Message Requests",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/message_requests/{id}": {
+      "get": {
+        "description": "Retrieves the message request state of a 1:1 Chat conversation and its newest message events. Like opening the request in an X app, reading it marks the returned messages as delivered and updates the unread badge.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatMessageRequest",
+        "parameters": [
+          {
+            "description": "The other user's ID, or both user IDs joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatMessageRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat Message Request",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/message_requests/{id}/accept": {
+      "post": {
+        "description": "Accepts the other user's pending message request in a 1:1 Chat conversation, which moves to the authenticated user's inbox. Without a pending request, including after a successful accept, the response is 404. Replying to a request does not accept it.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "acceptChatMessageRequest",
+        "parameters": [
+          {
+            "description": "The other user's ID, or both user IDs joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptChatMessageRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Accept a Chat message request",
         "tags": [
           "Chat"
         ]
