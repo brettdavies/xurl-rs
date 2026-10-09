@@ -1,8 +1,10 @@
 //! The `webhooks` family: the app's registered webhooks, and the Account
 //! Activity subscriptions and filtered-stream links that deliver to them.
+//! `webhooks_listen.rs` holds the local receiver.
 
 use serde_json::json;
 
+use super::webhooks_listen::{Listener, listen};
 use super::{
     DryRun, Gate, Run, destructive_dry_run_context, dry_run_or_validate, gate_destructive,
     make_client, send_or_report, with_flags,
@@ -11,6 +13,8 @@ use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
     CommonFlags, WebhookStreamLinksCommands, WebhookSubscriptionsCommands, WebhooksCommands,
 };
+use std::net::SocketAddr;
+
 use xdk::api::shortcuts;
 
 pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult<()> {
@@ -27,6 +31,23 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
         } => remove(run, &webhook_id, force, &common).await,
         WebhooksCommands::Subscriptions { action } => subscriptions(action, run).await,
         WebhooksCommands::StreamLinks { action } => stream_links(action, run).await,
+        WebhooksCommands::Listen {
+            port,
+            bind,
+            path,
+            secret,
+            allow_unsigned,
+            max_events,
+        } => {
+            let listener = Listener {
+                bind: SocketAddr::new(bind, port),
+                path,
+                secret,
+                allow_unsigned,
+                max_events,
+            };
+            listen(run, listener).await
+        }
         WebhooksCommands::Replay {
             webhook_id,
             from,

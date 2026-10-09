@@ -26,6 +26,7 @@ pub mod store;
 #[cfg(feature = "testing")]
 #[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
 pub mod testing;
+pub mod webhooks;
 
 pub use error::{Error, Result};
 

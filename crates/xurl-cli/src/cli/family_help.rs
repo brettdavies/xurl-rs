@@ -189,6 +189,14 @@ pub mod webhooks {
         json_caption: "Delete (JSON envelope)",
     };
 
+    /// `xr webhooks listen`.
+    pub const LISTEN: Verb = Verb {
+        name: "listen",
+        example_args: "--port 8080",
+        text_caption: "Answer X's CRC check and print each event as a JSON line (text notices)",
+        json_caption: "With a JSON line when the listener is up",
+    };
+
     /// `xr webhooks replay`.
     pub const REPLAY: Verb = Verb {
         name: "replay",
@@ -212,6 +220,10 @@ pub mod webhooks {
             (
                 "Replay a window of past events (text)",
                 &[Example::text(&REPLAY)],
+            ),
+            (
+                "Receive events on a local port you expose at a public HTTPS URL",
+                &[Example::text(&LISTEN)],
             ),
         ];
         FAMILY.page(SECTIONS)

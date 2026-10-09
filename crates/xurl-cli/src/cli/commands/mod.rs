@@ -15,6 +15,7 @@ mod streaming;
 mod usage;
 pub mod validate;
 mod webhooks;
+mod webhooks_listen;
 
 use std::io::{IsTerminal, Write};
 

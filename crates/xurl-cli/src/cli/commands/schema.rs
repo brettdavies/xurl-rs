@@ -236,6 +236,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "validate",
     "version",
     "webhooks",
+    "webhooks-listen",
     "webhooks-stream-links",
     "webhooks-subscriptions",
 ];

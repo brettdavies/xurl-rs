@@ -1264,6 +1264,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand remove 'Delete a webhook; its subscriptions stop delivering'
             cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand stream-links 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
+            cand listen 'Receive webhook deliveries on a local address'
             cand replay 'Deliver a past window of events to a webhook again'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -1710,6 +1711,37 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;stream-links;help;help'= {
         }
+        &'xr;webhooks;listen'= {
+            cand -p 'Local port to listen on; 0 takes any free port'
+            cand --port 'Local port to listen on; 0 takes any free port'
+            cand --bind 'Local address to bind'
+            cand --path 'Request path to answer on'
+            cand --secret 'Which of the app''s secrets X signs with. Unset, the OAuth2 client secret when the app has one, else the OAuth1 consumer secret'
+            cand --max-events 'Exit 0 once this many events have printed'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --allow-unsigned 'Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
         &'xr;webhooks;replay'= {
             cand --from 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC'
             cand --to 'End of the window: twelve digits, `yyyymmddhhmm` in UTC'
@@ -1748,6 +1780,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand remove 'Delete a webhook; its subscriptions stop delivering'
             cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand stream-links 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
+            cand listen 'Receive webhook deliveries on a local address'
             cand replay 'Deliver a past window of events to a webhook again'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -1786,6 +1819,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;webhooks;help;stream-links;add'= {
         }
         &'xr;webhooks;help;stream-links;remove'= {
+        }
+        &'xr;webhooks;help;listen'= {
         }
         &'xr;webhooks;help;replay'= {
         }
@@ -2870,6 +2905,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand remove 'Delete a webhook; its subscriptions stop delivering'
             cand subscriptions 'Account Activity subscriptions: whose activity a webhook receives'
             cand stream-links 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
+            cand listen 'Receive webhook deliveries on a local address'
             cand replay 'Deliver a past window of events to a webhook again'
         }
         &'xr;help;webhooks;list'= {
@@ -2907,6 +2943,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;webhooks;stream-links;add'= {
         }
         &'xr;help;webhooks;stream-links;remove'= {
+        }
+        &'xr;help;webhooks;listen'= {
         }
         &'xr;help;webhooks;replay'= {
         }

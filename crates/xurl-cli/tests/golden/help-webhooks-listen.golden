@@ -1,25 +1,44 @@
-args: ["webhooks", "--help"]
+args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7558
+stdout_len: 7925
 stderr_len: 0
 --- stdout ---
-Webhook registration, validation, and replay
+Receive webhook deliveries on a local address
 
-Usage: xr webhooks [OPTIONS] <COMMAND>
+Answers X's CRC check and prints each event X delivers, once its signature verifies, as one JSON line on stdout. X delivers only to a public HTTPS URL with no port, so expose the local address through a tunnel or reverse proxy of your own and register that URL with `xr webhooks add`. This command opens no tunnel and sends nothing to X. It runs until interrupted, or until `--max-events` events have printed.
 
-Commands:
-  list           List the webhooks registered for the app
-  add            Register a webhook URL
-  validate       Ask X to send its CRC check to a webhook again
-  remove         Delete a webhook; its subscriptions stop delivering
-  subscriptions  Account Activity subscriptions: whose activity a webhook receives
-  stream-links   Filtered-stream links: deliver the posts your stream rules match to a webhook
-  listen         Receive webhook deliveries on a local address
-  replay         Deliver a past window of events to a webhook again
-  help           Print this message or the help of the given subcommand(s)
+Usage: xr webhooks listen [OPTIONS]
 
 Options:
+  -p, --port <PORT>
+          Local port to listen on; 0 takes any free port
+          
+          [default: 8080]
+
+      --bind <ADDRESS>
+          Local address to bind
+          
+          [default: 127.0.0.1]
+
+      --path <PATH>
+          Request path to answer on
+          
+          [default: /webhook]
+
+      --secret <SECRET>
+          Which of the app's secrets X signs with. Unset, the OAuth2 client secret when the app has one, else the OAuth1 consumer secret
+
+          Possible values:
+          - oauth2: The app's `OAuth2` client secret
+          - oauth1: The app's `OAuth1` consumer secret (API Secret Key)
+
+      --allow-unsigned
+          Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way
+
+      --max-events <N>
+          Exit 0 once this many events have printed
+
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -156,15 +175,10 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Which webhooks the app has registered (text):
-    xr webhooks list
-  Register a URL, then ask X to check it again, JSON envelope:
-    xr webhooks add https://example.com/webhooks/x --output json
-    xr webhooks validate 1146654567674912769 --output json
-  Replay a window of past events (text):
-    xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
-  Receive events on a local port you expose at a public HTTPS URL:
+  Answer X's CRC check and print each event as a JSON line (text notices):
     xr webhooks listen --port 8080
+  With a JSON line when the listener is up:
+    xr webhooks listen --port 8080 --output json
 
 --- stderr ---
 
