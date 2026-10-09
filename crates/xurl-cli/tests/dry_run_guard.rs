@@ -50,6 +50,7 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ("schema", &["--list"]),
     ("skill install", &["claude_code"]),
     ("skill update", &["claude_code"]),
+    ("webhooks add", &["https://example.com/webhook"]),
     (
         "webhooks replay",
         &[SAMPLE, "--from", "202601150000", "--to", "202601151200"],

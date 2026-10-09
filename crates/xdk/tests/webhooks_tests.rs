@@ -378,3 +378,32 @@ async fn delete_webhook_stream_link_deletes_the_link() {
 
     assert!(result.data.deleted);
 }
+
+#[test]
+fn validate_webhook_url_holds_the_rules_x_documents() {
+    assert_eq!(
+        validate_webhook_url("http://example.com/hook"),
+        Err("webhook-url-not-https")
+    );
+    assert_eq!(
+        validate_webhook_url("example.com/hook"),
+        Err("webhook-url-not-https")
+    );
+    assert_eq!(
+        validate_webhook_url("https://example.com:8443/hook"),
+        Err("webhook-url-has-port")
+    );
+    assert_eq!(
+        validate_webhook_url("https://example.com:443/hook"),
+        Err("webhook-url-has-port")
+    );
+    assert_eq!(
+        validate_webhook_url("https://[2001:db8::1]:8443/hook"),
+        Err("webhook-url-has-port")
+    );
+    assert_eq!(validate_webhook_url("https://[2001:db8::1]/hook"), Ok(()));
+    assert_eq!(
+        validate_webhook_url("https://example.com/hook?at=12:30"),
+        Ok(())
+    );
+}

@@ -239,6 +239,8 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   broadcasts, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
   `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
   `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
+- `crates/xdk/src/webhooks/`: the webhook receiver. It binds an address, answers X's CRC check, and yields each event
+  whose signature verifies, on hyper's HTTP/1 server; `xr webhooks listen` prints what it yields.
 - `crates/xdk/src/config/`: env-var-based configuration.
 - `crates/xdk/src/store/`: YAML token store at `~/.xurl/auth.yml`; multi-app, with `migration.rs` for transparent
   upgrades.
@@ -257,17 +259,17 @@ The line between the crates holds on four rules; a change that crosses one belon
    combination: `cargo tree -p xdk-rs --all-features -i <crate>` is empty for each, and CI's `Consumer check` compiles
    an out-of-package embedder against the documented surface.
 2. **I/O.** The library returns data, URLs, and `tracing` events (targets `xdk::wire`, `xdk::media`, `xdk::vocabulary`,
-   `xdk::auth`, `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads
-   the process environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`,
-   `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`,
-   `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts' config- and base-directory
-   variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in
-   `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener and reading or writing
-   `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
-3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
-   `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
-   `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can
-   drive the dispatcher in-process.
+   `xdk::auth`, `xdk::store`, `xdk::config`, `xdk::webhooks`); it never writes to stdout or stderr and never opens a
+   browser. It reads the process environment in one place, `EnvOverrides::from_env`, which takes the client variables
+   (`CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`,
+   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts'
+   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in
+   `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener, binding the webhook receiver, and
+   reading or writing `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
+3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, `webhooks`,
+   and `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming
+   the `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests
+   can drive the dispatcher in-process.
 4. **Errors.** The library states the fact: an `Error` variant plus `kind()`, `exit_code()`, `next_action()`, and
    `docs_url()`, each matched exhaustively in-crate. The binary composes the sentence: the `Auth Error:` prefixes, the
    recovery wording, `next_step.command` and `template`, and the envelope live in `crates/xurl-cli/src/cli/output/`.

@@ -142,6 +142,10 @@ WEBHOOKS:
     xr webhooks stream-links add 1146654567674912769
     xr webhooks stream-links remove 1146654567674912769 --force --no-interactive --output json
 
+  Receive events: listen locally, expose that port at a public HTTPS URL, register the URL:
+    xr webhooks listen --port 8080 --output json
+    xr webhooks add https://example.com/webhook
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image

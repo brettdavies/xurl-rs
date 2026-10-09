@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "webhooks", "add", "https://example.com:8443/webhook"]
+store: empty
+exit_code: 0
+stdout_len: 180
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-add",
+  "exit_code": 1,
+  "reason": "webhook-url-has-port",
+  "status": "dry_run",
+  "url": "https://example.com:8443/webhook",
+  "would_succeed": false
+}
+
+--- stderr ---
+
