@@ -2,8 +2,8 @@
 title: Webhooks Command Family - Plan
 type: feat
 date: 2026-10-08
-status: planned
-implementation: in progress
+status: in review
+implementation: built
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -115,9 +115,10 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 - **KTD4. `replay` takes X's own time format.** `--from` and `--to` are twelve digits, `yyyymmddhhmm` in UTC, as the
   spec's pattern requires. A value that does not match is refused offline with reason `validation`.
 - **KTD5. The receiver is library code and prints nothing.** `AGENTS.md` puts network I/O in `xdk`. A
-  `xdk::webhooks::Receiver` binds the address, answers CRC, and yields each event to its caller; `xr` prints. It is
-  built on `tokio::net::TcpListener` the way `crates/xdk/src/auth/callback.rs` is, with `hmac`, `sha2`, and `base64`,
-  which `xdk-rs` already depends on. No new dependency.
+  `xdk::webhooks::Receiver` binds the address, answers CRC, and yields each event to its caller; `xr` prints. It reads
+  HTTP with hyper's HTTP/1 server, which Brett chose on 2026-10-08 over a hand-written reader: the receiver faces the
+  public internet through the caller's tunnel, and `hyper`, `hyper-util`, and `http-body-util` were already in every
+  build through `reqwest`. They are direct dependencies of `xdk-rs`; `hmac`, `sha2`, and `base64` were there already.
 - **KTD6. The signing secret is the app's OAuth2 client secret, or its OAuth1 consumer secret.** X's webhook
   documentation (`docs.x.com/x-api/webhooks/introduction` and `/quickstart`, read 2026-10-08) says to compute the CRC
   `response_token` "with the OAuth 2.0 client secret when available, or with the OAuth 1.0 consumer secret for existing
@@ -133,6 +134,12 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
   otherwise, compares in constant time, answers 401 to a POST whose signature is missing or wrong, and yields only
   verified events. A refused POST is reported on `tracing` target `xdk::webhooks`. `--allow-unsigned` prints unverified
   POSTs too, for a local test with `curl`; Go `xurl` prints every POST unverified.
+- **KTD10. `add` holds the URL rules X documents.** The documentation requires HTTPS and forbids a port in the URL.
+  `validate_webhook_url` refuses a URL that breaks either, offline, beside the spec's length bounds.
+- **KTD9. `listen` output is JSONL on stdout in every format.** One event per line. A JSON body on one line is printed
+  byte for byte, so what a consumer reads is what X signed; a JSON body that spans lines is re-serialized onto one, and
+  a non-JSON body is carried as a JSON string. The startup line (the local URL, and that the caller exposes it) goes to
+  stderr in text output and is a first `{"status":"listening", ...}` line under a structured format.
 - **KTD10. `add` holds the URL rules X documents.** The documentation requires HTTPS and forbids a port in the URL.
   `validate_webhook_url` refuses a URL that breaks either, offline, beside the spec's length bounds.
 - **KTD9. `listen` output is JSONL on stdout in every format.** One event per line, the body as X sent it, with a
@@ -176,21 +183,22 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
 - **Test first:** as U2, plus a dry run that shows `add` and `check` need a user login and `list`, `count`, and `remove`
   need a bearer.
 
-### U4. Filtered-stream links
+### U4. Filtered-stream links (#337)
 
 - **Work:** the three operations, as `xr webhooks stream-links`.
 
-### U5. The receiver and `xr webhooks listen`
+### U5. The receiver and `xr webhooks listen` (#338)
 
-- **Files:** a new `crates/xdk/src/webhooks/` module, `crates/xdk/src/lib.rs`, `crates/xdk/src/error.rs` if a new
-  variant is needed, `crates/xurl-cli/src/cli/commands/webhooks.rs`.
+- **Files:** a new `crates/xdk/src/webhooks/` module (`mod.rs` and `signing.rs`), `crates/xdk/src/lib.rs`,
+  `crates/xdk/Cargo.toml`, and `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`.
 - **Work:** KTD5 to KTD10, R4 to R6.
 - **Test first:** an in-process test binds the receiver on port 0, sends a CRC `GET` and reads the response token
   against a value computed by hand from a known secret; sends a signed POST and reads the event; sends a POST with a
   wrong signature and one with none and reads 401 with nothing yielded; sends a request to another path and reads a
-  404. A CLI test runs `listen --max-events 1` as a child process and posts one signed event.
+  404. CLI tests run `listen --max-events 1` in-process beside a client and post one signed event, and the built binary
+       was run the same way by hand, with an interrupt and with its port already taken.
 
-### U6. Documents
+### U6. Documents (#339)
 
 - **Files:** `crates/xurl-cli/README.md`, `crates/xdk/README.md`, `AGENTS.md`, `KNOWN_DIFFERENCES.md`.
 - **Work:** the family, the `listen` flow with a caller-supplied public URL, the cost of delivered events, and the
