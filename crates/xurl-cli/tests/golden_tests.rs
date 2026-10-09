@@ -587,6 +587,7 @@ fn dry_run_cases() -> Vec<Case> {
     };
     let long_body = "x".repeat(281);
     let long_alt_text = "x".repeat(1001);
+    let long_webhook_url = format!("https://example.com/{}", "a".repeat(181));
     let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
         .iter()
         .map(|a| (*a).to_string())
@@ -643,6 +644,47 @@ fn dry_run_cases() -> Vec<Case> {
         case(
             "dry-run-empty-username",
             &["--output", "json", "--dry-run", "follow", ""],
+        ),
+        case(
+            "dry-run-empty-webhook-url",
+            &["--output", "json", "--dry-run", "webhooks", "add", ""],
+        ),
+        case(
+            "dry-run-webhook-url-too-long",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                &long_webhook_url,
+            ],
+        ),
+        case(
+            "dry-run-invalid-webhook-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "validate",
+                "not-an-id",
+            ],
+        ),
+        case(
+            "dry-run-invalid-replay-time",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "replay",
+                "1146654567674912769",
+                "--from",
+                "2026-01-15T00:00",
+                "--to",
+                "202601151200",
+            ],
         ),
         case(
             "dry-run-invalid-media-id",
@@ -731,10 +773,10 @@ fn text_cases() -> Vec<Case> {
             "skill-install-unknown-host",
             &["skill", "install", "bogus_host"],
         ),
-        case("text-unknown-command-help-flag", &["webhooks", "--help"]),
+        case("text-unknown-command-help-flag", &["bookmarsk", "--help"]),
         case(
             "text-unknown-command-version-flag",
-            &["webhooks", "--version"],
+            &["bookmarsk", "--version"],
         ),
     ]
 }

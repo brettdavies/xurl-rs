@@ -814,7 +814,12 @@ fn test_validate_subcommand_appears_in_help() {
 
 /// The commands that confirm a destructive op before running it. Under
 /// `--no-interactive` each one refuses unless `--force` confirms the op.
-const CONFIRMED_COMMANDS: &[&str] = &["delete", "auth clear", "auth apps remove"];
+const CONFIRMED_COMMANDS: &[&str] = &[
+    "delete",
+    "auth clear",
+    "auth apps remove",
+    "webhooks remove",
+];
 
 /// Each command that confirms a destructive op is on the list above, so a new
 /// one cannot escape the example check below.
