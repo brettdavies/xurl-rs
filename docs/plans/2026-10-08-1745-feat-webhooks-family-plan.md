@@ -134,17 +134,12 @@ $0.010 on X's pricing page as of 2026-10-07); the management calls have no row o
   otherwise, compares in constant time, answers 401 to a POST whose signature is missing or wrong, and yields only
   verified events. A refused POST is reported on `tracing` target `xdk::webhooks`. `--allow-unsigned` prints unverified
   POSTs too, for a local test with `curl`; Go `xurl` prints every POST unverified.
-- **KTD10. `add` holds the URL rules X documents.** The documentation requires HTTPS and forbids a port in the URL.
-  `validate_webhook_url` refuses a URL that breaks either, offline, beside the spec's length bounds.
 - **KTD9. `listen` output is JSONL on stdout in every format.** One event per line. A JSON body on one line is printed
   byte for byte, so what a consumer reads is what X signed; a JSON body that spans lines is re-serialized onto one, and
   a non-JSON body is carried as a JSON string. The startup line (the local URL, and that the caller exposes it) goes to
   stderr in text output and is a first `{"status":"listening", ...}` line under a structured format.
 - **KTD10. `add` holds the URL rules X documents.** The documentation requires HTTPS and forbids a port in the URL.
   `validate_webhook_url` refuses a URL that breaks either, offline, beside the spec's length bounds.
-- **KTD9. `listen` output is JSONL on stdout in every format.** One event per line, the body as X sent it, with a
-  non-JSON body carried as a JSON string. The startup line (the local URL, and that the caller exposes it) goes to
-  stderr in text output and is a first `{"status":"listening", ...}` line under a structured format.
 
 ### Risks & Dependencies
 
