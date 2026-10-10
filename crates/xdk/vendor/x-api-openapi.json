@@ -188,6 +188,34 @@
         },
         "style": "form"
       },
+      "ChatGroupInviteFieldsParameter": {
+        "description": "A comma separated list of ChatGroupInvite fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_group_invite.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatGroupInvite object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "expires_at",
+              "group_avatar_url",
+              "group_name",
+              "invite_url",
+              "join_state",
+              "member_count",
+              "token",
+              "welcome_message"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
       "ChatMessageEventFieldsParameter": {
         "description": "A comma separated list of ChatMessageEvent fields to display.",
         "explode": false,
@@ -207,6 +235,102 @@
               "message_event_signature",
               "previous_id",
               "sender_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatMessageRequestDetailFieldsParameter": {
+        "description": "A comma separated list of ChatMessageRequestDetail fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_message_request_detail.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatMessageRequestDetail object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "conversation_key_events",
+              "has_more_events",
+              "message_events",
+              "message_request_state",
+              "participant_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatMessageRequestFieldsParameter": {
+        "description": "A comma separated list of ChatMessageRequest fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_message_request.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatMessageRequest object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "conversation_key_events",
+              "encoded_message_create_event",
+              "has_more_events",
+              "message_events",
+              "sender_id",
+              "sender_recently_modified_profile",
+              "social_proof_user_ids"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatPinnedMessageFieldsParameter": {
+        "description": "A comma separated list of ChatPinnedMessage fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_pinned_message.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatPinnedMessage object.",
+          "items": {
+            "enum": [
+              "encoded_event"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatSettingsFieldsParameter": {
+        "description": "A comma separated list of ChatSettings fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_settings.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatSettings object.",
+          "items": {
+            "enum": [
+              "allow_dms_from",
+              "always_allow_dms_from_subscribers",
+              "av_settings",
+              "dm_quality_filter",
+              "dm_receipt_settings"
             ],
             "type": "string"
           },
@@ -2801,6 +2925,47 @@
         },
         "type": "array"
       },
+      "ChatGroupInvite": {
+        "properties": {
+          "conversation_id": {
+            "description": "ID of the group conversation the link joins.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
+            "type": "string"
+          },
+          "group_avatar_url": {
+            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
+            "type": "string"
+          },
+          "group_name": {
+            "description": "Group name shown on the invite preview, stored unencrypted.",
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "Shareable invite link.",
+            "type": "string"
+          },
+          "join_state": {
+            "description": "The authenticated user's relationship to the group: `member`, `not_member`, `removed`, or `requested`.",
+            "type": "string"
+          },
+          "member_count": {
+            "description": "Number of members in the group.",
+            "type": "integer"
+          },
+          "token": {
+            "description": "Invite token. Together with the conversation ID it identifies the link.",
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to people who open the link.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ChatMediaUploadAppendRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3004,6 +3169,178 @@
           },
           "sender_id": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequest": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestConversationKeyEvents"
+          },
+          "encoded_message_create_event": {
+            "description": "The message that previews the request, with end-to-end encrypted contents.",
+            "type": "string"
+          },
+          "has_more_events": {
+            "description": "Whether the conversation has older message events than `message_events`.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestMessageEvents"
+          },
+          "sender_id": {
+            "description": "The user ID of the user who sent the request.",
+            "type": "string"
+          },
+          "sender_recently_modified_profile": {
+            "description": "Whether the sender recently changed their name or avatar, a possible sign of impersonation.",
+            "type": "boolean"
+          },
+          "social_proof_user_ids": {
+            "$ref": "#/components/schemas/ChatMessageRequestSocialProofUserIds"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequestConversationKeyEvents": {
+        "description": "The conversation key change events needed to decrypt `message_events`.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestDetail": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestDetailConversationKeyEvents"
+          },
+          "has_more_events": {
+            "description": "Whether older message events may exist. Always `true` when `message_events` isn't empty.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestDetailMessageEvents"
+          },
+          "message_request_state": {
+            "description": "`received` while the other user's request is pending, `sent` while the authenticated user's request is pending, `none` otherwise.",
+            "type": "string"
+          },
+          "participant_id": {
+            "description": "The other user in the conversation: the sender when `message_request_state` is `received`.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequestDetailConversationKeyEvents": {
+        "description": "The conversation key change events needed to decrypt `message_events`.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestDetailMessageEvents": {
+        "description": "The newest message events, newest first, with end-to-end encrypted contents.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestMessageEvents": {
+        "description": "The conversation's latest message events, newest first, with end-to-end encrypted contents.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestSocialProofUserIds": {
+        "description": "IDs of users the authenticated user follows who also follow the sender.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatPinnedMessage": {
+        "properties": {
+          "encoded_event": {
+            "description": "Base64-encoded Thrift pin event with end-to-end encrypted contents.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatSettings": {
+        "properties": {
+          "allow_dms_from": {
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "type": "string"
+          },
+          "always_allow_dms_from_subscribers": {
+            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
+            "type": "boolean"
+          },
+          "av_settings": {
+            "$ref": "#/components/schemas/ChatSettingsAvSettings"
+          },
+          "dm_quality_filter": {
+            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
+            "type": "string"
+          },
+          "dm_receipt_settings": {
+            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatSettingsAvSettings": {
+        "description": "Audio and video call settings.",
+        "properties": {
+          "av_call_permissions": {
+            "description": "Who may place audio or video calls to the user.",
+            "nullable": true,
+            "properties": {
+              "accept_calls_from_addressbook": {
+                "description": "Whether the user accepts calls from address-book contacts.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_everyone": {
+                "description": "Whether the user accepts calls from anyone.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_following": {
+                "description": "Whether the user accepts calls from accounts they follow.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_verified": {
+                "description": "Whether the user accepts calls from verified accounts.",
+                "nullable": true,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "has_av_calls_enabled": {
+            "description": "Whether audio and video calls are enabled.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "has_enhanced_call_privacy_enabled": {
+            "description": "Whether enhanced call privacy is enabled.",
+            "nullable": true,
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -7614,7 +7951,7 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/GetChatConversationPinnedMessagesResponseData"
+              "$ref": "#/components/schemas/ChatPinnedMessage"
             },
             "type": "array"
           },
@@ -7639,18 +7976,6 @@
             "type": "object"
           }
         },
-        "type": "object"
-      },
-      "GetChatConversationPinnedMessagesResponseData": {
-        "properties": {
-          "encoded_event": {
-            "description": "Base64-encoded Thrift pin event with end-to-end encrypted contents.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "encoded_event"
-        ],
         "type": "object"
       },
       "GetChatConversationResponse": {
@@ -7750,60 +8075,13 @@
       "GetChatGroupInviteResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetChatGroupInviteResponseData"
+            "$ref": "#/components/schemas/ChatGroupInvite"
           },
           "errors": {
             "items": {
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatGroupInviteResponseData": {
-        "properties": {
-          "conversation_id": {
-            "description": "ID of the group conversation the link joins.",
-            "type": "string"
-          },
-          "expires_at": {
-            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
-            "type": "string"
-          },
-          "group_avatar_url": {
-            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
-            "type": "string"
-          },
-          "group_name": {
-            "description": "Group name shown on the invite preview, stored unencrypted.",
-            "type": "string"
-          },
-          "invite_url": {
-            "description": "Shareable invite link.",
-            "type": "string"
-          },
-          "join_state": {
-            "description": "The authenticated user's relationship to the group.",
-            "enum": [
-              "member",
-              "not_member",
-              "removed",
-              "requested"
-            ],
-            "type": "string"
-          },
-          "member_count": {
-            "description": "Number of members in the group.",
-            "type": "integer"
-          },
-          "token": {
-            "description": "Invite token. Together with the conversation ID it identifies the link.",
-            "type": "string"
-          },
-          "welcome_message": {
-            "description": "Message shown to people who open the link.",
-            "type": "string"
           }
         },
         "type": "object"
@@ -7811,7 +8089,7 @@
       "GetChatMessageRequestResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetChatMessageRequestResponseData"
+            "$ref": "#/components/schemas/ChatMessageRequestDetail"
           },
           "errors": {
             "items": {
@@ -7822,55 +8100,11 @@
         },
         "type": "object"
       },
-      "GetChatMessageRequestResponseData": {
-        "properties": {
-          "conversation_id": {
-            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
-            "type": "string"
-          },
-          "conversation_key_events": {
-            "description": "The conversation key change events needed to decrypt `message_events`.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "has_more_events": {
-            "description": "Whether older message events may exist. Always `true` when `message_events` isn't empty.",
-            "type": "boolean"
-          },
-          "message_events": {
-            "description": "The newest message events, newest first, with end-to-end encrypted contents.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "message_request_state": {
-            "description": "`received` while the other user's request is pending, `sent` while the authenticated user's request is pending, `none` otherwise.",
-            "enum": [
-              "none",
-              "received",
-              "sent"
-            ],
-            "type": "string"
-          },
-          "participant_id": {
-            "description": "The other user in the conversation: the sender when `message_request_state` is `received`.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "conversation_id",
-          "participant_id"
-        ],
-        "type": "object"
-      },
       "GetChatMessageRequestsResponse": {
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/GetChatMessageRequestsResponseData"
+              "$ref": "#/components/schemas/ChatMessageRequest"
             },
             "type": "array"
           },
@@ -7898,56 +8132,6 @@
             "type": "object"
           }
         },
-        "type": "object"
-      },
-      "GetChatMessageRequestsResponseData": {
-        "properties": {
-          "conversation_id": {
-            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
-            "type": "string"
-          },
-          "conversation_key_events": {
-            "description": "The conversation key change events needed to decrypt `message_events`.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "encoded_message_create_event": {
-            "description": "The message that previews the request, with end-to-end encrypted contents.",
-            "type": "string"
-          },
-          "has_more_events": {
-            "description": "Whether the conversation has older message events than `message_events`.",
-            "type": "boolean"
-          },
-          "message_events": {
-            "description": "The conversation's latest message events, newest first, with end-to-end encrypted contents.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sender_id": {
-            "description": "The user ID of the user who sent the request.",
-            "type": "string"
-          },
-          "sender_recently_modified_profile": {
-            "description": "Whether the sender recently changed their name or avatar, a possible sign of impersonation.",
-            "type": "boolean"
-          },
-          "social_proof_user_ids": {
-            "description": "IDs of users the authenticated user follows who also follow the sender.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "conversation_id",
-          "sender_id"
-        ],
         "type": "object"
       },
       "GetChatModeratorsResponse": {
@@ -7983,91 +8167,13 @@
       "GetChatSettingsResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseData"
+            "$ref": "#/components/schemas/ChatSettings"
           },
           "errors": {
             "items": {
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseData": {
-        "properties": {
-          "allow_dms_from": {
-            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
-            "enum": [
-              "all",
-              "verified",
-              "following"
-            ],
-            "type": "string"
-          },
-          "always_allow_dms_from_subscribers": {
-            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
-            "type": "boolean"
-          },
-          "av_settings": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettings",
-            "description": "Audio and video call settings."
-          },
-          "dm_quality_filter": {
-            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
-            "enum": [
-              "enabled",
-              "disabled"
-            ],
-            "type": "string"
-          },
-          "dm_receipt_settings": {
-            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
-            "enum": [
-              "all_enabled",
-              "all_disabled"
-            ],
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseDataAvSettings": {
-        "additionalProperties": false,
-        "properties": {
-          "av_call_permissions": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettingsAvCallPermissions",
-            "description": "Who may place audio or video calls to the user."
-          },
-          "has_av_calls_enabled": {
-            "description": "Whether audio and video calls are enabled.",
-            "type": "boolean"
-          },
-          "has_enhanced_call_privacy_enabled": {
-            "description": "Whether enhanced call privacy is enabled.",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseDataAvSettingsAvCallPermissions": {
-        "additionalProperties": false,
-        "properties": {
-          "accept_calls_from_addressbook": {
-            "description": "Whether the user accepts calls from address-book contacts.",
-            "type": "boolean"
-          },
-          "accept_calls_from_everyone": {
-            "description": "Whether the user accepts calls from anyone.",
-            "type": "boolean"
-          },
-          "accept_calls_from_following": {
-            "description": "Whether the user accepts calls from accounts they follow.",
-            "type": "boolean"
-          },
-          "accept_calls_from_verified": {
-            "description": "Whether the user accepts calls from verified accounts.",
-            "type": "boolean"
           }
         },
         "type": "object"
@@ -21684,6 +21790,9 @@
               "type": "string"
             },
             "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/ChatGroupInviteFieldsParameter"
           }
         ],
         "responses": {
@@ -22576,6 +22685,9 @@
               "type": "string"
             },
             "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/ChatPinnedMessageFieldsParameter"
           }
         ],
         "responses": {
@@ -23161,6 +23273,9 @@
               "type": "string"
             },
             "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/ChatMessageRequestFieldsParameter"
           }
         ],
         "responses": {
@@ -23226,6 +23341,9 @@
               "type": "string"
             },
             "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/ChatMessageRequestDetailFieldsParameter"
           }
         ],
         "responses": {
@@ -23345,6 +23463,11 @@
           "url": "https://developer.x.com/"
         },
         "operationId": "getChatSettings",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChatSettingsFieldsParameter"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
