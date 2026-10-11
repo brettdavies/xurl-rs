@@ -257,10 +257,11 @@ async fn fetch_all_bookmarks(
 
     // Warn if we hit the 800 cap
     if all_posts.len() >= 800 {
-        eprintln!(
-            "Warning: fetched {} items; X API only exposes the most recent 800 bookmarks",
+        let msg = format!(
+            "fetched {} items; X API only exposes the most recent 800 bookmarks",
             all_posts.len()
         );
+        out.warning(stdout, &msg);
     }
 
     print_typed(out, stdout, &merged)?;

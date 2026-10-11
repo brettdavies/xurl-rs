@@ -21,9 +21,10 @@ use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
-    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MediaUploadResponse, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiError, ApiResponse, BlockingResult, BookmarkFolder, BookmarkedResult, ChatModeratorsResult,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post, PostIdRef, RepostedResult,
+    UsageCreditsData, UsageData, User,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -258,6 +259,25 @@ fn spec_action_bookmarked() {
 }
 
 #[test]
+fn spec_bookmark_folders() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<BookmarkFolder>> =
+        serde_json::from_value(examples["bookmark_folders"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].id, "1234567890");
+    assert_eq!(resp.data[0].name, "My Folder");
+}
+
+#[test]
+fn spec_post_id_refs() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PostIdRef>> =
+        serde_json::from_value(examples["post_id_refs"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].id, "1346889436626259968");
+}
+
+#[test]
 fn spec_action_blocking() {
     let examples = load_examples();
     let resp: ApiResponse<BlockingResult> =
@@ -448,6 +468,16 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("action_deleted", endpoints::DELETE_POST, ReplyKind::Success),
     ("action_retweeted", endpoints::REPOST, ReplyKind::Success),
     ("action_bookmarked", endpoints::BOOKMARK, ReplyKind::Success),
+    (
+        "bookmark_folders",
+        endpoints::GET_BOOKMARK_FOLDERS,
+        ReplyKind::Success,
+    ),
+    (
+        "post_id_refs",
+        endpoints::GET_BOOKMARKS_BY_FOLDER,
+        ReplyKind::Success,
+    ),
     ("action_blocking", endpoints::BLOCK_USER, ReplyKind::Success),
     ("action_muting", endpoints::MUTE_USER, ReplyKind::Success),
     ("dm_sent", endpoints::SEND_DM, ReplyKind::Success),

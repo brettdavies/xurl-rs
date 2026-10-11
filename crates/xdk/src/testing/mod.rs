@@ -70,6 +70,11 @@ struct Route {
 /// One entry per declared endpoint, in declaration order.
 const ROUTES: &[Route] = &[
     Route {
+        endpoint: endpoints::GET_POSTS_BY_IDS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::CREATE_POST,
         fixture: "post_single",
         status: 201,
@@ -142,6 +147,16 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::GET_BOOKMARKS,
         fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BOOKMARK_FOLDERS,
+        fixture: "bookmark_folders",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BOOKMARKS_BY_FOLDER,
+        fixture: "post_id_refs",
         status: 200,
     },
     Route {

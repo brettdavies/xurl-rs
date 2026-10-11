@@ -262,6 +262,34 @@
       ]
     }
   },
+  "bookmark_folders": {
+    "data": [
+      {
+        "id": "1234567890",
+        "name": "My Folder"
+      },
+      {
+        "id": "9876543210",
+        "name": "Another Folder"
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "post_id_refs": {
+    "data": [
+      {
+        "id": "1346889436626259968"
+      },
+      {
+        "id": "1346889436626259969"
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
   "api_error": {
     "code": 89,
     "message": "Invalid or expired token."
