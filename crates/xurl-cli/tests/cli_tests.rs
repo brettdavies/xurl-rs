@@ -2655,8 +2655,8 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     .await;
 
     assert_eq!(
-        code, 0,
-        "post '' --dry-run must exit 0 (envelope, not error); stderr: {stderr}; stdout: {stdout}"
+        code, 1,
+        "post '' --dry-run must exit 1 (validation error); stderr: {stderr}; stdout: {stdout}"
     );
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run");
@@ -3203,7 +3203,7 @@ async fn test_dry_run_refused_on_a_credential_names_the_endpoint_template() {
     )
     .await;
 
-    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    assert_eq!(code, 2, "a dry run with auth mismatch exits 2; stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run", "{v}");
     assert_eq!(v["would_succeed"], false, "{v}");
@@ -3228,7 +3228,7 @@ async fn test_dry_run_with_no_credential_reports_auth_required() {
     let (code, stdout, stderr) =
         run_isolated(&["xr", "--dry-run", "--output", "json", "post", "Hello"]).await;
 
-    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    assert_eq!(code, 77, "a dry run with no credential exits 77; stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run", "{v}");
     assert_eq!(v["would_succeed"], false, "{v}");
@@ -3260,7 +3260,7 @@ async fn test_dry_run_reports_an_upload_file_that_is_not_there() {
     )
     .await;
 
-    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    assert_eq!(code, 5, "a dry run with io error exits 5; stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["would_succeed"], false, "{v}");
     assert_eq!(v["reason"], "io", "{v}");
@@ -3453,7 +3453,7 @@ async fn test_dry_run_reports_invalid_inputs_before_credentials() {
     let (code, stdout, stderr) =
         run_isolated(&["xr", "--dry-run", "--output", "json", "post", ""]).await;
 
-    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    assert_eq!(code, 1, "a dry run with validation error exits 1; stderr: {stderr}");
     let v = parse_json(&stdout);
     assert_eq!(v["would_succeed"], false, "{v}");
     assert_eq!(v["exit_code"], 1, "{v}");

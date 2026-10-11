@@ -995,7 +995,8 @@ pub struct Cli {
     /// `--force` and the confirmation a destructive command asks for, and
     /// `confirmation_required` marks a run that would stop to ask. A
     /// structured `--output` prints the dry-run envelope on stdout; text
-    /// output prints the same context without the envelope's own keys.
+    /// output prints a "Would..." line describing the operation and
+    /// credentials, or "Would fail: <reason>" when validation or auth fails.
     #[arg(
         long = "dry-run",
         global = true,

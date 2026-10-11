@@ -1,6 +1,6 @@
 args: ["--output", "json", "--dry-run", "media", "alt-text", "1585341984679469056", ""]
 store: empty
-exit_code: 0
+exit_code: 1
 stdout_len: 182
 stderr_len: 0
 --- stdout ---
