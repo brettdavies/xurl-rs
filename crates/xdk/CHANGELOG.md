@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Add `Client::paginate_all` to exhaust pagination for list endpoints, following `next_token` until no more pages remain or max_pages is reached. Returns the merged vector and optional final token.
+- Add `Client::hydrate_posts` to batch-hydrate post IDs (up to 100 per request) with configurable fields and expansions.
+- Add `get_bookmark_folders` shortcut for `GET /2/users/{id}/bookmarks/folders`.
+- Add `get_bookmarks_by_folder` shortcut for `GET /2/users/{id}/bookmarks/folders/{folder_id}`.
+- Add `get_posts_by_ids` shortcut for `GET /2/tweets` (batch lookup by IDs).
+- Add `get_bookmarks_with_fields` shortcut for bookmarks with configurable post/media/user field selection.
+- Add `BookmarkFolder` and `PostIdRef` response types.
+
 ## [0.2.0] - 2026-10-07
 
 ### Breaking changes

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Add `--all` to `xr bookmarks` and `xr bookmark-folders` to exhaust pagination (follow `next_token` to the end), with optional `--max-pages` limit.
+- Add `--folder <ID>` to `xr bookmarks` to list bookmarks from a specific folder (returns post IDs, hydrated in batches of 100 when combined with `--all`).
+- Add `--expand <fields>` to `xr bookmarks` for field/expansion selection: `media`, `quoted`, `urls`, `note`, `article`.
+- Add `--until-known <STATE>` to `xr bookmarks` for incremental sync: stops at the first already-seen post ID from previous runs.
+- Add `--archive <DIR>` to `xr bookmarks` to append new posts to `bookmarks.jsonl` (one post per line).
+- Add `xr bookmark-folders [--all]` command to list bookmark folders.
+
+### Changed
+
+- Refactor bookmark pagination and hydration to use new xdk helpers (`Client::paginate_all` and `Client::hydrate_posts`).
+- Improve output discipline: use `OutputConfig.warning()` instead of `eprintln!` for the 800-item cap warning.
+
+### Documentation
+
+- Add CLI examples for bookmark export with folders, incremental sync, and archiving.
+
 ## [4.3.0] - 2026-10-07
 
 ### Added

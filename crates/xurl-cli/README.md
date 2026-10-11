@@ -123,7 +123,14 @@ xr repost 1585341984679469056                  # Repost
 xr unrepost 1585341984679469056                # Undo repost
 xr bookmark 1585341984679469056                # Bookmark
 xr unbookmark 1585341984679469056              # Remove bookmark
-xr bookmarks                                   # List bookmarks
+xr bookmarks                                   # List one page of bookmarks
+xr bookmarks --all                             # List all bookmarks (exhausts pagination)
+xr bookmarks --all --output jsonl \
+  --expand media,quoted,urls                   # Full export with media/quote metadata
+xr bookmark-folders                            # List bookmark folders
+xr bookmarks --folder 1234567890 --all         # List all bookmarks from a folder
+xr bookmarks --all --until-known ~/x/state.json \
+  --archive ~/x                                # Incremental sync: stop at known IDs, archive new ones
 xr likes                                       # List likes
 ```
 

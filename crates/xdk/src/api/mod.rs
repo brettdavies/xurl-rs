@@ -29,11 +29,11 @@ pub use request::{
 pub use request::{DEFAULT_USER_AGENT, RateLimit};
 #[allow(unused_imports)]
 pub use response::types::{
-    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaMetadataResult,
-    MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
-    PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData, UsageData,
-    User, UserPublicMetrics, deserialize_response,
+    ApiError, ApiResponse, BlockingResult, BookmarkFolder, BookmarkedResult, ChatModeratorsResult,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, Includes, LikedResult,
+    MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse,
+    MutingResult, Post, PostIdRef, PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

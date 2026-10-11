@@ -10,9 +10,9 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkFolder, BookmarkedResult, ChatModeratorsResult,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
 };
 use xdk::error::{Error, Result};
 
@@ -73,6 +73,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["bookmark", "unbookmark"],
         type_name: "ApiResponse<BookmarkedResult>",
         schema: || schema_for!(ApiResponse<BookmarkedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["bookmark-folders"],
+        type_name: "ApiResponse<Vec<BookmarkFolder>>",
+        schema: || schema_for!(ApiResponse<Vec<BookmarkFolder>>).into(),
     },
     SchemaEntry {
         commands: &["mute", "unmute"],
