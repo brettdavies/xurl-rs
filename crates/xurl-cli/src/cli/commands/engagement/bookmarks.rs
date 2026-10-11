@@ -10,13 +10,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::cli::commands::{
-    effective_limit, make_client, print_typed, resolve_my_user_id, with_flags, CommonFlags, Run,
+    CommonFlags, Run, effective_limit, make_client, print_typed, resolve_my_user_id, with_flags,
 };
 use crate::cli::failure::CommandResult;
-use xdk::api::{ApiResponse, Client};
 use xdk::Error;
+use xdk::api::{ApiResponse, Client};
 
 /// Runs the `xr bookmarks` command with full export capabilities.
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn run_bookmarks(
     run: Run<'_>,
     max_results: Option<i32>,
@@ -56,11 +57,11 @@ pub(super) async fn run_bookmarks(
     }
 
     // Complex path: --all, --folder, or incremental sync
-    if folder.is_some() {
+    if let Some(folder_id) = folder {
         fetch_folder_bookmarks(
             &client,
             &user_id,
-            folder.unwrap(),
+            folder_id,
             n,
             all,
             max_pages,
@@ -125,22 +126,22 @@ pub(super) async fn run_bookmark_folders(
             .send()
             .await?;
         print_typed(out, stdout, &response)?;
-        return Ok(());
+        Ok(())
     } else {
         // Paginate to the end
         let mut all_folders = Vec::new();
         let mut cursor = flags.cursor.clone();
 
         loop {
-        let call = client.get_bookmark_folders(&user_id, n);
-        let response = with_flags(call, common, cursor.as_deref()).send().await?;
+            let call = client.get_bookmark_folders(&user_id, n);
+            let response = with_flags(call, common, cursor.as_deref()).send().await?;
 
-        all_folders.extend_from_slice(&response.data);
+            all_folders.extend_from_slice(&response.data);
 
-        match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
-            Some(next) => cursor = Some(next.to_string()),
-            None => break,
-        }
+            match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
+                Some(next) => cursor = Some(next.to_string()),
+                None => break,
+            }
         }
 
         // Print merged response
@@ -241,7 +242,8 @@ async fn fetch_all_bookmarks(
 
     // Update state if requested
     if let Some(state_path) = until_known {
-        update_state(state_path, &all_posts, user_id, None).map_err(|e| Error::io(e.to_string()))?;
+        update_state(state_path, &all_posts, user_id, None)
+            .map_err(|e| Error::io(e.to_string()))?;
     }
 
     // Print merged response
@@ -355,7 +357,12 @@ async fn fetch_folder_bookmarks(
 /// Builds field/expansion parameters from --expand flags.
 fn build_field_params(
     expand: &[String],
-) -> (Option<String>, Option<String>, Option<String>, Option<String>) {
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+) {
     if expand.is_empty() {
         return (None, None, None, None);
     }
@@ -369,7 +376,7 @@ fn build_field_params(
     ];
     let mut expansions = vec!["author_id"];
     let mut media_fields = Vec::new();
-    let user_fields = vec!["username", "name"];
+    let user_fields = ["username", "name"];
 
     for item in expand {
         match item.as_str() {
@@ -432,10 +439,10 @@ fn load_known_ids(_state_path: &str, archive: Option<&str>) -> CommandResult<Has
             let reader = BufReader::new(file);
             for line in reader.lines() {
                 let line = line.map_err(|e| Error::io(e.to_string()))?;
-                if let Ok(post) = serde_json::from_str::<Value>(&line) {
-                    if let Some(id) = post.get("id").and_then(|v| v.as_str()) {
-                        known.insert(id.to_string());
-                    }
+                if let Ok(post) = serde_json::from_str::<Value>(&line)
+                    && let Some(id) = post.get("id").and_then(|v| v.as_str())
+                {
+                    known.insert(id.to_string());
                 }
             }
         }
@@ -458,8 +465,7 @@ fn archive_posts(
         .open(archive_file)?;
 
     for post in posts {
-        let json = serde_json::to_string(post)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let json = serde_json::to_string(post).map_err(std::io::Error::other)?;
         writeln!(file, "{}", json)?;
     }
 
@@ -474,11 +480,11 @@ fn update_state(
     folder_id: Option<&str>,
 ) -> Result<(), std::io::Error> {
     let newest_id = posts.first().map(|p| p.id.clone());
-    
+
     // Use a simple RFC3339 timestamp without chrono
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(std::io::Error::other)?;
     let timestamp = format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
         1970 + (now.as_secs() / 31_557_600), // Approximate year
@@ -488,7 +494,7 @@ fn update_state(
         (now.as_secs() % 3600) / 60,
         now.as_secs() % 60
     );
-    
+
     let state = StateFile {
         schema: 1,
         user_id: user_id.to_string(),
@@ -499,8 +505,7 @@ fn update_state(
         complete: true,
     };
 
-    let json = serde_json::to_string_pretty(&state)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let json = serde_json::to_string_pretty(&state).map_err(std::io::Error::other)?;
     let tmp_path = format!("{}.tmp", state_path);
     std::fs::write(&tmp_path, json)?;
     std::fs::rename(&tmp_path, state_path)?;
