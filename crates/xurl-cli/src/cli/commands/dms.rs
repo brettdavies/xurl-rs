@@ -7,7 +7,7 @@ use super::{
     resolve_user_id, send_or_report, user_id_call, with_flags,
 };
 use crate::cli::Commands;
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use xdk::api::shortcuts;
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
@@ -43,7 +43,10 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                         .await,
                     with_flags(send, &common, None).auth_preflight().await,
                 ];
-                dry_run.answer(out, stdout, credentials);
+                let exit_code = dry_run.answer(out, stdout, credentials);
+                if exit_code != 0 {
+                    return Err(Failure::Emitted { exit_code });
+                }
                 return Ok(());
             }
             let target_id = resolve_user_id(&client, &target_username, &common).await?;

@@ -2,10 +2,9 @@
 use serde_json::json;
 
 use super::{DryRun, Run, dry_run_or_validate, make_client, send_or_report, with_flags};
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{CommonFlags, MediaCommands, ProcessingWait, SubtitlesCommands};
 use xdk::api::{self, shortcuts};
-use xdk::error::Result;
 
 pub(super) async fn run(cmd: MediaCommands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -61,7 +60,7 @@ struct UploadArgs {
     headers: Vec<String>,
 }
 
-async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
+async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
     let UploadArgs {
         file,
         media_type,
@@ -94,7 +93,10 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
         let credential =
             api::media_upload_preflight(&file, &auth_type, &username, &headers, waits, &client)
                 .await;
-        DryRun::new(ctx).answer(out, stdout, [credential]);
+        let exit_code = DryRun::new(ctx).answer(out, stdout, [credential]);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let outcome = api::execute_media_upload(
@@ -112,13 +114,13 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
     // A structured answer is one document, so INIT's goes only to a human
     // who asked for verbose text.
     if flags.verbose && !out.format.is_structured() {
-        out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
+        out.print_response(stdout, &serde_json::to_value(&outcome.init).map_err(xdk::Error::from)?);
     }
     // The upload completed at FINALIZE; a processing failure after it
     // still leaves the media id on stdout for the caller to act on.
-    out.print_response(stdout, &serde_json::to_value(outcome.response())?);
+    out.print_response(stdout, &serde_json::to_value(outcome.response()).map_err(xdk::Error::from)?);
     if let Some(Err(err)) = outcome.processing {
-        return Err(err);
+        return Err(err.into());
     }
     out.status(
         stderr,
@@ -138,7 +140,7 @@ async fn status(
     wait: ProcessingWait,
     trace: bool,
     headers: &[String],
-) -> Result<()> {
+) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
@@ -154,14 +156,17 @@ async fn status(
         let ctx = json!({"command": "media-status", "media_id": media_id});
         let credential =
             api::media_status_auth_preflight(&auth_type, &username, headers, &client).await;
-        DryRun::new(ctx).answer(out, stdout, [credential]);
+        let exit_code = DryRun::new(ctx).answer(out, stdout, [credential]);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let response = api::execute_media_status(
         media_id, &auth_type, &username, wait.0, trace, headers, &client,
     )
     .await?;
-    out.print_response(stdout, &serde_json::to_value(&response)?);
+    out.print_response(stdout, &serde_json::to_value(&response).map_err(xdk::Error::from)?);
     Ok(())
 }
 

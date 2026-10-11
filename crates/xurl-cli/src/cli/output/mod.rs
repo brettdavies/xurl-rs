@@ -427,7 +427,7 @@ impl OutputConfig {
     /// Emits a canonical dry-run envelope under structured modes.
     ///
     /// Shape: `{"status":"dry_run","would_succeed":<bool>,"exit_code":<int>, ...ctx}`.
-    /// Under text mode, falls back to a pass-through of `ctx`.
+    /// Under text mode, prints a human-readable "Would..." line.
     pub fn print_dry_run(
         &self,
         out: &mut dyn Write,
@@ -436,7 +436,32 @@ impl OutputConfig {
         ctx: &Value,
     ) {
         if !self.format.is_structured() {
-            self.print_response(out, ctx);
+            if would_succeed {
+                let command = ctx.get("command").and_then(Value::as_str).unwrap_or("command");
+                let auth = ctx.get("auth");
+                let auth_desc = if let Some(auth) = auth {
+                    let scheme = auth.get("scheme").and_then(Value::as_str).unwrap_or("auth");
+                    if scheme == "OAuth2" {
+                        if let Some(username) = auth.get("username").and_then(Value::as_str) {
+                            format!(" (OAuth2 @{})", username)
+                        } else {
+                            " (OAuth2)".to_string()
+                        }
+                    } else if scheme == "OAuth1" {
+                        " (OAuth1)".to_string()
+                    } else if scheme == "Bearer" {
+                        " (Bearer token)".to_string()
+                    } else {
+                        format!(" ({})", scheme)
+                    }
+                } else {
+                    String::new()
+                };
+                let _ = writeln!(out, "Would {} with credentials{}", command, auth_desc);
+            } else {
+                let reason = ctx.get("reason").and_then(Value::as_str).unwrap_or("unknown");
+                let _ = writeln!(out, "Would fail: {}", reason);
+            }
             return;
         }
         let mut obj = serde_json::Map::new();

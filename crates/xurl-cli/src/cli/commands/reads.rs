@@ -8,7 +8,7 @@ use super::{
     with_flags,
 };
 use crate::cli::Commands;
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use xdk::api::Client;
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
@@ -73,7 +73,12 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.get_me(), &common, None);
             match dry_run {
-                Some(dry_run) => dry_run.answer(out, stdout, [call.auth_preflight().await]),
+                Some(dry_run) => {
+                    let exit_code = dry_run.answer(out, stdout, [call.auth_preflight().await]);
+                    if exit_code != 0 {
+                        return Err(Failure::Emitted { exit_code });
+                    }
+                }
                 // The one command a person runs to ask who a login is, so
                 // its answer is where a login stored without a name gets one.
                 None => print_typed(out, stdout, &call.send_saving_identity().await?)?,

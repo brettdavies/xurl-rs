@@ -1,6 +1,6 @@
 args: ["--output", "json", "--dry-run", "like", ""]
 store: empty
-exit_code: 0
+exit_code: 1
 stdout_len: 137
 stderr_len: 0
 --- stdout ---
