@@ -227,6 +227,7 @@
           "items": {
             "enum": [
               "conversation_id",
+              "conversation_key_version",
               "conversation_token",
               "created_at",
               "encoded_event",
@@ -3145,7 +3146,12 @@
           "conversation_id": {
             "type": "string"
           },
+          "conversation_key_version": {
+            "description": "The version of the conversation key that encrypts the event's contents. Absent when the event is not encrypted, such as a message sent before the conversation was encrypted.",
+            "type": "string"
+          },
           "conversation_token": {
+            "description": "Usually present on encrypted events; unencrypted events have none.",
             "type": "string"
           },
           "created_at": {
@@ -3162,6 +3168,7 @@
             "type": "boolean"
           },
           "message_event_signature": {
+            "description": "Usually present on encrypted events; unencrypted events have none. Treat an encrypted event without one as unverified.",
             "type": "object"
           },
           "previous_id": {
@@ -3183,7 +3190,7 @@
             "$ref": "#/components/schemas/ChatMessageRequestConversationKeyEvents"
           },
           "encoded_message_create_event": {
-            "description": "The message that previews the request, with end-to-end encrypted contents.",
+            "description": "The message that previews the request, as an encoded message event. Its contents are end-to-end encrypted unless the conversation is unencrypted.",
             "type": "string"
           },
           "has_more_events": {
@@ -3249,14 +3256,14 @@
         "type": "array"
       },
       "ChatMessageRequestDetailMessageEvents": {
-        "description": "The newest message events, newest first, with end-to-end encrypted contents.",
+        "description": "The newest message events, newest first, as encoded message events. Their contents are end-to-end encrypted unless the conversation is unencrypted.",
         "items": {
           "type": "string"
         },
         "type": "array"
       },
       "ChatMessageRequestMessageEvents": {
-        "description": "The conversation's latest message events, newest first, with end-to-end encrypted contents.",
+        "description": "The conversation's latest message events, newest first, as encoded message events. Their contents are end-to-end encrypted unless the conversation is unencrypted.",
         "items": {
           "type": "string"
         },
@@ -20838,6 +20845,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
               "type": "string"
             },
             "style": "simple"
@@ -21526,7 +21534,7 @@
     },
     "/2/chat/conversations/{id}/events": {
       "get": {
-        "description": "Retrieves messages and key change events for a specific Chat conversation with pagination support. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Retrieves the events of a specific Chat conversation, newest first, with pagination support: messages, key changes, group changes, and read receipts. Only `id` and `encoded_event` are always present. Events are either end-to-end encrypted or unencrypted, such as messages sent before the conversation was encrypted. Encrypted events carry `conversation_key_version`, and usually `conversation_token` and `message_event_signature`; treat an encrypted event without `message_event_signature` as unverified. An event without `conversation_key_version` is unencrypted. Decode each `encoded_event` client-side, and decrypt it with the conversation key named by `conversation_key_version` when that is present. A page holds up to `max_results` events and can hold fewer while `has_more` is true. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -21543,6 +21551,7 @@
             "style": "simple"
           },
           {
+            "description": "The maximum number of events to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -21556,6 +21565,7 @@
             "style": "form"
           },
           {
+            "description": "The next_token from a previous response, to fetch the next page.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -23228,7 +23238,7 @@
     },
     "/2/chat/message_requests": {
       "get": {
-        "description": "Retrieves the authenticated user's pending Chat message requests from one inbox. Message contents are end-to-end encrypted. Accepting or deleting requests between pages can skip or repeat requests, and a page can be empty while `next_token` is set.",
+        "description": "Retrieves the authenticated user's pending Chat message requests from one inbox. Message contents are end-to-end encrypted unless the conversation is unencrypted. Accepting or deleting requests between pages can skip or repeat requests, and a page can be empty while `next_token` is set.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
