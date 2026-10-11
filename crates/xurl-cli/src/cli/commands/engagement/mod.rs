@@ -1,11 +1,13 @@
 //! The commands that act on a post from the caller's account, and the lists
 //! of what the caller engaged with: `like`, `unlike`, `repost`, `unrepost`,
-//! `bookmark`, `unbookmark`, `bookmarks`, and `likes`.
+//! `bookmark`, `unbookmark`, `bookmarks`, `bookmark-folders`, and `likes`.
 
 use super::{Run, act_from_me_on_post, list_for_user};
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
+
+mod bookmarks;
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -29,8 +31,34 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         }
         Commands::Bookmarks {
             max_results,
+            all,
+            max_pages,
+            folder,
+            expand,
+            until_known,
+            archive,
             common,
-        } => list_for_user(run, max_results, None, &common, Client::get_bookmarks).await?,
+        } => {
+            bookmarks::run_bookmarks(
+                run,
+                max_results,
+                all,
+                max_pages,
+                folder.as_deref(),
+                &expand,
+                until_known.as_deref(),
+                archive.as_deref(),
+                &common,
+            )
+            .await?;
+        }
+        Commands::BookmarkFolders {
+            max_results,
+            all,
+            common,
+        } => {
+            bookmarks::run_bookmark_folders(run, max_results, all, &common).await?;
+        }
         Commands::Likes {
             max_results,
             common,

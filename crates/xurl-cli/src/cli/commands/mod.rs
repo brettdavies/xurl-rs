@@ -400,6 +400,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Bookmark { .. }
         | Commands::Unbookmark { .. }
         | Commands::Bookmarks { .. }
+        | Commands::BookmarkFolders { .. }
         | Commands::Likes { .. } => engagement::run(cmd, run).await,
         Commands::Follow { .. }
         | Commands::Unfollow { .. }

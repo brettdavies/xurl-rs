@@ -295,15 +295,30 @@ Examples:
     xr unbookmark 1585341984679469056 --output json
 ";
 
-/// `xr bookmarks` examples — paired text + JSON, JSONL pipeline.
+/// `xr bookmarks` examples — paired text + JSON, JSONL pipeline, incremental sync.
 const BOOKMARKS_HELP: &str = "\
 Examples:
-  List your bookmarks (text):
+  List one page of bookmarks (text):
     xr bookmarks
-  100 results, JSON envelope:
-    xr bookmarks -n 100 --output json
-  The id of each bookmark, one per line:
-    xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
+  List all bookmarks with full fields (JSONL, one post per line):
+    xr bookmarks --all --expand media,quoted,urls,note --output jsonl
+  List bookmarks from a specific folder:
+    xr bookmarks --folder 1234567890 --all --output jsonl
+  Incremental sync to local archive:
+    xr bookmarks --all --until-known ~/x/state.json --archive ~/x --output jsonl
+  Extract bookmark text from one page:
+    xr bookmarks --output json | jaq -r '.data[]?.text'
+";
+
+/// `xr bookmark-folders` examples — paired text + JSON.
+const BOOKMARK_FOLDERS_HELP: &str = "\
+Examples:
+  List bookmark folders (text):
+    xr bookmark-folders
+  List all folders with JSON envelope:
+    xr bookmark-folders --all --output json
+  Extract folder IDs:
+    xr bookmark-folders --output json | jaq -r '.data[]?.id'
 ";
 
 /// `xr likes` examples — paired text + JSON, JSONL pipeline.
@@ -1242,9 +1257,40 @@ pub enum Commands {
     /// List your bookmarks
     #[command(after_help = BOOKMARKS_HELP)]
     Bookmarks {
-        /// Number of results (1-100). Overrides global `--limit` when set.
+        /// Number of results per page (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Follow pagination to the end
+        #[arg(long)]
+        all: bool,
+        /// Maximum number of pages to fetch when --all is set
+        #[arg(long)]
+        max_pages: Option<u32>,
+        /// List bookmarks from a specific folder (by folder ID)
+        #[arg(long)]
+        folder: Option<String>,
+        /// Comma-separated expansions: media, quoted, urls, note, article
+        #[arg(long, value_delimiter = ',')]
+        expand: Vec<String>,
+        /// State file path for incremental sync (stop at first known ID)
+        #[arg(long)]
+        until_known: Option<String>,
+        /// Archive directory (append new records to bookmarks.jsonl)
+        #[arg(long)]
+        archive: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List your bookmark folders
+    #[command(after_help = BOOKMARK_FOLDERS_HELP)]
+    BookmarkFolders {
+        /// Number of results per page (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Follow pagination to the end
+        #[arg(long)]
+        all: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
