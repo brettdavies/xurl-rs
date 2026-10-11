@@ -55,6 +55,7 @@ fn main() {
 /// local names normalizes them when it binds the parameters.
 const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // tweets
+    ("GET_POSTS_BY_IDS", "GET", "/2/tweets"),
     ("CREATE_POST", "POST", "/2/tweets"),
     ("READ_POST", "GET", "/2/tweets/{id}"),
     ("DELETE_POST", "DELETE", "/2/tweets/{id}"),
@@ -84,6 +85,16 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_BOOKMARKS", "GET", "/2/users/{id}/bookmarks"),
     ("BOOKMARK", "POST", "/2/users/{id}/bookmarks"),
     ("UNBOOKMARK", "DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
+    (
+        "GET_BOOKMARK_FOLDERS",
+        "GET",
+        "/2/users/{id}/bookmarks/folders",
+    ),
+    (
+        "GET_BOOKMARKS_BY_FOLDER",
+        "GET",
+        "/2/users/{id}/bookmarks/folders/{folder_id}",
+    ),
     // following
     ("GET_FOLLOWING", "GET", "/2/users/{id}/following"),
     ("FOLLOW_USER", "POST", "/2/users/{id}/following"),

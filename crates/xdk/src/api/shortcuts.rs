@@ -14,9 +14,10 @@ use serde::de::DeserializeOwned;
 use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    ApiResponse, BlockingResult, BookmarkFolder, BookmarkedResult, ChatModeratorsResult,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, Post, PostIdRef, RepostedResult, UsageCreditsData,
+    UsageData, User,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -683,6 +684,99 @@ impl Client {
             ),
         )
         .paginated()
+    }
+
+    /// Fetches bookmarks with configurable fields and expansions.
+    pub fn get_bookmarks_with_fields(
+        &self,
+        user_id: &str,
+        max_results: i32,
+        post_fields: Option<&str>,
+        expansions: Option<&str>,
+        media_fields: Option<&str>,
+        user_fields: Option<&str>,
+    ) -> Call<ApiResponse<Vec<Post>>> {
+        let mut query = vec![("max_results".to_string(), max_results.to_string())];
+        if let Some(fields) = post_fields {
+            query.push(("post.fields".to_string(), fields.to_string()));
+        }
+        if let Some(exp) = expansions {
+            query.push(("expansions".to_string(), exp.to_string()));
+        }
+        if let Some(fields) = media_fields {
+            query.push(("media.fields".to_string(), fields.to_string()));
+        }
+        if let Some(fields) = user_fields {
+            query.push(("user.fields".to_string(), fields.to_string()));
+        }
+        self.call(
+            endpoints::GET_BOOKMARKS.method,
+            template(endpoints::GET_BOOKMARKS.path, id_param(user_id), query),
+        )
+        .paginated()
+    }
+
+    /// Fetches bookmark folders.
+    pub fn get_bookmark_folders(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BookmarkFolder>>> {
+        self.call(
+            endpoints::GET_BOOKMARK_FOLDERS.method,
+            template(
+                endpoints::GET_BOOKMARK_FOLDERS.path,
+                id_param(user_id),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches bookmarks in a specific folder (returns post IDs only).
+    pub fn get_bookmarks_by_folder(
+        &self,
+        user_id: &str,
+        folder_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<PostIdRef>>> {
+        self.call(
+            endpoints::GET_BOOKMARKS_BY_FOLDER.method,
+            template(
+                endpoints::GET_BOOKMARKS_BY_FOLDER.path,
+                id_and(user_id, "folder_id", folder_id.to_string()),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches posts by their IDs (up to 100 per call).
+    pub fn get_posts_by_ids(
+        &self,
+        ids: &[String],
+        post_fields: Option<&str>,
+        expansions: Option<&str>,
+        media_fields: Option<&str>,
+        user_fields: Option<&str>,
+    ) -> Call<ApiResponse<Vec<Post>>> {
+        let mut query = vec![("ids".to_string(), ids.join(","))];
+        if let Some(fields) = post_fields {
+            query.push(("post.fields".to_string(), fields.to_string()));
+        }
+        if let Some(exp) = expansions {
+            query.push(("expansions".to_string(), exp.to_string()));
+        }
+        if let Some(fields) = media_fields {
+            query.push(("media.fields".to_string(), fields.to_string()));
+        }
+        if let Some(fields) = user_fields {
+            query.push(("user.fields".to_string(), fields.to_string()));
+        }
+        self.call(
+            endpoints::GET_POSTS_BY_IDS.method,
+            template(endpoints::GET_POSTS_BY_IDS.path, HashMap::new(), query),
+        )
     }
 
     /// Follows a user.
