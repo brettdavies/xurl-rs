@@ -250,6 +250,65 @@ impl MockApi {
                         })),
                 ),
         );
+        self.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "2244994945",
+                                "name": "Twitter Dev",
+                                "username": "TwitterDev",
+                                "created_at": "2013-12-14T04:35:55.000Z",
+                                "description": "The voice of the #TwitterDev team and your official source for updates, news, and events, related to the #TwitterAPI.",
+                                "verified": true,
+                                "profile_image_url": "https://pbs.twimg.com/profile_images/880136122604507136/xHrnqf1T_normal.jpg",
+                                "public_metrics": {
+                                    "followers_count": 571842,
+                                    "following_count": 2048,
+                                    "post_count": 14052,
+                                    "listed_count": 1672
+                                }
+                            }
+                        })),
+                ),
+        );
+        self.mount(
+            Mock::given(method("POST"))
+                .and(path("/2/tweets"))
+                .respond_with(
+                    ResponseTemplate::new(201)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "1346889436626259968",
+                                "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet\u{2026} https://t.co/56a0vZUx7i",
+                                "created_at": "2021-01-06T18:40:40.000Z",
+                                "author_id": "2244994945",
+                                "conversation_id": "1346889436626259968",
+                                "public_metrics": {
+                                    "repost_count": 10,
+                                    "reply_count": 1,
+                                    "like_count": 38,
+                                    "quote_count": 4,
+                                    "bookmark_count": 2,
+                                    "impression_count": 1500
+                                },
+                                "entities": {
+                                    "urls": [
+                                        {
+                                            "start": 114,
+                                            "end": 137,
+                                            "url": "https://t.co/56a0vZUx7i"
+                                        }
+                                    ]
+                                }
+                            }
+                        })),
+                ),
+        );
     }
 }
 
@@ -383,6 +442,24 @@ fn verbose_cases() -> Vec<Case> {
                 "search",
                 "hi",
             ],
+        )),
+    ]
+}
+
+/// Successful shortcut commands that return typed responses.
+fn success_cases() -> Vec<Case> {
+    let oauth2 = |c: Case| Case {
+        store: Store::OAuth2,
+        ..c
+    };
+    vec![
+        oauth2(case(
+            "success-whoami",
+            &["--output", "json", "whoami"],
+        )),
+        oauth2(case(
+            "success-post",
+            &["--output", "json", "post", "Hello from golden test"],
         )),
     ]
 }
@@ -753,6 +830,7 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     let mut cases = help_cases(bin);
     cases.extend(static_cases());
     cases.extend(verbose_cases());
+    cases.extend(success_cases());
     cases.extend(reason_cases(scratch));
     cases.extend(dry_run_cases());
     cases.extend(text_cases());
