@@ -261,6 +261,33 @@ pub struct UserPublicMetrics {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── BookmarkFolder ──────────────────────────────────────────────────
+
+/// A bookmark folder object from the X API v2.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BookmarkFolder {
+    /// Folder identifier (X API snowflake string).
+    pub id: String,
+    /// Folder display name.
+    pub name: String,
+    /// Forward-compatibility bucket — captures unknown folder fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post ID reference from bookmark folder contents.
+///
+/// The `/2/users/{id}/bookmarks/folders/{folder_id}` endpoint returns only
+/// IDs; hydrating them requires a follow-up call to `/2/tweets?ids=...`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostIdRef {
+    /// Post identifier (X API snowflake string).
+    pub id: String,
+    /// Forward-compatibility bucket — captures unknown fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── DM ──────────────────────────────────────────────────────────────
 
 /// A direct message event from the X API v2.
