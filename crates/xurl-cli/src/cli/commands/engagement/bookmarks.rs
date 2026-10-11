@@ -128,21 +128,17 @@ pub(super) async fn run_bookmark_folders(
         print_typed(out, stdout, &response)?;
         Ok(())
     } else {
-        // Paginate to the end
-        let mut all_folders = Vec::new();
-        let mut cursor = flags.cursor.clone();
-
-        loop {
-            let call = client.get_bookmark_folders(&user_id, n);
-            let response = with_flags(call, common, cursor.as_deref()).send().await?;
-
-            all_folders.extend_from_slice(&response.data);
-
-            match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
-                Some(next) => cursor = Some(next.to_string()),
-                None => break,
-            }
-        }
+        // Paginate to the end using xdk helper
+        let (all_folders, _) = client
+            .paginate_all(flags.cursor.clone(), None, |cursor| {
+                let call = client.get_bookmark_folders(&user_id, n);
+                if let Some(token) = cursor {
+                    call.pagination_token(token)
+                } else {
+                    call
+                }
+            })
+            .await?;
 
         // Print merged response
         let merged = ApiResponse {
@@ -176,64 +172,105 @@ async fn fetch_all_bookmarks(
     out: &crate::cli::output::OutputConfig,
     stdout: &mut dyn std::io::Write,
 ) -> CommandResult<()> {
-    let mut all_posts = Vec::new();
-    let mut cursor = initial_cursor.map(String::from);
-    let mut pages = 0u32;
-    let max = max_pages.unwrap_or(u32::MAX);
-
-    // Load known IDs if incremental sync
-    let known_ids = if let Some(state_path) = until_known {
-        load_known_ids(state_path, archive)?
-    } else {
-        HashSet::new()
-    };
-
-    loop {
-        pages += 1;
-        if pages > max {
-            break;
-        }
-
-        let call = if post_fields.is_some() || expansions.is_some() {
-            client.get_bookmarks_with_fields(
-                user_id,
-                n,
-                post_fields.as_deref(),
-                expansions.as_deref(),
-                media_fields.as_deref(),
-                user_fields.as_deref(),
-            )
-        } else {
-            client.get_bookmarks(user_id, n)
-        };
-
-        let response = with_flags(call, common, cursor.as_deref()).send().await?;
-
-        // Check for incremental stop
-        let mut stopped_early = false;
-        for post in &response.data {
-            if !known_ids.is_empty() && known_ids.contains(&post.id) {
-                stopped_early = true;
-                break;
-            }
-            all_posts.push(post.clone());
-        }
-
-        if stopped_early {
-            break;
-        }
-
+    let all_posts = if until_known.is_none() {
+        // Simple case: no incremental sync, use xdk helper
         if !all {
             // Single page
+            let call = if post_fields.is_some() || expansions.is_some() {
+                client.get_bookmarks_with_fields(
+                    user_id,
+                    n,
+                    post_fields.as_deref(),
+                    expansions.as_deref(),
+                    media_fields.as_deref(),
+                    user_fields.as_deref(),
+                )
+            } else {
+                client.get_bookmarks(user_id, n)
+            };
+            let response = with_flags(call, common, initial_cursor).send().await?;
             print_typed(out, stdout, &response)?;
             return Ok(());
         }
 
-        match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
-            Some(next) => cursor = Some(next.to_string()),
-            None => break,
+        // Paginate all using xdk helper
+        let (posts, _) = client
+            .paginate_all(
+                initial_cursor.map(String::from),
+                max_pages,
+                |cursor| {
+                    let call = if post_fields.is_some() || expansions.is_some() {
+                        client.get_bookmarks_with_fields(
+                            user_id,
+                            n,
+                            post_fields.as_deref(),
+                            expansions.as_deref(),
+                            media_fields.as_deref(),
+                            user_fields.as_deref(),
+                        )
+                    } else {
+                        client.get_bookmarks(user_id, n)
+                    };
+                    if let Some(token) = cursor {
+                        call.pagination_token(token)
+                    } else {
+                        call
+                    }
+                },
+            )
+            .await?;
+        posts
+    } else {
+        // Complex case: incremental sync, manually iterate to check each post
+        let mut all_posts = Vec::new();
+        let mut cursor = initial_cursor.map(String::from);
+        let mut pages = 0u32;
+        let max = max_pages.unwrap_or(u32::MAX);
+
+        // Load known IDs for incremental sync
+        let known_ids = load_known_ids(until_known.unwrap(), archive)?;
+
+        loop {
+            pages += 1;
+            if pages > max {
+                break;
+            }
+
+            let call = if post_fields.is_some() || expansions.is_some() {
+                client.get_bookmarks_with_fields(
+                    user_id,
+                    n,
+                    post_fields.as_deref(),
+                    expansions.as_deref(),
+                    media_fields.as_deref(),
+                    user_fields.as_deref(),
+                )
+            } else {
+                client.get_bookmarks(user_id, n)
+            };
+            let response = with_flags(call, common, cursor.as_deref()).send().await?;
+
+            // Check for incremental stop
+            let mut stopped_early = false;
+            for post in &response.data {
+                if !known_ids.is_empty() && known_ids.contains(&post.id) {
+                    stopped_early = true;
+                    break;
+                }
+                all_posts.push(post.clone());
+            }
+
+            if stopped_early {
+                break;
+            }
+
+            match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
+                Some(next) => cursor = Some(next.to_string()),
+                None => break,
+            }
         }
-    }
+        all_posts
+    };
 
     // Archive if requested
     if let Some(archive_dir) = archive {
@@ -288,48 +325,42 @@ async fn fetch_folder_bookmarks(
     out: &crate::cli::output::OutputConfig,
     stdout: &mut dyn std::io::Write,
 ) -> CommandResult<()> {
-    let mut post_ids = Vec::new();
-    let mut cursor = initial_cursor.map(String::from);
-    let mut pages = 0u32;
-    let max = max_pages.unwrap_or(u32::MAX);
-
-    // Fetch folder contents (IDs only)
-    loop {
-        pages += 1;
-        if pages > max {
-            break;
-        }
-
+    // Single page without hydration
+    if !all {
         let call = client.get_bookmarks_by_folder(user_id, folder_id, n);
-        let response = with_flags(call, common, cursor.as_deref()).send().await?;
-
-        post_ids.extend(response.data.iter().map(|r| r.id.clone()));
-
-        if !all {
-            // Single page of IDs - can't hydrate here without --all, so just return the IDs
-            print_typed(out, stdout, &response)?;
-            return Ok(());
-        }
-
-        match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
-            Some(next) => cursor = Some(next.to_string()),
-            None => break,
-        }
+        let response = with_flags(call, common, initial_cursor).send().await?;
+        print_typed(out, stdout, &response)?;
+        return Ok(());
     }
 
-    // Hydrate post IDs in batches of 100
-    let mut all_posts = Vec::new();
-    for chunk in post_ids.chunks(100) {
-        let call = client.get_posts_by_ids(
-            &chunk.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+    // Fetch all folder contents (IDs only) using xdk helper
+    let (post_id_refs, _) = client
+        .paginate_all(
+            initial_cursor.map(String::from),
+            max_pages,
+            |cursor| {
+                let call = client.get_bookmarks_by_folder(user_id, folder_id, n);
+                if let Some(token) = cursor {
+                    call.pagination_token(token)
+                } else {
+                    call
+                }
+            },
+        )
+        .await?;
+
+    let post_ids: Vec<String> = post_id_refs.iter().map(|r| r.id.clone()).collect();
+
+    // Hydrate post IDs using xdk helper
+    let all_posts = client
+        .hydrate_posts(
+            &post_ids,
             post_fields.as_deref(),
             expansions.as_deref(),
             media_fields.as_deref(),
             user_fields.as_deref(),
-        );
-        let response = with_flags(call, common, None).send().await?;
-        all_posts.extend(response.data);
-    }
+        )
+        .await?;
 
     // Archive if requested
     if let Some(archive_dir) = archive {

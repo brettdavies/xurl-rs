@@ -1125,4 +1125,112 @@ impl Client {
         )
         .paginated()
     }
+
+    /// Exhausts pagination for a paginated endpoint, collecting all items.
+    ///
+    /// Follows `next_token` until no more pages remain or `max_pages` is reached.
+    /// The factory `make_call` is invoked once per page with the current cursor
+    /// (None for the first page, Some(token) for subsequent pages).
+    ///
+    /// Returns the merged vector of all items and the final next_token if pagination
+    /// was stopped early due to max_pages.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn run(client: xdk::api::Client, user_id: &str) -> xdk::Result<()> {
+    /// let (all_folders, _) = client.paginate_all(
+    ///     None,
+    ///     Some(10),
+    ///     |cursor| {
+    ///         let call = client.get_bookmark_folders(user_id, 100);
+    ///         if let Some(token) = cursor {
+    ///             call.pagination_token(token)
+    ///         } else {
+    ///             call
+    ///         }
+    ///     }
+    /// ).await?;
+    /// # Ok(()) }
+    /// ```
+    pub async fn paginate_all<T, F>(
+        &self,
+        initial_cursor: Option<String>,
+        max_pages: Option<u32>,
+        make_call: F,
+    ) -> crate::Result<(Vec<T>, Option<String>)>
+    where
+        T: serde::de::DeserializeOwned + Clone,
+        F: Fn(Option<&str>) -> Call<ApiResponse<Vec<T>>>,
+    {
+        let mut all_items = Vec::new();
+        let mut cursor = initial_cursor;
+        let mut pages = 0u32;
+        let max = max_pages.unwrap_or(u32::MAX);
+
+        loop {
+            pages += 1;
+            if pages > max {
+                return Ok((all_items, cursor));
+            }
+
+            let call = make_call(cursor.as_deref());
+            let response = call.send().await?;
+
+            all_items.extend_from_slice(&response.data);
+
+            match response.meta.as_ref().and_then(|m| m.next_token.as_deref()) {
+                Some(next) => cursor = Some(next.to_string()),
+                None => break,
+            }
+        }
+
+        Ok((all_items, None))
+    }
+
+    /// Hydrates a list of post IDs in batches, returning all posts.
+    ///
+    /// The X API's `/2/tweets?ids=` endpoint accepts up to 100 IDs per request.
+    /// This method chunks the input IDs and fetches them in parallel batches.
+    ///
+    /// Returns the merged list of hydrated posts. The order may differ from the
+    /// input ID order.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn run(client: xdk::api::Client, ids: Vec<String>) -> xdk::Result<()> {
+    /// let posts = client.hydrate_posts(
+    ///     &ids,
+    ///     Some("created_at,public_metrics"),
+    ///     Some("author_id"),
+    ///     None,
+    ///     None,
+    /// ).await?;
+    /// # Ok(()) }
+    /// ```
+    pub async fn hydrate_posts(
+        &self,
+        ids: &[String],
+        post_fields: Option<&str>,
+        expansions: Option<&str>,
+        media_fields: Option<&str>,
+        user_fields: Option<&str>,
+    ) -> crate::Result<Vec<Post>> {
+        let mut all_posts = Vec::new();
+
+        for chunk in ids.chunks(100) {
+            let call = self.get_posts_by_ids(
+                &chunk.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                post_fields,
+                expansions,
+                media_fields,
+                user_fields,
+            );
+            let response = call.send().await?;
+            all_posts.extend(response.data);
+        }
+
+        Ok(all_posts)
+    }
 }
