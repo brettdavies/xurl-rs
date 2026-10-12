@@ -93,6 +93,87 @@ fn test_bearer_token_operations() {
 }
 
 #[test]
+fn test_oauth2_token_with_metadata() {
+    let (mut store, _tmp) = create_temp_token_store();
+
+    // Save token with user_id and display_name
+    store
+        .save_oauth2_token_for_app_with_metadata(
+            "",
+            "testuser",
+            "access-token",
+            "refresh-token",
+            1234567890,
+            Some("123456789".to_string()),
+            Some("Test User".to_string()),
+        )
+        .expect("Failed to save OAuth2 token with metadata");
+
+    let token = store.get_oauth2_token("testuser");
+    assert!(token.is_some(), "Expected non-nil token");
+    let token = token.unwrap();
+
+    assert_eq!(token.token_type, TokenType::Oauth2);
+    let oauth2 = token.oauth2.as_ref().expect("oauth2 payload");
+    assert_eq!(oauth2.access_token, "access-token");
+    assert_eq!(oauth2.refresh_token, "refresh-token");
+    assert_eq!(oauth2.expiration_time, 1234567890);
+    assert_eq!(oauth2.user_id.as_deref(), Some("123456789"));
+    assert_eq!(oauth2.display_name.as_deref(), Some("Test User"));
+
+    // Round-trip through YAML
+    let yaml = fs::read_to_string(&store.file_path).expect("read store file");
+    assert!(yaml.contains("user_id: '123456789'"), "user_id in YAML");
+    assert!(
+        yaml.contains("display_name: Test User"),
+        "display_name in YAML"
+    );
+
+    // Reload and verify
+    let reloaded = TokenStore::new_with_path(&store.file_path.to_string_lossy());
+    let token = reloaded.get_oauth2_token("testuser").expect("token exists");
+    let oauth2 = token.oauth2.as_ref().expect("oauth2 payload");
+    assert_eq!(oauth2.user_id.as_deref(), Some("123456789"));
+    assert_eq!(oauth2.display_name.as_deref(), Some("Test User"));
+}
+
+#[test]
+fn test_oauth2_token_backward_compatibility() {
+    let tmp = TempDir::new().unwrap();
+    let file_path = tmp.path().join(".xurl");
+
+    // Write an old-format store without user_id or display_name
+    let old_yaml = r#"
+apps:
+  default:
+    client_id: test-client-id
+    client_secret: test-client-secret
+    oauth2_tokens:
+      olduser:
+        type: oauth2
+        oauth2:
+          access_token: old-access-token
+          refresh_token: old-refresh-token
+          expiration_time: 1234567890
+default_app: default
+"#;
+    fs::write(&file_path, old_yaml).expect("write old format store");
+
+    // Load the old store
+    let store = TokenStore::new_with_path(&file_path.to_string_lossy());
+    assert_eq!(store.load_state, xdk::store::LoadState::Loaded);
+
+    // Verify the token loads without user_id and display_name
+    let token = store.get_oauth2_token("olduser").expect("token exists");
+    let oauth2 = token.oauth2.as_ref().expect("oauth2 payload");
+    assert_eq!(oauth2.access_token, "old-access-token");
+    assert_eq!(oauth2.refresh_token, "old-refresh-token");
+    assert_eq!(oauth2.expiration_time, 1234567890);
+    assert_eq!(oauth2.user_id, None, "old store has no user_id");
+    assert_eq!(oauth2.display_name, None, "old store has no display_name");
+}
+
+#[test]
 fn test_oauth2_token_operations() {
     let (mut store, _tmp) = create_temp_token_store();
 

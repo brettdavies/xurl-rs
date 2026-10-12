@@ -23,6 +23,17 @@ use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::store::TokenStore;
 
+/// User identity information returned by `/2/users/me`.
+#[derive(Debug, Clone)]
+pub(crate) struct UserInfo {
+    /// Handle without the leading `@`.
+    pub(crate) username: String,
+    /// Numeric user ID (X API snowflake string).
+    pub(crate) user_id: Option<String>,
+    /// Display name.
+    pub(crate) display_name: Option<String>,
+}
+
 /// Manages authentication for X API requests.
 ///
 /// Holds the credential matrix (env-supplied vs store-derived `client_id` /
@@ -454,12 +465,13 @@ impl Auth {
         )
     }
 
-    /// Fetches the username for an access token from the /2/users/me endpoint.
+    /// Fetches the username, user ID, and display name for an access token
+    /// from the /2/users/me endpoint.
     pub(crate) async fn fetch_username(
         &self,
         http: &reqwest::Client,
         access_token: &str,
-    ) -> Result<String> {
+    ) -> Result<UserInfo> {
         let resp = http
             .get(&self.config.info_url)
             .timeout(std::time::Duration::from_secs(
@@ -475,13 +487,33 @@ impl Auth {
             .await
             .map_err(|e| Error::auth_with_cause("JSONDeserializationError", &e).with_source(e))?;
 
-        body.get("data")
-            .and_then(|d| d.get("username"))
+        let data = body
+            .get("data")
+            .ok_or_else(|| Error::auth("UsernameNotFound: data field missing from /2/users/me"))?;
+
+        let username = data
+            .get("username")
             .and_then(|u| u.as_str())
             .map(std::string::ToString::to_string)
             .ok_or_else(|| {
                 Error::auth("UsernameNotFound: username not found when fetching username")
-            })
+            })?;
+
+        let user_id = data
+            .get("id")
+            .and_then(|u| u.as_str())
+            .map(std::string::ToString::to_string);
+
+        let display_name = data
+            .get("name")
+            .and_then(|n| n.as_str())
+            .map(std::string::ToString::to_string);
+
+        Ok(UserInfo {
+            username,
+            user_id,
+            display_name,
+        })
     }
 
     /// Replaces the token store (used in integration tests).

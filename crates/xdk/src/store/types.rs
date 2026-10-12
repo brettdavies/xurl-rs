@@ -69,6 +69,19 @@ pub struct OAuth2Token {
     pub refresh_token: String,
     /// Unix epoch second at which [`Self::access_token`] expires.
     pub expiration_time: u64,
+    /// Numeric user ID returned by `/2/users/me` at login or refresh.
+    ///
+    /// Persisted alongside the token so commands can skip a paid read when
+    /// they need only the authenticated user's ID. Absent in stores written
+    /// before this field was added; the next natural refresh fills it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// Display name returned by `/2/users/me` at login or refresh.
+    ///
+    /// Saved alongside [`Self::user_id`] from the same response at no
+    /// additional cost. Optional; older stores lack it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 
 /// Token-type discriminator carried alongside [`Token`].

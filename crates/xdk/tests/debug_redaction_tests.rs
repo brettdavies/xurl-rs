@@ -34,6 +34,8 @@ fn store_token_types_redact_every_secret() {
         access_token: SECRET.into(),
         refresh_token: SECRET.into(),
         expiration_time: 1,
+        user_id: None,
+        display_name: None,
     };
     let bearer = Token {
         token_type: TokenType::Bearer,
