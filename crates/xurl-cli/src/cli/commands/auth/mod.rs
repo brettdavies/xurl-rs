@@ -50,6 +50,19 @@ impl From<&GlobalFlags> for AuthGlobalFlags {
     }
 }
 
+/// OAuth2 user identity in `auth status` output.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct OAuth2UserInfo {
+    /// Username (handle without the leading `@`).
+    username: String,
+    /// Numeric user ID, when cached from a prior `/2/users/me` call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    user_id: Option<String>,
+    /// Display name, when cached from a prior `/2/users/me` call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<String>,
+}
+
 /// Per-app status/list entry rendered under `--output json`.
 ///
 /// Built field-by-field from named accessors on `App` and `TokenStore`.
@@ -73,7 +86,12 @@ pub(crate) struct AppStatusEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     redirect_uri_stored: Option<String>,
     /// `OAuth2` usernames present in the app (no tokens, just names).
+    ///
+    /// Deprecated in favor of [`Self::oauth2_user_info`]; kept for backward
+    /// compatibility. New consumers should read `oauth2_user_info`.
     oauth2_users: Vec<String>,
+    /// `OAuth2` user identity details: username, cached user ID, and display name.
+    oauth2_user_info: Vec<OAuth2UserInfo>,
     /// Whether the app has `OAuth1` credentials present (presence only).
     oauth1: bool,
     /// Whether a bearer credential is available for the app: stored on it,
@@ -323,13 +341,27 @@ fn build_app_status_entries(
             } else {
                 None
             };
+            let oauth2_usernames = ts.get_oauth2_usernames_for_app(name);
+            let oauth2_user_info = oauth2_usernames
+                .iter()
+                .filter_map(|username| {
+                    let token = ts.get_oauth2_token_for_app(name, username)?;
+                    let oauth2 = token.oauth2.as_ref()?;
+                    Some(OAuth2UserInfo {
+                        username: username.clone(),
+                        user_id: oauth2.user_id.clone(),
+                        display_name: oauth2.display_name.clone(),
+                    })
+                })
+                .collect();
             Some(AppStatusEntry {
                 name: name.clone(),
                 client_id_hint: truncate(&app.client_id, 8).to_string(),
                 redirect_uri: resolved.uri,
                 redirect_uri_source: resolved.source,
                 redirect_uri_stored: stored_field,
-                oauth2_users: ts.get_oauth2_usernames_for_app(name),
+                oauth2_users: oauth2_usernames,
+                oauth2_user_info,
                 oauth1: app.oauth1_token.is_some(),
                 bearer: bearer_source.is_some(),
                 bearer_source,

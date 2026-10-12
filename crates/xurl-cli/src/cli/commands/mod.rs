@@ -451,18 +451,36 @@ fn with_flags<T: DeserializeOwned>(
 
 /// Resolves the authenticated user's ID.
 ///
-/// With no `--username`, calls `/2/users/me` (the default identity for the
-/// active credential). With one, calls `/2/users/by/username/<u>` directly,
-/// bypassing `/me` so the shortcut works when `/me` is unavailable or when
-/// the caller wants to act under a known handle without consulting `/me`.
-async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<String> {
+/// With no `--username`, attempts to read the cached user ID from the token
+/// store first, falling back to `/2/users/me` only when the cache is empty.
+/// This saves a paid read per command. With an explicit username, calls
+/// `/2/users/by/username/<u>` directly, bypassing `/me` so the shortcut
+/// works when `/me` is unavailable or when the caller wants to act under a
+/// known handle without consulting `/me`.
+async fn resolve_my_user_id(
+    client: &Client,
+    cached_user_id: Option<&str>,
+    common: &CommonFlags,
+) -> Result<String> {
     let id = match common.username.as_deref().filter(|u| !u.is_empty()) {
         None => {
-            with_flags(client.get_me(), common, None)
-                .send()
-                .await?
-                .data
-                .id
+            // Try the cache first: use the cached user_id from the active
+            // OAuth2 token. Fall back to a live `/me` call only when the
+            // cache is empty (old store, or a token written before caching
+            // was added).
+            if let Some(cached_id) = cached_user_id {
+                tracing::debug!(
+                    target: "xdk::vocabulary",
+                    "using cached user_id {cached_id} from token store"
+                );
+                cached_id.to_string()
+            } else {
+                with_flags(client.get_me(), common, None)
+                    .send()
+                    .await?
+                    .data
+                    .id
+            }
         }
         Some(username) => {
             with_flags(client.lookup_user(username), common, None)
@@ -500,10 +518,15 @@ where
         ..
     } = run;
     let n = effective_limit(max_results, flags.global_limit);
+    let cached_user_id = auth
+        .token_store
+        .get_first_oauth2_token()
+        .and_then(|t| t.oauth2.as_ref())
+        .and_then(|o| o.user_id.clone());
     let client = make_client(cfg, auth)?;
     let user_id = match of {
         Some(target) => resolve_user_id(&client, target, common).await?,
-        None => resolve_my_user_id(&client, common).await?,
+        None => resolve_my_user_id(&client, cached_user_id.as_deref(), common).await?,
     };
     let call = shortcut(&client, &user_id, n);
     let response = with_flags(call, common, flags.cursor.as_deref())
@@ -540,8 +563,13 @@ where
     if !proceed {
         return Ok(());
     }
+    let cached_user_id = auth
+        .token_store
+        .get_first_oauth2_token()
+        .and_then(|t| t.oauth2.as_ref())
+        .and_then(|o| o.user_id.clone());
     let client = make_client(cfg, auth)?;
-    let my_id = resolve_my_user_id(&client, common).await?;
+    let my_id = resolve_my_user_id(&client, cached_user_id.as_deref(), common).await?;
     let target_id = resolve_user_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
         .send()
@@ -612,8 +640,13 @@ where
     if !proceed {
         return Ok(());
     }
+    let cached_user_id = auth
+        .token_store
+        .get_first_oauth2_token()
+        .and_then(|t| t.oauth2.as_ref())
+        .and_then(|o| o.user_id.clone());
     let client = make_client(cfg, auth)?;
-    let my_id = resolve_my_user_id(&client, common).await?;
+    let my_id = resolve_my_user_id(&client, cached_user_id.as_deref(), common).await?;
     let response = with_flags(shortcut(&client, &my_id, post_id), common, None)
         .send()
         .await?;

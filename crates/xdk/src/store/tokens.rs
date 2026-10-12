@@ -63,6 +63,39 @@ impl TokenStore {
         refresh_token: &str,
         expiration_time: u64,
     ) -> Result<()> {
+        self.save_oauth2_token_for_app_with_metadata(
+            app_name,
+            username,
+            access_token,
+            refresh_token,
+            expiration_time,
+            None,
+            None,
+        )
+    }
+
+    /// Saves an `OAuth2` token into the named app with optional user metadata.
+    ///
+    /// The `user_id` and `display_name` are persisted alongside the token so
+    /// commands can skip a paid `/2/users/me` call when they need only the
+    /// authenticated user's identity. Provide `None` for either when the
+    /// metadata is unavailable (e.g. a `/me` lookup failure during token
+    /// exchange).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    #[allow(clippy::too_many_arguments)]
+    pub fn save_oauth2_token_for_app_with_metadata(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        access_token: &str,
+        refresh_token: &str,
+        expiration_time: u64,
+        user_id: Option<String>,
+        display_name: Option<String>,
+    ) -> Result<()> {
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
             app.oauth2_tokens.insert(
@@ -74,6 +107,8 @@ impl TokenStore {
                         access_token: access_token.to_string(),
                         refresh_token: refresh_token.to_string(),
                         expiration_time,
+                        user_id,
+                        display_name,
                     }),
                     oauth1: None,
                 },
@@ -107,6 +142,8 @@ impl TokenStore {
                     access_token: access_token.to_string(),
                     refresh_token: refresh_token.to_string(),
                     expiration_time,
+                    user_id: None,
+                    display_name: None,
                 }),
                 oauth1: None,
             });

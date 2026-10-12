@@ -38,8 +38,15 @@
           "description": "Whether the app has an unnamed (`/me`-failed salvage) `OAuth2` token.\n\nOmitted from JSON output when `false`; a `true` value signals\nthat `App.unnamed_oauth2_token.is_some()`.",
           "type": "boolean"
         },
+        "oauth2_user_info": {
+          "description": "`OAuth2` user identity details: username, cached user ID, and display name.",
+          "items": {
+            "$ref": "#/$defs/OAuth2UserInfo"
+          },
+          "type": "array"
+        },
         "oauth2_users": {
-          "description": "`OAuth2` usernames present in the app (no tokens, just names).",
+          "description": "`OAuth2` usernames present in the app (no tokens, just names).\n\nDeprecated in favor of [`Self::oauth2_user_info`]; kept for backward\ncompatibility. New consumers should read `oauth2_user_info`.",
           "items": {
             "type": "string"
           },
@@ -67,6 +74,7 @@
         "redirect_uri",
         "redirect_uri_source",
         "oauth2_users",
+        "oauth2_user_info",
         "oauth1",
         "bearer",
         "default",
@@ -88,6 +96,33 @@
           "type": "string"
         }
       ]
+    },
+    "OAuth2UserInfo": {
+      "description": "OAuth2 user identity in `auth status` output.",
+      "properties": {
+        "display_name": {
+          "description": "Display name, when cached from a prior `/2/users/me` call.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user_id": {
+          "description": "Numeric user ID, when cached from a prior `/2/users/me` call.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "username": {
+          "description": "Username (handle without the leading `@`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "username"
+      ],
+      "type": "object"
     },
     "ResolveSource": {
       "description": "Where a resolved redirect URI came from: `env-var`, `app-config`, or `built-in-default`.",

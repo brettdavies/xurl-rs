@@ -64,15 +64,24 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
                 out.print_message(stdout, &format!("      stored_redirect_uri: {stored}"));
             }
 
-            if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
+            if entry.oauth2_user_info.is_empty() && !entry.oauth2_unnamed {
                 out.print_message(stdout, "      oauth2: (none)");
             } else {
-                for u in &entry.oauth2_users {
-                    if *u == app.default_user {
-                        out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
+                for user_info in &entry.oauth2_user_info {
+                    let user_id_suffix = user_info
+                        .user_id
+                        .as_deref()
+                        .map(|id| format!(" (id: {id})"))
+                        .unwrap_or_default();
+                    let marker = if user_info.username == app.default_user {
+                        "\u{25b8}"
                     } else {
-                        out.print_message(stdout, &format!("      oauth2: {u}"));
-                    }
+                        " "
+                    };
+                    out.print_message(
+                        stdout,
+                        &format!("  {marker} oauth2: {}{user_id_suffix}", user_info.username),
+                    );
                 }
                 // Render the unnamed (`/me`-failed salvage)
                 // slot after named users, labelled `(unknown user)`.

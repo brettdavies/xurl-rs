@@ -198,13 +198,15 @@ pub(crate) async fn exchange_code_for_token(
 
     if username.is_empty() {
         match auth.fetch_username(http, &access_token).await {
-            Ok(discovered) => {
-                auth.token_store.save_oauth2_token_for_app(
+            Ok(user_info) => {
+                auth.token_store.save_oauth2_token_for_app_with_metadata(
                     &app_name,
-                    &discovered,
+                    &user_info.username,
                     &access_token,
                     &refresh_token,
                     expiration_time,
+                    user_info.user_id,
+                    user_info.display_name,
                 )?;
             }
             Err(_) => {
@@ -616,13 +618,15 @@ pub async fn refresh_oauth2_token(
 
     if username.is_empty() {
         match auth.fetch_username(http, &new_access_token).await {
-            Ok(discovered) => {
-                auth.token_store.save_oauth2_token_for_app(
+            Ok(user_info) => {
+                auth.token_store.save_oauth2_token_for_app_with_metadata(
                     &app_name,
-                    &discovered,
+                    &user_info.username,
                     &new_access_token,
                     &new_refresh_token,
                     expiration_time,
+                    user_info.user_id,
+                    user_info.display_name,
                 )?;
             }
             Err(_) => {
@@ -639,12 +643,14 @@ pub async fn refresh_oauth2_token(
             }
         }
     } else {
-        auth.token_store.save_oauth2_token_for_app(
+        auth.token_store.save_oauth2_token_for_app_with_metadata(
             &app_name,
             username,
             &new_access_token,
             &new_refresh_token,
             expiration_time,
+            None,
+            None,
         )?;
     }
 
