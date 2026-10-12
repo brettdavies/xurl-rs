@@ -172,12 +172,16 @@
               "group_name",
               "id",
               "invite",
+              "is_archived",
               "is_muted",
+              "last_read_event_id",
               "message_ttl_ms",
+              "newest_event_id",
               "pending_member_ids",
               "screen_capture_blocking_enabled",
               "screen_capture_detection_enabled",
               "type",
+              "unread",
               "updated_at"
             ],
             "type": "string"
@@ -2172,6 +2176,128 @@
         ],
         "type": "object"
       },
+      "ArchiveChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/ArchiveChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "ArchiveChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "ArchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ArchiveChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationResponseData": {
+        "properties": {
+          "archived": {
+            "description": "Whether the conversation is archived for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
+        "type": "object"
+      },
       "ArticleCreateDraftContentState": {
         "additionalProperties": false,
         "properties": {
@@ -2813,8 +2939,16 @@
           "invite": {
             "$ref": "#/components/schemas/ChatConversationInvite"
           },
+          "is_archived": {
+            "description": "Whether the authenticated user archived this conversation.",
+            "type": "boolean"
+          },
           "is_muted": {
             "type": "boolean"
+          },
+          "last_read_event_id": {
+            "description": "The event ID you have read up to, from your newest read receipt. Absent when you marked the conversation unread after it, or when you have no read receipt.",
+            "type": "string"
           },
           "member_ids": {
             "items": {
@@ -2824,6 +2958,10 @@
           },
           "message_ttl_ms": {
             "type": "integer"
+          },
+          "newest_event_id": {
+            "description": "The ID of the newest event in the conversation that is not a read receipt or unread mark. Pass it as seen_until_sequence_id to mark the conversation read.",
+            "type": "string"
           },
           "participant_ids": {
             "items": {
@@ -2842,6 +2980,10 @@
           },
           "type": {
             "type": "string"
+          },
+          "unread": {
+            "description": "Whether the conversation is unread for you: you marked it unread, or after the point you last read someone else sent a message or a notifying reaction, or Grok replied. Computed from the newest events of the conversation (up to 100), your latest read receipt and its latest notifying message; absent when its events could not be read.",
+            "type": "boolean"
           },
           "updated_at": {
             "format": "date-time",
@@ -10919,13 +11061,11 @@
       "MarkChatConversationReadRequest": {
         "properties": {
           "seen_until_sequence_id": {
-            "description": "The sequence ID of the last message to mark as read up to.",
+            "description": "Newest event `id` the user has seen (GET .../events). Omit to mark the whole chat read.",
+            "pattern": "^[0-9]{1,19}$",
             "type": "string"
           }
         },
-        "required": [
-          "seen_until_sequence_id"
-        ],
         "type": "object"
       },
       "MarkChatConversationReadResponse": {
@@ -10946,6 +11086,32 @@
         "properties": {
           "success": {
             "description": "Whether the conversation was marked read.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "type": "object"
+      },
+      "MarkChatConversationUnreadResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MarkChatConversationUnreadResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MarkChatConversationUnreadResponseData": {
+        "properties": {
+          "success": {
+            "description": "Whether the conversation was marked unread.",
             "type": "boolean"
           }
         },
@@ -15320,6 +15486,128 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationResponseData": {
+        "properties": {
+          "archived": {
+            "description": "Whether the conversation is archived for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
         "type": "object"
       },
       "UnblockUsersDmsResponse": {
@@ -20565,7 +20853,7 @@
     },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox. The unread, last_read_event_id and newest_event_id fields give your read state, computed from the newest events of each conversation and your latest read receipt. With unread_only=true, only conversations that are unread for you are returned; a page can then hold fewer than max_results, so keep paging while has_more is true.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20590,6 +20878,17 @@
             "required": false,
             "schema": {
               "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Return only unread conversations. A page can be short; keep paging while has_more.",
+            "in": "query",
+            "name": "unread_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
             },
             "style": "form"
           },
@@ -20641,7 +20940,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversations",
+        "summary": "Get Chat Conversations; unread state via chat_conversation.fields=unread,last_read_event_id,newest_event_id",
         "tags": [
           "Chat"
         ]
@@ -20834,7 +21133,7 @@
         ]
       },
       "get": {
-        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users.",
+        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users. The unread, last_read_event_id and newest_event_id fields give your read state, computed from the newest 100 events of the conversation and your latest read receipt.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20899,7 +21198,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversation",
+        "summary": "Get Chat Conversation; unread state via chat_conversation.fields=unread,last_read_event_id,newest_event_id",
         "tags": [
           "Chat"
         ]
@@ -21527,6 +21826,154 @@
           }
         ],
         "summary": "Remove admins from a Chat group conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/archive": {
+      "delete": {
+        "description": "Unarchives a Chat conversation for the authenticated user only. Unarchiving a conversation that is not archived changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "unarchiveChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchiveChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnarchiveChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unarchive a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "description": "Archives a Chat conversation for the authenticated user only. Archiving an archived conversation changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "archiveChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Archive a Chat conversation",
         "tags": [
           "Chat"
         ]
@@ -22953,6 +23400,70 @@
           }
         ],
         "summary": "Send Typing Indicator",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/unread": {
+      "post": {
+        "description": "Marks a specific Chat conversation as unread on behalf of the authenticated user. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "markChatConversationUnread",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkChatConversationUnreadResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Mark Conversation as Unread",
         "tags": [
           "Chat"
         ]
