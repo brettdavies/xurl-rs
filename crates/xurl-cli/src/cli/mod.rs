@@ -196,15 +196,19 @@ Examples:
     xr search \"rustlang\" --output json | jaq -r '.data[]?.id'
 ";
 
-/// `xr whoami` examples — paired text + JSON.
+/// `xr whoami` examples — cached vs live, paired text + JSON.
 const WHOAMI_HELP: &str = "\
 Examples:
-  Show your profile (text):
+  Show your profile (cached, no API call):
     xr whoami
-  Same, as a JSON envelope:
+  Same, as a JSON envelope from cache:
     xr whoami --output json
+  Show your full profile (live API call):
+    xr whoami --refresh
   Act as a specific authenticated user (multi-account):
     xr whoami --username alice --output json
+  Check if result came from cache or API:
+    xr whoami --output json | jaq -r '.source'
 ";
 
 /// `xr user` examples — paired text + JSON.
@@ -1147,6 +1151,14 @@ pub enum Commands {
     /// Show the authenticated user's profile
     #[command(after_help = WHOAMI_HELP)]
     Whoami {
+        /// Force a live /2/users/me call instead of using the cached identity.
+        ///
+        /// By default, whoami returns the cached username, user_id, and
+        /// display_name from the token store when available, with no API call.
+        /// --refresh forces the live /2/users/me lookup and returns all profile
+        /// fields.
+        #[arg(long)]
+        refresh: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
