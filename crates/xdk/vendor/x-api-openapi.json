@@ -2947,7 +2947,7 @@
             "type": "boolean"
           },
           "last_read_event_id": {
-            "description": "The event ID you have read up to, from your newest read receipt. Absent when you marked the conversation unread after it, or when you have no read receipt.",
+            "description": "The event ID you have read up to: the seen_until_sequence_id of your latest read receipt. Absent when you have no read receipt.",
             "type": "string"
           },
           "member_ids": {
@@ -2960,7 +2960,7 @@
             "type": "integer"
           },
           "newest_event_id": {
-            "description": "The ID of the newest event in the conversation that is not a read receipt or unread mark. Pass it as seen_until_sequence_id to mark the conversation read.",
+            "description": "The ID of the latest notifying message in the conversation.",
             "type": "string"
           },
           "participant_ids": {
@@ -2982,7 +2982,7 @@
             "type": "string"
           },
           "unread": {
-            "description": "Whether the conversation is unread for you: you marked it unread, or after the point you last read someone else sent a message or a notifying reaction, or Grok replied. Computed from the newest events of the conversation (up to 100), your latest read receipt and its latest notifying message; absent when its events could not be read.",
+            "description": "Whether the conversation is unread for you: its latest notifying message was sent by someone else after last_read_event_id, or you have no read receipt. Marking the conversation unread does not set it.",
             "type": "boolean"
           },
           "updated_at": {
@@ -11053,16 +11053,6 @@
           },
           "title": {
             "description": "Broadcast title / status text.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "MarkChatConversationReadRequest": {
-        "properties": {
-          "seen_until_sequence_id": {
-            "description": "Newest event `id` the user has seen (GET .../events). Omit to mark the whole chat read.",
-            "pattern": "^[0-9]{1,19}$",
             "type": "string"
           }
         },
@@ -20853,7 +20843,7 @@
     },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox. The unread, last_read_event_id and newest_event_id fields give your read state, computed from the newest events of each conversation and your latest read receipt. With unread_only=true, only conversations that are unread for you are returned; a page can then hold fewer than max_results, so keep paging while has_more is true.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. With unread_only=true, only conversations that are unread for you are returned; a page can then hold fewer than max_results, so keep paging while has_more is true.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20864,9 +20854,9 @@
             "name": "max_results",
             "required": false,
             "schema": {
-              "default": 10,
+              "default": 200,
               "format": "int32",
-              "maximum": 100,
+              "maximum": 1000,
               "minimum": 1,
               "type": "integer"
             },
@@ -21133,7 +21123,7 @@
         ]
       },
       "get": {
-        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users. The unread, last_read_event_id and newest_event_id fields give your read state, computed from the newest 100 events of the conversation and your latest read receipt.",
+        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and the conversation's latest notifying message.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -21981,7 +21971,7 @@
     },
     "/2/chat/conversations/{id}/events": {
       "get": {
-        "description": "Retrieves the events of a specific Chat conversation, newest first, with pagination support: messages, key changes, group changes, and read receipts. Only `id` and `encoded_event` are always present. Events are either end-to-end encrypted or unencrypted, such as messages sent before the conversation was encrypted. Encrypted events carry `conversation_key_version`, and usually `conversation_token` and `message_event_signature`; treat an encrypted event without `message_event_signature` as unverified. An event without `conversation_key_version` is unencrypted. Decode each `encoded_event` client-side, and decrypt it with the conversation key named by `conversation_key_version` when that is present. A page holds up to `max_results` events and can hold fewer while `has_more` is true. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Retrieves the events of a specific Chat conversation, newest first, with pagination support: messages, key changes, group changes, and read receipts. Events with an id above the conversation's last_read_event_id come after the point you read up to; to collect them, page until an event's id is at or below it. Only `id` and `encoded_event` are always present. Events are either end-to-end encrypted or unencrypted, such as messages sent before the conversation was encrypted. Encrypted events carry `conversation_key_version`, and usually `conversation_token` and `message_event_signature`; treat an encrypted event without `message_event_signature` as unverified. An event without `conversation_key_version` is unencrypted. Decode each `encoded_event` client-side, and decrypt it with the conversation key named by `conversation_key_version` when that is present. A page holds up to `max_results` events and can hold fewer while `has_more` is true. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -22064,7 +22054,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversation Events",
+        "summary": "Get Chat Conversation Events, newest first; unread ones have an id above last_read_event_id",
         "tags": [
           "Chat"
         ]
@@ -23211,16 +23201,6 @@
             "style": "simple"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkChatConversationReadRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "content": {
