@@ -105,7 +105,7 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
         ));
     }
     let data =
-        serde_yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
+        crate::yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
     crate::store::ensure_store_dir(path)?;
     crate::store::write_atomically(path, data.as_bytes())?;
     Ok(())
@@ -182,7 +182,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         Err(e) => return Err(e.into()),
     };
     let state: PendingOAuth2State =
-        serde_yaml::from_str(&data).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
+        serde_saphyr::from_str(&data).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
 
     // TTL check.
     let now = SystemTime::now()

@@ -26,6 +26,11 @@ pub mod store;
 #[cfg(feature = "testing")]
 #[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
 pub mod testing;
+// The token store, the pending-auth file, and `xr`'s `--output yaml` share one
+// YAML encoding; `xr` calls it from `cli/output/mod.rs` and
+// `cli/skill_install/render.rs`. It is not embedder API.
+#[doc(hidden)]
+pub mod yaml;
 
 pub use error::{Error, Result};
 

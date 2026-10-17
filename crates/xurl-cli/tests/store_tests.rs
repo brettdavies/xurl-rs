@@ -1001,7 +1001,7 @@ fn test_set_app_redirect_uri_empty_clears_value_and_omits_from_yaml() {
 
     // Parse the on-disk YAML and confirm `app1` has no `redirect_uri` key.
     let raw = fs::read_to_string(&store.file_path).unwrap();
-    let parsed: serde_yaml::Value = serde_yaml::from_str(&raw).unwrap();
+    let parsed: serde_json::Value = serde_saphyr::from_str(&raw).unwrap();
     let app1 = parsed
         .get("apps")
         .and_then(|a| a.get("app1"))

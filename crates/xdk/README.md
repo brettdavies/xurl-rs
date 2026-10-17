@@ -104,7 +104,7 @@ the `xr` CLI uses, `next_action()` names the one thing a caller can do about it 
 change the input, enroll the app, report a fault of the library, and so on), and `docs_url()` points at the page that
 explains it when one exists. A credential failure names no action: which stored login to use is the caller's to decide.
 An error that wraps a lower-level failure keeps it: `std::error::Error::source()` returns the `reqwest`, `std::io`,
-`serde_json`, or `serde_yaml` error underneath, so a caller can walk the chain or downcast to it.
+`serde_json`, or `serde_saphyr` error underneath, so a caller can walk the chain or downcast to it.
 
 A 429 carries the reset its own response named, as seconds since the Unix epoch in the `reset_at` field of `Error::Api`,
 and `NextAction::WaitAndRetry` with it; a 429 that named none carries neither. `ClientBuilder::wait_on_rate_limit` makes

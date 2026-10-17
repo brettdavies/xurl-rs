@@ -77,7 +77,7 @@ fn plain(text: &str) -> String {
 /// The envelope `stderr` carries, whichever structured format rendered it.
 fn envelope(stderr: &str, format: &str) -> serde_json::Value {
     if format == "yaml" {
-        return serde_yaml::from_str(stderr).expect("stderr is a YAML envelope");
+        return serde_saphyr::from_str(stderr).expect("stderr is a YAML envelope");
     }
     serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope")
 }

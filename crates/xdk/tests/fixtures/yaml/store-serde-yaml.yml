@@ -1,0 +1,30 @@
+apps:
+  second:
+    client_id: Q2xpZW50SWQtZXhhbXBsZS0wMDAx
+    client_secret: yes
+    default_user: yes
+    redirect_uri: http://127.0.0.1:8739/callback
+    oauth2_tokens:
+      example_user:
+        type: oauth2
+        oauth2:
+          access_token: short-access
+          refresh_token: short-refresh
+          expiration_time: 1893456000
+      yes:
+        type: oauth2
+        oauth2:
+          access_token: VGhpcy1pcy1hLWxvbmctZXhhbXBsZS1hY2Nlc3MtdG9rZW4tdGhhdC1ydW5zLXBhc3QtZWlnaHR5LWNoYXJhY3RlcnMtMDAwMQ
+          refresh_token: cmVmcmVzaC10b2tlbi1leGFtcGxlLTAwMDE
+          expiration_time: 1893456000
+    oauth1_token:
+      type: oauth1
+      oauth1:
+        access_token: 1234567890-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789
+        token_secret: token%2Bsecret%3D
+        consumer_key: consumerkey
+        consumer_secret: consumer secret with spaces
+    bearer_token:
+      type: bearer
+      bearer: AAAAAAAAAAAAAAAAAAAAAMLheAAAAAAA0%2BuSeid%2BULvsea4JtiGRiSDSJSI%3DEUifiRBkKG5E2XzMDjRfl76ZC9Ub0wnz4XsNiRVBChTYbJcE3F
+default_app: second

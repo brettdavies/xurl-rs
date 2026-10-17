@@ -707,7 +707,7 @@ impl TokenStore {
             apps: self.apps.clone(),
             default_app: self.default_app.clone(),
         };
-        let data = serde_yaml::to_string(&sf)
+        let data = crate::yaml::to_string(&sf)
             .map_err(|e| Error::token_store(e.to_string()).with_source(e))?;
         write_atomically(&self.file_path, data.as_bytes())?;
         Ok(())
