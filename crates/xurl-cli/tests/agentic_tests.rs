@@ -214,9 +214,11 @@ async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] form
 fn test_output_yaml_prints_a_yaml_mapping() {
     let stdout = version_in("yaml");
     assert!(
-        stdout.contains(&format!("name: xr\nversion: {VERSION}\n")),
+        stdout.contains("name: xr\nversion: "),
         "--output yaml must print a block-style mapping: {stdout}"
     );
+    let document: serde_json::Value = serde_saphyr::from_str(&stdout).expect("a YAML mapping");
+    assert_eq!(document["version"], VERSION, "{stdout}");
 }
 
 #[rstest]

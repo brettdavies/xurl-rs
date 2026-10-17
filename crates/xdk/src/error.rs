@@ -95,7 +95,7 @@ pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
 /// classified before it ships.
 ///
 /// A variant that wraps a lower-level failure keeps it: `source()` returns
-/// the `reqwest`, `std::io`, `serde_json`, or `serde_yaml` error underneath,
+/// the `reqwest`, `std::io`, `serde_json`, or `serde_saphyr` error underneath,
 /// so a caller can walk the chain or downcast to it. `Display` stays the
 /// message alone.
 ///
@@ -685,8 +685,8 @@ impl From<serde_json::Error> for Error {
 }
 
 // The token store and a `.twurlrc` import are the library's only YAML.
-impl From<serde_yaml::Error> for Error {
-    fn from(err: serde_yaml::Error) -> Self {
+impl From<serde_saphyr::Error> for Error {
+    fn from(err: serde_saphyr::Error) -> Self {
         Self::token_store(err.to_string()).with_source(err)
     }
 }

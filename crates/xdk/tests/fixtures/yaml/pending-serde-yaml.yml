@@ -1,0 +1,9 @@
+code_verifier: dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
+state: af0ifjsldkj
+client_id: '1234567890123456789'
+app_name: default
+created_at: 1893456000
+scopes:
+- tweet.read
+- users.read
+- offline.access

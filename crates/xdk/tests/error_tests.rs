@@ -593,7 +593,7 @@ fn a_url_parse_failure_is_an_invalid_url_with_the_parse_error_as_its_source() {
 
 #[test]
 fn a_yaml_failure_is_a_token_store_error_with_the_yaml_error_as_its_source() {
-    let yaml_err = serde_yaml::from_str::<serde_yaml::Value>("{{{").expect_err("not YAML");
+    let yaml_err = serde_saphyr::from_str::<serde_json::Value>("{{{").expect_err("not YAML");
     let display = yaml_err.to_string();
 
     let err: Error = yaml_err.into();
@@ -602,8 +602,8 @@ fn a_yaml_failure_is_a_token_store_error_with_the_yaml_error_as_its_source() {
     assert_eq!(err.to_string(), display);
     assert!(
         std::error::Error::source(&err)
-            .and_then(|s| s.downcast_ref::<serde_yaml::Error>())
+            .and_then(|s| s.downcast_ref::<serde_saphyr::Error>())
             .is_some(),
-        "the source is the serde_yaml::Error"
+        "the source is the serde_saphyr::Error"
     );
 }

@@ -364,7 +364,7 @@ impl OutputConfig {
                 let _ = writeln!(out, "{body}");
             }
             OutputFormat::Yaml => {
-                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let body = xdk::yaml::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = write!(out, "{body}");
             }
             OutputFormat::Csv => {
@@ -630,7 +630,7 @@ impl OutputConfig {
                 let _ = writeln!(w, "{body}");
             }
             OutputFormat::Yaml => {
-                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let body = xdk::yaml::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = write!(w, "{body}");
             }
             OutputFormat::Csv | OutputFormat::Tsv => {
